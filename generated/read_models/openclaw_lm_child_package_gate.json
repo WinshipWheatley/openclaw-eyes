@@ -1,0 +1,905 @@
+{
+  "allowed_delegation_rules": {
+    "audit_child_allowed": "Read-only inspection, no edits, no services, no live actions.",
+    "implementation_child_requires_guardian": "Source edits require explicit package scope and Guardian approval.",
+    "live_action_child_forbidden": "Live business actions remain forbidden.",
+    "test_writer_child_allowed": "Test-file edits only when parent package permits the test file scope."
+  },
+  "budget_controls": {
+    "budget_exceeded_decision": "BUDGET_EXCEEDED",
+    "parent_package_must_account_for_child_budget": true,
+    "policy_max_total_budget_enforced": true,
+    "request_budget_must_not_exceed_parent_budget": true
+  },
+  "chain": {
+    "child_spawning_enabled": false,
+    "name": "LM Gate -> SQLite Package Gate -> LM2 -> Guardian -> Child Worker",
+    "runtime_activation_allowed": false,
+    "sqlite_gate_is_contract_read_model_only": true
+  },
+  "child_package_requests": [
+    {
+      "child_task_type": "audit_read_only",
+      "guardian_status": "NOT_REQUIRED",
+      "parent_package_ref": "lm_package:audit_child_parent",
+      "proposed_child_package_ref": "lm_package:child:audit_read_only",
+      "reason": "Inspect package-gate files for schema and authority boundary consistency.",
+      "receipt_required": true,
+      "request_ref": "child_request:audit_read_only",
+      "requested_authority": [],
+      "requested_budget": 100,
+      "requested_commands": [
+        "rg"
+      ],
+      "requested_depth": 1,
+      "requested_files": [
+        "openclaw_lm_child_package_gate.py"
+      ],
+      "requested_model_class": "AUDIT_CHILD",
+      "stop_conditions": [
+        "task_complete",
+        "budget_exhausted",
+        "boundary_check_failed",
+        "guardian_required"
+      ],
+      "validation_reasons": [
+        "Child package request is within policy, budget, file, command, authority, depth, and receipt boundaries."
+      ],
+      "validation_status": "ALLOW"
+    },
+    {
+      "child_task_type": "audit_read_only",
+      "guardian_status": "NOT_REQUIRED",
+      "parent_package_ref": "lm_package:audit_child_parent",
+      "proposed_child_package_ref": "lm_package:child:forbidden_scope",
+      "reason": "Attempt to inspect forbidden credential scope.",
+      "receipt_required": true,
+      "request_ref": "child_request:forbidden_file_scope",
+      "requested_authority": [],
+      "requested_budget": 100,
+      "requested_commands": [
+        "rg"
+      ],
+      "requested_depth": 1,
+      "requested_files": [
+        ".chief.env"
+      ],
+      "requested_model_class": "AUDIT_CHILD",
+      "stop_conditions": [
+        "task_complete",
+        "budget_exhausted",
+        "boundary_check_failed",
+        "guardian_required"
+      ],
+      "validation_reasons": [
+        "Child package requested forbidden file scope: .chief.env. Child package requested file scope outside the parent package: .chief.env."
+      ],
+      "validation_status": "BLOCK"
+    },
+    {
+      "child_task_type": "audit_read_only",
+      "guardian_status": "NOT_REQUIRED",
+      "parent_package_ref": "lm_package:audit_child_parent",
+      "proposed_child_package_ref": "lm_package:child:forbidden_authority",
+      "reason": "Attempt to request ledger, email, and browser authority.",
+      "receipt_required": true,
+      "request_ref": "child_request:forbidden_live_authority",
+      "requested_authority": [
+        "ledger_post_allowed",
+        "email_send_allowed",
+        "browser_access_allowed"
+      ],
+      "requested_budget": 100,
+      "requested_commands": [
+        "rg"
+      ],
+      "requested_depth": 1,
+      "requested_files": [
+        "openclaw_lm_child_package_gate.py"
+      ],
+      "requested_model_class": "AUDIT_CHILD",
+      "stop_conditions": [
+        "task_complete",
+        "budget_exhausted",
+        "boundary_check_failed",
+        "guardian_required"
+      ],
+      "validation_reasons": [
+        "Child package requested forbidden authority: ledger_post_allowed, email_send_allowed, browser_access_allowed. Email/Gmail/browser/Coupa/workbook/PDF/ledger/live-action authorities remain forbidden in v0."
+      ],
+      "validation_status": "AUTHORITY_DENIED"
+    },
+    {
+      "child_task_type": "implementation_scoped",
+      "guardian_status": "PENDING",
+      "parent_package_ref": "lm_package:implementation_child_parent",
+      "proposed_child_package_ref": "lm_package:child:implementation_scoped",
+      "reason": "Propose a source implementation child package after Guardian review.",
+      "receipt_required": true,
+      "request_ref": "child_request:implementation_requires_guardian",
+      "requested_authority": [],
+      "requested_budget": 200,
+      "requested_commands": [
+        "python -m py_compile openclaw_lm_child_package_gate.py"
+      ],
+      "requested_depth": 1,
+      "requested_files": [
+        "openclaw_lm_child_package_gate.py"
+      ],
+      "requested_model_class": "IMPLEMENTATION_CHILD",
+      "stop_conditions": [
+        "task_complete",
+        "budget_exhausted",
+        "boundary_check_failed",
+        "guardian_required"
+      ],
+      "validation_reasons": [
+        "Guardian approval is required before this child package can proceed."
+      ],
+      "validation_status": "REQUIRE_GUARDIAN"
+    }
+  ],
+  "child_spawn_policies": [
+    {
+      "allowed_child_task_types": [],
+      "child_model_class": "ANY_CHILD",
+      "forbidden_child_task_types": [
+        "audit_read_only",
+        "test_write",
+        "implementation_scoped",
+        "live_action",
+        "swarm",
+        "recursive_spawn"
+      ],
+      "max_children": 0,
+      "max_depth": 0,
+      "max_total_budget": 0,
+      "parent_model_class": "LM2",
+      "policy_ref": "default_no_spawn",
+      "policy_status": "DEFAULT_DENY",
+      "requires_guardian_approval": false,
+      "requires_operator_approval": false,
+      "spawn_allowed": false
+    },
+    {
+      "allowed_child_task_types": [
+        "audit_read_only"
+      ],
+      "child_model_class": "AUDIT_CHILD",
+      "forbidden_child_task_types": [
+        "test_write",
+        "implementation_scoped",
+        "file_edit",
+        "service_start",
+        "live_action",
+        "swarm",
+        "recursive_spawn"
+      ],
+      "max_children": 1,
+      "max_depth": 1,
+      "max_total_budget": 200,
+      "parent_model_class": "LM2",
+      "policy_ref": "audit_child_allowed",
+      "policy_status": "CONTRACT_ONLY_READ_ONLY",
+      "requires_guardian_approval": false,
+      "requires_operator_approval": false,
+      "spawn_allowed": true
+    },
+    {
+      "allowed_child_task_types": [
+        "test_write"
+      ],
+      "child_model_class": "TEST_WRITER_CHILD",
+      "forbidden_child_task_types": [
+        "source_change",
+        "implementation_scoped",
+        "service_start",
+        "live_action",
+        "swarm",
+        "recursive_spawn"
+      ],
+      "max_children": 1,
+      "max_depth": 1,
+      "max_total_budget": 300,
+      "parent_model_class": "LM2",
+      "policy_ref": "test_writer_child_allowed",
+      "policy_status": "CONTRACT_ONLY_TEST_FILES",
+      "requires_guardian_approval": false,
+      "requires_operator_approval": false,
+      "spawn_allowed": true
+    },
+    {
+      "allowed_child_task_types": [
+        "implementation_scoped"
+      ],
+      "child_model_class": "IMPLEMENTATION_CHILD",
+      "forbidden_child_task_types": [
+        "unscoped_source_change",
+        "service_start",
+        "live_action",
+        "swarm",
+        "recursive_spawn"
+      ],
+      "max_children": 1,
+      "max_depth": 1,
+      "max_total_budget": 500,
+      "parent_model_class": "LM2",
+      "policy_ref": "implementation_child_requires_guardian",
+      "policy_status": "CONTRACT_ONLY_REQUIRES_GUARDIAN",
+      "requires_guardian_approval": true,
+      "requires_operator_approval": false,
+      "spawn_allowed": true
+    },
+    {
+      "allowed_child_task_types": [],
+      "child_model_class": "LIVE_ACTION_CHILD",
+      "forbidden_child_task_types": [
+        "email",
+        "gmail",
+        "browser",
+        "coupa",
+        "workbook",
+        "pdf",
+        "ledger",
+        "external_action",
+        "production_mutation",
+        "swarm"
+      ],
+      "max_children": 0,
+      "max_depth": 0,
+      "max_total_budget": 0,
+      "parent_model_class": "LM2",
+      "policy_ref": "live_action_child_forbidden",
+      "policy_status": "FORBIDDEN",
+      "requires_guardian_approval": true,
+      "requires_operator_approval": true,
+      "spawn_allowed": false
+    }
+  ],
+  "contract_status": "DETERMINISTIC_LM_CHILD_PACKAGE_GATE_CONTRACT_NO_RUNTIME_SWARMS",
+  "default_limits": {
+    "hidden_children": false,
+    "live_action_authority": false,
+    "max_children": 0,
+    "max_depth": 0,
+    "production_mutation": false,
+    "recursive_spawning": false,
+    "swarm_mode": false
+  },
+  "evals": [
+    "default package cannot spawn children",
+    "allowed audit package can spawn one read-only child",
+    "child requesting forbidden file scope is blocked",
+    "child requesting ledger/email/browser authority is blocked",
+    "child depth over max_depth is blocked",
+    "max_children enforced",
+    "guardian_required package cannot proceed without Guardian status",
+    "child receipt required before parent can close",
+    "no live_action_authority by default",
+    "JSON parses and SQLite integrity passes"
+  ],
+  "forbidden_delegation_rules": {
+    "email_gmail_browser_coupa_workbook_pdf_ledger_forbidden": true,
+    "live_business_actions_forbidden": true,
+    "no_hidden_children": true,
+    "no_recursive_spawning_by_default": true,
+    "no_swarm_mode": true,
+    "production_mutation_forbidden": true,
+    "services_forbidden": true
+  },
+  "generated_at": "2026-05-31T22:00:00+00:00",
+  "guardian_requirements": {
+    "guardian_approval_is_not_live_action_authority": true,
+    "guardian_required_package_blocks_without_approval": true,
+    "implementation_child_requires_guardian": true,
+    "scope_expansion_requires_guardian_or_operator": true
+  },
+  "input_manifest": [
+    {
+      "input_ref": "authority_semantics_registry",
+      "path": "generated/read_models/openclaw_authority_semantics_registry.json",
+      "purpose": "Canonical authority polarity and deny-by-default registry.",
+      "required": false,
+      "resolved_path": "generated/read_models/openclaw_authority_semantics_registry.json",
+      "schema_version": "openclaw_authority_semantics_registry_v0",
+      "sha256": "sha256:73f8d59f3a0cefdf435e532da55eca2590e59a081a6e795db5f5bb2191c89383",
+      "status": "PRESENT"
+    },
+    {
+      "input_ref": "lane_capability_harvest",
+      "path": "generated/read_models/openclaw_lane_capability_harvest.json",
+      "purpose": "Reusable lane capabilities and Hermes recommendation posture.",
+      "required": false,
+      "resolved_path": "generated/read_models/openclaw_lane_capability_harvest.json",
+      "schema_version": "openclaw_lane_capability_harvest_read_model_v0",
+      "sha256": "sha256:f37a900ac43108090e70d85e710f1d67e961b81568dc061f730b7ebdb8ec3f05",
+      "status": "PRESENT"
+    },
+    {
+      "input_ref": "hermes_chief_build_handoff",
+      "path": "generated/read_models/hermes_chief_build_handoff.json",
+      "purpose": "Hermes/Chief handoff read-model if present.",
+      "required": false,
+      "resolved_path": "generated/read_models/hermes_chief_build_handoff.json",
+      "schema_version": "hermes_chief_build_handoff_v0",
+      "sha256": "sha256:3fc1448b7a8236a3142814315790c427797c646295276429c6ceee42b005388a",
+      "status": "PRESENT"
+    },
+    {
+      "input_ref": "hermes_mission_sentinel",
+      "path": "generated/read_models/hermes_mission_sentinel.json",
+      "purpose": "Hermes mission sentinel read-model if present.",
+      "required": false,
+      "resolved_path": "generated/read_models/hermes_mission_sentinel.json",
+      "schema_version": "hermes_mission_sentinel_v0",
+      "sha256": "sha256:5fb7f99839fd0763bb60eddcbaf7167a301c7ef6a90880d0888a8233435b0a47",
+      "status": "PRESENT"
+    },
+    {
+      "input_ref": "chief_test_harness_cross_off_receipt_contract",
+      "path": "generated/read_models/chief_test_harness_cross_off_receipt_contract.json",
+      "purpose": "Chief receipt/cross-off contract if present.",
+      "required": false,
+      "resolved_path": "generated/read_models/chief_test_harness_cross_off_receipt_contract.json",
+      "schema_version": "chief_test_harness_cross_off_receipt_contract_v0",
+      "sha256": "sha256:f5158c9ba8bb282e800ee707d960d932d8c3496dc32aff83b1fbd66256f80b54",
+      "status": "PRESENT"
+    },
+    {
+      "input_ref": "business_object_layer_audit",
+      "path": "generated/read_models/openclaw_business_object_layer_audit.json",
+      "purpose": "Business-object audit posture if present.",
+      "required": false,
+      "resolved_path": "generated/read_models/openclaw_business_object_layer_audit.json",
+      "schema_version": "openclaw_business_object_layer_audit_read_model_v0",
+      "sha256": "sha256:5bb2af6ab4786ca3f343e9f05fdd444db14324da01ac021222c58e529972f577",
+      "status": "PRESENT"
+    },
+    {
+      "input_ref": "delegated_package_graph",
+      "path": "generated/read_models/delegated_package_graph.json",
+      "purpose": "Prior delegated package fixture, referenced as non-runtime precedent only.",
+      "required": false,
+      "resolved_path": "generated/read_models/delegated_package_graph.json",
+      "schema_version": "delegated_package_graph_v0",
+      "sha256": "sha256:fd3c641de2fa6897f81914742e732e9ea568fa8541d25cf6e249a53b27e3c20a",
+      "status": "PRESENT"
+    }
+  ],
+  "lm_packages": [
+    {
+      "allowed_commands": [
+        "rg",
+        "sed",
+        "python -m py_compile",
+        "python -m pytest tests/test_openclaw_lm_child_package_gate.py"
+      ],
+      "allowed_files": [
+        "openclaw_lm_child_package_gate.py",
+        "tests/test_openclaw_lm_child_package_gate.py"
+      ],
+      "authority_profile_ref": "default_no_spawn",
+      "budget_limit": 1000,
+      "child_receipt_required": true,
+      "expected_outputs": [
+        "read_model_json",
+        "operator_markdown",
+        "sqlite_contract_registry",
+        "test_results"
+      ],
+      "forbidden_actions": [
+        "call_lm",
+        "spawn_child",
+        "spawn_swarm",
+        "recursive_spawn",
+        "launch_chief",
+        "start_service",
+        "send_email",
+        "access_gmail",
+        "open_browser",
+        "access_coupa",
+        "read_workbook_cells",
+        "export_pdf",
+        "post_ledger",
+        "mutate_production_state",
+        "push_git"
+      ],
+      "forbidden_files": [
+        ".chief.env",
+        ".google-secrets/",
+        "*.xlsx",
+        "*.xlsm",
+        "*.pdf",
+        "generated/system_knowledge/business_ops_ledger.sqlite"
+      ],
+      "guardian_required": false,
+      "live_action_authority": false,
+      "mission": "Default LM2 package contract with child spawning disabled.",
+      "model_class": "LM2",
+      "package_depth": 0,
+      "package_ref": "lm_package:default_no_spawn",
+      "parent_package_ref": "",
+      "required_tests": [
+        "tests/test_openclaw_lm_child_package_gate.py"
+      ],
+      "source_refs": [
+        "generated/read_models/openclaw_authority_semantics_registry.json"
+      ],
+      "status": "CONTRACT_ONLY",
+      "stop_conditions": [
+        "budget_exhausted",
+        "scope_boundary_hit",
+        "guardian_required",
+        "operator_required",
+        "forbidden_authority_requested"
+      ]
+    },
+    {
+      "allowed_commands": [
+        "rg",
+        "sed",
+        "python -m py_compile"
+      ],
+      "allowed_files": [
+        "openclaw_lm_child_package_gate.py",
+        "tests/test_openclaw_lm_child_package_gate.py",
+        "generated/read_models/openclaw_lm_child_package_gate.json"
+      ],
+      "authority_profile_ref": "audit_child_allowed",
+      "budget_limit": 200,
+      "child_receipt_required": true,
+      "expected_outputs": [
+        "read_model_json",
+        "operator_markdown",
+        "sqlite_contract_registry",
+        "test_results"
+      ],
+      "forbidden_actions": [
+        "call_lm",
+        "spawn_child",
+        "spawn_swarm",
+        "recursive_spawn",
+        "launch_chief",
+        "start_service",
+        "send_email",
+        "access_gmail",
+        "open_browser",
+        "access_coupa",
+        "read_workbook_cells",
+        "export_pdf",
+        "post_ledger",
+        "mutate_production_state",
+        "push_git"
+      ],
+      "forbidden_files": [
+        ".chief.env",
+        ".google-secrets/",
+        "*.xlsx",
+        "*.xlsm",
+        "*.pdf",
+        "generated/system_knowledge/business_ops_ledger.sqlite"
+      ],
+      "guardian_required": false,
+      "live_action_authority": false,
+      "mission": "Allow one read-only audit child to inspect contract files and emit a receipt.",
+      "model_class": "LM2",
+      "package_depth": 0,
+      "package_ref": "lm_package:audit_child_parent",
+      "parent_package_ref": "",
+      "required_tests": [
+        "tests/test_openclaw_lm_child_package_gate.py"
+      ],
+      "source_refs": [
+        "generated/read_models/openclaw_authority_semantics_registry.json"
+      ],
+      "status": "CONTRACT_ONLY",
+      "stop_conditions": [
+        "budget_exhausted",
+        "scope_boundary_hit",
+        "guardian_required",
+        "operator_required",
+        "forbidden_authority_requested"
+      ]
+    },
+    {
+      "allowed_commands": [
+        "python -m pytest tests/test_openclaw_lm_child_package_gate.py",
+        "python -m py_compile"
+      ],
+      "allowed_files": [
+        "tests/test_openclaw_lm_child_package_gate.py"
+      ],
+      "authority_profile_ref": "test_writer_child_allowed",
+      "budget_limit": 300,
+      "child_receipt_required": true,
+      "expected_outputs": [
+        "read_model_json",
+        "operator_markdown",
+        "sqlite_contract_registry",
+        "test_results"
+      ],
+      "forbidden_actions": [
+        "call_lm",
+        "spawn_child",
+        "spawn_swarm",
+        "recursive_spawn",
+        "launch_chief",
+        "start_service",
+        "send_email",
+        "access_gmail",
+        "open_browser",
+        "access_coupa",
+        "read_workbook_cells",
+        "export_pdf",
+        "post_ledger",
+        "mutate_production_state",
+        "push_git"
+      ],
+      "forbidden_files": [
+        ".chief.env",
+        ".google-secrets/",
+        "*.xlsx",
+        "*.xlsm",
+        "*.pdf",
+        "generated/system_knowledge/business_ops_ledger.sqlite"
+      ],
+      "guardian_required": false,
+      "live_action_authority": false,
+      "mission": "Allow one child to edit test files only when the parent package permits it.",
+      "model_class": "LM2",
+      "package_depth": 0,
+      "package_ref": "lm_package:test_writer_child_parent",
+      "parent_package_ref": "",
+      "required_tests": [
+        "tests/test_openclaw_lm_child_package_gate.py"
+      ],
+      "source_refs": [
+        "generated/read_models/openclaw_authority_semantics_registry.json"
+      ],
+      "status": "CONTRACT_ONLY",
+      "stop_conditions": [
+        "budget_exhausted",
+        "scope_boundary_hit",
+        "guardian_required",
+        "operator_required",
+        "forbidden_authority_requested"
+      ]
+    },
+    {
+      "allowed_commands": [
+        "python -m py_compile openclaw_lm_child_package_gate.py"
+      ],
+      "allowed_files": [
+        "openclaw_lm_child_package_gate.py"
+      ],
+      "authority_profile_ref": "implementation_child_requires_guardian",
+      "budget_limit": 500,
+      "child_receipt_required": true,
+      "expected_outputs": [
+        "read_model_json",
+        "operator_markdown",
+        "sqlite_contract_registry",
+        "test_results"
+      ],
+      "forbidden_actions": [
+        "call_lm",
+        "spawn_child",
+        "spawn_swarm",
+        "recursive_spawn",
+        "launch_chief",
+        "start_service",
+        "send_email",
+        "access_gmail",
+        "open_browser",
+        "access_coupa",
+        "read_workbook_cells",
+        "export_pdf",
+        "post_ledger",
+        "mutate_production_state",
+        "push_git"
+      ],
+      "forbidden_files": [
+        ".chief.env",
+        ".google-secrets/",
+        "*.xlsx",
+        "*.xlsm",
+        "*.pdf",
+        "generated/system_knowledge/business_ops_ledger.sqlite"
+      ],
+      "guardian_required": true,
+      "live_action_authority": false,
+      "mission": "Prepare source implementation child package, blocked until Guardian approves.",
+      "model_class": "LM2",
+      "package_depth": 0,
+      "package_ref": "lm_package:implementation_child_parent",
+      "parent_package_ref": "",
+      "required_tests": [
+        "tests/test_openclaw_lm_child_package_gate.py"
+      ],
+      "source_refs": [
+        "generated/read_models/openclaw_authority_semantics_registry.json"
+      ],
+      "status": "WAITING_GUARDIAN",
+      "stop_conditions": [
+        "budget_exhausted",
+        "scope_boundary_hit",
+        "guardian_required",
+        "operator_required",
+        "forbidden_authority_requested"
+      ]
+    },
+    {
+      "allowed_commands": [],
+      "allowed_files": [],
+      "authority_profile_ref": "live_action_child_forbidden",
+      "budget_limit": 0,
+      "child_receipt_required": true,
+      "expected_outputs": [
+        "read_model_json",
+        "operator_markdown",
+        "sqlite_contract_registry",
+        "test_results"
+      ],
+      "forbidden_actions": [
+        "call_lm",
+        "spawn_child",
+        "spawn_swarm",
+        "recursive_spawn",
+        "launch_chief",
+        "start_service",
+        "send_email",
+        "access_gmail",
+        "open_browser",
+        "access_coupa",
+        "read_workbook_cells",
+        "export_pdf",
+        "post_ledger",
+        "mutate_production_state",
+        "push_git"
+      ],
+      "forbidden_files": [
+        ".chief.env",
+        ".google-secrets/",
+        "*.xlsx",
+        "*.xlsm",
+        "*.pdf",
+        "generated/system_knowledge/business_ops_ledger.sqlite"
+      ],
+      "guardian_required": true,
+      "live_action_authority": false,
+      "mission": "Document that live business-action children remain forbidden.",
+      "model_class": "LM2",
+      "package_depth": 0,
+      "package_ref": "lm_package:live_action_child_forbidden_parent",
+      "parent_package_ref": "",
+      "required_tests": [
+        "tests/test_openclaw_lm_child_package_gate.py"
+      ],
+      "source_refs": [
+        "generated/read_models/openclaw_authority_semantics_registry.json"
+      ],
+      "status": "BLOCKED",
+      "stop_conditions": [
+        "budget_exhausted",
+        "scope_boundary_hit",
+        "guardian_required",
+        "operator_required",
+        "forbidden_authority_requested"
+      ]
+    }
+  ],
+  "machine_proof": {
+    "browser_accessed": false,
+    "chief_launched": false,
+    "child_receipts_required": true,
+    "child_spawning_enabled": false,
+    "children_spawned": false,
+    "content_hash": "sha256:c40495136284ce40f8beea9d6fb395b5ddd5a612e828d9da655fc3669757e06a",
+    "contract_only": true,
+    "coupa_accessed": false,
+    "default_live_action_authority_false": true,
+    "default_max_children_zero": true,
+    "default_max_depth_zero": true,
+    "email_accessed": false,
+    "git_push_performed": false,
+    "gmail_accessed": false,
+    "hidden_children_allowed": false,
+    "ledger_mutated": false,
+    "lm_called": false,
+    "pdf_exported": false,
+    "production_state_mutated": false,
+    "recursive_spawning_enabled": false,
+    "required_sqlite_tables": [
+      "lm_package",
+      "child_spawn_policy",
+      "child_package_request",
+      "package_receipt",
+      "package_gate_decision"
+    ],
+    "runtime_swarm_enabled": false,
+    "services_started": false,
+    "workbook_cells_read": false
+  },
+  "operator_next_safe_move": "Use this gate as a contract/read-model only. Do not enable runtime child spawning until a future activation task explicitly wires receipts, Guardian approval, and budget accounting.",
+  "package_gate_decisions": [
+    {
+      "decision": "ALLOW",
+      "decision_ref": "package_gate_decision:7bb9257238776afff402",
+      "package_ref": "lm_package:audit_child_parent",
+      "reason": "Child package request is within policy, budget, file, command, authority, depth, and receipt boundaries.",
+      "request_ref": "child_request:audit_read_only",
+      "source_refs": [
+        "openclaw_lm_child_package_gate.py",
+        "generated/read_models/openclaw_authority_semantics_registry.json",
+        "generated/read_models/openclaw_lane_capability_harvest.json"
+      ]
+    },
+    {
+      "decision": "BLOCK",
+      "decision_ref": "package_gate_decision:41bfdf215c0b12fe6813",
+      "package_ref": "lm_package:audit_child_parent",
+      "reason": "Child package requested forbidden file scope: .chief.env. Child package requested file scope outside the parent package: .chief.env.",
+      "request_ref": "child_request:forbidden_file_scope",
+      "source_refs": [
+        "openclaw_lm_child_package_gate.py",
+        "generated/read_models/openclaw_authority_semantics_registry.json",
+        "generated/read_models/openclaw_lane_capability_harvest.json"
+      ]
+    },
+    {
+      "decision": "AUTHORITY_DENIED",
+      "decision_ref": "package_gate_decision:855f3abeda457829e9f1",
+      "package_ref": "lm_package:audit_child_parent",
+      "reason": "Child package requested forbidden authority: ledger_post_allowed, email_send_allowed, browser_access_allowed. Email/Gmail/browser/Coupa/workbook/PDF/ledger/live-action authorities remain forbidden in v0.",
+      "request_ref": "child_request:forbidden_live_authority",
+      "source_refs": [
+        "openclaw_lm_child_package_gate.py",
+        "generated/read_models/openclaw_authority_semantics_registry.json",
+        "generated/read_models/openclaw_lane_capability_harvest.json"
+      ]
+    },
+    {
+      "decision": "REQUIRE_GUARDIAN",
+      "decision_ref": "package_gate_decision:d44cff9fa7dea2d1805f",
+      "package_ref": "lm_package:implementation_child_parent",
+      "reason": "Guardian approval is required before this child package can proceed.",
+      "request_ref": "child_request:implementation_requires_guardian",
+      "source_refs": [
+        "openclaw_lm_child_package_gate.py",
+        "generated/read_models/openclaw_authority_semantics_registry.json",
+        "generated/read_models/openclaw_lane_capability_harvest.json"
+      ]
+    },
+    {
+      "decision": "BLOCK",
+      "decision_ref": "package_gate_decision:d41f1194d801d702f9b9",
+      "package_ref": "lm_package:audit_child_parent",
+      "reason": "Parent package cannot close before child receipts exist: lm_package:child:audit_read_only.",
+      "request_ref": "",
+      "source_refs": [
+        "openclaw_lm_child_package_gate.py"
+      ]
+    },
+    {
+      "decision": "ALLOW",
+      "decision_ref": "package_gate_decision:62e06439a2554d2a8443",
+      "package_ref": "lm_package:audit_child_parent",
+      "reason": "Parent package can close because required child receipts are present.",
+      "request_ref": "",
+      "source_refs": [
+        "openclaw_lm_child_package_gate.py"
+      ]
+    }
+  ],
+  "package_gate_shape": {
+    "child_package_request": [
+      "request_ref",
+      "parent_package_ref",
+      "proposed_child_package_ref",
+      "reason",
+      "requested_model_class",
+      "requested_budget",
+      "requested_files",
+      "requested_commands",
+      "requested_authority",
+      "validation_status",
+      "guardian_status",
+      "child_task_type",
+      "requested_depth",
+      "stop_conditions",
+      "receipt_required",
+      "validation_reasons"
+    ],
+    "child_spawn_policy": [
+      "policy_ref",
+      "parent_model_class",
+      "child_model_class",
+      "spawn_allowed",
+      "max_children",
+      "max_depth",
+      "max_total_budget",
+      "allowed_child_task_types",
+      "forbidden_child_task_types",
+      "requires_guardian_approval",
+      "requires_operator_approval",
+      "policy_status"
+    ],
+    "lm_package": [
+      "package_ref",
+      "parent_package_ref",
+      "mission",
+      "model_class",
+      "budget_limit",
+      "allowed_files",
+      "forbidden_files",
+      "allowed_commands",
+      "forbidden_actions",
+      "required_tests",
+      "expected_outputs",
+      "authority_profile_ref",
+      "guardian_required",
+      "live_action_authority",
+      "status",
+      "package_depth",
+      "stop_conditions",
+      "child_receipt_required",
+      "source_refs"
+    ],
+    "package_gate_decision": [
+      "decision_ref",
+      "package_ref",
+      "decision",
+      "reason",
+      "source_refs",
+      "request_ref"
+    ],
+    "package_receipt": [
+      "receipt_ref",
+      "package_ref",
+      "worker_ref",
+      "result_status",
+      "files_changed",
+      "tests_run",
+      "boundary_check",
+      "child_packages_spawned",
+      "budget_used",
+      "proof_refs"
+    ]
+  },
+  "package_receipts": [
+    {
+      "boundary_check": "PASS_READ_ONLY_NO_LIVE_ACTION",
+      "budget_used": 40,
+      "child_packages_spawned": [],
+      "files_changed": [],
+      "package_ref": "lm_package:child:audit_read_only",
+      "proof_refs": [
+        "generated/read_models/openclaw_lm_child_package_gate.json#package_receipt:child_audit_read_only_fixture"
+      ],
+      "receipt_ref": "package_receipt:child_audit_read_only_fixture",
+      "result_status": "PASS",
+      "tests_run": [
+        "tests/test_openclaw_lm_child_package_gate.py::test_allowed_audit_package_can_spawn_one_read_only_child"
+      ],
+      "worker_ref": "worker:contract_fixture_only_no_runtime_spawn"
+    }
+  ],
+  "read_model_id": "openclaw_lm_child_package_gate",
+  "readiness": "READY_FOR_CONTRACT_NOT_RUNTIME_SPAWNING",
+  "schema_version": "openclaw_lm_child_package_gate_v0",
+  "source_integration_summary": {
+    "authority_semantics_registry_present": true,
+    "business_object_audit_present": true,
+    "hermes_chief_readback_present": true,
+    "lane_capability_harvest_present": true,
+    "source_schemas": {
+      "authority_semantics_registry": "openclaw_authority_semantics_registry_v0",
+      "business_object_layer_audit": "openclaw_business_object_layer_audit_read_model_v0",
+      "chief_test_harness_cross_off_receipt_contract": "chief_test_harness_cross_off_receipt_contract_v0",
+      "delegated_package_graph": "delegated_package_graph_v0",
+      "hermes_chief_build_handoff": "hermes_chief_build_handoff_v0",
+      "hermes_mission_sentinel": "hermes_mission_sentinel_v0",
+      "lane_capability_harvest": "openclaw_lane_capability_harvest_read_model_v0"
+    }
+  }
+}

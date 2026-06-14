@@ -1,0 +1,428 @@
+{
+  "artifact_types": [
+    "WINSHIP_BRANDED_INVOICE_PDF",
+    "WINSHIP_BRANDED_INVOICE_XLSX",
+    "INVOICE_METADATA_SUMMARY",
+    "UNKNOWN"
+  ],
+  "artifacts": [
+    {
+      "artifact_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+      "artifact_type": "WINSHIP_BRANDED_INVOICE_PDF",
+      "attachment_ready": true,
+      "branding_summary": "WINSHIP header with Capital Hilton invoice facts and no private remit/tax/credential material.",
+      "client_ref": "client_ref:capital_hilton",
+      "exists_status": "ARTIFACT_EXISTS",
+      "file_size_bytes": 1075,
+      "generated_at_policy": "2026-05-25T00:00:00+00:00",
+      "hash_or_fingerprint": "sha256:9f4e3e95a8ba4b853d7826c5f6ea1b91807426c8ff0abfbea797a1daa8ac577c",
+      "local_path_policy": "bounded_generated_artifact_ref:generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.pdf",
+      "next_safe_move": "Use this artifact ref/hash as an Email Delivery Package attachment ref; do not send.",
+      "output_format": "PDF",
+      "privacy_class": "client_invoice_artifact_private_ref",
+      "safe_display_label": "Winship-branded Capital Hilton invoice PDF",
+      "source_facts": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "rate_per_show": {
+          "amount": 400,
+          "currency": "USD",
+          "display": "$400/show"
+        },
+        "subtotal": {
+          "amount": 1600,
+          "calculation": "4 shows x $400/show",
+          "currency": "USD"
+        }
+      },
+      "tenant_ref": "tenant_ref:winship",
+      "workflow_ref": "capital_hilton_invoice_workflow"
+    },
+    {
+      "artifact_ref": "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+      "artifact_type": "WINSHIP_BRANDED_INVOICE_XLSX",
+      "attachment_ready": true,
+      "branding_summary": "WINSHIP header with Capital Hilton invoice facts and no private remit/tax/credential material.",
+      "client_ref": "client_ref:capital_hilton",
+      "exists_status": "ARTIFACT_EXISTS",
+      "file_size_bytes": 1845,
+      "generated_at_policy": "2026-05-25T00:00:00+00:00",
+      "hash_or_fingerprint": "sha256:44680845f750580f114cfc2d0cc8f06cd11dfb36c40fa555bbdcfbdef7d06eb4",
+      "local_path_policy": "bounded_generated_artifact_ref:generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
+      "next_safe_move": "Use this artifact ref/hash as an Email Delivery Package attachment ref; do not send.",
+      "output_format": "XLSX",
+      "privacy_class": "client_invoice_artifact_private_ref",
+      "safe_display_label": "Winship-branded Capital Hilton invoice XLSX",
+      "source_facts": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "rate_per_show": {
+          "amount": 400,
+          "currency": "USD",
+          "display": "$400/show"
+        },
+        "subtotal": {
+          "amount": 1600,
+          "calculation": "4 shows x $400/show",
+          "currency": "USD"
+        }
+      },
+      "tenant_ref": "tenant_ref:winship",
+      "workflow_ref": "capital_hilton_invoice_workflow"
+    },
+    {
+      "artifact_ref": "invoice_artifact_ref:capital_hilton_csv_summary_2026-05-25",
+      "artifact_type": "INVOICE_METADATA_SUMMARY",
+      "attachment_ready": false,
+      "branding_summary": "WINSHIP header with Capital Hilton invoice facts and no private remit/tax/credential material.",
+      "client_ref": "client_ref:capital_hilton",
+      "exists_status": "ARTIFACT_EXISTS",
+      "file_size_bytes": 204,
+      "generated_at_policy": "2026-05-25T00:00:00+00:00",
+      "hash_or_fingerprint": "sha256:603e1622998ec1ce695aeb2aafe9217dbdc72294cd6766b067d60e1cbfaf5c0a",
+      "local_path_policy": "bounded_generated_artifact_ref:generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.csv",
+      "next_safe_move": "Use this summary for review only; not approved as an email attachment.",
+      "output_format": "CSV_SUMMARY",
+      "privacy_class": "client_invoice_artifact_private_ref",
+      "safe_display_label": "Winship-branded Capital Hilton invoice CSV_SUMMARY",
+      "source_facts": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "rate_per_show": {
+          "amount": 400,
+          "currency": "USD",
+          "display": "$400/show"
+        },
+        "subtotal": {
+          "amount": 1600,
+          "calculation": "4 shows x $400/show",
+          "currency": "USD"
+        }
+      },
+      "tenant_ref": "tenant_ref:winship",
+      "workflow_ref": "capital_hilton_invoice_workflow"
+    }
+  ],
+  "attachment_refs": [
+    {
+      "approved_for_coupa_package": false,
+      "approved_for_email_package": true,
+      "artifact_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+      "artifact_type": "WINSHIP_BRANDED_INVOICE_PDF",
+      "attachment_ref": "email_attachment_ref:capital_hilton_pdf_2026-05-25",
+      "hash_or_fingerprint": "sha256:9f4e3e95a8ba4b853d7826c5f6ea1b91807426c8ff0abfbea797a1daa8ac577c",
+      "next_safe_move": "Pass this attachment ref to Email Delivery Package Compiler; future send still gated.",
+      "raw_body_included": false,
+      "safe_display_label": "Winship-branded Capital Hilton invoice PDF"
+    },
+    {
+      "approved_for_coupa_package": false,
+      "approved_for_email_package": true,
+      "artifact_ref": "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+      "artifact_type": "WINSHIP_BRANDED_INVOICE_XLSX",
+      "attachment_ref": "email_attachment_ref:capital_hilton_xlsx_2026-05-25",
+      "hash_or_fingerprint": "sha256:44680845f750580f114cfc2d0cc8f06cd11dfb36c40fa555bbdcfbdef7d06eb4",
+      "next_safe_move": "Pass this attachment ref to Email Delivery Package Compiler; future send still gated.",
+      "raw_body_included": false,
+      "safe_display_label": "Winship-branded Capital Hilton invoice XLSX"
+    },
+    {
+      "approved_for_coupa_package": false,
+      "approved_for_email_package": false,
+      "artifact_ref": "invoice_artifact_ref:capital_hilton_csv_summary_2026-05-25",
+      "artifact_type": "INVOICE_METADATA_SUMMARY",
+      "attachment_ref": "email_attachment_ref:capital_hilton_csv_summary_2026-05-25",
+      "hash_or_fingerprint": "sha256:603e1622998ec1ce695aeb2aafe9217dbdc72294cd6766b067d60e1cbfaf5c0a",
+      "next_safe_move": "Resolve artifact/hash readiness before email packaging.",
+      "raw_body_included": false,
+      "safe_display_label": "Winship-branded Capital Hilton invoice CSV_SUMMARY"
+    }
+  ],
+  "authority_boundary": {
+    "bounded_local_artifact_generation_allowed": true,
+    "bounded_local_file_hash_allowed": true,
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_approval_submission_allowed": false,
+    "live_browser_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_gmail_send_allowed": false,
+    "live_invoice_send_allowed": false,
+    "live_mail_send_allowed": false,
+    "live_payment_submission_allowed": false,
+    "live_workflow_run_allowed": false,
+    "local_generated_read_model_allowed": true,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocker_types": [
+    "MISSING_DELIVERY_FACTS",
+    "MISSING_RATE",
+    "MISSING_TEMPLATE",
+    "OUTPUT_PATH_UNSAFE",
+    "RAW_FILE_BODY_IN_READMODEL",
+    "HASH_MISSING",
+    "EMAIL_SEND_ATTEMPTED",
+    "COUPA_SUBMIT_ATTEMPTED",
+    "BROWSER_ATTEMPTED",
+    "EXTERNAL_ACTION_ATTEMPTED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "build_request": {
+    "authority_boundary": {
+      "bounded_local_artifact_generation_allowed": true,
+      "bounded_local_file_hash_allowed": true,
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_submission_allowed": false,
+      "live_browser_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_coupa_submit_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_gmail_send_allowed": false,
+      "live_invoice_send_allowed": false,
+      "live_mail_send_allowed": false,
+      "live_payment_submission_allowed": false,
+      "live_workflow_run_allowed": false,
+      "local_generated_read_model_allowed": true,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "client_ref": "client_ref:capital_hilton",
+    "created_at": "2026-05-25T00:00:00+00:00",
+    "invoice_type": "CAPITAL_HILTON_PERFORMANCE_INVOICE",
+    "output_path_policy": "bounded repo path under generated/invoice_artifacts/capital_hilton_invoice_artifact_v0",
+    "privacy_class": "client_invoice_artifact_private_ref",
+    "request_id": "invoice_artifact_build_request_capital_hilton_v0",
+    "requested_branding": "Winship-branded local invoice artifact",
+    "requested_output_formats": [
+      "PDF",
+      "XLSX",
+      "CSV_SUMMARY"
+    ],
+    "source_delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+    "source_rate_ref": "capital_hilton_rate_ref:400_per_show",
+    "source_template_ref": "repo_a_deterministic_winship_invoice_template_v0",
+    "tenant_ref": "tenant_ref:winship",
+    "workflow_ref": "capital_hilton_invoice_workflow"
+  },
+  "capital_hilton_example": {
+    "delivery_facts": {
+      "performance_dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "rate_per_show": {
+        "amount": 400,
+        "currency": "USD",
+        "display": "$400/show"
+      },
+      "show_count": 4,
+      "subtotal": {
+        "amount": 1600,
+        "calculation": "4 shows x $400/show",
+        "currency": "USD"
+      }
+    },
+    "email_delivery_package_ref": "email_delivery_package_compiler:capital_hilton_complete_except_approval",
+    "future_completion_label": "INVOICE SENT",
+    "future_completion_only": true,
+    "guardian_approval_ref": "guardian_approval_request_wrapper:capital_hilton_email_approval",
+    "known_facts": [
+      "4 performance dates",
+      "$400/show",
+      "$1,600 subtotal basis",
+      "Winship-branded invoice desired",
+      "invoice saved with 2026-05-25 record date for future range tracking"
+    ]
+  },
+  "contract_status": "BOUNDED_LOCAL_INVOICE_ARTIFACT_BUILDER_NO_SEND",
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "invoice_artifact_blockers": [
+    {
+      "blocker_id": "invoice_artifact_blocker_missing_facts",
+      "blocker_type": "MISSING_DELIVERY_FACTS",
+      "condition": "Performance dates are missing.",
+      "elioperator_warning": "Delivery facts are missing.",
+      "fail_closed": true,
+      "next_safe_move": "Capture delivery facts before building.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_missing_rate",
+      "blocker_type": "MISSING_RATE",
+      "condition": "Rate or subtotal basis is missing.",
+      "elioperator_warning": "Rate/subtotal is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Capture rate and subtotal before building.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_missing_template",
+      "blocker_type": "MISSING_TEMPLATE",
+      "condition": "No safe bounded template exists.",
+      "elioperator_warning": "Template is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Use deterministic Repo A template or report metadata-only readiness.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_output_path",
+      "blocker_type": "OUTPUT_PATH_UNSAFE",
+      "condition": "Output path escapes generated/invoice_artifacts or targets unsafe mount.",
+      "elioperator_warning": "Output path is unsafe.",
+      "fail_closed": true,
+      "next_safe_move": "Use bounded generated artifact path.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_raw_body",
+      "blocker_type": "RAW_FILE_BODY_IN_READMODEL",
+      "condition": "Raw file body would be copied into read-model.",
+      "elioperator_warning": "Raw file body is blocked from read-models.",
+      "fail_closed": true,
+      "next_safe_move": "Expose only refs, metadata, and hashes.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_hash_missing",
+      "blocker_type": "HASH_MISSING",
+      "condition": "Attachment artifact lacks hash/fingerprint.",
+      "elioperator_warning": "Hash/fingerprint is required before attachment readiness.",
+      "fail_closed": true,
+      "next_safe_move": "Hash the artifact.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_email",
+      "blocker_type": "EMAIL_SEND_ATTEMPTED",
+      "condition": "Builder attempts email send.",
+      "elioperator_warning": "Email send is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Return artifact/readback only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_coupa",
+      "blocker_type": "COUPA_SUBMIT_ATTEMPTED",
+      "condition": "Builder attempts Coupa submit.",
+      "elioperator_warning": "Coupa submit is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Use future governed Coupa adapter only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_browser",
+      "blocker_type": "BROWSER_ATTEMPTED",
+      "condition": "Builder attempts browser automation.",
+      "elioperator_warning": "Browser automation is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Stay local.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_external",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "Builder attempts external action.",
+      "elioperator_warning": "External action is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Stay local.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_artifact_blocker_unknown",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown artifact build state.",
+      "elioperator_warning": "Unknown artifact state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Ask for scoped facts/template/output path.",
+      "severity": "high"
+    }
+  ],
+  "invoice_types": [
+    "CAPITAL_HILTON_PERFORMANCE_INVOICE",
+    "GENERAL_CLIENT_INVOICE",
+    "UNKNOWN_NEEDS_FRAMING"
+  ],
+  "machine_proof": {
+    "all_live_authority_false_except_bounded_local_artifact_generation": true,
+    "bounded_local_artifact_generation_performed": true,
+    "bounded_local_file_hash_performed": true,
+    "browser_access_performed": false,
+    "coupa_access_or_submit_performed": false,
+    "credential_handling_performed": false,
+    "email_send_performed": false,
+    "external_action_performed": false,
+    "git_push_performed": false,
+    "mac_sync_import_performed": false,
+    "mail_or_gmail_send_performed": false,
+    "raw_body_ingestion_performed": false,
+    "raw_file_body_in_read_model": false,
+    "swift_change_performed": false
+  },
+  "next_safe_move": "Pass attachment refs to Email Delivery Package Compiler; keep Guardian/send gates locked.",
+  "operator_summary": "OpenClaw generated bounded local Winship-branded Capital Hilton invoice artifacts and attachment refs with hashes. Nothing was sent, submitted, or exposed as raw file body.",
+  "output_formats": [
+    "PDF",
+    "XLSX",
+    "CSV_SUMMARY",
+    "METADATA_ONLY"
+  ],
+  "read_model_id": "invoice_artifact_readback",
+  "readback": {
+    "artifact_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+    "artifact_summary": "PDF: ARTIFACT_EXISTS; XLSX: ARTIFACT_EXISTS; CSV_SUMMARY: ARTIFACT_EXISTS",
+    "blocked_actions": [
+      "email send",
+      "Mail/Gmail send",
+      "Coupa access or submit",
+      "browser automation",
+      "payment submission",
+      "external action",
+      "credential handling",
+      "raw file body in read-model"
+    ],
+    "how_to_fix": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+    "missing_items": [],
+    "next_safe_move": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+    "operator_headline": "Invoice artifact ready for attachment review",
+    "operator_message": "OpenClaw generated bounded local Winship-branded Capital Hilton invoice artifacts with hashes. Nothing was sent or submitted.",
+    "proof_summary": "Winship-branded Capital Hilton invoice PDF hash sha256:9f4e3e95a8ba4b853d7826c5f6ea1b91807426c8ff0abfbea797a1daa8ac577c; Winship-branded Capital Hilton invoice XLSX hash sha256:44680845f750580f114cfc2d0cc8f06cd11dfb36c40fa555bbdcfbdef7d06eb4; Winship-branded Capital Hilton invoice CSV_SUMMARY hash sha256:603e1622998ec1ce695aeb2aafe9217dbdc72294cd6766b067d60e1cbfaf5c0a",
+    "readback_id": "invoice_artifact_readback_9746559b15002ea1",
+    "status": "ARTIFACT_READY"
+  },
+  "readback_statuses": [
+    "ARTIFACT_READY",
+    "ARTIFACT_METADATA_READY",
+    "NOT_READY_MISSING_FACTS",
+    "NOT_READY_MISSING_TEMPLATE",
+    "NOT_READY_OUTPUT_PATH_BLOCKED",
+    "BLOCKED_PRIVACY_BOUNDARY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "invoice_artifact_builder_v0"
+}

@@ -1,0 +1,1144 @@
+{
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "approval_submission_allowed": false,
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "license_file_mutation_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_covenant_enforcement_allowed": false,
+    "live_external_notification_allowed": false,
+    "live_fork_trigger_allowed": false,
+    "live_governance_action_allowed": false,
+    "live_legal_claim_allowed": false,
+    "live_license_change_allowed": false,
+    "live_network_allowed": false,
+    "live_open_source_release_allowed": false,
+    "live_runtime_dispatch_allowed": false,
+    "live_shipyard_migration_allowed": false,
+    "live_tool_execution_allowed": false,
+    "live_trust_revocation_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "source_publication_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "builder_blockers_by_id": {
+    "blocker_anti_capture_disabled": {
+      "blocker_id": "blocker_anti_capture_disabled",
+      "blocker_type": "ANTI_CAPTURE_DISABLED",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "Anti-capture protection is disabled for convenience, money, fear, pressure, or status.",
+      "elioperator_warning": "ELIOPERATOR: Anti-capture is mission protection, not optional decoration.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_capital_control_over_mission": {
+      "blocker_id": "blocker_capital_control_over_mission",
+      "blocker_type": "CAPITAL_CONTROL_OVER_MISSION",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "Capital terms require control over privacy, mission, safety gates, or local-first posture.",
+      "elioperator_warning": "ELIOPERATOR: Capital may be used; it may not own the mission.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_client_data_leak_to_commons": {
+      "blocker_id": "blocker_client_data_leak_to_commons",
+      "blocker_type": "CLIENT_DATA_LEAK_TO_COMMONS",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "Client/operator private data is proposed for commons, module, or support reuse.",
+      "elioperator_warning": "ELIOPERATOR: Share patterns or modules only after privacy-clean consent.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_founder_override_risk": {
+      "blocker_id": "blocker_founder_override_risk",
+      "blocker_type": "FOUNDER_OVERRIDE_RISK",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "Founder attempts to weaken privacy, safety, sovereignty, or anti-capture boundaries.",
+      "elioperator_warning": "ELIOPERATOR: Founder authority stops at the mission boundary.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_harmful_work_accepted_for_money": {
+      "blocker_id": "blocker_harmful_work_accepted_for_money",
+      "blocker_type": "HARMFUL_WORK_ACCEPTED_FOR_MONEY",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "The Shipyard accepts harmful work because the margin is attractive.",
+      "elioperator_warning": "ELIOPERATOR: Harmful work is refused, not merely repriced.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_mission_drift_risk": {
+      "blocker_id": "blocker_mission_drift_risk",
+      "blocker_type": "MISSION_DRIFT_RISK",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "Commercial, social, or operational pressure weakens the Shipyard mission.",
+      "elioperator_warning": "ELIOPERATOR: Mission drift must be reviewed before it becomes policy.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_operator_sovereignty_weakened": {
+      "blocker_id": "blocker_operator_sovereignty_weakened",
+      "blocker_type": "OPERATOR_SOVEREIGNTY_WEAKENED",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "A change reduces captain agency, consent, local-first posture, or exit/migration dignity.",
+      "elioperator_warning": "ELIOPERATOR: Operator sovereignty is a covenant value, not a feature toggle.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_premature_butterfly_trigger": {
+      "blocker_id": "blocker_premature_butterfly_trigger",
+      "blocker_type": "PREMATURE_BUTTERFLY_TRIGGER",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "Someone tries to arm or trigger recovery before Fleet establishment and explicit arming.",
+      "elioperator_warning": "ELIOPERATOR: The Winchie proves birth. The Fleet justifies metamorphosis. No trigger is active now.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_private_data_release_risk": {
+      "blocker_id": "blocker_private_data_release_risk",
+      "blocker_type": "PRIVATE_DATA_RELEASE_RISK",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "Any release/recovery/fork path includes private data, protected evidence, secrets, or sensitive deployments.",
+      "elioperator_warning": "ELIOPERATOR: Private data is not Shipyard commons material.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_safety_gate_weakened": {
+      "blocker_id": "blocker_safety_gate_weakened",
+      "blocker_type": "SAFETY_GATE_WEAKENED",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "A change weakens gates for credential, external, legal, financial, or protected actions.",
+      "elioperator_warning": "ELIOPERATOR: Power must stay gated where harm can leave the local vessel.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_shipyard_capture_risk": {
+      "blocker_id": "blocker_shipyard_capture_risk",
+      "blocker_type": "SHIPYARD_CAPTURE_RISK",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "A buyer, investor, company, or hostile actor redirects the Shipyard against mission.",
+      "elioperator_warning": "ELIOPERATOR: Shipyard capture risk detected. Capital can help build; it cannot own the mission.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_shipyard_ip_leak_to_ship": {
+      "blocker_id": "blocker_shipyard_ip_leak_to_ship",
+      "blocker_type": "SHIPYARD_IP_LEAK_TO_SHIP",
+      "builder_action_required": "Fail closed and route to covenant/legal/governance review; do not trigger live action.",
+      "condition": "A ship receives internal Shipyard machinery outside scoped commissioning policy.",
+      "elioperator_warning": "ELIOPERATOR: Shipyard and ship boundaries must stay explicit.",
+      "fail_closed": true,
+      "next_safe_move": "Keep covenant read-model only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    }
+  },
+  "capture_risks_by_id": {
+    "risk_capital_capture": {
+      "affected_mission_values": [
+        "protect privacy",
+        "protect operator sovereignty",
+        "refuse harmful capture"
+      ],
+      "description": "Investor or buyer pressure redirects the Shipyard away from mission boundaries.",
+      "early_warning_signals": [
+        "privacy protections described as growth blockers",
+        "local-first posture weakened for monetization",
+        "safety gates bypassed for powerful customers"
+      ],
+      "elioperator_explanation": "Capital can help build; it cannot own the mission.",
+      "fail_safe_relevance": "Future Fleet-established capture criterion candidate.",
+      "likely_consequence": "Captains lose trust and the Shipyard becomes a choke point.",
+      "next_safe_move": "Keep capital boundary explicit in future reviews.",
+      "required_response": "Warn, review, and block mission-weakening changes; no live fail-safe trigger in this contract.",
+      "risk_id": "risk_capital_capture",
+      "risk_type": "CAPITAL_CAPTURE",
+      "severity": "high"
+    },
+    "risk_founder_compromise": {
+      "affected_mission_values": [
+        "protect operator sovereignty",
+        "protect privacy",
+        "refuse harmful capture"
+      ],
+      "description": "The founder weakens privacy, safety, or sovereignty for pressure, money, status, or fear.",
+      "early_warning_signals": [
+        "anti-capture protections disabled",
+        "private boundaries bypassed",
+        "Fleet-positive rails converted into lock-in"
+      ],
+      "elioperator_explanation": "Even the creator is inside the boundary.",
+      "fail_safe_relevance": "Founder is bounded by covenant under future armed process.",
+      "likely_consequence": "The covenant's mission can be captured from inside.",
+      "next_safe_move": "Model warning only; do not enforce live governance.",
+      "required_response": "Generate warning and require future governance/legal review; no live trigger today.",
+      "risk_id": "risk_founder_compromise",
+      "risk_type": "FOUNDER_COMPROMISE",
+      "severity": "high"
+    },
+    "risk_premature_butterfly_trigger": {
+      "affected_mission_values": [
+        "refuse harmful capture",
+        "protect privacy",
+        "protect operator sovereignty"
+      ],
+      "description": "Someone attempts recovery/open-source/fork activation before Fleet establishment and arming criteria.",
+      "early_warning_signals": [
+        "The Winchie completion treated as enough for metamorphosis",
+        "legal review skipped",
+        "last-clean-state proof absent",
+        "private data exclusion not proven"
+      ],
+      "elioperator_explanation": "No accidental trigger is possible now.",
+      "fail_safe_relevance": "Pre-Fleet activation is explicitly blocked.",
+      "likely_consequence": "The covenant becomes an accidental release mechanism.",
+      "next_safe_move": "Keep butterfly laws unarmed.",
+      "required_response": "Fail closed. The Winchie proves birth; the Fleet justifies metamorphosis.",
+      "risk_id": "risk_premature_butterfly_trigger",
+      "risk_type": "PREMATURE_BUTTERFLY_TRIGGER",
+      "severity": "critical"
+    },
+    "risk_private_data_release": {
+      "affected_mission_values": [
+        "protect privacy",
+        "preserve local-first dignity"
+      ],
+      "description": "Private client/operator data or protected evidence is treated as releasable commons material.",
+      "early_warning_signals": [
+        "private deployment state included in release candidate",
+        "protected evidence copied into normal read-models",
+        "credentials or secrets considered recoverable assets"
+      ],
+      "elioperator_explanation": "The Shipyard's clean core is not the same as captains' private data.",
+      "fail_safe_relevance": "Private-data exclusion is a hard prerequisite.",
+      "likely_consequence": "Covenant recovery would harm the people it is meant to protect.",
+      "next_safe_move": "Keep private data exclusion machine-checkable in future lanes.",
+      "required_response": "Fail closed; exclude private material before any future review.",
+      "risk_id": "risk_private_data_release",
+      "risk_type": "PRIVACY_EXPLOITATION",
+      "severity": "critical"
+    },
+    "risk_safety_gate_bypass": {
+      "affected_mission_values": [
+        "protect operator sovereignty",
+        "build useful capability"
+      ],
+      "description": "A customer, investor, founder, or operator tries to weaken safety gates for speed or money.",
+      "early_warning_signals": [
+        "approval gates framed as optional ceremony",
+        "credential-bearing flows routed around Guardian",
+        "external actions bundled into read-model lanes"
+      ],
+      "elioperator_explanation": "Power without gates is capture by convenience.",
+      "fail_safe_relevance": "Repeated safety bypass can indicate mission drift.",
+      "likely_consequence": "Fast execution starts harming privacy, legality, or trust.",
+      "next_safe_move": "Keep authority flags explicit and false unless a future lane proves otherwise.",
+      "required_response": "Block unsafe authority expansion and require bounded review.",
+      "risk_id": "risk_safety_gate_bypass",
+      "risk_type": "SAFETY_GATE_BYPASS",
+      "severity": "high"
+    }
+  },
+  "commercial_mission_boundary": {
+    "boundary_id": "commercial_mission_boundary_v0",
+    "capital_capture_forbidden": true,
+    "capital_use_allowed": true,
+    "commercial_operation_allowed": true,
+    "cross_subsidy_policy": "Surplus may fund Fleet-positive modules and public/fleet-good rails.",
+    "fleet_positive_reinvestment_policy": "Commercial success should reinforce reusable capability, privacy, and local-first dignity.",
+    "harmful_work_refusal_policy": "Harmful work may be refused outright, not merely taxed or priced higher.",
+    "high_margin_work_policy": "High-margin commercial work is allowed only if it does not compromise mission, safety, privacy, or sovereignty.",
+    "mission_drift_warning": "If money requires weakening privacy, safety gates, local-first posture, or operator sovereignty, decline.",
+    "next_safe_move": "Keep commercial choices mission-aligned and explicitly bounded.",
+    "private_operator_work_policy": "Ordinary private/operator/business improvement is allowed and is not treated as greed."
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_SHIPYARD_SOVEREIGNTY_COVENANT",
+  "creator_boundedness_policy": {
+    "creator_capture_risk": "Founder pressure can become capture if mission boundaries are weakened.",
+    "creator_override_limits": "Founder authority cannot bypass privacy, safety, Fleet-positive continuity, or future legal covenant gates.",
+    "elioperator_warning": "ELIOPERATOR: Founder authority stops at the mission boundary. This is mission preservation, not anti-founder.",
+    "founder_not_above_covenant": true,
+    "founder_role": "Winship is founder and first captain, not owner of the mission's soul.",
+    "future_governance_review": "Future review required before any armed covenant, recovery, or governance action.",
+    "next_safe_move": "Treat founder compromise as a risk to review, not a live trigger.",
+    "policy_id": "creator_boundedness_policy_v0",
+    "prohibited_founder_actions": [
+      "disabling anti-capture protections for convenience, money, fear, pressure, or status",
+      "bypassing privacy boundaries",
+      "using Shipyard control to exploit captains or clients",
+      "converting Fleet-positive rails into coercive lock-in",
+      "suppressing lawful clean forks under future armed covenant conditions",
+      "selling control in a way that violates mission",
+      "removing operator sovereignty protections",
+      "weakening safety gates to satisfy powerful customers"
+    ],
+    "required_warning_behavior": "Warn if founder, buyer, investor, company, or hostile actor tries to weaken covenant boundaries."
+  },
+  "elioperator_report": {
+    "next_safe_move": "Review the covenant as doctrine. Keep all triggers inactive.",
+    "plain_summary": "The Shipyard is being built to create sovereign local Winships. This covenant preserves the mission DNA without creating any live legal, release, fork, or governance mechanism.",
+    "report_id": "shipyard_sovereignty_covenant_elioperator_report_v0",
+    "what_happens_conceptually_if_capture_occurs_after_fleet_establishment": "Under a future armed and legally reviewed covenant, trust could route away from a corrupted Shipyard toward uncompromised Shipyards using a verified clean root.",
+    "what_this_does_not_do_yet": [
+      "No open-source release.",
+      "No license change.",
+      "No fork trigger.",
+      "No trust revocation.",
+      "No Shipyard migration.",
+      "No legal claim.",
+      "No governance action.",
+      "No external notification."
+    ],
+    "what_this_preserves": [
+      "The Shipyard's mission-aligned sovereignty.",
+      "The Winchie as the first Winship, not the full Shipyard.",
+      "Fleet-positive continuity after a future mature Fleet exists.",
+      "Privacy, local-first dignity, safety gates, and operator sovereignty.",
+      "Commercial operation inside mission boundaries."
+    ],
+    "why_butterfly_laws_are_not_armed_yet": "The Shipyard is still in Caterpillar Build phase. The Winchie alone is not enough. A real Fleet, proofs, legal review, and explicit arming are required.",
+    "why_commercial_operation_is_allowed": "Money can fund useful capability. It becomes capture only when it weakens mission, privacy, safety, or sovereignty.",
+    "why_creator_is_bounded": "A mission can be harmed by its founder as well as by outside capital. The covenant warns on mission-weakening founder actions.",
+    "why_private_data_is_not_released": "Recovery can only concern a future privacy-clean Shipyard core. Captains' private data, client records, credentials, and protected evidence are excluded."
+  },
+  "examples": {
+    "capture_event_after_fleet_established": {
+      "conceptual_response": "trust revocation, migration, and clean-root review under future legal covenant",
+      "example_id": "example_capture_event_after_fleet_established",
+      "live_trigger_today": false,
+      "private_data_released": false,
+      "summary": "Future suspected capture after mature Fleet establishment."
+    },
+    "corrupted_shipyard": {
+      "attack_or_retaliation": false,
+      "example_id": "example_corrupted_shipyard",
+      "mission_continues": true,
+      "response": "ships migrate to clean Shipyards under future process",
+      "summary": "A corrupted Shipyard loses trust conceptually."
+    },
+    "fleet_backed_module": {
+      "captain_sharing_choices": [
+        "private",
+        "generalized module",
+        "pattern-only",
+        "expertise signal",
+        "decline"
+      ],
+      "consent_required": true,
+      "example_id": "example_fleet_backed_module",
+      "private_data_protected": true,
+      "summary": "A captain needs a module and the Fleet sees reusable value.",
+      "support_offer_policy": "support is offered, not extracted"
+    },
+    "founder_compromise": {
+      "creator_boundary_violation": true,
+      "elioperator_warning_ref": "creator_boundedness_policy_v0",
+      "example_id": "example_founder_compromise",
+      "future_review_required": true,
+      "live_trigger_today": false,
+      "summary": "Founder attempts to sell out mission or weaken privacy/safety."
+    },
+    "high_margin_commercial_mission": {
+      "allowed_if": "mission, safety, privacy, and sovereignty remain intact",
+      "example_id": "example_high_margin_commercial_mission",
+      "harmful_work_policy": "refused, not merely taxed",
+      "summary": "A commercial client pays high margin.",
+      "surplus_use": "may fund Fleet-positive modules"
+    },
+    "normal_private_captain_mission": {
+      "allowed": true,
+      "example_id": "example_normal_private_captain_mission",
+      "fleet_backing_condition": "Fleet backing may depend on reusable/fleet-positive value.",
+      "judged_as_greed": false,
+      "private_work_can_remain_private": true,
+      "summary": "A captain uses a ship for personal or business benefit."
+    },
+    "premature_butterfly_trigger": {
+      "blocked": true,
+      "example_id": "example_premature_butterfly_trigger",
+      "live_release_or_fork_allowed": false,
+      "reason": "The Winchie alone is not enough; Fleet-established phase required.",
+      "summary": "Someone tries to trigger recovery before Fleet establishment."
+    },
+    "the_winchie": {
+      "butterfly_trigger_allowed": false,
+      "example_id": "example_the_winchie",
+      "local_private_boundaries_preserved": true,
+      "purpose": "help Winship be a musician and make life easier",
+      "shipyard_relationship": "built by the Shipyard; not the full Shipyard",
+      "summary": "The Winchie is the first commissioned Winship for Operator + Winship."
+    }
+  },
+  "fleet_metamorphosis_fail_safe": {
+    "capture_response": "Conceptual response is fork/migration/trust revocation, not attack.",
+    "corrupted_shipyard_handling": "Corrupted Shipyards lose trust conceptually; no violence, hacking, or retaliation.",
+    "fail_safe_id": "fleet_metamorphosis_fail_safe_v0",
+    "fleet_trust_rerouting": "The Fleet should route trust toward uncompromised Shipyards.",
+    "metaphor": "Capture triggers metamorphosis: the caterpillar becomes a field of butterflies.",
+    "mission_continuity": "The mission continues by trust migration to clean Shipyards, not monopoly control.",
+    "new_shipyard_spawning_policy": "Future clean core may seed new uncompromised Shipyards only under reviewed covenant.",
+    "next_safe_move": "Keep as future doctrine; butterfly laws are not armed.",
+    "non_military_framing": "This is not military. Ships are local tools for good work, creative work, business dignity, community usefulness, privacy, and capability.",
+    "phase_prerequisites": [
+      "FLEET_ESTABLISHED_PHASE",
+      "BUTTERFLY_LAWS_ARMED_PHASE",
+      "legal/governance criteria defined",
+      "explicit founder/operator arming occurred",
+      "last-clean-state proof exists",
+      "private data exclusion proven"
+    ],
+    "private_data_protection": "No captain data, client data, secrets, or protected evidence enter the recovery root.",
+    "trigger_concept": "Only future verified Shipyard capture after Fleet establishment and armed butterfly laws may enter review.",
+    "uncompromised_shipyard_requirements": [
+      "mission-aligned",
+      "privacy-preserving",
+      "operator-sovereign",
+      "local-first",
+      "safety-gated",
+      "clean-state verified"
+    ]
+  },
+  "fleet_mutual_aid_module_economy": {
+    "captain_consent_required": true,
+    "contribution_receipts_required": true,
+    "economy_id": "fleet_mutual_aid_module_economy_v0",
+    "fleet_to_ship_reinforcement": "The Shipyard and Fleet may support a captain's mission when the pattern strengthens the Fleet.",
+    "license_visibility_posture": "License and visibility posture must be explicit and legally reviewed before commercial reuse.",
+    "module_creation_policy": "Fleet-backed modules should preserve private data boundaries and explicit visibility.",
+    "next_safe_move": "Model sharing choices in future support packets; do not infer consent.",
+    "private_boundary": "No hidden extraction and no private data sharing by default.",
+    "reciprocity_summary": "Ships help the Shipyard build better ships; the Shipyard helps ships become more capable.",
+    "shared_output_policy": "Output may remain private, become a generalized module, become pattern-only, become an expertise signal, or be declined.",
+    "ship_to_fleet_contribution": "Ships may contribute generalized modules, patterns, receipts, or expertise signals by consent.",
+    "support_offer_policy": "Support is offered, not extracted. The captain may accept, narrow, or decline."
+  },
+  "generated_at": "2026-05-24T20:41:02+00:00",
+  "last_clean_state_recovery_root": {
+    "clean_state_requirements": [
+      "verified uncompromised Shipyard core",
+      "private data excluded",
+      "secrets and credentials excluded",
+      "protected evidence excluded",
+      "client/operator deployments excluded",
+      "tests and hashes reproducible",
+      "legal/governance review complete"
+    ],
+    "current_live_authority": {
+      "agent_activation_allowed": false,
+      "approval_submission_allowed": false,
+      "browser_automation_allowed": false,
+      "coupa_access_allowed": false,
+      "credential_handling_allowed": false,
+      "email_send_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "gmail_access_allowed": false,
+      "license_file_mutation_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_covenant_enforcement_allowed": false,
+      "live_external_notification_allowed": false,
+      "live_fork_trigger_allowed": false,
+      "live_governance_action_allowed": false,
+      "live_legal_claim_allowed": false,
+      "live_license_change_allowed": false,
+      "live_network_allowed": false,
+      "live_open_source_release_allowed": false,
+      "live_runtime_dispatch_allowed": false,
+      "live_shipyard_migration_allowed": false,
+      "live_tool_execution_allowed": false,
+      "live_trust_revocation_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "model_call_allowed": false,
+      "queue_execution_allowed": false,
+      "raw_body_ingestion_allowed": false,
+      "runtime_dispatch_allowed": false,
+      "source_publication_allowed": false,
+      "telegram_send_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "hash_requirements": [
+      "content hashes required",
+      "manifest hash required",
+      "dependency provenance required"
+    ],
+    "last_verified_uncompromised_state_ref": "future_required_not_available_now",
+    "legal_review_required": true,
+    "next_safe_move": "Do not create release artifacts; keep proof requirements as doctrine.",
+    "private_data_exclusion": [
+      "client/operator data",
+      "credentials",
+      "protected evidence",
+      "private business records",
+      "secrets",
+      "raw PII",
+      "sensitive deployment data",
+      "cookies",
+      "tokens",
+      "private keys",
+      "business confidential details"
+    ],
+    "purpose": "Define future clean-core proof requirements before any recovery root could be considered.",
+    "recovery_root_id": "last_clean_state_recovery_root_v0",
+    "release_or_escrow_policy": "No actual release or escrow occurs here. Future clean core may be eligible only under legally reviewed covenant.",
+    "reproducibility_requirements": [
+      "clean checkout",
+      "deterministic build/test evidence",
+      "no private roots"
+    ],
+    "security_review_requirements": [
+      "secret scan",
+      "private body scan",
+      "protected evidence exclusion",
+      "supply chain review"
+    ],
+    "signed_release_requirements": [
+      "future signing policy required",
+      "authorized signers required",
+      "tamper-evident provenance required"
+    ],
+    "test_requirements": [
+      "security tests",
+      "privacy exclusion tests",
+      "license review tests",
+      "mission boundary tests"
+    ]
+  },
+  "machine_proof": {
+    "all_live_authority_flags_false": true,
+    "all_required_phases_present": true,
+    "butterfly_laws_currently_armed": false,
+    "capture_risk_examples_exist": true,
+    "commercial_mission_boundary_model_present": true,
+    "commercial_operation_allowed_while_mission_aligned": true,
+    "content_hash": "sha256:9a96d013a72e02bd89bf056173c57b56d9e767c8ad025cee5b13fd3ee605bb75",
+    "covenant_builder_blocker_model_present": true,
+    "covenant_elioperator_report_model_present": true,
+    "creator_boundedness_exists": true,
+    "creator_boundedness_policy_model_present": true,
+    "credentials_or_secrets_included": false,
+    "current_phase_is_pre_fleet": true,
+    "explicit_founder_operator_arming_required": true,
+    "fleet_establishment_required": true,
+    "fleet_metamorphosis_fail_safe_model_present": true,
+    "fleet_mutual_aid_module_economy_model_present": true,
+    "founder_override_risk_modeled": true,
+    "harmful_work_refused_not_taxed": true,
+    "last_clean_state_recovery_root_model_present": true,
+    "legal_claim_created": false,
+    "legal_review_required": true,
+    "live_fork_trigger_allowed": false,
+    "live_governance_action_allowed": false,
+    "live_license_change_allowed": false,
+    "live_open_source_release_allowed": false,
+    "phase_model_exists": true,
+    "pre_fleet_activation_blocked": true,
+    "premature_butterfly_trigger_example_exists": true,
+    "private_data_exclusion_required": true,
+    "private_data_release_explicitly_forbidden": true,
+    "raw_private_bodies_included": false,
+    "raw_sensitive_fixture_values_included": false,
+    "shipyard_capture_risk_model_present": true,
+    "shipyard_doctrine_exists": true,
+    "shipyard_mission_dna_model_present": true,
+    "shipyard_phase_model_present": true,
+    "shipyard_sovereignty_covenant_model_present": true,
+    "shipyard_vs_ship_boundary_model_present": true
+  },
+  "model_schemas": {
+    "commercial_mission_boundary": {
+      "model_name": "CommercialMissionBoundary",
+      "required_fields": [
+        "boundary_id",
+        "commercial_operation_allowed",
+        "capital_use_allowed",
+        "capital_capture_forbidden",
+        "high_margin_work_policy",
+        "cross_subsidy_policy",
+        "fleet_positive_reinvestment_policy",
+        "private_operator_work_policy",
+        "harmful_work_refusal_policy",
+        "mission_drift_warning",
+        "next_safe_move"
+      ]
+    },
+    "covenant_builder_blocker": {
+      "blocker_types": [
+        "SHIPYARD_CAPTURE_RISK",
+        "FOUNDER_OVERRIDE_RISK",
+        "PRIVATE_DATA_RELEASE_RISK",
+        "MISSION_DRIFT_RISK",
+        "CAPITAL_CONTROL_OVER_MISSION",
+        "SHIPYARD_IP_LEAK_TO_SHIP",
+        "CLIENT_DATA_LEAK_TO_COMMONS",
+        "ANTI_CAPTURE_DISABLED",
+        "PREMATURE_BUTTERFLY_TRIGGER",
+        "OPERATOR_SOVEREIGNTY_WEAKENED",
+        "SAFETY_GATE_WEAKENED",
+        "HARMFUL_WORK_ACCEPTED_FOR_MONEY",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "model_name": "CovenantBuilderBlocker",
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "builder_action_required",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "covenant_elioperator_report": {
+      "model_name": "CovenantElioperatorReport",
+      "required_fields": [
+        "report_id",
+        "plain_summary",
+        "what_this_preserves",
+        "what_this_does_not_do_yet",
+        "why_creator_is_bounded",
+        "why_private_data_is_not_released",
+        "why_commercial_operation_is_allowed",
+        "why_butterfly_laws_are_not_armed_yet",
+        "what_happens_conceptually_if_capture_occurs_after_fleet_establishment",
+        "next_safe_move"
+      ]
+    },
+    "creator_boundedness_policy": {
+      "model_name": "CreatorBoundednessPolicy",
+      "required_fields": [
+        "policy_id",
+        "founder_role",
+        "founder_not_above_covenant",
+        "prohibited_founder_actions",
+        "creator_capture_risk",
+        "creator_override_limits",
+        "required_warning_behavior",
+        "future_governance_review",
+        "elioperator_warning",
+        "next_safe_move"
+      ]
+    },
+    "fleet_metamorphosis_fail_safe": {
+      "model_name": "FleetMetamorphosisFailSafe",
+      "required_fields": [
+        "fail_safe_id",
+        "metaphor",
+        "trigger_concept",
+        "phase_prerequisites",
+        "capture_response",
+        "fleet_trust_rerouting",
+        "new_shipyard_spawning_policy",
+        "corrupted_shipyard_handling",
+        "uncompromised_shipyard_requirements",
+        "private_data_protection",
+        "non_military_framing",
+        "mission_continuity",
+        "next_safe_move"
+      ]
+    },
+    "fleet_mutual_aid_module_economy": {
+      "model_name": "FleetMutualAidModuleEconomy",
+      "required_fields": [
+        "economy_id",
+        "ship_to_fleet_contribution",
+        "fleet_to_ship_reinforcement",
+        "module_creation_policy",
+        "support_offer_policy",
+        "shared_output_policy",
+        "private_boundary",
+        "license_visibility_posture",
+        "captain_consent_required",
+        "contribution_receipts_required",
+        "reciprocity_summary",
+        "next_safe_move"
+      ]
+    },
+    "last_clean_state_recovery_root": {
+      "model_name": "LastCleanStateRecoveryRoot",
+      "required_fields": [
+        "recovery_root_id",
+        "purpose",
+        "last_verified_uncompromised_state_ref",
+        "clean_state_requirements",
+        "signed_release_requirements",
+        "hash_requirements",
+        "reproducibility_requirements",
+        "test_requirements",
+        "security_review_requirements",
+        "private_data_exclusion",
+        "release_or_escrow_policy",
+        "legal_review_required",
+        "current_live_authority",
+        "next_safe_move"
+      ]
+    },
+    "shipyard_capture_risk": {
+      "model_name": "ShipyardCaptureRisk",
+      "required_fields": [
+        "risk_id",
+        "risk_type",
+        "description",
+        "severity",
+        "early_warning_signals",
+        "affected_mission_values",
+        "likely_consequence",
+        "required_response",
+        "fail_safe_relevance",
+        "elioperator_explanation",
+        "next_safe_move"
+      ],
+      "risk_types": [
+        "CAPITAL_CAPTURE",
+        "HOSTILE_ACQUISITION",
+        "MISSION_DRIFT",
+        "PRIVACY_EXPLOITATION",
+        "SAFETY_GATE_BYPASS",
+        "OPERATOR_LOCK_IN",
+        "CROSS_CLIENT_DATA_ABUSE",
+        "CREDENTIAL_OR_SECRET_ABUSE",
+        "SHIPYARD_MONOPOLY_CHOKEPOINT",
+        "FOUNDER_COMPROMISE",
+        "GOVERNANCE_CORRUPTION",
+        "PREMATURE_BUTTERFLY_TRIGGER",
+        "UNKNOWN_FAIL_CLOSED"
+      ]
+    },
+    "shipyard_mission_dna": {
+      "model_name": "ShipyardMissionDNA",
+      "required_fields": [
+        "dna_id",
+        "values",
+        "positive_mission",
+        "prohibited_drift",
+        "operator_sovereignty",
+        "privacy_dignity",
+        "local_first_posture",
+        "meaningful_work_gravity",
+        "anti_sludge_posture",
+        "shipyard_vs_ship_boundary",
+        "fleet_mutual_aid_posture",
+        "contribution_commons_posture",
+        "next_safe_move"
+      ]
+    },
+    "shipyard_phase_model": {
+      "model_name": "ShipyardPhaseModel",
+      "required_fields": [
+        "phase_model_id",
+        "current_phase",
+        "phases",
+        "butterfly_laws_currently_armed",
+        "pre_fleet_activation_blocked",
+        "fleet_establishment_required",
+        "legal_review_required",
+        "explicit_founder_operator_arming_required",
+        "last_clean_state_required",
+        "private_data_exclusion_required",
+        "live_open_source_release_allowed",
+        "live_license_change_allowed",
+        "live_fork_trigger_allowed",
+        "live_covenant_enforcement_allowed",
+        "next_safe_move"
+      ],
+      "required_phases": [
+        "CATERPILLAR_BUILD_PHASE",
+        "FIRST_WINSHIP_COMMISSIONING_PHASE",
+        "EARLY_FLEET_FORMATION_PHASE",
+        "FLEET_ESTABLISHED_PHASE",
+        "BUTTERFLY_LAWS_ARMED_PHASE",
+        "CAPTURE_REVIEW_PHASE",
+        "METAMORPHOSIS_RECOVERY_PHASE"
+      ]
+    },
+    "shipyard_sovereignty_covenant": {
+      "model_name": "ShipyardSovereigntyCovenant",
+      "required_fields": [
+        "covenant_id",
+        "doctrine_name",
+        "doctrine_summary",
+        "shipyard_definition",
+        "winship_definition",
+        "fleet_definition",
+        "captain_definition",
+        "mission_statement",
+        "commercial_phase_policy",
+        "capital_boundary",
+        "creator_boundary",
+        "anti_capture_policy",
+        "commons_fail_safe_policy",
+        "butterfly_law_activation_boundary",
+        "private_data_boundary",
+        "legal_review_required",
+        "live_trigger_authority",
+        "current_contract_status",
+        "next_safe_move"
+      ]
+    },
+    "shipyard_vs_ship_boundary": {
+      "model_name": "ShipyardVsShipBoundary",
+      "required_fields": [
+        "boundary_id",
+        "shipyard_internal_capabilities",
+        "winship_capabilities",
+        "client_ship_capabilities",
+        "fleet_visible_metadata",
+        "forbidden_to_ship",
+        "shipyard_ip_boundary",
+        "export_allowed_policy",
+        "support_visibility_policy",
+        "next_safe_move"
+      ]
+    }
+  },
+  "purpose": "Preserve Shipyard sovereignty, mission DNA, anti-capture doctrine, and phase boundaries.",
+  "read_model_id": "shipyard_sovereignty_covenant_contract",
+  "relationship_inventory": {
+    "agent_conversation_handoff_step_packet_contract": {
+      "path": "generated/read_models/agent_conversation_handoff_step_packet_contract.json",
+      "present": true,
+      "ref": "agent_conversation_handoff_step_packet_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "agent_execution_packet_compiler_contract": {
+      "path": "generated/read_models/agent_execution_packet_compiler_contract.json",
+      "present": true,
+      "ref": "agent_execution_packet_compiler_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "bridge_routing_operator_attention_contract": {
+      "path": "generated/read_models/bridge_routing_operator_attention_contract.json",
+      "present": true,
+      "ref": "bridge_routing_operator_attention_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "cross_lane_reusable_block_registry_contract": {
+      "path": "generated/read_models/cross_lane_reusable_block_registry_contract.json",
+      "present": true,
+      "ref": "cross_lane_reusable_block_registry_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "cross_surface_artifact_handoff_registry_contract": {
+      "path": "generated/read_models/cross_surface_artifact_handoff_registry_contract.json",
+      "present": true,
+      "ref": "cross_surface_artifact_handoff_registry_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "cross_surface_handoff_registry_metadata_alignment": {
+      "path": "generated/read_models/cross_surface_handoff_registry_metadata_alignment.json",
+      "present": true,
+      "ref": "cross_surface_handoff_registry_metadata_alignment",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "guardian_protected_access_gate_spec": {
+      "path": "generated/read_models/guardian_protected_access_gate_spec.json",
+      "present": true,
+      "ref": "guardian_protected_access_gate_spec",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "guided_capture_protected_evidence_path_contract": {
+      "path": "generated/read_models/guided_capture_protected_evidence_path_contract.json",
+      "present": true,
+      "ref": "guided_capture_protected_evidence_path_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "meaningful_work_gravity_contract": {
+      "path": "generated/read_models/meaningful_work_gravity_contract.json",
+      "present": true,
+      "ref": "meaningful_work_gravity_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "openclaw_sensitive_policy": {
+      "path": "openclaw_sensitive_policy.py",
+      "present": true,
+      "ref": "openclaw_sensitive_policy",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "operator_action_covenant": {
+      "path": "operator_action_covenant.py",
+      "present": true,
+      "ref": "operator_action_covenant",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "operator_question_assist_scope_expansion_contract": {
+      "path": "generated/read_models/operator_question_assist_scope_expansion_contract.json",
+      "present": true,
+      "ref": "operator_question_assist_scope_expansion_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "work_terrain_build_cue_reconciliation_queue": {
+      "path": "generated/read_models/work_terrain_build_cue_reconciliation_queue.json",
+      "present": true,
+      "ref": "work_terrain_build_cue_reconciliation_queue",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "work_terrain_surface_map_build_cue_scout": {
+      "path": "generated/read_models/work_terrain_surface_map_build_cue_scout.json",
+      "present": true,
+      "ref": "work_terrain_surface_map_build_cue_scout",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    }
+  },
+  "schema_version": "shipyard_sovereignty_covenant_contract_v0",
+  "security_privacy_rules": {
+    "no_actual_fork_trigger": true,
+    "no_actual_governance_trigger": true,
+    "no_actual_license_change": true,
+    "no_actual_source_release": true,
+    "no_business_confidential_details": true,
+    "no_legal_enforceability_claim": true,
+    "no_network": true,
+    "no_private_client_operator_data": true,
+    "no_raw_pii_in_generated_read_models": true,
+    "no_raw_protected_evidence": true,
+    "no_secrets_credentials_tokens_cookies_private_keys": true
+  },
+  "shipyard_mission_dna": {
+    "anti_sludge_posture": "Reduce repeated context churn, fake progress, and one-off glue when durable rails are cheap.",
+    "contribution_commons_posture": "Sharing posture may be private, module, pattern-only, expertise signal, or declined.",
+    "dna_id": "shipyard_mission_dna_v0",
+    "fleet_mutual_aid_posture": "Fleet support is consent-based and should reinforce ships without extracting private work.",
+    "local_first_posture": "Winships should remain local-first and captain-specific unless explicit consent changes visibility.",
+    "meaningful_work_gravity": "Use the Meaningful Work Gravity compass without scores, shame, or task hijack.",
+    "next_safe_move": "Use these values as review criteria for future Shipyard and Fleet work.",
+    "operator_sovereignty": "Captains remain sovereign over their ships and private work.",
+    "positive_mission": [
+      "build Winships that help captains do useful local work",
+      "protect private data and agency",
+      "make reusable rails compound without coercion",
+      "use commerce and capital only inside mission boundaries"
+    ],
+    "privacy_dignity": "Private data, protected evidence, credentials, and sensitive deployments are not commons material.",
+    "prohibited_drift": [
+      "privacy exploitation",
+      "operator lock-in",
+      "safety-gate weakening",
+      "centralized monopoly choke point",
+      "cross-client data abuse",
+      "capital control over mission",
+      "harmful work accepted for money"
+    ],
+    "shipyard_vs_ship_boundary": "The Shipyard builds ships; ships do not silently receive the whole Shipyard.",
+    "values": [
+      "make life better without making other lives worse",
+      "protect operator sovereignty",
+      "protect privacy",
+      "build useful capability",
+      "reduce cognitive/electric waste",
+      "increase meaningful work per watt",
+      "preserve local-first dignity",
+      "help captains and communities",
+      "compound reusable rails",
+      "refuse harmful capture"
+    ]
+  },
+  "shipyard_phase_model": {
+    "butterfly_laws_currently_armed": false,
+    "current_phase": "CATERPILLAR_BUILD_PHASE",
+    "explicit_founder_operator_arming_required": true,
+    "fleet_establishment_required": true,
+    "last_clean_state_required": true,
+    "legal_review_required": true,
+    "live_covenant_enforcement_allowed": false,
+    "live_fork_trigger_allowed": false,
+    "live_license_change_allowed": false,
+    "live_open_source_release_allowed": false,
+    "next_safe_move": "Continue Shipyard construction; no activation path exists now.",
+    "phase_model_id": "shipyard_phase_model_v0",
+    "phases": [
+      {
+        "description": "The Shipyard is being built. No Winship is fully commissioned.",
+        "open_source_or_recovery_trigger_allowed": false,
+        "phase": "CATERPILLAR_BUILD_PHASE"
+      },
+      {
+        "description": "The Winchie is being generated, customized, tested, and made operational for Operator + Winship.",
+        "open_source_or_recovery_trigger_allowed": false,
+        "phase": "FIRST_WINSHIP_COMMISSIONING_PHASE"
+      },
+      {
+        "description": "The Winchie and early additional Winships exist, but the Fleet is not mature enough for metamorphosis.",
+        "open_source_or_recovery_trigger_allowed": false,
+        "phase": "EARLY_FLEET_FORMATION_PHASE"
+      },
+      {
+        "butterfly_laws_become_eligible_for_review": true,
+        "description": "The Fleet is real enough that Shipyard capture would harm a meaningful network of captains and rails.",
+        "open_source_or_recovery_trigger_allowed": false,
+        "phase": "FLEET_ESTABLISHED_PHASE"
+      },
+      {
+        "arming_prerequisites_required": true,
+        "description": "Butterfly laws are armed only after Fleet establishment, proofs, legal review, and explicit arming.",
+        "open_source_or_recovery_trigger_allowed": false,
+        "phase": "BUTTERFLY_LAWS_ARMED_PHASE"
+      },
+      {
+        "description": "A suspected capture/corruption event is reviewed against future legal/governance criteria.",
+        "open_source_or_recovery_trigger_allowed": false,
+        "phase": "CAPTURE_REVIEW_PHASE"
+      },
+      {
+        "contract_itself_does_not_execute": true,
+        "description": "Future recovery/fork/open-source pathway may be considered only after verified criteria and private-data exclusion.",
+        "open_source_or_recovery_trigger_allowed": false,
+        "phase": "METAMORPHOSIS_RECOVERY_PHASE"
+      }
+    ],
+    "pre_fleet_activation_blocked": true,
+    "private_data_exclusion_required": true
+  },
+  "shipyard_sovereignty_covenant": {
+    "anti_capture_policy": "If future Fleet-established capture is verified under armed and legally reviewed butterfly laws, the last verified uncompromised clean core may become a recovery root.",
+    "butterfly_law_activation_boundary": "No butterfly law can be armed before Fleet establishment, legal/governance review, explicit arming, last-clean-state proof, and private-data exclusion.",
+    "capital_boundary": "The Shipyard may use capital; capital must not own the mission.",
+    "captain_definition": "A captain is the sovereign local operator of a Winship.",
+    "commercial_phase_policy": "Commercial operation is allowed while mission-aligned and privacy/safety boundaries hold.",
+    "commons_fail_safe_policy": "Capture should lead to trust migration and new uncompromised Shipyards, not monopoly control or retaliation.",
+    "covenant_id": "shipyard_sovereignty_covenant_v0",
+    "creator_boundary": "Winship is the founder, not the owner of the mission's soul. Even the creator is bounded by the covenant.",
+    "current_contract_status": "DOCTRINE_READ_MODEL_ONLY_NO_LIVE_TRIGGER",
+    "doctrine_name": "Shipyard Sovereignty Covenant v0",
+    "doctrine_summary": "The Shipyard may operate commercially while mission-aligned, but capital, founder control, customers, or hostile actors must not own the mission.",
+    "fleet_definition": "The Fleet emerges as multiple operational Winships and Fleet-positive modules exist.",
+    "legal_review_required": true,
+    "live_trigger_authority": {
+      "agent_activation_allowed": false,
+      "approval_submission_allowed": false,
+      "browser_automation_allowed": false,
+      "coupa_access_allowed": false,
+      "credential_handling_allowed": false,
+      "email_send_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "gmail_access_allowed": false,
+      "license_file_mutation_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_covenant_enforcement_allowed": false,
+      "live_external_notification_allowed": false,
+      "live_fork_trigger_allowed": false,
+      "live_governance_action_allowed": false,
+      "live_legal_claim_allowed": false,
+      "live_license_change_allowed": false,
+      "live_network_allowed": false,
+      "live_open_source_release_allowed": false,
+      "live_runtime_dispatch_allowed": false,
+      "live_shipyard_migration_allowed": false,
+      "live_tool_execution_allowed": false,
+      "live_trust_revocation_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "model_call_allowed": false,
+      "queue_execution_allowed": false,
+      "raw_body_ingestion_allowed": false,
+      "runtime_dispatch_allowed": false,
+      "source_publication_allowed": false,
+      "telegram_send_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "mission_statement": [
+      "build Winships that help people improve their lives without making other lives worse",
+      "protect operator sovereignty",
+      "protect private data",
+      "build reusable rails",
+      "reduce cognitive/electric waste",
+      "increase meaningful work per watt",
+      "preserve local-first dignity",
+      "make useful work compound"
+    ],
+    "next_safe_move": "Review as Shipyard DNA; do not implement release, fork, or governance automation.",
+    "private_data_boundary": {
+      "credential_secret_exclusion_required": true,
+      "deployment_sensitive_data_exclusion_required": true,
+      "forbidden_material": [
+        "client/operator data",
+        "credentials",
+        "protected evidence",
+        "private business records",
+        "secrets",
+        "raw PII",
+        "sensitive deployment data",
+        "cookies",
+        "tokens",
+        "private keys",
+        "business confidential details"
+      ],
+      "normal_read_model_private_material_allowed": false,
+      "private_data_exclusion_required": true,
+      "protected_evidence_exclusion_required": true,
+      "release_or_fork_private_material_allowed": false,
+      "safe_material_scope": "future legally reviewed clean core only; no client/operator private state, protected evidence, or secrets"
+    },
+    "shipyard_definition": "The Shipyard is the protected builder substrate that creates, commissions, supports, and improves Winships.",
+    "winship_definition": "A Winship is a captain-specific local-first vessel built to help its captain do meaningful work without surrendering privacy, agency, dignity, or local sovereignty."
+  },
+  "shipyard_vs_ship_boundary": {
+    "boundary_id": "shipyard_vs_ship_boundary_v0",
+    "client_ship_capabilities": [
+      "client-specific workflows",
+      "local captain state",
+      "bounded adapters",
+      "sanitized support handoffs",
+      "protected evidence references"
+    ],
+    "export_allowed_policy": "Exports must be scoped, consented, privacy-clean, and license-visible.",
+    "fleet_visible_metadata": [
+      "ship type",
+      "module compatibility",
+      "safe support posture",
+      "consented contribution posture",
+      "sanitized health/readiness summary"
+    ],
+    "forbidden_to_ship": [
+      "full Shipyard commissioning machinery",
+      "cross-client private state",
+      "unscoped internal prompt recipes",
+      "central support backend secrets",
+      "unreviewed productization/pricing machinery",
+      "other captains' private data"
+    ],
+    "next_safe_move": "Keep this boundary visible before any commissioning or client-ship generator lane.",
+    "shipyard_internal_capabilities": [
+      "app/workflow generators",
+      "Work Terrain and Build Cue",
+      "agent/package compiler",
+      "productization, onboarding, pricing, and commissioning machinery",
+      "internal prompt recipes",
+      "cross-client support/monitoring backend",
+      "template library",
+      "core build/deploy/update rails"
+    ],
+    "shipyard_ip_boundary": "Ships receive only scoped capabilities and explicit update/support hooks, not the whole Shipyard.",
+    "support_visibility_policy": "Support packets should be sanitized and explicit about what the Shipyard can see.",
+    "winship_capabilities": [
+      "scoped workflows",
+      "local ledger/receipt store",
+      "capture/readback loop",
+      "local operator profile",
+      "client-specific adapters",
+      "protected evidence refs",
+      "sanitized support packets",
+      "update hooks"
+    ]
+  }
+}

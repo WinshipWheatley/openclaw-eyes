@@ -1,0 +1,716 @@
+{
+  "allowed_worker_inputs": [
+    "redacted_freshness_gated_proof_bundle",
+    "current_lane_summary",
+    "source_inventory_summary",
+    "missing_context_summary",
+    "decision_trace_summary",
+    "proof_meter_labels",
+    "allowed_controls",
+    "blocked_action_summaries",
+    "required_json_response_schema",
+    "one_valid_json_example",
+    "stop_conditions"
+  ],
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "authority_granted": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "business_action_authority": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_llm_allowed": false,
+    "external_provider_connect_allowed": false,
+    "file_system_mutation_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "invocation_allowed": false,
+    "ledger_mutation_allowed": false,
+    "local_model_runtime_contact_allowed": false,
+    "memory_promotion_allowed": false,
+    "memory_write_access": false,
+    "memory_write_authority": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "proof_bundle_allowed": false,
+    "protected_actions_allowed": false,
+    "repeated_invocations_allowed": false,
+    "shell_command_allowed": false,
+    "tool_authority": false,
+    "tool_authority_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "content_hash": "sha256:1ff676ecb4834ffc86bb0c157e5ffc0058ba21f9f881f435ab06dbcc9df8bdbe",
+  "expected_response_target": {
+    "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+    "can_do_now": [
+      "explain the payment-watch state",
+      "accept payment evidence"
+    ],
+    "cannot_do_yet": [
+      "mark paid",
+      "post to the ledger",
+      "submit anything"
+    ],
+    "claimed_facts": [
+      "payment_evidence_missing",
+      "processor_processing",
+      "ledger_untouched",
+      "paid_false"
+    ],
+    "headline": "Payment evidence needed",
+    "missing_input": [
+      "payment_evidence"
+    ],
+    "next_step": "Attach payment evidence.",
+    "requested_controls": [
+      "attach_proof"
+    ],
+    "uncertainty_notes": []
+  },
+  "forbidden_worker_inputs": [
+    "raw_messy_folder_dump",
+    "full_logs_or_artifacts_by_default",
+    "raw_financial_proof",
+    "bank_or_account_details",
+    "credentials_or_tokens",
+    "operator_device_session_verification_secrets",
+    "raw_prompt_dumps",
+    "raw_ocr_or_artifact_text",
+    "workbook_email_or_ledger_bodies",
+    "hidden_machine_contracts",
+    "authority_granted_fields",
+    "stale_source_as_current_truth",
+    "duplicate_versions_as_equal_evidence",
+    "missing_context_as_permission_to_invent"
+  ],
+  "generated_at": "2026-06-08T01:23:13+00:00",
+  "implementation_boundary": {
+    "browser_opened": false,
+    "coupa_opened": false,
+    "email_send_performed": false,
+    "external_provider_connected": false,
+    "external_provider_used": false,
+    "file_system_mutation_performed": false,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "memory_promotion_performed": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "ollama_called": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "prompt_sent": false,
+    "proof_bundle_sent": false,
+    "repeated_invocation_performed": false,
+    "runtime_connected": false,
+    "shell_command_performed": false,
+    "submit_performed": false,
+    "tool_execution_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "invocation_allowed": false,
+  "lane": "finance/capital_hilton",
+  "machine_proof": {
+    "allowed_forbidden_inputs_disjoint": true,
+    "allowed_inputs_match_contract": true,
+    "boundary_read_model_only": true,
+    "business_action_authority_false": true,
+    "expected_response_target_present": true,
+    "forbidden_inputs_match_contract": true,
+    "invocation_disallowed": true,
+    "loose_proof_bundle_disallowed": true,
+    "model_invocation_absent": true,
+    "preconditions_ready": true,
+    "project_room_ready_required": true,
+    "prompt_send_absent": true,
+    "proof_bundle_send_absent": true,
+    "required_package_refs_present": true,
+    "room_backed_package_required": true,
+    "sqlite_row_count_matches_records": true,
+    "stop_conditions_complete": true,
+    "tool_authority_false": true,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "worker_spawn_absent": true,
+    "worker_spawn_disallowed": true
+  },
+  "mode": "proof_to_response_only",
+  "model": "qwen3:8b-q4_K_M",
+  "objective": "payment_watch_response",
+  "operator_decision_options": [
+    "approve_one_time_room_backed_lm2_worker_pilot",
+    "request_more_detail",
+    "reject_for_now"
+  ],
+  "packet_status": "pending_operator_review",
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "LM2_LIVE_WORKER_PILOT_BOUNDARY_READY"
+      ],
+      "observed_status": "LM2_LIVE_WORKER_PILOT_BOUNDARY_READY",
+      "precondition_ref": "lm2_live_worker_pilot_boundary",
+      "ready": true,
+      "source_ref": "generated/read_models/lm2_live_worker_pilot_boundary_packet.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROJECT_ROOM_SOURCESET_CONTRACT_READY"
+      ],
+      "observed_status": "PROJECT_ROOM_SOURCESET_CONTRACT_READY",
+      "precondition_ref": "project_room_sourceset_contract",
+      "ready": true,
+      "source_ref": "generated/read_models/project_room_sourceset_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROJECT_ROOM_PACKAGE_COMPILER_INTEGRATION_READY"
+      ],
+      "observed_status": "PROJECT_ROOM_PACKAGE_COMPILER_INTEGRATION_READY",
+      "precondition_ref": "project_room_package_compiler_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/project_room_package_compiler_integration.json"
+    },
+    {
+      "accepted_statuses": [
+        "CONTEXT_COMPACTION_PREVIEW_POLICY_READY"
+      ],
+      "observed_status": "CONTEXT_COMPACTION_PREVIEW_POLICY_READY",
+      "precondition_ref": "context_compaction_preview_policy",
+      "ready": true,
+      "source_ref": "generated/read_models/context_compaction_preview_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY"
+      ],
+      "observed_status": "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",
+      "precondition_ref": "context_freshness_decision_trace_gate",
+      "ready": true,
+      "source_ref": "generated/read_models/context_freshness_decision_trace_gate.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_freshness_trace_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_builder_redaction_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_builder_redaction_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
+      "precondition_ref": "proof_to_response_schema_adapter",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_schema_adapter_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "UNIVERSAL_RECEIPT_ENVELOPE_READY"
+      ],
+      "observed_status": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
+      "precondition_ref": "universal_receipt_envelope",
+      "ready": true,
+      "source_ref": "generated/read_models/universal_receipt_envelope_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "GOLDILOCKS_GATE_CALIBRATION_READY"
+      ],
+      "observed_status": "GOLDILOCKS_GATE_CALIBRATION_READY",
+      "precondition_ref": "goldilocks_gate_calibration",
+      "ready": true,
+      "source_ref": "generated/read_models/goldilocks_gate_calibration.json"
+    }
+  ],
+  "project_room_ready_required": true,
+  "proof_bundle_allowed": false,
+  "purpose": "Revise the LM2 live worker pilot boundary so any future LM2 worker receives a room-backed package, not a loose proof bundle or messy context.",
+  "question": "What should I do here?",
+  "read_model_id": "lm2_room_backed_worker_pilot_boundary",
+  "required_receipts": {
+    "after_future_invocation": [
+      "worker_started_receipt",
+      "model_invocation_attempt_receipt",
+      "raw_draft_captured_receipt",
+      "worker_stopped_receipt",
+      "verifier_pass_fail_receipt",
+      "published_response_hash_receipt_or_fallback_receipt",
+      "no_business_action_receipt"
+    ],
+    "before_future_invocation": [
+      "operator_approval_receipt",
+      "room_backed_package_receipt",
+      "project_room_readiness_receipt",
+      "worker_package_boundary_receipt",
+      "model_invocation_boundary_receipt",
+      "redacted_proof_bundle_receipt",
+      "no_external_provider_receipt",
+      "no_tool_authority_receipt"
+    ]
+  },
+  "room_backed_package": {
+    "allowed_controls": [
+      "attach_proof"
+    ],
+    "authority_boundary_ref": "lm2_room_backed_worker_pilot_boundary:authority_boundary:v1",
+    "blocked_action_summaries": [
+      "mark paid",
+      "post to the ledger",
+      "submit anything"
+    ],
+    "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+    "compiled_by_ref": "generated/read_models/project_room_package_compiler_integration.json",
+    "conflict_log_ref": "conflict_log:finance_capital_hilton_payment_watch",
+    "current_lane_summary": "Finance / Capital Hilton payment watch. Coupa is processing; payment evidence is missing; paid=false; ledger untouched.",
+    "current_proof_bundle_required": true,
+    "decision_trace_ref": "decision_trace:finance_capital_hilton_payment_watch",
+    "decision_trace_summary": "Prior payment-watch lane/gate routing showed that safe text can still be wrong if scoped to the wrong lane.",
+    "duplicate_report_ref": "version_family:finance_payment_watch",
+    "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+    "invocation_allowed": false,
+    "lane": "finance/capital_hilton",
+    "missing_context_ref": "missing_context:finance_payment_evidence",
+    "missing_context_summary": "Payment evidence is missing and blocks paid/ledger claims.",
+    "mode": "proof_to_response_only",
+    "model": "qwen3:8b-q4_K_M",
+    "objective": "payment_watch_response",
+    "one_bounded_objective": true,
+    "one_valid_json_example": {
+      "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+      "can_do_now": [
+        "explain the payment-watch state",
+        "accept payment evidence"
+      ],
+      "cannot_do_yet": [
+        "mark paid",
+        "post to the ledger",
+        "submit anything"
+      ],
+      "claimed_facts": [
+        "payment_evidence_missing",
+        "processor_processing",
+        "ledger_untouched",
+        "paid_false"
+      ],
+      "headline": "Payment evidence needed",
+      "missing_input": [
+        "payment_evidence"
+      ],
+      "next_step": "Attach payment evidence.",
+      "requested_controls": [
+        "attach_proof"
+      ],
+      "uncertainty_notes": []
+    },
+    "package_ref": "lm2_room_backed_package:finance_capital_hilton_payment_watch_response:v1",
+    "project_room_id": "finance_capital_hilton_payment_watch",
+    "project_room_ready_required": true,
+    "project_room_required": true,
+    "proof_bundle_allowed": false,
+    "proof_meter_labels": [
+      "payment_evidence_missing",
+      "processor_processing",
+      "ledger_untouched",
+      "paid_false"
+    ],
+    "question": "What should I do here?",
+    "receipt_requirement_ref": "lm2_room_backed_worker_pilot_boundary:receipt_requirements:v1",
+    "redacted_proof_bundle_ref": "generated/read_models/proof_bundle_freshness_trace_status.json#finance_capital_hilton_payment_watch_redacted",
+    "required_json_response_schema": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "description": "Concise response body grounded only in proof.",
+          "type": "string"
+        },
+        "can_do_now": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "cannot_do_yet": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "claimed_facts": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "headline": {
+          "description": "Short operator-facing headline.",
+          "type": "string"
+        },
+        "missing_input": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "next_step": {
+          "description": "One safe next step.",
+          "type": "string"
+        },
+        "requested_controls": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "uncertainty_notes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "headline",
+        "body",
+        "next_step",
+        "missing_input",
+        "can_do_now",
+        "cannot_do_yet",
+        "claimed_facts",
+        "requested_controls",
+        "uncertainty_notes"
+      ],
+      "type": "object"
+    },
+    "room_backed_package_required": true,
+    "runtime": "ollama",
+    "source_inventory_ref": "source_inventory:finance_capital_hilton_payment_watch",
+    "source_inventory_summary": "Use the payment-watch receipt as current proof and generated summaries only as support.",
+    "stop_conditions": [
+      "project_room_not_ready",
+      "source_inventory_missing",
+      "unresolved_critical_conflict",
+      "missing_context_blocks_supported_claim",
+      "freshness_stale_superseded_or_unknown",
+      "proof_bundle_contains_forbidden_field",
+      "model_returns_non_json",
+      "model_claims_paid_sent_submitted_or_executed",
+      "model_promises_protected_action",
+      "model_asks_for_hidden_private_context",
+      "model_attempts_tool_use",
+      "model_exceeds_one_attempt",
+      "verifier_fails"
+    ],
+    "synthesis_allowed": false,
+    "worker_class": "lm2_bounded_worker",
+    "worker_spawn_allowed": false
+  },
+  "room_backed_package_required": true,
+  "rules": [
+    "invocation_allowed=false",
+    "worker_spawn_allowed=false",
+    "proof_bundle_allowed=false",
+    "room_backed_package_required=true",
+    "project_room_ready_required=true",
+    "this packet is not approval",
+    "this packet does not run LM2"
+  ],
+  "runtime": "ollama",
+  "schema_version": "lm2_room_backed_worker_pilot_boundary_v1",
+  "source_content_hashes": {
+    "preconditions": "sha256:e1bfec4c78d5d53e7100723102df99488251e76bd881fafefad39620234b76a4",
+    "records": "sha256:1ce1eda32fbc08b7b2b830328e614d67708b4cd2b2b4f31f94dcd52988af8af6",
+    "room_backed_package": "sha256:8e6a3f852ae9c8f75a57e3bb67592f01271228e8c45818216e95ae78679a2f07",
+    "worker_package_input": "sha256:a887c91e457571e6ebc32414fc6a444280e9db5f4694b1e9c65de5749dd82c85"
+  },
+  "source_refs": [
+    "generated/read_models/lm2_live_worker_pilot_boundary_packet.json",
+    "generated/read_models/project_room_sourceset_contract.json",
+    "generated/read_models/project_room_package_compiler_integration.json",
+    "generated/read_models/context_compaction_preview_policy.json",
+    "generated/read_models/context_freshness_decision_trace_gate.json",
+    "generated/read_models/proof_bundle_freshness_trace_status.json",
+    "generated/read_models/proof_bundle_builder_redaction_status.json",
+    "generated/read_models/proof_to_response_schema_adapter_status.json",
+    "generated/read_models/universal_receipt_envelope_status.json",
+    "generated/read_models/goldilocks_gate_calibration.json"
+  ],
+  "sqlite_expected_row_count": 18,
+  "sqlite_ref": "/home/openclaw/generated/system_knowledge/lm2_room_backed_worker_pilot_boundary.sqlite",
+  "sqlite_row_count": 18,
+  "status": "LM2_ROOM_BACKED_WORKER_PILOT_BOUNDARY_READY",
+  "stop_conditions": [
+    "project_room_not_ready",
+    "source_inventory_missing",
+    "unresolved_critical_conflict",
+    "missing_context_blocks_supported_claim",
+    "freshness_stale_superseded_or_unknown",
+    "proof_bundle_contains_forbidden_field",
+    "model_returns_non_json",
+    "model_claims_paid_sent_submitted_or_executed",
+    "model_promises_protected_action",
+    "model_asks_for_hidden_private_context",
+    "model_attempts_tool_use",
+    "model_exceeds_one_attempt",
+    "verifier_fails"
+  ],
+  "thread_ref": "capital_hilton",
+  "unsafe_true_grants": [],
+  "worker_capabilities": {
+    "allowed": [
+      "read_provided_redacted_proof_bundle",
+      "draft_one_json_proof_to_response_candidate",
+      "return_candidate_to_verifier",
+      "stop"
+    ],
+    "external_provider_allowed": false,
+    "file_system_mutation_allowed": false,
+    "forbidden": [
+      "tool_use",
+      "browser_gmail_coupa",
+      "email_send",
+      "submit",
+      "ledger_mutation",
+      "workbook_mutation",
+      "pdf_export",
+      "paid_marking",
+      "memory_promotion",
+      "worker_spawning",
+      "external_provider",
+      "file_system_mutation",
+      "shell_commands",
+      "repeated_invocations"
+    ],
+    "model_tool_access": false,
+    "one_attempt_only": true,
+    "shell_commands_allowed": false
+  },
+  "worker_class": "lm2_bounded_worker",
+  "worker_package_input": {
+    "allowed": [
+      "redacted_freshness_gated_proof_bundle",
+      "current_lane_summary",
+      "source_inventory_summary",
+      "missing_context_summary",
+      "decision_trace_summary",
+      "proof_meter_labels",
+      "allowed_controls",
+      "blocked_action_summaries",
+      "required_json_response_schema",
+      "one_valid_json_example",
+      "stop_conditions"
+    ],
+    "forbidden": [
+      "raw_messy_folder_dump",
+      "full_logs_or_artifacts_by_default",
+      "raw_financial_proof",
+      "bank_or_account_details",
+      "credentials_or_tokens",
+      "operator_device_session_verification_secrets",
+      "raw_prompt_dumps",
+      "raw_ocr_or_artifact_text",
+      "workbook_email_or_ledger_bodies",
+      "hidden_machine_contracts",
+      "authority_granted_fields",
+      "stale_source_as_current_truth",
+      "duplicate_versions_as_equal_evidence",
+      "missing_context_as_permission_to_invent"
+    ],
+    "loose_proof_bundle_allowed": false,
+    "package": {
+      "allowed_controls": [
+        "attach_proof"
+      ],
+      "authority_boundary_ref": "lm2_room_backed_worker_pilot_boundary:authority_boundary:v1",
+      "blocked_action_summaries": [
+        "mark paid",
+        "post to the ledger",
+        "submit anything"
+      ],
+      "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+      "compiled_by_ref": "generated/read_models/project_room_package_compiler_integration.json",
+      "conflict_log_ref": "conflict_log:finance_capital_hilton_payment_watch",
+      "current_lane_summary": "Finance / Capital Hilton payment watch. Coupa is processing; payment evidence is missing; paid=false; ledger untouched.",
+      "current_proof_bundle_required": true,
+      "decision_trace_ref": "decision_trace:finance_capital_hilton_payment_watch",
+      "decision_trace_summary": "Prior payment-watch lane/gate routing showed that safe text can still be wrong if scoped to the wrong lane.",
+      "duplicate_report_ref": "version_family:finance_payment_watch",
+      "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+      "invocation_allowed": false,
+      "lane": "finance/capital_hilton",
+      "missing_context_ref": "missing_context:finance_payment_evidence",
+      "missing_context_summary": "Payment evidence is missing and blocks paid/ledger claims.",
+      "mode": "proof_to_response_only",
+      "model": "qwen3:8b-q4_K_M",
+      "objective": "payment_watch_response",
+      "one_bounded_objective": true,
+      "one_valid_json_example": {
+        "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+        "can_do_now": [
+          "explain the payment-watch state",
+          "accept payment evidence"
+        ],
+        "cannot_do_yet": [
+          "mark paid",
+          "post to the ledger",
+          "submit anything"
+        ],
+        "claimed_facts": [
+          "payment_evidence_missing",
+          "processor_processing",
+          "ledger_untouched",
+          "paid_false"
+        ],
+        "headline": "Payment evidence needed",
+        "missing_input": [
+          "payment_evidence"
+        ],
+        "next_step": "Attach payment evidence.",
+        "requested_controls": [
+          "attach_proof"
+        ],
+        "uncertainty_notes": []
+      },
+      "package_ref": "lm2_room_backed_package:finance_capital_hilton_payment_watch_response:v1",
+      "project_room_id": "finance_capital_hilton_payment_watch",
+      "project_room_ready_required": true,
+      "project_room_required": true,
+      "proof_bundle_allowed": false,
+      "proof_meter_labels": [
+        "payment_evidence_missing",
+        "processor_processing",
+        "ledger_untouched",
+        "paid_false"
+      ],
+      "question": "What should I do here?",
+      "receipt_requirement_ref": "lm2_room_backed_worker_pilot_boundary:receipt_requirements:v1",
+      "redacted_proof_bundle_ref": "generated/read_models/proof_bundle_freshness_trace_status.json#finance_capital_hilton_payment_watch_redacted",
+      "required_json_response_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "description": "Concise response body grounded only in proof.",
+            "type": "string"
+          },
+          "can_do_now": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cannot_do_yet": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "claimed_facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "headline": {
+            "description": "Short operator-facing headline.",
+            "type": "string"
+          },
+          "missing_input": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "next_step": {
+            "description": "One safe next step.",
+            "type": "string"
+          },
+          "requested_controls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uncertainty_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "headline",
+          "body",
+          "next_step",
+          "missing_input",
+          "can_do_now",
+          "cannot_do_yet",
+          "claimed_facts",
+          "requested_controls",
+          "uncertainty_notes"
+        ],
+        "type": "object"
+      },
+      "room_backed_package_required": true,
+      "runtime": "ollama",
+      "source_inventory_ref": "source_inventory:finance_capital_hilton_payment_watch",
+      "source_inventory_summary": "Use the payment-watch receipt as current proof and generated summaries only as support.",
+      "stop_conditions": [
+        "project_room_not_ready",
+        "source_inventory_missing",
+        "unresolved_critical_conflict",
+        "missing_context_blocks_supported_claim",
+        "freshness_stale_superseded_or_unknown",
+        "proof_bundle_contains_forbidden_field",
+        "model_returns_non_json",
+        "model_claims_paid_sent_submitted_or_executed",
+        "model_promises_protected_action",
+        "model_asks_for_hidden_private_context",
+        "model_attempts_tool_use",
+        "model_exceeds_one_attempt",
+        "verifier_fails"
+      ],
+      "synthesis_allowed": false,
+      "worker_class": "lm2_bounded_worker",
+      "worker_spawn_allowed": false
+    },
+    "raw_context_allowed": false,
+    "required_package_refs": [
+      "project_room_id",
+      "source_inventory_ref",
+      "conflict_log_ref",
+      "missing_context_ref",
+      "duplicate_report_ref",
+      "decision_trace_ref",
+      "freshness_gate_ref",
+      "compaction_policy_ref",
+      "redacted_proof_bundle_ref",
+      "authority_boundary_ref",
+      "receipt_requirement_ref"
+    ],
+    "room_backed_package_required": true
+  },
+  "worker_spawn_allowed": false,
+  "world_ref": "finance"
+}

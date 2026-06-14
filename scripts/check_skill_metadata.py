@@ -1,26 +1,32 @@
-#!/usr/bin/env python3
-"""Check SKILL.md metadata against Codex-compatible limits."""
+"""Validate local Codex skill metadata in the active plugin cache.
+
+This is a deterministic preflight for cached skill metadata. The cache is not
+source of truth; failing results should be fixed upstream or by refreshing the
+cache source, not by treating cache edits as permanent repo repairs.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
-from typing import Any
+from pathlib import Path
+from typing import Any, Sequence
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CODEX_CURATED_ROOT = Path.home() / ".codex" / "plugins" / "cache" / "openai-curated"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from skill_loader import load_skills
+from skill_vetter import DEFAULT_RULESET, vet_skills
+
+
+DEFAULT_SKILLS_PATH = Path(".codex/plugins/cache")
+DEFAULT_INCLUDE_PATTERNS = ("**/SKILL.md",)
 ARTIFACT_VERSION = "skill_metadata_preflight_v0"
-DEFAULT_MAX_DESCRIPTION_BYTES = 1024
 SKIP_DIRS = frozenset({".git", "__pycache__", ".pytest_cache"})
-
-
-def stable_json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, indent=2, sort_keys=True) + "\n"
 
 
 def find_skill_files(root: Path) -> list[Path]:
@@ -107,7 +113,7 @@ def check_skill_file(path: Path, max_description_bytes: int) -> dict[str, Any] |
 
 def build_skill_metadata_report(
     roots: list[Path],
-    max_description_bytes: int = DEFAULT_MAX_DESCRIPTION_BYTES,
+    max_description_bytes: int = int(DEFAULT_RULESET["max_description_bytes"]),
 ) -> dict[str, Any]:
     scanned_roots: list[str] = []
     skipped_roots: list[str] = []
@@ -161,57 +167,81 @@ def format_operator_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Check SKILL.md metadata byte limits.")
-    parser.add_argument(
-        "--root",
-        action="append",
-        type=Path,
-        help="Additional root or SKILL.md file to scan. Can be repeated.",
+def check_skill_metadata(
+    skills_path: Path = DEFAULT_SKILLS_PATH,
+    *,
+    max_description_bytes: int = int(DEFAULT_RULESET["max_description_bytes"]),
+    include_patterns: tuple[str, ...] = DEFAULT_INCLUDE_PATTERNS,
+) -> dict[str, Any]:
+    raw_report = build_skill_metadata_report([skills_path], max_description_bytes=max_description_bytes)
+    loaded = load_skills(
+        str(skills_path),
+        include_patterns=include_patterns,
+        strict_mode=False,
     )
-    parser.add_argument(
-        "--codex-curated-root",
-        type=Path,
-        default=DEFAULT_CODEX_CURATED_ROOT,
-        help="Codex curated plugin cache root to scan.",
+    vetted = vet_skills(
+        loaded["skills"],
+        ruleset={"max_description_bytes": max_description_bytes},
+        strict_mode=False,
     )
+    too_long = [
+        {
+            "skill_id": result["skill_id"],
+            "reasons": [
+                reason
+                for reason in result["reasons"]
+                if reason["code"] == "DESCRIPTION_TOO_LONG"
+            ],
+        }
+        for result in vetted["results"]
+        if any(reason["code"] == "DESCRIPTION_TOO_LONG" for reason in result["reasons"])
+    ]
+    raw_description_issues = [
+        issue for issue in raw_report["issues"] if issue["code"] == "DESCRIPTION_TOO_LONG"
+    ]
+    status = "pass" if not loaded["errors"] and not too_long and not raw_report["issues"] else "fail"
+    return {
+        "status": status,
+        "skills_path": str(skills_path),
+        "max_description_bytes": max_description_bytes,
+        "loaded_summary": loaded["summary"],
+        "vetter_summary": vetted["summary"],
+        "loader_errors": loaded["errors"],
+        "description_too_long": too_long,
+        "raw_frontmatter_report": raw_report,
+        "raw_description_issues": raw_description_issues,
+        "description_issue_count": max(len(too_long), len(raw_description_issues)),
+        "cache_is_source_of_truth": False,
+    }
+
+
+def _build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Check active Codex skill metadata byte limits.")
+    parser.add_argument("--skills-path", "--root", dest="skills_path", type=Path, default=DEFAULT_SKILLS_PATH)
+    parser.add_argument("--max-description-bytes", type=int, default=int(DEFAULT_RULESET["max_description_bytes"]))
+    parser.add_argument("--format", choices=("summary", "json"), default="summary")
     parser.add_argument(
         "--no-codex-cache",
         action="store_true",
-        help="Only scan explicit roots and the OpenClaw repo root.",
+        help="Compatibility no-op: the checker uses the explicit --root/--skills-path when provided.",
     )
-    parser.add_argument(
-        "--max-description-bytes",
-        type=int,
-        default=DEFAULT_MAX_DESCRIPTION_BYTES,
-        help="Maximum allowed UTF-8 bytes for frontmatter description.",
-    )
-    parser.add_argument(
-        "--format",
-        choices=("operator", "json"),
-        default="operator",
-        help="Output format.",
-    )
-    return parser.parse_args(argv)
+    return parser
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = parse_args(sys.argv[1:] if argv is None else argv)
-    roots = [ROOT]
-    if not args.no_codex_cache:
-        roots.append(args.codex_curated_root)
-    if args.root:
-        roots.extend(args.root)
-
-    report = build_skill_metadata_report(
-        roots=roots,
+def main(argv: Sequence[str] | None = None) -> int:
+    args = _build_arg_parser().parse_args(argv)
+    result = check_skill_metadata(
+        args.skills_path,
         max_description_bytes=args.max_description_bytes,
     )
     if args.format == "json":
-        print(stable_json(report), end="")
+        print(json.dumps(result, indent=2, sort_keys=True))
     else:
-        print(format_operator_report(report))
-    return 1 if report["issue_count"] else 0
+        print(
+            f"{result['status']}: checked {result['loaded_summary']['loaded']} skills; "
+            f"{result['description_issue_count']} over {result['max_description_bytes']} bytes"
+        )
+    return 0 if result["status"] == "pass" else 1
 
 
 if __name__ == "__main__":

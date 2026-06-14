@@ -481,7 +481,9 @@ class TestCalendarDeleteRouting:
         monkeypatch.setattr(
             cassandra_brain,
             "_log_conversation",
-            lambda text, replies, route="llm": logged.append({"text": text, "replies": replies, "route": route}),
+            lambda text, replies, route="llm", **_kwargs: logged.append(
+                {"text": text, "replies": replies, "route": route}
+            ),
             raising=False,
         )
 
@@ -1213,7 +1215,9 @@ class TestCassandraRouterPolicy:
         monkeypatch.setattr(
             cassandra_brain,
             "_log_conversation",
-            lambda text, replies, route="llm": logged.append({"text": text, "replies": replies, "route": route}),
+            lambda text, replies, route="llm", **_kwargs: logged.append(
+                {"text": text, "replies": replies, "route": route}
+            ),
             raising=False,
         )
 
@@ -1479,7 +1483,14 @@ class TestCassandraRouterPolicy:
         monkeypatch.setattr(cassandra_brain, "detect_capability_gaps", lambda query, reply: [], raising=False)
         monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: True, raising=False)
         monkeypatch.setattr(cassandra_brain, "_use_small_cassandra_reply_model", lambda query: False, raising=False)
-        monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda text, replies, route="llm": logged.append({"text": text, "replies": replies, "route": route}), raising=False)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_log_conversation",
+            lambda text, replies, route="llm", **_kwargs: logged.append(
+                {"text": text, "replies": replies, "route": route}
+            ),
+            raising=False,
+        )
 
         replies = cassandra_brain.handle("Put lunch on my calendar sometime tomorrow afternoon")
 

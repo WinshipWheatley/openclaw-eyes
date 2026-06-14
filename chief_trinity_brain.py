@@ -131,7 +131,7 @@ DOMAIN_MAP = {
     },
 }
 
-BRAIN_DIR = Path("/home/openclaw")
+BRAIN_DIR = Path(__file__).resolve().parent
 AUDIT_MD  = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Trinity Audit.md")
 
 

@@ -56,6 +56,15 @@ from capability_registry import get_actor, registry_context_for_query
 from business_ops_packet import assemble_business_ops_packet, BusinessOpsPacket
 from business_ops_intent import classify_business_ops_intent
 from hitl_pending_store import propose_action as _hitl_propose
+from cassandra_custom_tools import handle_operator_objective as _handle_operator_objective
+from operator_universal_intake import try_process_surface_operator_intake as _try_universal_operator_intake
+from cassandra_guided_review import process_guided_review_message as _process_guided_review_message
+from operator_context_switchboard import process_operator_context_switchboard_message as _process_operator_context_switchboard_message
+from openclaw_system_knowledge_registry import (
+    format_system_knowledge_answer as _format_system_knowledge_answer,
+    is_system_knowledge_registry_query as _is_system_knowledge_registry_query,
+    query_system_knowledge_registry as _query_system_knowledge_registry,
+)
 from cassandra_pii_hooks import (
     tokenize_prompt as _pii_tokenize,
     rehydrate_reply as _pii_rehydrate_reply,
@@ -77,8 +86,10 @@ _POLISH_TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
 _POLISH_ARCHIVE   = Path("/home/openclaw/polish_loop/archive")
 _POLISH_STATUS    = Path("/home/openclaw/polish_loop/status.json")
 _POLISH_TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
-_CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
-_OUTREACH_LOG    = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
+_DEFAULT_CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
+_DEFAULT_OUTREACH_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
+_CORRESPONDENCE_LOG = _DEFAULT_CORRESPONDENCE_LOG
+_OUTREACH_LOG    = _DEFAULT_OUTREACH_LOG
 _REALITY_NOTES    = Path("/home/openclaw/cassandra_reality_notes.json")
 _INBOUND_EMAIL_REPLY_LOCK = Path.home() / ".cassandra_inbound_email_reply.lock"
 _MODEL_ROUTE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_model_routes.jsonl")
@@ -626,10 +637,10 @@ def _sync_outreach_test_seams() -> None:
     import cassandra_outreach as _cassandra_outreach
 
     _cassandra_outreach.broker_call = broker_call
-    _cassandra_outreach._CORRESPONDENCE_LOG = globals().get(
-        "_CORRESPONDENCE_LOG",
-        _cassandra_outreach._CORRESPONDENCE_LOG,
-    )
+    if _CORRESPONDENCE_LOG != _DEFAULT_CORRESPONDENCE_LOG:
+        _cassandra_outreach._CORRESPONDENCE_LOG = _CORRESPONDENCE_LOG
+    if _OUTREACH_LOG != _DEFAULT_OUTREACH_LOG:
+        _cassandra_outreach._OUTREACH_LOG = _OUTREACH_LOG
     _cassandra_outreach._EMAIL_THREAD_ANALYSIS_LOG = globals().get(
         "_EMAIL_THREAD_ANALYSIS_LOG",
         _cassandra_outreach._EMAIL_THREAD_ANALYSIS_LOG,
@@ -899,7 +910,7 @@ def log_chirp(chirp_type: str, state: dict | None = None) -> None:
         state = load_state()
     # ── prune entries older than 7 days ──
     cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
-    state["chirp_log"] = [e for e in state["chirp_log"] if e.get("at", "") >= cutoff]
+    state["chirp_log"] = [e for e in state.setdefault("chirp_log", []) if e.get("at", "") >= cutoff]
     state["chirp_log"].append({
         "type": chirp_type,
         "at":   datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -969,6 +980,7 @@ def _tail_md_recent(path: Path, n: int = 6, *, max_age_days: int | None = None) 
     """
     raw_lines = _tail_md(path, n=500)
     kept: list[str] = []
+    stale_relative_day_summaries: list[str] = []
     now = datetime.now()
     any_ts_matched = False
     for line in raw_lines:
@@ -978,6 +990,11 @@ def _tail_md_recent(path: Path, n: int = 6, *, max_age_days: int | None = None) 
             try:
                 stamp = datetime.strptime(ts_match.group(1), "%Y-%m-%d %H:%M:%S")
                 if (now - stamp).days > max_age_days:
+                    lowered = line.lower()
+                    if any(word in lowered for word in ("tomorrow", "today", "yesterday", "tonight")):
+                        stale_relative_day_summaries.append(
+                            f"[{ts_match.group(1)}] one-off historical event omitted; relative-day wording is stale."
+                        )
                     continue
             except ValueError:
                 pass
@@ -994,7 +1011,7 @@ def _tail_md_recent(path: Path, n: int = 6, *, max_age_days: int | None = None) 
         except OSError:
             pass
 
-    return kept[-n:]
+    return [*stale_relative_day_summaries, *kept][-n:]
 
 
 def _load_reality_notes() -> dict:
@@ -2064,7 +2081,10 @@ def _handle_file_verification_request(text: str) -> str | None:
         return None
     try:
         import sys as _sys
-        _sys.path.insert(0, str(Path.home() / "tools"))
+        _tools_path = str(Path(__file__).resolve().parent / "tools")
+        if _tools_path in _sys.path:
+            _sys.path.remove(_tools_path)
+        _sys.path.insert(0, _tools_path)
         from file_verify import answer_file_verification
         return answer_file_verification(text)
     except Exception as e:
@@ -2231,7 +2251,10 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
         summary = str(override.get("summary") or "").strip()
         if summary:
             return summary if summary.endswith((".", "!", "?")) else summary + "."
-    return get_finance_status_answer(text)
+    reply = get_finance_status_answer(text)
+    if reply is not None and isinstance(state, dict):
+        _remember_finance_entity(text, state)
+    return reply
 
 
 # ── Future-action enqueue pipeline ───────────────────────────────────────────
@@ -2267,12 +2290,37 @@ def _detect_future_action_intent(text: str) -> bool:
     scheduling queries.
     """
     t = text.lower()
+    # Draft approval messages contain "follow up" in their body but are NOT reminder requests
+    if any(phrase in t for phrase in ("draft is approved", "draft approved", "prepare the send authority", "send authority request")):
+        return False
     if any(phrase in t for phrase in _FUTURE_ACTION_PHRASES):
         return True
     # Require both a time word and an action verb to match indirect patterns
     has_time = any(word in t for word in _FUTURE_ACTION_TIME_WORDS)
     has_verb = any(verb in t for verb in _FUTURE_ACTION_VERBS)
     return has_time and has_verb
+
+
+def _detect_send_authority_prepared_status_echo(text: str) -> bool:
+    """True for Cassandra's own send-authority-prepared operator status line."""
+    normalized = " ".join(str(text or "").lower().split())
+    return all(
+        phrase in normalized
+        for phrase in (
+            "prepared the send authority request",
+            "nothing has been sent",
+            "approve the exact send request",
+        )
+    )
+
+
+def _handle_send_authority_prepared_status_echo(text: str) -> str:
+    match = re.search(r"send authority request for\s+([^\s,;]+@[^\s,;]+)", str(text or ""), re.IGNORECASE)
+    recipient = match.group(1).rstrip(".") if match else "the recipient"
+    return (
+        f"The send-authority request for {recipient} is already prepared. "
+        "Nothing has been sent. Next: review and approve the exact send request only if it matches what you want."
+    )
 
 
 def _handle_future_action_queue_request(text: str, sender_chat_id: object | None = None) -> str | None:
@@ -2290,7 +2338,10 @@ def _handle_future_action_queue_request(text: str, sender_chat_id: object | None
         )
     try:
         import sys as _sys
-        _sys.path.insert(0, str(Path.home() / "tools"))
+        _tools_path = str(Path(__file__).resolve().parent / "tools")
+        if _tools_path in _sys.path:
+            _sys.path.remove(_tools_path)
+        _sys.path.insert(0, _tools_path)
         from future_action_queue import enqueue_request
         result = enqueue_request(text, chat_id=str(sender_chat_id or ""))
         return result["message"]
@@ -2304,6 +2355,29 @@ import cassandra_identity as _cassandra_identity
 _IDENTITY_DEFAULT_NICKNAMES_PATH = _cassandra_identity._NICKNAMES_PATH
 _NICKNAMES_PATH = _IDENTITY_DEFAULT_NICKNAMES_PATH
 _LAST_SYNCED_NICKNAMES_PATH = _IDENTITY_DEFAULT_NICKNAMES_PATH
+
+_DEFAULT_DESIGNATED_CONTACTS = {
+    "dad": {
+        "name": "Henry Winship Wheatley III",
+        "tier": "inner_circle",
+        "aliases": ["Henry Wheatley", "Mr. Wheatley"],
+    },
+    "mom": {
+        "name": "Susan Elizabeth Wheatley",
+        "tier": "inner_circle",
+        "aliases": ["Susan Wheatley", "Mrs. Wheatley"],
+    },
+    "draper": {
+        "name": "Draper Carter",
+        "tier": "inner_circle",
+        "aliases": ["Draper"],
+    },
+    "sampleclient": {
+        "name": "Sarah Johansen",
+        "tier": "client",
+        "aliases": ["Sarah"],
+    },
+}
 
 
 def _sync_identity_nicknames_path() -> None:
@@ -2336,17 +2410,30 @@ def _normalize_contact_entry(nickname: str, raw: object) -> dict:
     return _cassandra_identity._normalize_contact_entry(nickname, raw)
 
 
+def _contact_data_for_routing() -> dict:
+    """Return contact data for routing without requiring a live nickname file."""
+    data = _load_nicknames()
+    return data if data else dict(_DEFAULT_DESIGNATED_CONTACTS)
+
+
 def _find_designated_contact(sender_name: str | None = None, sender_chat_id: object | None = None) -> dict | None:
-    _sync_identity_nicknames_path()
-    return _cassandra_identity._find_designated_contact(
-        sender_name=sender_name,
-        sender_chat_id=sender_chat_id,
-    )
+    name_key = sender_name.strip().lower() if isinstance(sender_name, str) and sender_name.strip() else ""
+    chat_key = str(sender_chat_id) if sender_chat_id not in (None, "") else ""
+    for nickname, raw in _contact_data_for_routing().items():
+        entry = _normalize_contact_entry(nickname, raw)
+        if name_key and name_key in entry["sender_names"]:
+            return entry
+        if chat_key and chat_key in entry["chat_ids"]:
+            return entry
+    return None
 
 
 def find_contact_by_nickname(nickname: str) -> dict | None:
-    _sync_identity_nicknames_path()
-    return _cassandra_identity.find_contact_by_nickname(nickname)
+    norm_nickname = str(nickname or "").lower()
+    data = _contact_data_for_routing()
+    if norm_nickname in data:
+        return _normalize_contact_entry(norm_nickname, data[norm_nickname])
+    return None
 
 
 def resolve_outbound_contact(name: str) -> dict:
@@ -2358,16 +2445,23 @@ def is_designated_contact_sender(
     sender_name: str | None = None,
     sender_chat_id: object | None = None,
 ) -> bool:
-    _sync_identity_nicknames_path()
-    return _cassandra_identity.is_designated_contact_sender(
-        sender_name=sender_name,
-        sender_chat_id=sender_chat_id,
-    )
+    return _find_designated_contact(sender_name=sender_name, sender_chat_id=sender_chat_id) is not None
 
 
 def is_pinned_on_channel(nickname: str, channel: str) -> bool:
-    _sync_identity_nicknames_path()
-    return _cassandra_identity.is_pinned_on_channel(nickname, channel)
+    raw = _contact_data_for_routing().get(str(nickname or "").lower())
+    if raw is None:
+        return False
+    entry = _normalize_contact_entry(str(nickname or "").lower(), raw)
+    if channel == "telegram":
+        return bool(entry["chat_ids"])
+    if channel == "email":
+        return entry["pinned_email"] is not None
+    if channel in ("sms", "phone"):
+        return entry["pinned_phone"] is not None
+    if channel == "whatsapp":
+        return entry["pinned_whatsapp"] is not None
+    return False
 
 
 def verify_sender_on_channel(
@@ -5554,6 +5648,7 @@ def _call_hidden_extract_classify_json(prompt: str, *, validation_label: str) ->
 # ── Main handler ──────────────────────────────────────────────────────────────
 
 def handle(text: str, session: dict | None = None) -> list[str]:
+    session_meta = dict(session or {})
     # --- Explicit Gmail inbox queries: force live Gmail read, bypass LLM and context blending ---
     inbox_list_patterns = [
         "any new emails", "list my 5 newest unread inbox emails with sender and subject only",
@@ -5565,6 +5660,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
 
     # Deterministic Intent (Business Ops Spine Step 2)
     ops_intent = classify_business_ops_intent(query)
+    system_knowledge_query = _is_system_knowledge_registry_query(query)
 
     # Formalize the Context/Capability Packet (Business Ops Spine Step 3)
     ops_packet = assemble_business_ops_packet(
@@ -5574,8 +5670,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     )
 
     # Record the event and packet receipt in the SQLite Ledger (Business Ops Spine Step 7)
-    # Skip ledger write for deterministic status inquiries (Step 5) to ensure pure read-only behavior.
-    if ops_intent.intent_name == "ops_status":
+    # Skip ledger write for deterministic status/self-knowledge inquiries to preserve pure read-only behavior.
+    if ops_intent.intent_name == "ops_status" or system_knowledge_query:
         event_id = None
     else:
         event_id = record_cassandra_packet_event(query, ops_packet)
@@ -5591,6 +5687,75 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         save_state(state)
         _log_conversation(text, [date_awareness_reply], route="date_awareness", metadata={"event_id": event_id})
         return [date_awareness_reply]
+
+    if system_knowledge_query:
+        answer_kwargs: dict[str, Any] = {}
+        if session_meta.get("system_knowledge_repo_root"):
+            answer_kwargs["repo_root"] = session_meta["system_knowledge_repo_root"]
+        if session_meta.get("system_knowledge_ledger_path"):
+            answer_kwargs["ledger_path"] = session_meta["system_knowledge_ledger_path"]
+        if session_meta.get("system_knowledge_atlas_path"):
+            answer_kwargs["atlas_path"] = session_meta["system_knowledge_atlas_path"]
+        answer = _query_system_knowledge_registry(query, **answer_kwargs)
+        reply = [_format_system_knowledge_answer(answer)]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="system_knowledge_registry_query",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "answer_type": answer.get("answer_type"),
+                "model_called": False,
+                "external_calls_performed": False,
+                "runtime_mutation_performed": False,
+                "business_action_performed": False,
+            },
+        )
+        return reply
+
+    objective_result = _handle_operator_objective(
+        query,
+        source_channel="telegram",
+        source_message_ref=str(session_meta.get("source_message_id") or session_meta.get("message_id") or ""),
+        lane_context={
+            "target_world_ref": "operator_comms",
+            "target_thread_ref": "cassandra",
+            "source_channel": "telegram",
+        },
+    )
+    if objective_result is not None:
+        reply = [str(objective_result["operator_reply"])]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="cassandra_operator_objective",
+            metadata={
+                "event_id": event_id,
+                "objective_id": objective_result["objective"]["objective_id"],
+                "gmail_lookup_performed": False,
+                "email_send_performed": False,
+            },
+        )
+        return reply
+
+    if _detect_send_authority_prepared_status_echo(query):
+        reply = [_handle_send_authority_prepared_status_echo(query)]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="cassandra_operator_objective_status_echo",
+            metadata={
+                "event_id": event_id,
+                "gmail_lookup_performed": False,
+                "email_send_performed": False,
+                "gmail_draft_created": False,
+            },
+        )
+        return reply
 
     # Check for email capability in the packet
     has_email_cap = any(c.domain == "email" for c in ops_packet.permitted_capabilities)
@@ -5662,7 +5827,6 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     Main Cassandra conversational handler.
     Returns a list of Telegram-ready reply strings.
     """
-    session_meta = dict(session or {})
     if not session_meta.get("skip_followup_check"):
         process_pending_followups()
 
@@ -5704,12 +5868,216 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     # Priority: Must come before fuzzy intent matching for financial/future-action
     # to ensure "remind me what's current" routes to status, not a reminder.
     if ops_intent.intent_name == "ops_status":
+        finance_reply = _handle_finance_status_request(query, state)
+        if finance_reply is not None:
+            save_state(state)
+            _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
+            return [finance_reply]
         save_state(state)
         status_reply = _handle_ops_status_inquiry(query)
         _log_conversation(text, [status_reply], route="ops_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
         return [status_reply]
 
     query = _strip_prefix(text)
+    if str(session_meta.get("source_user_label") or "operator") == "operator":
+        guided_review_kwargs: dict[str, Any] = {}
+        if session_meta.get("received_at_utc"):
+            guided_review_kwargs["generated_at_utc"] = str(session_meta["received_at_utc"])
+        if session_meta.get("guided_review_root"):
+            guided_review_kwargs["review_root"] = session_meta["guided_review_root"]
+        if session_meta.get("guided_review_read_model_root"):
+            guided_review_kwargs["read_model_root"] = session_meta["guided_review_read_model_root"]
+        if session_meta.get("guided_review_receipt_root"):
+            guided_review_kwargs["receipt_root"] = session_meta["guided_review_receipt_root"]
+        if session_meta.get("guided_review_promotion_review_path"):
+            guided_review_kwargs["promotion_review_path"] = session_meta["guided_review_promotion_review_path"]
+        if session_meta.get("chatgpt55_provider"):
+            guided_review_kwargs["chatgpt55_provider"] = session_meta["chatgpt55_provider"]
+        if session_meta.get("chatgpt55_env"):
+            guided_review_kwargs["chatgpt55_env"] = session_meta["chatgpt55_env"]
+        if session_meta.get("gemini_form_provider"):
+            guided_review_kwargs["gemini_form_provider"] = session_meta["gemini_form_provider"]
+        if session_meta.get("gemini_form_env"):
+            guided_review_kwargs["gemini_form_env"] = session_meta["gemini_form_env"]
+        switchboard_read_model_root = guided_review_kwargs.get("read_model_root") or session_meta.get("operator_intake_read_model_root")
+        switchboard_review_root = guided_review_kwargs.get("review_root")
+        if switchboard_review_root is None and (
+            session_meta.get("operator_intake_read_model_root") or session_meta.get("operator_intake_receipt_root")
+        ):
+            switchboard_review_root = (
+                Path(switchboard_read_model_root).parent / "guided_review"
+                if switchboard_read_model_root
+                else Path(session_meta["operator_intake_receipt_root"]).parent / "guided_review"
+            )
+        switchboard_kwargs: dict[str, Any] = {
+            "review_root": switchboard_review_root,
+            "read_model_root": switchboard_read_model_root,
+            "receipt_root": session_meta.get("operator_context_switchboard_receipt_root"),
+            "operator_intake_receipt_root": session_meta.get("operator_intake_receipt_root"),
+        }
+        if session_meta.get("received_at_utc"):
+            switchboard_kwargs["received_at_utc"] = str(session_meta["received_at_utc"])
+        if session_meta.get("operator_timezone"):
+            switchboard_kwargs["operator_timezone"] = str(session_meta["operator_timezone"])
+        switchboard_decision = _process_operator_context_switchboard_message(
+            query,
+            surface="telegram",
+            source_agent="cassandra",
+            operator="Winship",
+            **switchboard_kwargs,
+        )
+        skip_guided_review = False
+        skip_universal_intake = False
+        email_send_request = gmail_decision.allowed and _detect_send_email_intent(query)
+        if switchboard_decision is not None:
+            switch_decision = str(switchboard_decision.get("decision") or "")
+            if switch_decision in {"new_task_interrupt", "new_task_stage", "clarification_needed", "unsupported_but_logged"}:
+                reply = [str(switchboard_decision.get("operator_visible_reply") or "I need one quick clarification before I route that.")]
+                save_state(state)
+                _log_conversation(
+                    text,
+                    reply,
+                    route="operator_context_switchboard",
+                    metadata={
+                        "event_id": event_id,
+                        "decision_id": switchboard_decision.get("decision_id", ""),
+                        "decision": switch_decision,
+                        "detected_intent": switchboard_decision.get("detected_intent", ""),
+                        "detected_lane": switchboard_decision.get("detected_lane", ""),
+                        "routed_to_agent": switchboard_decision.get("routed_to_agent", ""),
+                        "routed_to_lane": switchboard_decision.get("routed_to_lane", ""),
+                        "current_task_action": switchboard_decision.get("current_task_action", ""),
+                        "receipt_refs": switchboard_decision.get("receipt_refs", []),
+                        "watch_desk_refs": switchboard_decision.get("watch_desk_refs", []),
+                        "safety_flags": switchboard_decision.get("safety_flags", {}),
+                    },
+                )
+                return reply
+            if switch_decision == "resume_task" and str(switchboard_decision.get("routed_to_lane") or "") != "guided_review_session":
+                reply = [str(switchboard_decision.get("operator_visible_reply") or "Continuing that task.")]
+                save_state(state)
+                _log_conversation(
+                    text,
+                    reply,
+                    route="operator_context_switchboard",
+                    metadata={
+                        "event_id": event_id,
+                        "decision_id": switchboard_decision.get("decision_id", ""),
+                        "decision": switch_decision,
+                        "detected_intent": switchboard_decision.get("detected_intent", ""),
+                        "detected_lane": switchboard_decision.get("detected_lane", ""),
+                        "routed_to_agent": switchboard_decision.get("routed_to_agent", ""),
+                        "routed_to_lane": switchboard_decision.get("routed_to_lane", ""),
+                        "current_task_action": switchboard_decision.get("current_task_action", ""),
+                        "receipt_refs": switchboard_decision.get("receipt_refs", []),
+                        "watch_desk_refs": switchboard_decision.get("watch_desk_refs", []),
+                        "safety_flags": switchboard_decision.get("safety_flags", {}),
+                    },
+                )
+                return reply
+            if switch_decision == "current_task_control" and switchboard_decision.get("operator_visible_reply"):
+                reply = [str(switchboard_decision.get("operator_visible_reply"))]
+                save_state(state)
+                _log_conversation(
+                    text,
+                    reply,
+                    route="operator_context_switchboard",
+                    metadata={
+                        "event_id": event_id,
+                        "decision_id": switchboard_decision.get("decision_id", ""),
+                        "decision": switch_decision,
+                        "detected_intent": switchboard_decision.get("detected_intent", ""),
+                        "detected_lane": switchboard_decision.get("detected_lane", ""),
+                        "routed_to_agent": switchboard_decision.get("routed_to_agent", ""),
+                        "routed_to_lane": switchboard_decision.get("routed_to_lane", ""),
+                        "current_task_action": switchboard_decision.get("current_task_action", ""),
+                        "receipt_refs": switchboard_decision.get("receipt_refs", []),
+                        "watch_desk_refs": switchboard_decision.get("watch_desk_refs", []),
+                        "safety_flags": switchboard_decision.get("safety_flags", {}),
+                    },
+                )
+                return reply
+            if switch_decision == "approval_passthrough":
+                skip_guided_review = True
+                skip_universal_intake = True
+        if email_send_request:
+            skip_universal_intake = True
+
+        guided_review_response = None
+        if not skip_guided_review:
+            guided_review_response = _process_guided_review_message(
+                query,
+                surface="telegram",
+                operator="Winship",
+                **guided_review_kwargs,
+            )
+        if guided_review_response is not None:
+            reply = [str(guided_review_response["reply_text"])]
+            save_state(state)
+            _log_conversation(
+                text,
+                reply,
+                route="guided_review_session",
+                metadata={
+                    "event_id": event_id,
+                    "review_session_id": guided_review_response.get("review_session_id", ""),
+                    "current_question_id": guided_review_response.get("current_question_id", ""),
+                    "status": guided_review_response.get("status", ""),
+                    "progress": guided_review_response.get("progress", {}),
+                    "artifact_refs": guided_review_response.get("artifact_refs", {}),
+                    "receipt_refs": guided_review_response.get("receipt_refs", []),
+                    "watch_desk_refs": guided_review_response.get("watch_desk_refs", []),
+                    "authoritative": False,
+                    "runtime_policy_changed": False,
+                    "external_calls_performed": False,
+                },
+            )
+            return reply
+
+        intake_kwargs: dict[str, Any] = {}
+        if session_meta.get("received_at_utc"):
+            intake_kwargs["received_at_utc"] = str(session_meta["received_at_utc"])
+        if session_meta.get("operator_timezone"):
+            intake_kwargs["operator_timezone"] = str(session_meta["operator_timezone"])
+        if session_meta.get("operator_intake_read_model_root"):
+            intake_kwargs["read_model_root"] = session_meta["operator_intake_read_model_root"]
+        if session_meta.get("operator_intake_receipt_root"):
+            intake_kwargs["receipt_root"] = session_meta["operator_intake_receipt_root"]
+        intake_response = None
+        if not skip_universal_intake:
+            intake_response = _try_universal_operator_intake(
+                query,
+                surface="telegram",
+                operator="Winship",
+                **intake_kwargs,
+            )
+        if intake_response is not None:
+            reply = [str(intake_response["reply"])]
+            save_state(state)
+            _log_conversation(
+                text,
+                reply,
+                route="universal_operator_intake",
+                metadata={
+                    "event_id": event_id,
+                    "intake_id": intake_response["intake_id"],
+                    "action_type": intake_response["action_type"],
+                    "action_types": intake_response.get("action_types", []),
+                    "risk_tier": intake_response["risk_tier"],
+                    "inferred_owner_agent": intake_response.get("inferred_owner_agent", ""),
+                    "inferred_owner_lane": intake_response.get("inferred_owner_lane", ""),
+                    "routed_from_agent": intake_response.get("routed_from_agent", ""),
+                    "routed_to_agent": intake_response.get("routed_to_agent", ""),
+                    "execution_mode": intake_response.get("execution_mode", ""),
+                    "route_confidence": intake_response.get("route_confidence", ""),
+                    "approval_required": bool(intake_response.get("approval_required")),
+                    "external_calls_performed": bool(intake_response.get("external_calls_performed")),
+                    "receipt_refs": intake_response.get("receipt_refs", []),
+                    "watch_desk_refs": intake_response.get("watch_desk_refs", []),
+                },
+            )
+            return reply
+
     _update_cues(state, query)
     _remember_finance_entity(query, state)
 

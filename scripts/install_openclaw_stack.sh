@@ -3,14 +3,16 @@ set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: scripts/install_openclaw_stack.sh [--dry-run] [--apply] [--enable] [--start]
+Usage: scripts/install_openclaw_stack.sh [--dry-run] [--apply] [--enable] [--start] [--request-response-only]
 
 Modes:
   no args     Report what would happen. No files are written and no services are changed.
   --dry-run   Report what would happen. Cannot be combined with mutation flags.
   --apply     Render/install repo-owned units and run systemctl --user daemon-reload only.
   --enable    Enable only repo-owned OpenClaw units rendered by this script. Requires --apply.
-  --start     Enable/start openclaw-stack.target only. Requires --apply and --enable.
+  --start     Enable/start openclaw-stack.target, or only openclaw-request-response.service with --request-response-only. Requires --apply and --enable.
+  --request-response-only
+              Limit render/enable/start to the Mission Control request-response bridge.
 
 Unknown or ambiguous flag combinations fail closed.
 USAGE
@@ -20,6 +22,7 @@ apply_changes=0
 enable_units=0
 start_target=0
 dry_run=0
+request_response_only=0
 
 if (($# == 0)); then
     dry_run=1
@@ -38,6 +41,9 @@ while (($#)); do
             ;;
         --start)
             start_target=1
+            ;;
+        --request-response-only)
+            request_response_only=1
             ;;
         -h|--help)
             usage
@@ -75,20 +81,31 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TEMPLATE_DIR="${REPO_ROOT}/systemd/user"
 USER_UNIT_DIR="${HOME}/.config/systemd/user"
 TARGET_NAME="openclaw-stack.target"
+REQUEST_RESPONSE_SERVICE_NAME="openclaw-request-response.service"
 
 repo_owned_unit_names=()
 repo_owned_service_names=()
 
-for template in "${TEMPLATE_DIR}"/*.in; do
+collect_template() {
+    local template="$1"
+    local unit_name
     if [[ ! -e "${template}" ]]; then
-        continue
+        return
     fi
     unit_name="$(basename "${template}" .in)"
     repo_owned_unit_names+=("${unit_name}")
     if [[ "${unit_name}" == *.service && "${unit_name}" != "hermes-gateway.service" ]]; then
         repo_owned_service_names+=("${unit_name}")
     fi
-done
+}
+
+if (( request_response_only )); then
+    collect_template "${TEMPLATE_DIR}/${REQUEST_RESPONSE_SERVICE_NAME}.in"
+else
+    for template in "${TEMPLATE_DIR}"/*.in; do
+        collect_template "${template}"
+    done
+fi
 
 print_units() {
     local heading="$1"
@@ -111,7 +128,11 @@ report_plan() {
     print_units 'Repo-owned units that --apply would render/install:' "${repo_owned_unit_names[@]}"
     printf 'With --apply: would render/install those units into %s and run systemctl --user daemon-reload.\n' "${USER_UNIT_DIR}"
     print_units 'Repo-owned non-Hermes services that --apply --enable would enable:' "${repo_owned_service_names[@]}"
-    printf 'With --apply --enable --start: would enable/start only %s.\n' "${TARGET_NAME}"
+    if (( request_response_only )); then
+        printf 'With --apply --enable --start --request-response-only: would enable/start only %s.\n' "${REQUEST_RESPONSE_SERVICE_NAME}"
+    else
+        printf 'With --apply --enable --start: would enable/start only %s.\n' "${TARGET_NAME}"
+    fi
     printf 'Hermes gateway remains managed by scripts/install_hermes_gateway_service.sh and is not enabled here.\n'
 }
 
@@ -136,12 +157,16 @@ render_unit() {
 printf 'Applying OpenClaw stack installer from %s\n' "${REPO_ROOT}"
 mkdir -p "${USER_UNIT_DIR}"
 
-for template in "${TEMPLATE_DIR}"/*.in; do
-    if [[ ! -e "${template}" ]]; then
-        continue
-    fi
-    render_unit "${template}"
-done
+if (( request_response_only )); then
+    render_unit "${TEMPLATE_DIR}/${REQUEST_RESPONSE_SERVICE_NAME}.in"
+else
+    for template in "${TEMPLATE_DIR}"/*.in; do
+        if [[ ! -e "${template}" ]]; then
+            continue
+        fi
+        render_unit "${template}"
+    done
+fi
 
 systemctl --user daemon-reload
 printf 'Ran systemctl --user daemon-reload after rendering repo-owned units.\n'
@@ -157,10 +182,19 @@ else
 fi
 
 if (( start_target )); then
-    systemctl --user enable --now "${TARGET_NAME}"
-    printf 'Enabled and started only %s.\n' "${TARGET_NAME}"
+    if (( request_response_only )); then
+        systemctl --user enable --now "${REQUEST_RESPONSE_SERVICE_NAME}"
+        printf 'Enabled and started only %s.\n' "${REQUEST_RESPONSE_SERVICE_NAME}"
+    else
+        systemctl --user enable --now "${TARGET_NAME}"
+        printf 'Enabled and started only %s.\n' "${TARGET_NAME}"
+    fi
 else
-    printf 'Did not start %s; pass --start with --apply --enable to start the target.\n' "${TARGET_NAME}"
+    if (( request_response_only )); then
+        printf 'Did not start %s; pass --start with --apply --enable --request-response-only to start the bridge.\n' "${REQUEST_RESPONSE_SERVICE_NAME}"
+    else
+        printf 'Did not start %s; pass --start with --apply --enable to start the target.\n' "${TARGET_NAME}"
+    fi
 fi
 
-printf 'OpenClaw stack installer finished with explicit apply=%s enable=%s start=%s.\n' "${apply_changes}" "${enable_units}" "${start_target}"
+printf 'OpenClaw stack installer finished with explicit apply=%s enable=%s start=%s request_response_only=%s.\n' "${apply_changes}" "${enable_units}" "${start_target}" "${request_response_only}"

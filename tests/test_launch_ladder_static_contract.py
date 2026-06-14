@@ -34,6 +34,8 @@ from launch_ladder_contract_check import (
     backend_data_contract_implementation_readiness_checklist_failures,
     backend_data_contract_module_failures,
     backend_data_contract_readiness_plan_failures,
+    backend_data_contract_shape_plan_failures,
+    backend_data_contract_shape_plan_failures,
     backend_data_contract_semantic_contract_matrix_failures,
     backend_data_contract_sqlite_implementation_readiness_failures,
     backend_data_contract_shape_plan_failures,
@@ -889,4 +891,12 @@ def test_storage_and_source_registry_readiness_plan_is_documented():
 
 def test_pc_storage_relief_launch_packet_plan_is_documented():
     failures = pc_storage_relief_launch_packet_plan_failures()
+    assert failures == ()
+
+def test_backend_data_contract_shape_plan_is_documented():
+    failures = backend_data_contract_shape_plan_failures()
+    assert failures == ()
+
+def test_backend_data_contract_shape_plan_is_documented():
+    failures = backend_data_contract_shape_plan_failures()
     assert failures == ()

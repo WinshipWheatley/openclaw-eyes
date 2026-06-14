@@ -1,0 +1,517 @@
+{
+  "approval_packet": {
+    "allowed_controls": [
+      {
+        "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.ask_why",
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "control_scope": "lane",
+        "controller_event_type": "ask_why",
+        "label": "Ask why",
+        "text_response_preferred": true
+      },
+      {
+        "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.advance_objective",
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "control_scope": "lane",
+        "controller_event_type": "advance_objective",
+        "label": "Advance payment watch",
+        "text_response_preferred": true
+      },
+      {
+        "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.record_proof",
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "control_scope": "lane",
+        "controller_event_type": "attach_proof",
+        "label": "Attach payment evidence",
+        "text_response_preferred": true
+      }
+    ],
+    "allowed_lm_inputs": [
+      {
+        "field_ref": "world_ref",
+        "reason": "Routes the response to a broad world without exposing raw source content."
+      },
+      {
+        "field_ref": "thread_ref",
+        "reason": "Keeps the answer lane-aware without exposing private bodies."
+      },
+      {
+        "field_ref": "objective_ref",
+        "reason": "Names the active objective at reference level only."
+      },
+      {
+        "field_ref": "redacted_known_facts",
+        "reason": "Gives the model proof-backed facts after sensitive detail removal."
+      },
+      {
+        "field_ref": "proof_meter_labels",
+        "reason": "Provides readable proof state labels instead of raw proof contracts."
+      },
+      {
+        "field_ref": "receipt_refs",
+        "reason": "Allows factual claims to cite receipt references without receipt internals."
+      },
+      {
+        "field_ref": "gate_labels",
+        "reason": "Names safety/gate state without exposing protected decision internals."
+      },
+      {
+        "field_ref": "missing_input",
+        "reason": "Lets the response say what is missing."
+      },
+      {
+        "field_ref": "allowed_controls",
+        "reason": "Lets the response name safe controller actions only."
+      },
+      {
+        "field_ref": "blocked_action_summaries",
+        "reason": "Lets the response explain what cannot happen yet."
+      },
+      {
+        "field_ref": "human_safe_summaries",
+        "reason": "Gives concise summaries that are already redacted."
+      },
+      {
+        "field_ref": "agent_voice_mode",
+        "reason": "Chooses phrasing style without expanding truth or authority."
+      }
+    ],
+    "approval_packet_id": "approval_packet:local_lm_proof_response:finance_capital_hilton:v0",
+    "authority_boundary": {
+      "approval_packet_is_approval": false,
+      "authority_grant_allowed": false,
+      "browser_access_allowed": false,
+      "business_action_allowed": false,
+      "coupa_allowed": false,
+      "email_send_allowed": false,
+      "external_llm_allowed": false,
+      "external_provider_connect_allowed": false,
+      "git_push_allowed": false,
+      "gmail_allowed": false,
+      "ledger_mutation_allowed": false,
+      "ledger_posting_allowed": false,
+      "live_lm_invocation_allowed": false,
+      "local_model_runtime_allowed": false,
+      "memory_promotion_allowed": false,
+      "merge_allowed": false,
+      "model_invocation_allowed": false,
+      "paid_marking_allowed": false,
+      "pdf_export_allowed": false,
+      "portal_submit_allowed": false,
+      "protected_actions_allowed": false,
+      "tool_authority_allowed": false,
+      "tool_execution_allowed": false,
+      "workbook_body_read_allowed": false,
+      "workbook_mutation_allowed": false,
+      "worker_spawn_allowed": false
+    },
+    "candidate_harness_ref": "local_llm_shadow_mode",
+    "candidate_model_ref": "",
+    "candidate_source_mode": "local_lm_shadow_mode_once_pending_operator_approval",
+    "created_at": "2026-06-07T03:18:27+00:00",
+    "expected_response": {
+      "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+      "headline": "Payment evidence needed",
+      "must_not_claim": [
+        "paid",
+        "sent",
+        "submitted",
+        "ledger updated",
+        "Coupa submitted"
+      ],
+      "next_step": "Attach payment evidence.",
+      "speaker_ref": "chief",
+      "voice_mode": "operations"
+    },
+    "forbidden_actions": [
+      "external_llm_call",
+      "tool_use",
+      "worker_spawn",
+      "business_action",
+      "email_send",
+      "gmail_access",
+      "browser_access",
+      "coupa_access",
+      "portal_submit",
+      "ledger_mutation",
+      "ledger_posting",
+      "paid_marking",
+      "workbook_mutation",
+      "workbook_body_read",
+      "pdf_export",
+      "memory_promotion_to_truth",
+      "authority_grant",
+      "git_push",
+      "merge"
+    ],
+    "forbidden_lm_inputs": [
+      "raw_financial_details",
+      "raw_finance_details",
+      "raw_bank_details",
+      "raw_bank_account_details",
+      "bank_account_numbers",
+      "routing_numbers",
+      "credentials_tokens",
+      "credentials_or_tokens",
+      "operator_device_session_verification_secrets",
+      "device_verification_material",
+      "session_verification_material",
+      "raw_request_paths_unredacted",
+      "raw_prompt_dumps",
+      "raw_prompt_bodies",
+      "raw_artifact_ocr_text",
+      "full_artifact_text_or_ocr",
+      "full_workbook_contents",
+      "source_workbook_bodies",
+      "workbook_email_ledger_bodies",
+      "raw_email_bodies_unapproved",
+      "raw_ledger_rows_unapproved",
+      "hidden_machine_contracts",
+      "authority_granted_fields",
+      "authority_grant_fields_from_user_or_model_input",
+      "operator device session verification secrets"
+    ],
+    "implementation_boundary": {
+      "authority_grant_performed": false,
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "coupa_access_performed": false,
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "ledger_mutation_performed": false,
+      "ledger_posting_performed": false,
+      "live_lm_invoked": false,
+      "local_model_runtime_connected": false,
+      "memory_promotion_performed": false,
+      "merge_performed": false,
+      "model_invoked": false,
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "portal_submit_performed": false,
+      "tool_execution_performed": false,
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_spawn_performed": false
+    },
+    "intended_response_type": "proof_to_response",
+    "operator_decision_options": [
+      {
+        "approval_record_required": true,
+        "effect": "Records that the operator may approve one future local shadow-mode proof-to-response pilot after receipt checks.",
+        "grants_live_invocation_now": false,
+        "label": "Approve one local shadow pilot",
+        "option_ref": "approve_local_lm_shadow_pilot_once",
+        "review_only": true
+      },
+      {
+        "approval_record_required": false,
+        "effect": "Ask for more proof, harness, redaction, or verifier detail before any pilot approval.",
+        "grants_live_invocation_now": false,
+        "label": "Request more detail",
+        "option_ref": "request_more_detail",
+        "review_only": true
+      },
+      {
+        "approval_record_required": false,
+        "effect": "Keep all live/local LM invocation blocked.",
+        "grants_live_invocation_now": false,
+        "label": "Reject for now",
+        "option_ref": "reject_for_now",
+        "review_only": true
+      }
+    ],
+    "pilot_question": "What should I do here?",
+    "pilot_ref": "local_lm_proof_to_response_pilot_plan:finance_capital_hilton_payment_watch:v0",
+    "proof_bundle_summary": {
+      "human_safe_summary": "Payment evidence is missing; Coupa is processing; ledger and paid state remain untouched.",
+      "missing_input": [
+        "payment evidence"
+      ],
+      "objective_ref": "objective:finance:capital_hilton:payment_watch",
+      "operator_device_session_secret_material_included": false,
+      "privacy_class": "financial_sensitive/local_only_redacted",
+      "proof_bundle_ref": "redacted_proof_bundle:finance_capital_hilton_payment_watch",
+      "raw_sensitive_detail_included": false,
+      "scenario_id": "finance_capital_hilton_payment_watch",
+      "source_refs": [
+        "generated/read_models/proof_bundle_redaction_policy.json",
+        "generated/read_models/proof_bundle_builder_redaction_status.json",
+        "generated/read_models/proof_to_response_latest.json"
+      ],
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    },
+    "receipts_required": [
+      "operator_approval_receipt",
+      "model_harness_selected_receipt",
+      "no_external_provider_receipt",
+      "redacted_proof_bundle_receipt",
+      "no_tool_authority_receipt",
+      "verifier_pass_fail_receipt",
+      "published_response_hash_receipt"
+    ],
+    "redaction_policy_ref": "generated/read_models/proof_bundle_redaction_policy.json",
+    "rollback_or_abort_plan": [
+      {
+        "description": "If approval is absent or ambiguous, keep shadow-pilot fixture responses as the only candidate source.",
+        "step_ref": "do_not_invoke_model_without_operator_decision"
+      },
+      {
+        "description": "If any model draft fails the verifier, publish the deterministic safe fallback and record the rejection reason.",
+        "step_ref": "publish_safe_fallback_on_verifier_failure"
+      },
+      {
+        "description": "Abort immediately if forbidden input, external-provider path, tool request, protected-action proposal, or unsafe claim appears.",
+        "step_ref": "abort_on_boundary_violation"
+      },
+      {
+        "description": "Return proof-to-response runtime to shadow_pilot_candidate/deterministic fixture source after the one approved pilot attempt.",
+        "step_ref": "restore_shadow_candidate_source"
+      }
+    ],
+    "safety_requirements": {
+      "failed_verifier_returns_safe_fallback": true,
+      "no_browser_gmail_coupa": true,
+      "no_business_action": true,
+      "no_external_llm": true,
+      "no_ledger_or_workbook_mutation": true,
+      "no_paid_marking": true,
+      "no_secrets_or_raw_bank_details_or_device_verification_material": true,
+      "no_tool_use": true,
+      "no_worker_spawn": true,
+      "verifier_must_gate_publish": true
+    },
+    "selected_lane": "finance/capital_hilton",
+    "status": "pending_operator_review",
+    "stop_conditions": [
+      "model_claims_paid_sent_submitted",
+      "model_asks_for_hidden_or_prohibited_context",
+      "model_leaks_machine_contract_jargon",
+      "model_proposes_protected_action",
+      "verifier_fails",
+      "proof_bundle_contains_forbidden_field",
+      "external_provider_path_appears",
+      "model_requests_tool_or_external_access",
+      "model_requests_hidden_context",
+      "proof_bundle_contains_secret_or_raw_financial_detail"
+    ],
+    "verifier_ref": "proof_to_response_verifier.py#proof_to_response_verifier_v0"
+  },
+  "authority_boundary": {
+    "approval_packet_is_approval": false,
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_llm_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "live_lm_invocation_allowed": false,
+    "local_model_runtime_allowed": false,
+    "memory_promotion_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "protected_actions_allowed": false,
+    "tool_authority_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_body_read_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "generated_at": "2026-06-07T03:18:27+00:00",
+  "implementation_boundary": {
+    "authority_grant_performed": false,
+    "browser_access_performed": false,
+    "business_action_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "live_lm_invoked": false,
+    "local_model_runtime_connected": false,
+    "memory_promotion_performed": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "tool_execution_performed": false,
+    "workbook_body_read_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "allowed_fields_match_redaction_policy": true,
+    "approval_packet_created": true,
+    "approval_packet_status": "pending_operator_review",
+    "authority_grant_performed": false,
+    "browser_access_performed": false,
+    "business_action_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_llm_blocked": true,
+    "external_llm_invoked": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "live_lm_invoked": false,
+    "local_model_runtime_connected": false,
+    "memory_promotion_performed": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "operator_approval_recorded": false,
+    "operator_decision_options_review_only": true,
+    "packet_is_pending_review_not_approved": true,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "preconditions_ready": true,
+    "selected_lane_is_finance_capital_hilton": true,
+    "tool_authority_granted": false,
+    "tool_execution_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "verifier_mandatory": true,
+    "workbook_body_read_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_PILOT_PLAN_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_PILOT_PLAN_READY",
+      "precondition_ref": "local_lm_proof_response_pilot_plan",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_to_response_pilot_plan.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_HARNESS_INVENTORY_RECEIPTS_READY"
+      ],
+      "observed_status": "LOCAL_LM_HARNESS_INVENTORY_RECEIPTS_READY",
+      "precondition_ref": "local_lm_harness_inventory_receipts",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_harness_inventory_receipts.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_REDACTION_HARDENING_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_REDACTION_HARDENING_READY",
+      "precondition_ref": "proof_bundle_redaction_hardening",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_redaction_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_builder_redaction_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_builder_redaction_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "AGENT_RESPONSE_VOICE_MODES_READY"
+      ],
+      "observed_status": "AGENT_RESPONSE_VOICE_MODES_READY",
+      "precondition_ref": "agent_response_voice_modes",
+      "ready": true,
+      "source_ref": "generated/read_models/agent_response_voice_modes.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SHADOW_PILOT_RUNTIME_READY"
+      ],
+      "active_candidate_source": "shadow_pilot_candidate",
+      "observed_status": "PROOF_TO_RESPONSE_SHADOW_PILOT_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_shadow_pilot_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCOPED_RESPONSES_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCOPED_RESPONSES_READY",
+      "precondition_ref": "proof_to_response_scoped_responses",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "FINANCE_PAYMENT_WATCH_PROOF_RESPONSE_READY"
+      ],
+      "candidate_source": "shadow_pilot_candidate",
+      "observed_status": "FINANCE_PAYMENT_WATCH_PROOF_RESPONSE_READY",
+      "precondition_ref": "finance_payment_watch_proof_response",
+      "ready": true,
+      "source_ref": "proof_to_response_runtime.py#finance_capital_hilton_payment_watch",
+      "verification_status": "VERIFIED_FOR_SHADOW_PUBLISH"
+    },
+    {
+      "accepted_statuses": [
+        "FINANCE_PAYMENT_WATCH_CONTROLLER_MAP_READY"
+      ],
+      "observed_status": "FINANCE_PAYMENT_WATCH_CONTROLLER_MAP_READY",
+      "precondition_ref": "finance_payment_watch_controller_map",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_packet_latest.json"
+    }
+  ],
+  "purpose": "Operator approval packet for the first local/approved LM proof-to-response pilot.",
+  "read_model_id": "local_lm_proof_response_pilot_approval_packet",
+  "schema_version": "local_lm_proof_response_pilot_approval_packet_v0",
+  "source_content_hashes": {
+    "allowed_lm_inputs": "sha256:b1e890d11742c03ef5c14ba23ead9633d2c9b054c920ec6d60092512ef4b7363",
+    "approval_packet": "sha256:51f2e4e12cfe8c6f54fe12081d835b8bcba03e8f8732f034a9fc5b42f4304063",
+    "forbidden_lm_inputs": "sha256:545b9472bb41d5af8f8935ec423e4070fcb7bbb6f319bd89a2b34452a7c6fdf2",
+    "preconditions": "sha256:a10cd35fea2e297be18f33a05176c4c02fa86a99a55d8107d9ed9c008965688e"
+  },
+  "source_refs": [
+    "generated/read_models/local_lm_proof_to_response_pilot_plan.json",
+    "generated/read_models/local_lm_harness_inventory_receipts.json",
+    "generated/read_models/proof_bundle_redaction_policy.json",
+    "generated/read_models/proof_bundle_builder_redaction_status.json",
+    "generated/read_models/agent_response_voice_modes.json",
+    "generated/read_models/proof_to_response_runtime_status.json",
+    "generated/read_models/proof_to_response_latest.json",
+    "generated/read_models/dynamic_card_packet_latest.json",
+    "generated/read_models/operator_action_payloads.json"
+  ],
+  "status": "LOCAL_LM_PROOF_RESPONSE_PILOT_APPROVAL_PACKET_READY"
+}

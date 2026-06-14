@@ -1,0 +1,1318 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_action_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "default_knob_state": {
+    "delegation_depth": "readback",
+    "operator_mode": "system",
+    "proof_depth": "summary",
+    "urgency": "normal",
+    "zoom_level": "task"
+  },
+  "filter_profiles": {
+    "artist_normal": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "artist",
+        "proof_depth": "summary",
+        "urgency": "normal",
+        "zoom_level": "task"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": false,
+        "proof_refs_visible": false,
+        "receipt_refs_visible": false,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "risk"
+        ]
+      },
+      "visible_card_count": 5,
+      "visible_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.build.review_packet.current",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    },
+    "delegation_execute_blocked": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "execute_after_approval_blocked",
+        "description": "Execution after approval is blocked and future-gated.",
+        "execute_after_approval_blocked": true,
+        "execute_after_approval_enabled": false,
+        "future_gated": true,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "execute_after_approval_blocked",
+        "operator_mode": "system",
+        "proof_depth": "summary",
+        "urgency": "normal",
+        "zoom_level": "system"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": false,
+        "proof_refs_visible": false,
+        "receipt_refs_visible": false,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "risk"
+        ]
+      },
+      "visible_card_count": 9,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.build.review_packet.current",
+        "dynamic_card.business_development.capital_hilton.proposal",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    },
+    "finance_normal": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "finance",
+        "proof_depth": "summary",
+        "urgency": "normal",
+        "zoom_level": "task"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": false,
+        "proof_refs_visible": false,
+        "receipt_refs_visible": false,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "risk"
+        ]
+      },
+      "visible_card_count": 7,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    },
+    "moment_default": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "system",
+        "proof_depth": "summary",
+        "urgency": "normal",
+        "zoom_level": "moment"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": false,
+        "proof_refs_visible": false,
+        "receipt_refs_visible": false,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "risk"
+        ]
+      },
+      "visible_card_count": 1,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration"
+      ]
+    },
+    "proof_full_developer": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "finance",
+        "proof_depth": "full_developer_proof",
+        "urgency": "normal",
+        "zoom_level": "task"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": true,
+        "hash_refs_visible": true,
+        "proof_refs_visible": true,
+        "receipt_refs_visible": true,
+        "requires_explicit_opt_in": true,
+        "sqlite_refs_visible": true,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "evidence",
+          "sync",
+          "risk"
+        ]
+      },
+      "visible_card_count": 7,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    },
+    "proof_none": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "finance",
+        "proof_depth": "none",
+        "urgency": "normal",
+        "zoom_level": "task"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": false,
+        "proof_refs_visible": false,
+        "receipt_refs_visible": false,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": []
+      },
+      "visible_card_count": 7,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    },
+    "proof_receipts": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "finance",
+        "proof_depth": "receipts",
+        "urgency": "normal",
+        "zoom_level": "task"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": true,
+        "proof_refs_visible": true,
+        "receipt_refs_visible": true,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "evidence",
+          "sync",
+          "risk"
+        ]
+      },
+      "visible_card_count": 7,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    },
+    "proof_summary": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "finance",
+        "proof_depth": "summary",
+        "urgency": "normal",
+        "zoom_level": "task"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": false,
+        "proof_refs_visible": false,
+        "receipt_refs_visible": false,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "risk"
+        ]
+      },
+      "visible_card_count": 7,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    },
+    "system_zoom": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "system",
+        "proof_depth": "summary",
+        "urgency": "normal",
+        "zoom_level": "system"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": false,
+        "proof_refs_visible": false,
+        "receipt_refs_visible": false,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "risk"
+        ]
+      },
+      "visible_card_count": 9,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.build.review_packet.current",
+        "dynamic_card.business_development.capital_hilton.proposal",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    },
+    "urgent_finance": {
+      "active_thread_ref": "capital_hilton",
+      "active_world_ref": "finance",
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "critical_card_ids": [
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ],
+      "delegation_policy": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "delegation_depth": "readback",
+        "description": "Read current state only.",
+        "execute_after_approval_blocked": false,
+        "execute_after_approval_enabled": false,
+        "future_gated": false,
+        "protected_authority_granted": false
+      },
+      "developer_proof_card_ids": [],
+      "knob_state": {
+        "delegation_depth": "readback",
+        "operator_mode": "finance",
+        "proof_depth": "summary",
+        "urgency": "urgent",
+        "zoom_level": "world"
+      },
+      "machine_contract_card_ids": [],
+      "machine_contract_cards_visible_by_default": false,
+      "machine_proof": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "knobs_grant_authority": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_depth_changes_card_filtering": false,
+        "urgent_bypasses_gates": false,
+        "workbook_mutation_performed": false
+      },
+      "proof_policy": {
+        "developer_proof_visible": false,
+        "hash_refs_visible": false,
+        "proof_refs_visible": false,
+        "receipt_refs_visible": false,
+        "requires_explicit_opt_in": false,
+        "sqlite_refs_visible": false,
+        "visible_meter_refs": [
+          "truth",
+          "freshness",
+          "authority",
+          "risk"
+        ]
+      },
+      "visible_card_count": 6,
+      "visible_card_ids": [
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+        "dynamic_card.system.check_engine.diagnostic",
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit"
+      ]
+    }
+  },
+  "generated_at": "2026-06-05T04:35:14+00:00",
+  "knob_definitions": {
+    "delegation_depth": {
+      "allowed_values": [
+        "readback",
+        "plan",
+        "stage",
+        "safe_work",
+        "prepare_approval",
+        "execute_after_approval_blocked"
+      ],
+      "authority_implications": "No delegation depth grants protected authority. execute_after_approval remains blocked and future-gated.",
+      "card_filtering_behavior": {
+        "execute_after_approval_blocked": "Show the blocked/future-gated posture only.",
+        "plan": "Include workflow composer plan cards.",
+        "prepare_approval": "Include approval request and gate cards without execution.",
+        "readback": "Prefer answer, status, and current-focus cards.",
+        "safe_work": "Include safe internal work cards only when their action payloads remain non-protected.",
+        "stage": "Include local package staging affordances only."
+      },
+      "default": "readback",
+      "device_suitability": {
+        "Mac": [
+          "readback",
+          "plan",
+          "stage",
+          "safe_work",
+          "prepare_approval",
+          "execute_after_approval_blocked"
+        ],
+        "iPad": [
+          "readback",
+          "plan",
+          "stage",
+          "prepare_approval"
+        ],
+        "iPhone": [
+          "readback",
+          "plan"
+        ]
+      },
+      "proof_meter_behavior": "Authority and risk meters become more prominent as depth approaches approval preparation.",
+      "what_it_changes": [
+        "How far a safe controller event may be staged.",
+        "Whether the backend returns readback, plan, staged package, safe local work, or approval preparation."
+      ],
+      "what_it_never_changes": [
+        "Protected-action authority.",
+        "Approval-to-execution status.",
+        "Business ledgers, workbooks, emails, portals, PDFs, workers, or external LMs."
+      ]
+    },
+    "operator_mode": {
+      "allowed_values": [
+        "artist",
+        "finance",
+        "build",
+        "business",
+        "creative",
+        "system"
+      ],
+      "authority_implications": "None. Finance mode does not suppress Guardian or authority blockers; artist mode suppresses business noise unless critical.",
+      "card_filtering_behavior": {
+        "artist": "Suppress noncritical finance and business-development watch cards unless blocked/protected.",
+        "build": "Show build cards and system blockers.",
+        "business": "Show business-development cards and protected blockers.",
+        "creative": "Show creative/artifact/memory cards and protected blockers.",
+        "finance": "Show finance cards and all Guardian/authority blockers.",
+        "system": "Show cross-system controller posture."
+      },
+      "default": "system",
+      "device_suitability": {
+        "Mac": [
+          "artist",
+          "finance",
+          "build",
+          "business",
+          "creative",
+          "system"
+        ],
+        "iPad": [
+          "artist",
+          "finance",
+          "build",
+          "business",
+          "creative",
+          "system"
+        ],
+        "iPhone": [
+          "artist",
+          "finance",
+          "build",
+          "business",
+          "system"
+        ]
+      },
+      "proof_meter_behavior": "Mode does not hide blocked/protected authority meters.",
+      "what_it_changes": [
+        "Which world/lane families are foregrounded.",
+        "Which noncritical cards collapse as noise."
+      ],
+      "what_it_never_changes": [
+        "Guardian blockers.",
+        "Authority boundaries.",
+        "Proof states or lifecycle states."
+      ]
+    },
+    "proof_depth": {
+      "allowed_values": [
+        "none",
+        "summary",
+        "receipts",
+        "full_developer_proof"
+      ],
+      "authority_implications": "None. Proof depth is display-only.",
+      "card_filtering_behavior": "Does not add or remove cards. It changes proof visibility for the same card set.",
+      "default": "summary",
+      "device_suitability": {
+        "Mac": [
+          "none",
+          "summary",
+          "receipts",
+          "full_developer_proof"
+        ],
+        "iPad": [
+          "none",
+          "summary",
+          "receipts"
+        ],
+        "iPhone": [
+          "none",
+          "summary"
+        ]
+      },
+      "proof_meter_behavior": {
+        "full_developer_proof": "Opt-in only; show all meters and developer proof refs.",
+        "none": "Hide compact meters and proof refs.",
+        "receipts": "Show compact meters plus receipt/hash refs.",
+        "summary": "Show compact truth, freshness, authority, and risk meter labels."
+      },
+      "what_it_changes": [
+        "Which proof meter labels and proof refs are visible.",
+        "Whether receipt refs, hashes, SQLite refs, and developer proof are surfaced."
+      ],
+      "what_it_never_changes": [
+        "Which business action is allowed.",
+        "Which cards match the selected zoom/mode.",
+        "Source truth, receipts, ledgers, workbooks, or external systems."
+      ]
+    },
+    "urgency": {
+      "allowed_values": [
+        "park",
+        "normal",
+        "today",
+        "urgent"
+      ],
+      "authority_implications": "None. urgent never bypasses gates.",
+      "card_filtering_behavior": {
+        "normal": "Show default current controller cards.",
+        "park": "Keep critical blockers and explicit operator attention; collapse ordinary watch cards.",
+        "today": "Include current, waiting, and operator-attention cards.",
+        "urgent": "Prioritize blockers, protected actions, and waiting cards; gates still block."
+      },
+      "default": "normal",
+      "device_suitability": {
+        "Mac": [
+          "park",
+          "normal",
+          "today",
+          "urgent"
+        ],
+        "iPad": [
+          "park",
+          "normal",
+          "today",
+          "urgent"
+        ],
+        "iPhone": [
+          "park",
+          "normal",
+          "today",
+          "urgent"
+        ]
+      },
+      "proof_meter_behavior": "Risk and authority meters become visible for watch, blocked, and protected states.",
+      "what_it_changes": [
+        "How aggressively waiting, due-today, and blocked cards are surfaced.",
+        "Whether parked noncritical cards collapse."
+      ],
+      "what_it_never_changes": [
+        "Gate outcomes.",
+        "Authority boundaries.",
+        "Proof requirements or protected-action policy."
+      ]
+    },
+    "zoom_level": {
+      "allowed_values": [
+        "moment",
+        "task",
+        "lane",
+        "world",
+        "system"
+      ],
+      "authority_implications": "None. Zoom only changes visibility and focus.",
+      "card_filtering_behavior": {
+        "lane": "Show current lane cards plus critical blockers for that lane.",
+        "moment": "Show exactly one current focus card, with critical blockers allowed only as details.",
+        "system": "Show WIP, meter, and posture cards, but hide machine-contract cards and developer proof by default.",
+        "task": "Show current, waiting, and needs-operator cards; hide resolved history and proof-only developer cards.",
+        "world": "Show visible cards in the selected world plus critical authority blockers."
+      },
+      "default": "task",
+      "device_suitability": {
+        "Mac": [
+          "moment",
+          "task",
+          "lane",
+          "world",
+          "system"
+        ],
+        "iPad": [
+          "moment",
+          "task",
+          "lane",
+          "world"
+        ],
+        "iPhone": [
+          "moment",
+          "task"
+        ]
+      },
+      "proof_meter_behavior": "Meter rows remain available as backend data; visible meter count follows proof_depth.",
+      "what_it_changes": [
+        "How many cards are visible.",
+        "Whether focus is one moment, a task set, a lane, a world, or system-level posture.",
+        "How much WIP and meter context is included."
+      ],
+      "what_it_never_changes": [
+        "Authority boundaries.",
+        "Card truth or proof values.",
+        "Backend source rows, receipts, ledgers, workbooks, or external systems."
+      ]
+    }
+  },
+  "machine_proof": {
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "execute_after_approval_enabled": false,
+    "incoming_authority_granted_accepted": false,
+    "knobs_grant_authority": false,
+    "ledger_mutation_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "preconditions_ready": true,
+    "proof_depth_changes_card_filtering": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "urgent_bypasses_gates": false,
+    "validation_errors": [],
+    "workbook_mutation_performed": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "OPERATOR_CONTROLLER_DESIGN_BRIEF_READY"
+      ],
+      "observed_status": "OPERATOR_CONTROLLER_DESIGN_BRIEF_READY",
+      "precondition_ref": "operator_controller_design_brief",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_controller_design_brief.json"
+    },
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_PACKET_V1_READY",
+        "DYNAMIC_CARD_PACKET_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_PACKET_READY",
+      "precondition_ref": "dynamic_card_packet_v1",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_packet_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_METER_NORMALIZATION_READY"
+      ],
+      "observed_status": "PROOF_METER_NORMALIZATION_READY",
+      "precondition_ref": "proof_meter_normalization",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_meter_normalization.json"
+    }
+  ],
+  "proof_meter_content_hash": "sha256:a4bfe36d519c0e96138140350dfd5245e147964f85be1435960cfeba9afba357",
+  "proof_meter_ref": "generated/read_models/proof_meter_normalization.json",
+  "read_model_id": "controller_knob_mode_filters",
+  "rules": [
+    "Knobs change visibility, focus, and staging depth.",
+    "Knobs do not grant protected authority.",
+    "execute_after_approval remains blocked and future-gated.",
+    "proof_depth=full_developer_proof is opt-in.",
+    "artist mode suppresses business noise unless critical.",
+    "finance mode does not suppress Guardian or authority blockers."
+  ],
+  "schema_version": "controller_knob_mode_filters_v0",
+  "source_packet_content_hash": "sha256:49fa511ce500433e30bb89d6eb7c753e52f7e14484fa1049c7606a17660079b5",
+  "source_packet_ref": "generated/read_models/dynamic_card_packet_latest.json",
+  "status": "CONTROLLER_KNOB_MODE_FILTERS_READY"
+}

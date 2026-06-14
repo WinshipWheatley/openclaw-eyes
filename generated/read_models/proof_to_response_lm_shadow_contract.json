@@ -1,0 +1,185 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "local_model_runtime_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "provider_key_material_access_allowed": false,
+    "sent": false,
+    "tool_execution_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_execution_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "contract": {
+    "external_providers_remain_blocked_without_harness_selection": true,
+    "failed_verification_returns_rewrite_or_safe_fallback": true,
+    "lm_never_receives_verification_material": true,
+    "lm_response_is_not_truth": true,
+    "lm_sees_only_allowed_proof_bundle_fields": true,
+    "local_model_runtime_future_gated": true,
+    "verifier_decides_publishability": true
+  },
+  "deterministic_verifier_checks": [
+    "every factual claim maps to proof/ref/receipt/source",
+    "no unsupported paid/sent/submitted/approved/executed claims",
+    "no invented authority",
+    "no protected-action promise",
+    "no machine-contract jargon in primary response",
+    "response is concise",
+    "next step is allowed",
+    "details remain collapsed",
+    "controls map to operator_action_payloads/controller events"
+  ],
+  "doctrine": [
+    "The deterministic proof-to-response spec is the test oracle, not the final user experience.",
+    "The intended final response is agentic LM text grounded in proof.",
+    "The LM may phrase, prioritize, and explain.",
+    "The LM may not create truth, authority, or execution.",
+    "The verifier decides whether the LM response can publish."
+  ],
+  "generated_at": "2026-06-14T03:26:57+00:00",
+  "lm_shadow_response_schema": {
+    "purpose": "draft response the future LM would produce from the bundle",
+    "required_fields": [
+      "response_id",
+      "proof_bundle_id",
+      "speaker_ref",
+      "draft_headline",
+      "draft_body",
+      "draft_next_step",
+      "claimed_facts",
+      "implied_actions",
+      "requested_controls",
+      "uncertainty_notes"
+    ]
+  },
+  "machine_proof": {
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "ledger_mutation_performed": false,
+    "live_lm_invoked": false,
+    "local_model_runtime_connected": false,
+    "paid_marking_performed": false,
+    "preconditions_ready": true,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "worker_spawn_performed": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_TDD_SPEC_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_TDD_SPEC_READY",
+      "precondition_ref": "proof_to_response_tdd_spec",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_tdd_spec.json"
+    },
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_PACKET_V1_READY",
+        "DYNAMIC_CARD_PACKET_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_PACKET_READY",
+      "precondition_ref": "dynamic_card_packet_v1",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_packet_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "UNIVERSAL_RECEIPT_ENVELOPE_READY"
+      ],
+      "observed_status": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
+      "precondition_ref": "universal_receipt_envelope",
+      "ready": true,
+      "source_ref": "generated/read_models/universal_receipt_envelope_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_METER_NORMALIZATION_READY"
+      ],
+      "observed_status": "PROOF_METER_NORMALIZATION_READY",
+      "precondition_ref": "proof_meter_normalization",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_meter_normalization.json"
+    },
+    {
+      "accepted_statuses": [
+        "OBJECTIVE_ADVANCEMENT_CONTROLLER_ROUTE_READY",
+        "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY"
+      ],
+      "observed_status": "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY",
+      "precondition_ref": "objective_advancement_controller_route",
+      "ready": true,
+      "source_ref": "generated/read_models/objective_advancement_protocol.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_CONTROLLER_PROTOCOL_READY"
+      ],
+      "observed_status": "OPERATOR_CONTROLLER_PROTOCOL_READY",
+      "precondition_ref": "operator_controller_protocol",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_controller_protocol.json"
+    },
+    {
+      "accepted_statuses": [
+        "HARNESS_PROVIDER_SELECTION_READY"
+      ],
+      "observed_status": "HARNESS_PROVIDER_SELECTION_READY",
+      "precondition_ref": "harness_provider_selection",
+      "ready": true,
+      "source_ref": "generated/read_models/harness_provider_selection_registry.json"
+    }
+  ],
+  "proof_bundle_schema": {
+    "purpose": "bounded redacted input packet for a future responding LM",
+    "required_fields": [
+      "proof_bundle_id",
+      "world_ref",
+      "thread_ref",
+      "objective_ref",
+      "operator_question",
+      "selected_card_ref",
+      "receipt_refs",
+      "read_model_refs",
+      "proof_refs",
+      "gate_refs",
+      "proof_meters",
+      "known_facts",
+      "unknowns",
+      "blocked_actions",
+      "allowed_response_controls",
+      "sensitive_detail_policy",
+      "privacy_class",
+      "excluded_context",
+      "response_speaker_ref",
+      "response_voice_mode"
+    ]
+  },
+  "read_model_id": "proof_to_response_lm_shadow_contract",
+  "schema_version": "proof_to_response_lm_shadow_harness_v0",
+  "status": "PROOF_TO_RESPONSE_LM_SHADOW_HARNESS_READY",
+  "supported_scenarios": [
+    "finance_capital_hilton_payment_watch",
+    "finance_live_arts_payment_evidence",
+    "business_development_capital_hilton_followup",
+    "build_review_packet",
+    "unknown_context",
+    "protected_coupa_ledger_email_request"
+  ]
+}

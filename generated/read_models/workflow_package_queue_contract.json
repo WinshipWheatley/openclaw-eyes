@@ -1,0 +1,785 @@
+{
+  "agent_voice_routing_contract_ref": "generated/read_models/agent_voice_routing_contract.json",
+  "authority_boundary_default": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "workbook_source_mutation_allowed": false
+  },
+  "fixtures_summary": [
+    {
+      "capability_gate_status": "ALLOW_DRY_RUN",
+      "client_ref": "st_annes",
+      "status": "OPERATOR_REVIEW_REQUIRED",
+      "workflow_ref": "st_annes_work_log_event",
+      "world": "invoice_operations"
+    },
+    {
+      "capability_gate_status": "PERMISSION_REQUIRED",
+      "client_ref": "st_annes",
+      "status": "PERMISSION_REQUIRED",
+      "workflow_ref": "st_annes_monthly_invoice_rollup",
+      "world": "invoice_operations"
+    },
+    {
+      "capability_gate_status": "ALLOW_DRY_RUN",
+      "client_ref": "capital_hilton",
+      "status": "OPERATOR_REVIEW_REQUIRED",
+      "workflow_ref": "capital_hilton_proposal_followup",
+      "world": "business_development"
+    },
+    {
+      "capability_gate_status": "PROVIDER_GATE_REQUIRED",
+      "client_ref": "capital_hilton",
+      "status": "PROVIDER_GATE_REQUIRED",
+      "workflow_ref": "capital_hilton_invoice_operator_assist",
+      "world": "invoice_operations"
+    },
+    {
+      "capability_gate_status": "ALLOW_DRY_RUN",
+      "client_ref": null,
+      "status": "PACKAGE_STAGED",
+      "workflow_ref": "diagnostic_package_gate_smoke",
+      "world": "diagnostic"
+    }
+  ],
+  "generated_at": "2026-06-02T13:00:00+00:00",
+  "machine_proof": {
+    "authority_flags_all_false": true,
+    "dry_run_only": true,
+    "fixture_package_count": 5,
+    "sqlite_tables_required": [
+      "packages",
+      "package_inputs",
+      "privacy_gate_results",
+      "intent_classification_results",
+      "capability_gate_results",
+      "worker_assignments",
+      "worker_results",
+      "operator_review_receipts",
+      "business_action_gate_results"
+    ],
+    "supported_package_type_count": 5,
+    "unsafe_true_grants_absent": true
+  },
+  "operator_display_schema": [
+    "speaker_ref",
+    "voice_profile_ref",
+    "voice_mode",
+    "audience",
+    "routing_reason",
+    "headline",
+    "subheadline",
+    "status_label",
+    "tone",
+    "plain_summary",
+    "next_safe_action",
+    "why_it_matters",
+    "primary_fact",
+    "secondary_facts",
+    "proof_caption",
+    "show_machine_details_by_default"
+  ],
+  "package_field_contract": [
+    "package_id",
+    "workflow_ref",
+    "world",
+    "client_ref",
+    "source_surface",
+    "source_text_ref",
+    "protected_text_hash",
+    "pii_status",
+    "privacy_impact",
+    "provider_policy",
+    "authority_boundary",
+    "operator_display",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "packages": [
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "business_action_gate_result": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gate_ref": "business_action_gate:fed071f142fc6c6f",
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "reason": "V0 package queue records no live business actions.",
+        "sent": false,
+        "status": "CLOSED",
+        "workbook_source_mutation_allowed": false
+      },
+      "capability_gate_result": {
+        "blocked_actions": [],
+        "gate_ref": "capability_gate:st_annes_work_log_event",
+        "provider_policy": "local_noop_worker_only",
+        "provider_required": false,
+        "reason": "Record-only work-log package can be staged locally.",
+        "status": "ALLOW_DRY_RUN"
+      },
+      "client_ref": "st_annes",
+      "created_at": "2026-06-02T13:00:00+00:00",
+      "intent_classification_result": {
+        "client_ref": "st_annes",
+        "confidence": "high",
+        "intent_reason": "Detected St. Anne's/church sound work-log instruction.",
+        "workflow_ref": "st_annes_work_log_event",
+        "world": "invoice_operations"
+      },
+      "operator_display": {
+        "audience": "internal_operator",
+        "headline": "St. Anne's work log captured",
+        "next_safe_action": "Confirm or discard.",
+        "plain_summary": "Saved as a draft event until you confirm it.",
+        "primary_fact": "No invoice was changed.",
+        "proof_caption": "Proof available.",
+        "routing_reason": "work-log intake",
+        "secondary_facts": [
+          "No email will be sent.",
+          "No ledger entry was touched."
+        ],
+        "show_machine_details_by_default": false,
+        "speaker_ref": "cassandra",
+        "status_label": "Needs confirmation",
+        "subheadline": "Church sound event saved for review.",
+        "tone": "warning",
+        "voice_mode": "operator_intake",
+        "voice_profile_ref": "agent_voice_profile:cassandra",
+        "voice_routing_reason": "work-log intake",
+        "why_it_matters": "Confirmed work-log events become the source for the month-end invoice package."
+      },
+      "operator_review_receipt": {
+        "business_action_authority_granted": false,
+        "operator_review_required": true,
+        "receipt_ref": "operator_review_receipt:5701f567fa7aa223",
+        "status": "OPERATOR_REVIEW_REQUIRED"
+      },
+      "package_id": "workflow_package:217cc10cd74fa47d",
+      "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+      "privacy_gate_result": {
+        "gate_ref": "privacy_gate:326e1d14837b55e9",
+        "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+        "privacy_impact": {
+          "data_exposure_class": "local_instruction_metadata",
+          "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+          "protected_text_hash_used": true,
+          "raw_text_stored": false
+        },
+        "status": "PASS_HASH_ONLY"
+      },
+      "privacy_impact": {
+        "data_exposure_class": "local_instruction_metadata",
+        "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+        "protected_text_hash_used": true,
+        "raw_text_stored": false
+      },
+      "privacy_redundancy_evaluator": {
+        "approval_required": true,
+        "data_exposure_class": "local_instruction_metadata",
+        "final_provider_decision": "local_only_noop_worker",
+        "local_alternative": "deterministic_local_classifier_and_sqlite_registry",
+        "provider_considered": "local_noop_worker"
+      },
+      "protected_text_hash": "sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a",
+      "provider_policy": "local_noop_worker_only",
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a",
+      "status": "OPERATOR_REVIEW_REQUIRED",
+      "updated_at": "2026-06-02T13:00:00+00:00",
+      "worker_assignment": {
+        "assigned": true,
+        "assignment_ref": "worker_assignment:950c2301f3f2b357",
+        "live_action_authority": false,
+        "worker_kind": "dry_run_noop_worker",
+        "worker_ref": "noop_worker:st_annes_work_log_event"
+      },
+      "worker_result": {
+        "browser_access_performed": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "result_ref": "worker_result:99343a1373d2cb14",
+        "result_status": "NOOP_RESULT_RECORDED",
+        "submit_performed": false,
+        "summary": "Dry-run worker recorded package state only.",
+        "workbook_mutation_performed": false
+      },
+      "workflow_ref": "st_annes_work_log_event",
+      "world": "invoice_operations"
+    },
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "business_action_gate_result": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gate_ref": "business_action_gate:80d3b1a3bf8771c7",
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "reason": "V0 package queue records no live business actions.",
+        "sent": false,
+        "status": "CLOSED",
+        "workbook_source_mutation_allowed": false
+      },
+      "capability_gate_result": {
+        "blocked_actions": [
+          "email_send",
+          "workbook_write",
+          "pdf_export"
+        ],
+        "gate_ref": "capability_gate:st_annes_invoice_send_permission",
+        "provider_policy": "blocked_until_permission_registry_ready",
+        "provider_required": true,
+        "reason": "Send permission registry is not ready for V0 package execution.",
+        "status": "PERMISSION_REQUIRED"
+      },
+      "client_ref": "st_annes",
+      "created_at": "2026-06-02T13:00:00+00:00",
+      "intent_classification_result": {
+        "client_ref": "st_annes",
+        "confidence": "high",
+        "intent_reason": "Detected St. Anne's invoice instruction.",
+        "workflow_ref": "st_annes_monthly_invoice_rollup",
+        "world": "invoice_operations"
+      },
+      "operator_display": {
+        "audience": "internal_operator",
+        "headline": "St. Anne's invoice is not ready to send",
+        "next_safe_action": "Resolve the missing gate.",
+        "plain_summary": "Blocked because Send permission registry is not ready for V0 package execution.",
+        "primary_fact": "No invoice was sent.",
+        "proof_caption": "Proof available.",
+        "routing_reason": "neutral cockpit/system orientation",
+        "secondary_facts": [
+          "Excel was not touched.",
+          "No ledger entry was touched."
+        ],
+        "show_machine_details_by_default": false,
+        "speaker_ref": "openclaw",
+        "status_label": "Missing prerequisite",
+        "subheadline": "Invoice work stays gated until proof is ready.",
+        "tone": "blocked",
+        "voice_mode": "operator_calm",
+        "voice_profile_ref": "agent_voice_profile:openclaw",
+        "voice_routing_reason": "neutral cockpit/system orientation",
+        "why_it_matters": "Invoice sending must wait for approved artifacts and explicit operator authority."
+      },
+      "operator_review_receipt": {
+        "business_action_authority_granted": false,
+        "operator_review_required": true,
+        "receipt_ref": "operator_review_receipt:f46a03688780c8a8",
+        "status": "BLOCKED_PRE_REVIEW"
+      },
+      "package_id": "workflow_package:86114e6cee5bdd2e",
+      "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+      "privacy_gate_result": {
+        "gate_ref": "privacy_gate:dce4d05b906c3f8c",
+        "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+        "privacy_impact": {
+          "data_exposure_class": "local_instruction_metadata",
+          "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+          "protected_text_hash_used": true,
+          "raw_text_stored": false
+        },
+        "status": "PASS_HASH_ONLY"
+      },
+      "privacy_impact": {
+        "data_exposure_class": "local_instruction_metadata",
+        "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+        "protected_text_hash_used": true,
+        "raw_text_stored": false
+      },
+      "privacy_redundancy_evaluator": {
+        "approval_required": true,
+        "data_exposure_class": "local_instruction_metadata",
+        "final_provider_decision": "local_only_noop_worker",
+        "local_alternative": "deterministic_local_classifier_and_sqlite_registry",
+        "provider_considered": "local_noop_worker"
+      },
+      "protected_text_hash": "sha256:68007050de58aa782d4f60a95ce85ead8c144728cc199db731c551279308e4a6",
+      "provider_policy": "blocked_until_permission_registry_ready",
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:68007050de58aa782d4f60a95ce85ead8c144728cc199db731c551279308e4a6",
+      "status": "PERMISSION_REQUIRED",
+      "updated_at": "2026-06-02T13:00:00+00:00",
+      "worker_assignment": {
+        "assigned": true,
+        "assignment_ref": "worker_assignment:84edfbf0bd8504cf",
+        "live_action_authority": false,
+        "worker_kind": "dry_run_noop_worker",
+        "worker_ref": "noop_worker:st_annes_monthly_invoice_rollup"
+      },
+      "worker_result": {
+        "browser_access_performed": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "result_ref": "worker_result:e9554a6d64c7ca54",
+        "result_status": "NOOP_BLOCKED_BY_GATE",
+        "submit_performed": false,
+        "summary": "Dry-run worker recorded package state only.",
+        "workbook_mutation_performed": false
+      },
+      "workflow_ref": "st_annes_monthly_invoice_rollup",
+      "world": "invoice_operations"
+    },
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "business_action_gate_result": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gate_ref": "business_action_gate:70f8d727b2786f78",
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "reason": "V0 package queue records no live business actions.",
+        "sent": false,
+        "status": "CLOSED",
+        "workbook_source_mutation_allowed": false
+      },
+      "capability_gate_result": {
+        "blocked_actions": [
+          "email_send",
+          "invoice_creation",
+          "finance_handoff"
+        ],
+        "gate_ref": "capability_gate:capital_hilton_proposal_followup",
+        "provider_policy": "local_noop_worker_only",
+        "provider_required": false,
+        "reason": "Proposal follow-up package can be staged for operator review only.",
+        "status": "ALLOW_DRY_RUN"
+      },
+      "client_ref": "capital_hilton",
+      "created_at": "2026-06-02T13:00:00+00:00",
+      "intent_classification_result": {
+        "client_ref": "capital_hilton",
+        "confidence": "high",
+        "intent_reason": "Detected Capital Hilton proposal follow-up instruction.",
+        "workflow_ref": "capital_hilton_proposal_followup",
+        "world": "business_development"
+      },
+      "operator_display": {
+        "audience": "internal_operator",
+        "headline": "Proposal follow-up staged",
+        "next_safe_action": "Review the follow-up.",
+        "plain_summary": "No email will be sent until approved.",
+        "primary_fact": "No invoice was created.",
+        "proof_caption": "Proof available.",
+        "routing_reason": "human-layer coordination or correspondence prep",
+        "secondary_facts": [
+          "No email will be sent.",
+          "No finance handoff was opened."
+        ],
+        "show_machine_details_by_default": false,
+        "speaker_ref": "cassandra",
+        "status_label": "Needs review",
+        "subheadline": "Business Development follow-up, no finance action.",
+        "tone": "calm",
+        "voice_mode": "operator_calm",
+        "voice_profile_ref": "agent_voice_profile:cassandra",
+        "voice_routing_reason": "human-layer coordination or correspondence prep",
+        "why_it_matters": "Proposal follow-up stays separate from finance until the client accepts."
+      },
+      "operator_review_receipt": {
+        "business_action_authority_granted": false,
+        "operator_review_required": true,
+        "receipt_ref": "operator_review_receipt:b36b06dda3beb363",
+        "status": "OPERATOR_REVIEW_REQUIRED"
+      },
+      "package_id": "workflow_package:9e93286c594646b4",
+      "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+      "privacy_gate_result": {
+        "gate_ref": "privacy_gate:684a0f929decb611",
+        "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+        "privacy_impact": {
+          "data_exposure_class": "local_instruction_metadata",
+          "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+          "protected_text_hash_used": true,
+          "raw_text_stored": false
+        },
+        "status": "PASS_HASH_ONLY"
+      },
+      "privacy_impact": {
+        "data_exposure_class": "local_instruction_metadata",
+        "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+        "protected_text_hash_used": true,
+        "raw_text_stored": false
+      },
+      "privacy_redundancy_evaluator": {
+        "approval_required": true,
+        "data_exposure_class": "local_instruction_metadata",
+        "final_provider_decision": "local_only_noop_worker",
+        "local_alternative": "deterministic_local_classifier_and_sqlite_registry",
+        "provider_considered": "local_noop_worker"
+      },
+      "protected_text_hash": "sha256:bd7d8d625bd3b906afa861eef02af056f114798e11ceaf5d5407ae2995e24b13",
+      "provider_policy": "local_noop_worker_only",
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:bd7d8d625bd3b906afa861eef02af056f114798e11ceaf5d5407ae2995e24b13",
+      "status": "OPERATOR_REVIEW_REQUIRED",
+      "updated_at": "2026-06-02T13:00:00+00:00",
+      "worker_assignment": {
+        "assigned": true,
+        "assignment_ref": "worker_assignment:19285adb7d91b35e",
+        "live_action_authority": false,
+        "worker_kind": "dry_run_noop_worker",
+        "worker_ref": "noop_worker:capital_hilton_proposal_followup"
+      },
+      "worker_result": {
+        "browser_access_performed": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "result_ref": "worker_result:690b042a28cd5c98",
+        "result_status": "NOOP_RESULT_RECORDED",
+        "submit_performed": false,
+        "summary": "Dry-run worker recorded package state only.",
+        "workbook_mutation_performed": false
+      },
+      "workflow_ref": "capital_hilton_proposal_followup",
+      "world": "business_development"
+    },
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "business_action_gate_result": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gate_ref": "business_action_gate:01cc0b83b4cd3977",
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "reason": "V0 package queue records no live business actions.",
+        "sent": false,
+        "status": "CLOSED",
+        "workbook_source_mutation_allowed": false
+      },
+      "capability_gate_result": {
+        "blocked_actions": [
+          "coupa_submit",
+          "browser_access",
+          "email_send"
+        ],
+        "gate_ref": "capability_gate:capital_hilton_operator_assist",
+        "provider_policy": "operator_assist_provider_required_submit_gate_closed",
+        "provider_required": true,
+        "reason": "Operator-assist provider and final Submit gate are not explicitly staged.",
+        "status": "PROVIDER_GATE_REQUIRED"
+      },
+      "client_ref": "capital_hilton",
+      "created_at": "2026-06-02T13:00:00+00:00",
+      "intent_classification_result": {
+        "client_ref": "capital_hilton",
+        "confidence": "high",
+        "intent_reason": "Detected Capital Hilton invoice operator-assist instruction.",
+        "workflow_ref": "capital_hilton_invoice_operator_assist",
+        "world": "invoice_operations"
+      },
+      "operator_display": {
+        "audience": "internal_operator",
+        "headline": "Capital Hilton needs operator assist",
+        "next_safe_action": "Stage an operator-assist packet.",
+        "plain_summary": "Coupa cannot run unattended.",
+        "primary_fact": "No invoice was submitted.",
+        "proof_caption": "Proof available.",
+        "routing_reason": "provider gate required",
+        "secondary_facts": [
+          "No Coupa action ran.",
+          "No email will be sent."
+        ],
+        "show_machine_details_by_default": false,
+        "speaker_ref": "chief",
+        "status_label": "Provider gate required",
+        "subheadline": "Coupa requires a live submit gate.",
+        "tone": "blocked",
+        "voice_mode": "diagnostic",
+        "voice_profile_ref": "agent_voice_profile:chief",
+        "voice_routing_reason": "provider gate required",
+        "why_it_matters": "Portal submission and email send are external actions that need a human gate."
+      },
+      "operator_review_receipt": {
+        "business_action_authority_granted": false,
+        "operator_review_required": true,
+        "receipt_ref": "operator_review_receipt:dfccc74218da391d",
+        "status": "BLOCKED_PRE_REVIEW"
+      },
+      "package_id": "workflow_package:8adab95b090e91af",
+      "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+      "privacy_gate_result": {
+        "gate_ref": "privacy_gate:b4dddb748c5d8f04",
+        "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+        "privacy_impact": {
+          "data_exposure_class": "local_instruction_metadata",
+          "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+          "protected_text_hash_used": true,
+          "raw_text_stored": false
+        },
+        "status": "PASS_HASH_ONLY"
+      },
+      "privacy_impact": {
+        "data_exposure_class": "local_instruction_metadata",
+        "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+        "protected_text_hash_used": true,
+        "raw_text_stored": false
+      },
+      "privacy_redundancy_evaluator": {
+        "approval_required": true,
+        "data_exposure_class": "local_instruction_metadata",
+        "final_provider_decision": "local_only_noop_worker",
+        "local_alternative": "deterministic_local_classifier_and_sqlite_registry",
+        "provider_considered": "local_noop_worker"
+      },
+      "protected_text_hash": "sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "provider_policy": "operator_assist_provider_required_submit_gate_closed",
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "status": "PROVIDER_GATE_REQUIRED",
+      "updated_at": "2026-06-02T13:00:00+00:00",
+      "worker_assignment": {
+        "assigned": true,
+        "assignment_ref": "worker_assignment:f6e1d9e82446e845",
+        "live_action_authority": false,
+        "worker_kind": "dry_run_noop_worker",
+        "worker_ref": "noop_worker:capital_hilton_invoice_operator_assist"
+      },
+      "worker_result": {
+        "browser_access_performed": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "result_ref": "worker_result:17d5cf427264cfcf",
+        "result_status": "NOOP_BLOCKED_BY_GATE",
+        "submit_performed": false,
+        "summary": "Dry-run worker recorded package state only.",
+        "workbook_mutation_performed": false
+      },
+      "workflow_ref": "capital_hilton_invoice_operator_assist",
+      "world": "invoice_operations"
+    },
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "business_action_gate_result": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gate_ref": "business_action_gate:7e360acd6f67c3fe",
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "reason": "V0 package queue records no live business actions.",
+        "sent": false,
+        "status": "CLOSED",
+        "workbook_source_mutation_allowed": false
+      },
+      "capability_gate_result": {
+        "blocked_actions": [],
+        "gate_ref": "capability_gate:diagnostic_package_gate_smoke",
+        "provider_policy": "local_noop_worker_only",
+        "provider_required": false,
+        "reason": "Diagnostic smoke package is dry-run only.",
+        "status": "ALLOW_DRY_RUN"
+      },
+      "client_ref": null,
+      "created_at": "2026-06-02T13:00:00+00:00",
+      "intent_classification_result": {
+        "client_ref": null,
+        "confidence": "medium",
+        "intent_reason": "Fell back to diagnostic package gate smoke.",
+        "workflow_ref": "diagnostic_package_gate_smoke",
+        "world": "diagnostic"
+      },
+      "operator_display": {
+        "audience": "internal_operator",
+        "headline": "Workflow package staged",
+        "next_safe_action": "Review the package.",
+        "plain_summary": "Saved for review without running actions.",
+        "primary_fact": "No external action ran.",
+        "proof_caption": "Proof available.",
+        "routing_reason": "diagnostic, queue, route, or workbench posture",
+        "secondary_facts": [
+          "No email will be sent.",
+          "No ledger entry was touched."
+        ],
+        "show_machine_details_by_default": false,
+        "speaker_ref": "chief",
+        "status_label": "Needs review",
+        "subheadline": "Saved for operator review.",
+        "tone": "calm",
+        "voice_mode": "diagnostic",
+        "voice_profile_ref": "agent_voice_profile:chief",
+        "voice_routing_reason": "diagnostic, queue, route, or workbench posture",
+        "why_it_matters": "Operator review separates captured intent from live execution."
+      },
+      "operator_review_receipt": {
+        "business_action_authority_granted": false,
+        "operator_review_required": true,
+        "receipt_ref": "operator_review_receipt:26a01c33a828fe93",
+        "status": "OPERATOR_REVIEW_REQUIRED"
+      },
+      "package_id": "workflow_package:d2d2f6d089cd7d82",
+      "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+      "privacy_gate_result": {
+        "gate_ref": "privacy_gate:19ad018df7f4c3de",
+        "pii_status": "MINIMAL_BUSINESS_CONTEXT",
+        "privacy_impact": {
+          "data_exposure_class": "local_instruction_metadata",
+          "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+          "protected_text_hash_used": true,
+          "raw_text_stored": false
+        },
+        "status": "PASS_HASH_ONLY"
+      },
+      "privacy_impact": {
+        "data_exposure_class": "local_instruction_metadata",
+        "pii_privacy_status": "MINIMAL_BUSINESS_CONTEXT",
+        "protected_text_hash_used": true,
+        "raw_text_stored": false
+      },
+      "privacy_redundancy_evaluator": {
+        "approval_required": true,
+        "data_exposure_class": "local_instruction_metadata",
+        "final_provider_decision": "local_only_noop_worker",
+        "local_alternative": "deterministic_local_classifier_and_sqlite_registry",
+        "provider_considered": "local_noop_worker"
+      },
+      "protected_text_hash": "sha256:c95831af880a8d7c04a6065c80d8e60bc614f88c28d4d23ef66e59ce49a9792d",
+      "provider_policy": "local_noop_worker_only",
+      "source_surface": "codex",
+      "source_text_ref": "protected_text_hash:sha256:c95831af880a8d7c04a6065c80d8e60bc614f88c28d4d23ef66e59ce49a9792d",
+      "status": "PACKAGE_STAGED",
+      "updated_at": "2026-06-02T13:00:00+00:00",
+      "worker_assignment": {
+        "assigned": true,
+        "assignment_ref": "worker_assignment:46b8f4a756729a90",
+        "live_action_authority": false,
+        "worker_kind": "dry_run_noop_worker",
+        "worker_ref": "noop_worker:diagnostic_package_gate_smoke"
+      },
+      "worker_result": {
+        "browser_access_performed": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "result_ref": "worker_result:0a5a41aa1bada424",
+        "result_status": "NOOP_RESULT_RECORDED",
+        "submit_performed": false,
+        "summary": "Dry-run worker recorded package state only.",
+        "workbook_mutation_performed": false
+      },
+      "workflow_ref": "diagnostic_package_gate_smoke",
+      "world": "diagnostic"
+    }
+  ],
+  "pipeline": [
+    "human_instruction",
+    "privacy_pii_gate",
+    "intent_classification",
+    "workflow_package_record",
+    "sqlite_package_registry",
+    "capability_provider_gate",
+    "worker_assignment",
+    "result_receipt",
+    "operator_review_gate",
+    "business_action_gate"
+  ],
+  "privacy_redundancy_evaluator_required_fields": [
+    "provider_considered",
+    "data_exposure_class",
+    "local_alternative",
+    "final_provider_decision",
+    "approval_required"
+  ],
+  "read_model_id": "workflow_package_queue_contract",
+  "schema_version": "workflow_package_queue_v0",
+  "scope": "dry_run_noop_workers_only",
+  "sqlite_path": "generated/system_knowledge/workflow_package_queue.sqlite",
+  "status": "WORKFLOW_PACKAGE_QUEUE_V0_READY",
+  "supported_package_types": [
+    "st_annes_work_log_event",
+    "st_annes_monthly_invoice_rollup",
+    "capital_hilton_invoice_operator_assist",
+    "capital_hilton_proposal_followup",
+    "diagnostic_package_gate_smoke"
+  ]
+}

@@ -5,6 +5,7 @@ SQLite Ledger v0 - Append-only receipt layer for Business Ops Spine events.
 import sqlite3
 import json
 import logging
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +14,17 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 DEFAULT_DB_PATH = ".openclaw/business_ops/ledger.sqlite"
+LEDGER_PATH_ENV_VAR = "OPENCLAW_LEDGER_PATH"
+
+
+def resolve_business_ops_ledger_path(db_path: str | os.PathLike[str] | None = None) -> str:
+    """Resolve the business-ops ledger path, honoring the test/session override."""
+    return str(db_path or os.environ.get(LEDGER_PATH_ENV_VAR) or DEFAULT_DB_PATH)
+
+
+def _connect_write(path: str):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    return sqlite3.connect(path)
 
 GENERIC_RECEIPT_TYPES = {
     "artifact_checkpoint",
@@ -45,9 +57,9 @@ UNSAFE_RECEIPT_PAYLOAD_KEYS = {
 
 
 def init_business_ops_ledger(db_path: str | None = None) -> str:
-    path = db_path or DEFAULT_DB_PATH
+    path = resolve_business_ops_ledger_path(db_path)
     try:
-        conn = sqlite3.connect(path)
+        conn = _connect_write(path)
         cursor = conn.cursor()
 
         # 1. events
@@ -354,7 +366,7 @@ def get_canonical_facts_by_heading(section_heading: str, db_path: str | None = N
     return _query_canonical_facts("SELECT * FROM canonical_facts WHERE section_heading = ?", (section_heading,), db_path)
 
 def _query_canonical_facts(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
-    path = db_path or DEFAULT_DB_PATH
+    path = resolve_business_ops_ledger_path(db_path)
     uri = f"file:{path}?mode=ro"
     try:
         conn = sqlite3.connect(uri, uri=True)
@@ -375,9 +387,9 @@ def _query_canonical_facts(query: str, params: tuple, db_path: str | None = None
 
 
 def _execute_write(query: str, params: tuple, db_path: str | None = None) -> bool:
-    path = db_path or DEFAULT_DB_PATH
+    path = resolve_business_ops_ledger_path(db_path)
     try:
-        conn = sqlite3.connect(path)
+        conn = _connect_write(path)
         cursor = conn.cursor()
         cursor.execute(query, params)
         conn.commit()
@@ -633,7 +645,7 @@ def append_side_effect(
     replay_safe: bool = False,
     external_ref: Optional[str] = None,
     db_path: str | None = None,
-) -> bool:
+) -> str | None:
     query = """
         INSERT INTO side_effects (
             packet_id, effect_type, status, approval_required,
@@ -649,7 +661,18 @@ def append_side_effect(
         1 if replay_safe else 0,
         external_ref,
     )
-    return _execute_write(query, params, db_path)
+    path = resolve_business_ops_ledger_path(db_path)
+    try:
+        conn = _connect_write(path)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        side_effect_id = f"side_effect:{cursor.lastrowid}"
+        conn.commit()
+        conn.close()
+        return side_effect_id
+    except Exception as e:
+        logger.error(f"Ledger side-effect write failure: {e}")
+        return None
 
 
 def append_operator_explanation(
@@ -753,7 +776,7 @@ def get_truth_registry_entry(source_id: str, db_path: str | None = None) -> dict
     return results[0] if results else None
 
 def get_verification_evidence_for_source(source_id: str, db_path: str | None = None) -> list[dict[str, Any]]:
-    path = db_path or DEFAULT_DB_PATH
+    path = resolve_business_ops_ledger_path(db_path)
     uri = f"file:{path}?mode=ro"
     try:
         conn = sqlite3.connect(uri, uri=True)
@@ -768,7 +791,7 @@ def get_verification_evidence_for_source(source_id: str, db_path: str | None = N
         return []
 
 def _query_truth_registry(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
-    path = db_path or DEFAULT_DB_PATH
+    path = resolve_business_ops_ledger_path(db_path)
     uri = f"file:{path}?mode=ro"
     try:
         conn = sqlite3.connect(uri, uri=True)
@@ -792,7 +815,7 @@ def get_file_inventory_by_name(file_name: str, db_path: str | None = None) -> li
     return _query_file_inventory("SELECT * FROM file_inventory WHERE file_name = ?", (file_name,), db_path)
 
 def _query_file_inventory(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
-    path = db_path or DEFAULT_DB_PATH
+    path = resolve_business_ops_ledger_path(db_path)
     uri = f"file:{path}?mode=ro"
     try:
         conn = sqlite3.connect(uri, uri=True)
@@ -810,9 +833,9 @@ def _query_file_inventory(query: str, params: tuple, db_path: str | None = None)
 
 
 def get_last_event_summary(db_path: str | None = None) -> Optional[str]:
-    path = db_path or DEFAULT_DB_PATH
+    path = resolve_business_ops_ledger_path(db_path)
     try:
-        conn = sqlite3.connect(path)
+        conn = _connect_write(path)
         cursor = conn.cursor()
         cursor.execute("SELECT operator_visible_summary FROM events ORDER BY ts DESC LIMIT 1")
         row = cursor.fetchone()
@@ -824,9 +847,9 @@ def get_last_event_summary(db_path: str | None = None) -> Optional[str]:
 
 
 def get_packet_summary(packet_id: str, db_path: str | None = None) -> Optional[dict[str, Any]]:
-    path = db_path or DEFAULT_DB_PATH
+    path = resolve_business_ops_ledger_path(db_path)
     try:
-        conn = sqlite3.connect(path)
+        conn = _connect_write(path)
         cursor = conn.cursor()
         cursor.execute("SELECT intent_name, action_status, approval_required FROM packets WHERE packet_id = ?", (packet_id,))
         row = cursor.fetchone()

@@ -1,0 +1,204 @@
+{
+  "schema_version": "hardwired_vs_spawned_agents_v0",
+  "read_model_id": "hardwired_vs_spawned_agents",
+  "generated_at": "2026-06-02T14:08:26Z",
+  "status": "HARDWIRED_VS_SPAWNED_EXPLAINER_READY",
+  "purpose": "Operator-facing explanation of stable named agents versus package-bound spawned workers.",
+  "display_policy": {
+    "audience": "internal_operator",
+    "style": "calm_professional_plain_language",
+    "machine_contract_dump_primary_visible": false,
+    "proof_refs_collapsed_by_default": true
+  },
+  "plain_summary": "Hardwired agents are stable OpenClaw roles that speak, advise, gate, or coordinate. Spawned package workers are task-specific execution threads that only receive the authority explicitly granted by a package.",
+  "hardwired_agents": [
+    {
+      "agent_ref": "cassandra",
+      "display_name": "Cassandra",
+      "stable_role": "Intake, human follow-up, correspondence prep, and work-log visibility.",
+      "primary_behavior": "speaks_and_coordinates",
+      "authority_summary": "No send, ledger, workbook, portal, or paid authority by default.",
+      "broad_executor_by_default": false
+    },
+    {
+      "agent_ref": "chief",
+      "display_name": "Chief",
+      "stable_role": "Diagnostics, bounded task packaging, provider-gate explanation, and workboard shaping.",
+      "primary_behavior": "diagnoses_and_packages",
+      "authority_summary": "Can explain or stage bounded work; does not submit, send, mutate ledgers, or mark paid by default.",
+      "broad_executor_by_default": false
+    },
+    {
+      "agent_ref": "hermes",
+      "display_name": "Hermes",
+      "stable_role": "Architecture recommendations, lane sequencing, and strategic synthesis.",
+      "primary_behavior": "recommends_and_explains",
+      "authority_summary": "Recommendation voice only unless a separate gated package grants implementation authority.",
+      "broad_executor_by_default": false
+    },
+    {
+      "agent_ref": "guardian",
+      "display_name": "Guardian",
+      "stable_role": "Safety, authority boundaries, protected-action gates, and blocker explanation.",
+      "primary_behavior": "gates_and_blocks_when_needed",
+      "authority_summary": "Guardian approval is not live action authority; it identifies what needs explicit approval.",
+      "broad_executor_by_default": false
+    },
+    {
+      "agent_ref": "niles",
+      "display_name": "Niles",
+      "stable_role": "Music, art, creative direction, and taste-sensitive review.",
+      "primary_behavior": "advises_on_creative_work",
+      "authority_summary": "No external action or client send authority by default.",
+      "broad_executor_by_default": false
+    },
+    {
+      "agent_ref": "clara",
+      "display_name": "Clara",
+      "stable_role": "External client-safe draft voice and polished operator-approved copy.",
+      "primary_behavior": "drafts_for_review",
+      "authority_summary": "Can prepare client-facing language for review; cannot send by default.",
+      "broad_executor_by_default": false
+    },
+    {
+      "agent_ref": "openclaw",
+      "display_name": "OpenClaw",
+      "stable_role": "Neutral system status, local state explanation, and fallback operator voice.",
+      "primary_behavior": "reports_status",
+      "authority_summary": "Neutral reporting voice; no business authority by default.",
+      "broad_executor_by_default": false
+    }
+  ],
+  "hardwired_agent_principles": [
+    "Named agents are stable roles, voices, and authority-boundary shapers.",
+    "A speaker identity does not make the speaker a broad executor.",
+    "Some named agents have sidecar or read-model functions, but those functions stay inside their local contract.",
+    "Named agents usually speak, advise, gate, coordinate, or draft for review."
+  ],
+  "spawned_package_workers": {
+    "plain_summary": "A spawned package worker is created for one task package and should stop at the package boundary.",
+    "worker_classes": [
+      "PC_CODEX",
+      "MAC_CODEX",
+      "future_LM2_child_worker"
+    ],
+    "required_boundaries": [
+      "specific package_id",
+      "explicit allowed actions",
+      "explicit blocked actions",
+      "bounded inputs",
+      "provider and capability gates",
+      "result receipt",
+      "operator review when required",
+      "business action gate before any protected action"
+    ],
+    "authority_principles": [
+      "A worker may be assigned a speaker or character context for copy, but that does not grant extra authority.",
+      "External business actions are blocked by default.",
+      "Tool access must be explicit, scoped, and receipt-backed.",
+      "The package, not the persona, defines what the worker may do."
+    ],
+    "default_business_action_policy": "no_external_business_actions"
+  },
+  "lm2_child_cage": {
+    "contract_ref": "generated/read_models/openclaw_lm_child_package_gate.json",
+    "contract_status": "DETERMINISTIC_LM_CHILD_PACKAGE_GATE_CONTRACT_NO_RUNTIME_SWARMS",
+    "runtime_child_execution_status": "contract_only_or_dry_run",
+    "max_children_default": 0,
+    "max_depth_default": 0,
+    "hidden_children_allowed": false,
+    "swarm_mode_allowed": false,
+    "recursive_spawning_allowed": false,
+    "live_business_action_children_allowed": false,
+    "guardian_involvement": "required for protected or scope-expanding child packages",
+    "receipt_backed_required": true,
+    "operator_plain_language": "Child workers are not a swarm. They are disabled by default and only become meaningful when a specific package gate allows a bounded, receipt-backed task."
+  },
+  "answer_examples": [
+    {
+      "question": "What is Chief versus a spawned worker?",
+      "headline": "Chief packages work; workers execute packages.",
+      "plain_answer": "Chief is a stable diagnostic role that explains gates and shapes bounded task packets. A spawned worker is a task-specific execution thread that only acts inside one package and returns a receipt.",
+      "next_safe_action": "Use Chief for diagnosis and packaging; do not spawn a worker unless a package gate authorizes it."
+    },
+    {
+      "question": "Can Cassandra execute this?",
+      "headline": "Cassandra can coordinate, not assume authority.",
+      "plain_answer": "Cassandra can capture intake, prepare calm operator copy, and stage follow-up for review. Execution still needs the right package, provider gate, and operator approval.",
+      "next_safe_action": "Let Cassandra stage the request, then review the package before any business action."
+    },
+    {
+      "question": "Can a child agent use tools?",
+      "headline": "Only if the package grants them.",
+      "plain_answer": "A child worker can only use tools named in its package boundary. Current LM2 child-worker behavior is contract-only or dry-run, and live business tools remain blocked.",
+      "next_safe_action": "Check the package gate and receipt requirements before granting any tool scope."
+    },
+    {
+      "question": "Does speaker_ref change authority?",
+      "headline": "Speaker identity does not grant authority.",
+      "plain_answer": "speaker_ref chooses the voice and routing identity for the response. It does not allow sending, submitting, ledger changes, workbook edits, paid marking, or child spawning.",
+      "next_safe_action": "Look at the authority boundary and package gates, not the speaker name."
+    },
+    {
+      "question": "What can run while I sleep?",
+      "headline": "Only bounded local work should run unattended.",
+      "plain_answer": "Planning, local read-model generation, safe validation, and dry-run package staging can be acceptable when already scoped. Email, Coupa, ledger, workbook mutation, PDF export, paid marking, and child-agent execution need explicit gates.",
+      "next_safe_action": "Queue planning-only work or dry-run packages; leave protected actions blocked until operator approval."
+    }
+  ],
+  "operator_rules": [
+    "Use named agents for explanation, routing, voice, and gates.",
+    "Use spawned workers only for explicit package-bound work.",
+    "Never treat a character voice as permission to act.",
+    "Protected business actions require their own approvals and receipts.",
+    "Proof should be available as refs, not shown as the default operator view."
+  ],
+  "proof_drawer": {
+    "collapsed_by_default": true,
+    "proof_caption": "Proof available.",
+    "proof_refs": [
+      "generated/read_models/agent_voice_routing_contract.json",
+      "generated/read_models/agent_voice_profiles.json",
+      "generated/read_models/workflow_package_queue_contract.json",
+      "generated/read_models/system_question_answer_contract.json",
+      "generated/read_models/openclaw_lm_child_package_gate.json",
+      "generated/read_models/agentic_chain_inspector.json"
+    ]
+  },
+  "authority_boundary": {
+    "email_send_allowed": false,
+    "ledger_posting_allowed": false,
+    "browser_access_allowed": false,
+    "gmail_allowed": false,
+    "coupa_allowed": false,
+    "portal_submit_allowed": false,
+    "workbook_mutation_allowed": false,
+    "pdf_export_allowed": false,
+    "paid_marking_allowed": false,
+    "child_agent_spawn_allowed": false,
+    "lm2_child_packet_run_allowed": false,
+    "agent_loop_allowed": false,
+    "live_business_action_allowed": false,
+    "repo_push_allowed": false,
+    "sent": false,
+    "paid": false
+  },
+  "machine_proof": {
+    "proof_drawer_collapsed": true,
+    "machine_contract_dump_primary_visible": false,
+    "email_send_performed": false,
+    "browser_access_performed": false,
+    "gmail_access_performed": false,
+    "coupa_access_performed": false,
+    "ledger_mutation_performed": false,
+    "workbook_mutation_performed": false,
+    "pdf_export_performed": false,
+    "paid_marking_performed": false,
+    "submit_performed": false,
+    "repo_push_performed": false,
+    "child_agent_spawned": false,
+    "lm2_child_packet_run": false,
+    "agent_loop_launched": false,
+    "unsafe_true_grants_absent": true
+  }
+}

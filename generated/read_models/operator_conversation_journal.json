@@ -1,0 +1,1526 @@
+{
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "telegram_live_connection_allowed": false,
+    "workbook_mutation_allowed": false,
+    "workbook_source_mutation_allowed": false
+  },
+  "entries": [
+    {
+      "action_status": "OPERATOR_REVIEW_REQUIRED",
+      "cross_lane_routed": true,
+      "current_thread_ref": "st_annes",
+      "current_world_ref": "operations",
+      "headline": "Workflow package staged",
+      "journal_entry_id": "operator_conversation_journal:d918dc055176ac8f",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_church_sound_operator_instruction_20260602T020839Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_church_sound_operator_instruction_20260602T020839Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:3fd690b11882c30c"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_church_sound_operator_instruction_20260602T020839Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_church_sound_operator_instruction_20260602T020839Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:03:20+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "OPERATOR_REVIEW_REQUIRED",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "business_development",
+      "headline": "Workflow package staged",
+      "journal_entry_id": "operator_conversation_journal:3d5372ea617ea818",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_business_development_operator_instruction_20260602T020839Z_74ebfb96af00.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_business_development_operator_instruction_20260602T020839Z_74ebfb96af00.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:91f9f5bbb8fdb48a"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_business_development_operator_instruction_20260602T020839Z_74ebfb96af00.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_business_development_operator_instruction_20260602T020839Z_74ebfb96af00.json",
+      "routing_note": "",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development",
+      "timestamp": "2026-06-02T02:08:42+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "PROVIDER_GATE_REQUIRED",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Workflow package gate closed",
+      "journal_entry_id": "operator_conversation_journal:f413ed9b4a2d0600",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T020839Z_6c29b3775783.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T020839Z_6c29b3775783.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:074f97c806d2864d"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T020839Z_6c29b3775783.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T020839Z_6c29b3775783.json",
+      "routing_note": "",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:08:44+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "OPERATOR_REVIEW_REQUIRED",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Workflow package staged",
+      "journal_entry_id": "operator_conversation_journal:be7cfe22d5c4dc80",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T022239Z_feb2ad653936.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T022239Z_feb2ad653936.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:feb2ad6539369472603abbf9ec0c490fda73dd058610ecd0439a9db647140510"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:98654c6c075979a8"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T022239Z_feb2ad653936.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T022239Z_feb2ad653936.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:feb2ad6539369472603abbf9ec0c490fda73dd058610ecd0439a9db647140510",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:08:47+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "OPERATOR_REVIEW_REQUIRED",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Workflow package staged",
+      "journal_entry_id": "operator_conversation_journal:74d14bbe2ce985c3",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T022656Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T022656Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:3f02c3d3caf877b7"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T022656Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T022656Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:22:44+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "OPERATOR_REVIEW_REQUIRED",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Workflow package staged",
+      "journal_entry_id": "operator_conversation_journal:9dc931e44e5f9db0",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T023435Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T023435Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:2913ec22220e5ea0"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T023435Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T023435Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:26:58+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "OPERATOR_REVIEW_REQUIRED",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Workflow package staged",
+      "journal_entry_id": "operator_conversation_journal:a01d5a71efcfdd80",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T023526Z_74ebfb96af00.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T023526Z_74ebfb96af00.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:51935f4a9d3741bd"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T023526Z_74ebfb96af00.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T023526Z_74ebfb96af00.json",
+      "routing_note": "Routed to Business Development / Capital Hilton.",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development",
+      "timestamp": "2026-06-02T02:34:40+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "PROVIDER_GATE_REQUIRED",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Workflow package gate closed",
+      "journal_entry_id": "operator_conversation_journal:cac2eef29baa780e",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T023612Z_6c29b3775783.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T023612Z_6c29b3775783.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:698056e11d5734c8"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T023612Z_6c29b3775783.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T023612Z_6c29b3775783.json",
+      "routing_note": "",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:35:26+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "OPERATOR_REVIEW_REQUIRED",
+      "cross_lane_routed": true,
+      "current_thread_ref": "st_annes",
+      "current_world_ref": "operations",
+      "headline": "Workflow package staged",
+      "journal_entry_id": "operator_conversation_journal:67447bcdc6590513",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_church_sound_operator_instruction_smoke_20260602T014445Z_28aa6e27f7ef_1.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_church_sound_operator_instruction_smoke_20260602T014445Z_28aa6e27f7ef_1.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:32e611e2996fb30d"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_church_sound_operator_instruction_smoke_20260602T014445Z_28aa6e27f7ef_1.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_church_sound_operator_instruction_smoke_20260602T014445Z_28aa6e27f7ef_1.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:45:00+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "OPERATOR_REVIEW_REQUIRED",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "business_development",
+      "headline": "Workflow package staged",
+      "journal_entry_id": "operator_conversation_journal:78a5047f8e31ac7b",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_business_development_operator_instruction_smoke_20260602T014445Z_74ebfb96af00_2.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_business_development_operator_instruction_smoke_20260602T014445Z_74ebfb96af00_2.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:ed3ee1f1c7efbceb"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_business_development_operator_instruction_smoke_20260602T014445Z_74ebfb96af00_2.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_business_development_operator_instruction_smoke_20260602T014445Z_74ebfb96af00_2.json",
+      "routing_note": "",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development",
+      "timestamp": "2026-06-02T02:45:01+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "PROVIDER_GATE_REQUIRED",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Workflow package gate closed",
+      "journal_entry_id": "operator_conversation_journal:1f2f5c0376d2247e",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_smoke_20260602T014445Z_6c29b3775783_3.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_smoke_20260602T014445Z_6c29b3775783_3.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:e6b4d3d9a4af4c05"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_smoke_20260602T014445Z_6c29b3775783_3.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_smoke_20260602T014445Z_6c29b3775783_3.json",
+      "routing_note": "",
+      "short_summary": "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. No business action ran and all external authority remains closed.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:45:02+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:244740fbebcf38bb",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T030258Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T030258Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:3c5d5b6dffd62bc7"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T030258Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T030258Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T02:50:56+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:dc9802c6a8b08862",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T030316Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T030316Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:ada82fffbf0525fc"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T030316Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T030316Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:02:59+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "Needs review",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton proposal follow-up staged",
+      "journal_entry_id": "operator_conversation_journal:2c4fe889c7099f76",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T030408Z_74ebfb96af00.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T030408Z_74ebfb96af00.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:19dbe5524a43fb2c"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T030408Z_74ebfb96af00.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T030408Z_74ebfb96af00.json",
+      "routing_note": "Routed to Business Development / Capital Hilton.",
+      "short_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development",
+      "timestamp": "2026-06-02T03:03:18+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "Provider gate required",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton invoice needs operator assist",
+      "journal_entry_id": "operator_conversation_journal:98991cc3813bb70a",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T030430Z_6c29b3775783.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T030430Z_6c29b3775783.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:5a241aae2751f7ac"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T030430Z_6c29b3775783.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T030430Z_6c29b3775783.json",
+      "routing_note": "",
+      "short_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "openclaw",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:04:11+00:00",
+      "voice_mode": "status"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:2d2dab6030bc463b",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T031904Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T031904Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:9629a22a5ebb914c"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T031904Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T031904Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:13:40+00:00",
+      "voice_mode": "operator_intake"
+    },
+    {
+      "action_status": "Needs review",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton proposal follow-up staged",
+      "journal_entry_id": "operator_conversation_journal:32025b6046002e1b",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T031929Z_74ebfb96af00.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T031929Z_74ebfb96af00.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:4897631519be1549"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T031929Z_74ebfb96af00.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T031929Z_74ebfb96af00.json",
+      "routing_note": "Routed to Business Development / Capital Hilton.",
+      "short_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development",
+      "timestamp": "2026-06-02T03:19:09+00:00",
+      "voice_mode": "operator_calm"
+    },
+    {
+      "action_status": "Provider gate required",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton invoice needs operator assist",
+      "journal_entry_id": "operator_conversation_journal:d97a68628165173a",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T031952Z_6c29b3775783.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T031952Z_6c29b3775783.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:cf90b6927a204aea"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T031952Z_6c29b3775783.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T031952Z_6c29b3775783.json",
+      "routing_note": "",
+      "short_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "chief",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:19:31+00:00",
+      "voice_mode": "diagnostic"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:0be3c3f6d25219f4",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T032524Z_8732162cb575.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T032524Z_8732162cb575.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:bdcfa9c1682015c1"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T032524Z_8732162cb575.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T032524Z_8732162cb575.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:19:54+00:00",
+      "voice_mode": "operator_intake"
+    },
+    {
+      "action_status": "Needs review",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton proposal follow-up staged",
+      "journal_entry_id": "operator_conversation_journal:40660495fc803626",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T032724Z_74ebfb96af00.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T032724Z_74ebfb96af00.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:a6b8208452b531da"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T032724Z_74ebfb96af00.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T032724Z_74ebfb96af00.json",
+      "routing_note": "Routed to Business Development / Capital Hilton.",
+      "short_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development",
+      "timestamp": "2026-06-02T03:25:27+00:00",
+      "voice_mode": "operator_calm"
+    },
+    {
+      "action_status": "Provider gate required",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton invoice needs operator assist",
+      "journal_entry_id": "operator_conversation_journal:9782d74a683f6f3a",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T032759Z_6c29b3775783.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T032759Z_6c29b3775783.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:3308dfef4e12e929"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T032759Z_6c29b3775783.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T032759Z_6c29b3775783.json",
+      "routing_note": "",
+      "short_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "chief",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:27:27+00:00",
+      "voice_mode": "diagnostic"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:56f3ae6ee53f2923",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T033704Z_8732162cb575.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T033704Z_8732162cb575.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:636448351790e85f"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T033704Z_8732162cb575.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T033704Z_8732162cb575.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:28:05+00:00",
+      "voice_mode": "operator_intake"
+    },
+    {
+      "action_status": "Needs review",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton proposal follow-up staged",
+      "journal_entry_id": "operator_conversation_journal:97bae1459703abc0",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T033733Z_74ebfb96af00.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T033733Z_74ebfb96af00.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:e2830a599efb7fcd"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T033733Z_74ebfb96af00.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T033733Z_74ebfb96af00.json",
+      "routing_note": "Routed to Business Development / Capital Hilton.",
+      "short_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:74ebfb96af00905e604d6438aa24dc56b8026b4708bc8b9a783328483eb24bcf",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development",
+      "timestamp": "2026-06-02T03:37:10+00:00",
+      "voice_mode": "operator_calm"
+    },
+    {
+      "action_status": "Provider gate required",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton invoice needs operator assist",
+      "journal_entry_id": "operator_conversation_journal:897aad96b8faca9f",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T033800Z_6c29b3775783.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T033800Z_6c29b3775783.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:caabd74d0abd9d86"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T033800Z_6c29b3775783.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T033800Z_6c29b3775783.json",
+      "routing_note": "",
+      "short_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "chief",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:37:39+00:00",
+      "voice_mode": "diagnostic"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:f18381a7f2debd44",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T034200Z_8732162cb575.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T034200Z_8732162cb575.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:1000c44c4aed9dd2"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T034200Z_8732162cb575.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T034200Z_8732162cb575.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:39:54+00:00",
+      "voice_mode": "operator_intake"
+    },
+    {
+      "action_status": "Provider gate required",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton invoice needs operator assist",
+      "journal_entry_id": "operator_conversation_journal:8684b84f1c154af1",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T034248Z_6c29b3775783.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T034248Z_6c29b3775783.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:7bc678ba549d01b6"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T034248Z_6c29b3775783.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T034248Z_6c29b3775783.json",
+      "routing_note": "",
+      "short_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "chief",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:42:07+00:00",
+      "voice_mode": "diagnostic"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:f95032291a090043",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T035026Z_8732162cb575.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T035026Z_8732162cb575.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:13638169799371e6"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T035026Z_8732162cb575.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T035026Z_8732162cb575.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:42:51+00:00",
+      "voice_mode": "operator_intake"
+    },
+    {
+      "action_status": "Provider gate required",
+      "cross_lane_routed": false,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "Capital Hilton invoice needs operator assist",
+      "journal_entry_id": "operator_conversation_journal:7a96f5f5e82739ec",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T035057Z_6c29b3775783.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T035057Z_6c29b3775783.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:1fa745d9ef00acb6"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T035057Z_6c29b3775783.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T035057Z_6c29b3775783.json",
+      "routing_note": "",
+      "short_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
+      "speaker_ref": "chief",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T03:50:29+00:00",
+      "voice_mode": "diagnostic"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:86c3121fa8e5f5b3",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T042214Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T042214Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:8ec0d7466c448a0f"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T042214Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T042214Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T04:05:50+00:00",
+      "voice_mode": "operator_intake"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:b683ba1705d10774",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T042800Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T042800Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:69ec059d30babdbd"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T042800Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T042800Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T04:22:54+00:00",
+      "voice_mode": "operator_intake"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:912d66c1388c25cf",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T045011Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T045011Z_28aa6e27f7ef.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:b85a9843102a05d9"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T045011Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_20260602T045011Z_28aa6e27f7ef.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "Saved as a draft event until you confirm it.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T04:47:27+00:00",
+      "voice_mode": "operator_intake"
+    },
+    {
+      "action_status": "Needs confirmation",
+      "cross_lane_routed": true,
+      "current_thread_ref": "capital_hilton",
+      "current_world_ref": "finance",
+      "headline": "St. Anne's work log captured",
+      "journal_entry_id": "operator_conversation_journal:1391fd51963b75fe",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "proof_refs": [
+        {
+          "path": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T045011Z_28aa6e27f7ef.json",
+          "proof_type": "request_ref"
+        },
+        {
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_latest.json",
+          "proof_type": "response_ref"
+        },
+        {
+          "proof_type": "source_text_ref",
+          "ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed"
+        },
+        {
+          "proof_type": "workflow_package",
+          "ref": "workflow_package:b85a9843102a05d9"
+        },
+        {
+          "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+          "proof_type": "sqlite_path"
+        }
+      ],
+      "raw_request_body_stored": false,
+      "request_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox/mission_control_operator_instruction_request_capital_hilton_invoice_workflow_operator_instruction_20260602T045011Z_28aa6e27f7ef.json",
+      "response_ref": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_latest.json",
+      "routing_note": "Routed to Finance / St. Anne's.",
+      "short_summary": "Saved as a draft event until you confirm it.",
+      "show_machine_details_by_default": false,
+      "source_surface": "mission_control",
+      "source_text_ref": "protected_text_hash:sha256:28aa6e27f7ef1d0c1162a7f38e84eed35f68cf69514d5c014ea434d62c54b5ed",
+      "speaker_ref": "cassandra",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "timestamp": "2026-06-02T04:47:27+00:00",
+      "voice_mode": "operator_intake"
+    }
+  ],
+  "entry_count": 32,
+  "generated_at": "2026-06-02T06:15:00+00:00",
+  "grouped_thread_counts": {
+    "business_development/capital_hilton": 7,
+    "finance/capital_hilton": 9,
+    "finance/st_annes": 16
+  },
+  "machine_proof": {
+    "authority_flags_all_false": true,
+    "browser_access_performed": false,
+    "capital_hilton_business_development_group_present": true,
+    "capital_hilton_finance_group_present": true,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "no_raw_request_body_fields": true,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "show_machine_details_default_false": true,
+    "st_annes_group_present": true,
+    "submit_performed": false,
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false
+  },
+  "privacy": {
+    "operator_display_summaries_only": true,
+    "proof_links_collapsed_by_default": true,
+    "raw_long_prompt_dumps_stored": false,
+    "raw_request_bodies_stored": false,
+    "source_text_refs_or_hashes_only": true
+  },
+  "purpose": "Compact operator-visible Mission Control request/response history grouped by target world/thread.",
+  "read_model_id": "operator_conversation_journal",
+  "rules": {
+    "business_development_capital_hilton_includes_proposal_followup": true,
+    "finance_capital_hilton_includes_invoice_operator_assist": true,
+    "finance_st_annes_history_includes_work_log_events": true,
+    "no_business_action_occurs": true,
+    "proof_details_are_refs": true
+  },
+  "schema_version": "operator_conversation_journal_v0",
+  "source_inputs": {
+    "request_dir": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
+    "response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac",
+    "workflow_package_queue_sqlite": "generated/system_knowledge/workflow_package_queue.sqlite"
+  },
+  "status": "OPERATOR_CONVERSATION_JOURNAL_READY",
+  "supporting_read_models": {
+    "capital_hilton_business_development_proposal": {
+      "finance_handoff_allowed": false,
+      "path": "generated/read_models/capital_hilton_business_development_proposal.json",
+      "proposal_accepted": false,
+      "proposal_status": "SENT_FOR_CLIENT_REVIEW"
+    },
+    "finance_thread_index": {
+      "path": "generated/read_models/finance_thread_index.json",
+      "status": "FINANCE_THREAD_INDEX_READY",
+      "threads": [
+        {
+          "display_name": "Capital Hilton",
+          "thread_ref": "capital_hilton",
+          "world_ref": "finance"
+        },
+        {
+          "display_name": "Live Arts MD!",
+          "thread_ref": "live_arts_md",
+          "world_ref": "finance"
+        },
+        {
+          "display_name": "St. Anne's",
+          "thread_ref": "st_annes",
+          "world_ref": "finance"
+        }
+      ]
+    }
+  },
+  "threads": [
+    {
+      "entry_count": 7,
+      "latest_headline": "Capital Hilton proposal follow-up staged",
+      "latest_timestamp": "2026-06-02T03:37:10+00:00",
+      "thread_ref": "capital_hilton",
+      "world_ref": "business_development"
+    },
+    {
+      "entry_count": 9,
+      "latest_headline": "Capital Hilton invoice needs operator assist",
+      "latest_timestamp": "2026-06-02T03:50:29+00:00",
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    },
+    {
+      "entry_count": 16,
+      "latest_headline": "St. Anne's work log captured",
+      "latest_timestamp": "2026-06-02T04:47:27+00:00",
+      "thread_ref": "st_annes",
+      "world_ref": "finance"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 Helm State Read-Model v0
 
 Evidence:
-- Emitted helm state is `inspect_only` (read_only): The helm may be inspected as deterministic read-model context, but no backend action or activation is authorized.
-- Generated operator status check is `current`.
+- Emitted helm state is `stale_evidence` (system_integrity): The displayed claim may be based on old or insufficiently current generated evidence.
+- Generated operator status check is `stale_or_missing`.
 - Generated status artifacts present: current_state=true, next_actions=true.
 - Source Inventory reports 13 allowlisted metadata-only records with body_ingested=false.
 - Source Inventory represents 8 blocked no-go examples without body read.

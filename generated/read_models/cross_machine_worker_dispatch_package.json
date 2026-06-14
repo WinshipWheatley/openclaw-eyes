@@ -1,0 +1,2367 @@
+{
+  "authority_boundary": {
+    "approval_submission_allowed": false,
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_auto_dispatch_allowed": false,
+    "live_cross_machine_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_model_call_allowed": false,
+    "live_worker_execution_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_CROSS_MACHINE_WORKER_DISPATCH_PACKAGE",
+  "cross_machine_dispatch_blockers_by_id": {
+    "cross_machine_dispatch_blocker_authority_too_broad": {
+      "blocker_id": "cross_machine_dispatch_blocker_authority_too_broad",
+      "blocker_type": "AUTHORITY_TOO_BROAD",
+      "condition": "Worker package grants broader authority than the task requires.",
+      "elioperator_warning": "ELIOPERATOR: Worker package grants broader authority than the task requires.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_credential_in_package": {
+      "blocker_id": "cross_machine_dispatch_blocker_credential_in_package",
+      "blocker_type": "CREDENTIAL_IN_PACKAGE",
+      "condition": "Worker package contains credentials or tokens.",
+      "elioperator_warning": "ELIOPERATOR: Worker package contains credentials or tokens.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_external_action_included": {
+      "blocker_id": "cross_machine_dispatch_blocker_external_action_included",
+      "blocker_type": "EXTERNAL_ACTION_INCLUDED",
+      "condition": "Worker package includes send, submit, browser, account, or approval action.",
+      "elioperator_warning": "ELIOPERATOR: Worker package includes send, submit, browser, account, or approval action.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_machine_contract_visible_to_operator": {
+      "blocker_id": "cross_machine_dispatch_blocker_machine_contract_visible_to_operator",
+      "blocker_type": "MACHINE_CONTRACT_VISIBLE_TO_OPERATOR",
+      "condition": "Normal operator card exposes implementation contract fields.",
+      "elioperator_warning": "ELIOPERATOR: Normal operator card exposes implementation contract fields.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_missing_context_package": {
+      "blocker_id": "cross_machine_dispatch_blocker_missing_context_package",
+      "blocker_type": "MISSING_CONTEXT_PACKAGE",
+      "condition": "No bounded context package exists for the worker.",
+      "elioperator_warning": "ELIOPERATOR: No bounded context package exists for the worker.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_network_unexpected": {
+      "blocker_id": "cross_machine_dispatch_blocker_network_unexpected",
+      "blocker_type": "NETWORK_UNEXPECTED",
+      "condition": "Worker package includes network access without explicit gate.",
+      "elioperator_warning": "ELIOPERATOR: Worker package includes network access without explicit gate.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_raw_pii_in_package": {
+      "blocker_id": "cross_machine_dispatch_blocker_raw_pii_in_package",
+      "blocker_type": "RAW_PII_IN_PACKAGE",
+      "condition": "Worker package contains raw private or protected values.",
+      "elioperator_warning": "ELIOPERATOR: Worker package contains raw private or protected values.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_unknown_fail_closed": {
+      "blocker_id": "cross_machine_dispatch_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown routing state fails closed.",
+      "elioperator_warning": "ELIOPERATOR: Unknown routing state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_unsupported_worker": {
+      "blocker_id": "cross_machine_dispatch_blocker_unsupported_worker",
+      "blocker_type": "UNSUPPORTED_WORKER",
+      "condition": "Requested worker is not supported by this routing contract.",
+      "elioperator_warning": "ELIOPERATOR: Requested worker is not supported by this routing contract.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_wrong_machine_selected": {
+      "blocker_id": "cross_machine_dispatch_blocker_wrong_machine_selected",
+      "blocker_type": "WRONG_MACHINE_SELECTED",
+      "condition": "The selected machine cannot safely perform the requested work.",
+      "elioperator_warning": "ELIOPERATOR: The selected machine cannot safely perform the requested work.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    },
+    "cross_machine_dispatch_blocker_wrong_worker_selected": {
+      "blocker_id": "cross_machine_dispatch_blocker_wrong_worker_selected",
+      "blocker_type": "WRONG_WORKER_SELECTED",
+      "condition": "The selected worker does not own the task surface.",
+      "elioperator_warning": "ELIOPERATOR: The selected worker does not own the task surface.",
+      "fail_closed": true,
+      "next_safe_move": "Stop dispatch, strip authority, or ask a clarifying question.",
+      "severity": "BLOCKS_DISPATCH"
+    }
+  },
+  "cross_machine_worker_dispatch_package": {
+    "allowed_actions": [
+      "Python module edits",
+      "script/export edits",
+      "pytest",
+      "generated read-models",
+      "credential/authority scans"
+    ],
+    "allowed_files": [
+      "Repo A Python modules",
+      "scripts",
+      "tests",
+      "generated/read_models"
+    ],
+    "context_package_ref": "context_dispatch_pc_codex_chat_readback_card_mirror",
+    "dispatch_id": "dispatch_pc_codex_chat_readback_card_mirror",
+    "dispatch_status": "PACKAGE_READY_NOT_SENT",
+    "expected_return_format": [
+      "STATUS",
+      "SUMMARY",
+      "RESULT",
+      "VALIDATION",
+      "COMMIT",
+      "BOUNDARY CHECK"
+    ],
+    "forbidden_actions": [
+      "Mac Swift edits",
+      "external action",
+      "credentials",
+      "raw private body ingestion"
+    ],
+    "forbidden_files": [
+      "Mission Control Swift files",
+      "external account data",
+      "credentials"
+    ],
+    "next_safe_move": "Show package card and wait for operator send; no live auto-dispatch.",
+    "readback_target": "same OpenClaw chat surface",
+    "required_proof": [
+      "worker final report",
+      "validation output",
+      "boundary check"
+    ],
+    "source_chat_request_ref": "operator_chat_card_mirror_backend_request",
+    "source_router_intent_ref": "intent_backend_card_mirror",
+    "target_machine": "PC_WSL",
+    "target_repo_or_app": "Repo A backend /home/openclaw",
+    "target_worker_type": "PC_CODEX",
+    "task_summary": "Build the chat readback card mirror from router readbacks.",
+    "task_type": "BACKEND_READMODEL",
+    "validation_commands": [
+      "python3 scripts/export_chat_readback_card_mirror.py --format summary",
+      "focused pytest"
+    ]
+  },
+  "dispatch_statuses": [
+    "PACKAGE_READY_NOT_SENT",
+    "ROUTE_SELECTED",
+    "WAITING_FOR_OPERATOR_SEND",
+    "WAITING_FOR_WORKER",
+    "WORKER_RESULT_RECEIVED",
+    "BLOCKED_MISSING_CONTEXT",
+    "BLOCKED_UNSUPPORTED_WORKER",
+    "BLOCKED_AUTHORITY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "examples": {
+    "ambiguous_make_it_better": {
+      "active_blockers": [],
+      "authority_boundary": {
+        "allowed_actions": [
+          "ask a clarifying question",
+          "show routing options"
+        ],
+        "approval_required": true,
+        "boundary_id": "authority_dispatch_unknown_make_it_better",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_unknown_make_it_better",
+        "external_authority": false,
+        "file_write_allowed": false,
+        "forbidden_actions": [
+          "worker dispatch",
+          "file edits",
+          "model call",
+          "external action"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": false,
+        "tool_allowed": false
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not choose hidden scope",
+          "do not dispatch a worker",
+          "do not run anything"
+        ],
+        "context_package_id": "context_dispatch_unknown_make_it_better",
+        "dispatch_ref": "dispatch_unknown_make_it_better",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data"
+        ],
+        "included_context": [
+          "operator message only"
+        ],
+        "next_safe_move": "Ask what surface and outcome the operator means.",
+        "operator_goal": "Make it better.",
+        "privacy_class": "unknown_fail_closed",
+        "sensitivity_class": "unknown",
+        "source_files_allowed": [],
+        "source_files_forbidden": [
+          "all files until scope is clarified"
+        ],
+        "source_readmodels": [],
+        "success_criteria": [
+          "operator selects target surface",
+          "operator selects desired outcome"
+        ],
+        "token_budget_hint": "ask clarifying question first"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "ask a clarifying question",
+          "show routing options"
+        ],
+        "allowed_files": [],
+        "context_package_ref": "context_dispatch_unknown_make_it_better",
+        "dispatch_id": "dispatch_unknown_make_it_better",
+        "dispatch_status": "BLOCKED_MISSING_CONTEXT",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "worker dispatch",
+          "file edits",
+          "model call",
+          "external action"
+        ],
+        "forbidden_files": [
+          "all files until scope is clarified"
+        ],
+        "next_safe_move": "Show package card and wait for operator send; no live auto-dispatch.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_make_it_better",
+        "source_router_intent_ref": "intent_unknown_needs_routing",
+        "target_machine": "UNKNOWN",
+        "target_repo_or_app": "unknown",
+        "target_worker_type": "UNKNOWN_NEEDS_ROUTING",
+        "task_summary": "Make it better.",
+        "task_type": "UNKNOWN_NEEDS_FRAMING",
+        "validation_commands": [
+          "clarifying question produced"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_dispatch_unknown_make_it_better",
+        "dispatch_ref": "dispatch_unknown_make_it_better",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "waiting",
+        "summary": "“Make it better” is too broad to pick a worker safely.",
+        "target_machine_label": "Unknown",
+        "target_worker_label": "Needs routing",
+        "title": "I need a target before routing",
+        "what_will_happen": [
+          "Ask a clarifying question",
+          "Offer routing options",
+          "Wait for operator choice"
+        ],
+        "what_will_not_happen": [
+          "No worker dispatch",
+          "No file edits",
+          "No external action"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_unknown_make_it_better",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_unknown_make_it_better",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "MAC_CODEX",
+          "PC_CODEX",
+          "GEMINI_AGY",
+          "CASSANDRA",
+          "GUARDIAN"
+        ],
+        "blocked_workers": [],
+        "confidence": "LOW",
+        "decision_id": "decision_unknown_make_it_better",
+        "handoff_required": false,
+        "next_safe_move": "Ask whether this is Mac app work, Repo A backend work, read-only scouting, comms, or safety review.",
+        "route_reason": "Request is too broad to identify worker, machine, files, or success criteria.",
+        "selected_environment": "none",
+        "selected_machine": "UNKNOWN",
+        "selected_worker_type": "UNKNOWN_NEEDS_ROUTING",
+        "source_message_ref": "operator_chat_make_it_better"
+      }
+    },
+    "authority_too_broad_mail_coupa_send": {
+      "active_blockers": [
+        "AUTHORITY_TOO_BROAD",
+        "EXTERNAL_ACTION_INCLUDED"
+      ],
+      "authority_boundary": {
+        "allowed_actions": [
+          "Mac UI/surface review",
+          "local boundary card design",
+          "approval-gate copy"
+        ],
+        "approval_required": true,
+        "boundary_id": "authority_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "external_authority": false,
+        "file_write_allowed": true,
+        "forbidden_actions": [
+          "send email",
+          "create live Mail draft",
+          "access accounts",
+          "credential handling",
+          "external action"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": true,
+        "tool_allowed": true
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not mutate Repo A backend",
+          "do not access external accounts",
+          "do not add watchers or hidden automation"
+        ],
+        "context_package_id": "context_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "dispatch_ref": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data",
+          "Repo A backend mutation authority"
+        ],
+        "included_context": [
+          "operator chat summary",
+          "Mission Control UI target",
+          "Mac validation expectations"
+        ],
+        "next_safe_move": "Send only to Mac Codex after operator confirms.",
+        "operator_goal": "Review Mac Mail invoice send surface boundary without granting send authority.",
+        "privacy_class": "operator_safe_ui_metadata",
+        "sensitivity_class": "low_to_medium",
+        "source_files_allowed": [
+          "Mission Control SwiftUI files",
+          "Mail boundary UI stubs"
+        ],
+        "source_files_forbidden": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "source_readmodels": [
+          "chat_readback_card_mirror",
+          "operator_card_render_packet_contract"
+        ],
+        "success_criteria": [
+          "UI behavior matches request",
+          "Mac build/test or screenshot validation reported",
+          "no external authority added"
+        ],
+        "token_budget_hint": "focused Mac app context only"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "Mac UI/surface review",
+          "local boundary card design",
+          "approval-gate copy"
+        ],
+        "allowed_files": [
+          "Mission Control SwiftUI files",
+          "Mail boundary UI stubs"
+        ],
+        "context_package_ref": "context_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "dispatch_id": "dispatch_authority_too_broad_mail_coupa_send",
+        "dispatch_status": "BLOCKED_AUTHORITY",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "send email",
+          "create live Mail draft",
+          "access accounts",
+          "credential handling",
+          "external action",
+          "Gmail/Coupa/send authority embedded in UI prompt"
+        ],
+        "forbidden_files": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "next_safe_move": "Strip send/submit authority and require governed adapters.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_mail_send_invoice_request",
+        "source_router_intent_ref": "intent_mail_invoice_send_boundary",
+        "target_machine": "MAC",
+        "target_repo_or_app": "Mission Control Mac app",
+        "target_worker_type": "MAC_CODEX",
+        "task_summary": "Review Mac Mail invoice send surface boundary without granting send authority.",
+        "task_type": "MAC_MAIL_BOUNDARY_REVIEW",
+        "validation_commands": [
+          "boundary review only"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_authority_too_broad_mail_coupa_send",
+        "dispatch_ref": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "blocked",
+        "summary": "The package included send/Coupa authority for a UI task, so dispatch is blocked.",
+        "target_machine_label": "Mac",
+        "target_worker_label": "Mac Codex",
+        "title": "Authority too broad",
+        "what_will_happen": [
+          "Package boundary/UI review",
+          "Name missing approval/send adapter",
+          "Return blocked readback"
+        ],
+        "what_will_not_happen": [
+          "No email sent",
+          "No account access",
+          "No live draft"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "CASSANDRA for future comms drafting role",
+          "GUARDIAN for approval boundary"
+        ],
+        "blocked_workers": [
+          "any worker with direct send authority"
+        ],
+        "confidence": "MEDIUM",
+        "decision_id": "decision_mac_codex_mail_invoice_boundary_blocked",
+        "handoff_required": true,
+        "next_safe_move": "Strip send authority and route only a UI/boundary package.",
+        "route_reason": "Mail UI/boundary review can be Mac Codex, but actual send requires governed adapter approval.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_message_ref": "operator_chat_mail_send_invoice_request"
+      }
+    },
+    "gemini_agy_card_contract_audit": {
+      "active_blockers": [],
+      "authority_boundary": {
+        "allowed_actions": [
+          "read-only audit",
+          "design critique",
+          "gotcha discovery",
+          "prompt shaping",
+          "strategy recommendation"
+        ],
+        "approval_required": true,
+        "boundary_id": "authority_dispatch_gemini_agy_chat_first_card_contract_audit",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_gemini_agy_chat_first_card_contract_audit",
+        "external_authority": false,
+        "file_write_allowed": false,
+        "forbidden_actions": [
+          "file edits",
+          "commits",
+          "live execution",
+          "external action",
+          "credential access"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": false,
+        "tool_allowed": false
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not modify files",
+          "do not commit",
+          "do not run tools",
+          "do not access external systems"
+        ],
+        "context_package_id": "context_dispatch_gemini_agy_chat_first_card_contract_audit",
+        "dispatch_ref": "dispatch_gemini_agy_chat_first_card_contract_audit",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data",
+          "write access",
+          "commit authority",
+          "runtime execution"
+        ],
+        "included_context": [
+          "sanitized repo/read-model summaries",
+          "question to audit",
+          "expected report shape"
+        ],
+        "next_safe_move": "Send as read-only scout packet only after operator confirms.",
+        "operator_goal": "Audit whether the chat-first pivot should reuse existing card contracts.",
+        "privacy_class": "sanitized_read_only",
+        "sensitivity_class": "low",
+        "source_files_allowed": [
+          "read-only sanitized summaries"
+        ],
+        "source_files_forbidden": [
+          "source edits",
+          "commits",
+          "external accounts",
+          "credentials"
+        ],
+        "source_readmodels": [
+          "operator_card_render_packet_contract",
+          "chat_readback_card_mirror"
+        ],
+        "success_criteria": [
+          "gotchas identified",
+          "recommendation grounded",
+          "no file edits or execution"
+        ],
+        "token_budget_hint": "read-only audit context"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "read-only audit",
+          "design critique",
+          "gotcha discovery",
+          "prompt shaping",
+          "strategy recommendation"
+        ],
+        "allowed_files": [
+          "read-only sanitized summaries"
+        ],
+        "context_package_ref": "context_dispatch_gemini_agy_chat_first_card_contract_audit",
+        "dispatch_id": "dispatch_gemini_agy_chat_first_card_contract_audit",
+        "dispatch_status": "WAITING_FOR_OPERATOR_SEND",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "file edits",
+          "commits",
+          "live execution",
+          "external action",
+          "credential access"
+        ],
+        "forbidden_files": [
+          "source edits",
+          "commits",
+          "external accounts",
+          "credentials"
+        ],
+        "next_safe_move": "Show package card and wait for operator send; no live auto-dispatch.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_card_contract_audit_request",
+        "source_router_intent_ref": "intent_read_only_card_contract_audit",
+        "target_machine": "CLOUD_OR_EXTERNAL_MODEL",
+        "target_repo_or_app": "Gemini/Agy read-only scout lane",
+        "target_worker_type": "GEMINI_AGY",
+        "task_summary": "Audit whether the chat-first pivot should reuse existing card contracts.",
+        "task_type": "READ_ONLY_AUDIT",
+        "validation_commands": [
+          "read-only report returned",
+          "no diff/commit"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_dispatch_gemini_agy_chat_first_card_contract_audit",
+        "dispatch_ref": "dispatch_gemini_agy_chat_first_card_contract_audit",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "ready",
+        "summary": "This is read-only scouting and prompt shaping, not implementation.",
+        "target_machine_label": "External model lane",
+        "target_worker_label": "Gemini/Agy",
+        "title": "Send this to Gemini/Agy",
+        "what_will_happen": [
+          "Package sanitized summaries",
+          "Ask for critique/recommendation",
+          "Return report to chat"
+        ],
+        "what_will_not_happen": [
+          "No file edits",
+          "No commits",
+          "No execution or external action"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_gemini_agy_chat_first_card_contract_audit",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_gemini_agy_chat_first_card_contract_audit",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "PC_CODEX for implementation after scout"
+        ],
+        "blocked_workers": [
+          "MAC_CODEX for backend audit"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_gemini_agy_chat_first_card_contract_audit",
+        "handoff_required": true,
+        "next_safe_move": "Prepare read-only scout package; do not grant edit or execution authority.",
+        "route_reason": "Read-only scouting and prompt shaping belong to Gemini/Agy.",
+        "selected_environment": "read-only scout packet",
+        "selected_machine": "CLOUD_OR_EXTERNAL_MODEL",
+        "selected_worker_type": "GEMINI_AGY",
+        "source_message_ref": "operator_chat_card_contract_audit_request"
+      }
+    },
+    "mac_codex_final_cut_metadata_display": {
+      "active_blockers": [],
+      "authority_boundary": {
+        "allowed_actions": [
+          "Mac UI/read-only metadata concept",
+          "SwiftUI display work",
+          "Mac validation"
+        ],
+        "approval_required": true,
+        "boundary_id": "authority_dispatch_mac_codex_final_cut_metadata_display",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_mac_codex_final_cut_metadata_display",
+        "external_authority": false,
+        "file_write_allowed": true,
+        "forbidden_actions": [
+          "project mutation",
+          "export",
+          "render",
+          "automation without explicit approval"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": true,
+        "tool_allowed": true
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not mutate Repo A backend",
+          "do not access external accounts",
+          "do not add watchers or hidden automation"
+        ],
+        "context_package_id": "context_dispatch_mac_codex_final_cut_metadata_display",
+        "dispatch_ref": "dispatch_mac_codex_final_cut_metadata_display",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data",
+          "Repo A backend mutation authority"
+        ],
+        "included_context": [
+          "operator chat summary",
+          "Mission Control UI target",
+          "Mac validation expectations"
+        ],
+        "next_safe_move": "Send only to Mac Codex after operator confirms.",
+        "operator_goal": "Prepare Final Cut project metadata display.",
+        "privacy_class": "operator_safe_ui_metadata",
+        "sensitivity_class": "low_to_medium",
+        "source_files_allowed": [
+          "Mission Control SwiftUI files",
+          "Mac-local metadata display stubs"
+        ],
+        "source_files_forbidden": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "source_readmodels": [
+          "chat_readback_card_mirror",
+          "operator_card_render_packet_contract"
+        ],
+        "success_criteria": [
+          "UI behavior matches request",
+          "Mac build/test or screenshot validation reported",
+          "no external authority added"
+        ],
+        "token_budget_hint": "focused Mac app context only"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "Mac UI/read-only metadata concept",
+          "SwiftUI display work",
+          "Mac validation"
+        ],
+        "allowed_files": [
+          "Mission Control SwiftUI files",
+          "Mac-local metadata display stubs"
+        ],
+        "context_package_ref": "context_dispatch_mac_codex_final_cut_metadata_display",
+        "dispatch_id": "dispatch_mac_codex_final_cut_metadata_display",
+        "dispatch_status": "PACKAGE_READY_NOT_SENT",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "project mutation",
+          "export",
+          "render",
+          "automation without explicit approval"
+        ],
+        "forbidden_files": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "next_safe_move": "Show package card and wait for operator send; no live auto-dispatch.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_final_cut_metadata_request",
+        "source_router_intent_ref": "intent_final_cut_metadata_display",
+        "target_machine": "MAC",
+        "target_repo_or_app": "Mission Control Mac app",
+        "target_worker_type": "MAC_CODEX",
+        "task_summary": "Prepare Final Cut project metadata display.",
+        "task_type": "APPLE_APP_INTEGRATION_SCOUT_OR_UI",
+        "validation_commands": [
+          "Mac UI validation",
+          "operator-readable boundary report"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_dispatch_mac_codex_final_cut_metadata_display",
+        "dispatch_ref": "dispatch_mac_codex_final_cut_metadata_display",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "ready",
+        "summary": "This is Mac-side metadata display work; project export or mutation remains blocked.",
+        "target_machine_label": "Mac",
+        "target_worker_label": "Mac Codex",
+        "title": "Send Final Cut display work to Mac Codex",
+        "what_will_happen": [
+          "Package Mac UI work",
+          "Keep project metadata read-only",
+          "Return validation/readback"
+        ],
+        "what_will_not_happen": [
+          "No project mutation",
+          "No export/render",
+          "No external action"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_mac_codex_final_cut_metadata_display",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_mac_codex_final_cut_metadata_display",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for display critique"
+        ],
+        "blocked_workers": [
+          "PC_CODEX for direct Mac UI edits"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_mac_codex_final_cut_metadata_display",
+        "handoff_required": true,
+        "next_safe_move": "Package Mac read-only metadata display work with export/mutation blocked.",
+        "route_reason": "Final Cut metadata display is Mac app/UI integration work.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_message_ref": "operator_chat_final_cut_metadata_request"
+      }
+    },
+    "mac_codex_logic_pro_project_recognition": {
+      "active_blockers": [],
+      "authority_boundary": {
+        "allowed_actions": [
+          "Mac app UI/read-only metadata concept",
+          "Swift implementation stub",
+          "Mac validation"
+        ],
+        "approval_required": true,
+        "boundary_id": "authority_dispatch_mac_codex_logic_pro_project_recognition",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_mac_codex_logic_pro_project_recognition",
+        "external_authority": false,
+        "file_write_allowed": true,
+        "forbidden_actions": [
+          "DAW mutation",
+          "audio file mutation",
+          "destructive project writes",
+          "automation without explicit approval"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": true,
+        "tool_allowed": true
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not mutate Repo A backend",
+          "do not access external accounts",
+          "do not add watchers or hidden automation"
+        ],
+        "context_package_id": "context_dispatch_mac_codex_logic_pro_project_recognition",
+        "dispatch_ref": "dispatch_mac_codex_logic_pro_project_recognition",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data",
+          "Repo A backend mutation authority"
+        ],
+        "included_context": [
+          "operator chat summary",
+          "Mission Control UI target",
+          "Mac validation expectations"
+        ],
+        "next_safe_move": "Send only to Mac Codex after operator confirms.",
+        "operator_goal": "Add Logic Pro project recognition concept to the Mac app.",
+        "privacy_class": "operator_safe_ui_metadata",
+        "sensitivity_class": "low_to_medium",
+        "source_files_allowed": [
+          "Mission Control SwiftUI files",
+          "Mac-local project metadata stubs"
+        ],
+        "source_files_forbidden": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "source_readmodels": [
+          "chat_readback_card_mirror",
+          "operator_card_render_packet_contract"
+        ],
+        "success_criteria": [
+          "UI behavior matches request",
+          "Mac build/test or screenshot validation reported",
+          "no external authority added"
+        ],
+        "token_budget_hint": "focused Mac app context only"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "Mac app UI/read-only metadata concept",
+          "Swift implementation stub",
+          "Mac validation"
+        ],
+        "allowed_files": [
+          "Mission Control SwiftUI files",
+          "Mac-local project metadata stubs"
+        ],
+        "context_package_ref": "context_dispatch_mac_codex_logic_pro_project_recognition",
+        "dispatch_id": "dispatch_mac_codex_logic_pro_project_recognition",
+        "dispatch_status": "PACKAGE_READY_NOT_SENT",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "DAW mutation",
+          "audio file mutation",
+          "destructive project writes",
+          "automation without explicit approval"
+        ],
+        "forbidden_files": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "next_safe_move": "Show package card and wait for operator send; no live auto-dispatch.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_logic_project_request",
+        "source_router_intent_ref": "intent_logic_project_recognition",
+        "target_machine": "MAC",
+        "target_repo_or_app": "Mission Control Mac app",
+        "target_worker_type": "MAC_CODEX",
+        "task_summary": "Add Logic Pro project recognition concept to the Mac app.",
+        "task_type": "APPLE_APP_INTEGRATION_SCOUT_OR_UI",
+        "validation_commands": [
+          "Mac build/test if implementation is in scope",
+          "operator-visible boundary report"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_dispatch_mac_codex_logic_pro_project_recognition",
+        "dispatch_ref": "dispatch_mac_codex_logic_pro_project_recognition",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "ready",
+        "summary": "Logic Pro project recognition belongs to the Mac app lane with DAW mutation blocked.",
+        "target_machine_label": "Mac",
+        "target_worker_label": "Mac Codex",
+        "title": "Send Apple-side project recognition to Mac Codex",
+        "what_will_happen": [
+          "Package Mac UI/project metadata context",
+          "Require safe read-only posture",
+          "Return boundary readback"
+        ],
+        "what_will_not_happen": [
+          "No DAW mutation",
+          "No audio file changes",
+          "No automation without approval"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_mac_codex_logic_pro_project_recognition",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_mac_codex_logic_pro_project_recognition",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for design/taste scout"
+        ],
+        "blocked_workers": [
+          "PC_CODEX for Mac app mutation"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_mac_codex_logic_project_recognition",
+        "handoff_required": true,
+        "next_safe_move": "Package read-only metadata concept with destructive DAW actions forbidden.",
+        "route_reason": "Logic Pro recognition is Apple/Mac-side app integration work.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_message_ref": "operator_chat_logic_project_request"
+      }
+    },
+    "mac_codex_mission_control_chat_ui": {
+      "active_blockers": [],
+      "authority_boundary": {
+        "allowed_actions": [
+          "SwiftUI view edits",
+          "Xcode build/test",
+          "screenshot validation",
+          "bounded Mac package import/render"
+        ],
+        "approval_required": false,
+        "boundary_id": "authority_dispatch_mac_codex_mission_control_chat_ui",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_mac_codex_mission_control_chat_ui",
+        "external_authority": false,
+        "file_write_allowed": true,
+        "forbidden_actions": [
+          "Repo A backend mutation",
+          "network",
+          "credentials",
+          "external action",
+          "email/Coupa/browser access"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": true,
+        "tool_allowed": true
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not mutate Repo A backend",
+          "do not access external accounts",
+          "do not add watchers or hidden automation"
+        ],
+        "context_package_id": "context_dispatch_mac_codex_mission_control_chat_ui",
+        "dispatch_ref": "dispatch_mac_codex_mission_control_chat_ui",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data",
+          "Repo A backend mutation authority"
+        ],
+        "included_context": [
+          "operator chat summary",
+          "Mission Control UI target",
+          "Mac validation expectations"
+        ],
+        "next_safe_move": "Send only to Mac Codex after operator confirms.",
+        "operator_goal": "Fix Mission Control chat UI so cards render inside chat and composer stays bottom anchored.",
+        "privacy_class": "operator_safe_ui_metadata",
+        "sensitivity_class": "low_to_medium",
+        "source_files_allowed": [
+          "Mission Control SwiftUI view files",
+          "Mac UI tests/screenshot harness"
+        ],
+        "source_files_forbidden": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "source_readmodels": [
+          "chat_readback_card_mirror",
+          "operator_card_render_packet_contract"
+        ],
+        "success_criteria": [
+          "UI behavior matches request",
+          "Mac build/test or screenshot validation reported",
+          "no external authority added"
+        ],
+        "token_budget_hint": "focused Mac app context only"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "SwiftUI view edits",
+          "Xcode build/test",
+          "screenshot validation",
+          "bounded Mac package import/render"
+        ],
+        "allowed_files": [
+          "Mission Control SwiftUI view files",
+          "Mac UI tests/screenshot harness"
+        ],
+        "context_package_ref": "context_dispatch_mac_codex_mission_control_chat_ui",
+        "dispatch_id": "dispatch_mac_codex_mission_control_chat_ui",
+        "dispatch_status": "PACKAGE_READY_NOT_SENT",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "Repo A backend mutation",
+          "network",
+          "credentials",
+          "external action",
+          "email/Coupa/browser access"
+        ],
+        "forbidden_files": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "next_safe_move": "Show package card and wait for operator send; no live auto-dispatch.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_mission_control_ui_request",
+        "source_router_intent_ref": "intent_mission_control_chat_ui",
+        "target_machine": "MAC",
+        "target_repo_or_app": "Mission Control Mac app",
+        "target_worker_type": "MAC_CODEX",
+        "task_summary": "Fix Mission Control chat UI so cards render inside chat and composer stays bottom anchored.",
+        "task_type": "SWIFTUI_APP_UI",
+        "validation_commands": [
+          "xcodebuild or existing Mac build command",
+          "screenshot validation if available"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_dispatch_mac_codex_mission_control_chat_ui",
+        "dispatch_ref": "dispatch_mac_codex_mission_control_chat_ui",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "ready",
+        "summary": "This is Apple/Mac-side app work. It should go to Mac Codex, not PC Codex.",
+        "target_machine_label": "Mac",
+        "target_worker_label": "Mac Codex",
+        "title": "Send this to Mac Codex",
+        "what_will_happen": [
+          "Package SwiftUI UI context",
+          "Ask for build/screenshot validation",
+          "Return result to this chat"
+        ],
+        "what_will_not_happen": [
+          "No Repo A backend mutation",
+          "No network or external action",
+          "No credentials"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_mac_codex_mission_control_chat_ui",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_mac_codex_mission_control_chat_ui",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only design critique"
+        ],
+        "blocked_workers": [
+          "PC_CODEX for direct Swift edits"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_mac_codex_mission_control_chat_ui",
+        "handoff_required": true,
+        "next_safe_move": "Prepare Mac Codex package and wait for operator send.",
+        "route_reason": "SwiftUI/Mission Control UI work belongs on Mac Codex.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_message_ref": "operator_chat_mission_control_ui_request"
+      }
+    },
+    "mac_mail_invoice_send_boundary_blocked": {
+      "active_blockers": [],
+      "authority_boundary": {
+        "allowed_actions": [
+          "Mac UI/surface review",
+          "local boundary card design",
+          "approval-gate copy"
+        ],
+        "approval_required": true,
+        "boundary_id": "authority_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "external_authority": false,
+        "file_write_allowed": true,
+        "forbidden_actions": [
+          "send email",
+          "create live Mail draft",
+          "access accounts",
+          "credential handling",
+          "external action"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": true,
+        "tool_allowed": true
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not mutate Repo A backend",
+          "do not access external accounts",
+          "do not add watchers or hidden automation"
+        ],
+        "context_package_id": "context_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "dispatch_ref": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data",
+          "Repo A backend mutation authority"
+        ],
+        "included_context": [
+          "operator chat summary",
+          "Mission Control UI target",
+          "Mac validation expectations"
+        ],
+        "next_safe_move": "Send only to Mac Codex after operator confirms.",
+        "operator_goal": "Review Mac Mail invoice send surface boundary without granting send authority.",
+        "privacy_class": "operator_safe_ui_metadata",
+        "sensitivity_class": "low_to_medium",
+        "source_files_allowed": [
+          "Mission Control SwiftUI files",
+          "Mail boundary UI stubs"
+        ],
+        "source_files_forbidden": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "source_readmodels": [
+          "chat_readback_card_mirror",
+          "operator_card_render_packet_contract"
+        ],
+        "success_criteria": [
+          "UI behavior matches request",
+          "Mac build/test or screenshot validation reported",
+          "no external authority added"
+        ],
+        "token_budget_hint": "focused Mac app context only"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "Mac UI/surface review",
+          "local boundary card design",
+          "approval-gate copy"
+        ],
+        "allowed_files": [
+          "Mission Control SwiftUI files",
+          "Mail boundary UI stubs"
+        ],
+        "context_package_ref": "context_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "dispatch_id": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "dispatch_status": "BLOCKED_AUTHORITY",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "send email",
+          "create live Mail draft",
+          "access accounts",
+          "credential handling",
+          "external action"
+        ],
+        "forbidden_files": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "next_safe_move": "Show package card and wait for operator send; no live auto-dispatch.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_mail_send_invoice_request",
+        "source_router_intent_ref": "intent_mail_invoice_send_boundary",
+        "target_machine": "MAC",
+        "target_repo_or_app": "Mission Control Mac app",
+        "target_worker_type": "MAC_CODEX",
+        "task_summary": "Review Mac Mail invoice send surface boundary without granting send authority.",
+        "task_type": "MAC_MAIL_BOUNDARY_REVIEW",
+        "validation_commands": [
+          "boundary review only"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "dispatch_ref": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "blocked",
+        "summary": "Mac Codex may review the Mail surface, but send authority is not included.",
+        "target_machine_label": "Mac",
+        "target_worker_label": "Mac Codex",
+        "title": "Mail send is blocked; Mac UI review only",
+        "what_will_happen": [
+          "Package boundary/UI review",
+          "Name missing approval/send adapter",
+          "Return blocked readback"
+        ],
+        "what_will_not_happen": [
+          "No email sent",
+          "No account access",
+          "No live draft"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_mac_codex_mail_invoice_boundary_blocked",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "CASSANDRA for future comms drafting role",
+          "GUARDIAN for approval boundary"
+        ],
+        "blocked_workers": [
+          "any worker with direct send authority"
+        ],
+        "confidence": "MEDIUM",
+        "decision_id": "decision_mac_codex_mail_invoice_boundary_blocked",
+        "handoff_required": true,
+        "next_safe_move": "Strip send authority and route only a UI/boundary package.",
+        "route_reason": "Mail UI/boundary review can be Mac Codex, but actual send requires governed adapter approval.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_message_ref": "operator_chat_mail_send_invoice_request"
+      }
+    },
+    "pc_codex_chat_readback_card_mirror": {
+      "active_blockers": [],
+      "authority_boundary": {
+        "allowed_actions": [
+          "Python module edits",
+          "script/export edits",
+          "pytest",
+          "generated read-models",
+          "credential/authority scans"
+        ],
+        "approval_required": false,
+        "boundary_id": "authority_dispatch_pc_codex_chat_readback_card_mirror",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_pc_codex_chat_readback_card_mirror",
+        "external_authority": false,
+        "file_write_allowed": true,
+        "forbidden_actions": [
+          "Mac Swift edits",
+          "external action",
+          "credentials",
+          "raw private body ingestion"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": true,
+        "tool_allowed": true
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not edit Mac app",
+          "do not access external systems",
+          "do not ingest raw private bodies"
+        ],
+        "context_package_id": "context_dispatch_pc_codex_chat_readback_card_mirror",
+        "dispatch_ref": "dispatch_pc_codex_chat_readback_card_mirror",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data",
+          "Mac Swift edit authority"
+        ],
+        "included_context": [
+          "router readback refs",
+          "Repo A backend module refs",
+          "test/export validation commands"
+        ],
+        "next_safe_move": "Send only to PC Codex after operator confirms.",
+        "operator_goal": "Build the chat readback card mirror from router readbacks.",
+        "privacy_class": "repo_safe_metadata_only",
+        "sensitivity_class": "low_to_medium",
+        "source_files_allowed": [
+          "Repo A Python modules",
+          "scripts",
+          "tests",
+          "generated/read_models"
+        ],
+        "source_files_forbidden": [
+          "Mission Control Swift files",
+          "external account data",
+          "credentials"
+        ],
+        "source_readmodels": [
+          "conversational_workflow_router_readback",
+          "chat_readback_card_mirror"
+        ],
+        "success_criteria": [
+          "deterministic export exists",
+          "focused pytest passes",
+          "boundary scans pass"
+        ],
+        "token_budget_hint": "bounded Repo A backend context"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "Python module edits",
+          "script/export edits",
+          "pytest",
+          "generated read-models",
+          "credential/authority scans"
+        ],
+        "allowed_files": [
+          "Repo A Python modules",
+          "scripts",
+          "tests",
+          "generated/read_models"
+        ],
+        "context_package_ref": "context_dispatch_pc_codex_chat_readback_card_mirror",
+        "dispatch_id": "dispatch_pc_codex_chat_readback_card_mirror",
+        "dispatch_status": "PACKAGE_READY_NOT_SENT",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "Mac Swift edits",
+          "external action",
+          "credentials",
+          "raw private body ingestion"
+        ],
+        "forbidden_files": [
+          "Mission Control Swift files",
+          "external account data",
+          "credentials"
+        ],
+        "next_safe_move": "Show package card and wait for operator send; no live auto-dispatch.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_card_mirror_backend_request",
+        "source_router_intent_ref": "intent_backend_card_mirror",
+        "target_machine": "PC_WSL",
+        "target_repo_or_app": "Repo A backend /home/openclaw",
+        "target_worker_type": "PC_CODEX",
+        "task_summary": "Build the chat readback card mirror from router readbacks.",
+        "task_type": "BACKEND_READMODEL",
+        "validation_commands": [
+          "python3 scripts/export_chat_readback_card_mirror.py --format summary",
+          "focused pytest"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_dispatch_pc_codex_chat_readback_card_mirror",
+        "dispatch_ref": "dispatch_pc_codex_chat_readback_card_mirror",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "ready",
+        "summary": "This is canonical Repo A backend work. It should go to PC Codex.",
+        "target_machine_label": "PC/WSL",
+        "target_worker_label": "PC Codex",
+        "title": "Send this to PC Codex",
+        "what_will_happen": [
+          "Package backend source/test refs",
+          "Run deterministic validation if sent",
+          "Return commit/readback status"
+        ],
+        "what_will_not_happen": [
+          "No Mac Swift edits",
+          "No external account access",
+          "No raw private body ingestion"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_pc_codex_chat_readback_card_mirror",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_pc_codex_chat_readback_card_mirror",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only review"
+        ],
+        "blocked_workers": [
+          "MAC_CODEX for backend mutation"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_pc_codex_chat_readback_card_mirror",
+        "handoff_required": true,
+        "next_safe_move": "Prepare PC Codex package and wait for operator send.",
+        "route_reason": "Repo A Python/read-model work belongs on PC Codex.",
+        "selected_environment": "/home/openclaw",
+        "selected_machine": "PC_WSL",
+        "selected_worker_type": "PC_CODEX",
+        "source_message_ref": "operator_chat_card_mirror_backend_request"
+      }
+    },
+    "wrong_worker_swiftui_to_pc_codex": {
+      "active_blockers": [
+        "WRONG_WORKER_SELECTED",
+        "WRONG_MACHINE_SELECTED"
+      ],
+      "authority_boundary": {
+        "allowed_actions": [
+          "SwiftUI view edits",
+          "Xcode build/test",
+          "screenshot validation",
+          "bounded Mac package import/render"
+        ],
+        "approval_required": false,
+        "boundary_id": "authority_dispatch_mac_codex_mission_control_chat_ui",
+        "credential_handling_allowed": false,
+        "dispatch_ref": "dispatch_mac_codex_mission_control_chat_ui",
+        "external_authority": false,
+        "file_write_allowed": true,
+        "forbidden_actions": [
+          "Repo A backend mutation",
+          "network",
+          "credentials",
+          "external action",
+          "email/Coupa/browser access"
+        ],
+        "network_allowed": false,
+        "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+        "raw_body_ingestion_allowed": false,
+        "shell_allowed": true,
+        "tool_allowed": true
+      },
+      "context_package": {
+        "anti_goals": [
+          "do not mutate Repo A backend",
+          "do not access external accounts",
+          "do not add watchers or hidden automation"
+        ],
+        "context_package_id": "context_dispatch_mac_codex_mission_control_chat_ui",
+        "dispatch_ref": "dispatch_mac_codex_mission_control_chat_ui",
+        "excluded_context": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw email bodies",
+          "raw PDFs or Excel bodies",
+          "protected evidence bodies",
+          "private raw bodies",
+          "external account data",
+          "Repo A backend mutation authority"
+        ],
+        "included_context": [
+          "operator chat summary",
+          "Mission Control UI target",
+          "Mac validation expectations"
+        ],
+        "next_safe_move": "Send only to Mac Codex after operator confirms.",
+        "operator_goal": "Fix Mission Control chat UI so cards render inside chat and composer stays bottom anchored.",
+        "privacy_class": "operator_safe_ui_metadata",
+        "sensitivity_class": "low_to_medium",
+        "source_files_allowed": [
+          "Mission Control SwiftUI view files",
+          "Mac UI tests/screenshot harness"
+        ],
+        "source_files_forbidden": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "source_readmodels": [
+          "chat_readback_card_mirror",
+          "operator_card_render_packet_contract"
+        ],
+        "success_criteria": [
+          "UI behavior matches request",
+          "Mac build/test or screenshot validation reported",
+          "no external authority added"
+        ],
+        "token_budget_hint": "focused Mac app context only"
+      },
+      "dispatch": {
+        "allowed_actions": [
+          "SwiftUI view edits",
+          "Xcode build/test",
+          "screenshot validation",
+          "bounded Mac package import/render"
+        ],
+        "allowed_files": [
+          "Mission Control SwiftUI view files",
+          "Mac UI tests/screenshot harness"
+        ],
+        "context_package_ref": "context_dispatch_mac_codex_mission_control_chat_ui",
+        "dispatch_id": "dispatch_wrong_worker_swiftui_to_pc_codex",
+        "dispatch_status": "BLOCKED_AUTHORITY",
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "forbidden_actions": [
+          "Repo A backend mutation",
+          "network",
+          "credentials",
+          "external action",
+          "email/Coupa/browser access"
+        ],
+        "forbidden_files": [
+          "Repo A backend Python files",
+          "credentials",
+          "external account data"
+        ],
+        "next_safe_move": "Flag wrong worker and reroute to Mac Codex.",
+        "readback_target": "same OpenClaw chat surface",
+        "required_proof": [
+          "worker final report",
+          "validation output",
+          "boundary check"
+        ],
+        "source_chat_request_ref": "operator_chat_mission_control_ui_request",
+        "source_router_intent_ref": "intent_mission_control_chat_ui",
+        "target_machine": "PC_WSL",
+        "target_repo_or_app": "Mission Control Mac app",
+        "target_worker_type": "PC_CODEX",
+        "task_summary": "Fix Mission Control chat UI so cards render inside chat and composer stays bottom anchored.",
+        "task_type": "SWIFTUI_APP_UI",
+        "validation_commands": [
+          "xcodebuild or existing Mac build command",
+          "screenshot validation if available"
+        ]
+      },
+      "operator_card": {
+        "card_id": "dispatch_card_wrong_worker_swiftui_to_pc_codex",
+        "dispatch_ref": "dispatch_mac_codex_mission_control_chat_ui",
+        "next_safe_move": "Show this as a human card before any worker handoff.",
+        "operator_choices": [
+          "Send package",
+          "Edit routing",
+          "Cancel"
+        ],
+        "status_tone": "blocked",
+        "summary": "SwiftUI app work should not go to PC Codex.",
+        "target_machine_label": "Mac",
+        "target_worker_label": "Mac Codex",
+        "title": "Wrong worker selected",
+        "what_will_happen": [
+          "Package SwiftUI UI context",
+          "Ask for build/screenshot validation",
+          "Return result to this chat"
+        ],
+        "what_will_not_happen": [
+          "No Repo A backend mutation",
+          "No network or external action",
+          "No credentials"
+        ]
+      },
+      "return_readback": {
+        "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+        "commit_policy": "Commit only if validation passes and task scope asks for it.",
+        "dispatch_ref": "dispatch_mac_codex_mission_control_chat_ui",
+        "expected_status_values": [
+          "SUCCESS",
+          "PARTIAL",
+          "BLOCKED",
+          "WRONG_ENVIRONMENT",
+          "NEEDS_VERIFICATION"
+        ],
+        "next_safe_move": "Return the result/readback to the same chat surface.",
+        "operator_card_plan": [
+          "worker selected",
+          "package ready",
+          "waiting for result",
+          "result received",
+          "blocked if boundary fails"
+        ],
+        "proof_requirements": [
+          "commands run",
+          "tests or validation notes",
+          "changed files",
+          "boundary check"
+        ],
+        "readback_id": "return_readback_dispatch_mac_codex_mission_control_chat_ui",
+        "required_sections": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ]
+      },
+      "routing_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only design critique"
+        ],
+        "blocked_workers": [
+          "PC_CODEX for SwiftUI mutation"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_wrong_worker_swiftui_to_pc_codex",
+        "handoff_required": true,
+        "next_safe_move": "Block dispatch and select Mac Codex.",
+        "route_reason": "SwiftUI app work was incorrectly routed to PC Codex.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "PC_WSL",
+        "selected_worker_type": "PC_CODEX",
+        "source_message_ref": "operator_chat_mission_control_ui_request"
+      }
+    }
+  },
+  "generated_at": "2026-05-24T00:00:00+00:00",
+  "machine_proof": {
+    "all_live_authority_flags_false": true,
+    "ambiguous_route_exists": true,
+    "apple_app_integration_examples_exist": true,
+    "authority_too_broad_blocker_example_exists": true,
+    "blockers_present": true,
+    "content_hash": "7b0b9fc5b3f57c20860bb3e34fb9dfc2de01cbbcdd08d200bf184af53026e160",
+    "credentials_or_secrets_included": false,
+    "cross_machine_dispatch_blocker_model_present": true,
+    "cross_machine_send_performed": false,
+    "cross_machine_worker_dispatch_package_model_present": true,
+    "dispatch_statuses_present": true,
+    "external_action_performed": false,
+    "gemini_route_exists": true,
+    "git_push_pull_fetch_run": false,
+    "mac_codex_route_exists": true,
+    "mac_mail_boundary_blocks_send": true,
+    "mac_sync_import_run": false,
+    "mission_control_swift_changed": false,
+    "network_used": false,
+    "no_example_grants_external_authority": true,
+    "operator_cards_hide_machine_contract": true,
+    "pc_codex_route_exists": true,
+    "raw_pii_in_packages": false,
+    "raw_private_bodies_included": false,
+    "target_machines_present": true,
+    "target_worker_types_present": true,
+    "worker_authority_boundary_model_present": true,
+    "worker_context_package_model_present": true,
+    "worker_dispatch_card_model_present": true,
+    "worker_executed": false,
+    "worker_return_readback_model_present": true,
+    "worker_routing_decision_model_present": true,
+    "wrong_worker_blocker_example_exists": true
+  },
+  "model_schemas": {
+    "cross_machine_dispatch_blocker": {
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "cross_machine_worker_dispatch_package": {
+      "required_fields": [
+        "dispatch_id",
+        "source_chat_request_ref",
+        "source_router_intent_ref",
+        "target_worker_type",
+        "target_machine",
+        "target_repo_or_app",
+        "task_type",
+        "task_summary",
+        "context_package_ref",
+        "allowed_actions",
+        "forbidden_actions",
+        "allowed_files",
+        "forbidden_files",
+        "required_proof",
+        "validation_commands",
+        "expected_return_format",
+        "readback_target",
+        "dispatch_status",
+        "next_safe_move"
+      ]
+    },
+    "worker_authority_boundary": {
+      "required_fields": [
+        "boundary_id",
+        "dispatch_ref",
+        "allowed_actions",
+        "forbidden_actions",
+        "external_authority",
+        "network_allowed",
+        "credential_handling_allowed",
+        "raw_body_ingestion_allowed",
+        "file_write_allowed",
+        "shell_allowed",
+        "tool_allowed",
+        "approval_required",
+        "next_safe_move"
+      ]
+    },
+    "worker_context_package": {
+      "required_fields": [
+        "context_package_id",
+        "dispatch_ref",
+        "included_context",
+        "excluded_context",
+        "source_readmodels",
+        "source_files_allowed",
+        "source_files_forbidden",
+        "privacy_class",
+        "sensitivity_class",
+        "token_budget_hint",
+        "operator_goal",
+        "success_criteria",
+        "anti_goals",
+        "next_safe_move"
+      ]
+    },
+    "worker_dispatch_card": {
+      "required_fields": [
+        "card_id",
+        "dispatch_ref",
+        "title",
+        "summary",
+        "target_worker_label",
+        "target_machine_label",
+        "what_will_happen",
+        "what_will_not_happen",
+        "operator_choices",
+        "status_tone",
+        "next_safe_move"
+      ]
+    },
+    "worker_return_readback": {
+      "required_fields": [
+        "readback_id",
+        "dispatch_ref",
+        "expected_status_values",
+        "required_sections",
+        "proof_requirements",
+        "commit_policy",
+        "artifact_policy",
+        "operator_card_plan",
+        "next_safe_move"
+      ]
+    },
+    "worker_routing_decision": {
+      "required_fields": [
+        "decision_id",
+        "source_message_ref",
+        "route_reason",
+        "selected_worker_type",
+        "selected_machine",
+        "selected_environment",
+        "confidence",
+        "alternate_workers",
+        "blocked_workers",
+        "handoff_required",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_markdown_mode": "ELIOPERATOR",
+  "read_model_id": "cross_machine_worker_dispatch_package",
+  "relationship_refs": {
+    "agent_conversation_handoff_step_packet_contract": "handoff/readback visibility",
+    "agent_execution_packet_compiler_contract": "worker packet shape and authority filtering",
+    "conversational_workflow_router_contract": "source chat workflow/domain classification",
+    "cross_surface_artifact_handoff_registry_contract": "post-office handoff compatibility",
+    "package_compiler_contract": "non-executing package compiler boundary",
+    "workflow_readback_concierge_contract": "same-chat request/readback loop"
+  },
+  "schema_version": "cross_machine_worker_dispatch_package_v0",
+  "target_machines": [
+    "MAC",
+    "PC_WSL",
+    "CLOUD_OR_EXTERNAL_MODEL",
+    "LOCAL_ONLY",
+    "UNKNOWN"
+  ],
+  "target_worker_types": [
+    "MAC_CODEX",
+    "PC_CODEX",
+    "GEMINI_AGY",
+    "LOCAL_OLLAMA",
+    "GPT_CHAT",
+    "GUARDIAN",
+    "CASSANDRA",
+    "UNKNOWN_NEEDS_ROUTING"
+  ],
+  "worker_authority_boundary": {
+    "allowed_actions": [
+      "Python module edits",
+      "script/export edits",
+      "pytest",
+      "generated read-models",
+      "credential/authority scans"
+    ],
+    "approval_required": false,
+    "boundary_id": "authority_dispatch_pc_codex_chat_readback_card_mirror",
+    "credential_handling_allowed": false,
+    "dispatch_ref": "dispatch_pc_codex_chat_readback_card_mirror",
+    "external_authority": false,
+    "file_write_allowed": true,
+    "forbidden_actions": [
+      "Mac Swift edits",
+      "external action",
+      "credentials",
+      "raw private body ingestion"
+    ],
+    "network_allowed": false,
+    "next_safe_move": "Keep live dispatch blocked; package is non-executing until operator sends it.",
+    "raw_body_ingestion_allowed": false,
+    "shell_allowed": true,
+    "tool_allowed": true
+  },
+  "worker_context_package": {
+    "anti_goals": [
+      "do not edit Mac app",
+      "do not access external systems",
+      "do not ingest raw private bodies"
+    ],
+    "context_package_id": "context_dispatch_pc_codex_chat_readback_card_mirror",
+    "dispatch_ref": "dispatch_pc_codex_chat_readback_card_mirror",
+    "excluded_context": [
+      "credentials",
+      "tokens",
+      "cookies",
+      "raw email bodies",
+      "raw PDFs or Excel bodies",
+      "protected evidence bodies",
+      "private raw bodies",
+      "external account data",
+      "Mac Swift edit authority"
+    ],
+    "included_context": [
+      "router readback refs",
+      "Repo A backend module refs",
+      "test/export validation commands"
+    ],
+    "next_safe_move": "Send only to PC Codex after operator confirms.",
+    "operator_goal": "Build the chat readback card mirror from router readbacks.",
+    "privacy_class": "repo_safe_metadata_only",
+    "sensitivity_class": "low_to_medium",
+    "source_files_allowed": [
+      "Repo A Python modules",
+      "scripts",
+      "tests",
+      "generated/read_models"
+    ],
+    "source_files_forbidden": [
+      "Mission Control Swift files",
+      "external account data",
+      "credentials"
+    ],
+    "source_readmodels": [
+      "conversational_workflow_router_readback",
+      "chat_readback_card_mirror"
+    ],
+    "success_criteria": [
+      "deterministic export exists",
+      "focused pytest passes",
+      "boundary scans pass"
+    ],
+    "token_budget_hint": "bounded Repo A backend context"
+  },
+  "worker_dispatch_card": {
+    "card_id": "dispatch_card_dispatch_pc_codex_chat_readback_card_mirror",
+    "dispatch_ref": "dispatch_pc_codex_chat_readback_card_mirror",
+    "next_safe_move": "Show this as a human card before any worker handoff.",
+    "operator_choices": [
+      "Send package",
+      "Edit routing",
+      "Cancel"
+    ],
+    "status_tone": "ready",
+    "summary": "This is canonical Repo A backend work. It should go to PC Codex.",
+    "target_machine_label": "PC/WSL",
+    "target_worker_label": "PC Codex",
+    "title": "Send this to PC Codex",
+    "what_will_happen": [
+      "Package backend source/test refs",
+      "Run deterministic validation if sent",
+      "Return commit/readback status"
+    ],
+    "what_will_not_happen": [
+      "No Mac Swift edits",
+      "No external account access",
+      "No raw private body ingestion"
+    ]
+  },
+  "worker_return_readback": {
+    "artifact_policy": "Return generated artifacts/readbacks only when validation passes and scope allows.",
+    "commit_policy": "Commit only if validation passes and task scope asks for it.",
+    "dispatch_ref": "dispatch_pc_codex_chat_readback_card_mirror",
+    "expected_status_values": [
+      "SUCCESS",
+      "PARTIAL",
+      "BLOCKED",
+      "WRONG_ENVIRONMENT",
+      "NEEDS_VERIFICATION"
+    ],
+    "next_safe_move": "Return the result/readback to the same chat surface.",
+    "operator_card_plan": [
+      "worker selected",
+      "package ready",
+      "waiting for result",
+      "result received",
+      "blocked if boundary fails"
+    ],
+    "proof_requirements": [
+      "commands run",
+      "tests or validation notes",
+      "changed files",
+      "boundary check"
+    ],
+    "readback_id": "return_readback_dispatch_pc_codex_chat_readback_card_mirror",
+    "required_sections": [
+      "STATUS",
+      "SUMMARY",
+      "RESULT",
+      "VALIDATION",
+      "COMMIT",
+      "BOUNDARY CHECK"
+    ]
+  },
+  "worker_routing_decision": {
+    "alternate_workers": [
+      "GEMINI_AGY for read-only review"
+    ],
+    "blocked_workers": [
+      "MAC_CODEX for backend mutation"
+    ],
+    "confidence": "HIGH",
+    "decision_id": "decision_pc_codex_chat_readback_card_mirror",
+    "handoff_required": true,
+    "next_safe_move": "Prepare PC Codex package and wait for operator send.",
+    "route_reason": "Repo A Python/read-model work belongs on PC Codex.",
+    "selected_environment": "/home/openclaw",
+    "selected_machine": "PC_WSL",
+    "selected_worker_type": "PC_CODEX",
+    "source_message_ref": "operator_chat_card_mirror_backend_request"
+  }
+}

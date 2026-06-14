@@ -1,0 +1,286 @@
+{
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_approval_request_allowed": false,
+    "live_attachment_allowed": false,
+    "live_auto_dispatch_allowed": false,
+    "live_browser_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_daemon_allowed": false,
+    "live_email_draft_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_invoice_generation_allowed": false,
+    "live_model_call_allowed": false,
+    "live_payment_tracking_write_allowed": false,
+    "live_tool_execution_allowed": false,
+    "live_watcher_allowed": false,
+    "live_workflow_execution_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocked_reason": null,
+  "card_mirror_refs": [
+    "generated/read_models/chat_readback_card_mirror.json"
+  ],
+  "cards_available": true,
+  "contract_status": "BOUNDED_NON_DAEMON_CHAT_REQUEST_PROCESSOR",
+  "detail_disclosure": {
+    "card_mirror_ref": "generated/read_models/chat_readback_card_mirror.json",
+    "card_titles": [
+      "OpenClaw understood",
+      "Proposed workflow",
+      "What still needs to be confirmed",
+      "What is not happening yet"
+    ],
+    "external_actions_locked": true,
+    "router_readback_ref": "generated/read_models/conversational_workflow_router_readback.json",
+    "worker_route": {
+      "alternate_workers": [
+        "MAC_CODEX",
+        "PC_CODEX",
+        "GEMINI_AGY",
+        "GUARDIAN",
+        "CASSANDRA",
+        "LOCAL_OLLAMA"
+      ],
+      "blocked_workers": [],
+      "confidence": "LOW",
+      "decision_id": "decision_unknown_024f0f0b6a",
+      "handoff_required": false,
+      "next_safe_move": "Ask a clarifying question and offer routing options.",
+      "operator_request_summary": "Capital Hilton invoice workflow request; record invoice; contact follow-up; Coupa PO supplier invoice",
+      "package_required": false,
+      "route_reason": "No deterministic worker rule matched with enough confidence.",
+      "selected_environment": "none",
+      "selected_machine": "UNKNOWN",
+      "selected_worker_type": "UNKNOWN_NEEDS_ROUTING",
+      "source_chat_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+      "task_type": "UNKNOWN_NEEDS_FRAMING"
+    }
+  },
+  "file_readback_refs": [],
+  "generated_at": "2026-05-25T15:37:45+00:00",
+  "how_to_fix": "No fix is needed. Review the cards; edit the understanding if it is wrong.",
+  "internal_status": "RESPONSE_READY",
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "all_live_authority_flags_false": true,
+    "approval_request_performed": false,
+    "attachment_performed": false,
+    "blocked_has_how_to_fix": true,
+    "broad_scan_performed": false,
+    "browser_access_performed": false,
+    "content_hash": "sha256:1657df1e263078fb8eb6f6372ed55256d0d167ba8a2ef9f78f91fbb5f87cad6a",
+    "coupa_access_or_submit_performed": false,
+    "credential_handling_performed": false,
+    "credentials_or_secrets_included": false,
+    "daemon_started": false,
+    "duplicate_has_existing_readback": true,
+    "email_draft_or_send_performed": false,
+    "external_action_performed": false,
+    "failed_has_how_to_fix": true,
+    "git_push_pull_fetch_run": false,
+    "human_operator_message_present": true,
+    "infinite_loop_possible": false,
+    "invoice_generation_performed": false,
+    "mac_sync_import_run": false,
+    "mission_control_swift_changed": false,
+    "model_call_performed": false,
+    "network_used": false,
+    "payment_tracking_write_performed": false,
+    "processor_bounded_once": true,
+    "raw_body_ingestion_performed": false,
+    "raw_pii_in_generated_outputs": false,
+    "raw_private_bodies_included": false,
+    "request_deleted_or_mutated": false,
+    "response_ready_has_real_readback": true,
+    "source_request_id_propagated": true,
+    "supported_chat_pattern_present": true,
+    "supported_file_pattern_present": true,
+    "terminal_quality_errors": [],
+    "terminal_quality_passed": true,
+    "timed_out_has_how_to_fix": true,
+    "tool_execution_performed": false,
+    "watcher_started": false,
+    "workflow_execution_performed": false
+  },
+  "next_safe_move": "Render the cards in Mac chat and ask whether the understanding looks right.",
+  "operator_headline": "I found the PC readback",
+  "operator_message": "I found the PC readback. Here's what OpenClaw understood, what is missing, and what remains locked.",
+  "read_model_id": "openclaw_chat_response_for_mac",
+  "readback_files": [
+    "generated/read_models/conversational_workflow_router_readback.json",
+    "generated/read_models/conversational_workflow_router_readback_OPERATOR.md",
+    "generated/read_models/chat_readback_card_mirror.json",
+    "generated/read_models/chat_readback_card_mirror_OPERATOR.md"
+  ],
+  "request_type": "CHAT_WORKFLOW_REQUEST",
+  "schema_version": "openclaw_chat_request_processor_v0",
+  "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a.json",
+  "source_request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+  "visible_cards": [
+    {
+      "bullets": [
+        "Goal: prepare the Capital Hilton invoice workflow.",
+        "Invoice basis: 4 dates at $400 each appear to be the working basis.",
+        "Companion invoice: generate a Winship-branded Excel/PDF invoice.",
+        "Destination/contact: Annette appears to be the email/payment follow-up contact.",
+        "Official payment rail: Coupa supplier portal invoice from PO.",
+        "Records: save the generated invoice with today's date for future invoice range tracking.",
+        "Still missing: confirmed Coupa PO/reference, final artifact, approval/send gates.",
+        "External actions: locked."
+      ],
+      "card_id": "mirror_router_card_openclaw_understood_capital_hilton",
+      "card_type": "OPENCLAW_UNDERSTOOD",
+      "detail_available": true,
+      "next_safe_move": "Ask whether this understanding looks right.",
+      "operator_actions": [
+        "Looks right",
+        "Edit understanding",
+        "Store as procedure",
+        "Prepare package",
+        "Cancel"
+      ],
+      "proof_status": "PROOF_REQUIRED",
+      "source_refs": [
+        "conversational_workflow_router_readback",
+        "router_card_openclaw_understood_capital_hilton"
+      ],
+      "status_tone": "ready",
+      "subtitle": "Draft understanding from PC readback",
+      "title": "OpenClaw understood",
+      "truth_status": "DRAFT_UNDERSTANDING_NOT_TRUTH"
+    },
+    {
+      "bullets": [
+        "1. Confirm captured dates/rate.",
+        "2. Generate or update Winship-branded Excel/PDF invoice.",
+        "3. Confirm/discover Coupa PO/reference.",
+        "4. Prepare Coupa supplier portal invoice path.",
+        "5. Prepare email draft to Annette with PDF attached.",
+        "6. Request Guardian approval.",
+        "7. Send/submit only after gates.",
+        "8. Save dated invoice artifact.",
+        "9. Record proof and last invoice date.",
+        "10. Track payment state."
+      ],
+      "card_id": "mirror_router_card_proposed_workflow_capital_hilton",
+      "card_type": "PROPOSED_WORKFLOW",
+      "detail_available": true,
+      "next_safe_move": "Review or edit the proposed workflow.",
+      "operator_actions": [
+        "Looks right",
+        "Edit understanding",
+        "Store as procedure",
+        "Prepare package",
+        "Cancel"
+      ],
+      "proof_status": "BACKEND_READBACK_REQUIRED",
+      "source_refs": [
+        "conversational_workflow_router_readback",
+        "router_card_proposed_workflow_capital_hilton"
+      ],
+      "status_tone": "review",
+      "subtitle": "Review before anything runs",
+      "title": "Proposed workflow",
+      "truth_status": "NEEDS_OPERATOR_REVIEW"
+    },
+    {
+      "bullets": [
+        "Exact Coupa PO/reference.",
+        "Whether Annette is confirmed as the correct contact.",
+        "Whether the final invoice artifact exists and has a hash.",
+        "Whether Guardian approval exists.",
+        "Whether send/submit receipts exist."
+      ],
+      "card_id": "mirror_router_card_missing_info_capital_hilton",
+      "card_type": "MISSING_INFO",
+      "detail_available": true,
+      "next_safe_move": "Ask for the Coupa PO/reference or contact confirmation next.",
+      "operator_actions": [
+        "Looks right",
+        "Edit understanding",
+        "Store as procedure",
+        "Prepare package",
+        "Cancel"
+      ],
+      "proof_status": "PROOF_REQUIRED",
+      "source_refs": [
+        "conversational_workflow_router_readback",
+        "router_card_missing_info_capital_hilton"
+      ],
+      "status_tone": "needs_confirmation",
+      "subtitle": "Still needs confirmation",
+      "title": "What still needs to be confirmed",
+      "truth_status": "NEEDS_OPERATOR_REVIEW"
+    },
+    {
+      "bullets": [
+        "No email sent.",
+        "No Coupa access.",
+        "No browser opened.",
+        "No invoice submitted.",
+        "No approval requested.",
+        "No payment state changed."
+      ],
+      "card_id": "mirror_router_card_blocked_capital_hilton",
+      "card_type": "BLOCKED",
+      "detail_available": true,
+      "next_safe_move": "Keep all external actions locked until future approval/proof rails exist.",
+      "operator_actions": [
+        "Looks right",
+        "Edit understanding",
+        "Store as procedure",
+        "Prepare package",
+        "Cancel"
+      ],
+      "proof_status": "PROOF_REQUIRED",
+      "source_refs": [
+        "conversational_workflow_router_readback",
+        "router_card_blocked_capital_hilton"
+      ],
+      "status_tone": "locked",
+      "subtitle": "Nothing external happened",
+      "title": "What is not happening yet",
+      "truth_status": "LOCKED_EXTERNAL_ACTION"
+    }
+  ],
+  "what_happened": [
+    "PC consumed the Mac chat request through the deterministic router intake.",
+    "PC generated router readback cards and a Mac-readable card mirror.",
+    "No external action occurred."
+  ],
+  "why_it_happened": "The request passed validation and matched the deterministic chat router rail.",
+  "worker_route_refs": [
+    {
+      "alternate_workers": [
+        "MAC_CODEX",
+        "PC_CODEX",
+        "GEMINI_AGY",
+        "GUARDIAN",
+        "CASSANDRA",
+        "LOCAL_OLLAMA"
+      ],
+      "blocked_workers": [],
+      "confidence": "LOW",
+      "decision_id": "decision_unknown_024f0f0b6a",
+      "handoff_required": false,
+      "next_safe_move": "Ask a clarifying question and offer routing options.",
+      "operator_request_summary": "Capital Hilton invoice workflow request; record invoice; contact follow-up; Coupa PO supplier invoice",
+      "package_required": false,
+      "route_reason": "No deterministic worker rule matched with enough confidence.",
+      "selected_environment": "none",
+      "selected_machine": "UNKNOWN",
+      "selected_worker_type": "UNKNOWN_NEEDS_ROUTING",
+      "source_chat_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+      "task_type": "UNKNOWN_NEEDS_FRAMING"
+    }
+  ],
+  "workflow_ref": "capital_hilton_invoice_workflow"
+}

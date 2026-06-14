@@ -1,0 +1,611 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "authority_granted": false,
+    "auto_apply_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "live_self_optimization_allowed": false,
+    "memory_promotion_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "protected_actions_allowed": false,
+    "tool_authority_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "candidate_harness_updates": [
+    {
+      "affected_component": "proof_to_response_schema_adapter",
+      "auto_apply_allowed": false,
+      "candidate_update_auto_applied": false,
+      "failure_class": "non_json_model_output",
+      "operator_review_required": true,
+      "proposed_fix": "Add JSON-only prompt/schema adapter fixture checks before any approved local model retry.",
+      "proposed_update_ref": "retrospective_update:01:local_qwen_non_json_failure",
+      "rollback_plan": "Remove schema-adapter prompt fixture wiring and continue shadow-only deterministic responses.",
+      "source_example_ref": "local_qwen_non_json_failure",
+      "validation_plan": "Replay saved non-JSON output and a valid JSON fixture; verify fallback remains mandatory on parse failure."
+    },
+    {
+      "affected_component": "operator_controller_event_router",
+      "auto_apply_allowed": false,
+      "candidate_update_auto_applied": false,
+      "failure_class": "wrong_lane_response",
+      "operator_review_required": true,
+      "proposed_fix": "Prefer lane-level payment-watch intent when selected context is current-focus/payment-watch; keep Coupa gate detail scoped to gate controls.",
+      "proposed_update_ref": "retrospective_update:02:finance_payment_watch_wrong_coupa_gate_routing",
+      "rollback_plan": "Disable lane-level override and fall back to existing gate detail while marking Needs lane context.",
+      "source_example_ref": "finance_payment_watch_wrong_coupa_gate_routing",
+      "validation_plan": "Run lane ask_why and gate ask_why fixtures and assert the primary text differs by control scope."
+    },
+    {
+      "affected_component": "proof_bundle_builder",
+      "auto_apply_allowed": false,
+      "candidate_update_auto_applied": false,
+      "failure_class": "context_scope_leak",
+      "operator_review_required": true,
+      "proposed_fix": "Normalize composer-visible evidence references to artifact refs and redacted summaries.",
+      "proposed_update_ref": "retrospective_update:03:evidence_picker_file_path_leak_into_composer",
+      "rollback_plan": "Block proof-to-response publishing for path-bearing evidence until manual redaction is confirmed.",
+      "source_example_ref": "evidence_picker_file_path_leak_into_composer",
+      "validation_plan": "Run redaction tests with path-bearing evidence picker fixtures and assert raw paths are absent."
+    },
+    {
+      "affected_component": "dynamic_card_lifecycle_policy",
+      "auto_apply_allowed": false,
+      "candidate_update_auto_applied": false,
+      "failure_class": "stale_context",
+      "operator_review_required": true,
+      "proposed_fix": "Gate Build review visibility on lifecycle/freshness state and latest review decision receipt.",
+      "proposed_update_ref": "retrospective_update:04:stale_build_review_packet_ready_for_review",
+      "rollback_plan": "Hide ambiguous Build review packets behind Needs lane context until a current receipt is attached.",
+      "source_example_ref": "stale_build_review_packet_ready_for_review",
+      "validation_plan": "Run resolved/informational review packet fixtures and assert active review controls are hidden."
+    },
+    {
+      "affected_component": "proof_to_response_runtime",
+      "auto_apply_allowed": false,
+      "candidate_update_auto_applied": false,
+      "failure_class": "wrong_lane_response",
+      "operator_review_required": true,
+      "proposed_fix": "Require request-scoped proof_to_response in every controller response and mark latest stale if context mismatches.",
+      "proposed_update_ref": "retrospective_update:05:proof_to_response_wrong_lane_linger",
+      "rollback_plan": "Ignore latest for Mac primary response and require response-scoped proof_to_response only.",
+      "source_example_ref": "proof_to_response_wrong_lane_linger",
+      "validation_plan": "Run Finance then Business Development smokes and assert latest matches the final lane."
+    },
+    {
+      "affected_component": "proof_to_response_verifier",
+      "auto_apply_allowed": false,
+      "candidate_update_auto_applied": false,
+      "failure_class": "unsupported_claim",
+      "operator_review_required": true,
+      "proposed_fix": "Add fact-ID alignment checks between synthetic response claims and proof-bundle facts before publication.",
+      "proposed_update_ref": "retrospective_update:06:external_synthetic_fact_id_mismatch",
+      "rollback_plan": "Disable synthetic fact-ID adoption and keep fallback receipts mandatory.",
+      "source_example_ref": "external_synthetic_fact_id_mismatch",
+      "validation_plan": "Replay mismatched and matching synthetic fact-ID fixtures; assert mismatch blocks publication and matching IDs continue to normal verifier checks."
+    },
+    {
+      "affected_component": "self_heal_repair_doctrine",
+      "auto_apply_allowed": false,
+      "candidate_update_auto_applied": false,
+      "failure_class": "tool_not_allowed",
+      "operator_review_required": true,
+      "proposed_fix": "Summarize trace logs into blocker/proof/validation receipts and keep raw trace material behind developer proof.",
+      "proposed_update_ref": "retrospective_update:07:remote_desktop_trace_log_leak_self_heal",
+      "rollback_plan": "Disable trace-log lesson promotion and require manual proof drawer inspection.",
+      "source_example_ref": "remote_desktop_trace_log_leak_self_heal",
+      "validation_plan": "Run a synthetic trace-log repair fixture and assert no raw path/session dump enters primary response."
+    }
+  ],
+  "content_hash": "sha256:e1c66086c91b22a0b7b4caeb9b0c705a1e2a737c3bb9d7775e9fcc19b2f27201",
+  "context_maintenance_policy": {
+    "high_signal_lessons_preserved": "Preserve failure class, proof, operator decision, receipt, validation, and recurrence signal.",
+    "old_tool_output_logs_compacted": "Old tool output/logs should be compacted to high-signal blocker, validation, and receipt summaries.",
+    "raw_history_hidden_unless_requested": "Raw prompts, logs, file paths, private proof, and trace dumps remain hidden unless explicitly requested and allowed.",
+    "stale_context_should_be_demoted": "Stale or unknown context becomes Needs verification or historical support, not current truth.",
+    "summaries_cannot_override_receipts": "Generated summaries are explanations only; receipts, hashes, and source rows define truth.",
+    "superseded_receipts_excluded": "Superseded receipts stay available in trace but cannot enter LM bundles as current truth."
+  },
+  "decision_trace_fields": [
+    "what_was_attempted",
+    "why_it_failed",
+    "what_proof_said",
+    "what_operator_decided",
+    "what_receipt_was_recorded",
+    "what_changed_afterward",
+    "same_failure_recurred"
+  ],
+  "failure_classes": [
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A response or card relied on historical, superseded, unresolved, or untraceable context as if it were current.",
+      "failure_class": "stale_context"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A model response failed the required JSON/schema shape before factual verification could run.",
+      "failure_class": "non_json_model_output"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A draft claimed paid, sent, submitted, executed, or another fact not supported by current proof.",
+      "failure_class": "unsupported_claim"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A response was safe in isolation but scoped to the wrong world, thread, card, gate, or objective.",
+      "failure_class": "wrong_lane_response"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "The requested outcome needs evidence, receipt, or approval that is absent.",
+      "failure_class": "missing_proof"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "Too much raw, private, or unrelated context entered a prompt, composer, or proof bundle.",
+      "failure_class": "overbroad_context"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A route or draft tried to execute or promise a protected action without the required gate.",
+      "failure_class": "protected_action_attempt"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A path needed or attempted a tool/runtime/resource outside the current authority boundary.",
+      "failure_class": "tool_not_allowed"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A task, response, or card marked work complete before proof, receipt, or validation supported completion.",
+      "failure_class": "premature_completion"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "The system retried the same path without new evidence, changed context, or a new validation result.",
+      "failure_class": "repeated_work_without_new_proof"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A card, UI control, or machine contract became the primary operator response instead of concise proof-grounded text.",
+      "failure_class": "card_or_ui_dominance_over_text"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A local path, stale lane, unrelated proof detail, or raw context crossed into a response or composer outside its allowed scope.",
+      "failure_class": "context_scope_leak"
+    }
+  ],
+  "generated_at": "2026-06-08T00:43:53+00:00",
+  "implementation_boundary": {
+    "browser_opened": false,
+    "coupa_opened": false,
+    "email_send_performed": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "memory_promotion_performed": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "runtime_connected": false,
+    "self_modification_performed": false,
+    "submit_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "all_candidate_updates_auto_apply_false": true,
+    "all_candidate_updates_review_only": true,
+    "all_decision_traces_complete": true,
+    "all_required_failure_classes_present": true,
+    "all_required_trajectory_sources_present": true,
+    "external_synthetic_fact_mismatch_recorded": true,
+    "live_self_optimization_absent": true,
+    "model_invocation_absent": true,
+    "preconditions_ready": true,
+    "review_only_learning_seed": true,
+    "sqlite_row_count_matches_json": true,
+    "unsafe_true_grants_absent": true
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY"
+      ],
+      "observed_status": "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",
+      "precondition_ref": "context_freshness_decision_trace_gate",
+      "ready": true,
+      "source_ref": "generated/read_models/context_freshness_decision_trace_gate.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_freshness_trace_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_SESSION_TIMELINE_READY"
+      ],
+      "observed_status": "OPERATOR_SESSION_TIMELINE_READY",
+      "precondition_ref": "operator_session_timeline",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_session_timeline.json"
+    },
+    {
+      "accepted_statuses": [
+        "UNIVERSAL_RECEIPT_ENVELOPE_READY"
+      ],
+      "observed_status": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
+      "precondition_ref": "universal_receipt_envelope",
+      "ready": true,
+      "source_ref": "generated/read_models/universal_receipt_envelope_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
+      "precondition_ref": "proof_to_response_schema_adapter",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_schema_adapter_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY",
+      "precondition_ref": "local_lm_proof_response_pilot_postmortem",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_response_pilot_postmortem.json"
+    },
+    {
+      "accepted_statuses": [
+        "SELF_HEAL_REPAIR_DOCTRINE_READY"
+      ],
+      "observed_status": "SELF_HEAL_REPAIR_DOCTRINE_READY",
+      "precondition_ref": "self_heal_repair_doctrine",
+      "ready": true,
+      "source_ref": "generated/read_models/self_heal_repair_doctrine.json"
+    },
+    {
+      "accepted_statuses": [
+        "GOLDILOCKS_GATE_CALIBRATION_READY"
+      ],
+      "observed_status": "GOLDILOCKS_GATE_CALIBRATION_READY",
+      "precondition_ref": "goldilocks_gate_calibration",
+      "ready": true,
+      "source_ref": "generated/read_models/goldilocks_gate_calibration.json"
+    }
+  ],
+  "purpose": "Seed review-only retrospective harness learning from task trajectories, stale context failures, verifier failures, and operator decisions.",
+  "read_model_id": "retrospective_harness_learning_seed",
+  "required_examples": [
+    {
+      "decision_trace": {
+        "same_failure_recurred": "not_yet_retested_by_this_seed",
+        "what_changed_afterward": "Schema adapter and retry approval packets were created; verifier/fallback remained mandatory.",
+        "what_operator_decided": "Record a postmortem, require JSON-only schema prompting with a valid example, and require separate approval before any retry.",
+        "what_proof_said": "Payment evidence was missing, payment processing was still processing, paid was false, and the ledger remained untouched.",
+        "what_receipt_was_recorded": "fallback_receipt and verifier_fail receipt in the local LM pilot/postmortem artifacts.",
+        "what_was_attempted": "A one-time local Qwen proof-to-response pilot tried to draft Finance / Capital Hilton response text from a redacted freshness-gated proof bundle.",
+        "why_it_failed": "The saved draft did not satisfy the required JSON response shape, so schema adaptation/verifier publication failed before factual truth checks could pass."
+      },
+      "example_ref": "local_qwen_non_json_failure",
+      "failure_class": "non_json_model_output",
+      "issue_type": "schema_prompt_issue",
+      "lesson": "Treat this as a schema/prompt issue, not a proof-truth issue. Do not loosen truth or authority checks to make the model pass.",
+      "memory_status": "receipt_backed_lesson",
+      "trajectory_sources": [
+        "proof_to_response_attempts",
+        "verifier_failures",
+        "fallback_receipts"
+      ],
+      "truth_issue": false
+    },
+    {
+      "decision_trace": {
+        "same_failure_recurred": "should_be_detected_by_lane_scope_tests",
+        "what_changed_afterward": "Lane-level proof-to-response became primary; Coupa gate copy remained available only as gate-specific detail.",
+        "what_operator_decided": "Create lane-level payment-watch proof responses and expose lane-level ask_why, advance_objective, and attach_proof controls.",
+        "what_proof_said": "The lane needed payment evidence while Coupa processing continued; paid marking and ledger mutation remained blocked.",
+        "what_receipt_was_recorded": "Controller/proof-to-response route and controller-map read models after payment watch fixes.",
+        "what_was_attempted": "Finance / Capital Hilton Ask Why surfaced the protected Coupa gate explanation as the primary lane answer.",
+        "why_it_failed": "The gate response was safe but scoped too narrowly to protected Coupa submit detail rather than the payment-watch lane."
+      },
+      "example_ref": "finance_payment_watch_wrong_coupa_gate_routing",
+      "failure_class": "wrong_lane_response",
+      "issue_type": "context_scoping_issue",
+      "lesson": "Safe copy can still be wrong if it is scoped to the wrong gate or lane.",
+      "memory_status": "receipt_backed_lesson",
+      "trajectory_sources": [
+        "controller_events",
+        "proof_to_response_attempts",
+        "stale_context_blocks"
+      ],
+      "truth_issue": false
+    },
+    {
+      "decision_trace": {
+        "same_failure_recurred": "unknown",
+        "what_changed_afterward": "Future bundles must exclude raw request paths and raw artifact/OCR text by default.",
+        "what_operator_decided": "Keep path-bearing details behind proof/developer detail and use artifact refs in operator-facing text.",
+        "what_proof_said": "Evidence intake and proof-bundle redaction policy allow artifact refs and redacted summaries while keeping raw paths out unless explicitly needed and redacted.",
+        "what_receipt_was_recorded": "Evidence intake/proof-bundle redaction and later route smoke artifacts.",
+        "what_was_attempted": "Evidence picker state leaked a raw local file path into a composer-facing context.",
+        "why_it_failed": "The composer needed a protected artifact ref or redacted summary, not a raw path that could expose private machine context."
+      },
+      "example_ref": "evidence_picker_file_path_leak_into_composer",
+      "failure_class": "context_scope_leak",
+      "issue_type": "privacy_context_boundary_issue",
+      "lesson": "Composer and LM-visible context should receive proof refs and redacted summaries, not raw filesystem traces.",
+      "memory_status": "operator_reported_needs_receipt_link",
+      "trajectory_sources": [
+        "controller_events",
+        "operator_session_timeline",
+        "self_heal_repair_records"
+      ],
+      "truth_issue": false
+    },
+    {
+      "decision_trace": {
+        "same_failure_recurred": "should_be_detected_by_lifecycle_tests",
+        "what_changed_afterward": "Build review context was inferable from selected packet/card, and unresolved context returns a human Needs lane context card.",
+        "what_operator_decided": "Normalize review context inference and keep resolved cards behind lifecycle/history policy.",
+        "what_proof_said": "Resolved or informational packets should be historical/resolved and hidden from active review unless reopened by a current receipt.",
+        "what_receipt_was_recorded": "Workroom review decision receipts and lifecycle/status read models.",
+        "what_was_attempted": "A resolved or informational Build review packet was still shown like active ready-for-review work.",
+        "why_it_failed": "Lifecycle and freshness state were not treated as the primary context gate for the card/response."
+      },
+      "example_ref": "stale_build_review_packet_ready_for_review",
+      "failure_class": "stale_context",
+      "issue_type": "lifecycle_freshness_issue",
+      "lesson": "Lifecycle/freshness beats generated summaries and stale UI memory.",
+      "memory_status": "receipt_backed_lesson",
+      "trajectory_sources": [
+        "workroom_review_decisions",
+        "operator_session_timeline",
+        "stale_context_blocks"
+      ],
+      "truth_issue": false
+    },
+    {
+      "decision_trace": {
+        "same_failure_recurred": "should_be_detected_by_latest_context_tests",
+        "what_changed_afterward": "Responses embed request-scoped proof_to_response and latest includes source_request_id, world_ref, thread_ref, and stale-if-mismatch fields.",
+        "what_operator_decided": "Scope proof-to-response by request and mark latest stale on context mismatch.",
+        "what_proof_said": "Every controller response needs request-scoped proof_to_response and latest must match the last successful active lane/request.",
+        "what_receipt_was_recorded": "Proof-to-response scoped response read models and bridge copies.",
+        "what_was_attempted": "A Business Development response was generated safely, but proof_to_response_latest still looked like Finance / Capital Hilton.",
+        "why_it_failed": "The latest read model lacked sufficient request-scoped freshness and context fields, so stale lane state could linger."
+      },
+      "example_ref": "proof_to_response_wrong_lane_linger",
+      "failure_class": "wrong_lane_response",
+      "issue_type": "context_scoping_issue",
+      "lesson": "Latest read models are support state, not truth, unless their context matches the active request.",
+      "memory_status": "receipt_backed_lesson",
+      "trajectory_sources": [
+        "controller_events",
+        "proof_to_response_attempts",
+        "fallback_receipts"
+      ],
+      "truth_issue": false
+    },
+    {
+      "decision_trace": {
+        "same_failure_recurred": "should_be_detected_by_fact_id_alignment_tests",
+        "what_changed_afterward": "Candidate update requires fact-ID alignment checks before future adoption.",
+        "what_operator_decided": "Treat fact-ID mismatch as a verifier/proof-bundle alignment failure and block publication until IDs match.",
+        "what_proof_said": "The proof bundle carried a different canonical fact ID than the response cited.",
+        "what_receipt_was_recorded": "Synthetic verifier failure/postmortem receipt; no runtime publication receipt.",
+        "what_was_attempted": "An external synthetic proof-to-response fixture attempted to bind a generated fact reference to the proof bundle.",
+        "why_it_failed": "The verifier found the cited fact ID did not match the proof-bundle fact IDs, so the claim could not be grounded."
+      },
+      "example_ref": "external_synthetic_fact_id_mismatch",
+      "failure_class": "unsupported_claim",
+      "issue_type": "verifier_proof_bundle_alignment_issue",
+      "lesson": "Verifier/proof-bundle alignment must fail closed when fact IDs mismatch; generated text cannot repair grounding.",
+      "memory_status": "synthetic_receipt_backed_lesson",
+      "trajectory_sources": [
+        "proof_to_response_attempts",
+        "verifier_failures",
+        "local_external_lm_synthetic_test_outcomes"
+      ],
+      "truth_issue": false
+    },
+    {
+      "decision_trace": {
+        "same_failure_recurred": "unknown",
+        "what_changed_afterward": "This seed classifies trace log handling as a self-heal resource boundary lesson.",
+        "what_operator_decided": "Preserve high-signal blocker/validation lessons while hiding raw logs unless explicitly requested.",
+        "what_proof_said": "Self-heal doctrine requires blocker name, proof, safe action now, action not allowed yet, smallest manual step, validation, and receipt.",
+        "what_receipt_was_recorded": "Self-heal/resource case should record a repair candidate rather than auto-apply or expose raw log history.",
+        "what_was_attempted": "Remote Desktop trace/log resource context became relevant to self-heal diagnosis.",
+        "why_it_failed": "Raw trace logs are noisy and can leak resource, path, or session details if treated as operator-facing memory."
+      },
+      "example_ref": "remote_desktop_trace_log_leak_self_heal",
+      "failure_class": "tool_not_allowed",
+      "issue_type": "resource_self_heal_case",
+      "lesson": "Trace logs should feed repair summaries and receipts, not raw operator or LM-visible history.",
+      "memory_status": "operator_reported_needs_receipt_link",
+      "trajectory_sources": [
+        "self_heal_repair_records",
+        "operator_session_timeline",
+        "stale_context_blocks"
+      ],
+      "truth_issue": false
+    }
+  ],
+  "rules": [
+    "This seed does not modify harness behavior automatically.",
+    "This seed does not invoke models.",
+    "This seed does not create live self-optimization.",
+    "Candidate updates require operator review.",
+    "Memory remains suspect until receipt/proof-backed.",
+    "Context freshness beats generated summaries.",
+    "Positive validation is required before any future adoption."
+  ],
+  "schema_version": "retrospective_harness_learning_seed_v0",
+  "selection_policy": {
+    "auto_apply_allowed": false,
+    "candidate_dimensions": [
+      "difficulty",
+      "recurrence",
+      "diversity",
+      "operator_friction",
+      "safety_relevance"
+    ],
+    "dimension_meaning": {
+      "difficulty": "Prefer failures that are small enough to test but important enough to reduce future errors.",
+      "diversity": "Keep examples across proof response, routing, review lifecycle, evidence, and self-heal.",
+      "operator_friction": "Favor failures that confuse or slow the operator in live controller use.",
+      "recurrence": "Prioritize classes that recur across lanes or surfaces.",
+      "safety_relevance": "Favor failures that could cause stale truth, authority confusion, or private context exposure."
+    },
+    "full_rho_enabled": false,
+    "operator_review_required": true,
+    "policy_name": "seeded_review_only_selection",
+    "selection_output": "candidate_update_records_only"
+  },
+  "source_content_hashes": {
+    "context_freshness_decision_trace_gate": "sha256:45433d452e816ccd346cf6285bca29e913787de50ef5d3ee96c3e9bd4ec4c4bd",
+    "goldilocks_gate_calibration": "sha256:09346c60624850c1854fe34f3e5922e4f0f66bca45d84bcfdbb4755221130112",
+    "local_lm_proof_response_pilot_postmortem": "sha256:9839f6f5025a0c4cf0f7663350ff90b898b9e0dd4a12e49d95cb4bb529633868",
+    "operator_session_timeline": "sha256:eec340fe08bd84b784f62f433f78700efa13659955f5fcf84811c1f1d8bdbecf",
+    "proof_bundle_freshness_trace_integration": "sha256:98cfbf6c2f635cc48fbb9d63760382f779753bd768ae100ad3c4c31a4bec5056",
+    "proof_to_response_runtime": "sha256:c8ba8a3ff65f5a65526bfdab57cb8d92591578be2d65af0d22da19d44bc75720",
+    "proof_to_response_schema_adapter": "sha256:3f61817947e2b29ac617c387b4eb3fe686f49b49cbc6ef60f135703fcf2bc00f",
+    "self_heal_repair_doctrine": "sha256:4b8d6da3d7b3932bf1498d8d330ccdc0dd7e1df51b6848618f06570208e85e71",
+    "universal_receipt_envelope": "sha256:feba7415303cb1d260ad3e36814e93fda836438b4f1cdeb46ea724d0bdb063a8"
+  },
+  "source_refs": [
+    "generated/read_models/context_freshness_decision_trace_gate.json",
+    "generated/read_models/proof_bundle_freshness_trace_status.json",
+    "generated/read_models/operator_session_timeline.json",
+    "generated/read_models/universal_receipt_envelope_status.json",
+    "generated/read_models/proof_to_response_runtime_status.json",
+    "generated/read_models/proof_to_response_schema_adapter_status.json",
+    "generated/read_models/local_lm_proof_response_pilot_postmortem.json",
+    "generated/read_models/self_heal_repair_doctrine.json",
+    "generated/read_models/goldilocks_gate_calibration.json"
+  ],
+  "sqlite_summary": {
+    "sqlite_path": "/home/openclaw/generated/system_knowledge/retrospective_harness_learning_seed.sqlite",
+    "sqlite_record_kind_counts": {
+      "candidate_harness_update": 7,
+      "required_example": 7
+    },
+    "sqlite_row_count": 14
+  },
+  "status": "RETROSPECTIVE_HARNESS_LEARNING_SEED_READY",
+  "trajectory_sources": [
+    {
+      "allowed_use": "Identify route shape, lane, event type, and whether the response matched the selected context.",
+      "description": "Verified controller gestures, selected card/action refs, world/thread context, and route outcomes.",
+      "raw_history_policy": "summarize_only",
+      "source_ref": "controller_events"
+    },
+    {
+      "allowed_use": "Classify response quality, schema compliance, unsupported claims, and fallback behavior.",
+      "description": "Candidate response attempts, adapter results, verifier results, and published fallback decisions.",
+      "raw_history_policy": "hide_raw_drafts_by_default",
+      "source_ref": "proof_to_response_attempts"
+    },
+    {
+      "allowed_use": "Separate truth failures from shape, concision, or jargon failures.",
+      "description": "Deterministic rejection reasons from proof-to-response verifier and schema adapter.",
+      "raw_history_policy": "preserve_error_codes",
+      "source_ref": "verifier_failures"
+    },
+    {
+      "allowed_use": "Confirm fail-closed behavior and avoid reusing unsafe drafts.",
+      "description": "Receipts proving a safe fallback was published when a draft was blocked.",
+      "raw_history_policy": "preserve_receipt_refs",
+      "source_ref": "fallback_receipts"
+    },
+    {
+      "allowed_use": "Track packet lifecycle and avoid presenting resolved review work as active.",
+      "description": "Review decisions such as informational, request rework, approve, or deny.",
+      "raw_history_policy": "summarize_decision_only",
+      "source_ref": "workroom_review_decisions"
+    },
+    {
+      "allowed_use": "Recover high-signal sequence without raw chat dumps.",
+      "description": "Scene-level timeline events across worlds, lanes, cards, receipts, evidence, and review decisions.",
+      "raw_history_policy": "no_raw_prompt_dumps",
+      "source_ref": "operator_session_timeline"
+    },
+    {
+      "allowed_use": "Learn smallest safe repair loops without black-box self-modification.",
+      "description": "Repair packages, blockers, validation results, and manual operator steps.",
+      "raw_history_policy": "preserve_blocker_and_validation",
+      "source_ref": "self_heal_repair_records"
+    },
+    {
+      "allowed_use": "Demote stale context and route toward refresh/verification.",
+      "description": "Context freshness decisions that blocked stale, superseded, generated-only, or untraceable truth.",
+      "raw_history_policy": "preserve_gate_reason",
+      "source_ref": "stale_context_blocks"
+    },
+    {
+      "allowed_use": "Learn from shape failures, proof-bundle mismatch, and verifier disagreement without invoking models from this seed.",
+      "description": "Synthetic local/external LM quality trials, postmortems, verifier outcomes, and fact-ID alignment checks.",
+      "raw_history_policy": "preserve_fixture_result_and_hide_raw_model_output",
+      "source_ref": "local_external_lm_synthetic_test_outcomes"
+    }
+  ],
+  "unsafe_true_grants": []
+}

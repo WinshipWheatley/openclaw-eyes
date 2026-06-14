@@ -16,9 +16,10 @@ import hashlib
 import json
 import sys
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from openclaw_substrate_utils import stable_json, utc_now
 
 
 ROOT = Path(__file__).resolve().parent
@@ -320,10 +321,6 @@ class SolvePathExportResult:
     action_authority_granted: bool
 
 
-def stable_json(payload: Any) -> str:
-    return json.dumps(payload, indent=2, sort_keys=True) + "\n"
-
-
 def _content_hash(payload: dict[str, Any]) -> str:
     clone = json.loads(stable_json(payload))
     clone.get("machine_proof", {}).pop("content_hash", None)
@@ -331,7 +328,7 @@ def _content_hash(payload: dict[str, Any]) -> str:
 
 
 def _generated_at(value: str | None) -> str:
-    return value or datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return value or utc_now()
 
 
 def _all_authority_flags_false() -> bool:

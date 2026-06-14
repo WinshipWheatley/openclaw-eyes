@@ -1,94 +1,68 @@
 from __future__ import annotations
 
-from skill_vetter import vet_skills
+from skill_vetter import description_byte_length, vet_skills
 
 
-def test_skill_vetter_rejects_description_over_1024_bytes() -> None:
-    skill = {
-        "id": "overlong.description",
-        "name": "Overlong Description",
-        "description": "x" * 1025,
-        "source_path": "overlong.md",
-        "content": (
-            "This skill body has enough words to isolate description length "
-            "validation from the existing minimum content words rule."
-        ),
+def _skill(description: str) -> dict[str, str]:
+    return {
+        "id": "skill.description-limit",
+        "name": "Description Limit Skill",
+        "description": description,
+        "content": "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu",
     }
 
-    vetted = vet_skills([skill], strict_mode=False)
 
-    assert vetted["summary"] == {"total": 1, "passed": 0, "failed": 1}
-    assert vetted["results"] == [
+def test_description_limit_counts_utf8_bytes_not_characters() -> None:
+    description = "é" * 600
+
+    assert len(description) == 600
+    assert description_byte_length(description) == 1200
+
+    result = vet_skills([_skill(description)], ruleset={"max_description_bytes": 1024})
+
+    assert result["summary"] == {"total": 1, "passed": 0, "failed": 1}
+    assert result["results"][0]["reasons"] == [
         {
-            "skill_id": "overlong.description",
-            "status": "fail",
-            "reasons": [
-                {
-                    "code": "DESCRIPTION_TOO_LONG",
-                    "message": "description must be at most 1024 UTF-8 bytes",
-                }
-            ],
+            "code": "DESCRIPTION_TOO_LONG",
+            "message": "description must be at most 1024 bytes; got 1200",
         }
     ]
 
 
-def test_skill_vetter_rejects_multibyte_description_over_1024_bytes() -> None:
-    skill = {
-        "id": "overlong.description.bytes",
-        "name": "Overlong Description Bytes",
-        "description": "é" * 513,
-        "source_path": "overlong.md",
-        "content": (
-            "This skill body has enough words to isolate description byte "
-            "validation from the existing minimum content words rule."
-        ),
-    }
+def test_description_at_byte_limit_passes() -> None:
+    description = "a" * 1024
 
-    vetted = vet_skills([skill], strict_mode=False)
+    result = vet_skills([_skill(description)], ruleset={"max_description_bytes": 1024})
 
-    assert vetted["summary"] == {"total": 1, "passed": 0, "failed": 1}
-    assert vetted["results"] == [
+    assert result["summary"] == {"total": 1, "passed": 1, "failed": 0}
+    assert result["results"][0]["reasons"] == []
+
+
+def test_skill_vetter_rejects_description_over_1024_bytes() -> None:
+    result = vet_skills([_skill("x" * 1025)], strict_mode=False)
+
+    assert result["summary"] == {"total": 1, "passed": 0, "failed": 1}
+    assert result["results"][0]["reasons"] == [
         {
-            "skill_id": "overlong.description.bytes",
-            "status": "fail",
-            "reasons": [
-                {
-                    "code": "DESCRIPTION_TOO_LONG",
-                    "message": "description must be at most 1024 UTF-8 bytes",
-                }
-            ],
+            "code": "DESCRIPTION_TOO_LONG",
+            "message": "description must be at most 1024 bytes; got 1025",
         }
     ]
 
 
 def test_skill_vetter_supports_legacy_max_description_length_ruleset_alias() -> None:
-    skill = {
-        "id": "legacy.alias.bytes",
-        "name": "Legacy Alias Bytes",
-        "description": "é" * 20,
-        "source_path": "legacy-alias.md",
-        "content": (
-            "This skill body has enough words to isolate legacy ruleset alias "
-            "validation from the existing minimum content words rule."
-        ),
-    }
+    description = "é" * 20
 
-    vetted = vet_skills(
-        [skill],
+    result = vet_skills(
+        [_skill(description)],
         ruleset={"max_description_length": 39},
         strict_mode=False,
     )
 
-    assert vetted["summary"] == {"total": 1, "passed": 0, "failed": 1}
-    assert vetted["results"] == [
+    assert result["summary"] == {"total": 1, "passed": 0, "failed": 1}
+    assert result["results"][0]["reasons"] == [
         {
-            "skill_id": "legacy.alias.bytes",
-            "status": "fail",
-            "reasons": [
-                {
-                    "code": "DESCRIPTION_TOO_LONG",
-                    "message": "description must be at most 39 UTF-8 bytes",
-                }
-            ],
+            "code": "DESCRIPTION_TOO_LONG",
+            "message": "description must be at most 39 bytes; got 40",
         }
     ]

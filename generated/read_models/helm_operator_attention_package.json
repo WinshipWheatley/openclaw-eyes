@@ -1,0 +1,1033 @@
+{
+  "attention_policy": {
+    "collapsed_or_proof_only_if": [
+      "proof exists but no action is needed",
+      "data is diagnostic",
+      "package preview is informational",
+      "agent council is informational",
+      "stable map is current",
+      "receipt exists only for audit"
+    ],
+    "default_helm_mode": "CHAT_FIRST",
+    "mac_should_not_infer_attention_from_raw_proof": true,
+    "max_primary_cards": 3,
+    "primary_only_if": [
+      "operator_action_required=true",
+      "approval is needed",
+      "severity=ACTION_REQUIRED",
+      "status=WARNING and auto_fix_possible=false",
+      "user opened diagnostic/proof mode"
+    ]
+  },
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "approval_execution_allowed": false,
+    "external_action_allowed": false,
+    "ledger_posting_allowed": false,
+    "live_lm_call_allowed": false,
+    "model_api_integration_allowed": false,
+    "network_allowed": false,
+    "ocr_allowed": false,
+    "pdf_generation_allowed": false,
+    "production_state_mutation_allowed": false,
+    "provider_key_material_access_allowed": false,
+    "send_submit_allowed": false,
+    "spreadsheet_cell_read_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_body_read_allowed": false,
+    "worker_dispatch_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "awareness_matrix": {
+    "active_signals": [
+      {
+        "auto_fix_possible": false,
+        "display_name": "Check Engine",
+        "forbidden_actions": [
+          "write OpenClaw artifacts to C:",
+          "delete files or caches",
+          "remount /Volumes/openclaw_e automatically",
+          "handle or store credentials",
+          "create auto-remount authority",
+          "run Mac commands from PC",
+          "manual-copy generated read-model files as the primary fix",
+          "mutate Mission Control app code",
+          "repair backend services from this taxonomy",
+          "activate agents or call models",
+          "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+          "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "Chief diagnostic/system health lane",
+        "last_seen_at": "2026-05-23T20:28:12+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "generated/read_models/chief_check_engine_environment_posture.json",
+          "generated/read_models/chief_check_engine_diagnostic_package.json",
+          "generated/read_models/bridge_trust_sync_truth.json",
+          "generated/read_models/sync_health.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Open Chief diagnostic/system health lane; do not run repair automatically.",
+        "severity": "WARNING",
+        "signal_ref": "health_light:check_engine",
+        "status": "WARNING"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Low Fuel / Low Battery",
+        "forbidden_actions": [
+          "write OpenClaw artifacts to C:",
+          "delete files or caches",
+          "remount /Volumes/openclaw_e automatically",
+          "handle or store credentials",
+          "create auto-remount authority",
+          "run Mac commands from PC",
+          "manual-copy generated read-model files as the primary fix",
+          "mutate Mission Control app code",
+          "repair backend services from this taxonomy",
+          "activate agents or call models",
+          "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+          "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "Resource posture lane",
+        "last_seen_at": "2026-05-23T20:28:12+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "generated/read_models/chief_check_engine_environment_posture.json",
+          "operator_reported: C: was near full then cleaned to about 22GB free"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Keep resource pressure visible as monitor/warning until a bounded resource posture refresh proves it quiet.",
+        "severity": "WARNING",
+        "signal_ref": "health_light:low_fuel_low_battery",
+        "status": "WARNING"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Oil Pressure / Coolant",
+        "forbidden_actions": [
+          "write OpenClaw artifacts to C:",
+          "delete files or caches",
+          "remount /Volumes/openclaw_e automatically",
+          "handle or store credentials",
+          "create auto-remount authority",
+          "run Mac commands from PC",
+          "manual-copy generated read-model files as the primary fix",
+          "mutate Mission Control app code",
+          "repair backend services from this taxonomy",
+          "activate agents or call models",
+          "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+          "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "Maintenance / environment degradation lane",
+        "last_seen_at": "2026-05-23T20:28:12+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "generated/read_models/chief_check_engine_environment_posture.json",
+          "generated/read_models/chief_check_engine_diagnostic_package.json",
+          "operator_reported: RD Client trace growth and Mac validation friction"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Open a read-only maintenance posture lane before any cleanup/remount/repair action.",
+        "severity": "WARNING",
+        "signal_ref": "health_light:oil_pressure_coolant",
+        "status": "WARNING"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Check Engine",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "check_lights",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "system_health_lights_taxonomy.json",
+          "chief_check_engine_diagnostic_package.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Open the Chief diagnostic/system health lane when inspected.",
+        "severity": "WARNING",
+        "signal_ref": "declutter:check_engine",
+        "status": "WARNING"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Check Transmission",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "check_lights",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "system_health_lights_taxonomy.json",
+          "sync_health.json",
+          "bridge_manual_mount_recovery_packet.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Use the existing sync lifecycle to restore trusted/current mirror proof.",
+        "severity": "WARNING",
+        "signal_ref": "declutter:check_transmission",
+        "status": "ON"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Resources",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "check_lights",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "system_health_lights_taxonomy.json",
+          "chief_check_engine_environment_posture.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Show only if resource pressure materially affects the mission.",
+        "severity": "WARNING",
+        "signal_ref": "declutter:resources",
+        "status": "WARNING"
+      }
+    ],
+    "auto_fixable_signals": [],
+    "counts": {
+      "active": 6,
+      "auto_fixable": 0,
+      "operator_required": 5,
+      "parked": 11,
+      "proof_only": 9,
+      "stale": 0,
+      "total_signals_considered": 31
+    },
+    "operator_required_signals": [
+      {
+        "auto_fix_possible": false,
+        "display_name": "Check Engine",
+        "forbidden_actions": [
+          "write OpenClaw artifacts to C:",
+          "delete files or caches",
+          "remount /Volumes/openclaw_e automatically",
+          "handle or store credentials",
+          "create auto-remount authority",
+          "run Mac commands from PC",
+          "manual-copy generated read-model files as the primary fix",
+          "mutate Mission Control app code",
+          "repair backend services from this taxonomy",
+          "activate agents or call models",
+          "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+          "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "Chief diagnostic/system health lane",
+        "last_seen_at": "2026-05-23T20:28:12+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "generated/read_models/chief_check_engine_environment_posture.json",
+          "generated/read_models/chief_check_engine_diagnostic_package.json",
+          "generated/read_models/bridge_trust_sync_truth.json",
+          "generated/read_models/sync_health.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Open Chief diagnostic/system health lane; do not run repair automatically.",
+        "severity": "WARNING",
+        "signal_ref": "health_light:check_engine",
+        "status": "WARNING"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Low Fuel / Low Battery",
+        "forbidden_actions": [
+          "write OpenClaw artifacts to C:",
+          "delete files or caches",
+          "remount /Volumes/openclaw_e automatically",
+          "handle or store credentials",
+          "create auto-remount authority",
+          "run Mac commands from PC",
+          "manual-copy generated read-model files as the primary fix",
+          "mutate Mission Control app code",
+          "repair backend services from this taxonomy",
+          "activate agents or call models",
+          "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+          "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "Resource posture lane",
+        "last_seen_at": "2026-05-23T20:28:12+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "generated/read_models/chief_check_engine_environment_posture.json",
+          "operator_reported: C: was near full then cleaned to about 22GB free"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Keep resource pressure visible as monitor/warning until a bounded resource posture refresh proves it quiet.",
+        "severity": "WARNING",
+        "signal_ref": "health_light:low_fuel_low_battery",
+        "status": "WARNING"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Oil Pressure / Coolant",
+        "forbidden_actions": [
+          "write OpenClaw artifacts to C:",
+          "delete files or caches",
+          "remount /Volumes/openclaw_e automatically",
+          "handle or store credentials",
+          "create auto-remount authority",
+          "run Mac commands from PC",
+          "manual-copy generated read-model files as the primary fix",
+          "mutate Mission Control app code",
+          "repair backend services from this taxonomy",
+          "activate agents or call models",
+          "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+          "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "Maintenance / environment degradation lane",
+        "last_seen_at": "2026-05-23T20:28:12+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "generated/read_models/chief_check_engine_environment_posture.json",
+          "generated/read_models/chief_check_engine_diagnostic_package.json",
+          "operator_reported: RD Client trace growth and Mac validation friction"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Open a read-only maintenance posture lane before any cleanup/remount/repair action.",
+        "severity": "WARNING",
+        "signal_ref": "health_light:oil_pressure_coolant",
+        "status": "WARNING"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Check Engine",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "check_lights",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "system_health_lights_taxonomy.json",
+          "chief_check_engine_diagnostic_package.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Open the Chief diagnostic/system health lane when inspected.",
+        "severity": "WARNING",
+        "signal_ref": "declutter:check_engine",
+        "status": "WARNING"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Resources",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "check_lights",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": true,
+        "proof_refs": [
+          "system_health_lights_taxonomy.json",
+          "chief_check_engine_environment_posture.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Show only if resource pressure materially affects the mission.",
+        "severity": "WARNING",
+        "signal_ref": "declutter:resources",
+        "status": "WARNING"
+      }
+    ],
+    "parked_signals": [
+      {
+        "auto_fix_possible": false,
+        "display_name": "Current mission: Mission Control app finish sprint",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "helm_lanes",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "operator_prompt"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Render the mission, mode, first attention item, and next safe move before any proof shelves.",
+        "severity": "PARKED",
+        "signal_ref": "declutter:current_mission_app_finish",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "System Awareness / Discovery",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "helm_lanes",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "operator_nested_lane_mission_package_spine.json",
+          "operator_awareness_agent_package_spine.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Show the top lane and one immediate child/focus, not the whole nested tree.",
+        "severity": "PARKED",
+        "signal_ref": "declutter:system_awareness_discovery",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Chief / Cassandra / Guardian / Niles / Hermes awareness tracking",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "helm_lanes",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "operator_nested_lane_mission_package_spine.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Collapse agent sublanes into the System Awareness parent unless one has a mission-relevant attention flag.",
+        "severity": "PARKED",
+        "signal_ref": "declutter:agent_awareness_tracking",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Mission Control visual/UX and app finish work",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "helm_lanes",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "operator_prompt",
+          "work_board.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Render the next Mac UI change from this taxonomy rather than showing every backend artifact.",
+        "severity": "PARKED",
+        "signal_ref": "declutter:mission_control_visual_ux_app_finish",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Workbench / Actor Host Registry",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "helm_lanes",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "operator_workbench_actor_host_registry.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Show a small routing summary; keep per-host proof and policies in detail.",
+        "severity": "PARKED",
+        "signal_ref": "declutter:workbench_actor_host_registry",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Package preview / detour / proof flow",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "helm_lanes",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "operator_awareness_agent_package_spine.json",
+          "operator_nested_lane_mission_package_spine.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Show only orientation and next move above the fold; put package/proof lower.",
+        "severity": "PARKED",
+        "signal_ref": "declutter:package_preview_detour_flow",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Design memory inventory",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "helm_lanes",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "operator_prompt",
+          "operator_nested_lane_mission_package_spine.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Keep as a bounded classification lane; do not ingest broad old archives here.",
+        "severity": "PARKED",
+        "signal_ref": "declutter:design_memory_inventory",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Worlds / domains as teleport targets",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "worlds",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "world_domain_registry.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Render as compact destination targets, not as equal helm cards.",
+        "severity": "PARKED",
+        "signal_ref": "declutter:worlds_teleport_targets",
+        "status": "PARKED"
+      }
+    ],
+    "proof_only_signals": [
+      {
+        "auto_fix_possible": false,
+        "display_name": "Raw contracts, receipts, paths, and machine proof",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "proof_detail",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "generated/read_models",
+          "business_ops_ledger.py"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Expose through drill-in/proof shelves only when the operator asks or a lane needs evidence.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "declutter:raw_contracts_receipts_long_paths",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "Deep nested lane tree",
+        "forbidden_actions": [],
+        "freshness": "current_read_model",
+        "lane_ref": "proof_detail",
+        "last_seen_at": "2026-05-20T23:56:21+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "operator_nested_lane_mission_package_spine.json"
+        ],
+        "required_receipts": [],
+        "safe_next_move": "Show active parent lane, immediate child/focus, and next safe move.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "declutter:nested_lane_tree",
+        "status": "PARKED"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "provider activation receipts missing",
+        "forbidden_actions": [
+          "enable live production authority from Helm attention package"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "production_live_blockers",
+        "last_seen_at": "2026-05-26T00:00:00+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "generated/read_models/floor_gap_reconciliation.json"
+        ],
+        "required_receipts": [
+          "provider_activation_receipts_missing"
+        ],
+        "safe_next_move": "Keep live production authority off until real receipts exist.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "live_blocker:provider_activation_receipts_missing",
+        "status": "NOT_ACTIVE"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "live model enablement receipt missing",
+        "forbidden_actions": [
+          "enable live production authority from Helm attention package"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "production_live_blockers",
+        "last_seen_at": "2026-05-26T00:00:00+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "generated/read_models/floor_gap_reconciliation.json"
+        ],
+        "required_receipts": [
+          "live_model_enablement_receipt_missing"
+        ],
+        "safe_next_move": "Keep live production authority off until real receipts exist.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "live_blocker:live_model_enablement_receipt_missing",
+        "status": "NOT_ACTIVE"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "rollback disable receipt missing",
+        "forbidden_actions": [
+          "enable live production authority from Helm attention package"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "production_live_blockers",
+        "last_seen_at": "2026-05-26T00:00:00+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "generated/read_models/floor_gap_reconciliation.json"
+        ],
+        "required_receipts": [
+          "rollback_disable_receipt_missing"
+        ],
+        "safe_next_move": "Keep live production authority off until real receipts exist.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "live_blocker:rollback_disable_receipt_missing",
+        "status": "NOT_ACTIVE"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "device trust live activation receipt missing",
+        "forbidden_actions": [
+          "enable live production authority from Helm attention package"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "production_live_blockers",
+        "last_seen_at": "2026-05-26T00:00:00+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "generated/read_models/floor_gap_reconciliation.json"
+        ],
+        "required_receipts": [
+          "device_trust_live_activation_receipt_missing"
+        ],
+        "safe_next_move": "Keep live production authority off until real receipts exist.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "live_blocker:device_trust_live_activation_receipt_missing",
+        "status": "NOT_ACTIVE"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "real lm1 production policy receipt missing",
+        "forbidden_actions": [
+          "enable live production authority from Helm attention package"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "production_live_blockers",
+        "last_seen_at": "2026-05-26T00:00:00+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "generated/read_models/floor_gap_reconciliation.json"
+        ],
+        "required_receipts": [
+          "real_lm1_production_policy_receipt_missing"
+        ],
+        "safe_next_move": "Keep live production authority off until real receipts exist.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "live_blocker:real_lm1_production_policy_receipt_missing",
+        "status": "NOT_ACTIVE"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "real lm2 production policy receipt missing",
+        "forbidden_actions": [
+          "enable live production authority from Helm attention package"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "production_live_blockers",
+        "last_seen_at": "2026-05-26T00:00:00+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "generated/read_models/floor_gap_reconciliation.json"
+        ],
+        "required_receipts": [
+          "real_lm2_production_policy_receipt_missing"
+        ],
+        "safe_next_move": "Keep live production authority off until real receipts exist.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "live_blocker:real_lm2_production_policy_receipt_missing",
+        "status": "NOT_ACTIVE"
+      },
+      {
+        "auto_fix_possible": false,
+        "display_name": "private/strict-private mode product switch",
+        "forbidden_actions": [
+          "enable live production authority from Helm attention package"
+        ],
+        "freshness": "current_read_model",
+        "lane_ref": "production_live_blockers",
+        "last_seen_at": "2026-05-26T00:00:00+00:00",
+        "operator_action_required": false,
+        "proof_refs": [
+          "generated/read_models/floor_gap_reconciliation.json"
+        ],
+        "required_receipts": [
+          "private/strict-private mode product switch"
+        ],
+        "safe_next_move": "Keep live production authority off until real receipts exist.",
+        "severity": "PROOF_ONLY",
+        "signal_ref": "live_blocker:private/strict-private mode product switch",
+        "status": "NOT_ACTIVE"
+      }
+    ],
+    "stale_signals": [],
+    "summary_only": true
+  },
+  "check_engine": {
+    "active_count": 6,
+    "auto_fix_possible": false,
+    "operator_action_required": true,
+    "operator_summary": "Check Engine needs attention.",
+    "primary_signal_ref": "primary:health_light:check_engine",
+    "proof_refs": [
+      "generated/read_models/system_health_lights_taxonomy.json",
+      "generated/read_models/operator_mission_priority_helm_declutter.json",
+      "generated/read_models/floor_gap_reconciliation.json"
+    ],
+    "safe_next_move": "Open Chief diagnostic/system health lane; do not run repair automatically.",
+    "status": "ACTION_REQUIRED",
+    "why_it_matters": "Helm should show only the issue the operator can decide, approve, correct, or understand now."
+  },
+  "connection_state": {
+    "bridge_healthy": true,
+    "openclaw_connected": true,
+    "operator_copy": "OpenClaw is connected.",
+    "proof_refs": [
+      "generated/read_models/request_response_bridge_readiness.json",
+      "generated/read_models/openclaw_request_response_service_status.json",
+      "generated/read_models/system_health_lights_taxonomy.json"
+    ],
+    "response_service_healthy": true
+  },
+  "generated_at": "2026-05-27T19:31:58+00:00",
+  "helm_mode": "CHAT_FIRST",
+  "hidden_or_collapsed_surfaces": [
+    {
+      "operator_action_required": false,
+      "proof_refs": [
+        "generated/read_models/agent_terrain_awareness_readback_contract.json"
+      ],
+      "reason": "Agent details are informational unless an agent lane needs operator review.",
+      "surface_ref": "agent_council",
+      "visibility": "COLLAPSED"
+    },
+    {
+      "operator_action_required": false,
+      "proof_refs": [
+        "generated/read_models/package_preview_receipt_contract.json"
+      ],
+      "reason": "Package previews help inspection, but they are not the default Helm issue.",
+      "surface_ref": "package_preview_bay",
+      "visibility": "COLLAPSED"
+    },
+    {
+      "operator_action_required": false,
+      "proof_refs": [
+        "generated/read_models/openclaw_map_manifest.json"
+      ],
+      "reason": "Current map proof is audit evidence, not primary operator work.",
+      "surface_ref": "stable_map_proof",
+      "visibility": "PROOF_ONLY"
+    },
+    {
+      "operator_action_required": false,
+      "proof_refs": [
+        "generated/read_models/security_pass_contract.json"
+      ],
+      "reason": "Security details stay available behind disclosure unless they require action.",
+      "surface_ref": "security_pass_details",
+      "visibility": "PROOF_ONLY"
+    },
+    {
+      "operator_action_required": false,
+      "proof_refs": [
+        "generated/read_models/operator_mission_priority_helm_declutter.json",
+        "generated/read_models/system_health_lights_taxonomy.json"
+      ],
+      "reason": "Receipts and proof are available when asked.",
+      "surface_ref": "proof_strip",
+      "visibility": "PROOF_ONLY"
+    },
+    {
+      "operator_action_required": false,
+      "proof_refs": [
+        "generated/read_models/floor_gap_reconciliation.json",
+        "generated/read_models/operator_readiness_surface.json"
+      ],
+      "reason": "Authority boundaries are proof shelf material unless violated.",
+      "surface_ref": "boundary_proof",
+      "visibility": "PROOF_ONLY"
+    },
+    {
+      "operator_action_required": false,
+      "proof_refs": [
+        "generated/read_models/lm_readiness_dashboard.json",
+        "generated/read_models/operator_readiness_surface.json"
+      ],
+      "reason": "Readiness internals are useful proof, not chat-first Helm copy.",
+      "surface_ref": "readiness_internals",
+      "visibility": "PROOF_ONLY"
+    },
+    {
+      "operator_action_required": false,
+      "proof_refs": [
+        "generated/read_models/operator_mission_priority_helm_declutter.json"
+      ],
+      "reason": "Helm receives a summary of signals instead of a full matrix wall.",
+      "surface_ref": "awareness_matrix_details",
+      "visibility": "COLLAPSED"
+    }
+  ],
+  "input_refs": {
+    "agent_council": "generated/read_models/agent_terrain_awareness_readback_contract.json",
+    "bridge": "generated/read_models/request_response_bridge_readiness.json",
+    "declutter": "generated/read_models/operator_mission_priority_helm_declutter.json",
+    "floor": "generated/read_models/floor_gap_reconciliation.json",
+    "gate1": "generated/read_models/gate1_operational_snapshot.json",
+    "gate2": "generated/read_models/intent_ingest_gate.json",
+    "gate3": "generated/read_models/role_package_gate.json",
+    "health": "generated/read_models/system_health_lights_taxonomy.json",
+    "lm_readiness": "generated/read_models/lm_readiness_dashboard.json",
+    "operator_surface": "generated/read_models/operator_readiness_surface.json",
+    "package_preview": "generated/read_models/package_preview_receipt_contract.json",
+    "request_response_service": "generated/read_models/openclaw_request_response_service_status.json",
+    "security_pass": "generated/read_models/security_pass_contract.json",
+    "stable_map": "generated/read_models/openclaw_map_manifest.json"
+  },
+  "machine_proof": {
+    "agent_council_not_primary_without_action": true,
+    "all_authority_boundary_false": true,
+    "awareness_matrix_summarized": true,
+    "backend_decides_operator_attention": true,
+    "chat_first_default": true,
+    "content_hash": "sha256:f5d46be25266656a4702415a0d67bee957fba139bbc622458629c5cc529298e1",
+    "external_action_performed": false,
+    "live_lm_call_performed": false,
+    "operator_copy_backend_sludge_free": true,
+    "primary_card_count": 1,
+    "primary_card_limit_respected": true,
+    "production_state_mutation_performed": false,
+    "proof_shelf_available": true,
+    "tool_execution_performed": false
+  },
+  "missing_upstream_fields": [
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "health_light:check_engine"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "health_light:check_transmission"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "health_light:low_fuel_low_battery"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "health_light:oil_pressure_coolant"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "health_light:brake_parking_brake"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "health_light:traction_control"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:current_mission_app_finish"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:system_awareness_discovery"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:agent_awareness_tracking"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:mission_control_visual_ux_app_finish"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:workbench_actor_host_registry"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:package_preview_detour_flow"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:design_memory_inventory"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:check_engine"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:check_transmission"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:resources"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:parking_brake"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:traction_control"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:worlds_teleport_targets"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:raw_contracts_receipts_long_paths"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:nested_lane_tree"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:live_execution_integrations"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:browser_oauth_account_workflows"
+    },
+    {
+      "derived_from": "status/severity/approval/auto_fix posture",
+      "missing_field": "operator_action_required",
+      "source_ref": "declutter:deep_domain_work"
+    }
+  ],
+  "operator_copy": {
+    "body": "Proof is available.",
+    "connection": "OpenClaw is connected.",
+    "empty_state": "No action needed.",
+    "headline": "Check Engine needs attention.",
+    "preferred_phrases": [
+      "OpenClaw is connected.",
+      "No action needed.",
+      "Action needs approval.",
+      "I need one more detail.",
+      "Proof is available.",
+      "Check Engine is quiet.",
+      "Check Engine needs attention."
+    ],
+    "safe_next_move": "Open Chief diagnostic/system health lane; do not run repair automatically."
+  },
+  "primary_cards": [
+    {
+      "actionability": "FIX_REQUIRED",
+      "button_suggestions": [
+        {
+          "button_ref": "review_issue",
+          "enables_action": false,
+          "label": "Review Issue",
+          "meaning": "Open the plain issue summary."
+        },
+        {
+          "button_ref": "view_proof",
+          "enables_action": false,
+          "label": "View Proof",
+          "meaning": "Show evidence behind this warning."
+        },
+        {
+          "button_ref": "not_now",
+          "enables_action": false,
+          "label": "Not now",
+          "meaning": "Leave this unchanged."
+        }
+      ],
+      "card_ref": "primary:health_light:check_engine",
+      "operator_summary": "Check Engine has a warning.",
+      "proof_refs": [
+        "generated/read_models/chief_check_engine_environment_posture.json",
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/bridge_trust_sync_truth.json",
+        "generated/read_models/sync_health.json"
+      ],
+      "safe_next_move": "Open Chief diagnostic/system health lane; do not run repair automatically.",
+      "severity": "WARNING",
+      "title": "Check Engine"
+    }
+  ],
+  "proof_shelf": [
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "declutter_policy",
+      "proof_ref": "generated/read_models/operator_mission_priority_helm_declutter.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "health_lights",
+      "proof_ref": "generated/read_models/system_health_lights_taxonomy.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "readiness_floor",
+      "proof_ref": "generated/read_models/floor_gap_reconciliation.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "lm_readiness",
+      "proof_ref": "generated/read_models/lm_readiness_dashboard.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "operator_readiness_surface",
+      "proof_ref": "generated/read_models/operator_readiness_surface.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "bridge_readiness",
+      "proof_ref": "generated/read_models/request_response_bridge_readiness.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "stable_map",
+      "proof_ref": "generated/read_models/openclaw_map_manifest.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "security_pass",
+      "proof_ref": "generated/read_models/security_pass_contract.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "package_preview",
+      "proof_ref": "generated/read_models/package_preview_receipt_contract.json"
+    },
+    {
+      "default_visibility": "PROOF_ONLY",
+      "proof_kind": "agent_council",
+      "proof_ref": "generated/read_models/agent_terrain_awareness_readback_contract.json"
+    }
+  ],
+  "read_model_id": "helm_operator_attention_package",
+  "schema_version": "helm_operator_attention_package_v0"
+}

@@ -1,0 +1,700 @@
+{
+  "ap_email_route_capture_block": {
+    "allowed_operator_answers": [
+      "confirm Annette.Sunga@hilton.com as AP recipient",
+      "enter different AP/email route",
+      "mark AP route unknown",
+      "use source card/protected reference",
+      "park for later"
+    ],
+    "block_id": "ap_email_route",
+    "confirmed_recipient": null,
+    "current_status": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+    "downstream_effects": [
+      "Email delivery readiness remains blocked until recipient route is confirmed",
+      "Approval packet can include candidate route but cannot mark send-ready",
+      "No Gmail access or draft creation occurs in this bridge"
+    ],
+    "email_route_candidates": [
+      {
+        "address": "Annette.Sunga@hilton.com",
+        "candidate_ref": "capital_hilton_annette_sunga_ap_candidate",
+        "candidate_status": "CANDIDATE_NEEDS_OPERATOR_CONFIRMATION",
+        "name": "Annette Sunga",
+        "role_or_reason": "generated AP/contact candidate needing confirmation"
+      },
+      {
+        "address": "Chyna.Hardin@hilton.com",
+        "candidate_ref": "capital_hilton_chyna_hardin_cc_candidate",
+        "candidate_status": "CANDIDATE_NEEDS_OPERATOR_CONFIRMATION",
+        "name": "Chyna Hardin",
+        "role_or_reason": "generated finance CC candidate needing confirmation"
+      },
+      {
+        "address": "lawrencevalcovic@hilton.com",
+        "candidate_ref": "capital_hilton_lawrence_valcovic_cc_candidate",
+        "candidate_status": "CANDIDATE_NEEDS_OPERATOR_CONFIRMATION",
+        "name": "Lawrence / Will Valcovic",
+        "role_or_reason": "generated CC/contact candidate needing confirmation"
+      }
+    ],
+    "next_safe_move": "Ask operator to confirm or replace AP/email route; do not access Gmail or send.",
+    "proof_reference_required": true,
+    "question_text": "Where should the Capital Hilton invoice be delivered by email, if email is allowed?",
+    "receipt_target": "delivery_receipt_target_ap_email_route_confirmation",
+    "required_confirmation": "Operator must confirm AP/email route before delivery readiness advances."
+  },
+  "artifact_readiness_source": {
+    "artifact_exists": true,
+    "artifact_hash": "sha256:a135264f8df31f762170ea53f50d74d44d08cfe1ee95dfc8fd318fad178970fc",
+    "artifact_path": "generated/finance_packets/capital_hilton_invoice_artifact_preview_v0/CAPITAL_HILTON_INVOICE_PREVIEW.md",
+    "artifact_ref_or_readiness_ref": "capital_hilton_invoice_artifact_candidate_markdown_preview_four_show",
+    "artifact_status": "GENERATED_LOCAL_PREVIEW"
+  },
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "all_external_authority_false": true,
+    "approval_submission_allowed": false,
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "local_delivery_fact_write_allowed": false,
+    "local_generated_read_models_allowed": true,
+    "local_receipt_target_modeling_allowed": true,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "protected_evidence_reference_modeling_allowed": true,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "telegram_send_allowed": false,
+    "tests_allowed": true,
+    "tool_execution_allowed": false
+  },
+  "contract_status": "DELIVERY_FACTS_CAPTURE_READINESS_ONLY",
+  "current_captured_invoice_state": {
+    "external_action_performed": false,
+    "performance_dates": [
+      "2026-05-08",
+      "2026-05-15",
+      "2026-05-22",
+      "2026-05-29"
+    ],
+    "rate_per_show": {
+      "amount": 400,
+      "currency": "USD",
+      "display": "$400/show",
+      "unit": "show"
+    },
+    "show_count": 4,
+    "subtotal": {
+      "amount": 1600,
+      "calculation": "4 shows x $400/show",
+      "currency": "USD"
+    },
+    "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+  },
+  "delivery_facts_capture_bridge": {
+    "ap_email_route_posture": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+    "artifact_ref_or_readiness_ref": "capital_hilton_invoice_artifact_candidate_markdown_preview_four_show",
+    "bridge_id": "capital_hilton_guided_delivery_facts_capture_bridge_v0",
+    "capture_blocks": [
+      "proof_po_reference",
+      "ap_email_route",
+      "protected_evidence_reference"
+    ],
+    "current_delivery_status": "ARTIFACT_PREVIEW_READY_DELIVERY_FACTS_BLOCKED",
+    "invoice_packet_ref": "capital_hilton_invoice_packet_four_show_local_capture",
+    "next_safe_move": "Ask for delivery facts and protected references; keep external delivery locked.",
+    "po_coupa_posture": "NEEDS_DISCOVERY",
+    "protected_evidence_posture": "PROTECTED_REFERENCE_REQUIRED_FOR_PO_OR_AP_PROOF",
+    "supported_capture_methods": [
+      "operator_text_confirmation",
+      "protected_evidence_reference_metadata",
+      "source_card_reference",
+      "guided_discovery_request",
+      "park_unresolved_block"
+    ],
+    "unsupported_external_actions": [
+      "Coupa login",
+      "browser automation",
+      "Gmail access",
+      "email send",
+      "approval submission",
+      "credential handling",
+      "raw screenshot or email body ingestion"
+    ],
+    "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+  },
+  "delivery_facts_readiness": {
+    "ap_email_route_status": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+    "approval_readiness": "BLOCKED_DELIVERY_FACTS_UNRESOLVED",
+    "artifact_ref_or_readiness_ref": "capital_hilton_invoice_artifact_candidate_markdown_preview_four_show",
+    "coupa_submission_readiness": "BLOCKED_PO_COUPA_REFERENCE_AND_PROTECTED_ACCESS_UNRESOLVED",
+    "email_delivery_readiness": "BLOCKED_AP_ROUTE_NOT_CONFIRMED_AND_SEND_GATE_LOCKED",
+    "invoice_packet_ref": "capital_hilton_invoice_packet_four_show_local_capture",
+    "next_safe_move": "Render delivery-fact capture blocks; capture operator-confirmed facts later through a narrow writer.",
+    "po_coupa_status": "NEEDS_DISCOVERY",
+    "protected_evidence_status": "PROTECTED_REFERENCE_REQUIRED_FOR_PO_OR_AP_PROOF",
+    "readiness_id": "capital_hilton_delivery_facts_readiness_v0",
+    "remaining_blockers": [
+      "Invoice artifact/readiness status: GENERATED_LOCAL_PREVIEW",
+      "PO/Coupa/payment reference posture unresolved",
+      "AP/email route candidates require operator confirmation",
+      "Protected evidence references must be metadata-only and may require Guardian review",
+      "Email send and Coupa submit remain external gates"
+    ]
+  },
+  "delivery_facts_receipt_targets": [
+    {
+      "capture_block_ref": "proof_po_reference",
+      "current_external_authority": false,
+      "current_write_authority": false,
+      "intended_state_update": {
+        "coupa_access_performed": false,
+        "po_coupa_posture": "NEEDS_DISCOVERY",
+        "proof_still_required": true
+      },
+      "next_safe_move": "Future writer may record posture after validation; this contract only defines target.",
+      "proof_refs": [
+        "coupa_po_payment_reference_metadata"
+      ],
+      "protected_reference_refs": [
+        "protected_reference_target_coupa_po_screen"
+      ],
+      "receipt_target_id": "delivery_receipt_target_po_coupa_discovery_posture",
+      "receipt_type": "DISCOVERY_REQUIRED_RECEIPT",
+      "required_guardian_review": true,
+      "required_validation": [
+        "supported PO/Coupa posture",
+        "no protected body content",
+        "operator confirmation"
+      ]
+    },
+    {
+      "capture_block_ref": "proof_po_reference",
+      "current_external_authority": false,
+      "current_write_authority": false,
+      "intended_state_update": {
+        "coupa_access_performed": false,
+        "po_coupa_posture": "NO_PO_KNOWN_PENDING_PROOF",
+        "proof_still_required": true
+      },
+      "next_safe_move": "Future writer may record explicit no-PO-known posture without accessing Coupa.",
+      "proof_refs": [
+        "operator_confirmation_metadata"
+      ],
+      "protected_reference_refs": [],
+      "receipt_target_id": "delivery_receipt_target_no_po_known",
+      "receipt_type": "OPERATOR_NO_PO_KNOWN_POSTURE",
+      "required_guardian_review": false,
+      "required_validation": [
+        "operator confirmation",
+        "proof_still_required remains true"
+      ]
+    },
+    {
+      "capture_block_ref": "proof_po_reference",
+      "current_external_authority": false,
+      "current_write_authority": false,
+      "intended_state_update": {
+        "po_coupa_posture": "COUPA_REQUIRED_UNKNOWN",
+        "proof_still_required": true,
+        "submit_blocker": "Coupa route unresolved"
+      },
+      "next_safe_move": "Keep Coupa submission blocked until protected-access lane resolves.",
+      "proof_refs": [
+        "coupa_po_payment_reference_metadata"
+      ],
+      "protected_reference_refs": [
+        "protected_reference_target_coupa_po_screen"
+      ],
+      "receipt_target_id": "delivery_receipt_target_coupa_required_unknown",
+      "receipt_type": "OPERATOR_COUPA_REQUIRED_UNKNOWN",
+      "required_guardian_review": true,
+      "required_validation": [
+        "operator confirmation",
+        "protected access not performed"
+      ]
+    },
+    {
+      "capture_block_ref": "ap_email_route",
+      "current_external_authority": false,
+      "current_write_authority": false,
+      "intended_state_update": {
+        "ap_email_route_posture": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+        "confirmed_recipient": null,
+        "email_send_allowed": false
+      },
+      "next_safe_move": "Future writer may record confirmed AP route; email send remains separately gated.",
+      "proof_refs": [
+        "ap_recipient_route_metadata"
+      ],
+      "protected_reference_refs": [
+        "protected_reference_target_ap_email_route"
+      ],
+      "receipt_target_id": "delivery_receipt_target_ap_email_route_confirmation",
+      "receipt_type": "OPERATOR_AP_EMAIL_ROUTE_CONFIRMATION",
+      "required_guardian_review": false,
+      "required_validation": [
+        "operator confirmed recipient",
+        "no email body content",
+        "send remains gated"
+      ]
+    },
+    {
+      "capture_block_ref": "protected_evidence_reference",
+      "current_external_authority": false,
+      "current_write_authority": false,
+      "intended_state_update": {
+        "guardian_review_required": true,
+        "normal_read_model_body_allowed": false,
+        "protected_reference_recorded": true
+      },
+      "next_safe_move": "Future protected reference writer can store metadata-only reference after validation.",
+      "proof_refs": [
+        "protected_reference_metadata"
+      ],
+      "protected_reference_refs": [
+        "protected_reference_target_coupa_po_screen",
+        "protected_reference_target_ap_email_route",
+        "protected_reference_target_email_thread"
+      ],
+      "receipt_target_id": "delivery_receipt_target_protected_evidence_reference",
+      "receipt_type": "PROTECTED_EVIDENCE_REFERENCE_RECEIPT",
+      "required_guardian_review": true,
+      "required_validation": [
+        "metadata only",
+        "hash/path if file-backed",
+        "redaction posture"
+      ]
+    }
+  ],
+  "examples": {
+    "ap_email_route_candidate_needs_confirmation": {
+      "candidate": "Annette.Sunga@hilton.com",
+      "current_status": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+      "external_access": "No Gmail access or email send.",
+      "required_operator_action": "Confirm recipient or provide replacement AP route."
+    },
+    "delivery_readiness_after_facts_captured": {
+      "coupa_posture": "blocked until protected access and PO/reference posture resolve",
+      "if_ap_confirmed_and_artifact_exists": "email draft readiness may advance in a future gated lane",
+      "if_po_or_ap_unresolved": "delivery remains blocked"
+    },
+    "operator_text_confirmation": {
+      "allowed_confirmation_examples": [
+        "No PO known pending proof",
+        "AP route confirmed as operator-provided address"
+      ],
+      "external_send": false,
+      "proof_still_possible": true
+    },
+    "po_unknown_needs_discovery": {
+      "current_status": "NEEDS_DISCOVERY",
+      "expected_readiness": "Coupa submission remains blocked.",
+      "external_access": "No Coupa access, browser automation, or credential handling.",
+      "operator_choices": [
+        "enter PO/reference",
+        "mark no PO known pending proof",
+        "prepare guided Coupa/AP discovery",
+        "park for later"
+      ]
+    },
+    "protected_coupa_screen_reference": {
+      "allowed_capture": "metadata/path/hash/protected ref only",
+      "guardian_review_required": true,
+      "normal_read_model_body_allowed": false,
+      "target_kind": "COUPA_PO_SCREEN_REFERENCE"
+    }
+  },
+  "generated_at": "2026-05-24T05:05:04+00:00",
+  "machine_proof": {
+    "all_external_authority_false": true,
+    "ap_email_route_capture_block_exists": true,
+    "ap_route_candidate_confirmation_example_exists": true,
+    "content_hash": "sha256:830b57ef9dc3a219f9a9bd512d9ef4a80a74a6b4299d9cc980875239d4c5ed11",
+    "credential_material_included": false,
+    "credentials_cookies_tokens_forbidden": true,
+    "current_write_flags_false": true,
+    "delivery_facts_readiness_exists": true,
+    "delivery_facts_receipt_target_exists": true,
+    "email_coupa_readiness_blocked_when_required_facts_missing": true,
+    "guardian_review_required_for_protected_evidence": true,
+    "normal_read_model_excludes_protected_body_content": true,
+    "operator_text_confirmation_example_exists": true,
+    "po_coupa_capture_block_exists": true,
+    "po_unknown_needs_discovery_example_exists": true,
+    "protected_body_content_included": false,
+    "protected_coupa_reference_example_exists": true,
+    "protected_evidence_reference_target_exists": true,
+    "raw_screenshot_or_email_body_included": false
+  },
+  "model_schemas": {
+    "ap_email_route_capture_block": {
+      "allowed_postures": [
+        "AP_EMAIL_CONFIRMED",
+        "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+        "AP_ROUTE_UNKNOWN",
+        "AP_ROUTE_PROTECTED_REFERENCE_REQUIRED",
+        "NEEDS_DISCOVERY",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "model_name": "CapitalHiltonAPEmailRouteCaptureBlock",
+      "required_fields": [
+        "block_id",
+        "current_status",
+        "question_text",
+        "allowed_operator_answers",
+        "email_route_candidates",
+        "confirmed_recipient",
+        "required_confirmation",
+        "proof_reference_required",
+        "receipt_target",
+        "downstream_effects",
+        "next_safe_move"
+      ]
+    },
+    "delivery_facts_capture_bridge": {
+      "model_name": "CapitalHiltonDeliveryFactsCaptureBridge",
+      "required_fields": [
+        "bridge_id",
+        "workflow_session_ref",
+        "invoice_packet_ref",
+        "artifact_ref_or_readiness_ref",
+        "current_delivery_status",
+        "po_coupa_posture",
+        "ap_email_route_posture",
+        "protected_evidence_posture",
+        "capture_blocks",
+        "supported_capture_methods",
+        "unsupported_external_actions",
+        "next_safe_move"
+      ]
+    },
+    "delivery_facts_readiness": {
+      "model_name": "CapitalHiltonDeliveryFactsReadiness",
+      "required_fields": [
+        "readiness_id",
+        "invoice_packet_ref",
+        "artifact_ref_or_readiness_ref",
+        "po_coupa_status",
+        "ap_email_route_status",
+        "protected_evidence_status",
+        "email_delivery_readiness",
+        "coupa_submission_readiness",
+        "approval_readiness",
+        "remaining_blockers",
+        "next_safe_move"
+      ]
+    },
+    "delivery_facts_receipt_target": {
+      "model_name": "CapitalHiltonDeliveryFactsReceiptTarget",
+      "receipt_types": [
+        "OPERATOR_PO_REFERENCE_CAPTURE",
+        "OPERATOR_NO_PO_KNOWN_POSTURE",
+        "OPERATOR_COUPA_REQUIRED_UNKNOWN",
+        "OPERATOR_AP_EMAIL_ROUTE_CONFIRMATION",
+        "PROTECTED_EVIDENCE_REFERENCE_RECEIPT",
+        "DISCOVERY_REQUIRED_RECEIPT",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "receipt_target_id",
+        "capture_block_ref",
+        "receipt_type",
+        "intended_state_update",
+        "proof_refs",
+        "protected_reference_refs",
+        "required_validation",
+        "required_guardian_review",
+        "current_write_authority",
+        "current_external_authority",
+        "next_safe_move"
+      ]
+    },
+    "po_coupa_capture_block": {
+      "allowed_postures": [
+        "PO_REFERENCE_KNOWN",
+        "COUPA_REFERENCE_KNOWN",
+        "NO_PO_KNOWN_PENDING_PROOF",
+        "COUPA_REQUIRED_UNKNOWN",
+        "NEEDS_DISCOVERY",
+        "PROTECTED_ACCESS_REQUIRED",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "model_name": "CapitalHiltonPOCoupaCaptureBlock",
+      "required_fields": [
+        "block_id",
+        "current_status",
+        "question_text",
+        "allowed_operator_answers",
+        "supported_capture_paths",
+        "protected_evidence_required",
+        "required_fields",
+        "known_fields",
+        "missing_fields",
+        "receipt_target",
+        "guardian_review_required",
+        "downstream_effects",
+        "next_safe_move"
+      ]
+    },
+    "protected_evidence_reference_target": {
+      "model_name": "CapitalHiltonProtectedEvidenceReferenceTarget",
+      "required_fields": [
+        "protected_reference_id",
+        "target_kind",
+        "source_hint",
+        "allowed_metadata",
+        "forbidden_material",
+        "hash_required",
+        "path_required_if_file",
+        "redaction_required",
+        "guardian_review_required",
+        "normal_read_model_body_allowed",
+        "receipt_target",
+        "next_safe_move"
+      ],
+      "target_kinds": [
+        "COUPA_PO_SCREEN_REFERENCE",
+        "AP_EMAIL_ROUTE_REFERENCE",
+        "EMAIL_THREAD_REFERENCE",
+        "SOURCE_CARD_REFERENCE",
+        "OPERATOR_TEXT_CONFIRMATION",
+        "UNKNOWN_FAIL_CLOSED"
+      ]
+    }
+  },
+  "operator_summary": "Capital Hilton has captured invoice dates/rate and a local invoice preview rail. This bridge defines the remaining delivery-fact capture blocks for PO/Coupa, AP/email route, and protected evidence references without accessing external systems.",
+  "po_coupa_capture_block": {
+    "allowed_operator_answers": [
+      "enter PO/reference",
+      "enter Coupa/payment reference",
+      "mark no PO known pending proof",
+      "mark Coupa required unknown",
+      "prepare guided Coupa/AP discovery",
+      "park for later"
+    ],
+    "block_id": "proof_po_reference",
+    "current_status": "NEEDS_DISCOVERY",
+    "downstream_effects": [
+      "Coupa submission readiness remains blocked until PO/Coupa posture resolves",
+      "approval readiness remains blocked until delivery route and proof posture are coherent",
+      "email delivery may proceed only after AP route, artifact, and approval gates resolve"
+    ],
+    "guardian_review_required": true,
+    "known_fields": {
+      "captured_performance_dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "captured_rate_per_show": {
+        "amount": 400,
+        "currency": "USD",
+        "display": "$400/show",
+        "unit": "show"
+      },
+      "captured_subtotal": {
+        "amount": 1600,
+        "calculation": "4 shows x $400/show",
+        "currency": "USD"
+      },
+      "client": "Capital Hilton",
+      "invoice_artifact_preview_ref": "capital_hilton_invoice_artifact_candidate_markdown_preview_four_show"
+    },
+    "missing_fields": [
+      "confirmed PO/reference",
+      "confirmed Coupa required/not-required posture",
+      "protected proof/reference metadata"
+    ],
+    "next_safe_move": "Ask operator for PO/Coupa posture or create a protected evidence reference target; do not access Coupa.",
+    "protected_evidence_required": true,
+    "question_text": "What should OpenClaw record for Capital Hilton PO/Coupa/payment reference?",
+    "receipt_target": "delivery_receipt_target_po_coupa_discovery_posture",
+    "required_fields": [
+      "po_or_coupa_posture",
+      "operator decision or protected evidence reference",
+      "proof posture after capture"
+    ],
+    "supported_capture_paths": [
+      "operator_text_confirmation",
+      "source_card_reference",
+      "protected_coupa_po_screen_reference",
+      "guided_discovery_request",
+      "park_unresolved_block"
+    ]
+  },
+  "protected_evidence_reference_targets": [
+    {
+      "allowed_metadata": [
+        "workflow_session_ref",
+        "target_kind",
+        "redacted_source_label",
+        "source_card_ref_or_file_ref",
+        "sha256 hash when file-backed",
+        "protected_storage_ref if available",
+        "operator supplied note"
+      ],
+      "forbidden_material": [
+        "image bytes",
+        "base64 payloads",
+        "email message contents",
+        "credential fields",
+        "session cookies",
+        "access tokens",
+        "bank/tax/remit/private material"
+      ],
+      "guardian_review_required": true,
+      "hash_required": true,
+      "next_safe_move": "Capture only metadata/path/hash/protected ref; no Coupa login or screenshot body ingestion.",
+      "normal_read_model_body_allowed": false,
+      "path_required_if_file": true,
+      "protected_reference_id": "protected_reference_target_coupa_po_screen",
+      "receipt_target": "delivery_receipt_target_protected_coupa_reference",
+      "redaction_required": true,
+      "source_hint": "A redacted Coupa screen/file reference may prove PO/payment reference posture.",
+      "target_kind": "COUPA_PO_SCREEN_REFERENCE"
+    },
+    {
+      "allowed_metadata": [
+        "workflow_session_ref",
+        "target_kind",
+        "redacted_source_label",
+        "source_card_ref_or_file_ref",
+        "sha256 hash when file-backed",
+        "protected_storage_ref if available",
+        "operator supplied note"
+      ],
+      "forbidden_material": [
+        "image bytes",
+        "base64 payloads",
+        "email message contents",
+        "credential fields",
+        "session cookies",
+        "access tokens",
+        "bank/tax/remit/private material"
+      ],
+      "guardian_review_required": true,
+      "hash_required": true,
+      "next_safe_move": "Capture route proof metadata only; no Gmail access or email body ingestion.",
+      "normal_read_model_body_allowed": false,
+      "path_required_if_file": true,
+      "protected_reference_id": "protected_reference_target_ap_email_route",
+      "receipt_target": "delivery_receipt_target_protected_ap_route_reference",
+      "redaction_required": true,
+      "source_hint": "A source-card or protected reference may back the AP route decision.",
+      "target_kind": "AP_EMAIL_ROUTE_REFERENCE"
+    },
+    {
+      "allowed_metadata": [
+        "workflow_session_ref",
+        "target_kind",
+        "redacted_source_label",
+        "source_card_ref_or_file_ref",
+        "sha256 hash when file-backed",
+        "protected_storage_ref if available",
+        "operator supplied note"
+      ],
+      "forbidden_material": [
+        "image bytes",
+        "base64 payloads",
+        "email message contents",
+        "credential fields",
+        "session cookies",
+        "access tokens",
+        "bank/tax/remit/private material"
+      ],
+      "guardian_review_required": true,
+      "hash_required": true,
+      "next_safe_move": "Capture thread/source ref metadata only; no Gmail API or message body access.",
+      "normal_read_model_body_allowed": false,
+      "path_required_if_file": false,
+      "protected_reference_id": "protected_reference_target_email_thread",
+      "receipt_target": "delivery_receipt_target_protected_email_thread_reference",
+      "redaction_required": true,
+      "source_hint": "A protected email-thread reference may identify AP route without exposing message contents.",
+      "target_kind": "EMAIL_THREAD_REFERENCE"
+    },
+    {
+      "allowed_metadata": [
+        "workflow_session_ref",
+        "source_card_ref",
+        "proof_item_id",
+        "redacted source label",
+        "operator supplied note"
+      ],
+      "forbidden_material": [
+        "image bytes",
+        "base64 payloads",
+        "email message contents",
+        "credential fields",
+        "session cookies",
+        "access tokens",
+        "bank/tax/remit/private material"
+      ],
+      "guardian_review_required": false,
+      "hash_required": false,
+      "next_safe_move": "Link existing source-card reference only.",
+      "normal_read_model_body_allowed": false,
+      "path_required_if_file": false,
+      "protected_reference_id": "protected_reference_target_source_card",
+      "receipt_target": "delivery_receipt_target_source_card_reference",
+      "redaction_required": false,
+      "source_hint": "An existing source card may support PO/AP posture without exposing protected contents.",
+      "target_kind": "SOURCE_CARD_REFERENCE"
+    },
+    {
+      "allowed_metadata": [
+        "workflow_session_ref",
+        "operator_confirmation_label",
+        "confirmation_value",
+        "proof_still_required flag"
+      ],
+      "forbidden_material": [
+        "image bytes",
+        "base64 payloads",
+        "email message contents",
+        "credential fields",
+        "session cookies",
+        "access tokens",
+        "bank/tax/remit/private material"
+      ],
+      "guardian_review_required": false,
+      "hash_required": false,
+      "next_safe_move": "Capture structured operator confirmation later through a delivery-facts writer.",
+      "normal_read_model_body_allowed": false,
+      "path_required_if_file": false,
+      "protected_reference_id": "protected_reference_target_operator_text_confirmation",
+      "receipt_target": "delivery_receipt_target_operator_text_confirmation",
+      "redaction_required": false,
+      "source_hint": "Operator may explicitly confirm no PO known or confirm AP route as a structured fact.",
+      "target_kind": "OPERATOR_TEXT_CONFIRMATION"
+    }
+  ],
+  "read_model_id": "capital_hilton_delivery_facts_capture_bridge",
+  "relationship_to_existing_contracts": {
+    "bridge_routing_operator_attention_contract": "Finance World route, not Helm troubleshooting",
+    "capital_hilton_coupa_po_retrieval_automation_candidate": "future Coupa/PO discovery automation candidate; no authority here",
+    "capital_hilton_invoice_artifact_generator": "provides local artifact preview/readiness source",
+    "capital_hilton_invoice_delivery_steel_thread": "names delivery rails and external blockers",
+    "capital_hilton_protected_proof_intake": "upstream protected proof metadata posture",
+    "guided_capture_protected_evidence_path_contract": "source posture for metadata-only protected references",
+    "mission_control_capture_request_intake": "pattern for future bounded capture requests",
+    "operator_question_assist_scope_expansion_contract": "can explain PO/Coupa/AP terms without hiding jargon",
+    "workflow_block_intent_live_draft_contract": "delivery fact blocks can later become live drafts"
+  },
+  "schema_version": "capital_hilton_delivery_facts_capture_bridge_v0",
+  "writer_posture": {
+    "actual_local_receipt_state_write_performed": false,
+    "existing_safe_writer_for_delivery_facts_found": false,
+    "follow_up_writer_lane_required": "Add a narrow delivery-facts writer for proof_po_reference and ap_email_route only after Mission Control emits structured operator-confirmed capture requests."
+  }
+}

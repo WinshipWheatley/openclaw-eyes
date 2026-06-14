@@ -1,0 +1,1041 @@
+{
+  "access_classes": [
+    "CUSTOMER_ADMIN",
+    "CUSTOMER_OPERATOR",
+    "WINSHIP_DEVELOPER",
+    "WINSHIP_OPERATOR"
+  ],
+  "authority_boundary": {
+    "agent_activation_performed": false,
+    "approval_submission_performed": false,
+    "device_credential_handoff_performed": false,
+    "device_network_access_performed": false,
+    "email_polling_performed": false,
+    "invoice_generation_performed": false,
+    "ledger_mutation_performed": false,
+    "live_model_execution_performed": false,
+    "location_polling_performed": false,
+    "model_call_performed": false,
+    "network_access_performed": false,
+    "phone_sensor_access_performed": false,
+    "production_mutation_performed": false,
+    "runtime_activation_performed": false,
+    "tool_execution_performed": false,
+    "workbook_cell_read_performed": false
+  },
+  "charter_rows": [
+    {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Calendar event exists and is marked paid, and module is enabled.",
+      "approval_required_actions": [
+        "enable_gig_location_tracking_receipt",
+        "customer_module_pause_request"
+      ],
+      "automatic_actions_allowed": [
+        "start_prep_reminders",
+        "capture_checkin_checkout_proof",
+        "capture_mileage_snippet",
+        "mark_invoice_line_candidates_ready"
+      ],
+      "channel_support": [
+        "APP",
+        "CLI",
+        "TASK_QUEUE"
+      ],
+      "charter_ref": "charter_gig_manager_v0",
+      "creep_boundary": "No background geofencing or all-day behavior outside explicit gig windows.",
+      "customer_visible_summary": "This module checks location only during scheduled gig windows for check-in and mileage proof.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "calendar_events",
+        "invoice_state"
+      ],
+      "default_enabled": true,
+      "derived_proof_retention": "Keep proof-ready location/time snippets for 18 months minimum.",
+      "desired_outcomes": [
+        "Only check location during scheduled gig windows.",
+        "Capture arrival and mileage proof for finance and logistics evidence.",
+        "Surface missing-prep steps without exposing unrelated personal patterns."
+      ],
+      "developer_visible_summary": "Gig automation is event-window-only and proof-gated.",
+      "forbidden_actions": [
+        "all_day_or_continuous_location_tracking",
+        "infer_private_life_context"
+      ],
+      "forbidden_inferences": [
+        "daily_route patterning outside gig windows",
+        "relationship inference outside gig context"
+      ],
+      "inspect_path": "modules/gig_manager/inspect_gig_window_proof",
+      "module_ref": "gig_manager",
+      "observation_trigger": "Calendar event start and finish for the active gig.",
+      "observation_window": "Within each scheduled gig event window only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Keep the automation narrow to active gig work.",
+      "pause_path": "modules/gig_manager/pause_gig_tracking",
+      "privacy_class": "low_private_work_data",
+      "proof_receipts": [
+        "gig_window_approval_receipt",
+        "location_proof_receipt",
+        "mileage_proof_receipt"
+      ],
+      "purpose": "Track scheduled gigs, prep requirements, location proof, and invoice readiness.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "No permanent raw GPS retention by default.",
+      "revoke_path": "modules/gig_manager/revoke_gig_window_access",
+      "risk_level": "medium",
+      "sensors_allowed": [
+        "phone_location_point"
+      ],
+      "workflow_ref": "gig_manager_workflow",
+      "world_ref": "operations"
+    },
+    {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "A workflow has an active gig reference and module is enabled.",
+      "approval_required_actions": [
+        "enable_gig_outfit_workflow_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "send_outfit_reminder",
+        "mark_wash_task_ready",
+        "request_hang_task_completion"
+      ],
+      "channel_support": [
+        "APP",
+        "CLI"
+      ],
+      "charter_ref": "charter_gig_outfit_laundry_v0",
+      "creep_boundary": "Only outfit tasks tied to a specific gig workflow id.",
+      "customer_visible_summary": "This module can remind for wash/dry/hang steps and mark gig clothing as ready.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "outfit_task_list",
+        "washer_dryer_integration"
+      ],
+      "default_enabled": true,
+      "derived_proof_retention": "Keep proof references for readiness and invoice traceability.",
+      "desired_outcomes": [
+        "Two-day reminder before gigs.",
+        "Use integrated washer/dryer state for outfit prep.",
+        "Avoid tracking beyond gig prep tasks and workflow scopes."
+      ],
+      "developer_visible_summary": "Outfit automation is scoped by workflow and approved integrations only.",
+      "forbidden_actions": [
+        "judge_habitual_laundry_patterns",
+        "track_clothing_choices_outside_gig_scope"
+      ],
+      "forbidden_inferences": [
+        "household_routine_inference",
+        "long_term_preference_profileing"
+      ],
+      "inspect_path": "modules/gig_outfit/inspect_outfit_readiness",
+      "module_ref": "gig_outfit",
+      "observation_trigger": "Active gig-prep workflow step opens.",
+      "observation_window": "Two-day pre-gig prep lookback and active gig-prep session only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Reduce last-minute misses without turning laundry into profiling.",
+      "pause_path": "modules/gig_outfit/pause_outfit_tracking",
+      "privacy_class": "minimal_private_work_data",
+      "proof_receipts": [
+        "outfit_prep_ready_receipt",
+        "washer_dryer_state_receipt",
+        "task_completion_receipt"
+      ],
+      "purpose": "Prepare stage/gig clothing and keep outfit logistics bounded.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Keep only task states and state-change timestamps for 30 days.",
+      "revoke_path": "modules/gig_outfit/revoke_outfit_sources",
+      "risk_level": "low",
+      "sensors_allowed": [
+        "outfit_task_state"
+      ],
+      "workflow_ref": "gig_outfit_workflow",
+      "world_ref": "operations"
+    },
+    {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Invoice workflow is active and module is enabled.",
+      "approval_required_actions": [
+        "invoice_send_receipt",
+        "invoice_ready_receipt",
+        "payment_status_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "stage_invoice_for_review",
+        "watch_scoped_threads_for_reply",
+        "mark_payment_watch_ready"
+      ],
+      "channel_support": [
+        "APP",
+        "EMAIL",
+        "CLI"
+      ],
+      "charter_ref": "charter_invoice_manager_v0",
+      "creep_boundary": "Only scoped invoice data and workflow messages. No general mailbox mining.",
+      "customer_visible_summary": "This module tracks scoped invoice workflow states and payment watch after proof.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "invoice_state",
+        "invoice_thread_state"
+      ],
+      "default_enabled": true,
+      "derived_proof_retention": "Keep invoice proof receipts for 12 months.",
+      "desired_outcomes": [
+        "Track invoice state with scoped thread-safe updates.",
+        "Capture payment watch and readiness after send proof.",
+        "Keep actions receipt-gated and ledger-safe."
+      ],
+      "developer_visible_summary": "No sent/paid mutation without explicit receipts.",
+      "forbidden_actions": [
+        "mark_sent_without_receipt",
+        "mark_paid_without_receipt",
+        "mutate_ledger_silently"
+      ],
+      "forbidden_inferences": [
+        "infer_cashflow_capacity_from_unrelated_threads",
+        "infer_client_financial_behavior_without_context"
+      ],
+      "inspect_path": "modules/invoice_manager/inspect_invoice_receipts",
+      "module_ref": "invoice_manager",
+      "observation_trigger": "Invoice draft and workflow state transitions.",
+      "observation_window": "Only while invoice workflow steps are active.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Keep billing automation useful and scoped.",
+      "pause_path": "modules/invoice_manager/pause_invoice_automation",
+      "privacy_class": "finance_scope_metadata",
+      "proof_receipts": [
+        "invoice_workflow_receipt",
+        "manual_send_proof_receipt",
+        "payment_watch_receipt"
+      ],
+      "purpose": "Generate, send, and watch invoice states with explicit receipts.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Retain workflow proof for audit windows only.",
+      "revoke_path": "modules/invoice_manager/revoke_invoice_receipt_access",
+      "risk_level": "low",
+      "sensors_allowed": [
+        "workflow_state_sensor"
+      ],
+      "workflow_ref": "invoice_manager_workflow",
+      "world_ref": "finance"
+    },
+    {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Clara-owned thread and module enabled.",
+      "approval_required_actions": [
+        "guardian_approval",
+        "send_approval_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "watch_clara_owned_threads",
+        "route_offer_adoption_actions",
+        "await_guardian_approval_before_send"
+      ],
+      "channel_support": [
+        "APP",
+        "EMAIL",
+        "CLI"
+      ],
+      "charter_ref": "charter_client_comms_clara_v0",
+      "creep_boundary": "Only explicit thread IDs and owned thread members. No full mailbox scans.",
+      "customer_visible_summary": "This module watches only the approved Clara-owned threads and asks for approval before sending.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "clara_owned_threads",
+        "scoped_message_headers"
+      ],
+      "default_enabled": true,
+      "derived_proof_retention": "Store approvals and thread state receipts for handoff.",
+      "desired_outcomes": [
+        "Watch only Clara-owned invoice threads.",
+        "Draft with guarded pre-send approvals.",
+        "Support outside-thread adoption offers without mailbox scans."
+      ],
+      "developer_visible_summary": "Comms automation is limited to explicit ownership plus approvals.",
+      "forbidden_actions": [
+        "auto_reply_outside_owned_thread",
+        "read_all_client_email_as_surveillance",
+        "invent_contact_or_sender_data"
+      ],
+      "forbidden_inferences": [
+        "general_client_behavior_inference",
+        "private_thread_preference_modeling"
+      ],
+      "inspect_path": "modules/client_comms/inspect_thread_scope",
+      "module_ref": "client_comms",
+      "observation_trigger": "Incoming event in Clara-owned scope.",
+      "observation_window": "Scoped thread-window context only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Keep communication automation scoped to owned threads and explicit approvals.",
+      "pause_path": "modules/client_comms/pause_thread_watch",
+      "privacy_class": "client_ops_thread_scope",
+      "proof_receipts": [
+        "thread_watch_receipt",
+        "guardian_approval_receipt",
+        "send_readiness_receipt"
+      ],
+      "purpose": "Draft and respond inside owned client threads while blocking broad inference.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Store only scoped headers and proof refs, no full thread bodies by default.",
+      "revoke_path": "modules/client_comms/revoke_thread_access",
+      "risk_level": "medium",
+      "sensors_allowed": [
+        "thread_membership_sensor"
+      ],
+      "workflow_ref": "client_comms_workflow",
+      "world_ref": "client_ops"
+    },
+    {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Gig proof request inside an active event window.",
+      "approval_required_actions": [
+        "explicit_location_purpose_receipt",
+        "explicit_window_receipt",
+        "explicit_retention_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "capture_arrival_point",
+        "capture_mileage_snippet",
+        "emit_proof_receipt"
+      ],
+      "channel_support": [
+        "APP",
+        "CLI"
+      ],
+      "charter_ref": "charter_phone_location_proof_v0",
+      "creep_boundary": "Only with explicit event window + purpose token. No ambient traces.",
+      "customer_visible_summary": "This module uses location for arrival/check-in proof only during declared event windows.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "phone_location",
+        "event_reference"
+      ],
+      "default_enabled": false,
+      "derived_proof_retention": "Keep derived proof token for 7 days and finance review copy for audit window.",
+      "desired_outcomes": [
+        "Create event-window, purpose-gated location proof.",
+        "Store derived proof while minimizing raw telemetry.",
+        "Enable manual fallback when proof cannot be produced safely."
+      ],
+      "developer_visible_summary": "No default background tracking. Requires purpose token and retention receipt.",
+      "forbidden_actions": [
+        "continuous_background_location_tracking",
+        "unscoped_geofence_recording",
+        "customer_mode_hidden_tracking"
+      ],
+      "forbidden_inferences": [
+        "home_location_inference",
+        "social_patterning_without_invoice_context"
+      ],
+      "inspect_path": "modules/phone_location_proof/inspect_location_evidence",
+      "module_ref": "phone_location_proof",
+      "observation_trigger": "Proof request from explicit proof action.",
+      "observation_window": "Declared event/proof window only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Protect location utility while preventing hidden tracking.",
+      "pause_path": "modules/phone_location_proof/pause_location_proof",
+      "privacy_class": "sensitive_location_proof",
+      "proof_receipts": [
+        "location_purpose_receipt",
+        "location_window_receipt",
+        "location_retention_receipt"
+      ],
+      "purpose": "Produce arrival and mileage proofs without broad location tracking.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Raw GPS is opt-in and never retained without explicit proof-mode approval.",
+      "revoke_path": "modules/phone_location_proof/revoke_location_proof_access",
+      "risk_level": "high",
+      "sensors_allowed": [
+        "phone_location_point",
+        "location_precision_hint"
+      ],
+      "workflow_ref": "phone_location_proof_workflow",
+      "world_ref": "operations"
+    },
+    {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Workflow explicitly configures approved integration and owner permissions.",
+      "approval_required_actions": [
+        "approved_integration_receipt",
+        "integration_authority_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "read_device_state",
+        "wait_for_gig_ready_cycle"
+      ],
+      "channel_support": [
+        "APP",
+        "CLI"
+      ],
+      "charter_ref": "charter_washer_dryer_integration_v0",
+      "creep_boundary": "Only approved connectors for configured workflow devices.",
+      "customer_visible_summary": "Device state is read only through approved integrations when this workflow is active.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "homekit",
+        "home_assistant",
+        "matter",
+        "manufacturer_api"
+      ],
+      "default_enabled": false,
+      "derived_proof_retention": "Keep proof-ready transitions by configured retention window.",
+      "desired_outcomes": [
+        "Use device state only when attached to a recognized workflow.",
+        "Keep credentials and integrations explicit.",
+        "Do not introduce appliance scanning or unauthorized network behavior."
+      ],
+      "developer_visible_summary": "No credential bypass, no network intrusion; only approved, scoped integration sources.",
+      "forbidden_actions": [
+        "scrape_private_devices",
+        "credential_bypass",
+        "network_intrusion",
+        "cross_workflow_device_reuse"
+      ],
+      "forbidden_inferences": [
+        "household_behavior_profileing",
+        "unowned_device_lifecycle_tracking"
+      ],
+      "inspect_path": "modules/washer_dryer_integration/inspect_device_source",
+      "module_ref": "washer_dryer_integration",
+      "observation_trigger": "Gig outfit readiness requests device state.",
+      "observation_window": "Active workflow window only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Keep device automation explicit, workflow-owned, and auditable.",
+      "pause_path": "modules/washer_dryer_integration/pause_device_read",
+      "privacy_class": "device_state_scope",
+      "proof_receipts": [
+        "integration_authorization_receipt",
+        "device_read_permission_receipt",
+        "workflow_scope_receipt"
+      ],
+      "purpose": "Read workflow-owned washer/dryer state through approved integrations only.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Store only state transitions needed for proof; no raw packet capture.",
+      "revoke_path": "modules/washer_dryer_integration/revoke_device_permissions",
+      "risk_level": "high",
+      "sensors_allowed": [
+        "washer_state",
+        "dryer_state",
+        "cycle_state"
+      ],
+      "workflow_ref": "washer_dryer_workflow",
+      "world_ref": "ops_devices"
+    }
+  ],
+  "charters_by_module": {
+    "client_comms": "charter_client_comms_clara_v0",
+    "gig_manager": "charter_gig_manager_v0",
+    "gig_outfit": "charter_gig_outfit_laundry_v0",
+    "invoice_manager": "charter_invoice_manager_v0",
+    "phone_location_proof": "charter_phone_location_proof_v0",
+    "washer_dryer_integration": "charter_washer_dryer_integration_v0"
+  },
+  "charters_by_ref": {
+    "charter_client_comms_clara_v0": {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Clara-owned thread and module enabled.",
+      "approval_required_actions": [
+        "guardian_approval",
+        "send_approval_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "watch_clara_owned_threads",
+        "route_offer_adoption_actions",
+        "await_guardian_approval_before_send"
+      ],
+      "channel_support": [
+        "APP",
+        "EMAIL",
+        "CLI"
+      ],
+      "charter_ref": "charter_client_comms_clara_v0",
+      "creep_boundary": "Only explicit thread IDs and owned thread members. No full mailbox scans.",
+      "customer_visible_summary": "This module watches only the approved Clara-owned threads and asks for approval before sending.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "clara_owned_threads",
+        "scoped_message_headers"
+      ],
+      "default_enabled": true,
+      "derived_proof_retention": "Store approvals and thread state receipts for handoff.",
+      "desired_outcomes": [
+        "Watch only Clara-owned invoice threads.",
+        "Draft with guarded pre-send approvals.",
+        "Support outside-thread adoption offers without mailbox scans."
+      ],
+      "developer_visible_summary": "Comms automation is limited to explicit ownership plus approvals.",
+      "forbidden_actions": [
+        "auto_reply_outside_owned_thread",
+        "read_all_client_email_as_surveillance",
+        "invent_contact_or_sender_data"
+      ],
+      "forbidden_inferences": [
+        "general_client_behavior_inference",
+        "private_thread_preference_modeling"
+      ],
+      "inspect_path": "modules/client_comms/inspect_thread_scope",
+      "module_ref": "client_comms",
+      "observation_trigger": "Incoming event in Clara-owned scope.",
+      "observation_window": "Scoped thread-window context only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Keep communication automation scoped to owned threads and explicit approvals.",
+      "pause_path": "modules/client_comms/pause_thread_watch",
+      "privacy_class": "client_ops_thread_scope",
+      "proof_receipts": [
+        "thread_watch_receipt",
+        "guardian_approval_receipt",
+        "send_readiness_receipt"
+      ],
+      "purpose": "Draft and respond inside owned client threads while blocking broad inference.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Store only scoped headers and proof refs, no full thread bodies by default.",
+      "revoke_path": "modules/client_comms/revoke_thread_access",
+      "risk_level": "medium",
+      "sensors_allowed": [
+        "thread_membership_sensor"
+      ],
+      "workflow_ref": "client_comms_workflow",
+      "world_ref": "client_ops"
+    },
+    "charter_gig_manager_v0": {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Calendar event exists and is marked paid, and module is enabled.",
+      "approval_required_actions": [
+        "enable_gig_location_tracking_receipt",
+        "customer_module_pause_request"
+      ],
+      "automatic_actions_allowed": [
+        "start_prep_reminders",
+        "capture_checkin_checkout_proof",
+        "capture_mileage_snippet",
+        "mark_invoice_line_candidates_ready"
+      ],
+      "channel_support": [
+        "APP",
+        "CLI",
+        "TASK_QUEUE"
+      ],
+      "charter_ref": "charter_gig_manager_v0",
+      "creep_boundary": "No background geofencing or all-day behavior outside explicit gig windows.",
+      "customer_visible_summary": "This module checks location only during scheduled gig windows for check-in and mileage proof.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "calendar_events",
+        "invoice_state"
+      ],
+      "default_enabled": true,
+      "derived_proof_retention": "Keep proof-ready location/time snippets for 18 months minimum.",
+      "desired_outcomes": [
+        "Only check location during scheduled gig windows.",
+        "Capture arrival and mileage proof for finance and logistics evidence.",
+        "Surface missing-prep steps without exposing unrelated personal patterns."
+      ],
+      "developer_visible_summary": "Gig automation is event-window-only and proof-gated.",
+      "forbidden_actions": [
+        "all_day_or_continuous_location_tracking",
+        "infer_private_life_context"
+      ],
+      "forbidden_inferences": [
+        "daily_route patterning outside gig windows",
+        "relationship inference outside gig context"
+      ],
+      "inspect_path": "modules/gig_manager/inspect_gig_window_proof",
+      "module_ref": "gig_manager",
+      "observation_trigger": "Calendar event start and finish for the active gig.",
+      "observation_window": "Within each scheduled gig event window only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Keep the automation narrow to active gig work.",
+      "pause_path": "modules/gig_manager/pause_gig_tracking",
+      "privacy_class": "low_private_work_data",
+      "proof_receipts": [
+        "gig_window_approval_receipt",
+        "location_proof_receipt",
+        "mileage_proof_receipt"
+      ],
+      "purpose": "Track scheduled gigs, prep requirements, location proof, and invoice readiness.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "No permanent raw GPS retention by default.",
+      "revoke_path": "modules/gig_manager/revoke_gig_window_access",
+      "risk_level": "medium",
+      "sensors_allowed": [
+        "phone_location_point"
+      ],
+      "workflow_ref": "gig_manager_workflow",
+      "world_ref": "operations"
+    },
+    "charter_gig_outfit_laundry_v0": {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "A workflow has an active gig reference and module is enabled.",
+      "approval_required_actions": [
+        "enable_gig_outfit_workflow_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "send_outfit_reminder",
+        "mark_wash_task_ready",
+        "request_hang_task_completion"
+      ],
+      "channel_support": [
+        "APP",
+        "CLI"
+      ],
+      "charter_ref": "charter_gig_outfit_laundry_v0",
+      "creep_boundary": "Only outfit tasks tied to a specific gig workflow id.",
+      "customer_visible_summary": "This module can remind for wash/dry/hang steps and mark gig clothing as ready.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "outfit_task_list",
+        "washer_dryer_integration"
+      ],
+      "default_enabled": true,
+      "derived_proof_retention": "Keep proof references for readiness and invoice traceability.",
+      "desired_outcomes": [
+        "Two-day reminder before gigs.",
+        "Use integrated washer/dryer state for outfit prep.",
+        "Avoid tracking beyond gig prep tasks and workflow scopes."
+      ],
+      "developer_visible_summary": "Outfit automation is scoped by workflow and approved integrations only.",
+      "forbidden_actions": [
+        "judge_habitual_laundry_patterns",
+        "track_clothing_choices_outside_gig_scope"
+      ],
+      "forbidden_inferences": [
+        "household_routine_inference",
+        "long_term_preference_profileing"
+      ],
+      "inspect_path": "modules/gig_outfit/inspect_outfit_readiness",
+      "module_ref": "gig_outfit",
+      "observation_trigger": "Active gig-prep workflow step opens.",
+      "observation_window": "Two-day pre-gig prep lookback and active gig-prep session only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Reduce last-minute misses without turning laundry into profiling.",
+      "pause_path": "modules/gig_outfit/pause_outfit_tracking",
+      "privacy_class": "minimal_private_work_data",
+      "proof_receipts": [
+        "outfit_prep_ready_receipt",
+        "washer_dryer_state_receipt",
+        "task_completion_receipt"
+      ],
+      "purpose": "Prepare stage/gig clothing and keep outfit logistics bounded.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Keep only task states and state-change timestamps for 30 days.",
+      "revoke_path": "modules/gig_outfit/revoke_outfit_sources",
+      "risk_level": "low",
+      "sensors_allowed": [
+        "outfit_task_state"
+      ],
+      "workflow_ref": "gig_outfit_workflow",
+      "world_ref": "operations"
+    },
+    "charter_invoice_manager_v0": {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Invoice workflow is active and module is enabled.",
+      "approval_required_actions": [
+        "invoice_send_receipt",
+        "invoice_ready_receipt",
+        "payment_status_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "stage_invoice_for_review",
+        "watch_scoped_threads_for_reply",
+        "mark_payment_watch_ready"
+      ],
+      "channel_support": [
+        "APP",
+        "EMAIL",
+        "CLI"
+      ],
+      "charter_ref": "charter_invoice_manager_v0",
+      "creep_boundary": "Only scoped invoice data and workflow messages. No general mailbox mining.",
+      "customer_visible_summary": "This module tracks scoped invoice workflow states and payment watch after proof.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "invoice_state",
+        "invoice_thread_state"
+      ],
+      "default_enabled": true,
+      "derived_proof_retention": "Keep invoice proof receipts for 12 months.",
+      "desired_outcomes": [
+        "Track invoice state with scoped thread-safe updates.",
+        "Capture payment watch and readiness after send proof.",
+        "Keep actions receipt-gated and ledger-safe."
+      ],
+      "developer_visible_summary": "No sent/paid mutation without explicit receipts.",
+      "forbidden_actions": [
+        "mark_sent_without_receipt",
+        "mark_paid_without_receipt",
+        "mutate_ledger_silently"
+      ],
+      "forbidden_inferences": [
+        "infer_cashflow_capacity_from_unrelated_threads",
+        "infer_client_financial_behavior_without_context"
+      ],
+      "inspect_path": "modules/invoice_manager/inspect_invoice_receipts",
+      "module_ref": "invoice_manager",
+      "observation_trigger": "Invoice draft and workflow state transitions.",
+      "observation_window": "Only while invoice workflow steps are active.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Keep billing automation useful and scoped.",
+      "pause_path": "modules/invoice_manager/pause_invoice_automation",
+      "privacy_class": "finance_scope_metadata",
+      "proof_receipts": [
+        "invoice_workflow_receipt",
+        "manual_send_proof_receipt",
+        "payment_watch_receipt"
+      ],
+      "purpose": "Generate, send, and watch invoice states with explicit receipts.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Retain workflow proof for audit windows only.",
+      "revoke_path": "modules/invoice_manager/revoke_invoice_receipt_access",
+      "risk_level": "low",
+      "sensors_allowed": [
+        "workflow_state_sensor"
+      ],
+      "workflow_ref": "invoice_manager_workflow",
+      "world_ref": "finance"
+    },
+    "charter_phone_location_proof_v0": {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Gig proof request inside an active event window.",
+      "approval_required_actions": [
+        "explicit_location_purpose_receipt",
+        "explicit_window_receipt",
+        "explicit_retention_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "capture_arrival_point",
+        "capture_mileage_snippet",
+        "emit_proof_receipt"
+      ],
+      "channel_support": [
+        "APP",
+        "CLI"
+      ],
+      "charter_ref": "charter_phone_location_proof_v0",
+      "creep_boundary": "Only with explicit event window + purpose token. No ambient traces.",
+      "customer_visible_summary": "This module uses location for arrival/check-in proof only during declared event windows.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "phone_location",
+        "event_reference"
+      ],
+      "default_enabled": false,
+      "derived_proof_retention": "Keep derived proof token for 7 days and finance review copy for audit window.",
+      "desired_outcomes": [
+        "Create event-window, purpose-gated location proof.",
+        "Store derived proof while minimizing raw telemetry.",
+        "Enable manual fallback when proof cannot be produced safely."
+      ],
+      "developer_visible_summary": "No default background tracking. Requires purpose token and retention receipt.",
+      "forbidden_actions": [
+        "continuous_background_location_tracking",
+        "unscoped_geofence_recording",
+        "customer_mode_hidden_tracking"
+      ],
+      "forbidden_inferences": [
+        "home_location_inference",
+        "social_patterning_without_invoice_context"
+      ],
+      "inspect_path": "modules/phone_location_proof/inspect_location_evidence",
+      "module_ref": "phone_location_proof",
+      "observation_trigger": "Proof request from explicit proof action.",
+      "observation_window": "Declared event/proof window only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Protect location utility while preventing hidden tracking.",
+      "pause_path": "modules/phone_location_proof/pause_location_proof",
+      "privacy_class": "sensitive_location_proof",
+      "proof_receipts": [
+        "location_purpose_receipt",
+        "location_window_receipt",
+        "location_retention_receipt"
+      ],
+      "purpose": "Produce arrival and mileage proofs without broad location tracking.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Raw GPS is opt-in and never retained without explicit proof-mode approval.",
+      "revoke_path": "modules/phone_location_proof/revoke_location_proof_access",
+      "risk_level": "high",
+      "sensors_allowed": [
+        "phone_location_point",
+        "location_precision_hint"
+      ],
+      "workflow_ref": "phone_location_proof_workflow",
+      "world_ref": "operations"
+    },
+    "charter_washer_dryer_integration_v0": {
+      "access_class_allowed": [
+        "WINSHIP_DEVELOPER",
+        "WINSHIP_OPERATOR",
+        "CUSTOMER_ADMIN"
+      ],
+      "activation_condition": "Workflow explicitly configures approved integration and owner permissions.",
+      "approval_required_actions": [
+        "approved_integration_receipt",
+        "integration_authority_receipt"
+      ],
+      "automatic_actions_allowed": [
+        "read_device_state",
+        "wait_for_gig_ready_cycle"
+      ],
+      "channel_support": [
+        "APP",
+        "CLI"
+      ],
+      "charter_ref": "charter_washer_dryer_integration_v0",
+      "creep_boundary": "Only approved connectors for configured workflow devices.",
+      "customer_visible_summary": "Device state is read only through approved integrations when this workflow is active.",
+      "data_minimization_required": true,
+      "data_sources_allowed": [
+        "homekit",
+        "home_assistant",
+        "matter",
+        "manufacturer_api"
+      ],
+      "default_enabled": false,
+      "derived_proof_retention": "Keep proof-ready transitions by configured retention window.",
+      "desired_outcomes": [
+        "Use device state only when attached to a recognized workflow.",
+        "Keep credentials and integrations explicit.",
+        "Do not introduce appliance scanning or unauthorized network behavior."
+      ],
+      "developer_visible_summary": "No credential bypass, no network intrusion; only approved, scoped integration sources.",
+      "forbidden_actions": [
+        "scrape_private_devices",
+        "credential_bypass",
+        "network_intrusion",
+        "cross_workflow_device_reuse"
+      ],
+      "forbidden_inferences": [
+        "household_behavior_profileing",
+        "unowned_device_lifecycle_tracking"
+      ],
+      "inspect_path": "modules/washer_dryer_integration/inspect_device_source",
+      "module_ref": "washer_dryer_integration",
+      "observation_trigger": "Gig outfit readiness requests device state.",
+      "observation_window": "Active workflow window only.",
+      "operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "operator_value": "Keep device automation explicit, workflow-owned, and auditable.",
+      "pause_path": "modules/washer_dryer_integration/pause_device_read",
+      "privacy_class": "device_state_scope",
+      "proof_receipts": [
+        "integration_authorization_receipt",
+        "device_read_permission_receipt",
+        "workflow_scope_receipt"
+      ],
+      "purpose": "Read workflow-owned washer/dryer state through approved integrations only.",
+      "raw_data_allowed": false,
+      "raw_data_retention": "Store only state transitions needed for proof; no raw packet capture.",
+      "revoke_path": "modules/washer_dryer_integration/revoke_device_permissions",
+      "risk_level": "high",
+      "sensors_allowed": [
+        "washer_state",
+        "dryer_state",
+        "cycle_state"
+      ],
+      "workflow_ref": "washer_dryer_workflow",
+      "world_ref": "ops_devices"
+    }
+  },
+  "charters_by_workflow": {
+    "client_comms_workflow": "charter_client_comms_clara_v0",
+    "gig_manager_workflow": "charter_gig_manager_v0",
+    "gig_outfit_workflow": "charter_gig_outfit_laundry_v0",
+    "invoice_manager_workflow": "charter_invoice_manager_v0",
+    "phone_location_proof_workflow": "charter_phone_location_proof_v0",
+    "washer_dryer_workflow": "charter_washer_dryer_integration_v0"
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_PURPOSE_BOUND_AUTOMATION_CONTRACT",
+  "generated_at": "2026-05-28T21:43:08+00:00",
+  "machine_proof": {
+    "all_authority_flags_false": true,
+    "content_hash": "sha256:fe8337ac83ed5ea000d5f388497bfd0b646e10084cd8090184b51e80a0f587bf",
+    "credentials_or_secrets_included": false,
+    "default_on_present": true,
+    "has_client_comms_example": true,
+    "has_device_integration_example": true,
+    "has_gig_manager_example": true,
+    "has_gig_outfit_example": true,
+    "has_invoice_example": true,
+    "has_phone_location_proof_example": true,
+    "proof_refs": [
+      "gig_window_approval_receipt",
+      "location_proof_receipt",
+      "mileage_proof_receipt",
+      "outfit_prep_ready_receipt",
+      "washer_dryer_state_receipt",
+      "task_completion_receipt",
+      "invoice_workflow_receipt",
+      "manual_send_proof_receipt",
+      "payment_watch_receipt",
+      "thread_watch_receipt",
+      "guardian_approval_receipt",
+      "send_readiness_receipt",
+      "location_purpose_receipt",
+      "location_window_receipt",
+      "location_retention_receipt",
+      "integration_authorization_receipt",
+      "device_read_permission_receipt",
+      "workflow_scope_receipt"
+    ],
+    "raw_private_bodies_included": false,
+    "record_count": 6,
+    "required_charter_fields_present": true
+  },
+  "privacy_classes": [
+    "client_ops_thread_scope",
+    "device_state_scope",
+    "finance_scope_metadata",
+    "low_private_work_data",
+    "minimal_private_work_data",
+    "sensitive_location_proof"
+  ],
+  "read_model_id": "purpose_bound_automation_charter",
+  "relationship_to_existing_rails": {
+    "hermes_gravity_controller": "generated/read_models/hermes_gravity_controller.json",
+    "operator_work_mode_schema_bandwidth_policy": "generated/read_models/operator_work_mode_schema_bandwidth_policy.json",
+    "workflow_operating_mode_policy": "generated/read_models/workflow_operating_mode_policy.json"
+  },
+  "required_charter_count": 33,
+  "required_fields": [
+    "charter_ref",
+    "module_ref",
+    "workflow_ref",
+    "world_ref",
+    "purpose",
+    "desired_outcomes",
+    "operator_value",
+    "default_enabled",
+    "activation_condition",
+    "observation_window",
+    "observation_trigger",
+    "data_sources_allowed",
+    "sensors_allowed",
+    "raw_data_allowed",
+    "data_minimization_required",
+    "raw_data_retention",
+    "derived_proof_retention",
+    "proof_receipts",
+    "automatic_actions_allowed",
+    "approval_required_actions",
+    "forbidden_actions",
+    "forbidden_inferences",
+    "creep_boundary",
+    "operator_controls",
+    "pause_path",
+    "revoke_path",
+    "inspect_path",
+    "customer_visible_summary",
+    "developer_visible_summary",
+    "risk_level",
+    "privacy_class",
+    "access_class_allowed",
+    "channel_support"
+  ],
+  "risk_levels": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "schema_version": "purpose_bound_automation_charter_v0"
+}

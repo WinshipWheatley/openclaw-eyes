@@ -1,0 +1,160 @@
+{
+  "authority_boundary": {
+    "external_action_allowed": false,
+    "mac_sync_allowed": false,
+    "network_allowed": false,
+    "new_transport_allowed": false,
+    "production_state_mutation_allowed": false,
+    "response_publication_allowed_by_this_contract": false,
+    "tool_execution_allowed": false
+  },
+  "contract_status": "READ_MODEL_VISIBILITY_PROOF_ONLY_NO_SYNC",
+  "generated_at": "2026-05-26T00:00:00+00:00",
+  "machine_proof": {
+    "all_known_readiness_refs_recorded": true,
+    "all_live_authority_false": true,
+    "content_hash": "sha256:cdcf05a3f46960a3a19f62577b95862e9d4cab4d60fbe5e8988e5ba973dd3b8a",
+    "external_action_performed": false,
+    "generated_refs_present": true,
+    "mac_visible_guaranteed": false,
+    "network_performed": false,
+    "new_sync_system_created": false,
+    "operator_copies_available": true,
+    "production_state_mutation_performed": false,
+    "response_publication_performed": false,
+    "tool_execution_performed": false,
+    "visibility_record_count": 13
+  },
+  "mirror_policy": {
+    "canonical_writer": "pc_generated_read_models",
+    "mac_visible_guaranteed_by_this_contract": false,
+    "new_sync_system_allowed": false,
+    "use_existing_scoped_response_bridge_for_chat": true
+  },
+  "operator_summary": [
+    "Readiness payloads have local generated read-model refs.",
+    "This does not guarantee Mac rendering by itself.",
+    "OpenClaw should use the existing response bridge for chat-thread delivery."
+  ],
+  "read_model_id": "read_model_mirror_visibility",
+  "schema_version": "read_model_mirror_visibility_v0",
+  "visibility_records": [
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/floor_gap_reconciliation.json",
+      "record_id": "read_model_visibility:a677f1e4debdb51e"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/lm_readiness_dashboard.json",
+      "record_id": "read_model_visibility:591fe8e1efceefa4"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/operator_readiness_surface.json",
+      "record_id": "read_model_visibility:f562657eeb477251"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/gate1_privacy_request_readiness.json",
+      "record_id": "read_model_visibility:39fe30ed1a9f3f1e"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/lm1_thread_context_package.json",
+      "record_id": "read_model_visibility:d984a5a046638749"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/request_response_bridge_readiness.json",
+      "record_id": "read_model_visibility:b48d380e143c1fec"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/live_lm_activation_requirements.json",
+      "record_id": "read_model_visibility:1ca9ff6234402b0b"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/private_mode_policy_readiness.json",
+      "record_id": "read_model_visibility:3e9a92bc20d33100"
+    },
+    {
+      "exists": false,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": false,
+      "read_model_ref": "generated/read_models/read_model_mirror_visibility.json",
+      "record_id": "read_model_visibility:42daf55b12c8253f"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/provider_policy_registry.json",
+      "record_id": "read_model_visibility:023230546560ed94"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/model_router_policy.json",
+      "record_id": "read_model_visibility:59ead202b32ff277"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/token_vault_status.json",
+      "record_id": "read_model_visibility:6737eb2af95981fe"
+    },
+    {
+      "exists": true,
+      "intended_surface": "generated_read_model",
+      "mac_visible_guaranteed": false,
+      "next_safe_move": "Expose through existing response/read-model paths when a future UI lane asks for it; do not add a second sync system.",
+      "operator_copy_available": true,
+      "read_model_ref": "generated/read_models/universal_intake_contract.json",
+      "record_id": "read_model_visibility:50240f17dc8e61a9"
+    }
+  ]
+}

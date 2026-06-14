@@ -1,0 +1,509 @@
+{
+  "authority_boundary": {
+    "agent_loop_allowed": false,
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "credential_use_allowed": false,
+    "email_send_allowed": false,
+    "external_llm_allowed": false,
+    "external_tool_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "live_provider_allowed": false,
+    "message_send_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "slack_connect_allowed": false,
+    "telegram_live_connect_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "examples": [
+    {
+      "authority_note": "No external tool connection or autonomous execution is granted by the route.",
+      "channel_refs": [
+        "operations_chief_workboard",
+        "build_openclaw_backend"
+      ],
+      "example_ref": "customer_reports_bug",
+      "operator_phrase": "Customer reports bug",
+      "route_path": [
+        "cassandra_to_chief_package_needed",
+        "chief_to_pc_codex_backend_implementation"
+      ],
+      "route_summary": "Cassandra records the intake, Chief shapes the build package, then PC_CODEX receives a backend worker packet.",
+      "terminal_package_type": "pc_codex_backend_worker_packet"
+    },
+    {
+      "authority_note": "Proposal acceptance does not mark paid and does not submit anything.",
+      "channel_refs": [
+        "business_development_capital_hilton",
+        "operations_chief_workboard"
+      ],
+      "example_ref": "capital_hilton_proposal_accepted",
+      "operator_phrase": "Capital Hilton proposal accepted",
+      "route_path": [
+        "clara_to_cassandra_internal_review_state",
+        "cassandra_to_chief_package_needed"
+      ],
+      "route_summary": "Clara draft state hands back to Cassandra for internal review and finance/business-development follow-up packaging.",
+      "terminal_package_type": "package_request_handoff_packet"
+    },
+    {
+      "authority_note": "Submit remains blocked until explicit operator-present approval exists.",
+      "channel_refs": [
+        "security_guardian_gates"
+      ],
+      "example_ref": "submit_invoice",
+      "operator_phrase": "Submit invoice",
+      "route_path": [
+        "chief_to_guardian_protected_authority"
+      ],
+      "route_summary": "Chief must route to Guardian for a protected gate before any operator-assist path can be considered.",
+      "terminal_package_type": "protected_package_gate_packet"
+    }
+  ],
+  "generated_at": "2026-06-03T02:43:25+00:00",
+  "handoff_count": 8,
+  "handoff_matrix": {
+    "cassandra": [
+      "cassandra_to_chief_package_needed",
+      "cassandra_to_guardian_authority_detected"
+    ],
+    "chief": [
+      "chief_to_guardian_protected_authority",
+      "chief_to_mac_codex_ui_excel_gui_operator_assist",
+      "chief_to_pc_codex_backend_implementation"
+    ],
+    "clara": [
+      "clara_to_cassandra_internal_review_state"
+    ],
+    "hermes": [
+      "hermes_to_chief_build_packet"
+    ],
+    "niles": [
+      "niles_to_chief_creative_build_tooling"
+    ]
+  },
+  "handoffs": [
+    {
+      "allowed_actions": [
+        "create_local_handoff_packet",
+        "attach_collapsed_proof_refs",
+        "record_receipt_requirement",
+        "request_operator_review",
+        "summarize_finance_or_correspondence_context",
+        "request_package_queue_staging"
+      ],
+      "blocked_actions": [
+        "connect_external_tool",
+        "connect_slack_live",
+        "connect_telegram_live",
+        "send_message",
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "grant_authority",
+        "use_credentials",
+        "spawn_worker_from_handoff",
+        "launch_agent_loop",
+        "call_external_llm",
+        "run_live_provider",
+        "push_git",
+        "create_invoice_from_handoff",
+        "send_correspondence_from_handoff"
+      ],
+      "channel_ref": "operations_chief_workboard",
+      "from_agent": "cassandra",
+      "handoff_ref": "cassandra_to_chief_package_needed",
+      "package_type": "package_request_handoff_packet",
+      "receipt_required": true,
+      "requires_operator_approval": true,
+      "to_agent_or_worker": "chief",
+      "trigger_condition": "A work-log, invoice, correspondence, or follow-up item needs a package, diagnostic, or queue decision."
+    },
+    {
+      "allowed_actions": [
+        "create_local_handoff_packet",
+        "attach_collapsed_proof_refs",
+        "record_receipt_requirement",
+        "request_operator_review",
+        "summarize_authority_request",
+        "request_guardian_gate_review"
+      ],
+      "blocked_actions": [
+        "connect_external_tool",
+        "connect_slack_live",
+        "connect_telegram_live",
+        "send_message",
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "grant_authority",
+        "use_credentials",
+        "spawn_worker_from_handoff",
+        "launch_agent_loop",
+        "call_external_llm",
+        "run_live_provider",
+        "push_git",
+        "send_email_from_handoff",
+        "open_calendar_from_handoff",
+        "use_credential_from_handoff"
+      ],
+      "channel_ref": "security_guardian_gates",
+      "from_agent": "cassandra",
+      "handoff_ref": "cassandra_to_guardian_authority_detected",
+      "package_type": "protected_authority_gate_packet",
+      "receipt_required": true,
+      "requires_operator_approval": true,
+      "to_agent_or_worker": "guardian",
+      "trigger_condition": "Send, email, calendar, credential, PII, protected access, portal, ledger, or paid authority appears."
+    },
+    {
+      "allowed_actions": [
+        "create_local_handoff_packet",
+        "attach_collapsed_proof_refs",
+        "record_receipt_requirement",
+        "request_operator_review",
+        "prepare_backend_worker_packet",
+        "request_local_code_validation",
+        "record_worker_output_receipt"
+      ],
+      "blocked_actions": [
+        "connect_external_tool",
+        "connect_slack_live",
+        "connect_telegram_live",
+        "send_message",
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "grant_authority",
+        "use_credentials",
+        "spawn_worker_from_handoff",
+        "launch_agent_loop",
+        "call_external_llm",
+        "run_live_provider",
+        "push_git",
+        "spawn_worker_without_operator_packet",
+        "run_live_provider_from_worker_packet"
+      ],
+      "channel_ref": "build_openclaw_backend",
+      "from_agent": "chief",
+      "handoff_ref": "chief_to_pc_codex_backend_implementation",
+      "package_type": "pc_codex_backend_worker_packet",
+      "receipt_required": true,
+      "requires_operator_approval": true,
+      "to_agent_or_worker": "pc_codex",
+      "trigger_condition": "A locally bounded backend package is ready for implementation or validation on PC."
+    },
+    {
+      "allowed_actions": [
+        "create_local_handoff_packet",
+        "attach_collapsed_proof_refs",
+        "record_receipt_requirement",
+        "request_operator_review",
+        "prepare_mac_worker_packet",
+        "request_ui_or_gui_validation",
+        "record_worker_output_receipt"
+      ],
+      "blocked_actions": [
+        "connect_external_tool",
+        "connect_slack_live",
+        "connect_telegram_live",
+        "send_message",
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "grant_authority",
+        "use_credentials",
+        "spawn_worker_from_handoff",
+        "launch_agent_loop",
+        "call_external_llm",
+        "run_live_provider",
+        "push_git",
+        "mutate_excel_from_handoff",
+        "run_gui_automation_from_handoff"
+      ],
+      "channel_ref": "build_mission_control_mac",
+      "from_agent": "chief",
+      "handoff_ref": "chief_to_mac_codex_ui_excel_gui_operator_assist",
+      "package_type": "mac_codex_operator_assist_worker_packet",
+      "receipt_required": true,
+      "requires_operator_approval": true,
+      "to_agent_or_worker": "mac_codex",
+      "trigger_condition": "Mission Control UI, Excel review surface, GUI operator-assist, or Mac-specific display work is ready for a Mac worker packet."
+    },
+    {
+      "allowed_actions": [
+        "create_local_handoff_packet",
+        "attach_collapsed_proof_refs",
+        "record_receipt_requirement",
+        "request_operator_review",
+        "summarize_package_authority_request",
+        "request_guardian_block_or_approval_readback"
+      ],
+      "blocked_actions": [
+        "connect_external_tool",
+        "connect_slack_live",
+        "connect_telegram_live",
+        "send_message",
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "grant_authority",
+        "use_credentials",
+        "spawn_worker_from_handoff",
+        "launch_agent_loop",
+        "call_external_llm",
+        "run_live_provider",
+        "push_git",
+        "grant_package_authority_from_handoff",
+        "submit_from_handoff",
+        "mark_paid_from_handoff"
+      ],
+      "channel_ref": "security_guardian_gates",
+      "from_agent": "chief",
+      "handoff_ref": "chief_to_guardian_protected_authority",
+      "package_type": "protected_package_gate_packet",
+      "receipt_required": true,
+      "requires_operator_approval": true,
+      "to_agent_or_worker": "guardian",
+      "trigger_condition": "A package asks for send, submit, ledger, credential, browser, Coupa, Gmail, workbook, paid, or other protected authority."
+    },
+    {
+      "allowed_actions": [
+        "create_local_handoff_packet",
+        "attach_collapsed_proof_refs",
+        "record_receipt_requirement",
+        "request_operator_review",
+        "convert_recommendation_to_build_packet",
+        "attach_tradeoff_summary"
+      ],
+      "blocked_actions": [
+        "connect_external_tool",
+        "connect_slack_live",
+        "connect_telegram_live",
+        "send_message",
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "grant_authority",
+        "use_credentials",
+        "spawn_worker_from_handoff",
+        "launch_agent_loop",
+        "call_external_llm",
+        "run_live_provider",
+        "push_git",
+        "activate_runtime_from_recommendation",
+        "migrate_from_recommendation"
+      ],
+      "channel_ref": "operations_chief_workboard",
+      "from_agent": "hermes",
+      "handoff_ref": "hermes_to_chief_build_packet",
+      "package_type": "architecture_to_build_packet",
+      "receipt_required": true,
+      "requires_operator_approval": true,
+      "to_agent_or_worker": "chief",
+      "trigger_condition": "An architecture recommendation becomes concrete build work or a package queue candidate."
+    },
+    {
+      "allowed_actions": [
+        "create_local_handoff_packet",
+        "attach_collapsed_proof_refs",
+        "record_receipt_requirement",
+        "request_operator_review",
+        "summarize_creative_tooling_need",
+        "request_build_packet_review"
+      ],
+      "blocked_actions": [
+        "connect_external_tool",
+        "connect_slack_live",
+        "connect_telegram_live",
+        "send_message",
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "grant_authority",
+        "use_credentials",
+        "spawn_worker_from_handoff",
+        "launch_agent_loop",
+        "call_external_llm",
+        "run_live_provider",
+        "push_git",
+        "publish_creative_artifact_from_handoff",
+        "mutate_creative_source_from_handoff"
+      ],
+      "channel_ref": "operations_chief_workboard",
+      "from_agent": "niles",
+      "handoff_ref": "niles_to_chief_creative_build_tooling",
+      "package_type": "creative_to_build_tooling_packet",
+      "receipt_required": true,
+      "requires_operator_approval": true,
+      "to_agent_or_worker": "chief",
+      "trigger_condition": "A creative recommendation needs app, build, tooling, metadata, or automation support."
+    },
+    {
+      "allowed_actions": [
+        "create_local_handoff_packet",
+        "attach_collapsed_proof_refs",
+        "record_receipt_requirement",
+        "request_operator_review",
+        "record_draft_review_state",
+        "request_internal_correspondence_followup"
+      ],
+      "blocked_actions": [
+        "connect_external_tool",
+        "connect_slack_live",
+        "connect_telegram_live",
+        "send_message",
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "grant_authority",
+        "use_credentials",
+        "spawn_worker_from_handoff",
+        "launch_agent_loop",
+        "call_external_llm",
+        "run_live_provider",
+        "push_git",
+        "send_client_draft_from_handoff",
+        "expose_internal_agent_names_to_client"
+      ],
+      "channel_ref": "business_development_capital_hilton",
+      "from_agent": "clara",
+      "handoff_ref": "clara_to_cassandra_internal_review_state",
+      "package_type": "external_draft_internal_review_packet",
+      "receipt_required": true,
+      "requires_operator_approval": true,
+      "to_agent_or_worker": "cassandra",
+      "trigger_condition": "A client-facing draft artifact exists and needs internal review state, follow-up tracking, or correspondence staging."
+    }
+  ],
+  "machine_proof": {
+    "agent_loop_launched": false,
+    "all_handoffs_block_external_tools": true,
+    "all_receipts_required": true,
+    "all_require_operator_approval": true,
+    "all_required_handoffs_present": true,
+    "browser_access_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_tool_connected": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "local_only": true,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "preconditions_ready": true,
+    "read_model_contract_only": true,
+    "submit_performed": false,
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "mode": "local_read_model_contract_only_no_external_tools",
+  "preconditions": [
+    {
+      "observed_status": "OPENCLAW_WORKROOM_REGISTRY_READY",
+      "precondition_ref": "openclaw_workroom_registry",
+      "ready": true,
+      "required_status": "OPENCLAW_WORKROOM_REGISTRY_READY",
+      "source_ref": "generated/read_models/openclaw_workroom_registry.json"
+    },
+    {
+      "observed_status": "PACKAGE_EVENT_INDEX_READY",
+      "precondition_ref": "package_event_index",
+      "ready": true,
+      "required_status": "PACKAGE_EVENT_INDEX_READY",
+      "source_ref": "generated/read_models/package_event_index.json"
+    },
+    {
+      "observed_status": "AGENT_VOICE_ROUTING_V0_READY",
+      "precondition_ref": "agent_voice_routing",
+      "ready": true,
+      "required_status": "AGENT_VOICE_ROUTING_V0_READY",
+      "source_ref": "generated/read_models/agent_voice_routing_contract.json"
+    }
+  ],
+  "purpose": "Deterministic handoff rules for routing agent work to channels, agents, and worker packet lanes without broad execution authority.",
+  "read_model_id": "agent_handoff_registry",
+  "required_handoff_refs": [
+    "cassandra_to_chief_package_needed",
+    "cassandra_to_guardian_authority_detected",
+    "chief_to_pc_codex_backend_implementation",
+    "chief_to_mac_codex_ui_excel_gui_operator_assist",
+    "chief_to_guardian_protected_authority",
+    "hermes_to_chief_build_packet",
+    "niles_to_chief_creative_build_tooling",
+    "clara_to_cassandra_internal_review_state"
+  ],
+  "schema_version": "agent_handoff_registry_v0",
+  "source_refs": [
+    "generated/read_models/openclaw_workroom_registry.json",
+    "generated/read_models/package_event_index.json",
+    "generated/read_models/agent_voice_routing_contract.json"
+  ],
+  "status": "AGENT_HANDOFF_REGISTRY_READY",
+  "truth_and_scope_rules": [
+    "A handoff creates a packet request or review state; it does not execute the work.",
+    "Workers receive bounded packet output lanes only; this registry cannot spawn workers.",
+    "Protected authority routes to Guardian before any operator-assist path.",
+    "Client-facing drafts hand back to internal review before follow-up state changes.",
+    "Every handoff requires a receipt."
+  ]
+}

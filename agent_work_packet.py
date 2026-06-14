@@ -63,6 +63,37 @@ class AgentWorkPacketResult:
     execution_allowed: bool
 
 
+@dataclass(frozen=True)
+class AgentWorkPacketApprovalState:
+    packet_id: str
+    surface: str
+    status: str
+    approval_required: bool
+    execution_allowed: bool
+    action_created: bool
+    packet_hash: str
+    expected_packet_hash: str | None
+    hash_matches: bool | None
+
+    @property
+    def stale(self) -> bool:
+        return self.hash_matches is False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "packet_id": self.packet_id,
+            "surface": self.surface,
+            "status": self.status,
+            "approval_required": self.approval_required,
+            "execution_allowed": self.execution_allowed,
+            "action_created": self.action_created,
+            "packet_hash": self.packet_hash,
+            "expected_packet_hash": self.expected_packet_hash,
+            "hash_matches": self.hash_matches,
+            "stale": self.stale,
+        }
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -261,6 +292,24 @@ def _intent_by_id(conn: sqlite3.Connection, intent_id: str | None) -> sqlite3.Ro
 
 def _goal_for_intent(intent: sqlite3.Row) -> str:
     category = intent["intent_category"]
+    if category == "invoice_send":
+        return "Prepare an invoice-send approval card. Nothing has been sent yet."
+    if category == "email_send":
+        return "Prepare an email-send approval card. Nothing has been sent yet."
+    if category == "sms_send":
+        return "Prepare an SMS-send approval card. Nothing has been sent yet."
+    if category == "phone_log":
+        return "Prepare a phone/call action approval card. Nothing has been called yet."
+    if category == "calendar_create":
+        return "Prepare a calendar-event approval card. Nothing has been created yet."
+    if category == "ledger_mutation":
+        return "Prepare a ledger-change approval card. Nothing has been changed yet."
+    if category == "coupa_submit":
+        return "Prepare a Coupa-submit approval card. Nothing has been submitted yet."
+    if category == "obs_launch":
+        return "Prepare an OBS launch approval card. Nothing has been launched yet."
+    if category == "livestream_setup":
+        return "Prepare a livestream setup approval card. Nothing has been started yet."
     if category == "markdown_reorg_request":
         return "Propose a Markdown organization/reorg plan without moving files."
     if category == "file_context_request":
@@ -319,6 +368,55 @@ ORDER BY link_kind, source_path
             (intent_id,),
         ).fetchall()
     ]
+
+
+def _packet_hash_from_row(row: sqlite3.Row) -> str:
+    payload = {
+        "packet_id": row["packet_id"],
+        "source_intent_id": row["source_intent_id"],
+        "routed_agent_id": row["routed_agent_id"],
+        "routed_lane_id": row["routed_lane_id"],
+        "world_hint": row["world_hint"],
+        "intent_category": row["intent_category"],
+        "goal": row["goal"],
+        "status": row["status"],
+        "approval_required": bool(row["approval_required"]),
+        "execution_allowed": bool(row["execution_allowed"]),
+        "action_created": bool(row["action_created"]),
+        "candidate_action_type": row["candidate_action_type"],
+        "exact_next_prompt_text": row["exact_next_prompt_text"],
+    }
+    return hashlib.sha256(stable_json(payload).encode("utf-8")).hexdigest()
+
+
+def get_agent_work_packet_approval_state(
+    *,
+    packet_id: str,
+    expected_packet_hash: str | None = None,
+    db_path: str | Path | None = None,
+) -> AgentWorkPacketApprovalState:
+    path = init_agent_work_packet_schema(db_path)
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute("SELECT * FROM agent_work_packets WHERE packet_id = ?", (packet_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"agent work packet not found: {packet_id}")
+        packet_hash = _packet_hash_from_row(row)
+        hash_matches = None if expected_packet_hash is None else packet_hash == expected_packet_hash
+        return AgentWorkPacketApprovalState(
+            packet_id=row["packet_id"],
+            surface=row["candidate_action_type"] or row["intent_category"],
+            status=row["status"],
+            approval_required=bool(row["approval_required"]),
+            execution_allowed=bool(row["execution_allowed"]),
+            action_created=bool(row["action_created"]),
+            packet_hash=packet_hash,
+            expected_packet_hash=expected_packet_hash,
+            hash_matches=hash_matches,
+        )
+    finally:
+        conn.close()
 
 
 def _bounded_prompt(
@@ -818,6 +916,7 @@ __all__ = [
     "OPERATOR_EXPORT_NAME",
     "READ_MODEL_VERSION",
     "REPORT_SECTIONS",
+    "AgentWorkPacketApprovalState",
     "AgentWorkPacketResult",
     "agent_work_packet_table_names",
     "build_agent_work_packet",
@@ -828,6 +927,7 @@ __all__ = [
     "format_agent_work_packet_report",
     "format_agent_work_packets_read_model",
     "format_packet_result",
+    "get_agent_work_packet_approval_state",
     "init_agent_work_packet_schema",
     "stable_json",
 ]

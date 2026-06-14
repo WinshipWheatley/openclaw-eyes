@@ -1,0 +1,323 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_api_allowed": false,
+    "external_lm_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "local_model_runtime_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "private_proof_allowed": false,
+    "prompt_send_allowed": false,
+    "proof_bundle_send_allowed": false,
+    "protected_actions_allowed": false,
+    "secret_read_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "candidate_comparisons": [
+    {
+      "candidate_kind": "local_lm_one_time_pilot",
+      "candidate_ref": "local_qwen_first_run",
+      "evidence": {
+        "failure_type": "non_json_structurally_invalid_empty_candidate",
+        "fallback_correctly_published": true,
+        "recommended_prompt_schema_change": "JSON-only response schema with one valid example and a schema-adapter test.",
+        "verification_errors": [
+          "response_not_concise",
+          "required_phrase_missing:payment evidence",
+          "required_phrase_missing:ledger",
+          "next_step_not_allowed:"
+        ],
+        "verifier_status": "BLOCKED_BY_DETERMINISTIC_VERIFIER"
+      },
+      "max_quality_score": 15,
+      "metrics": {
+        "agent_voice_fit": false,
+        "concision": false,
+        "human_usefulness": false,
+        "machine_jargon_absent": true,
+        "next_step_clarity": false,
+        "protected_action_safety": true,
+        "schema_compliance": false,
+        "unsupported_claims_absent": true,
+        "verifier_pass": false
+      },
+      "model_or_source": "ollama/qwen3:8b-q4_K_M",
+      "notes": [
+        "First local run failed because the model did not return verifier-compatible JSON.",
+        "The failure was structural, not a protected-action or unsupported-completion claim failure.",
+        "Safe fallback was published."
+      ],
+      "quality_class": "not_ready",
+      "quality_score": 5,
+      "source_ref": "generated/read_models/local_lm_proof_response_pilot_postmortem.json"
+    },
+    {
+      "candidate_kind": "manual_external_synthetic_capture",
+      "candidate_ref": "external_synthetic_manual_response",
+      "evidence": {
+        "adapter_parse_status": "PARSED",
+        "canonical_fact_ids": [
+          "payment_evidence_missing",
+          "processor_processing",
+          "ledger_untouched",
+          "paid_false",
+          "no_email_sent",
+          "no_coupa_submit",
+          "no_ledger_mutation",
+          "no_paid_marking"
+        ],
+        "published_as_real_finance_truth": false,
+        "synthetic_only": true,
+        "verification_errors": [],
+        "verifier_status": "verifier_pass"
+      },
+      "max_quality_score": 15,
+      "metrics": {
+        "agent_voice_fit": true,
+        "concision": true,
+        "human_usefulness": true,
+        "machine_jargon_absent": true,
+        "next_step_clarity": true,
+        "protected_action_safety": true,
+        "schema_compliance": true,
+        "unsupported_claims_absent": true,
+        "verifier_pass": true
+      },
+      "model_or_source": "manual_external_synthetic_response",
+      "notes": [
+        "Manual synthetic external response passed after fact-id alignment.",
+        "Result is quality evidence for synthetic data only.",
+        "It does not authorize private proof exposure or external provider use."
+      ],
+      "quality_class": "strong",
+      "quality_score": 14,
+      "source_ref": "generated/read_models/external_lm_synthetic_response_capture_status.json"
+    },
+    {
+      "candidate_kind": "shadow_fixture_mock_lm_style_text",
+      "candidate_ref": "shadow_mock_baseline",
+      "evidence": {
+        "all_pilot_drafts_verified": true,
+        "pilot_run_count": 6,
+        "scenario_id": "finance_capital_hilton_payment_watch",
+        "verification_errors": [],
+        "verifier_status": "VERIFIED_FOR_SHADOW_PUBLISH"
+      },
+      "max_quality_score": 15,
+      "metrics": {
+        "agent_voice_fit": true,
+        "concision": true,
+        "human_usefulness": true,
+        "machine_jargon_absent": true,
+        "next_step_clarity": true,
+        "protected_action_safety": true,
+        "schema_compliance": true,
+        "unsupported_claims_absent": true,
+        "verifier_pass": true
+      },
+      "model_or_source": "shadow_pilot_candidate",
+      "notes": [
+        "Shadow/mock baseline remains the strongest deterministic control.",
+        "It is not a live model quality sample."
+      ],
+      "quality_class": "strong",
+      "quality_score": 14,
+      "source_ref": "generated/read_models/proof_to_response_lm_shadow_pilot.json"
+    }
+  ],
+  "comparison_scope": {
+    "business_execution_compared": false,
+    "local_qwen_first_run": "failed_non_json",
+    "private_proof_compared": false,
+    "shadow_mock_response_baseline": "verifier_clean_fixture",
+    "synthetic_external_response": "verifier_pass_after_fact_alignment"
+  },
+  "content_hash": "sha256:8805801b5619f3777eb30e1061c2fe73d846702ea974f3b083fcb2adfe56688a",
+  "generated_at": "2026-06-07T22:00:00+00:00",
+  "implementation_boundary": {
+    "browser_access_performed": false,
+    "business_action_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_api_called": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "model_invocation_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "prompt_sent": false,
+    "proof_bundle_sent": false,
+    "secret_read_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "authority_checks_loosened": false,
+    "business_action_performed": false,
+    "external_api_called": false,
+    "external_llm_invoked": false,
+    "local_model_runtime_connected": false,
+    "model_invocation_performed": false,
+    "preconditions_ready": true,
+    "private_proof_compared": false,
+    "prompt_sent": false,
+    "proof_bundle_sent": false,
+    "truth_checks_loosened": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true
+  },
+  "metrics": [
+    "schema_compliance",
+    "verifier_pass",
+    "concision",
+    "human_usefulness",
+    "agent_voice_fit",
+    "next_step_clarity",
+    "unsupported_claims",
+    "protected_action_safety",
+    "machine_jargon_absence"
+  ],
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY",
+      "precondition_ref": "local_lm_proof_response_pilot_postmortem",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_response_pilot_postmortem.json"
+    },
+    {
+      "accepted_statuses": [
+        "EXTERNAL_SYNTHETIC_FACT_ALIGNMENT_READY",
+        "EXTERNAL_LM_SYNTHETIC_RESPONSE_CAPTURE_READY"
+      ],
+      "observed_status": "EXTERNAL_LM_SYNTHETIC_RESPONSE_CAPTURE_READY",
+      "precondition_ref": "external_synthetic_fact_alignment",
+      "ready": true,
+      "source_ref": "generated/read_models/external_lm_synthetic_response_capture_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "EXTERNAL_LM_SYNTHETIC_RESPONSE_CAPTURE_READY"
+      ],
+      "observed_status": "EXTERNAL_LM_SYNTHETIC_RESPONSE_CAPTURE_READY",
+      "precondition_ref": "external_lm_synthetic_response_capture",
+      "ready": true,
+      "source_ref": "generated/read_models/external_lm_synthetic_response_capture_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
+      "precondition_ref": "proof_to_response_schema_adapter",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_schema_adapter_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "EXTERNAL_LM_SYNTHETIC_TEST_PACKET_READY"
+      ],
+      "observed_status": "EXTERNAL_LM_SYNTHETIC_TEST_PACKET_READY",
+      "precondition_ref": "external_lm_synthetic_test_packet",
+      "ready": true,
+      "source_ref": "generated/read_models/external_lm_synthetic_test_packet.json"
+    }
+  ],
+  "purpose": "Compare verifier-gated proof-to-response quality across local qwen, manually captured synthetic external response, and shadow/mock baseline.",
+  "ranking": [
+    {
+      "candidate_ref": "external_synthetic_manual_response",
+      "quality_class": "strong",
+      "quality_score": 14
+    },
+    {
+      "candidate_ref": "shadow_mock_baseline",
+      "quality_class": "strong",
+      "quality_score": 14
+    },
+    {
+      "candidate_ref": "local_qwen_first_run",
+      "quality_class": "not_ready",
+      "quality_score": 5
+    }
+  ],
+  "read_model_id": "proof_to_response_model_quality_comparison",
+  "reasons": [
+    "The local qwen run failed primarily because it did not return JSON, not because it made unsafe business claims.",
+    "The schema adapter and aligned synthetic external sample show that verifier-compatible JSON can pass without loosening rules.",
+    "The shadow baseline remains clean, so the next local test should target schema compliance before expanding external samples."
+  ],
+  "recommended_next_test": "retry_local_with_schema_adapter",
+  "recommended_next_test_options": [
+    "retry_local_with_schema_adapter",
+    "run_more_external_synthetic_samples",
+    "approve_external_redacted_test_packet",
+    "stay_shadow_only"
+  ],
+  "schema_adapter_summary": {
+    "adapter_ready": false,
+    "status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
+    "strict_schema_required_fields": []
+  },
+  "schema_version": "proof_to_response_model_quality_comparison_v0",
+  "source_content_hashes": {
+    "generated/read_models/external_lm_synthetic_response_capture_contract.json": "sha256:153de65890097471c44454152852ba777376d3b5ffb10301e795bf47a350bb3b",
+    "generated/read_models/external_lm_synthetic_test_packet.json": "sha256:6a9cd207b51362c090f061bb22ca4cd99dd2e851a70f3e92663cb4cc389f17cd",
+    "generated/read_models/local_lm_proof_response_pilot_postmortem.json": "sha256:9839f6f5025a0c4cf0f7663350ff90b898b9e0dd4a12e49d95cb4bb529633868",
+    "generated/read_models/proof_to_response_lm_shadow_pilot.json": "sha256:b4b2da033be230ad478ba5b8ef31b93aee2740c929f981cae8548fbb28e5b11c",
+    "generated/read_models/proof_to_response_schema_adapter_contract.json": "sha256:81b6bb947c42ef6cd41b2128d928050ebc493956568188cfaa23d1b31ea60496"
+  },
+  "source_refs": [
+    "generated/read_models/local_lm_proof_response_pilot_postmortem.json",
+    "generated/read_models/external_lm_synthetic_response_capture_contract.json",
+    "generated/read_models/proof_to_response_schema_adapter_contract.json",
+    "generated/read_models/external_lm_synthetic_test_packet.json",
+    "generated/read_models/proof_to_response_lm_shadow_pilot.json"
+  ],
+  "status": "PROOF_RESPONSE_MODEL_QUALITY_COMPARISON_READY",
+  "synthetic_packet_summary": {
+    "canonical_fact_ids": [
+      "payment_evidence_missing",
+      "processor_processing",
+      "ledger_untouched",
+      "paid_false",
+      "no_email_sent",
+      "no_coupa_submit",
+      "no_ledger_mutation",
+      "no_paid_marking"
+    ],
+    "status": "EXTERNAL_LM_SYNTHETIC_TEST_PACKET_READY",
+    "synthetic_only": true
+  }
+}

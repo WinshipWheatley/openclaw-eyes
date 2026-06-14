@@ -24,7 +24,10 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, str(Path.home() / "tools"))
+TOOLS_PATH = Path(__file__).resolve().parent / "tools"
+if str(TOOLS_PATH) in sys.path:
+    sys.path.remove(str(TOOLS_PATH))
+sys.path.insert(0, str(TOOLS_PATH))
 from future_action_queue import dispatch_due_actions
 
 from cassandra_mode import is_focus_mode, is_social_mode
@@ -49,14 +52,15 @@ _VAULT_SYS   = Path("/mnt/c/OpenClawShared/openclaw-vault/System")
 _OPS_PAYMENT = _VAULT_SYS / "Ops Payment Follow-ups.md"
 _OPS_ACTIONS = _VAULT_SYS / "Ops Actions.md"
 _OPS_LOG     = Path("/mnt/c/OpenClaw/logs/ops_intake_log.md")
+REPO_ROOT = Path(__file__).resolve().parent
 
 POLL_INTERVAL_S = 60
 AMBIENT_EVAL_INTERVAL_S = 1800
 _RELOAD_PATHS = (
     Path(__file__),
-    Path("/home/openclaw/cassandra_brain.py"),
-    Path("/home/openclaw/cassandra_reality_notes.json"),
-    Path("/home/openclaw/tools/future_action_queue.py"),
+    REPO_ROOT / "cassandra_brain.py",
+    REPO_ROOT / "cassandra_reality_notes.json",
+    REPO_ROOT / "tools" / "future_action_queue.py",
 )
 _SOURCE_MTIMES = {
     str(path): (path.stat().st_mtime if path.exists() else 0.0)

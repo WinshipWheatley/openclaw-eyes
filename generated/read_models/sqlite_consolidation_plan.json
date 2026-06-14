@@ -1,0 +1,1315 @@
+{
+  "agentic_chain_risk_refs": [
+    {
+      "affected_path_count": 103,
+      "risk_id": "duplicate_package_concepts",
+      "severity": "high"
+    },
+    {
+      "affected_path_count": 10,
+      "risk_id": "duplicate_event_journals",
+      "severity": "medium"
+    },
+    {
+      "affected_path_count": 26,
+      "risk_id": "request_response_status_stores",
+      "severity": "medium"
+    },
+    {
+      "affected_path_count": 16,
+      "risk_id": "generated_status_dbs",
+      "severity": "medium"
+    },
+    {
+      "affected_path_count": 622,
+      "risk_id": "test_harness_dbs",
+      "severity": "low"
+    },
+    {
+      "affected_path_count": 438,
+      "risk_id": "business_ledger_exclusion",
+      "severity": "critical"
+    }
+  ],
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "database_delete_allowed": false,
+    "database_migration_allowed": false,
+    "database_move_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "sqlite_consolidation_allowed": false,
+    "workbook_mutation_allowed": false
+  },
+  "canonical_domain_refs": [
+    "package_queue",
+    "request_response",
+    "package_event_index",
+    "conversation_journal",
+    "st_annes_work_log",
+    "st_annes_invoice_status",
+    "capital_hilton_invoice_status",
+    "capital_hilton_proposal_status",
+    "agent_voice_profiles",
+    "permission_registry",
+    "overnight_workboard",
+    "business_ledger"
+  ],
+  "consolidation_candidates": [
+    {
+      "blocked_until": [
+        "backup",
+        "schema_diff",
+        "row_count_proof",
+        "rollback_plan",
+        "test_coverage",
+        "no_business_ledger_mixing",
+        "operator_approval"
+      ],
+      "candidate_ref": "package_queue_event_concepts",
+      "concept": "Package queue package/gate/event concepts",
+      "migration_allowed_now": false,
+      "recommended_plan": "Create a read-only package_event_overlay view/index plan over package queue and package_event_index refs; do not migrate source DB rows.",
+      "risk": "medium",
+      "source_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/package_event_index.json",
+        "generated/system_knowledge/workflow_package_queue.sqlite"
+      ]
+    },
+    {
+      "blocked_until": [
+        "backup",
+        "schema_diff",
+        "row_count_proof",
+        "rollback_plan",
+        "test_coverage",
+        "no_business_ledger_mixing",
+        "operator_approval"
+      ],
+      "candidate_ref": "request_response_index_concepts",
+      "concept": "Mission Control request/response index concepts",
+      "migration_allowed_now": false,
+      "recommended_plan": "Use package_event_index as the first overlay; add derived views/indexes only after proving request/response refs and counts.",
+      "risk": "low",
+      "source_refs": [
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/package_event_index.json"
+      ]
+    },
+    {
+      "blocked_until": [
+        "backup",
+        "schema_diff",
+        "row_count_proof",
+        "rollback_plan",
+        "test_coverage",
+        "no_business_ledger_mixing",
+        "operator_approval"
+      ],
+      "candidate_ref": "operator_conversation_index_concepts",
+      "concept": "Operator conversation index concepts",
+      "migration_allowed_now": false,
+      "recommended_plan": "Create a derived index that joins journal entry refs to package_event_index refs; keep journal as canonical history.",
+      "risk": "medium",
+      "source_refs": [
+        "generated/read_models/operator_conversation_journal.json",
+        "generated/system_knowledge/operator_conversation_journal.sqlite"
+      ]
+    },
+    {
+      "blocked_until": [
+        "backup",
+        "schema_diff",
+        "row_count_proof",
+        "rollback_plan",
+        "test_coverage",
+        "no_business_ledger_mixing",
+        "operator_approval",
+        "operator_confirmation_for_invoice_inclusion"
+      ],
+      "candidate_ref": "work_log_staging_if_safe",
+      "concept": "St. Anne's work-log staging indexes if safe",
+      "migration_allowed_now": false,
+      "recommended_plan": "Keep staged work logs isolated until operator confirmation; future overlay may expose package/work-log staging indexes without workbook mutation.",
+      "risk": "medium",
+      "source_refs": [
+        "generated/read_models/st_annes_work_log_events.json",
+        "/home/openclaw/.openclaw/invoice_review/invoice_review_state.sqlite",
+        "/home/openclaw/generated/system_knowledge/capital_hilton_coupa_workflow_harvest.sqlite",
+        "/home/openclaw/generated/system_knowledge/capital_hilton_invoice_operator_run_status.sqlite",
+        "/home/openclaw/generated/system_knowledge/st_annes_invoice_status.sqlite",
+        "/home/openclaw/generated/system_knowledge/st_annes_monthly_work_log.sqlite"
+      ]
+    }
+  ],
+  "do_not_touch_databases": [
+    {
+      "category": "protected_business_ledger",
+      "count": 438,
+      "databases": [
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:58f11e820fa1bedf",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/business_ops/backups/ledger_before_controlled_ingest_20260512_114446.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": true,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:4ec6ea93a82e6906",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/business_ops/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:7dd0e54c3bde9e5d",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/debug-shuttle/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:bed26d8c88c3e54a",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/debug-shuttle2/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:3e7f19da9c66d09f",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/debug_read_model_shuttle/1779389592/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:8d209272af7793d5",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_build_script_accepts_fixt0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:15271af4ba7260da",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_degraded_if_proof_files_m0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:5ddd8c74e4e61738",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_extra_files_require_manua0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:13e922a2c2e09da7",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_hash_mismatch_produces_st0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:ced9d345d867775e",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_mac_completion_newer_than0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:0052ac6b83539452",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_missing_expected_produces0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:2876ff81f757b6e7",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_read_model_export_exists_0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:d37d810ce2757f20",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_refresh_sync_health_from_0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:d5688c4e34dfbe4f",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_reports_and_scripts_work0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:3302a1ac0d9652e7",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_schema_initializes0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:c1df22685f6a9752",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_self_report_newer_than_ma0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:3c36d02380e31d46",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_sync_health_exposes_map_s0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:4f422fe90a09ba11",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_sync_health_self_export_h0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:7bb81ccc5968b1e8",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_sync_requested_waiting_fo0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:2a25282cb736cb12",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_trusted_mirror_produces_t0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:a62388d2ae714fd6",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent/test_build_script_accepts_fixt0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:5e0745e01efddfc3",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent/test_degraded_if_proof_files_m0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:6637b53d594acfdd",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent/test_extra_files_require_manua0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:1a8ff6794ed01ddd",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent/test_hash_mismatch_produces_st0/ledger.sqlite",
+          "reason": "protected business ledger"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:4d6d92e18788766a",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent/test_mac_completion_newer_than0/ledger.sqlite",
+          "reason": "protected business ledger"
+        }
+      ],
+      "policy": "do_not_touch",
+      "reason": "Business ledger and ledger-shaped databases are protected; consolidation risk is forbidden."
+    },
+    {
+      "category": "legacy_archives",
+      "count": 0,
+      "databases": [],
+      "policy": "do_not_touch",
+      "reason": "Archives/backups remain historical evidence until separately reviewed."
+    },
+    {
+      "category": "unknown_needs_review",
+      "count": 10,
+      "databases": [
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:b717f2e03568f1f0",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/.openclaw/activation/activation_receipts.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:b77543f136cb27c2",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/.openclaw/flows/registry.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:965435dcaf226c51",
+          "owner_lane": "invoice_operations",
+          "path": "/home/openclaw/.openclaw/invoice_review/invoice_review_state.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:6260849a511c940c",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/.openclaw/memory/chief.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:581b286bc501d80b",
+          "owner_lane": "system_health",
+          "path": "/home/openclaw/.openclaw/memory/health-sentinel.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:4ef09dbe19501994",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/.openclaw/memory/main.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:9bd9d8a159925d11",
+          "owner_lane": "system_health",
+          "path": "/home/openclaw/.openclaw/memory/strategy-sentinel.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:2139f6bf78670064",
+          "owner_lane": "system_health",
+          "path": "/home/openclaw/.openclaw/memory/timeline-sentinel.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:277a5ce9bc5ac786",
+          "owner_lane": "operator_action_events",
+          "path": "/home/openclaw/.openclaw/operator_events/operator_action_events.sqlite",
+          "reason": "unknown owner or truth posture"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "unknown_needs_review",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:3f443f8e664234c8",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/.openclaw/tasks/runs.sqlite",
+          "reason": "unknown owner or truth posture"
+        }
+      ],
+      "policy": "do_not_touch",
+      "reason": "Unknown ownership defaults to no writes and manual review."
+    },
+    {
+      "category": "protected_evidence",
+      "count": 1,
+      "databases": [
+        {
+          "canonical_truth_allowed": true,
+          "classification": "canonical_workflow_state",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:3dd6aed999a0be61",
+          "owner_lane": "privacy",
+          "path": "/home/openclaw/.openclaw/privacy/token_vault.sqlite",
+          "reason": "protected evidence or token/privacy store"
+        }
+      ],
+      "policy": "do_not_touch",
+      "reason": "Privacy/protected evidence such as token vaults must never enter read-model consolidation."
+    },
+    {
+      "category": "token_secret_credential_stores",
+      "count": 3,
+      "databases": [
+        {
+          "canonical_truth_allowed": true,
+          "classification": "canonical_workflow_state",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:3dd6aed999a0be61",
+          "owner_lane": "privacy",
+          "path": "/home/openclaw/.openclaw/privacy/token_vault.sqlite",
+          "reason": "token/secret/credential/vault store"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:6fbd81c601b77da1",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-threshold-map-final/test_credential_bearing_values0/ledger.sqlite",
+          "reason": "token/secret/credential/vault store"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:5af1279ab283d603",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-threshold-map-focused/test_credential_bearing_values0/ledger.sqlite",
+          "reason": "token/secret/credential/vault store"
+        }
+      ],
+      "policy": "do_not_touch",
+      "reason": "Token, secret, credential, and vault stores must not enter read-model or workflow consolidation."
+    }
+  ],
+  "generated_at": "2026-06-03T02:55:19+00:00",
+  "keep_isolated_databases": [
+    {
+      "category": "test_harness",
+      "count": 186,
+      "databases": [
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "high",
+          "db_ref": "sqlite_db:sha256:01757bbee31e2808",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/automation_package_warmup.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "high",
+          "db_ref": "sqlite_db:sha256:ca6c68ec63ba0f2e",
+          "owner_lane": "lm_child_gate",
+          "path": "/home/openclaw/.openclaw/test_harness/delegated_package_graph.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:b13e97225d4bed78",
+          "owner_lane": "lm_child_gate",
+          "path": "/home/openclaw/.openclaw/test_harness/external_lm_shadow_adapter.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "high",
+          "db_ref": "sqlite_db:sha256:87d3382b9923dfac",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/gate_chain_harness.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:bab21df672fdec28",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/guardian_trust_ramp_simulator.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:5aa4549b2a7f3b76",
+          "owner_lane": "lm_child_gate",
+          "path": "/home/openclaw/.openclaw/test_harness/live_lm_shadow_trial.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:3d769c0ed2757060",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/reality_bounce_harness.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:ab0ea3af2ac73adc",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/reality_bounce_shadow_smoke.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:c0a8aa4c814a9040",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/repoa_worker_boundary.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:6242cf76a0949184",
+          "owner_lane": "lm_child_gate",
+          "path": "/home/openclaw/.openclaw/test_harness/shadow_lm_mode.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "high",
+          "db_ref": "sqlite_db:sha256:bdf14ab09efc2c75",
+          "owner_lane": "lm_child_gate",
+          "path": "/home/openclaw/.openclaw/test_harness/test_delegated_package_graph_tmp.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:1040953d74772d66",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_sqlite_receipt_is_metadat0/package_contract_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:d02443ffee424b97",
+          "owner_lane": "system_health",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent-final/test_sqlite_receipt_is_metadat1/system_health_lights_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:5baab8ded9024f18",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent/test_sqlite_receipt_is_metadat0/package_contract_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:3989f2d091d2b004",
+          "owner_lane": "system_health",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-platform-adjacent/test_sqlite_receipt_is_metadat1/system_health_lights_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:31abaf7f79fd53a2",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-router-adjacent-final/test_sqlite_receipt_is_metadat0/package_contract_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:e4b45c5d822701ed",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-agent-router-adjacent/test_sqlite_receipt_is_metadat0/package_contract_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:28bdd4bc038b53f4",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-bridge-manual-mount-initial-2/test_sqlite_receipt_is_metadat0/manual_mount_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:5d32a185dc82b8dc",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-bridge-manual-mount-initial/test_sqlite_receipt_is_metadat0/manual_mount_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:44c35e2725c91edd",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-bridge-manual-mount-validation/test_sqlite_receipt_is_metadat0/manual_mount_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:1479f6f345078c68",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-bridge-manual-mount-validation/test_sqlite_receipt_uses_exist0/bridge_truth_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:42072ec67e666f7c",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-bridge-manual-mount-validation/test_sqlite_receipt_uses_exist1/diagnostic_package_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:f4fff119ac0b1ce4",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-bridge-manual-mount-validation/test_sqlite_receipt_uses_exist2/check_engine_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:0303e0b5c68d3b98",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-bridge-trust-1/test_sqlite_receipt_uses_exist0/bridge_truth_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:f2963348210f656f",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-bridge-trust-validation/test_sqlite_receipt_uses_exist0/bridge_truth_receipts.sqlite",
+          "reason": "test fixture or simulation state"
+        }
+      ],
+      "policy": "keep_isolated",
+      "reason": "Test harness and pytest databases cannot become canonical truth."
+    },
+    {
+      "category": "generated_proof_status_dbs",
+      "count": 17,
+      "databases": [
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_status",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:84f227f5890ffc8c",
+          "owner_lane": "system_health",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_change_sentinel.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_status",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:2faa6dad706ade9f",
+          "owner_lane": "system_health",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_service_supervision.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:cec9bb2b612e30b3",
+          "owner_lane": "agentic_chain_inspector",
+          "path": "/home/openclaw/generated/system_knowledge/agentic_chain_inspector.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:f5509e763db91246",
+          "owner_lane": "invoice_operations",
+          "path": "/home/openclaw/generated/system_knowledge/capital_hilton_coupa_workflow_harvest.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:2b29a2b022a087ef",
+          "owner_lane": "invoice_operations",
+          "path": "/home/openclaw/generated/system_knowledge/capital_hilton_invoice_operator_run_status.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:607964b555e7e424",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_authority_semantics_registry.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:a8583dbcb69540bf",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_business_object_layer_audit.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:72f060f867421e71",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_cross_machine_proof_runner.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:262856534b090690",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_estate_topology_registry.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:fd35357f783e8403",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_hermes_sidecar.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:093c174df702fef8",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_lane_capability_harvest.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "high",
+          "db_ref": "sqlite_db:sha256:85b7b44cb5399208",
+          "owner_lane": "lm_child_gate",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_lm_child_package_gate.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:f9a299e104f6e956",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_reference_resolver.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "high",
+          "db_ref": "sqlite_db:sha256:863e3b9030176ee7",
+          "owner_lane": "package_event_index",
+          "path": "/home/openclaw/generated/system_knowledge/package_event_index.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:246349db3969545f",
+          "owner_lane": "sqlite_governance",
+          "path": "/home/openclaw/generated/system_knowledge/sqlite_governance_registry.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:aae6fe5da89a7f95",
+          "owner_lane": "invoice_operations",
+          "path": "/home/openclaw/generated/system_knowledge/st_annes_invoice_status.sqlite",
+          "reason": "generated proof/status evidence"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:a0126cfaec7d20ff",
+          "owner_lane": "invoice_operations",
+          "path": "/home/openclaw/generated/system_knowledge/st_annes_monthly_work_log.sqlite",
+          "reason": "generated proof/status evidence"
+        }
+      ],
+      "policy": "keep_isolated",
+      "reason": "Generated proof/status stores are evidence unless a future owner map proves otherwise."
+    },
+    {
+      "category": "one_off_read_model_proof_dbs",
+      "count": 10,
+      "databases": [
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:cec9bb2b612e30b3",
+          "owner_lane": "agentic_chain_inspector",
+          "path": "/home/openclaw/generated/system_knowledge/agentic_chain_inspector.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "low",
+          "db_ref": "sqlite_db:sha256:f5509e763db91246",
+          "owner_lane": "invoice_operations",
+          "path": "/home/openclaw/generated/system_knowledge/capital_hilton_coupa_workflow_harvest.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:607964b555e7e424",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_authority_semantics_registry.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:a8583dbcb69540bf",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_business_object_layer_audit.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:72f060f867421e71",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_cross_machine_proof_runner.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:262856534b090690",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_estate_topology_registry.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:fd35357f783e8403",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_hermes_sidecar.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:093c174df702fef8",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_lane_capability_harvest.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:f9a299e104f6e956",
+          "owner_lane": "unknown_review",
+          "path": "/home/openclaw/generated/system_knowledge/openclaw_reference_resolver.sqlite",
+          "reason": "one-off read-model/proof database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "generated_evidence",
+          "consolidation_candidate": true,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:246349db3969545f",
+          "owner_lane": "sqlite_governance",
+          "path": "/home/openclaw/generated/system_knowledge/sqlite_governance_registry.sqlite",
+          "reason": "one-off read-model/proof database"
+        }
+      ],
+      "policy": "keep_isolated",
+      "reason": "One-off proof/read-model databases should stay as source evidence, not merged into canonical workflow state."
+    },
+    {
+      "category": "dry_run_warmup_dbs",
+      "count": 2,
+      "databases": [
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "high",
+          "db_ref": "sqlite_db:sha256:01757bbee31e2808",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/automation_package_warmup.sqlite",
+          "reason": "dry-run/warmup/smoke database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:ab0ea3af2ac73adc",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/reality_bounce_shadow_smoke.sqlite",
+          "reason": "dry-run/warmup/smoke database"
+        }
+      ],
+      "policy": "keep_isolated",
+      "reason": "Dry-run, smoke, and warmup databases are validation artifacts, not canonical state."
+    }
+  ],
+  "machine_proof": {
+    "browser_access_performed": false,
+    "coupa_access_performed": false,
+    "database_consolidation_performed": false,
+    "database_delete_performed": false,
+    "database_migration_performed": false,
+    "database_move_performed": false,
+    "email_send_performed": false,
+    "existing_database_mutation_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "paid_marking_performed": false,
+    "plan_only": true,
+    "preconditions_ready": true,
+    "submit_performed": false,
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false
+  },
+  "migration_requirements_before_any_consolidation": [
+    {
+      "description": "Create verified backups of every source database before any future write.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "backup"
+    },
+    {
+      "description": "Compare schemas and table contracts before creating any overlay or migration target.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "schema_diff"
+    },
+    {
+      "description": "Record pre/post row counts for every affected table.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "row_count_proof"
+    },
+    {
+      "description": "Record checksums or sample-row proof for every affected table before and after any future write.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "checksum_or_sample_row_proof"
+    },
+    {
+      "description": "Document exact rollback steps and owners before changes.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "rollback_plan"
+    },
+    {
+      "description": "Add focused tests for joins, refs, permissions, and forbidden state mixing.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "focused_tests"
+    },
+    {
+      "description": "Prove protected ledger databases are excluded from package/agent/read-model stores.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "no_business_ledger_mixing"
+    },
+    {
+      "description": "Require explicit operator approval for any database write, index, view, migration, move, or delete.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "operator_approval"
+    }
+  ],
+  "mode": "plan_only_no_migration",
+  "never_consolidate": [
+    "Never consolidate ledger into package DB.",
+    "Never consolidate secrets/tokens into read models.",
+    "Never consolidate raw prompt bodies into operator journal.",
+    "Never consolidate test harness into canonical state."
+  ],
+  "preconditions": [
+    {
+      "observed_status": "SQLITE_GOVERNANCE_REGISTRY_READY",
+      "precondition_ref": "sqlite_governance_registry",
+      "ready": true,
+      "required_status": "SQLITE_GOVERNANCE_REGISTRY_READY",
+      "source_ref": "generated/read_models/sqlite_governance_registry.json"
+    },
+    {
+      "observed_status": "CANONICAL_STATE_MAP_READY",
+      "precondition_ref": "canonical_state_map",
+      "ready": true,
+      "required_status": "CANONICAL_STATE_MAP_READY",
+      "source_ref": "generated/read_models/canonical_state_map.json"
+    }
+  ],
+  "purpose": "Planning-only SQLite consolidation plan based on governance registry, canonical state map, agentic chain inspector, and package event index.",
+  "read_model_id": "sqlite_consolidation_plan",
+  "recommended_first_low_risk_move": {
+    "move_ref": "read_only_views_and_indexes_overlay",
+    "notes": [
+      "This task does not create the views or indexes.",
+      "Do not migrate source DBs.",
+      "Do not alter ledger.",
+      "Use package_event_index as the cross-reference layer between package queue, request/response, and operator conversation refs.",
+      "If indexes/views are written inside existing databases later, that still requires operator approval.",
+      "A detached generated overlay/read-model is lower risk than altering canonical source databases."
+    ],
+    "plan_only": true,
+    "summary": "Create views/indexes over existing package/event/journal refs, not a data migration; use package_event_index as the cross-reference layer.",
+    "write_allowed_now": false
+  },
+  "registry_summary": {
+    "classification_counts": {
+      "canonical_workflow_state": 3,
+      "generated_evidence": 15,
+      "generated_status": 2,
+      "protected_business_ledger": 438,
+      "test_harness": 186,
+      "unknown_needs_review": 10
+    },
+    "consolidation_candidate_count": 17,
+    "database_count": 654,
+    "risk_counts": {
+      "forbidden": 439,
+      "high": 6,
+      "low": 178,
+      "medium": 31
+    },
+    "unknown_review_count": 10
+  },
+  "schema_version": "sqlite_consolidation_plan_v0",
+  "source_refs": {
+    "agentic_chain_inspector": {
+      "exists": true,
+      "source_ref": "generated/read_models/agentic_chain_inspector.json",
+      "status": "AGENTIC_CHAIN_INSPECTOR_READY"
+    },
+    "canonical_state_map": {
+      "exists": true,
+      "source_ref": "generated/read_models/canonical_state_map.json",
+      "status": "CANONICAL_STATE_MAP_READY"
+    },
+    "package_event_index": {
+      "exists": true,
+      "source_ref": "generated/read_models/package_event_index.json",
+      "status": "PACKAGE_EVENT_INDEX_READY"
+    },
+    "sqlite_governance_registry": {
+      "exists": true,
+      "source_ref": "generated/read_models/sqlite_governance_registry.json",
+      "status": "SQLITE_GOVERNANCE_REGISTRY_READY"
+    }
+  },
+  "status": "SQLITE_CONSOLIDATION_PLAN_READY",
+  "unknown_db_policy": {
+    "classification": "unknown_needs_review",
+    "delete_allowed": false,
+    "migration_allowed": false,
+    "notes": [
+      "Unknown DBs stay read-only.",
+      "No deletion.",
+      "No migration.",
+      "Require a classification packet before any future consolidation decision."
+    ],
+    "policy": "read_only_review_required",
+    "required_next_packet": "classification_packet_later",
+    "writable_by_automation": false
+  }
+}

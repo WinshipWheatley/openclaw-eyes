@@ -1,12 +1,18 @@
 """Unit tests for file-verify intent detection and handler wiring in cassandra_brain."""
 import sys
 import types
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-sys.path.insert(0, "/home/openclaw")
-sys.path.insert(0, "/home/openclaw/tools")  # needed so patch("file_verify.*") can resolve the module
+ROOT = Path(__file__).resolve().parents[1]
+TOOLS = ROOT / "tools"
+for path in (TOOLS, ROOT):
+    value = str(path)
+    if value in sys.path:
+        sys.path.remove(value)
+    sys.path.insert(0, value)
 
 from cassandra_brain import _detect_file_verify_intent, _handle_file_verification_request
 

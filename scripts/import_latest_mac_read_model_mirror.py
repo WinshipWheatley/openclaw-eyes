@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 from business_ops_ledger import DEFAULT_DB_PATH
 from corpus_atlas import stable_json
 from generated_read_model_files import (
+    EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
     MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
     MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
 )
@@ -35,6 +36,7 @@ CRITICAL_READ_MODEL_FILES = (
     "context_selection.json",
     *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     *MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
+    *EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
 )
 
 

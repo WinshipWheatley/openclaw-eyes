@@ -157,7 +157,7 @@
       "path": "scripts/generate_operator_status.py",
       "reason_included": "generated operator status read-model path",
       "sensitivity_label": "repo_allowlisted_source_code",
-      "size_bytes": 31969,
+      "size_bytes": 32631,
       "source_class": "operator_status_script"
     },
     {
@@ -413,7 +413,7 @@
     "broker_connection": false,
     "customer_deployment": false,
     "hard_drive_scan": false,
-    "root": "/home/openclaw",
+    "root": "/home/openclaw/worktrees/integrate",
     "runtime_activation": false,
     "sqlite_touched": false,
     "whole_repo_scan": false

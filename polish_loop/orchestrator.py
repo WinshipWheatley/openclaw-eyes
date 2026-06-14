@@ -23,7 +23,10 @@ import time
 from pathlib import Path
 
 # Notification support
-sys.path.insert(0, "/home/openclaw")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) in sys.path:
+    sys.path.remove(str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT))
 try:
     import chief_notify as _chief_notify
     _NOTIFY_AVAILABLE = True

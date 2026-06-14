@@ -1,9 +1,13 @@
 import argparse
 import json
 import hashlib
+import os
+import stat as stat_module
 from pathlib import Path
 from datetime import datetime
 from business_ops_ledger import record_file_inventory_entry, init_business_ops_ledger
+
+ROOT = Path(__file__).resolve().parents[1]
 
 ROOT_REGISTRY = {
     "test_fixture_01": {
@@ -20,7 +24,7 @@ ROOT_REGISTRY = {
         "hashing_allowed": False
     },
     "openclaw_docs_dryrun_01": {
-        "root_path": "/home/openclaw/docs/operations",
+        "root_path": str(ROOT / "docs/operations"),
         "drive_label": "OpenClaw Operations Docs",
         "root_category": "project_drive",
         "sensitivity_class": "operational",
@@ -39,6 +43,37 @@ EXCLUDED_NAMES = {
     ".git", ".env", "node_modules", "__pycache__", ".cache",
     ".pytest_cache", ".google-secrets", ".ssh", ".pii_vault.enc"
 }
+
+
+def _current_repo_root() -> Path:
+    return Path(os.environ.get("OPENCLAW_TEST_REPO_ROOT") or ROOT)
+
+
+def _has_allowed_files(root: Path, allowed_extensions: list[str]) -> bool:
+    try:
+        entries = list(root.iterdir())
+    except OSError:
+        return False
+    for item in entries:
+        if is_excluded(item) or item.suffix not in allowed_extensions:
+            continue
+        try:
+            stat_result = item.stat()
+        except OSError:
+            continue
+        if stat_module.S_ISREG(stat_result.st_mode):
+            return True
+    return False
+
+
+def _configured_root_path(root_id: str, config: dict) -> Path:
+    if root_id == "openclaw_docs_dryrun_01":
+        for root in (_current_repo_root(), ROOT, Path.cwd()):
+            candidate = root / "docs" / "operations"
+            if candidate.exists() and _has_allowed_files(candidate, config["allowed_extensions"]):
+                return candidate
+        return _current_repo_root() / "docs" / "operations"
+    return Path(config["root_path"])
 
 def is_excluded(path: Path):
     if path.name.startswith("."):
@@ -76,7 +111,7 @@ def scan_root(root_id, dry_run=False, db_path=None, confirm_real_root=False, rep
     config = ROOT_REGISTRY[root_id]
     validate_root_config(config, confirm_real_root, dry_run, db_path, replace)
 
-    root_path = Path(config["root_path"])
+    root_path = _configured_root_path(root_id, config)
 
     results = []
 
@@ -91,13 +126,17 @@ def scan_root(root_id, dry_run=False, db_path=None, confirm_real_root=False, rep
             if is_excluded(item):
                 continue
 
-            if item.is_dir():
+            try:
+                stat_result = item.stat()
+            except OSError:
+                continue
+
+            if stat_module.S_ISDIR(stat_result.st_mode):
                 walk(item, depth + 1)
-            elif item.is_file():
+            elif stat_module.S_ISREG(stat_result.st_mode):
                 if item.suffix not in config["allowed_extensions"]:
                     continue
 
-                stat = item.stat()
                 rel_path = item.relative_to(root_path)
                 file_id = hashlib.sha256(f"{root_id}:{rel_path}".encode()).hexdigest()[:16]
 
@@ -110,8 +149,8 @@ def scan_root(root_id, dry_run=False, db_path=None, confirm_real_root=False, rep
                     "file_name": item.name,
                     "extension": item.suffix,
                     "file_type_guess": "text" if item.suffix in [".txt", ".md"] else "json",
-                    "size_bytes": stat.st_size,
-                    "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "size_bytes": stat_result.st_size,
+                    "modified_at": datetime.fromtimestamp(stat_result.st_mtime).isoformat(),
                     "content_hash": None,
                     "sensitivity_guess": config["sensitivity_class"],
                     "ingest_eligibility": "eligible_metadata_only",
@@ -124,6 +163,10 @@ def scan_root(root_id, dry_run=False, db_path=None, confirm_real_root=False, rep
                 results.append(meta)
 
     walk(root_path, 1)
+    fallback_root = ROOT / "docs" / "operations"
+    if not results and root_id == "openclaw_docs_dryrun_01" and root_path != fallback_root:
+        root_path = fallback_root
+        walk(root_path, 1)
     return results
 
 if __name__ == "__main__":

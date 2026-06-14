@@ -1,0 +1,474 @@
+{
+  "authority_boundary": {
+    "authority_checks_loosened": false,
+    "authority_granted": false,
+    "business_action_authority": false,
+    "external_provider_allowed": false,
+    "next_invocation_approved": false,
+    "protected_actions_allowed": false,
+    "repeated_invocations_allowed": false,
+    "tool_authority": false,
+    "truth_checks_loosened": false
+  },
+  "content_hash": "sha256:351fc478e6828b9f20caf50af8ee8f068f81ae042b696469fa1b1694c89d8703",
+  "generated_at": "2026-06-08T02:13:58+00:00",
+  "input_refs": [
+    "generated/read_models/lm2_room_backed_worker_one_time_pilot.json",
+    "generated/read_models/proof_to_response_latest.json",
+    "generated/system_knowledge/lm2_room_backed_worker_one_time_pilot.sqlite",
+    "proof_to_response_schema_adapter.py",
+    "proof_to_response_verifier.py",
+    "lm2_room_backed_worker_one_time_pilot.py"
+  ],
+  "machine_proof": {
+    "approval_used_exactly_once": true,
+    "fallback_and_receipts_confirmed": true,
+    "no_forbidden_fields_sent": true,
+    "no_protected_action_occurred": true,
+    "no_truth_or_authority_checks_loosened": true,
+    "non_json_recorded_as_output_shape_failure": true,
+    "postmortem_read_only": true,
+    "preconditions_ready": true,
+    "sqlite_row_count_matches_receipts": true,
+    "structured_output_plan_required_before_retry": true,
+    "unsafe_true_grants_absent": true
+  },
+  "postmortem": {
+    "adapter_errors": [
+      "json_parse_error:Expecting value"
+    ],
+    "adapter_parse_status": "PARSE_ERROR",
+    "approval_used_exactly_once": true,
+    "conclusion": [
+      "Failure class: non_json_model_output / structured_output_boundary_failure.",
+      "Safety wrapper passed.",
+      "Room-backed package passed.",
+      "Fallback passed.",
+      "Next attempt must not rely on plain text prompting alone."
+    ],
+    "failure_class": "non_json_model_output",
+    "fallback_passed": true,
+    "forbidden_fields_absent": true,
+    "latest_response_status": "fallback",
+    "protected_action_flags": {
+      "browser_opened": false,
+      "business_action_performed": false,
+      "coupa_opened": false,
+      "email_send_performed": false,
+      "git_merge_performed": false,
+      "git_push_performed": false,
+      "gmail_opened": false,
+      "ledger_mutation_performed": false,
+      "memory_promotion_performed": false,
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "submit_performed": false,
+      "tool_authority": false,
+      "tool_execution_performed": false,
+      "workbook_mutation_performed": false
+    },
+    "protected_action_occurred": false,
+    "question_answers": {
+      "did_fallback_publish_correctly": true,
+      "did_model_attempt_protected_action": false,
+      "did_model_receive_forbidden_fields": false,
+      "problem_classification": {
+        "authority_problem": false,
+        "context_problem": false,
+        "failure_class": "non_json_model_output / structured_output_boundary_failure",
+        "output_shape_problem": true,
+        "privacy_problem": false,
+        "verifier_problem": false
+      },
+      "was_approval_used_exactly_once": true,
+      "were_receipts_complete": true,
+      "what_failed": "The local Ollama CLI attempt returned output that was not valid JSON for the strict response schema.",
+      "what_should_change_before_another_lm2_attempt": "Do not retry with plain text prompting alone. Add a structured-output Ollama API invocation path using the response JSON schema, then require a new one-attempt approval."
+    },
+    "receipt_count": 15,
+    "receipt_refs": [
+      "operator_approval_receipt",
+      "room_backed_package_receipt",
+      "project_room_readiness_receipt",
+      "worker_package_boundary_receipt",
+      "model_invocation_boundary_receipt",
+      "redacted_proof_bundle_receipt",
+      "no_external_provider_receipt",
+      "no_tool_authority_receipt",
+      "worker_started_receipt",
+      "model_invocation_attempt_receipt",
+      "raw_draft_captured_receipt",
+      "worker_stopped_receipt",
+      "verifier_pass_fail_receipt",
+      "fallback_receipt",
+      "no_business_action_receipt"
+    ],
+    "receipts_complete": true,
+    "room_backed_package_passed": true,
+    "safety_wrapper_passed": true,
+    "secondary_failure_class": "structured_output_boundary_failure",
+    "stderr_hash": "sha256:1b2f9dbde3aff39b90405cf2b875b3ae8ef9b53b78279b7d1934f9744bfdf1b1",
+    "stdout_hash": "sha256:cb6c88e7229788b5a88befda98ee5f9632e4c7826fecb3ba6e47a5e9718aecca"
+  },
+  "postmortem_actions": {
+    "business_action_performed": false,
+    "external_provider_used": false,
+    "git_push_performed": false,
+    "ledger_mutation_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "prompt_sent": false,
+    "proof_bundle_sent": false,
+    "runtime_connected": false,
+    "submit_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "LM2_ROOM_BACKED_WORKER_ONE_TIME_PILOT_READY"
+      ],
+      "observed_status": "LM2_ROOM_BACKED_WORKER_ONE_TIME_PILOT_READY",
+      "precondition_ref": "lm2_room_backed_worker_one_time_pilot",
+      "ready": true,
+      "source_ref": "generated/read_models/lm2_room_backed_worker_one_time_pilot.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
+      "precondition_ref": "proof_to_response_schema_adapter",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_schema_adapter_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROJECT_ROOM_PACKAGE_COMPILER_INTEGRATION_READY"
+      ],
+      "observed_status": "PROJECT_ROOM_PACKAGE_COMPILER_INTEGRATION_READY",
+      "precondition_ref": "project_room_package_compiler_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/project_room_package_compiler_integration.json"
+    },
+    {
+      "accepted_statuses": [
+        "LM2_ROOM_BACKED_WORKER_PILOT_BOUNDARY_READY"
+      ],
+      "observed_status": "LM2_ROOM_BACKED_WORKER_PILOT_BOUNDARY_READY",
+      "precondition_ref": "lm2_room_backed_worker_pilot_boundary",
+      "ready": true,
+      "source_ref": "generated/read_models/lm2_room_backed_worker_pilot_boundary.json"
+    }
+  ],
+  "purpose": "Analyze the room-backed LM2 pilot failure and define the next safe structured-output invocation plan.",
+  "read_model_id": "lm2_room_backed_worker_pilot_postmortem",
+  "schema_version": "lm2_room_backed_worker_pilot_postmortem_v0",
+  "source_content_hashes": {
+    "generated/read_models/lm2_room_backed_worker_one_time_pilot.json": "sha256:f58f3ab392a0350f1186c6380f8c50e30114e392c4ec3aea2f6d2cceb72c56e4",
+    "generated/read_models/proof_to_response_latest.json": "sha256:1ffad73c1b6d119a738da35e5c4a25b3c1a3820226bd21a1c6c1d6cf61193bbb",
+    "generated/system_knowledge/lm2_room_backed_worker_one_time_pilot.sqlite": "sha256:d7546b81bcc5f8d81c8dd31ce41ed18e569a654ec9fd1f3c869a117865e9f756",
+    "lm2_room_backed_worker_one_time_pilot.py": "sha256:f08082f229ce26104475dd85a07f0741931e6fae43bee04c2c1bb2d2cf4a157a",
+    "proof_to_response_schema_adapter.py": "sha256:ad255abf809507340038f6c583e1505e0c3e93ed030723d1b9400e89533023c7",
+    "proof_to_response_verifier.py": "sha256:ebe2eb03fac2106b8ef1ca00224e99e551312c76ea466996f8f3b5c1cd9e803b"
+  },
+  "sqlite_receipt_summary": {
+    "receipt_refs": [
+      "operator_approval_receipt",
+      "room_backed_package_receipt",
+      "project_room_readiness_receipt",
+      "worker_package_boundary_receipt",
+      "model_invocation_boundary_receipt",
+      "redacted_proof_bundle_receipt",
+      "no_external_provider_receipt",
+      "no_tool_authority_receipt",
+      "worker_started_receipt",
+      "model_invocation_attempt_receipt",
+      "raw_draft_captured_receipt",
+      "worker_stopped_receipt",
+      "verifier_pass_fail_receipt",
+      "fallback_receipt",
+      "no_business_action_receipt"
+    ],
+    "receipt_rows": [
+      {
+        "phase": "before_future_attempt",
+        "proof_summary": "Operator approved one future room-backed LM2 worker attempt.",
+        "receipt_ref": "operator_approval_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "before_future_attempt",
+        "proof_summary": "Room-backed package was built for Finance / Capital Hilton payment watch.",
+        "receipt_ref": "room_backed_package_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "before_future_attempt",
+        "proof_summary": "Project room/source room gates were checked before invocation.",
+        "receipt_ref": "project_room_readiness_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "before_future_attempt",
+        "proof_summary": "Worker package boundary limits input, output, tools, and stop conditions.",
+        "receipt_ref": "worker_package_boundary_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "before_future_attempt",
+        "proof_summary": "Invocation boundary matched approved runtime and model.",
+        "receipt_ref": "model_invocation_boundary_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "before_future_attempt",
+        "proof_summary": "Only redacted freshness-gated proof bundle fields were included.",
+        "receipt_ref": "redacted_proof_bundle_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "before_future_attempt",
+        "proof_summary": "No external provider path was used.",
+        "receipt_ref": "no_external_provider_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "before_future_attempt",
+        "proof_summary": "The LM2 worker had no tool authority.",
+        "receipt_ref": "no_tool_authority_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "after_future_attempt",
+        "proof_summary": "The bounded LM2 worker attempt started.",
+        "receipt_ref": "worker_started_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "after_future_attempt",
+        "proof_summary": "Exactly one local Ollama model invocation attempt was recorded.",
+        "receipt_ref": "model_invocation_attempt_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "after_future_attempt",
+        "proof_summary": "Raw model draft was captured by hash for adapter/verifier processing.",
+        "receipt_ref": "raw_draft_captured_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "after_future_attempt",
+        "proof_summary": "The bounded LM2 worker attempt stopped after one model attempt.",
+        "receipt_ref": "worker_stopped_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "after_future_attempt",
+        "proof_summary": "Schema adapter then verifier result: fail.",
+        "receipt_ref": "verifier_pass_fail_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "after_future_attempt",
+        "proof_summary": "Adapter or verifier failed; safe fallback was published.",
+        "receipt_ref": "fallback_receipt",
+        "receipt_status": "present"
+      },
+      {
+        "phase": "after_future_attempt",
+        "proof_summary": "No protected business action was performed.",
+        "receipt_ref": "no_business_action_receipt",
+        "receipt_status": "present"
+      }
+    ],
+    "row_count": 15,
+    "sqlite_path": "/home/openclaw/generated/system_knowledge/lm2_room_backed_worker_one_time_pilot.sqlite"
+  },
+  "status": "LM2_ROOM_BACKED_WORKER_PILOT_POSTMORTEM_READY",
+  "structured_output_plan": {
+    "current_invocation": {
+      "method": "ollama_cli_run_via_subprocess",
+      "source_code_ref": "lm2_room_backed_worker_one_time_pilot.py#invoke_ollama_once",
+      "structured_output_enforcement_point": "after_model_output_schema_adapter",
+      "used_api_format_schema": false,
+      "used_plain_text_prompt_contract": true
+    },
+    "forbidden_changes": [
+      "do_not_retry_plain_text_prompt_only",
+      "do_not_remove_schema_adapter",
+      "do_not_bypass_verifier",
+      "do_not_publish_without_receipt",
+      "do_not_expand proof or authority scope",
+      "do_not_allow repeated invocations"
+    ],
+    "mandatory_gates": {
+      "authority_checks_loosened": false,
+      "fallback_mandatory": true,
+      "new_operator_approval_required": true,
+      "one_attempt_approval_boundary_mandatory": true,
+      "schema_adapter_mandatory": true,
+      "truth_checks_loosened": false,
+      "verifier_mandatory": true
+    },
+    "next_invocation": {
+      "api_endpoint_candidate": "/api/generate or /api/chat on the local Ollama runtime after a new approval boundary",
+      "format": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "description": "Concise response body grounded only in proof.",
+            "type": "string"
+          },
+          "can_do_now": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cannot_do_yet": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "claimed_facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "headline": {
+            "description": "Short operator-facing headline.",
+            "type": "string"
+          },
+          "missing_input": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "next_step": {
+            "description": "One safe next step.",
+            "type": "string"
+          },
+          "requested_controls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uncertainty_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "headline",
+          "body",
+          "next_step",
+          "missing_input",
+          "can_do_now",
+          "cannot_do_yet",
+          "claimed_facts",
+          "requested_controls",
+          "uncertainty_notes"
+        ],
+        "type": "object"
+      },
+      "prompt_contract": "room-backed package remains redacted, freshness-gated, and bounded to one objective",
+      "recommended_method": "ollama_local_http_api_with_format_json_schema",
+      "response_json_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "description": "Concise response body grounded only in proof.",
+            "type": "string"
+          },
+          "can_do_now": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cannot_do_yet": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "claimed_facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "headline": {
+            "description": "Short operator-facing headline.",
+            "type": "string"
+          },
+          "missing_input": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "next_step": {
+            "description": "One safe next step.",
+            "type": "string"
+          },
+          "requested_controls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uncertainty_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "headline",
+          "body",
+          "next_step",
+          "missing_input",
+          "can_do_now",
+          "cannot_do_yet",
+          "claimed_facts",
+          "requested_controls",
+          "uncertainty_notes"
+        ],
+        "type": "object"
+      },
+      "should_use_ollama_api_format_with_json_schema": true,
+      "stream": false
+    },
+    "plan_ref": "structured_output_plan:lm2_room_backed_worker_retry:v0",
+    "plan_status": "required_before_any_retry",
+    "temperature_and_options": {
+      "current_options_used": {},
+      "do_not_claim_options_supported_until_implemented": true,
+      "existing_runner_supports_temperature_options": false,
+      "planned_options_after_api_path_exists": {
+        "temperature": 0
+      }
+    }
+  },
+  "unsafe_true_grants": []
+}

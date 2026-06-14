@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenClaw allowlisted service keeper every 5 minutes
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+Unit=openclaw-service-keeper.service
+
+[Install]
+WantedBy=timers.target

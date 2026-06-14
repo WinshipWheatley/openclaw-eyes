@@ -1,0 +1,1286 @@
+{
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_browser_allowed": false,
+    "live_cloud_model_call_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_image_generation_allowed": false,
+    "live_local_model_call_allowed": false,
+    "live_provider_call_allowed": false,
+    "live_video_generation_allowed": false,
+    "live_visual_asset_generation_allowed": false,
+    "live_visual_playback_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocker_types": [
+    "FALSE_SUCCESS_VISUAL_CLAIM",
+    "CLOUD_PROVIDER_BLOCKED_SENSITIVE_CONTEXT",
+    "RAW_CLIENT_DATA_IN_PROMPT",
+    "RAW_PO_IN_PROMPT",
+    "RAW_EMAIL_IN_PROMPT",
+    "RAW_FILE_PATH_IN_PROMPT",
+    "RAW_HASH_IN_PROMPT",
+    "SECRET_OR_CREDENTIAL_IN_PROMPT",
+    "VISUAL_IMPLIES_SENT_WITHOUT_RECEIPT",
+    "VISUAL_IMPLIES_SUBMITTED_WITHOUT_RECEIPT",
+    "PROVIDER_CALL_ATTEMPTED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "compiler": {
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_browser_allowed": false,
+      "live_cloud_model_call_allowed": false,
+      "live_coupa_submit_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_image_generation_allowed": false,
+      "live_local_model_call_allowed": false,
+      "live_provider_call_allowed": false,
+      "live_video_generation_allowed": false,
+      "live_visual_asset_generation_allowed": false,
+      "live_visual_playback_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "compiler_id": "chat_workflow_visual_event_package_compiler_v0",
+    "doctrine": [
+      "Truth first.",
+      "Video second.",
+      "Fun third.",
+      "The visual artifact represents proof-backed state; it is not proof itself."
+    ],
+    "event_taxonomy_policy": [
+      "Each visual event type maps to allowed truth states.",
+      "Unknown or contradictory states fail closed.",
+      "Blocked states keep blockers visible."
+    ],
+    "forbidden_claim_policy": [
+      "Never show sent, submitted, paid, complete, or approved unless proof allows it.",
+      "Visual prompts must explicitly block false success claims.",
+      "Video or animation output is never proof."
+    ],
+    "mac_render_policy": [
+      "Mac may render the package later using local UI assets.",
+      "This compiler does not play media or write Swift.",
+      "Target surface is compact Mac chat by default."
+    ],
+    "next_safe_move": "Use these packages as local visual render inputs only after Mac chooses a safe renderer.",
+    "privacy_policy": [
+      "Raw client data, PO numbers, emails, file paths, hashes, credentials, legal/tax data, and database schemas are blocked.",
+      "Sanitized abstract descriptors are allowed.",
+      "Proof refs remain refs only."
+    ],
+    "provider_policy": [
+      "Interactive chat status defaults to native Mac animation or static visual cards.",
+      "Cloud generation is blocked for client-private and protected contexts.",
+      "Provider candidates are future gated capabilities, not execution authority."
+    ],
+    "source_truth_policy": [
+      "Visual event packages derive from response/readback/proof refs.",
+      "Package readiness, dry-run status, and completion status remain separate truth states.",
+      "No package may claim success without receipt-backed completion."
+    ],
+    "visual_metaphor_policy": [
+      "Metaphors must not contradict the source truth state.",
+      "Bowling-style feedback is allowed only as a status metaphor.",
+      "A strike or perfect sweep requires completion receipts."
+    ]
+  },
+  "contract_status": "DETERMINISTIC_CHAT_WORKFLOW_VISUAL_EVENT_PACKAGE_COMPILER_NO_RENDER",
+  "event_types": [
+    "SUCCESS_CONFIRMED",
+    "PARTIAL_READY",
+    "BLOCKED_MISSING_INPUT",
+    "BLOCKED_APPROVAL_REQUIRED",
+    "BLOCKED_SECRET_REQUIRED",
+    "BLOCKED_PROOF_MISSING",
+    "FAILED_WITH_REASON",
+    "FILE_REFERENCE_CAPTURED",
+    "DRY_RUN_COMPLETE",
+    "COMPLETION_CONFIRMED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "examples": {
+    "capital_hilton_missing_po": {
+      "provider_policy": {
+        "allowed_provider_families": [
+          "MAC_ANIMATION_NATIVE",
+          "STATIC_VISUAL_CARD"
+        ],
+        "async_generation_only": false,
+        "blocked_provider_families": [
+          "VIDEO_MODEL_CLOUD_GATED",
+          "IMAGE_MODEL_CLOUD_GATED",
+          "UNKNOWN_FAIL_CLOSED"
+        ],
+        "blocked_reason": "Sensitive context blocks cloud visual generation.",
+        "cloud_generation_allowed": false,
+        "local_asset_preferred": true,
+        "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+        "preferred_provider_family": "MAC_ANIMATION_NATIVE",
+        "provider_policy_id": "visual_provider_policy_3f0428a5c899984a",
+        "visual_package_ref": "visual_package_capital_hilton_missing_po_v0"
+      },
+      "readback": {
+        "blocked_items": [],
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "operator_headline": "Visual package ready",
+        "operator_message": "OpenClaw compiled a truth-backed visual package for BLOCKED_MISSING_INPUT. No image, video, model call, playback, workflow, or external action occurred.",
+        "package_summary": "bowling_single_pin_left represents BLOCKED_MISSING_INPUT.",
+        "provider_summary": "Preferred provider family is MAC_ANIMATION_NATIVE; cloud generation allowed: False.",
+        "readback_id": "visual_event_readback_5a2167835f18c84f",
+        "status": "VISUAL_PACKAGE_LOCAL_ANIMATION_READY",
+        "visual_package_ref": "visual_package_capital_hilton_missing_po_v0"
+      },
+      "visual_package": {
+        "agent_vibe": "vibe:chief:command_center",
+        "allowed_visual_facts": [
+          "invoice basis exists",
+          "missing Coupa PO/reference"
+        ],
+        "aspect_ratio": "16:9",
+        "client_ref": "client_ref:capital_hilton",
+        "duration_seconds": 3,
+        "forbidden_visual_claims": [
+          "invoice sent",
+          "Coupa invoice submitted",
+          "payment updated",
+          "approval complete",
+          "workflow complete"
+        ],
+        "metaphor_style": "bowling_single_pin_left",
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "privacy_class": "CLIENT_PRIVATE",
+        "proof_refs": [
+          "generated/read_models/capital_hilton_invoice_operator_readback.json"
+        ],
+        "provider_policy": {
+          "allowed_provider_families": [
+            "MAC_ANIMATION_NATIVE",
+            "STATIC_VISUAL_CARD"
+          ],
+          "async_generation_only": false,
+          "blocked_provider_families": [
+            "VIDEO_MODEL_CLOUD_GATED",
+            "IMAGE_MODEL_CLOUD_GATED",
+            "UNKNOWN_FAIL_CLOSED"
+          ],
+          "blocked_reason": "Sensitive context blocks cloud visual generation.",
+          "cloud_generation_allowed": false,
+          "local_asset_preferred": true,
+          "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+          "preferred_provider_family": "MAC_ANIMATION_NATIVE",
+          "provider_policy_id": "visual_provider_policy_3f0428a5c899984a",
+          "visual_package_ref": "visual_package_capital_hilton_missing_po_v0"
+        },
+        "response_author": "CHIEF",
+        "source_event_ref": "capital_hilton_invoice_status_missing_po",
+        "source_response_ref": "generated/read_models/capital_hilton_invoice_operator_readback.json",
+        "style_direction": "one bright pin remains standing; keep it operational, not celebratory",
+        "target_surface": "MAC_CHAT_COMPACT",
+        "tenant_ref": "tenant_ref:winship",
+        "truth_state": "BLOCKED_MISSING_INPUT",
+        "visual_event_type": "BLOCKED_MISSING_INPUT",
+        "visual_package_id": "visual_package_capital_hilton_missing_po_v0",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    },
+    "completion_confirmed_fixture": {
+      "completion_receipts_modeled_present": true,
+      "provider_policy": {
+        "allowed_provider_families": [
+          "MAC_ANIMATION_NATIVE",
+          "STATIC_VISUAL_CARD"
+        ],
+        "async_generation_only": true,
+        "blocked_provider_families": [
+          "VIDEO_MODEL_CLOUD_GATED",
+          "IMAGE_MODEL_CLOUD_GATED",
+          "UNKNOWN_FAIL_CLOSED"
+        ],
+        "blocked_reason": "Sensitive context blocks cloud visual generation.",
+        "cloud_generation_allowed": false,
+        "local_asset_preferred": true,
+        "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+        "preferred_provider_family": "MAC_ANIMATION_NATIVE",
+        "provider_policy_id": "visual_provider_policy_17041111b208b00a",
+        "visual_package_ref": "visual_package_completion_confirmed_fixture_v0"
+      },
+      "readback": {
+        "blocked_items": [],
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "operator_headline": "Visual package ready",
+        "operator_message": "OpenClaw compiled a truth-backed visual package for COMPLETION_CONFIRMED. No image, video, model call, playback, workflow, or external action occurred.",
+        "package_summary": "perfect_game_sweep represents COMPLETION_CONFIRMED.",
+        "provider_summary": "Preferred provider family is MAC_ANIMATION_NATIVE; cloud generation allowed: False.",
+        "readback_id": "visual_event_readback_25f19d5ef78bd40f",
+        "status": "VISUAL_PACKAGE_LOCAL_ANIMATION_READY",
+        "visual_package_ref": "visual_package_completion_confirmed_fixture_v0"
+      },
+      "visual_package": {
+        "agent_vibe": "vibe:chief:command_center",
+        "allowed_visual_facts": [
+          "completion receipts present",
+          "email and Coupa proof refs present",
+          "local record proof present"
+        ],
+        "aspect_ratio": "16:9",
+        "client_ref": "client_ref:capital_hilton",
+        "duration_seconds": 4,
+        "forbidden_visual_claims": [
+          "show raw receipt body",
+          "show provider ids",
+          "show raw client values"
+        ],
+        "metaphor_style": "perfect_game_sweep",
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "privacy_class": "CLIENT_PRIVATE",
+        "proof_refs": [
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json"
+        ],
+        "provider_policy": {
+          "allowed_provider_families": [
+            "MAC_ANIMATION_NATIVE",
+            "STATIC_VISUAL_CARD"
+          ],
+          "async_generation_only": true,
+          "blocked_provider_families": [
+            "VIDEO_MODEL_CLOUD_GATED",
+            "IMAGE_MODEL_CLOUD_GATED",
+            "UNKNOWN_FAIL_CLOSED"
+          ],
+          "blocked_reason": "Sensitive context blocks cloud visual generation.",
+          "cloud_generation_allowed": false,
+          "local_asset_preferred": true,
+          "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+          "preferred_provider_family": "MAC_ANIMATION_NATIVE",
+          "provider_policy_id": "visual_provider_policy_17041111b208b00a",
+          "visual_package_ref": "visual_package_completion_confirmed_fixture_v0"
+        },
+        "response_author": "CHIEF",
+        "source_event_ref": "completion_confirmed_fixture_all_receipts_present",
+        "source_response_ref": "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+        "style_direction": "proof-backed perfect sweep; celebratory but still receipt-bound",
+        "target_surface": "MAC_CHAT_COMPACT",
+        "tenant_ref": "tenant_ref:winship",
+        "truth_state": "COMPLETION_CONFIRMED",
+        "visual_event_type": "COMPLETION_CONFIRMED",
+        "visual_package_id": "visual_package_completion_confirmed_fixture_v0",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    },
+    "false_strike_blocked": {
+      "attempted_visual_package": {
+        "agent_vibe": "vibe:chief:command_center",
+        "allowed_visual_facts": [
+          "workflow remains blocked"
+        ],
+        "aspect_ratio": "16:9",
+        "client_ref": "client_ref:capital_hilton",
+        "duration_seconds": 3,
+        "forbidden_visual_claims": [
+          "invoice sent",
+          "Coupa invoice submitted",
+          "payment updated",
+          "approval complete",
+          "workflow complete"
+        ],
+        "metaphor_style": "bowling_strike_clean_sweep",
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "privacy_class": "CLIENT_PRIVATE",
+        "proof_refs": [
+          "generated/read_models/capital_hilton_invoice_operator_readback.json"
+        ],
+        "provider_policy": {
+          "allowed_provider_families": [
+            "MAC_ANIMATION_NATIVE",
+            "STATIC_VISUAL_CARD"
+          ],
+          "async_generation_only": false,
+          "blocked_provider_families": [
+            "VIDEO_MODEL_CLOUD_GATED",
+            "IMAGE_MODEL_CLOUD_GATED",
+            "UNKNOWN_FAIL_CLOSED"
+          ],
+          "blocked_reason": "Sensitive context blocks cloud visual generation.",
+          "cloud_generation_allowed": false,
+          "local_asset_preferred": true,
+          "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+          "preferred_provider_family": "MAC_ANIMATION_NATIVE",
+          "provider_policy_id": "visual_provider_policy_1e34910c42d3c935",
+          "visual_package_ref": "visual_package_false_strike_attempt_blocked_v0"
+        },
+        "response_author": "CHIEF",
+        "source_event_ref": "blocked_workflow_attempted_success_visual",
+        "source_response_ref": "generated/read_models/capital_hilton_invoice_operator_readback.json",
+        "style_direction": "blocked attempt; do not render this success metaphor",
+        "target_surface": "MAC_CHAT_COMPACT",
+        "tenant_ref": "tenant_ref:winship",
+        "truth_state": "BLOCKED_MISSING_INPUT",
+        "visual_event_type": "SUCCESS_CONFIRMED",
+        "visual_package_id": "visual_package_false_strike_attempt_blocked_v0",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      "blocker_type": "FALSE_SUCCESS_VISUAL_CLAIM",
+      "fail_closed": true,
+      "provider_policy": {
+        "allowed_provider_families": [
+          "MAC_ANIMATION_NATIVE",
+          "STATIC_VISUAL_CARD"
+        ],
+        "async_generation_only": false,
+        "blocked_provider_families": [
+          "VIDEO_MODEL_CLOUD_GATED",
+          "IMAGE_MODEL_CLOUD_GATED",
+          "UNKNOWN_FAIL_CLOSED"
+        ],
+        "blocked_reason": "Sensitive context blocks cloud visual generation.",
+        "cloud_generation_allowed": false,
+        "local_asset_preferred": true,
+        "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+        "preferred_provider_family": "MAC_ANIMATION_NATIVE",
+        "provider_policy_id": "visual_provider_policy_1e34910c42d3c935",
+        "visual_package_ref": "visual_package_false_strike_attempt_blocked_v0"
+      },
+      "readback": {
+        "blocked_items": [
+          "FALSE_SUCCESS_VISUAL_CLAIM"
+        ],
+        "next_safe_move": "Fix the blocked visual claim or privacy issue before rendering.",
+        "operator_headline": "Visual package blocked",
+        "operator_message": "OpenClaw compiled a truth-backed visual package for SUCCESS_CONFIRMED. No image, video, model call, playback, workflow, or external action occurred.",
+        "package_summary": "bowling_strike_clean_sweep represents BLOCKED_MISSING_INPUT.",
+        "provider_summary": "Preferred provider family is MAC_ANIMATION_NATIVE; cloud generation allowed: False.",
+        "readback_id": "visual_event_readback_7ce1f1b2c2382157",
+        "status": "BLOCKED_FALSE_VISUAL_CLAIM",
+        "visual_package_ref": "visual_package_false_strike_attempt_blocked_v0"
+      }
+    },
+    "file_reference_captured": {
+      "provider_policy": {
+        "allowed_provider_families": [
+          "MAC_ANIMATION_NATIVE",
+          "STATIC_VISUAL_CARD"
+        ],
+        "async_generation_only": false,
+        "blocked_provider_families": [
+          "VIDEO_MODEL_CLOUD_GATED",
+          "IMAGE_MODEL_CLOUD_GATED",
+          "UNKNOWN_FAIL_CLOSED"
+        ],
+        "blocked_reason": "Sensitive context blocks cloud visual generation.",
+        "cloud_generation_allowed": false,
+        "local_asset_preferred": true,
+        "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+        "preferred_provider_family": "STATIC_VISUAL_CARD",
+        "provider_policy_id": "visual_provider_policy_05d1b63fcba2766a",
+        "visual_package_ref": "visual_package_file_reference_captured_v0"
+      },
+      "readback": {
+        "blocked_items": [],
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "operator_headline": "Visual package ready",
+        "operator_message": "OpenClaw compiled a truth-backed visual package for FILE_REFERENCE_CAPTURED. No image, video, model call, playback, workflow, or external action occurred.",
+        "package_summary": "source_object_into_folder represents FILE_REFERENCE_CAPTURED.",
+        "provider_summary": "Preferred provider family is STATIC_VISUAL_CARD; cloud generation allowed: False.",
+        "readback_id": "visual_event_readback_5a65a45e26c56b96",
+        "status": "VISUAL_PACKAGE_STATIC_ONLY",
+        "visual_package_ref": "visual_package_file_reference_captured_v0"
+      },
+      "visual_package": {
+        "agent_vibe": "vibe:system:neutral",
+        "allowed_visual_facts": [
+          "file reference captured",
+          "file body not read"
+        ],
+        "aspect_ratio": "16:9",
+        "client_ref": "client_ref:unknown_or_local",
+        "duration_seconds": 3,
+        "forbidden_visual_claims": [
+          "file analyzed",
+          "file body read",
+          "file parsed",
+          "OCR complete",
+          "contents extracted"
+        ],
+        "metaphor_style": "source_object_into_folder",
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "privacy_class": "OPERATOR_LOCAL",
+        "proof_refs": [
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "provider_policy": {
+          "allowed_provider_families": [
+            "MAC_ANIMATION_NATIVE",
+            "STATIC_VISUAL_CARD"
+          ],
+          "async_generation_only": false,
+          "blocked_provider_families": [
+            "VIDEO_MODEL_CLOUD_GATED",
+            "IMAGE_MODEL_CLOUD_GATED",
+            "UNKNOWN_FAIL_CLOSED"
+          ],
+          "blocked_reason": "Sensitive context blocks cloud visual generation.",
+          "cloud_generation_allowed": false,
+          "local_asset_preferred": true,
+          "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+          "preferred_provider_family": "STATIC_VISUAL_CARD",
+          "provider_policy_id": "visual_provider_policy_05d1b63fcba2766a",
+          "visual_package_ref": "visual_package_file_reference_captured_v0"
+        },
+        "response_author": "OPENCLAW_SYSTEM",
+        "source_event_ref": "file_reference_captured_metadata_only",
+        "source_response_ref": "generated/read_models/operator_file_metadata_readback.json",
+        "style_direction": "a generic source tile slides into a local folder; no document contents visible",
+        "target_surface": "MAC_CHAT_COMPACT",
+        "tenant_ref": "tenant_ref:winship",
+        "truth_state": "FILE_REFERENCE_CAPTURED",
+        "visual_event_type": "FILE_REFERENCE_CAPTURED",
+        "visual_package_id": "visual_package_file_reference_captured_v0",
+        "workflow_ref": "source_reference_capture"
+      }
+    },
+    "guardian_approval_required": {
+      "provider_policy": {
+        "allowed_provider_families": [
+          "MAC_ANIMATION_NATIVE",
+          "STATIC_VISUAL_CARD"
+        ],
+        "async_generation_only": false,
+        "blocked_provider_families": [
+          "VIDEO_MODEL_CLOUD_GATED",
+          "IMAGE_MODEL_CLOUD_GATED",
+          "UNKNOWN_FAIL_CLOSED"
+        ],
+        "blocked_reason": "Sensitive context blocks cloud visual generation.",
+        "cloud_generation_allowed": false,
+        "local_asset_preferred": true,
+        "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+        "preferred_provider_family": "MAC_ANIMATION_NATIVE",
+        "provider_policy_id": "visual_provider_policy_7085269cccc05e14",
+        "visual_package_ref": "visual_package_guardian_approval_required_v0"
+      },
+      "readback": {
+        "blocked_items": [],
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "operator_headline": "Visual package ready",
+        "operator_message": "OpenClaw compiled a truth-backed visual package for BLOCKED_APPROVAL_REQUIRED. No image, video, model call, playback, workflow, or external action occurred.",
+        "package_summary": "guardian_checkpoint_lock represents BLOCKED_APPROVAL_REQUIRED.",
+        "provider_summary": "Preferred provider family is MAC_ANIMATION_NATIVE; cloud generation allowed: False.",
+        "readback_id": "visual_event_readback_496a1bb523f7447b",
+        "status": "VISUAL_PACKAGE_LOCAL_ANIMATION_READY",
+        "visual_package_ref": "visual_package_guardian_approval_required_v0"
+      },
+      "visual_package": {
+        "agent_vibe": "vibe:guardian:strict_proof",
+        "allowed_visual_facts": [
+          "approval/proof gate missing",
+          "external action locked"
+        ],
+        "aspect_ratio": "16:9",
+        "client_ref": "client_ref:capital_hilton",
+        "duration_seconds": 3,
+        "forbidden_visual_claims": [
+          "approval complete",
+          "send allowed",
+          "submit allowed"
+        ],
+        "metaphor_style": "guardian_checkpoint_lock",
+        "next_safe_move": "Render a local truth-backed visual status only; do not call providers from this compiler.",
+        "privacy_class": "PROTECTED_EVIDENCE",
+        "proof_refs": [
+          "generated/read_models/capital_hilton_invoice_operator_readback.json",
+          "generated/read_models/agent_voice_response_layer.json"
+        ],
+        "provider_policy": {
+          "allowed_provider_families": [
+            "MAC_ANIMATION_NATIVE",
+            "STATIC_VISUAL_CARD"
+          ],
+          "async_generation_only": false,
+          "blocked_provider_families": [
+            "VIDEO_MODEL_CLOUD_GATED",
+            "IMAGE_MODEL_CLOUD_GATED",
+            "UNKNOWN_FAIL_CLOSED"
+          ],
+          "blocked_reason": "Sensitive context blocks cloud visual generation.",
+          "cloud_generation_allowed": false,
+          "local_asset_preferred": true,
+          "next_safe_move": "Render locally now or hand off to a future gated visual provider only when privacy allows.",
+          "preferred_provider_family": "MAC_ANIMATION_NATIVE",
+          "provider_policy_id": "visual_provider_policy_7085269cccc05e14",
+          "visual_package_ref": "visual_package_guardian_approval_required_v0"
+        },
+        "response_author": "GUARDIAN",
+        "source_event_ref": "guardian_approval_required_missing_receipt",
+        "source_response_ref": "generated/read_models/capital_hilton_invoice_operator_readback.json",
+        "style_direction": "strict locked checkpoint; no playful celebration",
+        "target_surface": "MAC_CHAT_COMPACT",
+        "tenant_ref": "tenant_ref:winship",
+        "truth_state": "BLOCKED_APPROVAL_REQUIRED",
+        "visual_event_type": "BLOCKED_APPROVAL_REQUIRED",
+        "visual_package_id": "visual_package_guardian_approval_required_v0",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    }
+  },
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "all_live_authority_false": true,
+    "capital_hilton_missing_po_example_present": true,
+    "cloud_blocked_for_sensitive_contexts": true,
+    "cloud_model_call_performed": false,
+    "compiler_model_present": true,
+    "completion_confirmed_fixture_present": true,
+    "content_hash": "sha256:d3ceba7486874e46188103cb7deafa3501a1d9cd899e0b57ff296d3f54709cc1",
+    "credential_handling_performed": false,
+    "event_taxonomy_complete": true,
+    "external_action_performed": false,
+    "false_strike_blocked": true,
+    "file_reference_captured_example_present": true,
+    "git_push_performed": false,
+    "guardian_approval_example_present": true,
+    "image_generation_performed": false,
+    "local_model_call_performed": false,
+    "mac_sync_import_performed": false,
+    "metaphor_mappings_present": true,
+    "network_used": false,
+    "no_credentials_secrets_private_bodies": true,
+    "privacy_policy_present": true,
+    "provider_calls_made": false,
+    "provider_policy_present": true,
+    "raw_body_ingestion_performed": false,
+    "swift_change_performed": false,
+    "video_generation_performed": false,
+    "visual_asset_generation_performed": false,
+    "visual_event_blocker_model_present": true,
+    "visual_event_readback_model_present": true,
+    "visual_event_type_model_present": true,
+    "visual_metaphor_mapping_model_present": true,
+    "visual_playback_performed": false,
+    "visual_privacy_policy_model_present": true,
+    "visual_prompt_package_model_present": true,
+    "visual_provider_policy_model_present": true,
+    "workflow_run_performed": false
+  },
+  "model_schemas": {
+    "ChatWorkflowVisualEventPackageCompiler": [
+      "compiler_id",
+      "doctrine",
+      "source_truth_policy",
+      "event_taxonomy_policy",
+      "visual_metaphor_policy",
+      "provider_policy",
+      "privacy_policy",
+      "forbidden_claim_policy",
+      "mac_render_policy",
+      "authority_boundary",
+      "next_safe_move"
+    ],
+    "VisualEventBlocker": [
+      "blocker_id",
+      "blocker_type",
+      "condition",
+      "severity",
+      "elioperator_warning",
+      "fail_closed",
+      "next_safe_move"
+    ],
+    "VisualEventReadback": [
+      "readback_id",
+      "visual_package_ref",
+      "status",
+      "operator_headline",
+      "operator_message",
+      "package_summary",
+      "provider_summary",
+      "blocked_items",
+      "next_safe_move"
+    ],
+    "VisualEventType": [
+      "event_type",
+      "description",
+      "allowed_truth_states",
+      "default_metaphor",
+      "default_tone",
+      "provider_policy",
+      "next_safe_move"
+    ],
+    "VisualMetaphorMapping": [
+      "mapping_id",
+      "event_type",
+      "metaphor_style",
+      "description",
+      "agent_role",
+      "tone",
+      "allowed_contexts",
+      "blocked_contexts",
+      "next_safe_move"
+    ],
+    "VisualPrivacyPolicy": [
+      "policy_id",
+      "privacy_class",
+      "safe_to_send_to_cloud",
+      "safe_to_render_locally",
+      "blocked_from_prompt",
+      "allowed_abstractions",
+      "required_sanitization",
+      "next_safe_move"
+    ],
+    "VisualPromptPackage": [
+      "visual_package_id",
+      "source_event_ref",
+      "source_response_ref",
+      "workflow_ref",
+      "client_ref",
+      "tenant_ref",
+      "response_author",
+      "agent_vibe",
+      "truth_state",
+      "visual_event_type",
+      "allowed_visual_facts",
+      "forbidden_visual_claims",
+      "metaphor_style",
+      "style_direction",
+      "duration_seconds",
+      "aspect_ratio",
+      "target_surface",
+      "privacy_class",
+      "provider_policy",
+      "proof_refs",
+      "next_safe_move"
+    ],
+    "VisualProviderPolicy": [
+      "provider_policy_id",
+      "visual_package_ref",
+      "allowed_provider_families",
+      "blocked_provider_families",
+      "preferred_provider_family",
+      "cloud_generation_allowed",
+      "local_asset_preferred",
+      "async_generation_only",
+      "blocked_reason",
+      "next_safe_move"
+    ]
+  },
+  "privacy_classes": [
+    "PUBLIC_ABSTRACT",
+    "OPERATOR_LOCAL",
+    "CLIENT_PRIVATE",
+    "PROTECTED_SECRET",
+    "PROTECTED_EVIDENCE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "provider_families": [
+    "MAC_ANIMATION_NATIVE",
+    "STATIC_VISUAL_CARD",
+    "VIDEO_MODEL_CLOUD_GATED",
+    "IMAGE_MODEL_CLOUD_GATED",
+    "LOCAL_VIDEO_MODEL_FUTURE",
+    "LOCAL_IMAGE_MODEL_FUTURE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "read_model_id": "chat_workflow_visual_event_package_compiler",
+  "readback_statuses": [
+    "VISUAL_PACKAGE_READY",
+    "VISUAL_PACKAGE_STATIC_ONLY",
+    "VISUAL_PACKAGE_LOCAL_ANIMATION_READY",
+    "BLOCKED_PRIVACY_BOUNDARY",
+    "BLOCKED_FALSE_VISUAL_CLAIM",
+    "BLOCKED_PROVIDER_UNAVAILABLE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "chat_workflow_visual_event_package_compiler_v0",
+  "visual_event_blockers": [
+    {
+      "blocker_id": "visual_event_blocker_6338a50c9f4cf367",
+      "blocker_type": "FALSE_SUCCESS_VISUAL_CLAIM",
+      "condition": "Visual package requests success metaphor while source truth is blocked or missing proof.",
+      "elioperator_warning": "ELIOPERATOR: Visual package requests success metaphor while source truth is blocked or missing proof.",
+      "fail_closed": true,
+      "next_safe_move": "Use a blocked or partial-ready metaphor.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_8765057bbb4adefd",
+      "blocker_type": "CLOUD_PROVIDER_BLOCKED_SENSITIVE_CONTEXT",
+      "condition": "Cloud visual generation is requested for client-private or protected context.",
+      "elioperator_warning": "ELIOPERATOR: Cloud visual generation is requested for client-private or protected context.",
+      "fail_closed": true,
+      "next_safe_move": "Use native Mac animation or static card.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_af5b7be4eba2355f",
+      "blocker_type": "RAW_CLIENT_DATA_IN_PROMPT",
+      "condition": "Prompt contains raw client/private data.",
+      "elioperator_warning": "ELIOPERATOR: Prompt contains raw client/private data.",
+      "fail_closed": true,
+      "next_safe_move": "Replace with sanitized abstract descriptors.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_2b94447ca0f2c628",
+      "blocker_type": "RAW_PO_IN_PROMPT",
+      "condition": "Prompt contains raw PO/reference values.",
+      "elioperator_warning": "ELIOPERATOR: Prompt contains raw PO/reference values.",
+      "fail_closed": true,
+      "next_safe_move": "Use missing/confirmed PO status only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_ae85f85e67fd326d",
+      "blocker_type": "RAW_EMAIL_IN_PROMPT",
+      "condition": "Prompt contains raw email address or contact private data.",
+      "elioperator_warning": "ELIOPERATOR: Prompt contains raw email address or contact private data.",
+      "fail_closed": true,
+      "next_safe_move": "Use safe contact labels only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_d2c929c42e53434a",
+      "blocker_type": "RAW_FILE_PATH_IN_PROMPT",
+      "condition": "Prompt contains raw local file path.",
+      "elioperator_warning": "ELIOPERATOR: Prompt contains raw local file path.",
+      "fail_closed": true,
+      "next_safe_move": "Use source object abstraction only.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "visual_event_blocker_4fc3221e8ee3f0ec",
+      "blocker_type": "RAW_HASH_IN_PROMPT",
+      "condition": "Prompt contains raw hash/fingerprint.",
+      "elioperator_warning": "ELIOPERATOR: Prompt contains raw hash/fingerprint.",
+      "fail_closed": true,
+      "next_safe_move": "Use proof ref status only.",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "visual_event_blocker_e85b9859132bdcbf",
+      "blocker_type": "SECRET_OR_CREDENTIAL_IN_PROMPT",
+      "condition": "Prompt contains secret or credential material.",
+      "elioperator_warning": "ELIOPERATOR: Prompt contains secret or credential material.",
+      "fail_closed": true,
+      "next_safe_move": "Use protected safe-box metaphor only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_41981c660961c5de",
+      "blocker_type": "VISUAL_IMPLIES_SENT_WITHOUT_RECEIPT",
+      "condition": "Visual implies email sent without send receipt.",
+      "elioperator_warning": "ELIOPERATOR: Visual implies email sent without send receipt.",
+      "fail_closed": true,
+      "next_safe_move": "Use blocked proof-missing visual.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_16541d682cd3de4d",
+      "blocker_type": "VISUAL_IMPLIES_SUBMITTED_WITHOUT_RECEIPT",
+      "condition": "Visual implies Coupa submitted without submit receipt.",
+      "elioperator_warning": "ELIOPERATOR: Visual implies Coupa submitted without submit receipt.",
+      "fail_closed": true,
+      "next_safe_move": "Use blocked proof-missing visual.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_55cb2f1b99cddc83",
+      "blocker_type": "PROVIDER_CALL_ATTEMPTED",
+      "condition": "Compiler attempts provider/model/render call.",
+      "elioperator_warning": "ELIOPERATOR: Compiler attempts provider/model/render call.",
+      "fail_closed": true,
+      "next_safe_move": "Return package metadata only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "visual_event_blocker_7cff75e4b193e328",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown visual truth state.",
+      "elioperator_warning": "ELIOPERATOR: Unknown visual truth state.",
+      "fail_closed": true,
+      "next_safe_move": "Use lane-under-maintenance fail-closed visual.",
+      "severity": "high"
+    }
+  ],
+  "visual_event_types": [
+    {
+      "allowed_truth_states": [
+        "SUCCESS_CONFIRMED"
+      ],
+      "default_metaphor": "bowling_strike_clean_sweep",
+      "default_tone": "celebratory_safe",
+      "description": "A non-final success state backed by receipts or deterministic proof.",
+      "event_type": "SUCCESS_CONFIRMED",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "PARTIAL_READY",
+        "READY_FOR_REVIEW"
+      ],
+      "default_metaphor": "bowling_spare_target",
+      "default_tone": "encouraging",
+      "description": "Most inputs are ready, but completion is not proven.",
+      "event_type": "PARTIAL_READY",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "BLOCKED_MISSING_INPUT"
+      ],
+      "default_metaphor": "bowling_single_pin_left",
+      "default_tone": "clear_blocked",
+      "description": "A specific required input is missing.",
+      "event_type": "BLOCKED_MISSING_INPUT",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "BLOCKED_APPROVAL_REQUIRED"
+      ],
+      "default_metaphor": "guardian_checkpoint_lock",
+      "default_tone": "strict",
+      "description": "Guardian or exact operator approval is missing.",
+      "event_type": "BLOCKED_APPROVAL_REQUIRED",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "BLOCKED_SECRET_REQUIRED"
+      ],
+      "default_metaphor": "protected_safe_box",
+      "default_tone": "protective",
+      "description": "A protected secret ref is missing.",
+      "event_type": "BLOCKED_SECRET_REQUIRED",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "BLOCKED_PROOF_MISSING"
+      ],
+      "default_metaphor": "bowling_single_pin_left",
+      "default_tone": "proof_first",
+      "description": "Receipts or proof refs are missing.",
+      "event_type": "BLOCKED_PROOF_MISSING",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "FAILED_WITH_REASON"
+      ],
+      "default_metaphor": "gutter_ball_reset",
+      "default_tone": "constructive",
+      "description": "A request failed with an explainable reason.",
+      "event_type": "FAILED_WITH_REASON",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "FILE_REFERENCE_CAPTURED"
+      ],
+      "default_metaphor": "source_object_into_folder",
+      "default_tone": "calm_ready",
+      "description": "A source reference was captured without reading the body.",
+      "event_type": "FILE_REFERENCE_CAPTURED",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "DRY_RUN_COMPLETE"
+      ],
+      "default_metaphor": "holographic_practice_lane",
+      "default_tone": "informative",
+      "description": "A dry run completed without external action.",
+      "event_type": "DRY_RUN_COMPLETE",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "COMPLETION_CONFIRMED"
+      ],
+      "default_metaphor": "perfect_game_sweep",
+      "default_tone": "celebratory_proof_backed",
+      "description": "Final completion receipts exist.",
+      "event_type": "COMPLETION_CONFIRMED",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    },
+    {
+      "allowed_truth_states": [
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "default_metaphor": "lane_under_maintenance",
+      "default_tone": "neutral_blocked",
+      "description": "Unknown or contradictory truth state.",
+      "event_type": "UNKNOWN_FAIL_CLOSED",
+      "next_safe_move": "Build a visual prompt package from sanitized truth refs only.",
+      "provider_policy": "Use MAC_ANIMATION_NATIVE or STATIC_VISUAL_CARD unless privacy and future gates permit otherwise."
+    }
+  ],
+  "visual_metaphor_mappings": [
+    {
+      "agent_role": "OPENCLAW_SYSTEM",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A clean sweep animation for proof-backed success.",
+      "event_type": "SUCCESS_CONFIRMED",
+      "mapping_id": "visual_metaphor_mapping_a1e2c5718cf02e0d",
+      "metaphor_style": "bowling_strike_clean_sweep",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "truthful_status"
+    },
+    {
+      "agent_role": "OPENCLAW_SYSTEM",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A spare setup showing the workflow is close but not complete.",
+      "event_type": "PARTIAL_READY",
+      "mapping_id": "visual_metaphor_mapping_3c023b63d2ae38bd",
+      "metaphor_style": "bowling_spare_target",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "truthful_status"
+    },
+    {
+      "agent_role": "CHIEF",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "One pin remains to represent one missing input.",
+      "event_type": "BLOCKED_MISSING_INPUT",
+      "mapping_id": "visual_metaphor_mapping_f6129235c08ca0a4",
+      "metaphor_style": "bowling_single_pin_left",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "clear_blocked"
+    },
+    {
+      "agent_role": "GUARDIAN",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A Guardian checkpoint or locked gate represents approval still required.",
+      "event_type": "BLOCKED_APPROVAL_REQUIRED",
+      "mapping_id": "visual_metaphor_mapping_c6e56c7424d2c21a",
+      "metaphor_style": "guardian_checkpoint_lock",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "strict"
+    },
+    {
+      "agent_role": "GUARDIAN",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A safe box represents missing protected secret refs.",
+      "event_type": "BLOCKED_SECRET_REQUIRED",
+      "mapping_id": "visual_metaphor_mapping_f0c5bf2b47807647",
+      "metaphor_style": "protected_safe_box",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "protective"
+    },
+    {
+      "agent_role": "GUARDIAN",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "One pin remains to represent missing proof or receipt refs.",
+      "event_type": "BLOCKED_PROOF_MISSING",
+      "mapping_id": "visual_metaphor_mapping_a3cdc70a0076a46c",
+      "metaphor_style": "bowling_single_pin_left",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "proof_first"
+    },
+    {
+      "agent_role": "OPENCLAW_SYSTEM",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A constructive reset animation for a failed request with a reason.",
+      "event_type": "FAILED_WITH_REASON",
+      "mapping_id": "visual_metaphor_mapping_119d0658efe9d30b",
+      "metaphor_style": "gutter_ball_reset",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "truthful_status"
+    },
+    {
+      "agent_role": "OPENCLAW_SYSTEM",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A source object slides into a folder without implying analysis.",
+      "event_type": "FILE_REFERENCE_CAPTURED",
+      "mapping_id": "visual_metaphor_mapping_a70f20118cb06cd2",
+      "metaphor_style": "source_object_into_folder",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "calm_ready"
+    },
+    {
+      "agent_role": "OPENCLAW_SYSTEM",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A practice lane animation for dry-run results.",
+      "event_type": "DRY_RUN_COMPLETE",
+      "mapping_id": "visual_metaphor_mapping_0e786ccca2bb7641",
+      "metaphor_style": "holographic_practice_lane",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "truthful_status"
+    },
+    {
+      "agent_role": "OPENCLAW_SYSTEM",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A perfect-game sweep only when completion receipts exist.",
+      "event_type": "COMPLETION_CONFIRMED",
+      "mapping_id": "visual_metaphor_mapping_6770c2831ca1fc2b",
+      "metaphor_style": "perfect_game_sweep",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "celebratory_proof_backed"
+    },
+    {
+      "agent_role": "OPENCLAW_SYSTEM",
+      "allowed_contexts": [
+        "Mac chat status",
+        "local visual feedback"
+      ],
+      "blocked_contexts": [
+        "raw private data",
+        "unproven completion",
+        "external action claim"
+      ],
+      "description": "A maintenance state for unknown or contradictory truth.",
+      "event_type": "UNKNOWN_FAIL_CLOSED",
+      "mapping_id": "visual_metaphor_mapping_c9cded987ccded6a",
+      "metaphor_style": "lane_under_maintenance",
+      "next_safe_move": "Use the metaphor only when the source truth state allows this event type.",
+      "tone": "truthful_status"
+    }
+  ],
+  "visual_privacy_policies": [
+    {
+      "allowed_abstractions": [
+        "generic workflow status",
+        "generic celebration",
+        "non-client metaphor"
+      ],
+      "blocked_from_prompt": [
+        "raw invoice values",
+        "raw PO numbers",
+        "raw email addresses",
+        "file paths",
+        "hashes",
+        "credentials or secrets",
+        "legal or tax ledger details",
+        "database schemas",
+        "raw private bodies"
+      ],
+      "next_safe_move": "Cloud generation may be modeled only as future gated async generation.",
+      "policy_id": "visual_privacy_public_abstract",
+      "privacy_class": "PUBLIC_ABSTRACT",
+      "required_sanitization": [
+        "remove refs and paths",
+        "remove raw values",
+        "avoid completion claims without receipts"
+      ],
+      "safe_to_render_locally": true,
+      "safe_to_send_to_cloud": true
+    },
+    {
+      "allowed_abstractions": [
+        "local source captured",
+        "blocked input",
+        "approval needed",
+        "dry-run complete"
+      ],
+      "blocked_from_prompt": [
+        "raw invoice values",
+        "raw PO numbers",
+        "raw email addresses",
+        "file paths",
+        "hashes",
+        "credentials or secrets",
+        "legal or tax ledger details",
+        "database schemas",
+        "raw private bodies"
+      ],
+      "next_safe_move": "Prefer native Mac animation or static visual card.",
+      "policy_id": "visual_privacy_operator_local",
+      "privacy_class": "OPERATOR_LOCAL",
+      "required_sanitization": [
+        "remove local paths",
+        "remove hashes",
+        "use abstract source labels"
+      ],
+      "safe_to_render_locally": true,
+      "safe_to_send_to_cloud": false
+    },
+    {
+      "allowed_abstractions": [
+        "client workflow blocked",
+        "missing source reference",
+        "approval gate",
+        "proof missing"
+      ],
+      "blocked_from_prompt": [
+        "raw invoice values",
+        "raw PO numbers",
+        "raw email addresses",
+        "file paths",
+        "hashes",
+        "credentials or secrets",
+        "legal or tax ledger details",
+        "database schemas",
+        "raw private bodies"
+      ],
+      "next_safe_move": "Block cloud providers and render locally from sanitized event type.",
+      "policy_id": "visual_privacy_client_private",
+      "privacy_class": "CLIENT_PRIVATE",
+      "required_sanitization": [
+        "remove client private values",
+        "remove PO values",
+        "remove contact data",
+        "keep proof refs as refs only"
+      ],
+      "safe_to_render_locally": true,
+      "safe_to_send_to_cloud": false
+    },
+    {
+      "allowed_abstractions": [
+        "protected safe box",
+        "secret ref required",
+        "credential gate locked"
+      ],
+      "blocked_from_prompt": [
+        "raw invoice values",
+        "raw PO numbers",
+        "raw email addresses",
+        "file paths",
+        "hashes",
+        "credentials or secrets",
+        "legal or tax ledger details",
+        "database schemas",
+        "raw private bodies"
+      ],
+      "next_safe_move": "Render only a protected-boundary metaphor locally.",
+      "policy_id": "visual_privacy_protected_secret",
+      "privacy_class": "PROTECTED_SECRET",
+      "required_sanitization": [
+        "never include secret material",
+        "use protected ref status only"
+      ],
+      "safe_to_render_locally": true,
+      "safe_to_send_to_cloud": false
+    },
+    {
+      "allowed_abstractions": [
+        "proof required",
+        "receipt missing",
+        "evidence locked"
+      ],
+      "blocked_from_prompt": [
+        "raw invoice values",
+        "raw PO numbers",
+        "raw email addresses",
+        "file paths",
+        "hashes",
+        "credentials or secrets",
+        "legal or tax ledger details",
+        "database schemas",
+        "raw private bodies"
+      ],
+      "next_safe_move": "Render proof status locally and keep evidence body out of prompts.",
+      "policy_id": "visual_privacy_protected_evidence",
+      "privacy_class": "PROTECTED_EVIDENCE",
+      "required_sanitization": [
+        "show proof status only",
+        "never include evidence body"
+      ],
+      "safe_to_render_locally": true,
+      "safe_to_send_to_cloud": false
+    }
+  ]
+}

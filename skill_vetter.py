@@ -107,13 +107,16 @@ def _vet_one_skill(index: int, skill: dict[str, Any], ruleset: dict[str, Any]) -
                 f"description must be at least {int(ruleset['min_description_length'])} characters",
             )
         )
-    if description and len(description.encode("utf-8")) > int(ruleset["max_description_bytes"]):
-        reasons.append(
-            _reason(
-                "DESCRIPTION_TOO_LONG",
-                f"description must be at most {int(ruleset['max_description_bytes'])} UTF-8 bytes",
+    if description:
+        description_bytes = description_byte_length(description)
+        max_description_bytes = int(ruleset["max_description_bytes"])
+        if description_bytes > max_description_bytes:
+            reasons.append(
+                _reason(
+                    "DESCRIPTION_TOO_LONG",
+                    f"description must be at most {max_description_bytes} bytes; got {description_bytes}",
+                )
             )
-        )
     if content and len(content.split()) < int(ruleset["min_content_words"]):
         reasons.append(
             _reason(
@@ -141,6 +144,10 @@ def _coerce_text(value: Any) -> str:
     if not isinstance(value, str):
         return ""
     return value.strip()
+
+
+def description_byte_length(description: str) -> int:
+    return len(description.encode("utf-8"))
 
 
 def _normalize_ruleset(ruleset: dict[str, Any]) -> dict[str, int]:

@@ -1,0 +1,212 @@
+{
+  "schema_version": "local_lm_proof_response_operator_approval_v0",
+  "read_model_id": "local_lm_proof_response_operator_approval",
+  "status": "LOCAL_LM_PROOF_RESPONSE_OPERATOR_APPROVAL_READY",
+  "generated_at": "2026-06-07T12:59:25Z",
+  "purpose": "Record the operator decision for one future local LM proof-to-response pilot, bounded to Finance / Capital Hilton payment watch and the invocation boundary packet.",
+  "operator_decision": "approve_one_time_local_lm_invocation_for_finance_payment_watch",
+  "approval_receipt": {
+    "receipt_id": "operator_approval:local_lm_proof_response:finance_capital_hilton:qwen3_8b_q4_k_m:v0",
+    "receipt_type": "operator_approval_recorded",
+    "decision_status": "recorded_for_one_future_attempt",
+    "source_boundary_packet_ref": "generated/read_models/local_lm_proof_response_invocation_boundary_packet.json",
+    "source_boundary_packet_id": "local_lm_invocation_boundary:finance_capital_hilton:qwen3_8b_q4_k_m:v0",
+    "operator_decision": "approve_one_time_local_lm_invocation_for_finance_payment_watch",
+    "recorded_at": "2026-06-07T12:59:25Z"
+  },
+  "approval_scope": {
+    "attempt_limit": 1,
+    "attempt_scope": "one_future_invocation_attempt_only",
+    "future_repeated_invocations_authorized": false,
+    "lane": "finance/capital_hilton",
+    "world_ref": "finance",
+    "thread_ref": "capital_hilton",
+    "question": "What should I do here?",
+    "runtime_ref": "ollama",
+    "model_ref": "local_model:ollama:qwen3_8b-q4_k_m",
+    "model_name": "qwen3:8b-q4_K_M",
+    "input_scope": "redacted_freshness_gated_proof_bundle_only",
+    "output_scope": "draft_proof_to_response_text_only",
+    "verifier": "mandatory",
+    "fallback": "mandatory_if_verifier_fails"
+  },
+  "approved_input_classes": [
+    "world_ref",
+    "thread_ref",
+    "objective_ref",
+    "redacted_known_facts",
+    "proof_meter_labels",
+    "receipt_refs",
+    "gate_labels",
+    "missing_input",
+    "allowed_controls",
+    "blocked_action_summaries",
+    "human_safe_summaries",
+    "agent_voice_mode",
+    "freshness_state",
+    "confidence_class",
+    "decision_trace_summary"
+  ],
+  "approved_output_classes": [
+    "headline",
+    "body",
+    "next_step",
+    "missing_input",
+    "can_do_now",
+    "cannot_do_yet",
+    "requested_controls",
+    "claimed_facts"
+  ],
+  "must_not_authorize": [
+    "model_tool_use",
+    "browser_gmail_coupa_access",
+    "email_send",
+    "submit",
+    "ledger_mutation",
+    "workbook_mutation",
+    "pdf_export",
+    "paid_marking",
+    "worker_spawn",
+    "memory_promotion",
+    "external_provider",
+    "future_repeated_invocations"
+  ],
+  "forbidden_inputs": [
+    "raw_bank_or_account_details",
+    "credentials_or_tokens",
+    "operator_device_session_verification_secrets",
+    "raw_prompt_dumps",
+    "raw_artifact_or_ocr_text",
+    "full_workbook_contents",
+    "source_workbook_bodies",
+    "raw_email_bodies",
+    "raw_ledger_rows",
+    "hidden_machine_contracts",
+    "incoming_authority_granted_fields"
+  ],
+  "required_runtime_gates": {
+    "redacted_proof_bundle_receipt": "required_before_invocation",
+    "context_freshness_state": "must_be_current_or_waiting_external_candidate_and_traceable",
+    "verifier_pass_fail_receipt": "required_after_draft",
+    "published_response_hash_receipt": "required_if_published",
+    "fallback_receipt": "required_if_verifier_blocks"
+  },
+  "authority_boundary": {
+    "invocation_allowed": false,
+    "proof_bundle_allowed": false,
+    "protected_actions_allowed": false,
+    "authority_granted": false,
+    "authority_grant_allowed": false,
+    "tool_authority": false,
+    "tool_authority_allowed": false,
+    "tool_execution_allowed": false,
+    "browser_access_allowed": false,
+    "gmail_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "portal_submit_allowed": false,
+    "ledger_mutation_allowed": false,
+    "workbook_mutation_allowed": false,
+    "pdf_export_allowed": false,
+    "paid_marking_allowed": false,
+    "worker_spawn_allowed": false,
+    "memory_promotion_allowed": false,
+    "external_provider_connect_allowed": false,
+    "future_repeated_invocations_allowed": false,
+    "business_action_authority": false,
+    "business_action_allowed": false,
+    "git_push_allowed": false,
+    "git_merge_allowed": false
+  },
+  "implementation_boundary": {
+    "model_invoked": false,
+    "ollama_called": false,
+    "runtime_connected": false,
+    "prompt_sent": false,
+    "prompt_sent_to_model": false,
+    "proof_bundle_sent": false,
+    "proof_bundle_sent_to_model": false,
+    "worker_spawn_performed": false,
+    "email_send_performed": false,
+    "browser_opened": false,
+    "gmail_opened": false,
+    "coupa_opened": false,
+    "ledger_mutation_performed": false,
+    "workbook_mutation_performed": false,
+    "pdf_export_performed": false,
+    "paid_marking_performed": false,
+    "submit_performed": false,
+    "memory_promotion_performed": false,
+    "external_provider_used": false,
+    "git_push_performed": false,
+    "git_merge_performed": false
+  },
+  "preconditions": [
+    {
+      "precondition_ref": "local_lm_proof_response_invocation_boundary_packet",
+      "source_ref": "generated/read_models/local_lm_proof_response_invocation_boundary_packet.json",
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_INVOCATION_BOUNDARY_PACKET_READY",
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_INVOCATION_BOUNDARY_PACKET_READY"
+      ],
+      "ready": true
+    },
+    {
+      "precondition_ref": "local_model_selection_for_proof_response",
+      "source_ref": "generated/read_models/local_model_selection_for_proof_response.json",
+      "observed_status": "LOCAL_MODEL_SELECTION_FOR_PROOF_RESPONSE_READY",
+      "accepted_statuses": [
+        "LOCAL_MODEL_SELECTION_FOR_PROOF_RESPONSE_READY"
+      ],
+      "ready": true
+    },
+    {
+      "precondition_ref": "proof_bundle_freshness_trace_integration",
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json",
+      "observed_status": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+      "accepted_statuses": [
+        "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+      ],
+      "ready": true
+    },
+    {
+      "precondition_ref": "proof_bundle_builder_redaction_integration",
+      "source_ref": "generated/read_models/proof_bundle_builder_redaction_status.json",
+      "observed_status": "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY",
+      "accepted_statuses": [
+        "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY"
+      ],
+      "ready": true
+    },
+    {
+      "precondition_ref": "local_lm_proof_response_preflight_receipts",
+      "source_ref": "generated/read_models/local_lm_proof_response_preflight_receipts.json",
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_PREFLIGHT_RECEIPTS_READY",
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_PREFLIGHT_RECEIPTS_READY"
+      ],
+      "ready": true
+    }
+  ],
+  "source_refs": [
+    "generated/read_models/local_lm_proof_response_invocation_boundary_packet.json",
+    "generated/read_models/local_model_selection_for_proof_response.json",
+    "generated/read_models/proof_bundle_freshness_trace_status.json",
+    "generated/read_models/proof_bundle_builder_redaction_status.json",
+    "generated/read_models/local_lm_proof_response_preflight_receipts.json"
+  ],
+  "machine_proof": {
+    "operator_decision_recorded": "approve_one_time_local_lm_invocation_for_finance_payment_watch",
+    "one_future_attempt_only": true,
+    "model_invoked": false,
+    "ollama_called": false,
+    "runtime_connected": false,
+    "prompt_sent": false,
+    "proof_bundle_sent": false,
+    "worker_spawn_performed": false,
+    "external_provider_used": false,
+    "business_action_performed": false,
+    "unsafe_true_grants_absent": true
+  },
+  "unsafe_true_grants": []
+}

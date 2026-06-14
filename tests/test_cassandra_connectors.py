@@ -14,12 +14,14 @@ from pathlib import Path
 
 import pytest
 
-# Ensure /home/openclaw is on sys.path so broker/sender modules resolve
-sys.path.insert(0, "/home/openclaw")
+ROOT = Path(__file__).resolve().parents[1]
 
-TOKEN_FILE = Path("/home/openclaw/.google-secrets/token.json")
-EXPENSE_LOG = Path("/mnt/c/OpenClaw/logs/expense_log.json")
-TOOLS_ROOT = Path("/home/openclaw/tools")
+# Ensure the scratch checkout is on sys.path so broker/sender modules resolve
+sys.path.insert(0, str(ROOT))
+
+TOKEN_FILE = Path(os.environ.get("OPENCLAW_GOOGLE_TOKEN_FILE", ROOT / ".pytest_openclaw" / "secrets" / "token.json"))
+EXPENSE_LOG = Path(os.environ.get("OPENCLAW_EXPENSE_LOG_PATH", ROOT / ".pytest_openclaw" / "logs" / "expense_log.json"))
+TOOLS_ROOT = ROOT / "tools"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -34,6 +36,8 @@ def _import(module_name: str):
 def _env_var_present(var_name: str) -> bool:
     if os.environ.get(var_name):
         return True
+    if os.environ.get("OPENCLAW_TEST_MODE") == "1":
+        return False
     env_file = Path("/home/openclaw/.chief.env")
     if not env_file.exists():
         return False

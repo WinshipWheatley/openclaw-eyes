@@ -1,0 +1,364 @@
+{
+  "artifact_candidate": {
+    "approval_required": true,
+    "artifact_candidate_id": "capital_hilton_invoice_artifact_candidate_markdown_preview_four_show",
+    "artifact_hash": "sha256:a135264f8df31f762170ea53f50d74d44d08cfe1ee95dfc8fd318fad178970fc",
+    "artifact_path": "generated/finance_packets/capital_hilton_invoice_artifact_preview_v0/CAPITAL_HILTON_INVOICE_PREVIEW.md",
+    "artifact_size_bytes": 1407,
+    "artifact_status": "GENERATED_LOCAL_PREVIEW",
+    "artifact_type": "INVOICE_PREVIEW_MARKDOWN",
+    "coupa_upload_ready": "BLOCKED_PO_COUPA_ROUTE_AND_FINAL_ARTIFACT_NOT_READY",
+    "email_attachment_ready": "PREVIEW_EXISTS_NOT_SEND_READY",
+    "generated_from_state_hash": "sha256:dd82dccbbae81d6491e2efa5d7616a36c383c599ad5931133e9bee8b42305cef",
+    "invoice_dates": [
+      "2026-05-08",
+      "2026-05-15",
+      "2026-05-22",
+      "2026-05-29"
+    ],
+    "next_safe_move": "Review preview, then build final PDF/Excel or delivery-specific artifact only after blockers resolve.",
+    "proof_po_posture": "NEEDS_DISCOVERY",
+    "rate_per_show": {
+      "amount": 400,
+      "currency": "USD",
+      "display": "$400/show",
+      "unit": "show"
+    },
+    "subtotal": {
+      "amount": 1600,
+      "calculation": "4 shows x $400/show",
+      "currency": "USD"
+    },
+    "visible_missing_fields": [
+      "invoice number or accepted reference",
+      "confirmed PO/Coupa/payment reference or explicit no-PO posture",
+      "confirmed AP/email delivery route",
+      "approved final invoice artifact type",
+      "approval receipt for send/submit scope"
+    ]
+  },
+  "artifact_input": {
+    "client": "Capital Hilton",
+    "input_id": "capital_hilton_invoice_artifact_input_from_mission_control_capture",
+    "invoice_number_or_reference_status": "MISSING_NOT_ASSIGNED",
+    "lane": "Capital Hilton",
+    "missing_business_fields": [
+      "invoice number or accepted reference",
+      "confirmed PO/Coupa/payment reference or explicit no-PO posture",
+      "confirmed AP/email delivery route",
+      "approved final invoice artifact type",
+      "approval receipt for send/submit scope"
+    ],
+    "next_safe_move": "Generate local preview only when captured dates/rate/subtotal exist; keep delivery facts gated.",
+    "performance_dates": [
+      "2026-05-08",
+      "2026-05-15",
+      "2026-05-22",
+      "2026-05-29"
+    ],
+    "po_coupa_posture": "NEEDS_DISCOVERY",
+    "rate_per_show": {
+      "amount": 400,
+      "currency": "USD",
+      "display": "$400/show",
+      "unit": "show"
+    },
+    "required_business_fields": [
+      "client",
+      "performance_dates",
+      "show_count",
+      "rate_per_show",
+      "subtotal"
+    ],
+    "show_count": 4,
+    "source_capture_readback_refs": [
+      "mc_receipt_45620b4bce5c87a6b208",
+      "mc_receipt_c311b09f0dea04158020"
+    ],
+    "source_invoice_packet_ref": "capital_hilton_invoice_packet_four_show_local_capture",
+    "subtotal": {
+      "amount": 1600,
+      "calculation": "4 shows x $400/show",
+      "currency": "USD"
+    },
+    "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+  },
+  "artifact_readback": {
+    "approval_packet_readiness": "APPROVAL_REQUIRED_BUT_NOT_READY_FOR_SEND_SUBMIT",
+    "artifact_candidate_ref": "capital_hilton_invoice_artifact_candidate_markdown_preview_four_show",
+    "artifact_exists": true,
+    "artifact_hash": "sha256:a135264f8df31f762170ea53f50d74d44d08cfe1ee95dfc8fd318fad178970fc",
+    "artifact_path": "generated/finance_packets/capital_hilton_invoice_artifact_preview_v0/CAPITAL_HILTON_INVOICE_PREVIEW.md",
+    "blockers": [
+      "PO/Coupa/payment reference still needs discovery or operator confirmation",
+      "AP/email route is not confirmed",
+      "PDF/Excel final artifact generator remains future-gated",
+      "approval/send remains locked",
+      "Coupa portal submission remains an external protected-access gate"
+    ],
+    "coupa_upload_readiness": "BLOCKED_PO_COUPA_ROUTE_AND_FINAL_ARTIFACT_NOT_READY",
+    "email_attachment_readiness": "PREVIEW_EXISTS_NOT_SEND_READY",
+    "generation_status": "GENERATED_LOCAL_PREVIEW",
+    "invoice_packet_ready": "READY_AS_LOCAL_PREVIEW_INPUT",
+    "next_safe_move": "Use artifact preview for review only; keep send/submit gated.",
+    "readback_id": "capital_hilton_invoice_artifact_readback_bc8e8282f093861134ca"
+  },
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "all_external_authority_false": true,
+    "artifact_root_policy": "repo_generated_finance_packets_only",
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "coupa_submit_allowed": false,
+    "credential_handling_allowed": false,
+    "email_draft_allowed": false,
+    "email_send_allowed": false,
+    "file_cleanup_archive_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "invoice_data_json_modeled_in_read_model": true,
+    "invoice_preview_excel_allowed": false,
+    "invoice_preview_markdown_allowed": true,
+    "invoice_preview_pdf_allowed": false,
+    "local_deterministic_artifact_preview_allowed": true,
+    "local_generated_read_model_allowed": true,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "contract_status": "GENERATED_LOCAL_MARKDOWN_PREVIEW_FROM_CAPTURED_STATE",
+  "delivery_impact": {
+    "approval_readiness": "APPROVAL_REQUIRED_BUT_NOT_READY_FOR_SEND_SUBMIT",
+    "coupa_upload_readiness": "BLOCKED_PO_COUPA_ROUTE_AND_FINAL_ARTIFACT_NOT_READY",
+    "email_attachment_readiness": "PREVIEW_EXISTS_NOT_SEND_READY",
+    "remaining_blockers": [
+      "PO/Coupa/payment reference still needs discovery or operator confirmation",
+      "AP/email route is not confirmed",
+      "PDF/Excel final artifact generator remains future-gated",
+      "approval/send remains locked",
+      "Coupa portal submission remains an external protected-access gate"
+    ]
+  },
+  "generated_at": "2026-05-24T04:50:16+00:00",
+  "generation_policy": {
+    "allowed_artifact_types": [
+      "INVOICE_DATA_JSON",
+      "INVOICE_PREVIEW_MARKDOWN",
+      "INVOICE_PREVIEW_PDF",
+      "INVOICE_PREVIEW_EXCEL"
+    ],
+    "blocked_material": [
+      "bank account details",
+      "tax identifiers",
+      "remit instructions",
+      "portal credentials",
+      "raw private document bodies",
+      "Coupa/Gmail/browser data"
+    ],
+    "default_artifact_type": "INVOICE_PREVIEW_MARKDOWN",
+    "deterministic_formatting_policy": "ASCII Markdown, fixed section order, stable date order, no timestamps inside artifact body, no remit/bank/tax/private fields unless approved later.",
+    "filename_policy": {
+      "artifact_root": "generated/finance_packets/capital_hilton_invoice_artifact_preview_v0",
+      "c_drive_allowed": false,
+      "filename": "CAPITAL_HILTON_INVOICE_PREVIEW.md",
+      "mac_path_allowed": false,
+      "path_scope": "repo-local generated finance packet only"
+    },
+    "hash_policy": "sha256 over exact UTF-8 artifact bytes after write",
+    "missing_field_policy": "Captured dates/rate/subtotal are required for preview generation. Delivery, PO, AP, and approval gaps remain visible blockers and prevent send-ready status.",
+    "next_safe_move": "Generate Markdown preview only; use future gated lane for PDF/Excel/final invoice.",
+    "policy_id": "capital_hilton_invoice_artifact_generation_policy_v0",
+    "privacy_boundary": {
+      "bank_tax_remit_private_material_allowed": false,
+      "credential_material_allowed": false,
+      "private_body_allowed": false,
+      "source_private_document_ingestion_allowed": false
+    }
+  },
+  "machine_proof": {
+    "approval_remains_required_gated": true,
+    "artifact_candidate_exists": true,
+    "artifact_input_model_exists": true,
+    "artifact_path_not_c_drive": true,
+    "content_hash": "sha256:d67e277dad8ad41f51d22e5c44e780eab909440194b6d36c758cd5c8c6376a67",
+    "coupa_upload_readiness_reflects_blockers": true,
+    "credential_material_included": false,
+    "email_attachment_readiness_reflects_artifact_status": true,
+    "external_authority_false": true,
+    "generated_artifact_exists_and_hash_matches": true,
+    "generation_policy_exists": true,
+    "missing_required_fields_explicit": true,
+    "no_fake_artifact_path_or_hash": true,
+    "preview_content_exists": true,
+    "proof_po_posture_represented": true,
+    "rate_is_400_show": true,
+    "raw_private_content_included": false,
+    "readback_exists": true,
+    "subtotal_is_1600": true,
+    "uses_captured_4_dates": true
+  },
+  "model_schemas": {
+    "artifact_candidate": {
+      "model_name": "CapitalHiltonInvoiceArtifactCandidate",
+      "required_fields": [
+        "artifact_candidate_id",
+        "artifact_type",
+        "artifact_status",
+        "artifact_path",
+        "artifact_hash",
+        "artifact_size_bytes",
+        "generated_from_state_hash",
+        "invoice_dates",
+        "rate_per_show",
+        "subtotal",
+        "visible_missing_fields",
+        "proof_po_posture",
+        "email_attachment_ready",
+        "coupa_upload_ready",
+        "approval_required",
+        "next_safe_move"
+      ]
+    },
+    "artifact_input": {
+      "model_name": "CapitalHiltonInvoiceArtifactInput",
+      "required_fields": [
+        "input_id",
+        "workflow_session_ref",
+        "source_capture_readback_refs",
+        "source_invoice_packet_ref",
+        "client",
+        "lane",
+        "performance_dates",
+        "show_count",
+        "rate_per_show",
+        "subtotal",
+        "po_coupa_posture",
+        "invoice_number_or_reference_status",
+        "required_business_fields",
+        "missing_business_fields",
+        "next_safe_move"
+      ]
+    },
+    "artifact_readback": {
+      "model_name": "CapitalHiltonInvoiceArtifactReadback",
+      "required_fields": [
+        "readback_id",
+        "generation_status",
+        "artifact_candidate_ref",
+        "artifact_exists",
+        "artifact_path",
+        "artifact_hash",
+        "invoice_packet_ready",
+        "email_attachment_readiness",
+        "coupa_upload_readiness",
+        "approval_packet_readiness",
+        "blockers",
+        "next_safe_move"
+      ]
+    },
+    "generation_policy": {
+      "model_name": "CapitalHiltonInvoiceArtifactGenerationPolicy",
+      "required_fields": [
+        "policy_id",
+        "allowed_artifact_types",
+        "default_artifact_type",
+        "deterministic_formatting_policy",
+        "filename_policy",
+        "hash_policy",
+        "missing_field_policy",
+        "privacy_boundary",
+        "blocked_material",
+        "next_safe_move"
+      ]
+    },
+    "preview_content": {
+      "model_name": "CapitalHiltonInvoicePreviewContent",
+      "required_fields": [
+        "preview_id",
+        "title",
+        "bill_to_or_client_label",
+        "invoice_reference_status",
+        "line_items",
+        "subtotal",
+        "notes",
+        "missing_fields",
+        "proof_po_posture",
+        "delivery_blockers",
+        "operator_review_text",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_summary": "Capital Hilton now has a deterministic local Markdown invoice preview generated from captured OpenClaw state: 4 shows at $400/show, subtotal $1,600. It is not sent, submitted, or final.",
+  "preview_content": {
+    "bill_to_or_client_label": "Capital Hilton",
+    "delivery_blockers": [
+      "PO/Coupa/payment reference still needs discovery or operator confirmation",
+      "AP/email route is not confirmed",
+      "PDF/Excel final artifact generator remains future-gated",
+      "approval/send remains locked",
+      "Coupa portal submission remains an external protected-access gate"
+    ],
+    "invoice_reference_status": "MISSING_NOT_ASSIGNED",
+    "line_items": [
+      {
+        "dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "description": "Capital Hilton performances",
+        "quantity": 4,
+        "rate": {
+          "amount": 400,
+          "currency": "USD",
+          "display": "$400/show"
+        },
+        "total": {
+          "amount": 1600,
+          "calculation": "4 shows x $400/show",
+          "currency": "USD"
+        },
+        "unit": "show"
+      }
+    ],
+    "missing_fields": [
+      "invoice number or accepted reference",
+      "confirmed PO/Coupa/payment reference or explicit no-PO posture",
+      "confirmed AP/email delivery route",
+      "approved final invoice artifact type",
+      "approval receipt for send/submit scope"
+    ],
+    "next_safe_move": "Use this preview to prepare the final artifact rail; do not send or submit.",
+    "notes": [
+      "Preview generated from captured local OpenClaw state.",
+      "This is not a sent invoice, email attachment, Coupa upload, or payment-generating portal record.",
+      "No bank, tax, remit, credential, or raw private document material is included."
+    ],
+    "operator_review_text": "Review the four-show $1,600 preview. Before send/submit, OpenClaw still needs PO/Coupa/AP route facts, a final artifact type, and approval over the exact delivery packet.",
+    "preview_id": "capital_hilton_invoice_preview_content_four_show",
+    "proof_po_posture": "NEEDS_DISCOVERY",
+    "subtotal": {
+      "amount": 1600,
+      "calculation": "4 shows x $400/show",
+      "currency": "USD"
+    },
+    "title": "Capital Hilton Invoice Preview"
+  },
+  "read_model_id": "capital_hilton_invoice_artifact_generator",
+  "relationship_to_existing_rails": {
+    "capital_hilton_coupa_po_retrieval_automation_candidate": "future protected PO/Coupa discovery posture",
+    "capital_hilton_invoice_delivery_steel_thread": "prior lane named artifact generator as next internal build rail",
+    "capital_hilton_performance_dates_capture_boundary": "source capture boundary for May 22/29 date addition",
+    "capital_hilton_proof_resolution_batch_manifest": "future proof coverage rail before final send/submit",
+    "mission_control_capture_request_intake": "source local SQLite captured dates/rate/readback"
+  },
+  "schema_version": "capital_hilton_invoice_artifact_generator_v0"
+}

@@ -37,6 +37,42 @@ MAX_PREVIEW_CHARS = 180
 
 SOURCE_KINDS = set(ALLOWED_SOURCE_KINDS)
 INTENT_CATEGORIES = {
+    "invoice_send",
+    "email_send",
+    "sms_send",
+    "phone_log",
+    "calendar_create",
+    "ledger_mutation",
+    "coupa_submit",
+    "obs_launch",
+    "livestream_setup",
+    "gig_intake",
+    "musiclaw_query",
+    "publishing_query",
+    "cpa_query",
+    "financial_report",
+    "analytics_report",
+    "goals_check",
+    "momentum_check",
+    "reflection_report",
+    "system_report",
+    "calendar_query",
+    "brand_guide",
+    "content_calendar",
+    "scout_report",
+    "phone_assist",
+    "backup_status",
+    "album_request",
+    "brainstorm_status",
+    "queue_status",
+    "integration_proposals",
+    "trinity_check",
+    "marketing_ideas",
+    "invoice_status_lookup",
+    "pending_approval_lookup",
+    "schedule_lookup",
+    "approval_explainer",
+    "capability_query",
     "markdown_reorg_request",
     "file_context_request",
     "read_model_refresh_request",
@@ -49,6 +85,50 @@ INTENT_CATEGORIES = {
     "unknown_review",
 }
 INTENT_STATUSES = {"routed", "needs_operator_review", "rejected"}
+ACTION_INTENT_CATEGORIES = {
+    "invoice_send",
+    "email_send",
+    "sms_send",
+    "phone_log",
+    "calendar_create",
+    "ledger_mutation",
+    "coupa_submit",
+    "obs_launch",
+    "livestream_setup",
+}
+READ_ONLY_INTENT_CATEGORIES = {
+    "invoice_status_lookup",
+    "pending_approval_lookup",
+    "schedule_lookup",
+    "communication_summary_request",
+    "status_orientation_request",
+    "safety_review_request",
+    "approval_explainer",
+    "capability_query",
+    "gig_intake",
+    "musiclaw_query",
+    "publishing_query",
+    "cpa_query",
+    "financial_report",
+    "analytics_report",
+    "goals_check",
+    "momentum_check",
+    "reflection_report",
+    "system_report",
+    "calendar_query",
+    "brand_guide",
+    "content_calendar",
+    "scout_report",
+    "phone_assist",
+    "backup_status",
+    "album_request",
+    "brainstorm_status",
+    "queue_status",
+    "integration_proposals",
+    "trinity_check",
+    "marketing_ideas",
+}
+ROUTER_CANDIDATE_ACTION_TYPES = set(ALLOWED_ACTIONS) | ACTION_INTENT_CATEGORIES
 
 NO_AUTHORITY_FLAGS = {
     "agent_activation_allowed": False,
@@ -389,9 +469,161 @@ def _detect_agent(phrase_text: str, aliases: dict[str, str]) -> tuple[str | None
     return agent_id, phrase
 
 
+def _orbit_read_only_category_for_text(phrase_text: str) -> tuple[str, str] | None:
+    has = lambda *phrases: any(_contains_phrase(phrase_text, phrase) for phrase in phrases)
+    contains = lambda *needles: any(needle in phrase_text for needle in needles)
+
+    if has("music law", "legal question", "my rights", "ten fingers", "log rhythm", "log rhythm records", "music contract", "sync license", "copyright", "royalty dispute") or contains("publishing rights", "master rights", "work for hire"):
+        return "musiclaw_query", "music-law read-only brain wording matched"
+    if has("publishing status", "catalog status", "sync opportunities", "sync ready", "song rights", "pro registration", "ascap", "bmi") or contains("publishing catalog", "what songs are registered"):
+        return "publishing_query", "publishing read-only brain wording matched"
+    if (
+        has("what did i make", "income this month", "income summary", "what do i owe", "quarterly tax", "estimated tax", "tax estimate", "what can i deduct", "deductions", "write off", "write-off", "quarterly", "cpa", "tax owed")
+        and not has("log expense", "add expense", "i spent", "i paid for", "expense")
+    ):
+        return "cpa_query", "CPA read-only brain wording matched"
+    if has("financial report", "profit and loss", "outstanding invoices", "who owes me", "unpaid invoices", "payment history", "revenue this month", "quarterly projection", "tax projection", "financial summary", "income report", "how's business", "hows business") or contains("p&l"):
+        return "financial_report", "financial read-only brain wording matched"
+    if has("analytics", "weekly metrics", "metrics report", "show analytics", "business report"):
+        return "analytics_report", "analytics read-only brain wording matched"
+    if (
+        has("goals", "goal check", "how am i doing", "goal progress", "check in", "goal tracker")
+        and not has("update goal", "set goal", "milestone goal")
+    ):
+        return "goals_check", "goals read-only brain wording matched"
+    if has("momentum", "am i on track", "activity check", "how active am i", "artist mode", "admin mode", "am i in artist", "am i in admin", "momentum report"):
+        return "momentum_check", "momentum read-only brain wording matched"
+    if has("reflection report", "monthly report", "what's working", "whats working", "usage report", "system reflection", "how are things going", "assess the system", "how is the system doing"):
+        return "reflection_report", "reflection read-only brain wording matched"
+    if has("system report", "daily report", "what ran today", "status report", "worker report", "watcher report", "what happened today", "how is the system"):
+        return "system_report", "reporter read-only brain wording matched"
+    if has("what's my week", "whats my week", "what's today", "whats today", "what's coming up", "whats coming up", "what do i have", "my week", "this week", "upcoming events", "what's happening") or (contains("calendar", "schedule") and has("what is on", "what's on", "whats on", "show me")):
+        return "calendar_query", "calendar read-only brain wording matched"
+    if has("brand guide", "style guide", "brand rules", "is this on brand", "on brand check", "brand check", "dpr brand", "fundo brand guide"):
+        return "brand_guide", "brand read-only brain wording matched"
+    if (
+        has("content calendar", "content schedule", "what's due for posting", "whats due for posting", "content status", "posting schedule", "what needs to go up")
+        and not has("mark posted", "schedule post")
+    ):
+        return "content_calendar", "content read-only brain wording matched"
+    if has("scout report", "what's new in ai", "whats new in ai", "tech digest", "research report", "new tools", "ai tools", "new in ai", "what's new in tech", "whats new in tech", "music tech", "new platforms"):
+        return "scout_report", "scout read-only brain wording matched"
+    if has("call script", "talking points", "what should i say to", "how should i approach", "script for calling", "call log", "call history", "recent calls", "show calls"):
+        return "phone_assist", "phone read-only brain wording matched"
+    if (
+        has("backup status", "check backup", "git status", "is the repo current", "repo status")
+        and not has("backup now", "push backup", "do backup", "backup push")
+    ):
+        return "backup_status", "backup read-only brain wording matched"
+    if has("album status", "session status", "album arc", "album story", "track order", "lyric arc", "album analysis", "song order", "mix brief", "mix status", "mix ready"):
+        return "album_request", "album read-only brain wording matched"
+    if has("brainstorm status", "brainstorm watch", "brainstorm check", "watching ideas", "idea list", "brainstorm queue", "brainstorm backlog", "show ideas"):
+        return "brainstorm_status", "brainstorm read-only brain wording matched"
+    if has("queue status", "what's queued", "what s queued", "whats queued", "show queue", "pending queue", "done queue"):
+        return "queue_status", "queue read-only brain wording matched"
+    if (
+        has("integration proposal", "integration proposals", "what can we add", "what can i add", "proposals", "propose")
+        and not has("approve prop", "reject prop")
+    ):
+        return "integration_proposals", "integration read-only brain wording matched"
+    if has("trinity check", "system audit", "brain audit", "trinity status", "trinity report", "check trinities", "what's missing", "queue gaps"):
+        return "trinity_check", "trinity read-only brain wording matched"
+    if (
+        has("marketing", "content idea", "content ideas", "what should i post", "what can i post", "what can i make", "post about", "reel", "tiktok", "instagram", "youtube", "social media", "what to post", "marketing idea")
+        and not has("log that", "i posted", "mark as posted", "schedule post", "draft a caption", "draft a hook", "write a caption", "write a hook")
+    ):
+        return "marketing_ideas", "marketing read-only brain wording matched"
+    return None
+
+
 def _category_for_text(phrase_text: str, explicit_agent_id: str | None) -> tuple[str, str]:
     has = lambda *phrases: any(_contains_phrase(phrase_text, phrase) for phrase in phrases)
     contains = lambda *needles: any(needle in phrase_text for needle in needles)
+    asks_status = contains("did ", "what happened", "status", "go out", "went out", "sent yet", "already sent")
+    asks_pending = contains("pending", "waiting for approval", "needs approval", "approval card")
+    asks_explain = contains("explain", "eli5", "like i am five", "like i'm five", "what does", "what is")
+    actionish = has(
+        "send",
+        "submit",
+        "create",
+        "make",
+        "add",
+        "schedule",
+        "update",
+        "mark",
+        "post",
+        "launch",
+        "start",
+        "go live",
+        "text",
+        "email",
+        "call",
+    )
+
+    if asks_explain and contains("pending_approval", "approval", "packet", "approval card", "checklist card"):
+        return "approval_explainer", "approval explainer wording matched"
+    if asks_pending or has("what is pending", "what's pending", "show pending"):
+        return "pending_approval_lookup", "pending approval/status lookup wording matched"
+    if (contains("invoice", "bill", "paid", "payment") and asks_status) or has("did the invoice thing go out"):
+        return "invoice_status_lookup", "invoice/payment status lookup wording matched"
+    if (
+        has("content calendar", "content schedule", "what's due for posting", "whats due for posting", "content status", "posting schedule", "what needs to go up")
+        and not has("mark posted", "schedule post")
+    ):
+        return "content_calendar", "content read-only brain wording matched"
+    if has("what's my week", "whats my week", "what's today", "whats today", "what's coming up", "whats coming up", "what do i have", "my week", "this week", "upcoming events", "what's happening"):
+        return "calendar_query", "calendar read-only brain wording matched"
+    if (contains("calendar", "schedule", "today", "tomorrow", "meeting") and not actionish) or contains("what is on the schedule", "what's on the schedule"):
+        return "schedule_lookup", "schedule lookup wording matched"
+    if contains("what can you do", "can you", "are you able", "capability", "capabilities"):
+        return "capability_query", "capability query wording matched"
+
+    orbit_read_only = _orbit_read_only_category_for_text(phrase_text)
+    if orbit_read_only:
+        return orbit_read_only
+
+    booking_phrase = has(
+        "booked",
+        "you are booked",
+        "youre booked",
+        "you're booked",
+        "all set",
+        "you are all set",
+        "youre all set",
+        "you're all set",
+        "covering",
+        "covering for",
+    )
+    venue_signal = contains("venue", "tavern", "hotel", "club", "bar", "restaurant", "reynolds")
+    date_signal = bool(
+        re.search(
+            r"\b(20\d{2}|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december)\b",
+            phrase_text,
+        )
+    )
+    time_signal = bool(re.search(r"\b\d{1,2}\s+\d{1,2}\s*(am|pm)\b|\b\d{1,2}\s*(am|pm)\b", phrase_text))
+    money_signal = bool(re.search(r"\b\d{2,6}\b", phrase_text)) or contains("usd", "dollar", "fee", "pay", "paid")
+    if booking_phrase and sum(bool(signal) for signal in (venue_signal, date_signal, time_signal, money_signal)) >= 3:
+        return "gig_intake", "gig booking intake wording matched"
+
+    if contains("coupa"):
+        return "coupa_submit", "Coupa action wording matched"
+    if contains("ledger") or has("mark paid", "mark as paid", "post to ledger", "touch the ledger"):
+        return "ledger_mutation", "ledger/payment mutation wording matched"
+    if contains("gmail", "email") and (has("send", "write", "draft", "create") or actionish):
+        return "email_send", "email/Gmail action wording matched"
+    if contains("invoice", "bill") and has("send", "issue", "deliver", "email", "send out", "bill"):
+        return "invoice_send", "invoice send wording matched"
+    if has("text", "sms", "message") and has("send", "text", "message"):
+        return "sms_send", "SMS/text action wording matched"
+    if has("call", "phone"):
+        return "phone_log", "phone/call action wording matched"
+    if contains("calendar", "event", "meeting") and has("make", "create", "add", "schedule"):
+        return "calendar_create", "calendar event creation wording matched"
+    if contains("obs"):
+        return "obs_launch", "OBS launch wording matched"
+    if has("go live", "live stream", "livestream", "set up the live stream"):
+        return "livestream_setup", "livestream setup wording matched"
 
     if has("safe", "safety", "risk", "guardian") or contains("no go", "no_go", "secret", "credential"):
         return "safety_review_request", "safety/risk wording matched"
@@ -415,6 +647,48 @@ def _category_for_text(phrase_text: str, explicit_agent_id: str | None) -> tuple
 
 
 def _default_agent_for_category(category: str, phrase_text: str) -> tuple[str | None, str]:
+    if category in {
+        "invoice_send",
+        "email_send",
+        "sms_send",
+        "phone_log",
+        "calendar_create",
+        "ledger_mutation",
+        "coupa_submit",
+        "invoice_status_lookup",
+        "pending_approval_lookup",
+        "schedule_lookup",
+        "approval_explainer",
+        "capability_query",
+        "gig_intake",
+    }:
+        return "cassandra", f"default Cassandra route for {category}"
+    if category in {"obs_launch", "livestream_setup"}:
+        return "chief", f"default Chief route for {category}"
+    if category in {
+        "musiclaw_query",
+        "publishing_query",
+        "cpa_query",
+        "financial_report",
+        "analytics_report",
+        "goals_check",
+        "momentum_check",
+        "reflection_report",
+        "system_report",
+        "calendar_query",
+        "brand_guide",
+        "content_calendar",
+        "scout_report",
+        "phone_assist",
+        "backup_status",
+        "album_request",
+        "brainstorm_status",
+        "queue_status",
+        "integration_proposals",
+        "trinity_check",
+        "marketing_ideas",
+    }:
+        return "chief", f"default Chief route for {category}"
     if category in {"markdown_reorg_request", "read_model_refresh_request", "project_capsule_request", "status_orientation_request"}:
         return "chief", f"default Chief route for {category}"
     if category == "file_context_request":
@@ -433,7 +707,19 @@ def _default_agent_for_category(category: str, phrase_text: str) -> tuple[str | 
 
 
 def _world_for(agent_id: str | None, category: str) -> str:
-    if agent_id == "niles" or category in {"music_project_request", "file_context_request"}:
+    if category in {"invoice_send", "invoice_status_lookup", "ledger_mutation", "coupa_submit", "cpa_query", "financial_report"}:
+        return "finance"
+    if category in {"musiclaw_query", "publishing_query"}:
+        return "business_development"
+    if category in {"email_send", "sms_send", "phone_log", "calendar_create", "pending_approval_lookup", "schedule_lookup", "approval_explainer", "capability_query"}:
+        return "communications"
+    if category in {"calendar_query", "phone_assist"}:
+        return "communications"
+    if category == "gig_intake":
+        return "business_development"
+    if category in {"obs_launch", "livestream_setup", "analytics_report", "goals_check", "momentum_check", "reflection_report", "system_report", "scout_report", "backup_status", "brainstorm_status", "queue_status", "integration_proposals", "trinity_check"}:
+        return "operations"
+    if agent_id == "niles" or category in {"music_project_request", "file_context_request", "album_request", "brand_guide", "content_calendar", "marketing_ideas"}:
         return "music_art"
     if agent_id == "guardian" or category == "safety_review_request":
         return "security"
@@ -449,6 +735,8 @@ def _world_for(agent_id: str | None, category: str) -> str:
 
 
 def _candidate_action_for(category: str, phrase_text: str) -> str | None:
+    if category in ACTION_INTENT_CATEGORIES:
+        return category
     if category != "read_model_refresh_request":
         return None
     if "report bridge" in phrase_text:
@@ -463,6 +751,25 @@ def _candidate_action_for(category: str, phrase_text: str) -> str | None:
 
 
 def _next_safe_move(category: str, agent_id: str | None, candidate_action_type: str | None) -> str:
+    if category in ACTION_INTENT_CATEGORIES:
+        return (
+            f"Prepare an approval card for `{category}`. Nothing has been sent yet; "
+            "execution remains blocked until explicit operator approval."
+        )
+    if category == "invoice_status_lookup":
+        return "Look up invoice/payment status from receipts and read models; do not create a new action packet."
+    if category == "pending_approval_lookup":
+        return "List pending approval cards and receipts; do not create a new action packet."
+    if category == "schedule_lookup":
+        return "Answer from available schedule context; do not create or modify calendar events."
+    if category == "approval_explainer":
+        return "Explain approval state in plain language; do not create a new action packet."
+    if category == "capability_query":
+        return "Explain current capabilities and boundaries in plain language; do not create a new action packet."
+    if category == "gig_intake":
+        return "Start a Cassandra gig-intake session, pre-fill extractable booking details, and ask only for missing confirmation fields. No send or invoice execution is allowed."
+    if category in READ_ONLY_INTENT_CATEGORIES:
+        return f"Route `{category}` through the existing read-only brain handler; do not create an action packet."
     if category == "markdown_reorg_request":
         return "Query Markdown Knowledge Atlas and draft an advisory reorg/archive plan; do not move files."
     if category == "file_context_request":
@@ -484,6 +791,19 @@ def _next_safe_move(category: str, agent_id: str | None, candidate_action_type: 
     if category == "status_orientation_request":
         return "Use current generated read-models and handoff docs to produce an orientation summary."
     return "Ask the operator for a clearer target agent, file, world, or allowed action; do not execute anything."
+
+
+def _approval_required_for(
+    status: str,
+    candidate_action_type: str | None,
+    *,
+    category: str | None = None,
+    agent_id: str | None = None,
+) -> bool:
+    """Only cleanly routed, non-action requests may use the read-only fast path."""
+    if agent_id == "guardian" or category == "safety_review_request":
+        return True
+    return status != "routed" or bool(candidate_action_type)
 
 
 def _latest_recent_file_context_run(conn: sqlite3.Connection) -> str | None:
@@ -813,7 +1133,7 @@ def route_operator_intent(
                     routed_agent_id = "chief"
                     routing_reason += "; Recent File Context resolved generated read-model metadata, routing to Chief"
         candidate_action_type = _candidate_action_for(category, phrase_text)
-        if candidate_action_type not in ALLOWED_ACTIONS:
+        if candidate_action_type not in ROUTER_CANDIDATE_ACTION_TYPES:
             candidate_action_type = None
         world_hint = _world_for(routed_agent_id, category)
         routed_lane_id = agents.get(routed_agent_id, {}).get("lane_id") if routed_agent_id else None
@@ -891,6 +1211,12 @@ ON CONFLICT(run_id) DO UPDATE SET
         )
 
         next_safe_move = _next_safe_move(category, routed_agent_id, candidate_action_type)
+        approval_required = _approval_required_for(
+            status,
+            candidate_action_type,
+            category=category,
+            agent_id=routed_agent_id,
+        )
         conn.execute(
             """
 INSERT INTO intent_records (
@@ -900,7 +1226,7 @@ INSERT INTO intent_records (
   world_hint, intent_category, confidence, approval_required,
   execution_allowed, action_request_created, candidate_action_type,
   next_safe_move, status, routing_reason, rejection_reason
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, 0, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)
 ON CONFLICT(intent_id) DO UPDATE SET
   run_id = excluded.run_id,
   source_kind = excluded.source_kind,
@@ -916,7 +1242,7 @@ ON CONFLICT(intent_id) DO UPDATE SET
   world_hint = excluded.world_hint,
   intent_category = excluded.intent_category,
   confidence = excluded.confidence,
-  approval_required = 1,
+  approval_required = excluded.approval_required,
   execution_allowed = 0,
   action_request_created = 0,
   candidate_action_type = excluded.candidate_action_type,
@@ -952,6 +1278,7 @@ ON CONFLICT(intent_id) DO UPDATE SET
                 world_hint,
                 category,
                 confidence,
+                1 if approval_required else 0,
                 candidate_action_type,
                 next_safe_move,
                 status,
@@ -997,13 +1324,20 @@ ON CONFLICT(candidate_id) DO UPDATE SET
             status = "needs_operator_review"
             routing_reason += "; file reference is unresolved in recent File Event Queue metadata"
             next_safe_move = _next_safe_move(category, routed_agent_id, candidate_action_type)
+            approval_required = _approval_required_for(
+                status,
+                candidate_action_type,
+                category=category,
+                agent_id=routed_agent_id,
+            )
             conn.execute(
                 """
 UPDATE intent_records
-SET status = ?, routing_reason = ?, next_safe_move = ?, confidence = MIN(confidence, 0.55)
+SET status = ?, routing_reason = ?, next_safe_move = ?, confidence = MIN(confidence, 0.55),
+    approval_required = ?
 WHERE intent_id = ?
 """.strip(),
-                (status, routing_reason, next_safe_move, resolved_intent_id),
+                (status, routing_reason, next_safe_move, 1 if approval_required else 0, resolved_intent_id),
             )
 
         conn.execute(
@@ -1012,11 +1346,11 @@ INSERT INTO intent_plan_proposals (
   proposal_id, intent_id, proposed_next_safe_move, candidate_action_type,
   approval_required, execution_allowed, action_request_created,
   truth_promotion_claimed, created_at
-) VALUES (?, ?, ?, ?, 1, 0, 0, 0, ?)
+) VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?)
 ON CONFLICT(proposal_id) DO UPDATE SET
   proposed_next_safe_move = excluded.proposed_next_safe_move,
   candidate_action_type = excluded.candidate_action_type,
-  approval_required = 1,
+  approval_required = excluded.approval_required,
   execution_allowed = 0,
   action_request_created = 0,
   truth_promotion_claimed = 0
@@ -1026,6 +1360,7 @@ ON CONFLICT(proposal_id) DO UPDATE SET
                 resolved_intent_id,
                 next_safe_move,
                 candidate_action_type,
+                1 if approval_required else 0,
                 now,
             ),
         )
@@ -1133,7 +1468,7 @@ WHERE run_id = ?
             status=final["status"],
             next_safe_move=next_safe_move,
             candidate_action_type=candidate_action_type,
-            approval_required=True,
+            approval_required=approval_required,
             execution_allowed=False,
             action_request_created=False,
             context_link_count=len(links),

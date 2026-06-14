@@ -7,9 +7,10 @@ expectations aligned without manually maintaining expected filename lists.
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from typing import Any
+
+from openclaw_substrate_utils import sha256_file
 
 
 ROOT = Path(__file__).resolve().parent
@@ -50,11 +51,24 @@ MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES = (
     "capital_hilton_actionable_review_packet_OPERATOR.md",
     "cassandra_governed_review_packet_request_proof.json",
     "cassandra_governed_review_packet_request_proof_OPERATOR.md",
+    "purpose_bound_automation_charter.json",
+    "hermes_gravity_controller.json",
+    "invoice_review_bundle.json",
+    "invoice_review_bundle_OPERATOR.md",
 )
 
 MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES = (
     "mission_control_capture_request_intake.json",
     "mission_control_capture_request_intake_OPERATOR.md",
+)
+
+EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES = (
+    "openclaw_event_bridge_contract.json",
+    "openclaw_event_bridge_contract_OPERATOR.md",
+    "openclaw_authority_semantics_registry.json",
+    "openclaw_authority_semantics_registry_OPERATOR.md",
+    "simple_invoice_event_bridge_rail_registry.json",
+    "simple_invoice_event_bridge_rail_registry_OPERATOR.md",
 )
 
 VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
@@ -64,6 +78,12 @@ VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
     "sync_health_OPERATOR.md",
     "system_health_lights_taxonomy.json",
     "system_health_lights_taxonomy_OPERATOR.md",
+)
+
+HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES = (
+    "helm_operator_attention_package.json",
+    "operator_mission_priority_helm_declutter.json",
+    "system_health_lights_taxonomy.json",
 )
 
 SAFE_GENERATED_READ_MODEL_MANIFEST_FILES = frozenset(
@@ -90,6 +110,7 @@ CRITICAL_GENERATED_READ_MODEL_FILES = (
     "world_status.json",
     *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     *MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
+    *EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
 )
 
 
@@ -98,14 +119,6 @@ def resolve_repo_path(path: str | Path, *, repo_root: str | Path = ROOT) -> Path
     if candidate.is_absolute():
         return candidate
     return Path(repo_root) / candidate
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def is_no_go_generated_read_model_relative_path(relative_path: str) -> bool:
@@ -204,6 +217,7 @@ def canonical_generated_read_model_expected_files(
 
 __all__ = [
     "CRITICAL_GENERATED_READ_MODEL_FILES",
+    "EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES",
     "DEFAULT_GENERATED_READ_MODEL_ROOT",
     "MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES",
     "MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES",
@@ -211,6 +225,7 @@ __all__ = [
     "NO_GO_PARTS",
     "SAFE_READ_MODEL_SUFFIXES",
     "SAFE_GENERATED_READ_MODEL_MANIFEST_FILES",
+    "HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES",
     "VOLATILE_SELF_REPORT_READ_MODEL_FILES",
     "canonical_generated_read_model_expected_files",
     "canonical_generated_read_model_records",

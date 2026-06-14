@@ -91,7 +91,7 @@ def test_required_agents_worlds_and_aliases_exist(tmp_path):
     seed_agent_lane_registry(db_path=db_path, run_id="agent_lane_fixture")
 
     agents = {row["agent_id"] for row in _rows(db_path, "SELECT agent_id FROM agent_lanes")}
-    assert {"chief", "cassandra", "guardian", "niles", "hermes", "report_bridge"} <= agents
+    assert {"chief", "cassandra", "guardian", "niles", "hermes", "watch_desk", "report_bridge"} <= agents
     niles_worlds = {
         row["world_binding"]
         for row in _rows(db_path, "SELECT world_binding FROM agent_lane_worlds WHERE agent_id = 'niles'")
@@ -112,8 +112,10 @@ def test_required_agents_worlds_and_aliases_exist(tmp_path):
     assert niles_worlds == {"music_art"}
     assert {"operations", "build", "cross_world"} <= chief_worlds
     assert "security" in guardian_worlds
+    assert aliases["business_ops"] == "cassandra"
     assert aliases["producer"] == "niles"
     assert aliases["creative_file_resolver"] == "niles"
+    assert aliases["watchdesk"] == "watch_desk"
 
 
 def test_source_kinds_are_metadata_or_request_only_and_telegram_is_not_wired(tmp_path):
@@ -190,7 +192,8 @@ def test_read_model_export_contains_agents_and_no_authority_flags(tmp_path):
     assert json_path.exists()
     assert operator_path.exists()
     assert read_model["agent_count"] == len(DEFAULT_AGENT_LANE_SEEDS)
-    assert read_model["agents_by_world"]["music_art"] == ["niles"]
+    assert "niles" in read_model["agents_by_world"]["music_art"]
+    assert "watch_desk" in read_model["agents_by_world"]["music_art"]
     assert "telegram" in read_model["agents_by_source_kind"]
     assert read_model["source_kind_posture"]["telegram"].startswith("metadata only")
     for key, value in NO_AUTHORITY_FLAGS.items():

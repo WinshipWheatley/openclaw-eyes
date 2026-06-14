@@ -1,0 +1,2261 @@
+{
+  "allowed_contract_scope": [
+    "deterministic read-model generation",
+    "tests",
+    "metadata-only examples",
+    "future target modeling",
+    "ELIOPERATOR report"
+  ],
+  "artifact_and_proof_plan": {
+    "artifact_hash_requirements": [
+      "No file artifact can be called ready without a real path and hash.",
+      "Hashes identify artifacts; they do not authorize sending or submitting."
+    ],
+    "completion_proof_requirements": [
+      "Completion labels must cite proof receipts.",
+      "Calculated status must derive from receipts, not copied narrative."
+    ],
+    "missing_proofs": [
+      "operator-reviewed procedure receipt",
+      "artifact hash receipts",
+      "approval receipts",
+      "external action result receipts"
+    ],
+    "next_safe_move": "Use the proof plan to block fake readiness and fake completion.",
+    "optional_artifacts": [
+      {
+        "artifact_kind": "operator_preview",
+        "hash_required_if_file": true,
+        "ready_now": false
+      }
+    ],
+    "plan_id": "generic_artifact_and_proof_plan_v0",
+    "proof_bullets": [
+      "Required artifacts exist and hashes match.",
+      "Protected references stay metadata-only unless separately authorized.",
+      "Approval receipts bind the exact action packet.",
+      "External result receipts exist before final completion."
+    ],
+    "protected_refs": [
+      {
+        "normal_read_model_body_allowed": false,
+        "ref_kind": "protected_evidence_ref"
+      },
+      {
+        "normal_read_model_body_allowed": false,
+        "ref_kind": "tokenized_sensitive_value_ref"
+      }
+    ],
+    "required_artifacts": [
+      {
+        "artifact_kind": "workflow_output_artifact",
+        "file_hash_required": true,
+        "ready_now": false,
+        "receipt_required": true
+      },
+      {
+        "artifact_kind": "approval_or_review_packet",
+        "file_hash_required": false,
+        "ready_now": false,
+        "receipt_required": true
+      }
+    ],
+    "workflow_run_ref": "generic_governed_workflow_run_plan_v0"
+  },
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "approval_submission_allowed": false,
+    "browser_automation_allowed": false,
+    "credential_handling_allowed": false,
+    "file_cleanup_archive_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_attachment_allowed": false,
+    "live_cassandra_draft_allowed": false,
+    "live_chat_parser_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_email_draft_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_guardian_approval_allowed": false,
+    "live_invoice_generation_allowed": false,
+    "live_model_call_allowed": false,
+    "live_payment_tracking_write_allowed": false,
+    "live_procedure_memory_write_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "builder_blockers_by_id": {
+    "blocker_agent_persona_hardcoded_in_core": {
+      "blocker_id": "blocker_agent_persona_hardcoded_in_core",
+      "blocker_type": "AGENT_PERSONA_HARDCODED_IN_CORE",
+      "builder_action_required": "Keep roles generic.",
+      "condition": "Core logic depends on a named agent persona.",
+      "elioperator_warning": "ELIOPERATOR: Core logic depends on a named agent persona.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_attachment_without_artifact_hash": {
+      "blocker_id": "blocker_attachment_without_artifact_hash",
+      "blocker_type": "ATTACHMENT_WITHOUT_ARTIFACT_HASH",
+      "builder_action_required": "Require real artifact hash.",
+      "condition": "Attachment is claimed ready without file/hash.",
+      "elioperator_warning": "ELIOPERATOR: Attachment is claimed ready without file/hash.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_completion_without_receipts": {
+      "blocker_id": "blocker_completion_without_receipts",
+      "blocker_type": "COMPLETION_WITHOUT_RECEIPTS",
+      "builder_action_required": "Block fake completion.",
+      "condition": "Completion label appears without proof receipts.",
+      "elioperator_warning": "ELIOPERATOR: Completion label appears without proof receipts.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_external_action_without_gate": {
+      "blocker_id": "blocker_external_action_without_gate",
+      "blocker_type": "EXTERNAL_ACTION_WITHOUT_GATE",
+      "builder_action_required": "Fail closed.",
+      "condition": "External adapter action is attempted without explicit gate.",
+      "elioperator_warning": "ELIOPERATOR: External adapter action is attempted without explicit gate.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_machine_contract_visible_to_operator": {
+      "blocker_id": "blocker_machine_contract_visible_to_operator",
+      "blocker_type": "MACHINE_CONTRACT_VISIBLE_TO_OPERATOR",
+      "builder_action_required": "Render plain ELIOPERATOR text.",
+      "condition": "UI shows machine schema instead of plain work state.",
+      "elioperator_warning": "ELIOPERATOR: UI shows machine schema instead of plain work state.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "SHOULD_PATCH"
+    },
+    "blocker_narrative_treated_as_truth": {
+      "blocker_id": "blocker_narrative_treated_as_truth",
+      "blocker_type": "NARRATIVE_TREATED_AS_TRUTH",
+      "builder_action_required": "Require review receipt.",
+      "condition": "Narrative is stored as canonical truth without review.",
+      "elioperator_warning": "ELIOPERATOR: Narrative is stored as canonical truth without review.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_procedure_memory_used_as_authority": {
+      "blocker_id": "blocker_procedure_memory_used_as_authority",
+      "blocker_type": "PROCEDURE_MEMORY_USED_AS_AUTHORITY",
+      "builder_action_required": "Separate memory from authority.",
+      "condition": "Procedure memory is used as send/submit approval.",
+      "elioperator_warning": "ELIOPERATOR: Procedure memory is used as send/submit approval.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_raw_pii_in_normal_readmodel": {
+      "blocker_id": "blocker_raw_pii_in_normal_readmodel",
+      "blocker_type": "RAW_PII_IN_NORMAL_READMODEL",
+      "builder_action_required": "Use safe label or protected ref.",
+      "condition": "Raw private value appears in normal read-model.",
+      "elioperator_warning": "ELIOPERATOR: Raw private value appears in normal read-model.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_run_without_operator_review": {
+      "blocker_id": "blocker_run_without_operator_review",
+      "blocker_type": "RUN_WITHOUT_OPERATOR_REVIEW",
+      "builder_action_required": "Require operator review first.",
+      "condition": "A governed run starts from an unreviewed procedure.",
+      "elioperator_warning": "ELIOPERATOR: A governed run starts from an unreviewed procedure.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_send_without_guardian_approval": {
+      "blocker_id": "blocker_send_without_guardian_approval",
+      "blocker_type": "SEND_WITHOUT_GUARDIAN_APPROVAL",
+      "builder_action_required": "Require approval receipts.",
+      "condition": "Send happens before Guardian/operator approval.",
+      "elioperator_warning": "ELIOPERATOR: Send happens before Guardian/operator approval.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_submit_without_proof": {
+      "blocker_id": "blocker_submit_without_proof",
+      "blocker_type": "SUBMIT_WITHOUT_PROOF",
+      "builder_action_required": "Require proof receipts.",
+      "condition": "Submit happens before proof or protected access posture.",
+      "elioperator_warning": "ELIOPERATOR: Submit happens before proof or protected access posture.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    },
+    "blocker_unknown_fail_closed": {
+      "blocker_id": "blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "builder_action_required": "Ask the next safe question.",
+      "condition": "Workflow shape, proof, or authority is ambiguous.",
+      "elioperator_warning": "ELIOPERATOR: Workflow shape, proof, or authority is ambiguous.",
+      "fail_closed": true,
+      "next_safe_move": "Do not execute externally; resolve review, proof, or authority first.",
+      "severity": "BLOCKS_SAFE_RUN"
+    }
+  },
+  "capital_hilton_example": {
+    "artifact_proof_plan": {
+      "artifact_hash_requirements": [
+        "No attachment readiness without real final PDF hash."
+      ],
+      "completion_proof_requirements": [
+        "No INVOICE SENT without send/submit receipts."
+      ],
+      "missing_proofs": [
+        "confirmed PO/Coupa reference or no-PO proof",
+        "confirmed payment contact",
+        "final Excel PDF path/hash",
+        "reviewed email draft",
+        "Guardian/operator approval receipts",
+        "email send receipt",
+        "Coupa submit/not-required receipt",
+        "payment tracking receipt"
+      ],
+      "next_safe_move": "Resolve PO/Coupa and contact facts, then build final artifact/draft lanes.",
+      "optional_artifacts": [
+        {
+          "artifact_kind": "operator preview",
+          "hash_required_if_file": true
+        }
+      ],
+      "plan_id": "capital_hilton_artifact_and_proof_plan_example_v0",
+      "proof_bullets": [
+        "Coupa invoice generated/submitted from PO, if required and proven.",
+        "Email sent to Annette with attached Winship-branded Excel PDF invoice.",
+        "Winship-branded Excel PDF invoice saved with date.",
+        "Last invoice sent date recorded for future invoice-range calculation.",
+        "External send/submit proof receipts attached.",
+        "Payment tracking state updated."
+      ],
+      "protected_refs": [
+        {
+          "normal_read_model_body_allowed": false,
+          "ref_kind": "COUPA_PO_SCREEN_REFERENCE"
+        },
+        {
+          "normal_read_model_body_allowed": false,
+          "ref_kind": "AP_EMAIL_ROUTE_REFERENCE"
+        }
+      ],
+      "required_artifacts": [
+        {
+          "artifact_kind": "Winship-branded Excel PDF invoice",
+          "final_pdf_exists_now": false,
+          "hash_required": true,
+          "preview_hash_available": "sha256:a135264f8df31f762170ea53f50d74d44d08cfe1ee95dfc8fd318fad178970fc"
+        },
+        {
+          "artifact_kind": "reviewed email draft",
+          "exists_now": false,
+          "receipt_required": true
+        },
+        {
+          "artifact_kind": "Coupa proof or not-required proof",
+          "exists_now": false,
+          "protected_ref_allowed": true
+        }
+      ],
+      "workflow_run_ref": "capital_hilton_now_do_it_governed_run_plan_v0"
+    },
+    "cassandra_draft_stage": {
+      "actor_candidate": "Cassandra",
+      "draft_allowed_now": false,
+      "future_packet_required": "reviewed email draft packet",
+      "role": "drafting_agent"
+    },
+    "fake_completion_blocker": {
+      "blocker_type": "COMPLETION_WITHOUT_RECEIPTS",
+      "decision": "BLOCKED_FAIL_CLOSED",
+      "elioperator_warning": "ELIOPERATOR: INVOICE SENT requires proof receipts first."
+    },
+    "guardian_approval_stage": {
+      "actor_candidate": "Guardian",
+      "approval_allowed_now": false,
+      "future_receipt_required": "approval over exact draft, attachment, and Coupa scope",
+      "role": "approval_agent"
+    },
+    "invoice_sent_completion_target": {
+      "completion_id": "capital_hilton_invoice_sent_completion_target_v0",
+      "elioperator_summary": "ELIOPERATOR: Do not show INVOICE SENT until receipts prove delivery.",
+      "headline": "INVOICE SENT (future target; not current)",
+      "next_run_memory_update": "Record last invoice sent date only after proof-backed completion.",
+      "next_safe_move": "Block fake completion and keep unresolved proof visible.",
+      "proof_bullets": [
+        "Coupa invoice generated/submitted from PO, if required and proven.",
+        "Email sent to Annette with attached Winship-branded Excel PDF invoice.",
+        "Winship-branded Excel PDF invoice saved with date.",
+        "Last invoice sent date recorded for future invoice-range calculation.",
+        "External send/submit proof receipts attached.",
+        "Payment tracking state updated."
+      ],
+      "safe_display_summary": "INVOICE SENT is modeled as the future closeout, not current truth.",
+      "state_updates": [
+        {
+          "state_update": "last_invoice_sent_date_ref",
+          "write_allowed_now": false
+        },
+        {
+          "state_update": "payment_tracking_state",
+          "write_allowed_now": false
+        }
+      ],
+      "status_label": "FUTURE_TARGET_NOT_CURRENT_FACT",
+      "unresolved_items": [
+        "confirmed PO/Coupa reference or no-PO proof",
+        "confirmed payment contact",
+        "final Excel PDF path/hash",
+        "reviewed email draft",
+        "Guardian/operator approval receipts",
+        "email send receipt",
+        "Coupa submit/not-required receipt",
+        "payment tracking receipt"
+      ],
+      "workflow_run_ref": "capital_hilton_now_do_it_governed_run_plan_v0"
+    },
+    "narrative_intake": {
+      "client_ref": "capital_hilton",
+      "intake_id": "capital_hilton_conversational_intake_annette_coupa_excel_v0",
+      "lane_ref": "Capital Hilton",
+      "narrative_privacy_class": "client_business_context_sanitized",
+      "next_safe_move": "Show the Capital Hilton block chain for operator review; do not store or run it live.",
+      "operator_narrative": "Sanitized narrative: email the companion Excel-generated invoice PDF to Annette candidate for local records and payment help; official payment belongs in Coupa from the Coupa PO; PO/Coupa reference and payment-contact correctness still need confirmation.",
+      "operator_review_required": true,
+      "parsed_candidate_status": "CANDIDATE_MEANING_OPERATOR_REVIEW_REQUIRED",
+      "proposed_chain_ref": "capital_hilton_invoice_payment_block_chain_proposal_v0",
+      "raw_narrative_allowed_in_normal_read_model": false,
+      "sanitized_summary": "Capital Hilton payment workflow candidate: companion Excel PDF goes to Annette candidate, official payment rail is Coupa from PO, and OpenClaw must confirm PO/Coupa reference plus payment contact before delivery readiness.",
+      "tenant_ref": "openclaw_repo_a_local",
+      "workflow_ref": "capital_hilton_invoice_payment_workflow",
+      "workflow_type": "finance_invoice_delivery",
+      "world_ref": "Finance"
+    },
+    "now_do_it_run_plan": {
+      "blocked_now": [
+        "Cassandra draft creation",
+        "Guardian approval request",
+        "email draft or send",
+        "Coupa access or submit",
+        "invoice generation",
+        "attachment",
+        "payment tracking write",
+        "INVOICE SENT completion readback"
+      ],
+      "completion_condition": "INVOICE SENT requires email send proof and Coupa submit/not-required proof.",
+      "current_state": "OPERATOR_REVIEW_REQUIRED",
+      "dependencies": [
+        {
+          "block": "send_email",
+          "depends_on": [
+            "prepare_email_draft_to_annette",
+            "attach_excel_generated_pdf_invoice",
+            "guardian_approval_request",
+            "operator_approval"
+          ]
+        },
+        {
+          "block": "submit_verify_coupa_invoice_if_required_and_gated",
+          "depends_on": [
+            "confirm_po_coupa_payment_rail",
+            "confirm_coupa_supplier_portal_invoice_from_po",
+            "operator_approval"
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "authority_granted": false,
+          "gate_id": "po_coupa_proof_gate"
+        },
+        {
+          "authority_granted": false,
+          "gate_id": "annette_contact_confirmation_gate"
+        },
+        {
+          "authority_granted": false,
+          "gate_id": "excel_pdf_artifact_hash_gate"
+        },
+        {
+          "authority_granted": false,
+          "gate_id": "guardian_operator_send_submit_gate"
+        }
+      ],
+      "next_safe_move": "Collect missing delivery facts before any future draft/send/submit lane.",
+      "procedure_ref": "capital_hilton_invoice_payment_procedure_candidate_v0",
+      "readback_plan": [
+        "show blockers now",
+        "show draft ready later",
+        "show INVOICE SENT only with proof receipts"
+      ],
+      "requested_by": "operator_future_now_do_it_utterance",
+      "required_artifacts": [
+        "final Excel PDF hash",
+        "draft packet",
+        "approval packet",
+        "send/submit receipts"
+      ],
+      "required_external_adapters": [
+        "future gated email adapter",
+        "future gated Coupa adapter"
+      ],
+      "required_guardian_approvals": [
+        "exact draft and attachment approval",
+        "Coupa submit scope approval if required"
+      ],
+      "required_operator_confirmations": [
+        "confirm Annette candidate",
+        "confirm PO/Coupa posture",
+        "approve exact action later"
+      ],
+      "run_blocks": [
+        "confirm_performance_dates",
+        "confirm_rate",
+        "generate_update_excel_branded_companion_invoice_pdf",
+        "confirm_po_coupa_payment_rail",
+        "confirm_coupa_supplier_portal_invoice_from_po",
+        "confirm_invoice_destination_contact_annette_candidate",
+        "prepare_email_draft_to_annette",
+        "attach_excel_generated_pdf_invoice",
+        "guardian_approval_request",
+        "operator_approval",
+        "send_email",
+        "submit_verify_coupa_invoice_if_required_and_gated",
+        "save_dated_invoice_artifact",
+        "record_sent_payment_tracking_state",
+        "completion_proof_readback"
+      ],
+      "run_goal": "Prepare Capital Hilton invoice delivery under proof and approval gates.",
+      "run_id": "capital_hilton_now_do_it_governed_run_plan_v0",
+      "runnable_now": [
+        "review proposed procedure",
+        "ask PO/Coupa and payment-contact questions",
+        "read local preview metadata"
+      ]
+    },
+    "proposed_block_chain": {
+      "dependencies": [
+        {
+          "block": "send_email",
+          "depends_on": [
+            "prepare_email_draft_to_annette",
+            "attach_excel_generated_pdf_invoice",
+            "guardian_approval_request",
+            "operator_approval"
+          ]
+        },
+        {
+          "block": "submit_verify_coupa_invoice_if_required_and_gated",
+          "depends_on": [
+            "confirm_po_coupa_payment_rail",
+            "confirm_coupa_supplier_portal_invoice_from_po",
+            "operator_approval"
+          ]
+        }
+      ],
+      "elioperator_summary": "ELIOPERATOR: Capital Hilton can be remembered as a procedure after review, but nothing is sent or submitted from memory alone.",
+      "gates": [
+        {
+          "authority_granted": false,
+          "gate_id": "po_coupa_proof_gate"
+        },
+        {
+          "authority_granted": false,
+          "gate_id": "annette_contact_confirmation_gate"
+        },
+        {
+          "authority_granted": false,
+          "gate_id": "excel_pdf_artifact_hash_gate"
+        },
+        {
+          "authority_granted": false,
+          "gate_id": "guardian_operator_send_submit_gate"
+        }
+      ],
+      "next_safe_move": "Ask the operator to confirm the proposed Capital Hilton procedure and missing facts.",
+      "non_serial_blocks": [
+        "confirm_po_coupa_payment_rail",
+        "confirm_invoice_destination_contact_annette_candidate",
+        "generate_update_excel_branded_companion_invoice_pdf"
+      ],
+      "operator_questions": [
+        "Is Annette the correct payment contact for the companion PDF?",
+        "What is the PO/Coupa/payment reference, or should the posture remain needs-discovery?",
+        "Is Coupa submission required for this invoice?"
+      ],
+      "proof_requirements": [
+        "Coupa invoice generated/submitted from PO, if required and proven.",
+        "Email sent to Annette with attached Winship-branded Excel PDF invoice.",
+        "Winship-branded Excel PDF invoice saved with date.",
+        "Last invoice sent date recorded for future invoice-range calculation.",
+        "External send/submit proof receipts attached.",
+        "Payment tracking state updated."
+      ],
+      "proposal_id": "capital_hilton_invoice_payment_block_chain_proposal_v0",
+      "proposed_blocks": [
+        {
+          "block_id": "confirm_performance_dates",
+          "external_action_allowed_now": false,
+          "label": "Confirm performance dates",
+          "status": "KNOWN_FROM_LOCAL_RECEIPTS"
+        },
+        {
+          "block_id": "confirm_rate",
+          "external_action_allowed_now": false,
+          "label": "Confirm rate",
+          "status": "KNOWN_FROM_LOCAL_RECEIPTS"
+        },
+        {
+          "block_id": "generate_update_excel_branded_companion_invoice_pdf",
+          "external_action_allowed_now": false,
+          "label": "Generate/update Excel-branded companion invoice PDF",
+          "status": "FUTURE_GATED_STEP"
+        },
+        {
+          "block_id": "confirm_po_coupa_payment_rail",
+          "external_action_allowed_now": false,
+          "label": "Confirm PO/Coupa payment rail",
+          "status": "NEEDS_OPERATOR_CONFIRMATION_OR_PROOF"
+        },
+        {
+          "block_id": "confirm_coupa_supplier_portal_invoice_from_po",
+          "external_action_allowed_now": false,
+          "label": "Confirm Coupa supplier-portal invoice from PO",
+          "status": "NEEDS_OPERATOR_CONFIRMATION_OR_PROOF"
+        },
+        {
+          "block_id": "confirm_invoice_destination_contact_annette_candidate",
+          "external_action_allowed_now": false,
+          "label": "Confirm invoice destination/contact: Annette candidate",
+          "status": "NEEDS_OPERATOR_CONFIRMATION_OR_PROOF"
+        },
+        {
+          "block_id": "prepare_email_draft_to_annette",
+          "external_action_allowed_now": false,
+          "label": "Prepare email draft to Annette",
+          "status": "NEEDS_OPERATOR_CONFIRMATION_OR_PROOF"
+        },
+        {
+          "block_id": "attach_excel_generated_pdf_invoice",
+          "external_action_allowed_now": false,
+          "label": "Attach Excel-generated PDF invoice",
+          "status": "FUTURE_GATED_STEP"
+        },
+        {
+          "block_id": "guardian_approval_request",
+          "external_action_allowed_now": false,
+          "label": "Guardian approval request",
+          "status": "FUTURE_GATED_STEP"
+        },
+        {
+          "block_id": "operator_approval",
+          "external_action_allowed_now": false,
+          "label": "Operator approval",
+          "status": "FUTURE_GATED_STEP"
+        },
+        {
+          "block_id": "send_email",
+          "external_action_allowed_now": false,
+          "label": "Send email",
+          "status": "BLOCKED_EXTERNAL_AUTHORITY"
+        },
+        {
+          "block_id": "submit_verify_coupa_invoice_if_required_and_gated",
+          "external_action_allowed_now": false,
+          "label": "Submit/verify Coupa invoice if required and gated",
+          "status": "BLOCKED_EXTERNAL_AUTHORITY"
+        },
+        {
+          "block_id": "save_dated_invoice_artifact",
+          "external_action_allowed_now": false,
+          "label": "Save dated invoice artifact",
+          "status": "FUTURE_GATED_STEP"
+        },
+        {
+          "block_id": "record_sent_payment_tracking_state",
+          "external_action_allowed_now": false,
+          "label": "Record sent/payment tracking state",
+          "status": "FUTURE_GATED_STEP"
+        },
+        {
+          "block_id": "completion_proof_readback",
+          "external_action_allowed_now": false,
+          "label": "Completion proof readback",
+          "status": "FUTURE_TARGET_ONLY"
+        }
+      ],
+      "proposed_sequence": [
+        "confirm_performance_dates",
+        "confirm_rate",
+        "generate_update_excel_branded_companion_invoice_pdf",
+        "confirm_po_coupa_payment_rail",
+        "confirm_coupa_supplier_portal_invoice_from_po",
+        "confirm_invoice_destination_contact_annette_candidate",
+        "prepare_email_draft_to_annette",
+        "attach_excel_generated_pdf_invoice",
+        "guardian_approval_request",
+        "operator_approval",
+        "send_email",
+        "submit_verify_coupa_invoice_if_required_and_gated",
+        "save_dated_invoice_artifact",
+        "record_sent_payment_tracking_state",
+        "completion_proof_readback"
+      ],
+      "protected_value_candidates": [
+        {
+          "raw_value_allowed": false,
+          "safe_display_label": "Annette candidate",
+          "value_kind": "ap_email_route"
+        },
+        {
+          "raw_value_allowed": false,
+          "safe_display_label": "PO/Coupa reference pending",
+          "value_kind": "po_reference"
+        }
+      ],
+      "reusable_fact_candidates": [
+        {
+          "fact_kind": "performance_dates",
+          "raw_value_allowed": true,
+          "safe_display_label": "4 captured dates",
+          "value": [
+            "2026-05-08",
+            "2026-05-15",
+            "2026-05-22",
+            "2026-05-29"
+          ]
+        },
+        {
+          "fact_kind": "rate_amount",
+          "raw_value_allowed": true,
+          "safe_display_label": "$400/show",
+          "value": {
+            "amount": 400,
+            "currency": "USD",
+            "display": "$400/show",
+            "unit": "show"
+          }
+        },
+        {
+          "copy_as_truth_allowed": false,
+          "fact_kind": "calculated_state",
+          "safe_display_label": "$1,600 subtotal derived from dates and rate"
+        }
+      ],
+      "review_status": "OPERATOR_REVIEW_REQUIRED",
+      "source_intake_ref": "capital_hilton_conversational_intake_annette_coupa_excel_v0",
+      "unknowns": [
+        "PO/Coupa reference or explicit no-PO posture is unresolved.",
+        "Annette candidate is not yet confirmed as payment contact.",
+        "Coupa submission requirement remains unresolved.",
+        "Final Excel PDF artifact is not generated in this contract."
+      ],
+      "workflow_type": "finance_invoice_delivery"
+    },
+    "role_routing": {
+      "actor_candidates": {
+        "Cassandra": "future drafting or finance-delivery role; no draft created here",
+        "Guardian": "future approval or protected-evidence role; no approval requested here"
+      },
+      "handoff_requirements": [
+        "visual-agnostic workflow/block grammar",
+        "readback required"
+      ],
+      "next_safe_move": "Keep actor mappings configurable and gated.",
+      "no_hardcoded_persona_requirement": true,
+      "package_requirements": [
+        "post-office metadata",
+        "authority boundary",
+        "proof refs",
+        "safe display summary"
+      ],
+      "review_requirements": [
+        "operator review",
+        "draft review",
+        "Guardian/operator approval later"
+      ],
+      "role_boundaries": {
+        "external_authority_from_contract": false,
+        "role_based_not_persona_hardcoded": true
+      },
+      "roles": [
+        {
+          "live_dispatch_allowed": false,
+          "responsibility": "reviews, corrects, and approves exact gated action packets",
+          "role": "operator"
+        },
+        {
+          "live_dispatch_allowed": false,
+          "responsibility": "prepares drafts or text candidates for review only",
+          "role": "drafting_agent"
+        },
+        {
+          "live_dispatch_allowed": false,
+          "responsibility": "checks shape, prerequisites, and blockers",
+          "role": "validation_agent"
+        },
+        {
+          "live_dispatch_allowed": false,
+          "responsibility": "handles protected evidence metadata and Guardian posture",
+          "role": "protected_evidence_agent"
+        },
+        {
+          "live_dispatch_allowed": false,
+          "responsibility": "prepares or reviews approval packet boundaries",
+          "role": "approval_agent"
+        },
+        {
+          "live_dispatch_allowed": false,
+          "responsibility": "prepares local artifact candidates under artifact policy",
+          "role": "artifact_generation_agent"
+        },
+        {
+          "live_dispatch_allowed": false,
+          "responsibility": "packages typed handoff metadata",
+          "role": "post_office_handoff"
+        },
+        {
+          "live_dispatch_allowed": false,
+          "responsibility": "produces proof-backed completion readback",
+          "role": "final_readback_agent"
+        }
+      ],
+      "routing_id": "capital_hilton_role_routing_example_v0",
+      "workflow_run_ref": "capital_hilton_now_do_it_governed_run_plan_v0"
+    },
+    "stored_procedure": {
+      "agent_roles": {
+        "approval_agent": "Guardian may be configured later for gated approval packet review",
+        "drafting_agent": "Cassandra may be configured later for draft packet prep",
+        "final_readback_agent": "receipt-backed closeout only"
+      },
+      "authority_boundaries": {
+        "stored_procedure_can_approve": false,
+        "stored_procedure_can_browse_or_log_in": false,
+        "stored_procedure_can_send_or_submit": false,
+        "stored_procedure_creates_governed_run_plan": true,
+        "stored_procedure_is_external_authority": false
+      },
+      "client_ref": "capital_hilton",
+      "last_run_ref": null,
+      "last_successful_completion_ref": null,
+      "next_safe_move": "Future writer may persist this only after operator review.",
+      "privacy_boundaries": {
+        "protected_evidence_body_allowed": false,
+        "raw_contact_value_in_normal_read_model": false,
+        "raw_po_reference_in_normal_read_model": false
+      },
+      "procedure_id": "capital_hilton_invoice_payment_procedure_candidate_v0",
+      "procedure_name": "How Capital Hilton invoices get paid",
+      "proof_requirements": [
+        "Coupa invoice generated/submitted from PO, if required and proven.",
+        "Email sent to Annette with attached Winship-branded Excel PDF invoice.",
+        "Winship-branded Excel PDF invoice saved with date.",
+        "Last invoice sent date recorded for future invoice-range calculation.",
+        "External send/submit proof receipts attached.",
+        "Payment tracking state updated."
+      ],
+      "required_artifacts": [
+        "Winship-branded Excel PDF with real path/hash",
+        "reviewed email draft packet",
+        "Coupa proof or not-required proof",
+        "approval and send/submit receipts"
+      ],
+      "required_gates": [
+        "operator procedure review",
+        "artifact hash gate",
+        "Guardian approval gate",
+        "operator approval gate",
+        "external adapter gate"
+      ],
+      "required_inputs": [
+        "operator-confirmed procedure review",
+        "PO/Coupa/payment reference or explicit no-PO posture",
+        "payment contact confirmation"
+      ],
+      "reusable_facts": [
+        {
+          "fact_kind": "performance_dates",
+          "raw_value_allowed": true,
+          "safe_display_label": "4 captured dates",
+          "value": [
+            "2026-05-08",
+            "2026-05-15",
+            "2026-05-22",
+            "2026-05-29"
+          ]
+        },
+        {
+          "fact_kind": "rate_amount",
+          "raw_value_allowed": true,
+          "safe_display_label": "$400/show",
+          "value": {
+            "amount": 400,
+            "currency": "USD",
+            "display": "$400/show",
+            "unit": "show"
+          }
+        },
+        {
+          "copy_as_truth_allowed": false,
+          "fact_kind": "calculated_state",
+          "safe_display_label": "$1,600 subtotal derived from dates and rate"
+        }
+      ],
+      "stored_blocks": [
+        "confirm_performance_dates",
+        "confirm_rate",
+        "generate_update_excel_branded_companion_invoice_pdf",
+        "confirm_po_coupa_payment_rail",
+        "confirm_coupa_supplier_portal_invoice_from_po",
+        "confirm_invoice_destination_contact_annette_candidate",
+        "prepare_email_draft_to_annette",
+        "attach_excel_generated_pdf_invoice",
+        "guardian_approval_request",
+        "operator_approval",
+        "send_email",
+        "submit_verify_coupa_invoice_if_required_and_gated",
+        "save_dated_invoice_artifact",
+        "record_sent_payment_tracking_state",
+        "completion_proof_readback"
+      ],
+      "stored_workflow_summary": "Candidate procedure: companion Excel PDF goes to Annette candidate for local records, official payment rail is Coupa from PO when required, and send/submit only happens after proof and approval.",
+      "tenant_ref": "openclaw_repo_a_local",
+      "trigger_phrases": [
+        "do the Capital Hilton invoice",
+        "send Capital Hilton invoice",
+        "invoice Capital Hilton",
+        "now do it",
+        "run the Hilton invoice workflow"
+      ],
+      "update_policy": "Operator-reviewed receipt required before replacing the stored procedure.",
+      "workflow_type": "finance_invoice_delivery"
+    }
+  },
+  "completion_readback_contract": {
+    "completion_id": "generic_completion_readback_contract_v0",
+    "elioperator_summary": "ELIOPERATOR: A completion label is a receipt-backed outcome, not a hopeful message.",
+    "headline": "COMPLETION CONFIRMED (future target; not current)",
+    "next_run_memory_update": "Future receipt-backed completion may update procedure memory.",
+    "next_safe_move": "Block fake completion and keep unresolved items visible.",
+    "proof_bullets": [
+      "The declared outcome happened through gated authority.",
+      "Required artifacts and hashes are present.",
+      "External action receipts exist if external action was part of completion.",
+      "State updates are receipt-backed."
+    ],
+    "safe_display_summary": "Completion labels are future targets until proof receipts exist.",
+    "state_updates": [
+      {
+        "state_update": "last_successful_completion_ref",
+        "write_allowed_now": false
+      },
+      {
+        "state_update": "next_run_memory_update",
+        "write_allowed_now": false
+      }
+    ],
+    "status_label": "FUTURE_TARGET_NOT_CURRENT_FACT",
+    "unresolved_items": [
+      "No live run exists.",
+      "No approval or external result receipts exist."
+    ],
+    "workflow_run_ref": "generic_governed_workflow_run_plan_v0"
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_CONVERSATIONAL_WORKFLOW_MEMORY_CONTRACT",
+  "conversational_workflow_intake": {
+    "client_ref": "scope_defined_by_operator",
+    "intake_id": "generic_conversational_workflow_intake_v0",
+    "lane_ref": "operator_selected_lane",
+    "narrative_privacy_class": "sanitized_operator_workflow_summary",
+    "next_safe_move": "Propose a block chain and ask the operator to confirm or correct it.",
+    "operator_narrative": "Sanitized narrative placeholder: the operator explains a repeatable workflow, expected outputs, roles, unknowns, and proof requirements.",
+    "operator_review_required": true,
+    "parsed_candidate_status": "CANDIDATE_MEANING_OPERATOR_REVIEW_REQUIRED",
+    "proposed_chain_ref": "generic_workflow_block_chain_proposal_v0",
+    "raw_narrative_allowed_in_normal_read_model": false,
+    "sanitized_summary": "A human explanation becomes candidate structure. Review and receipts decide what becomes durable.",
+    "tenant_ref": "local_operator_tenant",
+    "workflow_ref": "future_workflow_ref",
+    "workflow_type": "generic_repeatable_workflow",
+    "world_ref": "operator_selected_world"
+  },
+  "doctrine": {
+    "governed_runs_do_not_bypass_gates": true,
+    "openclaw_proposes_structure": true,
+    "operator_confirms_or_corrects": true,
+    "operator_speaks_human": true,
+    "receipts_readbacks_decide_truth": true,
+    "stored_procedure_memory_is_not_external_authority": true
+  },
+  "elioperator_report": {
+    "how_governed_run_works": "A future 'do it' request creates a run plan with runnable local steps, blocked external steps, role packets, proof requirements, and approval gates.",
+    "how_operator_review_works": "The block chain remains a proposal until the operator confirms or edits it.",
+    "how_procedure_memory_works": "A reviewed procedure stores reusable shape and trigger phrases. It cannot grant external authority.",
+    "next_safe_move": "Use this read-model as the generic contract; build a future reviewed procedure writer separately.",
+    "plain_summary": "Conversational workflow memory makes chat the input layer for repeatable workflows while keeping truth, authority, and completion receipt-backed.",
+    "report_id": "conversational_workflow_memory_elioperator_report_v0",
+    "what_this_does_not_do_yet": "It does not parse live chat, write procedure memory, start runs, dispatch agents, create drafts, ask approvals, send, submit, browse, log in, generate invoices, or update payment tracking.",
+    "what_this_enables": "The operator can describe a workflow once; OpenClaw proposes blocks, questions, roles, gates, artifacts, and proof requirements.",
+    "why_chat_drives_workflow": "Human explanation is the easiest way to name the real-world process. OpenClaw turns it into candidate structure that the operator can correct.",
+    "why_external_actions_remain_gated": "External actions require exact artifacts, approvals, adapter authority, and result receipts."
+  },
+  "examples": {
+    "capital_hilton": {
+      "artifact_proof_plan": {
+        "artifact_hash_requirements": [
+          "No attachment readiness without real final PDF hash."
+        ],
+        "completion_proof_requirements": [
+          "No INVOICE SENT without send/submit receipts."
+        ],
+        "missing_proofs": [
+          "confirmed PO/Coupa reference or no-PO proof",
+          "confirmed payment contact",
+          "final Excel PDF path/hash",
+          "reviewed email draft",
+          "Guardian/operator approval receipts",
+          "email send receipt",
+          "Coupa submit/not-required receipt",
+          "payment tracking receipt"
+        ],
+        "next_safe_move": "Resolve PO/Coupa and contact facts, then build final artifact/draft lanes.",
+        "optional_artifacts": [
+          {
+            "artifact_kind": "operator preview",
+            "hash_required_if_file": true
+          }
+        ],
+        "plan_id": "capital_hilton_artifact_and_proof_plan_example_v0",
+        "proof_bullets": [
+          "Coupa invoice generated/submitted from PO, if required and proven.",
+          "Email sent to Annette with attached Winship-branded Excel PDF invoice.",
+          "Winship-branded Excel PDF invoice saved with date.",
+          "Last invoice sent date recorded for future invoice-range calculation.",
+          "External send/submit proof receipts attached.",
+          "Payment tracking state updated."
+        ],
+        "protected_refs": [
+          {
+            "normal_read_model_body_allowed": false,
+            "ref_kind": "COUPA_PO_SCREEN_REFERENCE"
+          },
+          {
+            "normal_read_model_body_allowed": false,
+            "ref_kind": "AP_EMAIL_ROUTE_REFERENCE"
+          }
+        ],
+        "required_artifacts": [
+          {
+            "artifact_kind": "Winship-branded Excel PDF invoice",
+            "final_pdf_exists_now": false,
+            "hash_required": true,
+            "preview_hash_available": "sha256:a135264f8df31f762170ea53f50d74d44d08cfe1ee95dfc8fd318fad178970fc"
+          },
+          {
+            "artifact_kind": "reviewed email draft",
+            "exists_now": false,
+            "receipt_required": true
+          },
+          {
+            "artifact_kind": "Coupa proof or not-required proof",
+            "exists_now": false,
+            "protected_ref_allowed": true
+          }
+        ],
+        "workflow_run_ref": "capital_hilton_now_do_it_governed_run_plan_v0"
+      },
+      "cassandra_draft_stage": {
+        "actor_candidate": "Cassandra",
+        "draft_allowed_now": false,
+        "future_packet_required": "reviewed email draft packet",
+        "role": "drafting_agent"
+      },
+      "fake_completion_blocker": {
+        "blocker_type": "COMPLETION_WITHOUT_RECEIPTS",
+        "decision": "BLOCKED_FAIL_CLOSED",
+        "elioperator_warning": "ELIOPERATOR: INVOICE SENT requires proof receipts first."
+      },
+      "guardian_approval_stage": {
+        "actor_candidate": "Guardian",
+        "approval_allowed_now": false,
+        "future_receipt_required": "approval over exact draft, attachment, and Coupa scope",
+        "role": "approval_agent"
+      },
+      "invoice_sent_completion_target": {
+        "completion_id": "capital_hilton_invoice_sent_completion_target_v0",
+        "elioperator_summary": "ELIOPERATOR: Do not show INVOICE SENT until receipts prove delivery.",
+        "headline": "INVOICE SENT (future target; not current)",
+        "next_run_memory_update": "Record last invoice sent date only after proof-backed completion.",
+        "next_safe_move": "Block fake completion and keep unresolved proof visible.",
+        "proof_bullets": [
+          "Coupa invoice generated/submitted from PO, if required and proven.",
+          "Email sent to Annette with attached Winship-branded Excel PDF invoice.",
+          "Winship-branded Excel PDF invoice saved with date.",
+          "Last invoice sent date recorded for future invoice-range calculation.",
+          "External send/submit proof receipts attached.",
+          "Payment tracking state updated."
+        ],
+        "safe_display_summary": "INVOICE SENT is modeled as the future closeout, not current truth.",
+        "state_updates": [
+          {
+            "state_update": "last_invoice_sent_date_ref",
+            "write_allowed_now": false
+          },
+          {
+            "state_update": "payment_tracking_state",
+            "write_allowed_now": false
+          }
+        ],
+        "status_label": "FUTURE_TARGET_NOT_CURRENT_FACT",
+        "unresolved_items": [
+          "confirmed PO/Coupa reference or no-PO proof",
+          "confirmed payment contact",
+          "final Excel PDF path/hash",
+          "reviewed email draft",
+          "Guardian/operator approval receipts",
+          "email send receipt",
+          "Coupa submit/not-required receipt",
+          "payment tracking receipt"
+        ],
+        "workflow_run_ref": "capital_hilton_now_do_it_governed_run_plan_v0"
+      },
+      "narrative_intake": {
+        "client_ref": "capital_hilton",
+        "intake_id": "capital_hilton_conversational_intake_annette_coupa_excel_v0",
+        "lane_ref": "Capital Hilton",
+        "narrative_privacy_class": "client_business_context_sanitized",
+        "next_safe_move": "Show the Capital Hilton block chain for operator review; do not store or run it live.",
+        "operator_narrative": "Sanitized narrative: email the companion Excel-generated invoice PDF to Annette candidate for local records and payment help; official payment belongs in Coupa from the Coupa PO; PO/Coupa reference and payment-contact correctness still need confirmation.",
+        "operator_review_required": true,
+        "parsed_candidate_status": "CANDIDATE_MEANING_OPERATOR_REVIEW_REQUIRED",
+        "proposed_chain_ref": "capital_hilton_invoice_payment_block_chain_proposal_v0",
+        "raw_narrative_allowed_in_normal_read_model": false,
+        "sanitized_summary": "Capital Hilton payment workflow candidate: companion Excel PDF goes to Annette candidate, official payment rail is Coupa from PO, and OpenClaw must confirm PO/Coupa reference plus payment contact before delivery readiness.",
+        "tenant_ref": "openclaw_repo_a_local",
+        "workflow_ref": "capital_hilton_invoice_payment_workflow",
+        "workflow_type": "finance_invoice_delivery",
+        "world_ref": "Finance"
+      },
+      "now_do_it_run_plan": {
+        "blocked_now": [
+          "Cassandra draft creation",
+          "Guardian approval request",
+          "email draft or send",
+          "Coupa access or submit",
+          "invoice generation",
+          "attachment",
+          "payment tracking write",
+          "INVOICE SENT completion readback"
+        ],
+        "completion_condition": "INVOICE SENT requires email send proof and Coupa submit/not-required proof.",
+        "current_state": "OPERATOR_REVIEW_REQUIRED",
+        "dependencies": [
+          {
+            "block": "send_email",
+            "depends_on": [
+              "prepare_email_draft_to_annette",
+              "attach_excel_generated_pdf_invoice",
+              "guardian_approval_request",
+              "operator_approval"
+            ]
+          },
+          {
+            "block": "submit_verify_coupa_invoice_if_required_and_gated",
+            "depends_on": [
+              "confirm_po_coupa_payment_rail",
+              "confirm_coupa_supplier_portal_invoice_from_po",
+              "operator_approval"
+            ]
+          }
+        ],
+        "gates": [
+          {
+            "authority_granted": false,
+            "gate_id": "po_coupa_proof_gate"
+          },
+          {
+            "authority_granted": false,
+            "gate_id": "annette_contact_confirmation_gate"
+          },
+          {
+            "authority_granted": false,
+            "gate_id": "excel_pdf_artifact_hash_gate"
+          },
+          {
+            "authority_granted": false,
+            "gate_id": "guardian_operator_send_submit_gate"
+          }
+        ],
+        "next_safe_move": "Collect missing delivery facts before any future draft/send/submit lane.",
+        "procedure_ref": "capital_hilton_invoice_payment_procedure_candidate_v0",
+        "readback_plan": [
+          "show blockers now",
+          "show draft ready later",
+          "show INVOICE SENT only with proof receipts"
+        ],
+        "requested_by": "operator_future_now_do_it_utterance",
+        "required_artifacts": [
+          "final Excel PDF hash",
+          "draft packet",
+          "approval packet",
+          "send/submit receipts"
+        ],
+        "required_external_adapters": [
+          "future gated email adapter",
+          "future gated Coupa adapter"
+        ],
+        "required_guardian_approvals": [
+          "exact draft and attachment approval",
+          "Coupa submit scope approval if required"
+        ],
+        "required_operator_confirmations": [
+          "confirm Annette candidate",
+          "confirm PO/Coupa posture",
+          "approve exact action later"
+        ],
+        "run_blocks": [
+          "confirm_performance_dates",
+          "confirm_rate",
+          "generate_update_excel_branded_companion_invoice_pdf",
+          "confirm_po_coupa_payment_rail",
+          "confirm_coupa_supplier_portal_invoice_from_po",
+          "confirm_invoice_destination_contact_annette_candidate",
+          "prepare_email_draft_to_annette",
+          "attach_excel_generated_pdf_invoice",
+          "guardian_approval_request",
+          "operator_approval",
+          "send_email",
+          "submit_verify_coupa_invoice_if_required_and_gated",
+          "save_dated_invoice_artifact",
+          "record_sent_payment_tracking_state",
+          "completion_proof_readback"
+        ],
+        "run_goal": "Prepare Capital Hilton invoice delivery under proof and approval gates.",
+        "run_id": "capital_hilton_now_do_it_governed_run_plan_v0",
+        "runnable_now": [
+          "review proposed procedure",
+          "ask PO/Coupa and payment-contact questions",
+          "read local preview metadata"
+        ]
+      },
+      "proposed_block_chain": {
+        "dependencies": [
+          {
+            "block": "send_email",
+            "depends_on": [
+              "prepare_email_draft_to_annette",
+              "attach_excel_generated_pdf_invoice",
+              "guardian_approval_request",
+              "operator_approval"
+            ]
+          },
+          {
+            "block": "submit_verify_coupa_invoice_if_required_and_gated",
+            "depends_on": [
+              "confirm_po_coupa_payment_rail",
+              "confirm_coupa_supplier_portal_invoice_from_po",
+              "operator_approval"
+            ]
+          }
+        ],
+        "elioperator_summary": "ELIOPERATOR: Capital Hilton can be remembered as a procedure after review, but nothing is sent or submitted from memory alone.",
+        "gates": [
+          {
+            "authority_granted": false,
+            "gate_id": "po_coupa_proof_gate"
+          },
+          {
+            "authority_granted": false,
+            "gate_id": "annette_contact_confirmation_gate"
+          },
+          {
+            "authority_granted": false,
+            "gate_id": "excel_pdf_artifact_hash_gate"
+          },
+          {
+            "authority_granted": false,
+            "gate_id": "guardian_operator_send_submit_gate"
+          }
+        ],
+        "next_safe_move": "Ask the operator to confirm the proposed Capital Hilton procedure and missing facts.",
+        "non_serial_blocks": [
+          "confirm_po_coupa_payment_rail",
+          "confirm_invoice_destination_contact_annette_candidate",
+          "generate_update_excel_branded_companion_invoice_pdf"
+        ],
+        "operator_questions": [
+          "Is Annette the correct payment contact for the companion PDF?",
+          "What is the PO/Coupa/payment reference, or should the posture remain needs-discovery?",
+          "Is Coupa submission required for this invoice?"
+        ],
+        "proof_requirements": [
+          "Coupa invoice generated/submitted from PO, if required and proven.",
+          "Email sent to Annette with attached Winship-branded Excel PDF invoice.",
+          "Winship-branded Excel PDF invoice saved with date.",
+          "Last invoice sent date recorded for future invoice-range calculation.",
+          "External send/submit proof receipts attached.",
+          "Payment tracking state updated."
+        ],
+        "proposal_id": "capital_hilton_invoice_payment_block_chain_proposal_v0",
+        "proposed_blocks": [
+          {
+            "block_id": "confirm_performance_dates",
+            "external_action_allowed_now": false,
+            "label": "Confirm performance dates",
+            "status": "KNOWN_FROM_LOCAL_RECEIPTS"
+          },
+          {
+            "block_id": "confirm_rate",
+            "external_action_allowed_now": false,
+            "label": "Confirm rate",
+            "status": "KNOWN_FROM_LOCAL_RECEIPTS"
+          },
+          {
+            "block_id": "generate_update_excel_branded_companion_invoice_pdf",
+            "external_action_allowed_now": false,
+            "label": "Generate/update Excel-branded companion invoice PDF",
+            "status": "FUTURE_GATED_STEP"
+          },
+          {
+            "block_id": "confirm_po_coupa_payment_rail",
+            "external_action_allowed_now": false,
+            "label": "Confirm PO/Coupa payment rail",
+            "status": "NEEDS_OPERATOR_CONFIRMATION_OR_PROOF"
+          },
+          {
+            "block_id": "confirm_coupa_supplier_portal_invoice_from_po",
+            "external_action_allowed_now": false,
+            "label": "Confirm Coupa supplier-portal invoice from PO",
+            "status": "NEEDS_OPERATOR_CONFIRMATION_OR_PROOF"
+          },
+          {
+            "block_id": "confirm_invoice_destination_contact_annette_candidate",
+            "external_action_allowed_now": false,
+            "label": "Confirm invoice destination/contact: Annette candidate",
+            "status": "NEEDS_OPERATOR_CONFIRMATION_OR_PROOF"
+          },
+          {
+            "block_id": "prepare_email_draft_to_annette",
+            "external_action_allowed_now": false,
+            "label": "Prepare email draft to Annette",
+            "status": "NEEDS_OPERATOR_CONFIRMATION_OR_PROOF"
+          },
+          {
+            "block_id": "attach_excel_generated_pdf_invoice",
+            "external_action_allowed_now": false,
+            "label": "Attach Excel-generated PDF invoice",
+            "status": "FUTURE_GATED_STEP"
+          },
+          {
+            "block_id": "guardian_approval_request",
+            "external_action_allowed_now": false,
+            "label": "Guardian approval request",
+            "status": "FUTURE_GATED_STEP"
+          },
+          {
+            "block_id": "operator_approval",
+            "external_action_allowed_now": false,
+            "label": "Operator approval",
+            "status": "FUTURE_GATED_STEP"
+          },
+          {
+            "block_id": "send_email",
+            "external_action_allowed_now": false,
+            "label": "Send email",
+            "status": "BLOCKED_EXTERNAL_AUTHORITY"
+          },
+          {
+            "block_id": "submit_verify_coupa_invoice_if_required_and_gated",
+            "external_action_allowed_now": false,
+            "label": "Submit/verify Coupa invoice if required and gated",
+            "status": "BLOCKED_EXTERNAL_AUTHORITY"
+          },
+          {
+            "block_id": "save_dated_invoice_artifact",
+            "external_action_allowed_now": false,
+            "label": "Save dated invoice artifact",
+            "status": "FUTURE_GATED_STEP"
+          },
+          {
+            "block_id": "record_sent_payment_tracking_state",
+            "external_action_allowed_now": false,
+            "label": "Record sent/payment tracking state",
+            "status": "FUTURE_GATED_STEP"
+          },
+          {
+            "block_id": "completion_proof_readback",
+            "external_action_allowed_now": false,
+            "label": "Completion proof readback",
+            "status": "FUTURE_TARGET_ONLY"
+          }
+        ],
+        "proposed_sequence": [
+          "confirm_performance_dates",
+          "confirm_rate",
+          "generate_update_excel_branded_companion_invoice_pdf",
+          "confirm_po_coupa_payment_rail",
+          "confirm_coupa_supplier_portal_invoice_from_po",
+          "confirm_invoice_destination_contact_annette_candidate",
+          "prepare_email_draft_to_annette",
+          "attach_excel_generated_pdf_invoice",
+          "guardian_approval_request",
+          "operator_approval",
+          "send_email",
+          "submit_verify_coupa_invoice_if_required_and_gated",
+          "save_dated_invoice_artifact",
+          "record_sent_payment_tracking_state",
+          "completion_proof_readback"
+        ],
+        "protected_value_candidates": [
+          {
+            "raw_value_allowed": false,
+            "safe_display_label": "Annette candidate",
+            "value_kind": "ap_email_route"
+          },
+          {
+            "raw_value_allowed": false,
+            "safe_display_label": "PO/Coupa reference pending",
+            "value_kind": "po_reference"
+          }
+        ],
+        "reusable_fact_candidates": [
+          {
+            "fact_kind": "performance_dates",
+            "raw_value_allowed": true,
+            "safe_display_label": "4 captured dates",
+            "value": [
+              "2026-05-08",
+              "2026-05-15",
+              "2026-05-22",
+              "2026-05-29"
+            ]
+          },
+          {
+            "fact_kind": "rate_amount",
+            "raw_value_allowed": true,
+            "safe_display_label": "$400/show",
+            "value": {
+              "amount": 400,
+              "currency": "USD",
+              "display": "$400/show",
+              "unit": "show"
+            }
+          },
+          {
+            "copy_as_truth_allowed": false,
+            "fact_kind": "calculated_state",
+            "safe_display_label": "$1,600 subtotal derived from dates and rate"
+          }
+        ],
+        "review_status": "OPERATOR_REVIEW_REQUIRED",
+        "source_intake_ref": "capital_hilton_conversational_intake_annette_coupa_excel_v0",
+        "unknowns": [
+          "PO/Coupa reference or explicit no-PO posture is unresolved.",
+          "Annette candidate is not yet confirmed as payment contact.",
+          "Coupa submission requirement remains unresolved.",
+          "Final Excel PDF artifact is not generated in this contract."
+        ],
+        "workflow_type": "finance_invoice_delivery"
+      },
+      "role_routing": {
+        "actor_candidates": {
+          "Cassandra": "future drafting or finance-delivery role; no draft created here",
+          "Guardian": "future approval or protected-evidence role; no approval requested here"
+        },
+        "handoff_requirements": [
+          "visual-agnostic workflow/block grammar",
+          "readback required"
+        ],
+        "next_safe_move": "Keep actor mappings configurable and gated.",
+        "no_hardcoded_persona_requirement": true,
+        "package_requirements": [
+          "post-office metadata",
+          "authority boundary",
+          "proof refs",
+          "safe display summary"
+        ],
+        "review_requirements": [
+          "operator review",
+          "draft review",
+          "Guardian/operator approval later"
+        ],
+        "role_boundaries": {
+          "external_authority_from_contract": false,
+          "role_based_not_persona_hardcoded": true
+        },
+        "roles": [
+          {
+            "live_dispatch_allowed": false,
+            "responsibility": "reviews, corrects, and approves exact gated action packets",
+            "role": "operator"
+          },
+          {
+            "live_dispatch_allowed": false,
+            "responsibility": "prepares drafts or text candidates for review only",
+            "role": "drafting_agent"
+          },
+          {
+            "live_dispatch_allowed": false,
+            "responsibility": "checks shape, prerequisites, and blockers",
+            "role": "validation_agent"
+          },
+          {
+            "live_dispatch_allowed": false,
+            "responsibility": "handles protected evidence metadata and Guardian posture",
+            "role": "protected_evidence_agent"
+          },
+          {
+            "live_dispatch_allowed": false,
+            "responsibility": "prepares or reviews approval packet boundaries",
+            "role": "approval_agent"
+          },
+          {
+            "live_dispatch_allowed": false,
+            "responsibility": "prepares local artifact candidates under artifact policy",
+            "role": "artifact_generation_agent"
+          },
+          {
+            "live_dispatch_allowed": false,
+            "responsibility": "packages typed handoff metadata",
+            "role": "post_office_handoff"
+          },
+          {
+            "live_dispatch_allowed": false,
+            "responsibility": "produces proof-backed completion readback",
+            "role": "final_readback_agent"
+          }
+        ],
+        "routing_id": "capital_hilton_role_routing_example_v0",
+        "workflow_run_ref": "capital_hilton_now_do_it_governed_run_plan_v0"
+      },
+      "stored_procedure": {
+        "agent_roles": {
+          "approval_agent": "Guardian may be configured later for gated approval packet review",
+          "drafting_agent": "Cassandra may be configured later for draft packet prep",
+          "final_readback_agent": "receipt-backed closeout only"
+        },
+        "authority_boundaries": {
+          "stored_procedure_can_approve": false,
+          "stored_procedure_can_browse_or_log_in": false,
+          "stored_procedure_can_send_or_submit": false,
+          "stored_procedure_creates_governed_run_plan": true,
+          "stored_procedure_is_external_authority": false
+        },
+        "client_ref": "capital_hilton",
+        "last_run_ref": null,
+        "last_successful_completion_ref": null,
+        "next_safe_move": "Future writer may persist this only after operator review.",
+        "privacy_boundaries": {
+          "protected_evidence_body_allowed": false,
+          "raw_contact_value_in_normal_read_model": false,
+          "raw_po_reference_in_normal_read_model": false
+        },
+        "procedure_id": "capital_hilton_invoice_payment_procedure_candidate_v0",
+        "procedure_name": "How Capital Hilton invoices get paid",
+        "proof_requirements": [
+          "Coupa invoice generated/submitted from PO, if required and proven.",
+          "Email sent to Annette with attached Winship-branded Excel PDF invoice.",
+          "Winship-branded Excel PDF invoice saved with date.",
+          "Last invoice sent date recorded for future invoice-range calculation.",
+          "External send/submit proof receipts attached.",
+          "Payment tracking state updated."
+        ],
+        "required_artifacts": [
+          "Winship-branded Excel PDF with real path/hash",
+          "reviewed email draft packet",
+          "Coupa proof or not-required proof",
+          "approval and send/submit receipts"
+        ],
+        "required_gates": [
+          "operator procedure review",
+          "artifact hash gate",
+          "Guardian approval gate",
+          "operator approval gate",
+          "external adapter gate"
+        ],
+        "required_inputs": [
+          "operator-confirmed procedure review",
+          "PO/Coupa/payment reference or explicit no-PO posture",
+          "payment contact confirmation"
+        ],
+        "reusable_facts": [
+          {
+            "fact_kind": "performance_dates",
+            "raw_value_allowed": true,
+            "safe_display_label": "4 captured dates",
+            "value": [
+              "2026-05-08",
+              "2026-05-15",
+              "2026-05-22",
+              "2026-05-29"
+            ]
+          },
+          {
+            "fact_kind": "rate_amount",
+            "raw_value_allowed": true,
+            "safe_display_label": "$400/show",
+            "value": {
+              "amount": 400,
+              "currency": "USD",
+              "display": "$400/show",
+              "unit": "show"
+            }
+          },
+          {
+            "copy_as_truth_allowed": false,
+            "fact_kind": "calculated_state",
+            "safe_display_label": "$1,600 subtotal derived from dates and rate"
+          }
+        ],
+        "stored_blocks": [
+          "confirm_performance_dates",
+          "confirm_rate",
+          "generate_update_excel_branded_companion_invoice_pdf",
+          "confirm_po_coupa_payment_rail",
+          "confirm_coupa_supplier_portal_invoice_from_po",
+          "confirm_invoice_destination_contact_annette_candidate",
+          "prepare_email_draft_to_annette",
+          "attach_excel_generated_pdf_invoice",
+          "guardian_approval_request",
+          "operator_approval",
+          "send_email",
+          "submit_verify_coupa_invoice_if_required_and_gated",
+          "save_dated_invoice_artifact",
+          "record_sent_payment_tracking_state",
+          "completion_proof_readback"
+        ],
+        "stored_workflow_summary": "Candidate procedure: companion Excel PDF goes to Annette candidate for local records, official payment rail is Coupa from PO when required, and send/submit only happens after proof and approval.",
+        "tenant_ref": "openclaw_repo_a_local",
+        "trigger_phrases": [
+          "do the Capital Hilton invoice",
+          "send Capital Hilton invoice",
+          "invoice Capital Hilton",
+          "now do it",
+          "run the Hilton invoice workflow"
+        ],
+        "update_policy": "Operator-reviewed receipt required before replacing the stored procedure.",
+        "workflow_type": "finance_invoice_delivery"
+      }
+    },
+    "generic_completion_readback": {
+      "completion_ref": "generic_completion_readback_contract_v0",
+      "current_fact": false,
+      "proof_required": true
+    },
+    "generic_do_it_run_request": {
+      "current_state": "OPERATOR_REVIEW_REQUIRED",
+      "external_action_performed": false,
+      "run_ref": "generic_governed_workflow_run_plan_v0"
+    },
+    "generic_fake_completion_blocker": {
+      "blocker_type": "COMPLETION_WITHOUT_RECEIPTS",
+      "decision": "BLOCKED_FAIL_CLOSED"
+    },
+    "generic_role_routing": {
+      "hardcoded_personas": false,
+      "roles": [
+        "operator",
+        "drafting_agent",
+        "validation_agent",
+        "protected_evidence_agent",
+        "approval_agent",
+        "artifact_generation_agent",
+        "post_office_handoff",
+        "final_readback_agent"
+      ],
+      "routing_ref": "generic_workflow_role_routing_plan_v0"
+    },
+    "generic_stored_procedure": {
+      "procedure_ref": "generic_stored_workflow_procedure_candidate_v0",
+      "reusable_not_authority": true,
+      "stored_blocks": [
+        "capture_goal",
+        "identify_inputs",
+        "prepare_artifacts",
+        "review_outputs",
+        "approval_gate",
+        "external_action",
+        "completion_readback"
+      ]
+    },
+    "generic_workflow_intake": {
+      "intake_ref": "generic_conversational_workflow_intake_v0",
+      "narrative_treated_as_truth": false,
+      "operator_review_required": true,
+      "proposed_chain_ref": "generic_workflow_block_chain_proposal_v0"
+    }
+  },
+  "generated_at": "2026-05-24T22:15:02+00:00",
+  "governed_workflow_run_plan": {
+    "blocked_now": [
+      "live workflow run",
+      "agent dispatch",
+      "external adapter action",
+      "completion label"
+    ],
+    "completion_condition": "Completion requires proof receipts for the declared outcome.",
+    "current_state": "OPERATOR_REVIEW_REQUIRED",
+    "dependencies": [
+      {
+        "block": "external_action",
+        "requires": [
+          "approval receipt",
+          "adapter authority"
+        ]
+      },
+      {
+        "block": "completion_readback",
+        "requires": [
+          "proof receipts"
+        ]
+      }
+    ],
+    "gates": [
+      {
+        "current_status": "NOT_GRANTED",
+        "gate": "operator review"
+      },
+      {
+        "current_status": "NOT_GRANTED",
+        "gate": "Guardian/protected evidence review if needed"
+      },
+      {
+        "current_status": "NOT_GRANTED",
+        "gate": "external adapter"
+      }
+    ],
+    "next_safe_move": "Keep the run proposed until review/proof/approval gates exist.",
+    "procedure_ref": "generic_stored_workflow_procedure_candidate_v0",
+    "readback_plan": [
+      "show progress by state",
+      "show blockers",
+      "show completion only with proof receipts"
+    ],
+    "requested_by": "future_operator_do_it_request",
+    "required_artifacts": [
+      "artifact path/hash when required",
+      "approval packet when required"
+    ],
+    "required_external_adapters": [
+      "future gated adapter only"
+    ],
+    "required_guardian_approvals": "required only if protected evidence, send, submit, or approval scope appears",
+    "required_operator_confirmations": [
+      "confirm run request",
+      "approve exact action packet later"
+    ],
+    "run_blocks": [
+      "capture_goal",
+      "identify_inputs",
+      "prepare_artifacts",
+      "review_outputs",
+      "approval_gate",
+      "external_action",
+      "completion_readback"
+    ],
+    "run_goal": "Create a governed plan from reviewed procedure memory.",
+    "run_id": "generic_governed_workflow_run_plan_v0",
+    "runnable_now": [
+      "render plan",
+      "ask missing questions",
+      "collect safe local metadata"
+    ]
+  },
+  "machine_proof": {
+    "all_generic_roles_present": true,
+    "all_live_authority_flags_false": true,
+    "artifact_and_proof_plan_model_present": true,
+    "builder_blockers_model_present": true,
+    "capital_hilton_all_required_blocks_present": true,
+    "capital_hilton_block_chain_proposal_exists": true,
+    "capital_hilton_governed_run_plan_exists": true,
+    "capital_hilton_narrative_intake_exists": true,
+    "capital_hilton_stored_procedure_exists": true,
+    "completion_readback_contract_model_present": true,
+    "content_hash": "sha256:3c2ac46afa8a6c1d0559c507a5ce8cfa08fb5fc70eb8d3bea84e30bc5a59f298",
+    "conversational_workflow_intake_model_present": true,
+    "credentials_or_secrets_included": false,
+    "elioperator_report_model_present": true,
+    "external_action_performed": false,
+    "fake_completion_blocked": true,
+    "generic_governed_run_example_present": true,
+    "generic_stored_procedure_example_present": true,
+    "generic_workflow_example_present": true,
+    "git_push_pull_fetch_run": false,
+    "governed_workflow_run_plan_model_present": true,
+    "invoice_sent_is_not_current_fact": true,
+    "invoice_sent_target_exists": true,
+    "mac_sync_import_run": false,
+    "machine_contract_ui_leakage_blocked": true,
+    "mission_control_swift_changed": false,
+    "narrative_is_not_treated_as_truth": true,
+    "network_used": false,
+    "persona_hardcoding_blocked": true,
+    "procedure_memory_is_not_authority": true,
+    "raw_private_bodies_included": false,
+    "raw_sensitive_fixture_values_included": false,
+    "stored_workflow_procedure_model_present": true,
+    "workflow_block_chain_proposal_model_present": true,
+    "workflow_role_routing_plan_model_present": true
+  },
+  "model_schemas": {
+    "artifact_and_proof_plan": {
+      "required_fields": [
+        "plan_id",
+        "workflow_run_ref",
+        "required_artifacts",
+        "optional_artifacts",
+        "proof_bullets",
+        "missing_proofs",
+        "protected_refs",
+        "artifact_hash_requirements",
+        "completion_proof_requirements",
+        "next_safe_move"
+      ]
+    },
+    "completion_readback_contract": {
+      "required_fields": [
+        "completion_id",
+        "workflow_run_ref",
+        "status_label",
+        "headline",
+        "proof_bullets",
+        "unresolved_items",
+        "state_updates",
+        "next_run_memory_update",
+        "safe_display_summary",
+        "elioperator_summary",
+        "next_safe_move"
+      ]
+    },
+    "conversational_workflow_builder_blocker": {
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "builder_action_required",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "conversational_workflow_elioperator_report": {
+      "required_fields": [
+        "report_id",
+        "plain_summary",
+        "what_this_enables",
+        "what_this_does_not_do_yet",
+        "why_chat_drives_workflow",
+        "how_operator_review_works",
+        "how_procedure_memory_works",
+        "how_governed_run_works",
+        "why_external_actions_remain_gated",
+        "next_safe_move"
+      ]
+    },
+    "conversational_workflow_intake": {
+      "required_fields": [
+        "intake_id",
+        "workflow_ref",
+        "workflow_type",
+        "client_ref",
+        "tenant_ref",
+        "world_ref",
+        "lane_ref",
+        "operator_narrative",
+        "narrative_privacy_class",
+        "raw_narrative_allowed_in_normal_read_model",
+        "sanitized_summary",
+        "parsed_candidate_status",
+        "operator_review_required",
+        "proposed_chain_ref",
+        "next_safe_move"
+      ]
+    },
+    "governed_workflow_run_plan": {
+      "required_fields": [
+        "run_id",
+        "procedure_ref",
+        "requested_by",
+        "run_goal",
+        "current_state",
+        "run_blocks",
+        "dependencies",
+        "gates",
+        "runnable_now",
+        "blocked_now",
+        "required_operator_confirmations",
+        "required_guardian_approvals",
+        "required_artifacts",
+        "required_external_adapters",
+        "readback_plan",
+        "completion_condition",
+        "next_safe_move"
+      ]
+    },
+    "stored_workflow_procedure": {
+      "required_fields": [
+        "procedure_id",
+        "procedure_name",
+        "workflow_type",
+        "client_ref",
+        "tenant_ref",
+        "trigger_phrases",
+        "stored_workflow_summary",
+        "stored_blocks",
+        "reusable_facts",
+        "required_inputs",
+        "required_artifacts",
+        "required_gates",
+        "agent_roles",
+        "authority_boundaries",
+        "proof_requirements",
+        "privacy_boundaries",
+        "update_policy",
+        "last_run_ref",
+        "last_successful_completion_ref",
+        "next_safe_move"
+      ]
+    },
+    "workflow_block_chain_proposal": {
+      "required_fields": [
+        "proposal_id",
+        "source_intake_ref",
+        "workflow_type",
+        "proposed_blocks",
+        "proposed_sequence",
+        "non_serial_blocks",
+        "dependencies",
+        "gates",
+        "unknowns",
+        "proof_requirements",
+        "operator_questions",
+        "reusable_fact_candidates",
+        "protected_value_candidates",
+        "review_status",
+        "elioperator_summary",
+        "next_safe_move"
+      ]
+    },
+    "workflow_role_routing_plan": {
+      "required_fields": [
+        "routing_id",
+        "workflow_run_ref",
+        "roles",
+        "actor_candidates",
+        "role_boundaries",
+        "package_requirements",
+        "handoff_requirements",
+        "review_requirements",
+        "no_hardcoded_persona_requirement",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_markdown_mode": "ELIOPERATOR",
+  "read_model_id": "conversational_workflow_memory_contract",
+  "relationship_inventory": {
+    "agent_conversation_handoff_step_packet_contract": {
+      "path": "agent_conversation_handoff_step_packet_contract.py",
+      "present": true,
+      "relationship": "agent handoff packets and status visibility"
+    },
+    "agent_execution_packet_compiler_contract": {
+      "path": "agent_execution_packet_compiler_contract.py",
+      "present": true,
+      "relationship": "packet shape for future role work without live execution"
+    },
+    "bridge_routing_operator_attention_contract": {
+      "path": "bridge_routing_operator_attention_contract.py",
+      "present": true,
+      "relationship": "operator attention routing for questions, proof, and blockers"
+    },
+    "business_ops_ledger": {
+      "path": "business_ops_ledger.py",
+      "present": true,
+      "relationship": "receipt/state substrate referenced but not mutated here"
+    },
+    "capital_hilton_delivery_facts_capture_bridge": {
+      "path": "capital_hilton_delivery_facts_capture_bridge.py",
+      "present": true,
+      "relationship": "Capital Hilton delivery-facts question/capture bridge"
+    },
+    "capital_hilton_delivery_facts_capture_writer": {
+      "path": "capital_hilton_delivery_facts_capture_writer.py",
+      "present": true,
+      "relationship": "Capital Hilton proof example for local receipt/readback capture"
+    },
+    "capital_hilton_guardian_review_packet": {
+      "path": "capital_hilton_guardian_review_packet.py",
+      "present": true,
+      "relationship": "Capital Hilton Guardian review packet reference"
+    },
+    "capital_hilton_invoice_artifact_generator": {
+      "path": "capital_hilton_invoice_artifact_generator.py",
+      "present": true,
+      "relationship": "Capital Hilton local invoice preview metadata"
+    },
+    "cross_lane_reusable_block_registry_contract": {
+      "path": "cross_lane_reusable_block_registry_contract.py",
+      "present": true,
+      "relationship": "reusable facts and tokenized protected value compatibility"
+    },
+    "cross_surface_artifact_handoff_registry_contract": {
+      "path": "cross_surface_artifact_handoff_registry_contract.py",
+      "present": true,
+      "relationship": "post-office metadata for typed handoffs"
+    },
+    "cross_surface_handoff_registry_metadata_alignment": {
+      "path": "cross_surface_handoff_registry_metadata_alignment.py",
+      "present": true,
+      "relationship": "additive metadata shape for future package compatibility"
+    },
+    "guardian_protected_access_gate_spec": {
+      "path": "guardian_protected_access_gate_spec.py",
+      "present": true,
+      "relationship": "protected evidence and Guardian gate posture"
+    },
+    "openclaw_sensitive_policy": {
+      "path": "openclaw_sensitive_policy.py",
+      "present": true,
+      "relationship": "sensitive material boundary"
+    },
+    "operator_question_assist_scope_expansion_contract": {
+      "path": "operator_question_assist_scope_expansion_contract.py",
+      "present": true,
+      "relationship": "plain-language question and discovery support"
+    },
+    "protected_evidence_reference_receipt": {
+      "path": "protected_evidence_reference_receipt.py",
+      "present": true,
+      "relationship": "metadata-only protected evidence receipt compatibility"
+    },
+    "workflow_block_intent_live_draft_contract": {
+      "path": "workflow_block_intent_live_draft_contract.py",
+      "present": true,
+      "relationship": "draft-intent substrate for conversational proposals before capture"
+    }
+  },
+  "run_states": [
+    "DRAFT_PROPOSED",
+    "OPERATOR_REVIEW_REQUIRED",
+    "STORED_PROCEDURE_READY",
+    "RUN_REQUESTED",
+    "PREPARE_ARTIFACTS",
+    "DRAFT_READY_FOR_REVIEW",
+    "GUARDIAN_APPROVAL_REQUIRED",
+    "OPERATOR_APPROVAL_REQUIRED",
+    "SEND_OR_SUBMIT_GATED",
+    "COMPLETION_PROOF_REQUIRED",
+    "COMPLETION_CONFIRMED",
+    "BLOCKED_NEEDS_PROOF",
+    "BLOCKED_EXTERNAL_AUTHORITY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "conversational_workflow_memory_contract_v0",
+  "stored_workflow_procedure": {
+    "agent_roles": {
+      "approval_agent": "role candidate only; no live dispatch",
+      "artifact_generation_agent": "role candidate only; no live dispatch",
+      "drafting_agent": "role candidate only; no live dispatch",
+      "final_readback_agent": "role candidate only; no live dispatch",
+      "operator": "role candidate only; no live dispatch",
+      "post_office_handoff": "role candidate only; no live dispatch",
+      "protected_evidence_agent": "role candidate only; no live dispatch",
+      "validation_agent": "role candidate only; no live dispatch"
+    },
+    "authority_boundaries": {
+      "stored_procedure_can_approve": false,
+      "stored_procedure_can_browse_or_log_in": false,
+      "stored_procedure_can_send_or_submit": false,
+      "stored_procedure_creates_governed_run_plan": true,
+      "stored_procedure_is_external_authority": false
+    },
+    "client_ref": "scope_defined_by_operator",
+    "last_run_ref": null,
+    "last_successful_completion_ref": null,
+    "next_safe_move": "A future writer may persist the reviewed procedure; this contract does not write it.",
+    "privacy_boundaries": {
+      "protected_values_require_token_or_ref": true,
+      "raw_narrative_in_normal_read_model": false,
+      "raw_private_body_allowed": false
+    },
+    "procedure_id": "generic_stored_workflow_procedure_candidate_v0",
+    "procedure_name": "Reviewed repeatable workflow procedure",
+    "proof_requirements": [
+      "artifact file/hash where an artifact is required",
+      "approval receipt before gated external action",
+      "external action result receipt before completion label"
+    ],
+    "required_artifacts": [
+      "artifact path/hash when artifacts are part of completion"
+    ],
+    "required_gates": [
+      "operator review",
+      "proof gate",
+      "approval gate",
+      "external adapter gate"
+    ],
+    "required_inputs": [
+      "operator-reviewed procedure",
+      "current run-specific facts",
+      "proof refs where needed"
+    ],
+    "reusable_facts": [
+      {
+        "fact_kind": "operator_confirmed_procedure",
+        "raw_value_allowed": false
+      },
+      {
+        "fact_kind": "safe_non_sensitive_workflow_fact",
+        "raw_value_allowed": true
+      }
+    ],
+    "stored_blocks": [
+      "capture_goal",
+      "identify_inputs",
+      "prepare_artifacts",
+      "review_outputs",
+      "approval_gate",
+      "external_action",
+      "completion_readback"
+    ],
+    "stored_workflow_summary": "A reviewed procedure stores trigger phrases, blocks, gates, roles, artifacts, proof needs, privacy boundaries, and update policy.",
+    "tenant_ref": "local_operator_tenant",
+    "trigger_phrases": [
+      "do it",
+      "run this workflow",
+      "use the stored procedure"
+    ],
+    "update_policy": "Procedure edits require operator review and deterministic receipt before they replace prior memory.",
+    "workflow_type": "generic_repeatable_workflow"
+  },
+  "workflow_block_chain_proposal": {
+    "dependencies": [
+      {
+        "block": "external_action",
+        "depends_on": [
+          "review_outputs",
+          "approval_gate"
+        ]
+      },
+      {
+        "block": "completion_readback",
+        "depends_on": [
+          "external_action",
+          "proof_receipts"
+        ]
+      }
+    ],
+    "elioperator_summary": "ELIOPERATOR: This is the proposed shape of the workflow, not permission to run it.",
+    "gates": [
+      {
+        "authority_granted": false,
+        "gate_id": "operator_review_gate"
+      },
+      {
+        "authority_granted": false,
+        "gate_id": "artifact_hash_gate"
+      },
+      {
+        "authority_granted": false,
+        "gate_id": "approval_gate"
+      },
+      {
+        "authority_granted": false,
+        "gate_id": "external_adapter_gate"
+      }
+    ],
+    "next_safe_move": "Show the proposal in plain language and wait for operator review.",
+    "non_serial_blocks": [
+      "identify_inputs",
+      "prepare_artifacts",
+      "proof_lookup"
+    ],
+    "operator_questions": [
+      "Is this the right block chain?",
+      "Which blocks can be answered now?",
+      "Which facts require proof or protected evidence?"
+    ],
+    "proof_requirements": [
+      "artifact file/hash where an artifact is required",
+      "approval receipt before gated external action",
+      "external action result receipt before completion label"
+    ],
+    "proposal_id": "generic_workflow_block_chain_proposal_v0",
+    "proposed_blocks": [
+      {
+        "block_id": "capture_goal",
+        "label": "Capture the goal",
+        "status": "OPERATOR_REVIEW_REQUIRED"
+      },
+      {
+        "block_id": "identify_inputs",
+        "label": "Identify inputs and unknowns",
+        "status": "FILLABLE_NOW"
+      },
+      {
+        "block_id": "prepare_artifacts",
+        "label": "Prepare required artifacts",
+        "status": "GATED"
+      },
+      {
+        "block_id": "review_outputs",
+        "label": "Review drafts or outputs",
+        "status": "GATED"
+      },
+      {
+        "block_id": "approval_gate",
+        "label": "Approval gate",
+        "status": "GATED"
+      },
+      {
+        "block_id": "external_action",
+        "label": "External action if explicitly approved",
+        "status": "BLOCKED"
+      },
+      {
+        "block_id": "completion_readback",
+        "label": "Proof-backed completion readback",
+        "status": "BLOCKED"
+      }
+    ],
+    "proposed_sequence": [
+      "capture_goal",
+      "identify_inputs",
+      "prepare_artifacts",
+      "review_outputs",
+      "approval_gate",
+      "external_action",
+      "completion_readback"
+    ],
+    "protected_value_candidates": [
+      {
+        "normal_read_model_body_allowed": false,
+        "value_kind": "contact_or_payment_reference"
+      },
+      {
+        "normal_read_model_body_allowed": false,
+        "value_kind": "protected_evidence_ref"
+      }
+    ],
+    "reusable_fact_candidates": [
+      {
+        "fact_kind": "operator_confirmed_procedure",
+        "raw_value_allowed": false
+      },
+      {
+        "fact_kind": "safe_non_sensitive_workflow_fact",
+        "raw_value_allowed": true
+      }
+    ],
+    "review_status": "OPERATOR_REVIEW_REQUIRED",
+    "source_intake_ref": "generic_conversational_workflow_intake_v0",
+    "unknowns": [
+      "which facts need proof",
+      "which artifacts are required",
+      "which adapters are required"
+    ],
+    "workflow_type": "generic_repeatable_workflow"
+  },
+  "workflow_role_routing_plan": {
+    "actor_candidates": {
+      "Cassandra": "example candidate for drafting_agent or validation_agent; not hardcoded",
+      "Guardian": "example candidate for approval_agent or protected_evidence_agent; not live approval",
+      "Mission Control": "example rendering surface; no Swift change here"
+    },
+    "handoff_requirements": [
+      "visual-agnostic post-office metadata",
+      "idempotency key where a future write happens",
+      "payload hash where a future write happens"
+    ],
+    "next_safe_move": "Map actors at the edge; keep core workflow memory role-based.",
+    "no_hardcoded_persona_requirement": true,
+    "package_requirements": [
+      "workflow_session_ref",
+      "role assignment",
+      "authority boundary",
+      "privacy boundary",
+      "expected return shape"
+    ],
+    "review_requirements": [
+      "operator review before storage",
+      "draft/output review before approval",
+      "approval receipt before external action"
+    ],
+    "role_boundaries": {
+      "agent_names_are_configured_candidates": true,
+      "backend_receipts_own_truth": true,
+      "no_agent_has_external_authority_from_this_contract": true,
+      "roles_are_generic": true
+    },
+    "roles": [
+      {
+        "live_dispatch_allowed": false,
+        "responsibility": "reviews, corrects, and approves exact gated action packets",
+        "role": "operator"
+      },
+      {
+        "live_dispatch_allowed": false,
+        "responsibility": "prepares drafts or text candidates for review only",
+        "role": "drafting_agent"
+      },
+      {
+        "live_dispatch_allowed": false,
+        "responsibility": "checks shape, prerequisites, and blockers",
+        "role": "validation_agent"
+      },
+      {
+        "live_dispatch_allowed": false,
+        "responsibility": "handles protected evidence metadata and Guardian posture",
+        "role": "protected_evidence_agent"
+      },
+      {
+        "live_dispatch_allowed": false,
+        "responsibility": "prepares or reviews approval packet boundaries",
+        "role": "approval_agent"
+      },
+      {
+        "live_dispatch_allowed": false,
+        "responsibility": "prepares local artifact candidates under artifact policy",
+        "role": "artifact_generation_agent"
+      },
+      {
+        "live_dispatch_allowed": false,
+        "responsibility": "packages typed handoff metadata",
+        "role": "post_office_handoff"
+      },
+      {
+        "live_dispatch_allowed": false,
+        "responsibility": "produces proof-backed completion readback",
+        "role": "final_readback_agent"
+      }
+    ],
+    "routing_id": "generic_workflow_role_routing_plan_v0",
+    "workflow_run_ref": "generic_governed_workflow_run_plan_v0"
+  }
+}

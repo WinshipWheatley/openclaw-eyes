@@ -1,0 +1,184 @@
+{
+  "schema_version": "capital_hilton_coupa_workflow_harvest_v1",
+  "read_model_id": "capital_hilton_coupa_workflow_harvest",
+  "generated_at": "2026-06-01T22:46:12Z",
+  "status": "CAPITAL_HILTON_COUPA_WORKFLOW_HARVEST_READY",
+  "workflow_ref": "capital_hilton_coupa_invoice_submission",
+  "client_ref": "capital_hilton",
+  "client_display_name": "Capital Hilton",
+  "provider_mode": "operator_assisted_browser",
+  "live_task": false,
+  "source_evidence": {
+    "operator_run_receipt": {
+      "path": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
+      "sha256": "a6edefabc2fdc3f7ea5ae9c8c5e5a49c7bccdb29d31468dbaa667b3a04520040"
+    },
+    "operator_run_report": {
+      "path": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
+      "sha256": "2be9054870be304773a03b7e75c42bdc09311a35abde436c979d6e01e7aa570f"
+    },
+    "full_automation_report": {
+      "path": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
+      "sha256": "36ac70d82bd158016a4f005c1b999917c91f0bb43987dd07ececb4fb96c39b52"
+    },
+    "final_invoice_pdf": {
+      "path": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
+      "sha256": "9e3ee65b771cb9efeec640880bf9234bbdd738419a2a420b7fcfb8bc7cda65f4",
+      "page_count": 1
+    }
+  },
+  "observed_run_result": {
+    "coupa_submission_recorded": true,
+    "coupa_status_observed": "Processing",
+    "email_status": "sent_operator_assisted",
+    "operator_assisted": true,
+    "autonomous_openclaw_coupa_submit": false,
+    "autonomous_openclaw_email_send": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_allowed": false,
+    "paid": false
+  },
+  "required_inputs": [
+    {
+      "name": "corrected_invoice_pdf",
+      "description": "Final invoice PDF with validated page count, invoice number, total, May 29 completed, and June 5 scheduled."
+    },
+    {
+      "name": "po_number",
+      "value_observed": "DCASH00983536",
+      "description": "Capital Hilton PO used for PO-based invoice creation."
+    },
+    {
+      "name": "invoice_number_normalized_for_coupa",
+      "workbook_invoice_number": "2026-1006",
+      "coupa_invoice_number": "2026 1006",
+      "description": "Hilton Coupa rejected special characters, so the hyphen was removed for portal submission."
+    },
+    {
+      "name": "remit_to_selection",
+      "value_observed": "mailing_check_address",
+      "description": "Operator selected the mailing/check address for Winship, not the bank option."
+    },
+    {
+      "name": "final_submit_approval",
+      "description": "Operator approval is required before clicking the final Coupa Send Invoice action."
+    },
+    {
+      "name": "post_submit_email_approval",
+      "description": "Operator approval is required before sending the post-submit email with the corrected PDF."
+    }
+  ],
+  "gates": [
+    {
+      "gate_id": "login_mfa_gate",
+      "label": "Login/MFA gate",
+      "operator_confirmation_required": true,
+      "automation_boundary": "Automation may resume only after the operator is logged in and the correct Coupa account/customer context is visible."
+    },
+    {
+      "gate_id": "remit_to_selection_gate",
+      "label": "Remit-To selection gate",
+      "operator_confirmation_required": true,
+      "automation_boundary": "Remit-To is a business decision; defaulting is not allowed."
+    },
+    {
+      "gate_id": "invoice_number_normalization_gate",
+      "label": "Invoice number normalization gate",
+      "operator_confirmation_required": true,
+      "automation_boundary": "If Coupa rejects special characters, preserve workbook/PDF invoice number and separately record portal-normalized invoice number."
+    },
+    {
+      "gate_id": "final_coupa_submit_gate",
+      "label": "Final Coupa submit gate",
+      "operator_confirmation_required": true,
+      "automation_boundary": "The final Send Invoice action is blocked until explicit operator approval for that exact invoice."
+    },
+    {
+      "gate_id": "gmail_draft_review_gate",
+      "label": "Gmail draft review gate",
+      "operator_confirmation_required": true,
+      "automation_boundary": "Draft body, recipients, CC, subject, and attachment proof must be reviewed before final send."
+    },
+    {
+      "gate_id": "final_email_send_gate",
+      "label": "Final email send gate",
+      "operator_confirmation_required": true,
+      "automation_boundary": "Email send is blocked until explicit operator approval."
+    }
+  ],
+  "blocked_by_default": [
+    "autonomous_coupa_submit",
+    "autonomous_email_send",
+    "ledger_post",
+    "paid"
+  ],
+  "authority_boundary": {
+    "autonomous_coupa_submit_allowed": false,
+    "autonomous_email_send_allowed": false,
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "gmail_allowed": false,
+    "email_send_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid_marking_allowed": false,
+    "payment_received_recording_allowed": false
+  },
+  "reusable_automation_notes": {
+    "what_can_be_automated": [
+      "Validate that the corrected invoice PDF exists, is one page, and matches the expected hash/text facts.",
+      "Navigate to Coupa order context after operator login and customer selection.",
+      "Find PO DCASH00983536 and start Create Invoice from PO.",
+      "Read and verify prefilled supplier, customer, PO line, quantity, price, total, invoice date, and currency.",
+      "Calculate and classify Coupa warnings before presenting a final submit packet.",
+      "Create or replace a Gmail draft with attachment proof for operator review."
+    ],
+    "what_requires_operator_confirmation": [
+      "Login/MFA and correct account/customer context.",
+      "Remit-To selection, especially mailing/check address versus bank option.",
+      "Invoice number normalization when Coupa disallows special characters.",
+      "Final Coupa Send Invoice action.",
+      "Final Gmail send after draft, CC, body, and attachment review."
+    ],
+    "what_failed_today": [
+      "Excel/AppleScript export returned success but produced no PDF.",
+      "Excel helper had OPEN_WORKBOOK and permission fragility.",
+      "Print-to-PDF UI was the path that actually worked.",
+      "openpyxl was missing in the default Python environment.",
+      "Browser text helpers hit a virtual clipboard issue.",
+      "Gmail draft with attachment needed replacement because attachment drafts were not editable in place."
+    ],
+    "what_should_be_tested_next": [
+      "A deterministic workbook reader and patcher path independent of ad hoc Python packages.",
+      "Receipt-driven Excel open/export/close with artifact existence, text, and hash validation.",
+      "Stable local working-copy roots for client workbook permissions.",
+      "Coupa PO invoice state machine with customer select, PO locate, remit-to gate, field recheck, calculate, warning classify, final submit gate, and processing receipt.",
+      "Customer-specific invoice number normalization rules.",
+      "Gmail draft replacement and stale-draft warning behavior."
+    ]
+  },
+  "workflow_outline": [
+    "Prepare and validate corrected invoice PDF.",
+    "Operator completes Coupa login/MFA and confirms Hilton | Smart Spend customer context.",
+    "Locate PO DCASH00983536 and create invoice from PO.",
+    "Verify prefilled line facts and invoice total.",
+    "Pause for Remit-To selection gate.",
+    "Enter workbook invoice number, normalize for Coupa if required, and record both values.",
+    "Calculate and classify warnings.",
+    "Pause for final Coupa submit gate.",
+    "Record post-submit status as Processing unless Coupa shows another explicit state.",
+    "Prepare Gmail draft with corrected PDF, CC behavior as requested, and attachment proof.",
+    "Pause for Gmail draft review gate and final email send gate.",
+    "Keep ledger and paid state untouched."
+  ],
+  "machine_proof": {
+    "source_receipt_parsed": true,
+    "source_reports_parsed": true,
+    "required_inputs_present": true,
+    "gates_captured": true,
+    "blocked_by_default_captured": true,
+    "ledger_not_mutated": true,
+    "paid_not_marked": true,
+    "no_live_provider_action_performed": true,
+    "unsafe_true_grants_absent": true
+  }
+}

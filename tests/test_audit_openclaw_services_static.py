@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "audit_openclaw_services.sh"
 HERMES_INSTALL_SCRIPT = ROOT / "scripts" / "install_hermes_gateway_service.sh"
+REQUEST_RESPONSE_UNIT_TEMPLATE = ROOT / "systemd" / "user" / "openclaw-request-response.service.in"
 
 
 def test_audit_script_has_valid_bash_syntax() -> None:
@@ -80,6 +81,15 @@ def test_hermes_gateway_installer_verifies_required_openclaw_flags() -> None:
     assert "Environment=HERMES_OPENCLAW_DISABLE_EXTERNAL_FALLBACK=1" in source
     assert "verify_required_flags" in source
     assert "grep -Fq" in source
+
+
+def test_request_response_service_uses_long_bounded_watch_window() -> None:
+    source = REQUEST_RESPONSE_UNIT_TEMPLATE.read_text(encoding="utf-8")
+
+    assert "--watch-seconds 21600" in source
+    assert "--watch-seconds 300" not in source
+    assert "Restart=always" in source
+    assert "run_openclaw_request_response_service.py" in source
 
 
 def _write(path: Path, text: str) -> None:

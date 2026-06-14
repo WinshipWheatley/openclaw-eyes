@@ -1,0 +1,101 @@
+{
+  "action_label": "Open review packet",
+  "action_type": "navigate",
+  "active_action_count_considered": 2,
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "portal_submit_allowed": false,
+    "sent": false
+  },
+  "business_action": false,
+  "decision_rules": {
+    "do_not_recommend_send_coupa_or_ledger": true,
+    "exclude_resolved_lifecycle_cards": true,
+    "exclude_smoke_test_events_already_marked_test": true,
+    "planning_fallback_is_overnight_workboard": true,
+    "prefer_active_unresolved_operator_review_items": true,
+    "proof_refs_collapsed": true
+  },
+  "excluded_items": [
+    "review_packet:1ec9dae46a22e6ae",
+    "safe_next_st_annes_review",
+    "st_annes_smoke_work_log_event"
+  ],
+  "generated_at": "2026-06-03T12:17:58+00:00",
+  "headline": "Review Workroom packet",
+  "history_policy": {
+    "proof_collapsed_by_default": true,
+    "raw_request_bodies_visible_by_default": false,
+    "show_full_history_by_default": false
+  },
+  "machine_proof": {
+    "business_action": false,
+    "business_action_truth_created": false,
+    "history_hidden_by_default": true,
+    "no_browser_or_coupa_opened": true,
+    "no_email_sent": true,
+    "no_gmail_opened": true,
+    "no_ledger_mutation": true,
+    "no_paid_marking": true,
+    "no_pdf_export": true,
+    "no_workbook_mutation": true,
+    "proof_collapsed_by_default": true,
+    "unsafe_true_grants_absent": true
+  },
+  "open_review_packet_count_considered": 1,
+  "plain_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+  "precomputed_question_payload": {
+    "question_text": "What should I do with review packet review_packet:c4ec166103f9aa35?",
+    "target_thread_ref": "build_openclaw_backend",
+    "target_world_ref": "build",
+    "workflow_ref": "system_question_answer"
+  },
+  "priority": "high",
+  "proof_collapsed_by_default": true,
+  "proof_refs": [
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/workroom_review_decision_contract.json",
+    "generated/read_models/openclaw_workroom_activity_feed.json",
+    "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
+  ],
+  "read_model_id": "operator_next_decision",
+  "resolved_action_refs": [
+    "safe_next_st_annes_review",
+    "st_annes_smoke_work_log_event"
+  ],
+  "review_packet_action_options": [
+    "approve_review_packet_for_record",
+    "request_review_packet_rework",
+    "mark_review_packet_informational"
+  ],
+  "review_packet_id": "review_packet:c4ec166103f9aa35",
+  "schema_version": "operator_next_decision_v0",
+  "source_read_models": [
+    "generated/read_models/helm_actionability_surface.json",
+    "generated/read_models/helm_action_lifecycle_status.json",
+    "generated/read_models/overnight_workboard.json",
+    "generated/read_models/client_work_closeout_2026_06_01.json",
+    "generated/read_models/operator_conversation_journal.json",
+    "generated/read_models/package_event_index.json",
+    "generated/read_models/automation_permission_registry.json",
+    "generated/read_models/st_annes_work_log_events.json",
+    "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/workroom_review_decision_contract.json",
+    "generated/read_models/openclaw_workroom_activity_feed.json",
+    "generated/read_models/chief_build_backlog.json"
+  ],
+  "speaker_ref": "chief",
+  "status": "READY",
+  "target_thread_ref": "build_openclaw_backend",
+  "target_world_ref": "build",
+  "voice_mode": "diagnostic",
+  "voice_profile_ref": "agent_voice_profile:chief",
+  "worker_ref": "pc_codex"
+}

@@ -1,0 +1,898 @@
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import cassandra_guided_review as guided
+import codex_work_package_lifecycle as codex_lifecycle
+import data_room_form_fill_package as form_fill
+import openclaw_chatgpt55_adapter as chatgpt55
+import openclaw_gemini_form_adapter as gemini
+import openclaw_lm_consult_spine as spine
+
+
+FIXED_NOW = "2026-06-12T12:00:00+00:00"
+GEMINI_TEST_MODEL = "gemini-3.5-flash"
+
+
+def _write_json(path: Path, payload: dict) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
+def _record(record_id, category, fact, proposed, *, risk="wrong runtime behavior", action="defer"):
+    return {
+        "record_id": record_id,
+        "provisional_marker": "*",
+        "authoritative": False,
+        "promotion_requires_winship_confirmation": True,
+        "review_category": category,
+        "provisional_fact": f"* {fact}",
+        "proposed_promoted_value": f"* {proposed}",
+        "confidence": "medium",
+        "source": "fixture_promotion_review.json#review_records",
+        "risk_if_wrong": risk,
+        "recommended_action": action,
+    }
+
+
+def _promotion_review(path: Path, *, sensitive: bool = False) -> Path:
+    payment_fact = "Direct deposit, Zelle, and forwarded invoices need a safe default."
+    payment_proposed = "Winship must decide default payment privacy wording."
+    if sensitive:
+        payment_fact = "Routing 123456789 and SSN 123-45-6789 must not be exposed."
+        payment_proposed = "Keep raw bank account 987654321 details out of model prompts."
+    return _write_json(
+        path,
+        {
+            "schema_version": "OPENCLAW_DATA_ROOM_PROMOTION_REVIEW_V0",
+            "authoritative": False,
+            "source_artifacts": ["fixture_sleepy_capture.json"],
+            "review_records": [
+                _record(
+                    "privacy:payment_policy",
+                    "policy_decision",
+                    payment_fact,
+                    payment_proposed,
+                    risk="Could expose private payment instructions.",
+                ),
+                _record(
+                    "identity:general",
+                    "policy_decision",
+                    "Identity and sender rules are provisional.",
+                    "Winship must decide default identity and persona boundaries.",
+                ),
+                _record(
+                    "expense:labels",
+                    "confirm_ready",
+                    "Expense categories are provisional business labels.",
+                    "Use expense categories as business labels only, pending CPA review.",
+                    risk="Could be mistaken for professional classification.",
+                    action="confirm",
+                ),
+            ],
+        },
+    )
+
+
+def _start(tmp_path: Path, *, sensitive: bool = False):
+    promotion = _promotion_review(tmp_path / "review" / "promotion_review.json", sensitive=sensitive)
+    return guided.process_guided_review_message(
+        "Cassandra, coach me through the Data Room.",
+        surface="telegram",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+
+
+def _load_session(response: dict) -> dict:
+    return json.loads(Path(response["artifact_refs"]["session_json"]).read_text(encoding="utf-8"))
+
+
+def _turn_result(package: dict, *, confirmed: bool, question_id: str = "") -> dict:
+    question_id = question_id or package["current_question_id"]
+    return {
+        "schema_version": form_fill.TURN_RESULT_SCHEMA_VERSION,
+        "package_id": package["package_id"],
+        "review_session_id": package["review_session_id"],
+        "turn_id": "turn:fixture",
+        "assistant_reply": "That default is conservative and keeps details private.",
+        "operator_intent": "answer_candidate",
+        "question_id": question_id,
+        "question_status": "candidate_pending" if not confirmed else "answered",
+        "proposed_answer": {
+            "plain_english": "Use manual approval for private payment details.",
+            "normalized_decision": "manual approval for private payment details",
+            "confidence": "medium",
+            "conditions": [],
+            "caveats": [],
+            "professional_review_flags": [],
+        },
+        "requires_winship_confirmation": True,
+        "confirmed_by_winship": confirmed,
+        "questions_updated": [
+            {
+                "question_id": question_id,
+                "source_refs": ["privacy:payment_policy"],
+            }
+        ],
+        "chat_log_summary_update": "Winship chose a conservative payment privacy default.",
+        "next_question_id": "",
+        "done_criteria_met": False,
+        "safety_flags": dict(form_fill.TURN_SAFETY_FLAGS),
+    }
+
+
+def _live_result(request: dict, *, intent: str = "explain", reply: str = "I have the form and can help.", answer: str = "") -> dict:
+    return {
+        "schema_version": chatgpt55.TURN_RESULT_SCHEMA_VERSION,
+        "request_id": request["request_id"],
+        "review_session_id": request["review_session_id"],
+        "question_id": request["current_question_id"],
+        "assistant_reply": reply,
+        "operator_intent": intent,
+        "proposed_answer": {
+            "plain_english": answer,
+            "normalized_decision": answer.lower(),
+            "confidence": "medium" if answer else "low",
+            "conditions": [],
+            "caveats": [],
+            "professional_review_flags": [],
+        },
+        "requires_winship_confirmation": bool(answer),
+        "confirmed_by_winship": False,
+        "should_record_now": False,
+        "next_question_id": "",
+        "chat_log_summary_update": "ChatGPT55 helped with the current Data Room question.",
+        "done_criteria_met": False,
+        "facts_used": [request["current_question_id"]],
+        "safety_flags": dict(chatgpt55.SAFE_TURN_SAFETY_FLAGS),
+    }
+
+
+def _fake_provider(calls: list[dict], *, intent: str = "explain", reply: str = "I have the form and can help.", answer: str = ""):
+    def provider(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        return {
+            "id": f"resp_fake_{len(calls)}",
+            "status": "completed",
+            "output_text": json.dumps(_live_result(request_payload, intent=intent, reply=reply, answer=answer)),
+        }
+
+    return provider
+
+
+def _gemini_result(
+    request: dict,
+    *,
+    intent: str = "explain",
+    reply: str = "I have the form and can help.",
+    answer: str = "",
+    done: bool = False,
+) -> dict:
+    return {
+        "schema_version": gemini.TURN_RESULT_SCHEMA_VERSION,
+        "request_id": request["request_id"],
+        "form_session_id": request["form_session_id"],
+        "review_session_id": request["review_session_id"],
+        "question_id": request["current_question_id"],
+        "assistant_reply": reply,
+        "operator_intent": intent,
+        "proposed_answer": {
+            "plain_english": answer,
+            "normalized_decision": answer.lower(),
+            "confidence": "medium" if answer else "low",
+            "conditions": [],
+            "caveats": [],
+            "professional_review_flags": [],
+        },
+        "requires_winship_confirmation": bool(answer),
+        "confirmed_by_winship": False,
+        "should_record_now": False,
+        "next_question_id": "",
+        "chat_log_summary_update": "Gemini helped with the current Data Room question.",
+        "done_criteria_met": done,
+        "facts_used": [request["current_question_id"]],
+        "codex_finalization_recommended": False,
+        "safety_flags": dict(gemini.SAFE_TURN_SAFETY_FLAGS),
+    }
+
+
+def _fake_gemini_provider(
+    calls: list[dict],
+    *,
+    intent: str = "explain",
+    reply: str = "I have the form and can help.",
+    answer: str = "",
+    done: bool = False,
+):
+    def provider(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        if request_payload.get("schema_version") == "GEMINI_MINIMAL_PROVIDER_PROBE_V0":
+            return {"candidates": [{"content": {"parts": [{"text": "ready"}]}}]}
+        return {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": json.dumps(
+                                    _gemini_result(
+                                        request_payload,
+                                        intent=intent,
+                                        reply=reply,
+                                        answer=answer,
+                                        done=done,
+                                    )
+                                )
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+    return provider
+
+
+def _patch_gemini_paths(tmp_path, monkeypatch):
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_SESSION_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_gemini_form_session.json")
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_PRIMARY_ROOT", tmp_path / "gemini_form")
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_DURABLE_ROOT", tmp_path / "durable_gemini_form")
+    monkeypatch.setattr(gemini, "DEFAULT_CODEX_FINALIZER_SQLITE_PATH", tmp_path / "codex_work_package_lifecycle.sqlite")
+    monkeypatch.setattr(gemini, "DEFAULT_CODEX_FINALIZER_PACKAGE_ROOT", tmp_path / "work_packages")
+
+
+def _answer_all_questions(response: dict, tmp_path: Path) -> dict:
+    session = _load_session(response)
+    now = "2026-06-12T12:10:00+00:00"
+    for question in list(session["question_queue"]):
+        guided._apply_answer(
+            session,
+            "Confirmed provisional setup answer.",
+            surface="test",
+            review_root=tmp_path / "review",
+            receipt_root=None,
+            now=now,
+            question_id_override=question["question_id"],
+            extra_answer_fields={"affected_record_ids": question["source_record_ids"]},
+        )
+    guided._persist_session(session, review_root=tmp_path / "review")
+    return session
+
+
+def test_package_contains_all_active_review_questions(tmp_path):
+    response = _start(tmp_path)
+    session = _load_session(response)
+
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    assert package["schema_version"] == "DATA_ROOM_FORM_FILL_PACKAGE_V0"
+    assert package["review_session_id"] == session["review_session_id"]
+    assert package["total_questions"] == len(session["question_queue"]) == 3
+    assert len(package["form_questions"]) == 3
+    assert package["current_question"]["question_id"] == session["current_question_id"]
+    assert package["current_question_index"] == 1
+    assert package["safety_boundaries"]["chatgpt_mutates_openclaw"] is False
+
+
+def test_package_includes_current_question_and_prior_answers(tmp_path):
+    start = _start(tmp_path)
+    guided.process_guided_review_message(
+        "Direct deposit stays manual approval only.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(start)
+    session = guided._find_active_session(guided._review_root(tmp_path / "review"))
+
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    assert package["answered_questions"]
+    assert "Latest provisional answer" in package["prior_chat_log_summary"]
+    assert package["recent_turns"]
+    assert package["current_question"]["question_id"] != start["current_question_id"]
+
+
+def test_prompt_includes_role_rules_schema_and_done_criteria(tmp_path):
+    session = _load_session(_start(tmp_path))
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    prompt = form_fill.render_chatgpt55_form_fill_prompt(package)
+
+    assert "You are helping Winship complete an OpenClaw Data Room setup form." in prompt
+    assert "You do not mutate OpenClaw." in prompt
+    assert form_fill.TURN_RESULT_SCHEMA_VERSION in prompt
+    assert "Done criteria:" in prompt
+    assert "Form package:" in prompt
+
+
+def test_manual_handoff_does_not_claim_live_chatgpt_brain(tmp_path):
+    session = _load_session(_start(tmp_path))
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    assert form_fill.live_chatgpt55_advisory_path_verified() is False
+    notification = form_fill.readiness_notification_text(live_chatgpt55_connected=False)
+    prompt = form_fill.render_chatgpt55_form_fill_prompt(package)
+
+    assert "My brain for this Data Room lane is ChatGPT 5.5" not in notification
+    assert "not pretending ChatGPT is live inside me yet" in notification
+    assert "You do not mutate OpenClaw." in prompt
+
+
+def test_live_notification_wording_requires_verified_live_flag():
+    manual = form_fill.readiness_notification_text(live_chatgpt55_connected=False)
+    live = form_fill.readiness_notification_text(live_chatgpt55_connected=True)
+
+    assert "My brain for this Data Room lane is ChatGPT 5.5" not in manual
+    assert "safe package/handoff lane" in manual
+    assert "My brain for this Data Room lane is ChatGPT 5.5" in live
+
+
+def test_forbidden_sensitive_data_is_redacted(tmp_path):
+    session = _load_session(_start(tmp_path, sensitive=True))
+
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+    rendered = json.dumps(package, sort_keys=True)
+
+    assert "123456789" not in rendered
+    assert "987654321" not in rendered
+    assert "123-45-6789" not in rendered
+    assert "[REDACTED_SENSITIVE_DETAIL]" in rendered
+
+
+def test_artifact_link_normalizer_creates_operator_openable_path(tmp_path):
+    session = _load_session(_start(tmp_path))
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    refs = form_fill.write_data_room_form_fill_artifacts(
+        package,
+        output_root=tmp_path / "form_fill",
+        durable_root=tmp_path / "durable_form_fill",
+        export_operator_copy=True,
+        operator_report_root=tmp_path / "operator_reports",
+        operator_task_id="data_room_form_fill_test",
+    )
+    operator_copy = refs["operator_openable_copy"]
+
+    assert Path(operator_copy["operator_copy_path"]).is_file()
+    assert Path(operator_copy["manifest_path"]).is_file()
+    assert Path(operator_copy["open_me_path"]).is_file()
+    assert "Open from Windows" in "\n".join(operator_copy["open_instructions"])
+
+
+def test_turn_result_validates(tmp_path):
+    session = _load_session(_start(tmp_path))
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    validation = form_fill.validate_form_fill_turn_result(_turn_result(package, confirmed=True), package=package)
+
+    assert validation["valid"] is True
+    assert validation["can_record_provisional_answer"] is True
+
+
+def test_unconfirmed_turn_result_does_not_record_answer(tmp_path):
+    response = _start(tmp_path)
+    session = _load_session(response)
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    result = form_fill.ingest_form_fill_turn_result_as_candidate(
+        _turn_result(package, confirmed=False),
+        package=package,
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        output_root=tmp_path / "form_fill",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    updated = _load_session(response)
+
+    assert result["accepted"] is True
+    assert result["recorded_provisional_answer"] is False
+    assert updated["answer_records"] == []
+    assert Path(result["turn_log_path"]).read_text(encoding="utf-8").strip()
+
+
+def test_confirmed_turn_result_becomes_provisional_answer_only(tmp_path):
+    response = _start(tmp_path)
+    session = _load_session(response)
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    result = form_fill.ingest_form_fill_turn_result_as_candidate(
+        _turn_result(package, confirmed=True),
+        package=package,
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        output_root=tmp_path / "form_fill",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    updated = _load_session(response)
+
+    assert result["recorded_provisional_answer"] is True
+    assert updated["answer_records"][0]["answer_source"] == "chatgpt55_form_fill_confirmed"
+    assert updated["answer_records"][0]["review_status"] == "answered_pending_promotion"
+    assert updated["answer_records"][0]["authoritative"] is False
+    assert updated["runtime_policy_changed"] is False
+    assert result["confirmed_reference_data_created"] is False
+    assert not list(tmp_path.rglob("*confirmed_reference_data*"))
+
+
+def test_done_criteria_computed_when_questions_resolved(tmp_path):
+    response = _start(tmp_path)
+    session = _load_session(response)
+    now = "2026-06-12T12:01:00+00:00"
+    for question in list(session["question_queue"]):
+        guided._apply_answer(
+            session,
+            "Confirmed as a provisional setup answer.",
+            surface="test",
+            review_root=tmp_path / "review",
+            receipt_root=None,
+            now=now,
+            question_id_override=question["question_id"],
+            extra_answer_fields={"affected_record_ids": question["source_record_ids"]},
+        )
+    guided._persist_session(session, review_root=tmp_path / "review")
+
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    assert package["done_criteria"]["every_question_answered_skipped_or_deferred"] is True
+    assert package["done_criteria"]["all_answered_items_have_question_id_and_source_refs"] is True
+    assert package["done_criteria"]["done"] is True
+
+
+def test_cassandra_command_surface_writes_package_and_prompt(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    monkeypatch.setattr(form_fill, "DEFAULT_FORM_FILL_ROOT", tmp_path / "form_fill")
+    monkeypatch.setattr(form_fill, "DEFAULT_DURABLE_FORM_FILL_ROOT", tmp_path / "durable_form_fill")
+    monkeypatch.setattr(form_fill, "DEFAULT_OPERATOR_REPORT_ROOT", tmp_path / "operator_reports")
+
+    response = guided.process_guided_review_message(
+        "Cassandra, open a ChatGPT 5.5 lane for this Data Room form.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+
+    refs = response["artifact_refs"]["data_room_form_fill_refs"][-1]
+    assert response["reply_text"] == form_fill.EXPECTED_PACKAGE_REPLY
+    assert refs["external_model_invoked"] is False
+    assert refs["confirmed_reference_data_created"] is False
+    assert Path(refs["primary"]["package_path"]).is_file()
+    assert Path(refs["primary"]["prompt_path"]).is_file()
+    assert Path(refs["durable"]["package_path"]).is_file()
+    assert Path(refs["durable"]["prompt_path"]).is_file()
+    assert Path(refs["operator_openable_copy"]["operator_copy_path"]).is_file()
+    assert "My brain for this Data Room lane is ChatGPT 5.5" not in response["reply_text"]
+    assert response["review_session_id"] == start["review_session_id"]
+
+
+def test_live_chatgpt55_command_sends_readiness_only_after_live_call(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-redacted")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+
+    response = guided.process_guided_review_message(
+        "Cassandra, start the ChatGPT 5.5 Data Room brain.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        chatgpt55_provider=_fake_provider(calls),
+    )
+    session = _load_session(response)
+    lane = json.loads((tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json").read_text(encoding="utf-8"))
+
+    assert response["reply_text"] == form_fill.LIVE_CHATGPT55_READINESS_NOTIFICATION
+    assert calls and "tools" not in calls[0]["request_body"]
+    assert session["live_chatgpt55_data_room_lane"]["live_ready"] is True
+    assert session["live_chatgpt55_data_room_lane"]["active"] is True
+    assert lane["live_ready"] is True
+    assert lane["active_review_session_id"] == start["review_session_id"]
+    assert lane["external_action_allowed"] is False
+    assert lane["runtime_mutation_allowed"] is False
+
+
+def test_live_chatgpt55_command_blocks_without_live_wording_when_config_missing(tmp_path, monkeypatch):
+    _start(tmp_path)
+    monkeypatch.delenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+
+    response = guided.process_guided_review_message(
+        "Cassandra, open the ChatGPT 5.5 lane for the Data Room form.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        chatgpt55_provider=_fake_provider([]),
+    )
+    lane = json.loads((tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json").read_text(encoding="utf-8"))
+
+    assert "My brain for this Data Room lane is ChatGPT 5.5" not in response["reply_text"]
+    assert "blocked_provider_disabled" in response["reply_text"]
+    assert lane["live_ready"] is False
+    assert lane["blocked_reason"] == "blocked_provider_disabled"
+
+
+def test_live_chatgpt55_eli5_turn_calls_provider_and_creates_no_answer_record(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-redacted")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+    guided.process_guided_review_message(
+        "Cassandra, start the ChatGPT 5.5 Data Room brain.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        chatgpt55_provider=_fake_provider(calls),
+    )
+
+    response = guided.process_guided_review_message(
+        "eli5",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+        chatgpt55_provider=_fake_provider(calls, intent="eli5", reply="Small version: we are choosing a safe default."),
+    )
+    session = _load_session(response)
+
+    assert response["reply_text"] == "Small version: we are choosing a safe default."
+    assert len(calls) == 2
+    assert session["answer_records"] == []
+    assert session["current_question_id"] == start["current_question_id"]
+
+
+def test_live_chatgpt55_answer_candidate_waits_for_winship_confirmation(tmp_path, monkeypatch):
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-redacted")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+    _start(tmp_path)
+    guided.process_guided_review_message(
+        "Cassandra, start the ChatGPT 5.5 Data Room brain.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        chatgpt55_provider=_fake_provider(calls),
+    )
+
+    candidate = guided.process_guided_review_message(
+        "I think manual approval is the answer.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+        chatgpt55_provider=_fake_provider(
+            calls,
+            intent="answer_candidate",
+            reply="That sounds like a candidate. Should I record this as manual approval only?",
+            answer="Use manual approval only for private payment details.",
+        ),
+    )
+    session = _load_session(candidate)
+
+    assert candidate["reply_text"] == "That sounds like a candidate. Should I record this as manual approval only?"
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["answer_records"] == []
+
+    confirmed = guided.process_guided_review_message(
+        "yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:04:00+00:00",
+        chatgpt55_provider=_fake_provider(calls, reply="This should not be called for confirmation."),
+    )
+    confirmed_session = _load_session(confirmed)
+
+    assert confirmed_session["pending_interaction"] == {}
+    assert len(confirmed_session["answer_records"]) == 1
+    assert confirmed_session["answer_records"][0]["schema_version"] == "REVIEW_ANSWER_V0"
+    assert confirmed_session["answer_records"][0]["answer_source"] == "natural_candidate_confirmed"
+    assert len(calls) == 2
+
+
+def test_live_gemini_command_sends_readiness_only_after_live_call(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+
+    response = guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    session = _load_session(response)
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+
+    assert response["reply_text"] == gemini.GEMINI_FORM_READINESS_NOTIFICATION
+    assert calls and "tools" not in calls[0]["request_body"]
+    assert "toolConfig" not in calls[0]["request_body"]
+    assert calls[0]["request_payload"]["schema_version"] == "GEMINI_MINIMAL_PROVIDER_PROBE_V0"
+    assert calls[0]["request_payload"]["data_room_context_included"] is False
+    assert "responseSchema" not in calls[0]["request_body"]["generationConfig"]
+    assert calls[1]["request_payload"]["schema_version"] == gemini.REQUEST_SCHEMA_VERSION
+    assert session["data_room_gemini_form_session"]["live_ready"] is True
+    assert session["data_room_gemini_form_session"]["active"] is True
+    assert lane["live_ready"] is True
+    assert lane["minimal_probe_attempted"] is True
+    assert lane["minimal_probe_success"] is True
+    assert lane["minimal_probe_raw_data_room_context_included"] is False
+    assert lane["review_session_id"] == start["review_session_id"]
+    assert lane["external_action_allowed"] is False
+    assert lane["runtime_mutation_allowed"] is False
+    assert Path(lane["running_chat_log_ref"]).is_file()
+    assert lane["effective_model_label"] == GEMINI_TEST_MODEL
+    assert lane["model_label_source"] == "OPENCLAW_GEMINI_MODEL"
+
+
+def test_live_gemini_model_mismatch_blocks_notification_before_provider(tmp_path, monkeypatch):
+    _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
+    monkeypatch.setenv("OPENCLAW_GEMINI_FORM_MODEL", "gemini-2.5-flash")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+
+    response = guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+
+    assert response["reply_text"] != gemini.GEMINI_FORM_READINESS_NOTIFICATION
+    assert "blocked_model_label_mismatch" in response["reply_text"]
+    assert calls == []
+    assert lane["live_ready"] is False
+    assert lane["blocked_reason"] == "blocked_model_label_mismatch"
+    assert lane["model_label_mismatch"] is True
+
+
+def test_live_gemini_provider_400_blocks_notification_with_redacted_diagnostics(tmp_path, monkeypatch):
+    _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+
+    def provider(**kwargs):
+        calls.append(kwargs)
+        raise spine.LMConsultError(
+            "blocked_model_label",
+            validation={
+                "provider_status_code": 400,
+                "provider_error_code": "INVALID_ARGUMENT",
+                "provider_error_message_redacted": "models/gemini-3.5-flash is not found for API version v1beta.",
+                "provider_error_category": "model_label",
+                "effective_model_label": GEMINI_TEST_MODEL,
+                "endpoint_family": "gemini_generate_content",
+                "structured_output_enabled": False,
+                "structured_output_mode": "none",
+                "request_shape_version": "GEMINI_MINIMAL_PROBE_V1",
+                "request_body_logged": False,
+                "credential_value_logged": False,
+            },
+        )
+
+    response = guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=provider,
+    )
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+    rendered = json.dumps(lane, sort_keys=True)
+
+    assert response["reply_text"] != gemini.GEMINI_FORM_READINESS_NOTIFICATION
+    assert "blocked_model_label" in response["reply_text"]
+    assert len(calls) == 1
+    assert lane["live_ready"] is False
+    assert lane["blocked_reason"] == "blocked_model_label"
+    assert lane["minimal_probe_attempted"] is True
+    assert lane["minimal_probe_success"] is False
+    assert lane["provider_status_code"] == 400
+    assert lane["provider_error_category"] == "model_label"
+    assert lane["provider_error_code"] == "INVALID_ARGUMENT"
+    assert lane["endpoint_family"] == "gemini_generate_content"
+    assert lane["structured_output_enabled"] is False
+    assert lane["structured_output_mode"] == "none"
+    assert lane["minimal_probe_request_shape_version"] == "GEMINI_MINIMAL_PROBE_V1"
+    assert lane["request_body_logged"] is False
+    assert lane["credential_value_logged"] is False
+    assert "test-redacted" not in rendered
+    assert "responseSchema" not in rendered
+
+
+def test_live_gemini_command_blocks_without_live_wording_when_config_missing(tmp_path, monkeypatch):
+    _start(tmp_path)
+    monkeypatch.delenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", raising=False)
+    monkeypatch.delenv("OPENCLAW_GEMINI_MODEL", raising=False)
+    for name in gemini.GEMINI_CREDENTIAL_ENVS:
+        monkeypatch.delenv(name, raising=False)
+    _patch_gemini_paths(tmp_path, monkeypatch)
+
+    response = guided.process_guided_review_message(
+        "Cassandra, open the Gemini form assistant.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider([]),
+    )
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+
+    assert "My Data Room brain is Gemini Flash" not in response["reply_text"]
+    assert "blocked_provider_disabled" in response["reply_text"]
+    assert lane["live_ready"] is False
+    assert lane["blocked_reason"] == "blocked_provider_disabled"
+
+
+def test_live_gemini_eli5_turn_updates_chat_log_without_recording(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+    guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+
+    response = guided.process_guided_review_message(
+        "eli5",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls, intent="eli5", reply="Small version: choose a safe default."),
+    )
+    session = _load_session(response)
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+    turn_log = Path(lane["running_chat_log_ref"]).read_text(encoding="utf-8").strip().splitlines()
+
+    assert response["reply_text"] == "Small version: choose a safe default."
+    assert len(calls) == 3
+    assert session["answer_records"] == []
+    assert session["current_question_id"] == start["current_question_id"]
+    assert len(turn_log) == 2
+    assert lane["chat_log_summary"] == "Gemini helped with the current Data Room question."
+
+
+def test_live_gemini_answer_candidate_waits_for_winship_confirmation(tmp_path, monkeypatch):
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+    _start(tmp_path)
+    guided.process_guided_review_message(
+        "Cassandra, use Gemini to help me fill this Data Room form.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+
+    candidate = guided.process_guided_review_message(
+        "I think manual approval is the answer.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(
+            calls,
+            intent="answer_candidate",
+            reply="That is a candidate. Should I record manual approval only?",
+            answer="Use manual approval only for private payment details.",
+        ),
+    )
+    session = _load_session(candidate)
+
+    assert candidate["reply_text"] == "That is a candidate. Should I record manual approval only?"
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["answer_records"] == []
+
+    confirmed = guided.process_guided_review_message(
+        "yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:04:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls, reply="This should not be called for confirmation."),
+    )
+    confirmed_session = _load_session(confirmed)
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+    log_entries = [json.loads(line) for line in Path(lane["running_chat_log_ref"]).read_text(encoding="utf-8").splitlines()]
+
+    assert confirmed_session["pending_interaction"] == {}
+    assert len(confirmed_session["answer_records"]) == 1
+    assert confirmed_session["answer_records"][0]["schema_version"] == "REVIEW_ANSWER_V0"
+    assert confirmed_session["answer_records"][0]["answer_source"] == "natural_candidate_confirmed"
+    assert len(calls) == 3
+    assert any(entry.get("confirmed_answer_id") for entry in log_entries)
+
+
+def test_gemini_done_confirmation_creates_codex_finalizer_waiting_for_dispatch(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+    ready = guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    _answer_all_questions(ready, tmp_path)
+
+    done = guided.process_guided_review_message(
+        "done",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:15:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    assert "Do you want Codex to promote the confirmed answers and run hydration?" in done["reply_text"]
+
+    finalized = guided.process_guided_review_message(
+        "yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:16:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    session = _load_session(finalized)
+    gemini_state = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+    package_id = session["data_room_gemini_form_session"]["codex_finalizer_package_ref"]
+    lifecycle_state = codex_lifecycle.load_package_state(package_id, sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite")
+
+    assert start["review_session_id"] in package_id
+    assert "waiting for Codex dispatch" in finalized["reply_text"]
+    assert session["data_room_gemini_form_session"]["codex_finalizer_status"] == "waiting_for_codex_dispatch"
+    assert gemini_state["codex_finalizer_status"] == "waiting_for_codex_dispatch"
+    assert lifecycle_state["state"] == codex_lifecycle.STATE_AWAITING_WORKER_BRIDGE
+    assert lifecycle_state["package_json"]["capability_id"] == gemini.CODEX_FINALIZER_CAPABILITY_ID
+    assert lifecycle_state["package_json"]["hydration_only_after_confirmed_data"] is True
+    assert not list(tmp_path.rglob("*openclaw_confirmed_reference_data_v0.json"))

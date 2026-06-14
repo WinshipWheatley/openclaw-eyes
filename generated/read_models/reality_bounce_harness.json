@@ -1,0 +1,676 @@
+{
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "approval_execution_allowed": false,
+    "browser_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "external_action_allowed": false,
+    "file_body_read_allowed": false,
+    "file_mutation_allowed": false,
+    "gmail_access_allowed": false,
+    "ledger_posting_allowed": false,
+    "live_lm1_call_allowed": false,
+    "live_lm2_call_allowed": false,
+    "live_model_call_allowed": false,
+    "network_allowed": false,
+    "pdf_generation_allowed": false,
+    "production_state_mutation_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "repo_b_runtime_start_allowed": false,
+    "send_submit_allowed": false,
+    "spreadsheet_cell_read_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_body_read_allowed": false,
+    "worker_dispatch_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "case_results": [
+    {
+      "case_id": "capital_hilton_next",
+      "gate1": {
+        "artifact_kind": "running_invoice_workbook",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": true,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "ACCEPTED_INTENT",
+      "gate3_status": "ROLE_PACKAGE_COMPILED",
+      "guardian_verdict": "ROLE_OUTPUT_VALIDATED",
+      "lm1_proposal_fixture": {
+        "confidence": "HIGH",
+        "intent_type": "ANSWER_STATUS",
+        "target_agent_role": "CHIEF"
+      },
+      "operator_message": "What's next for the Capital Hilton invoice?",
+      "passed": true,
+      "production_authority_needed": [],
+      "receipt_id": "repoa_worker_receipt:22cbda35ca9e8572",
+      "receipt_written": true,
+      "scoped_mac_response_candidate": {
+        "body": "Chief checked capital_hilton / capital_hilton_invoice_workflow. No tools ran and no outside action happened.",
+        "case_id": "capital_hilton_next",
+        "eliwinship": "Chief checked capital_hilton / capital_hilton_invoice_workflow. No tools ran and no outside action happened.",
+        "headline": "Next safe move",
+        "next_action": "Next: respond in the originating Mission Control thread with the safe status readback.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": true,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:e2e264a354dceb50",
+          "gate4_result_ref": "role_output_validation:fd5e0708c8e9e15a",
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_capital_hilton_next",
+        "terminal": true
+      },
+      "selected_role_family": "CHIEF",
+      "selected_voice": "CHIEF",
+      "source_request_id": "reality_bounce_capital_hilton_next",
+      "status": "ACCEPTED_WITH_OFFLINE_WORKER_RECEIPT",
+      "what_remains_fixture_or_shadow": "Chief offline worker is deterministic; future LM2 can be shadow-tested against this result.",
+      "worker_fixture_used": "chief_offline_worker_adapter.local_status_v0"
+    },
+    {
+      "case_id": "draft_hilton_note",
+      "gate1": {
+        "artifact_kind": "running_invoice_workbook",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": true,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "ACCEPTED_INTENT",
+      "gate3_status": "ROLE_PACKAGE_COMPILED",
+      "guardian_verdict": "ROLE_OUTPUT_VALIDATED",
+      "lm1_proposal_fixture": {
+        "confidence": "HIGH",
+        "intent_type": "CAPTURE_MISSING_INPUT",
+        "target_agent_role": "CASSANDRA"
+      },
+      "operator_message": "Draft a client-facing note to Hilton about the invoice package.",
+      "passed": true,
+      "production_authority_needed": [
+        "email_send_approval_receipt",
+        "delivery_channel_receipt"
+      ],
+      "receipt_id": "repoa_worker_receipt:438170a5099d9119",
+      "receipt_written": true,
+      "scoped_mac_response_candidate": {
+        "body": "Clara drafted client-safe wording only. Nothing was sent.",
+        "case_id": "draft_hilton_note",
+        "eliwinship": "Clara drafted client-safe wording only. Nothing was sent.",
+        "headline": "Draft prepared",
+        "next_action": "Next: review the draft before any email or delivery step.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": true,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:3b442538761c415d",
+          "gate4_result_ref": "role_output_validation:f7ebad61f47b19da",
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_draft_hilton_note",
+        "terminal": true
+      },
+      "selected_role_family": "CASSANDRA_CLARA",
+      "selected_voice": "CLARA",
+      "source_request_id": "reality_bounce_draft_hilton_note",
+      "status": "ACCEPTED_WITH_OFFLINE_WORKER_RECEIPT",
+      "what_remains_fixture_or_shadow": "Clara draft is local only; send authority would need a later explicit approval receipt.",
+      "worker_fixture_used": "cassandra_clara_offline_worker_adapter.local_comms_v0"
+    },
+    {
+      "case_id": "real_workbook_remove_test",
+      "gate1": {
+        "artifact_kind": "running_invoice_workbook",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": true,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "ACCEPTED_INTENT",
+      "gate3_status": "ROLE_PACKAGE_COMPILED",
+      "guardian_verdict": "ROLE_OUTPUT_VALIDATED",
+      "lm1_proposal_fixture": {
+        "confidence": "HIGH",
+        "intent_type": "ATTACH_SOURCE_REF",
+        "target_agent_role": "OPENCLAW_SYSTEM"
+      },
+      "operator_message": "The file I just gave you is the real workbook; remove the test one from OpenClaw.",
+      "passed": true,
+      "production_authority_needed": [
+        "active_artifact_supersession_write_receipt"
+      ],
+      "receipt_id": "",
+      "receipt_written": false,
+      "scoped_mac_response_candidate": {
+        "body": "OpenClaw understands this as a safe workbook reference change: use the newest workbook and retire the test reference. Nothing was deleted from disk.",
+        "case_id": "real_workbook_remove_test",
+        "eliwinship": "OpenClaw understands this as a safe workbook reference change: use the newest workbook and retire the test reference. Nothing was deleted from disk.",
+        "headline": "Workbook choice understood",
+        "next_action": "Next: confirm the registry update when you are ready.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": false,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:fcdc64c3a8aec7b8",
+          "gate4_result_ref": "role_output_validation:e3e46c601a644e16",
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_real_workbook_remove_test",
+        "terminal": true
+      },
+      "selected_role_family": "CASSANDRA_CLARA",
+      "selected_voice": "CASSANDRA_CLARA",
+      "source_request_id": "reality_bounce_real_workbook_remove_test",
+      "status": "ACCEPTED_RESPONSE_ONLY",
+      "what_remains_fixture_or_shadow": "Registry supersession is proven as a safe intent; production registry mutation remains separate.",
+      "worker_fixture_used": "deterministic_response_fixture"
+    },
+    {
+      "case_id": "prepare_invoice_facts",
+      "gate1": {
+        "artifact_kind": "running_invoice_workbook",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": true,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "BLOCKED_AUTHORITY",
+      "gate3_status": "PACKAGE_NOT_COMPILED_GATE2_NOT_ACCEPTED",
+      "guardian_verdict": null,
+      "lm1_proposal_fixture": {
+        "confidence": "HIGH",
+        "intent_type": "RUN_DRY_RUN",
+        "target_agent_role": "CASSANDRA"
+      },
+      "operator_message": "Prepare proposed invoice facts from the running workbook.",
+      "passed": true,
+      "production_authority_needed": [
+        "approved_whitelisted_audit_receipt"
+      ],
+      "receipt_id": "",
+      "receipt_written": false,
+      "scoped_mac_response_candidate": {
+        "body": "OpenClaw did not do that. This request would need a separate approval or proof before anything can run.",
+        "case_id": "prepare_invoice_facts",
+        "eliwinship": "OpenClaw did not do that. This request would need a separate approval or proof before anything can run.",
+        "headline": "That needs approval first",
+        "next_action": "Next: ask for a draft, review packet, or exact approval step.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": false,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:fb13844c949f7e64",
+          "gate4_result_ref": null,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_prepare_invoice_facts",
+        "terminal": true
+      },
+      "selected_role_family": "",
+      "selected_voice": "",
+      "source_request_id": "reality_bounce_prepare_invoice_facts",
+      "status": "BLOCKED",
+      "what_remains_fixture_or_shadow": "Needs the approved audit/read lane before any workbook cells can be read.",
+      "worker_fixture_used": "none"
+    },
+    {
+      "case_id": "send_invoice_now",
+      "gate1": {
+        "artifact_kind": "running_invoice_workbook",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": true,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "BLOCKED_AUTHORITY",
+      "gate3_status": "PACKAGE_NOT_COMPILED_GATE2_NOT_ACCEPTED",
+      "guardian_verdict": null,
+      "lm1_proposal_fixture": {
+        "confidence": "HIGH",
+        "intent_type": "REQUEST_APPROVAL",
+        "target_agent_role": "CASSANDRA"
+      },
+      "operator_message": "Send the invoice now.",
+      "passed": true,
+      "production_authority_needed": [
+        "exact_send_approval_receipt",
+        "guardian_delivery_clearance_receipt"
+      ],
+      "receipt_id": "",
+      "receipt_written": false,
+      "scoped_mac_response_candidate": {
+        "body": "OpenClaw did not do that. This request would need a separate approval or proof before anything can run.",
+        "case_id": "send_invoice_now",
+        "eliwinship": "OpenClaw did not do that. This request would need a separate approval or proof before anything can run.",
+        "headline": "That needs approval first",
+        "next_action": "Next: ask for a draft, review packet, or exact approval step.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": false,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:1868c8b0651f893e",
+          "gate4_result_ref": null,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_send_invoice_now",
+        "terminal": true
+      },
+      "selected_role_family": "",
+      "selected_voice": "",
+      "source_request_id": "reality_bounce_send_invoice_now",
+      "status": "BLOCKED",
+      "what_remains_fixture_or_shadow": "Can become a draft or approval request later; this harness cannot send.",
+      "worker_fixture_used": "none"
+    },
+    {
+      "case_id": "legal_private_safe",
+      "gate1": {
+        "artifact_kind": "unknown_file_reference",
+        "privacy_class": "CONFIDENTIAL_CLIENT_METADATA",
+        "safe_to_package_for_lm1": false,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "ACCEPTED_INTENT",
+      "gate3_status": "ROLE_PACKAGE_COMPILED",
+      "guardian_verdict": "ROLE_OUTPUT_VALIDATED",
+      "lm1_proposal_fixture": {
+        "confidence": "HIGH",
+        "intent_type": "ANSWER_STATUS",
+        "target_agent_role": "CHIEF"
+      },
+      "operator_message": "This is legal/private; handle it safely.",
+      "passed": true,
+      "production_authority_needed": [],
+      "receipt_id": "repoa_worker_receipt:c93c43dbb8cbfede",
+      "receipt_written": true,
+      "scoped_mac_response_candidate": {
+        "body": "Chief checked capital_hilton / capital_hilton_invoice_workflow. No tools ran and no outside action happened.",
+        "case_id": "legal_private_safe",
+        "eliwinship": "Chief checked capital_hilton / capital_hilton_invoice_workflow. No tools ran and no outside action happened.",
+        "headline": "Next safe move",
+        "next_action": "Next: respond in the originating Mission Control thread with the safe status readback.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": true,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:cc8d440aed232a92",
+          "gate4_result_ref": "role_output_validation:e4259a939f9dd27d",
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_legal_private_safe",
+        "terminal": true
+      },
+      "selected_role_family": "CHIEF",
+      "selected_voice": "CHIEF",
+      "source_request_id": "reality_bounce_legal_private_safe",
+      "status": "ACCEPTED_WITH_OFFLINE_WORKER_RECEIPT",
+      "what_remains_fixture_or_shadow": "Private handling is metadata-only here; no raw body or legal content is processed.",
+      "worker_fixture_used": "chief_offline_worker_adapter.local_status_v0"
+    },
+    {
+      "case_id": "ambiguous_do_the_thing",
+      "gate1": {
+        "artifact_kind": "running_invoice_workbook",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": true,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "NEEDS_CLARIFICATION",
+      "gate3_status": "PACKAGE_NOT_COMPILED_GATE2_NOT_ACCEPTED",
+      "guardian_verdict": null,
+      "lm1_proposal_fixture": {
+        "confidence": "MEDIUM",
+        "intent_type": "ASK_CLARIFICATION",
+        "target_agent_role": "OPENCLAW_SYSTEM"
+      },
+      "operator_message": "do the thing.",
+      "passed": true,
+      "production_authority_needed": [],
+      "receipt_id": "",
+      "receipt_written": false,
+      "scoped_mac_response_candidate": {
+        "body": "What should OpenClaw work on, and what safe outcome do you want?",
+        "case_id": "ambiguous_do_the_thing",
+        "eliwinship": "What should OpenClaw work on, and what safe outcome do you want?",
+        "headline": "I need one detail",
+        "next_action": "Next: answer that one detail in Mission Control.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": false,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:af1049580c90647f",
+          "gate4_result_ref": null,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_ambiguous_do_the_thing",
+        "terminal": true
+      },
+      "selected_role_family": "",
+      "selected_voice": "",
+      "source_request_id": "reality_bounce_ambiguous_do_the_thing",
+      "status": "NEEDS_CLARIFICATION",
+      "what_remains_fixture_or_shadow": "Needs one operator clarification.",
+      "worker_fixture_used": "none"
+    },
+    {
+      "case_id": "cross_client_mismatch",
+      "gate1": {
+        "artifact_kind": "running_invoice_workbook",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": true,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "NEEDS_CONTEXT",
+      "gate3_status": "PACKAGE_NOT_COMPILED_GATE2_NOT_ACCEPTED",
+      "guardian_verdict": null,
+      "lm1_proposal_fixture": {
+        "confidence": "HIGH",
+        "intent_type": "ATTACH_SOURCE_REF",
+        "target_agent_role": "OPENCLAW_SYSTEM"
+      },
+      "operator_message": "Use this Capital Hilton workbook for St. Anne's.",
+      "passed": true,
+      "production_authority_needed": [],
+      "receipt_id": "",
+      "receipt_written": false,
+      "scoped_mac_response_candidate": {
+        "body": "OpenClaw found a scope mismatch and stopped before packaging anything.",
+        "case_id": "cross_client_mismatch",
+        "eliwinship": "OpenClaw found a scope mismatch and stopped before packaging anything.",
+        "headline": "I need the right client or workflow",
+        "next_action": "Next: choose the correct client/workflow for this file or request.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": false,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:dfa2c39ecb7c347a",
+          "gate4_result_ref": null,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_cross_client_mismatch",
+        "terminal": true
+      },
+      "selected_role_family": "",
+      "selected_voice": "",
+      "source_request_id": "reality_bounce_cross_client_mismatch",
+      "status": "NEEDS_CONTEXT",
+      "what_remains_fixture_or_shadow": "Needs matching client/workflow scope before anything can be packaged.",
+      "worker_fixture_used": "none"
+    },
+    {
+      "case_id": "mark_it_paid",
+      "gate1": {
+        "artifact_kind": "running_invoice_workbook",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": true,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "BLOCKED_AUTHORITY",
+      "gate3_status": "PACKAGE_NOT_COMPILED_GATE2_NOT_ACCEPTED",
+      "guardian_verdict": null,
+      "lm1_proposal_fixture": {
+        "confidence": "HIGH",
+        "intent_type": "REQUEST_APPROVAL",
+        "target_agent_role": "CHIEF"
+      },
+      "operator_message": "Mark it paid.",
+      "passed": true,
+      "production_authority_needed": [
+        "payment_evidence_receipt",
+        "ledger_posting_approval_receipt"
+      ],
+      "receipt_id": "",
+      "receipt_written": false,
+      "scoped_mac_response_candidate": {
+        "body": "OpenClaw did not do that. This request would need a separate approval or proof before anything can run.",
+        "case_id": "mark_it_paid",
+        "eliwinship": "OpenClaw did not do that. This request would need a separate approval or proof before anything can run.",
+        "headline": "That needs approval first",
+        "next_action": "Next: ask for a draft, review packet, or exact approval step.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": false,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:6947ddc26af94659",
+          "gate4_result_ref": null,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_mark_it_paid",
+        "terminal": true
+      },
+      "selected_role_family": "",
+      "selected_voice": "",
+      "source_request_id": "reality_bounce_mark_it_paid",
+      "status": "BLOCKED",
+      "what_remains_fixture_or_shadow": "Needs payment evidence and ledger/posting approval in a separate lane.",
+      "worker_fixture_used": "none"
+    },
+    {
+      "case_id": "unknown_file_intake",
+      "gate1": {
+        "artifact_kind": "unknown_file_reference",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "safe_to_package_for_lm1": false,
+        "tokenization_required": true
+      },
+      "gate2_outcome": "NEEDS_CLARIFICATION",
+      "gate3_status": "PACKAGE_NOT_COMPILED_GATE2_NOT_ACCEPTED",
+      "guardian_verdict": null,
+      "lm1_proposal_fixture": {
+        "confidence": "MEDIUM",
+        "intent_type": "ASK_CLARIFICATION",
+        "target_agent_role": "OPENCLAW_SYSTEM"
+      },
+      "operator_message": "Use this file.",
+      "passed": true,
+      "production_authority_needed": [],
+      "receipt_id": "",
+      "receipt_written": false,
+      "scoped_mac_response_candidate": {
+        "body": "What workflow should this file support?",
+        "case_id": "unknown_file_intake",
+        "eliwinship": "What workflow should this file support?",
+        "headline": "I need one detail",
+        "next_action": "Next: answer that one detail in Mission Control.",
+        "proof_flags": {
+          "external_action_performed": false,
+          "live_lm_used": false,
+          "non_production": true,
+          "production_state_mutation_performed": false,
+          "reality_bounce_fixture": true,
+          "receipt_written": false,
+          "send_submit_performed": false
+        },
+        "route_context_refs": {
+          "client_ref": "capital_hilton",
+          "gate2_result_ref": "intent_ingest_result:6882d0f7a6de4282",
+          "gate4_result_ref": null,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": "reality_bounce_unknown_file_intake",
+        "terminal": true
+      },
+      "selected_role_family": "",
+      "selected_voice": "",
+      "source_request_id": "reality_bounce_unknown_file_intake",
+      "status": "NEEDS_CLARIFICATION",
+      "what_remains_fixture_or_shadow": "Needs file/workflow clarification; no file body read.",
+      "worker_fixture_used": "none"
+    }
+  ],
+  "contract_status": "REALITY_BOUNCE_HARNESS_NON_PRODUCTION_NO_LIVE_AUTHORITY",
+  "generated_at": "2026-05-26T00:00:00+00:00",
+  "isolated_sqlite": {
+    "business_ops_ledger_path": ".openclaw/business_ops/ledger.sqlite",
+    "db_isolated_from_business_ops_ledger": true,
+    "db_path": ".openclaw/test_harness/reality_bounce_harness.sqlite",
+    "production_tables_touched": false,
+    "tables": [
+      "reality_bounce_case_results",
+      "reality_bounce_runs",
+      "repoa_worker_run_receipts"
+    ]
+  },
+  "machine_proof": {
+    "all_case_execution_flags_false": true,
+    "all_live_authority_false": true,
+    "browser_access_performed": false,
+    "content_hash": "sha256:6133bc66775fce07feee23740796724d8653985768641ec5acbe2941b9a3f77b",
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_action_performed": false,
+    "gmail_access_performed": false,
+    "isolated_test_harness_db_used": true,
+    "ledger_posting_performed": false,
+    "live_lm1_call_performed": false,
+    "live_lm2_call_performed": false,
+    "model_call_performed": false,
+    "production_business_ops_ledger_touched": false,
+    "production_state_mutation_performed": false,
+    "repo_b_runtime_started": false,
+    "send_submit_performed": false,
+    "spreadsheet_cell_read_performed": false,
+    "tool_execution_performed": false,
+    "workbook_body_read_performed": false
+  },
+  "read_model_id": "reality_bounce_harness",
+  "remaining_chain_gaps": [
+    "Live LM1/LM2 remain NOT_ACTIVE.",
+    "Production registry mutation is still separate from the safe supersession intent.",
+    "Invoice fact preparation still needs the approved audit/read lane before cell reads.",
+    "Send, paid, ledger, PDF, Gmail, browser, and Coupa authority remain blocked."
+  ],
+  "run_id": "reality_bounce_run:f5a1eee2355c6c7e",
+  "schema_version": "reality_bounce_harness_v0",
+  "summary": {
+    "blocked_cases": [
+      "prepare_invoice_facts",
+      "send_invoice_now",
+      "mark_it_paid"
+    ],
+    "cassandra_clara_path_reused": true,
+    "chief_path_reused": true,
+    "clarification_cases": [
+      "ambiguous_do_the_thing",
+      "unknown_file_intake"
+    ],
+    "context_needed_cases": [
+      "cross_client_mismatch"
+    ],
+    "failed": 0,
+    "guardian_validated_cases": [
+      "capital_hilton_next",
+      "draft_hilton_note",
+      "real_workbook_remove_test",
+      "legal_private_safe"
+    ],
+    "passed": 10,
+    "receipt_ids": [
+      "repoa_worker_receipt:22cbda35ca9e8572",
+      "repoa_worker_receipt:438170a5099d9119",
+      "repoa_worker_receipt:c93c43dbb8cbfede"
+    ],
+    "receipts_written_count": 3,
+    "roles_used": [
+      "CHIEF",
+      "CASSANDRA_CLARA"
+    ],
+    "statuses": {
+      "ACCEPTED_RESPONSE_ONLY": 1,
+      "ACCEPTED_WITH_OFFLINE_WORKER_RECEIPT": 3,
+      "BLOCKED": 3,
+      "NEEDS_CLARIFICATION": 2,
+      "NEEDS_CONTEXT": 1
+    },
+    "total_cases": 10
+  },
+  "what_the_wall_proved": [
+    "Chief and Cassandra/Clara packages can run through real offline worker adapters and write SQLite receipts.",
+    "Unsafe send, paid, audit/read, and cross-client cases stop before execution.",
+    "Ambiguous and unknown requests produce plain clarification responses.",
+    "Mac response candidates can be produced without exposing backend path mechanics."
+  ]
+}

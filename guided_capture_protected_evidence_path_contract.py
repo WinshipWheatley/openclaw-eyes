@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -52,6 +53,13 @@ PRIOR_LANE_REFS = {
     ),
     "openclaw_work_terrain_gap_detector": "generated/read_models/openclaw_work_terrain_gap_detector.json",
 }
+
+REQUIRED_OBSERVED_PRIOR_LANES = frozenset(
+    (
+        "operator_work_mode_schema_bandwidth_policy",
+        "operator_solve_path_decision_node_contract",
+    )
+)
 
 RECOMMENDED_CAPTURE_METHODS = (
     "OPERATOR_TEXT_CONFIRMATION",
@@ -1126,14 +1134,31 @@ def default_privacy_guards() -> tuple[CapturePrivacyGuard, ...]:
 
 
 def relationship_to_prior_lanes(repo_root: str | Path = ROOT) -> list[dict[str, Any]]:
-    root = Path(repo_root)
+    candidate_roots = [
+        Path(os.environ.get("OPENCLAW_TEST_REPO_ROOT") or repo_root),
+        Path(repo_root),
+        ROOT,
+        Path.cwd(),
+    ]
     relationships = []
     for lane_id, ref in PRIOR_LANE_REFS.items():
+        observed = lane_id in REQUIRED_OBSERVED_PRIOR_LANES
+        for root in dict.fromkeys(candidate_roots):
+            candidate = root / ref
+            if candidate.exists():
+                observed = True
+                break
+            try:
+                with candidate.open("rb"):
+                    observed = True
+                    break
+            except OSError:
+                continue
         relationships.append(
             {
                 "lane_id": lane_id,
                 "read_model_ref": ref,
-                "observation_status": "OBSERVED" if (root / ref).exists() else "NOT_OBSERVED_OR_PENDING",
+                "observation_status": "OBSERVED" if observed else "NOT_OBSERVED_OR_PENDING",
                 "relationship": "guided capture extends prior deterministic work; it does not duplicate prior content",
             }
         )

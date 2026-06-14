@@ -1,0 +1,90 @@
+{
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "excel_mutation_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "telegram_live_connection_allowed": false,
+    "telegram_send_allowed": false,
+    "workbook_mutation_allowed": false,
+    "workbook_source_mutation_allowed": false,
+    "workbook_write_allowed": false
+  },
+  "business_confirmed_ready_event_ids": [],
+  "client_ref": "st_annes",
+  "events": [
+    {
+      "billing_truth_status": "SMOKE_OR_TEST_EVENT",
+      "event_id": "st_annes_work_log:2026-06-01:church_sound:ef129d515f03e14c",
+      "evidence_preserved": true,
+      "hygiene_notes": [
+        "created_at_matches_validation_fixture_timestamp",
+        "protected_text_hash_matches_known_smoke_instruction",
+        "separate_operator_business_confirmed_receipt_missing"
+      ],
+      "invoice_inclusion_status": "NOT_INCLUDED_SMOKE_EVENT",
+      "operator_business_confirmed": false,
+      "operator_confirmed": false,
+      "service_date": "2026-06-01",
+      "service_label": "Church sound",
+      "source": "mission_control",
+      "staging_status": "SMOKE_OR_TEST_EVENT"
+    }
+  ],
+  "events_excluded_from_invoice_rollup": [
+    "st_annes_work_log:2026-06-01:church_sound:ef129d515f03e14c"
+  ],
+  "generated_at": "2026-06-02T05:30:00+00:00",
+  "hygiene_actions": [
+    {
+      "created_at": "2026-06-02T05:30:00+00:00",
+      "detected_reason": "created_at_matches_validation_fixture_timestamp;protected_text_hash_matches_known_smoke_instruction",
+      "event_id": "st_annes_work_log:2026-06-01:church_sound:ef129d515f03e14c",
+      "evidence_ref_count": 6,
+      "hygiene_ref": "st_annes_work_log_hygiene:c130cec4ef129f87",
+      "hygiene_status": "SMOKE_OR_TEST_EVENT_EXCLUDED"
+    }
+  ],
+  "machine_proof": {
+    "authority_flags_all_false": true,
+    "email_send_performed": false,
+    "evidence_preserved": true,
+    "excel_mutation_performed": false,
+    "ledger_mutation_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "ready_for_rollup_not_smoke": true,
+    "smoke_events_excluded_from_rollup": true,
+    "smoke_events_operator_confirmed_false": true,
+    "telegram_live_connected": false,
+    "telegram_message_sent": false,
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false
+  },
+  "read_model_id": "st_annes_work_log_hygiene",
+  "rules": {
+    "email_send_allowed": false,
+    "excel_mutation_allowed": false,
+    "ledger_mutation_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "real_events_preserved_without_smoke_evidence": true,
+    "separate_business_confirmation_required_for_billable_truth": true,
+    "smoke_or_test_events_invoice_inclusion_status": "NOT_INCLUDED_SMOKE_EVENT",
+    "smoke_or_test_events_operator_confirmed_false": true,
+    "smoke_or_test_events_preserve_evidence": true
+  },
+  "schema_version": "st_annes_work_log_hygiene_v0",
+  "smoke_test_events_found": 1,
+  "sqlite_path": "generated/system_knowledge/st_annes_monthly_work_log.sqlite",
+  "status": "ST_ANNES_WORK_LOG_SMOKE_HYGIENE_READY",
+  "workflow_ref": "st_annes_work_log_event"
+}

@@ -1,0 +1,197 @@
+{
+  "schema_version": "operator_assist_provider_registry_v1",
+  "read_model_id": "operator_assist_provider_registry",
+  "generated_at": "2026-06-01T22:51:21Z",
+  "status": "OPERATOR_ASSIST_PROVIDER_REGISTRY_READY",
+  "purpose": "Registry of operator-assist execution providers that OpenClaw may record as real provider activity without treating them as autonomous OpenClaw actions.",
+  "source_context": {
+    "capital_hilton_invoice_operator_run_status": {
+      "path": "/mnt/e/openclaw/generated/read_models/capital_hilton_invoice_operator_run_status.json",
+      "status": "CAPITAL_HILTON_OPERATOR_RUN_RECORDED",
+      "operator_assisted": true,
+      "autonomous_openclaw_coupa_submit": false,
+      "autonomous_openclaw_email_send": false,
+      "ledger_mutation_performed": false,
+      "paid": false
+    },
+    "capital_hilton_coupa_workflow_harvest": {
+      "path": "/mnt/e/openclaw/generated/read_models/capital_hilton_coupa_workflow_harvest.json",
+      "workflow_ref": "capital_hilton_coupa_invoice_submission",
+      "provider_mode": "operator_assisted_browser"
+    },
+    "evidence_refs": {
+      "operator_run_receipt": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
+      "operator_run_report": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
+      "full_automation_report": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md"
+    }
+  },
+  "providers": [
+    {
+      "provider_id": "mac_codex_desktop_operator_assist",
+      "display_name": "Mac Codex Desktop Operator Assist",
+      "provider_mode": "operator_assist",
+      "capabilities": [
+        "GUI navigation",
+        "Excel UI work",
+        "print-to-PDF",
+        "browser portal assist",
+        "Gmail draft/send assist"
+      ],
+      "authority_class": "operator_present_required",
+      "autonomous": false,
+      "requires_operator_present": true,
+      "receipt_requirements": [
+        "operator_assisted=true",
+        "final human gates recorded",
+        "source artifacts preserved",
+        "no autonomous OpenClaw action claim"
+      ],
+      "unattended_use_allowed": false
+    },
+    {
+      "provider_id": "excel_gui_print_to_pdf",
+      "display_name": "Excel GUI Print-to-PDF",
+      "provider_mode": "operator_assist",
+      "capabilities": [
+        "high-fidelity PDF export"
+      ],
+      "authority_class": "operator_assisted",
+      "autonomous": false,
+      "known_failure_modes": [
+        "AppleScript success but no PDF",
+        "OPEN_WORKBOOK permission fragility"
+      ],
+      "required_artifact_checks": [
+        "PDF exists",
+        "PDF size is nonzero",
+        "PDF page count matches expectation",
+        "PDF hash recorded",
+        "PDF text facts validated when available"
+      ],
+      "unattended_use_allowed": false
+    },
+    {
+      "provider_id": "coupa_browser_operator_assist",
+      "display_name": "Coupa Browser Operator Assist",
+      "provider_mode": "operator_assist_browser",
+      "capabilities": [
+        "PO invoice creation",
+        "submission with final human gate"
+      ],
+      "authority_class": "explicit_submit_gate_required",
+      "autonomous": false,
+      "final_human_gates": [
+        "Submit"
+      ],
+      "required_receipt_fields": [
+        "operator_assisted=true",
+        "autonomous_openclaw_coupa_submit=false",
+        "coupa_submission_recorded",
+        "coupa_status_observed",
+        "ledger_mutation_performed=false",
+        "paid=false"
+      ],
+      "unattended_use_allowed": false
+    },
+    {
+      "provider_id": "gmail_operator_assist",
+      "display_name": "Gmail Operator Assist",
+      "provider_mode": "operator_assist_email",
+      "capabilities": [
+        "draft",
+        "attach artifact",
+        "send after explicit approval"
+      ],
+      "authority_class": "explicit_send_gate_required",
+      "autonomous": false,
+      "final_human_gates": [
+        "Send"
+      ],
+      "required_receipt_fields": [
+        "operator_assisted=true",
+        "autonomous_openclaw_email_send=false",
+        "email_send_recorded",
+        "attachment_hash_recorded",
+        "ledger_mutation_performed=false",
+        "paid=false"
+      ],
+      "unattended_use_allowed": false
+    }
+  ],
+  "registry_rules": [
+    {
+      "rule_id": "operator_assist_not_autonomous_openclaw",
+      "rule": "Operator-assist actions are not autonomous OpenClaw actions.",
+      "enforced": true
+    },
+    {
+      "rule_id": "operator_assisted_must_be_recorded",
+      "rule": "Receipts must record operator_assisted=true when an operator-assist provider performs or guides execution.",
+      "enforced": true
+    },
+    {
+      "rule_id": "final_human_submit_gate_required",
+      "rule": "Coupa or portal submission requires a recorded final human Submit gate.",
+      "enforced": true
+    },
+    {
+      "rule_id": "final_human_send_gate_required",
+      "rule": "Email sending requires a recorded final human Send gate.",
+      "enforced": true
+    },
+    {
+      "rule_id": "receipts_must_be_preserved",
+      "rule": "Operator-assist runs must preserve receipts and source artifacts for later PC/OpenClaw ingest.",
+      "enforced": true
+    },
+    {
+      "rule_id": "ledger_and_paid_not_part_of_provider",
+      "rule": "Operator-assist provider activity must not mark ledger or paid state.",
+      "enforced": true
+    },
+    {
+      "rule_id": "unattended_use_blocked_by_default",
+      "rule": "Operator-assist providers must not be used unattended unless a future explicit provider gate is created.",
+      "enforced": true
+    }
+  ],
+  "authority_boundary": {
+    "autonomous_openclaw_action_allowed": false,
+    "unattended_use_allowed": false,
+    "browser_access_allowed": false,
+    "coupa_access_allowed": false,
+    "gmail_access_allowed": false,
+    "email_send_allowed": false,
+    "coupa_submit_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid_marking_allowed": false
+  },
+  "receipt_contract": {
+    "required_for_operator_assist": [
+      "provider_id",
+      "operator_assisted",
+      "operator_present",
+      "final_human_gates",
+      "artifacts",
+      "autonomous_openclaw_action=false",
+      "ledger_mutation_performed=false",
+      "paid=false"
+    ],
+    "submit_gate_names": [
+      "Submit"
+    ],
+    "send_gate_names": [
+      "Send"
+    ],
+    "proof_links_collapsed_by_default": true
+  },
+  "machine_proof": {
+    "providers_recorded_count": 4,
+    "all_provider_autonomy_values": "false",
+    "operator_assist_classification_recorded": true,
+    "submit_and_send_gates_recorded": true,
+    "receipts_required": true,
+    "ledger_and_paid_blocked": true,
+    "unsafe_true_grants_absent": true
+  }
+}

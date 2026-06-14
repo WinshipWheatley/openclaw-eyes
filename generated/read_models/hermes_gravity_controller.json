@@ -1,0 +1,441 @@
+{
+  "authority_boundary": {
+    "agent_activation_performed": false,
+    "approval_submission_performed": false,
+    "device_credential_handoff_performed": false,
+    "device_network_access_performed": false,
+    "email_polling_performed": false,
+    "invoice_generation_performed": false,
+    "ledger_mutation_performed": false,
+    "live_model_execution_performed": false,
+    "location_polling_performed": false,
+    "model_call_performed": false,
+    "network_access_performed": false,
+    "phone_sensor_access_performed": false,
+    "production_mutation_performed": false,
+    "runtime_activation_performed": false,
+    "tool_execution_performed": false,
+    "workbook_cell_read_performed": false
+  },
+  "charter_lookup": {
+    "charter_count": 6,
+    "module_count": 6,
+    "modules": [
+      "client_comms",
+      "gig_manager",
+      "gig_outfit",
+      "invoice_manager",
+      "phone_location_proof",
+      "washer_dryer_integration"
+    ],
+    "references": [
+      "generated/read_models/purpose_bound_automation_charter.json",
+      "generated/read_models/workflow_operating_mode_policy.json"
+    ],
+    "workflow_count": 6,
+    "workflows": [
+      "client_comms_workflow",
+      "gig_manager_workflow",
+      "gig_outfit_workflow",
+      "invoice_manager_workflow",
+      "phone_location_proof_workflow",
+      "washer_dryer_workflow"
+    ]
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_PURPOSE_BOUND_GRAVITY_CONTROLLER",
+  "deadline_local": "2026-05-28T16:00:00-04:00",
+  "example_decisions": [
+    {
+      "allowed_default_on": true,
+      "deadline_local": "2026-05-28T16:00:00-04:00",
+      "do_not_spend_time_on": [
+        "new dashboards",
+        "bigger architecture changes",
+        "unbounded polling"
+      ],
+      "gravity_status": "PURPOSE_BOUND_OK",
+      "manual_fallback_required_by": null,
+      "not_allowed_reasons": [
+        "None"
+      ],
+      "operator_summary": "charter_gig_manager_v0: status=PURPOSE_BOUND_OK. Decision rationale: meets current scope checks. Reason codes: none.",
+      "proof_refs": [
+        "generated/read_models/purpose_bound_automation_charter.json"
+      ],
+      "reason_codes": [],
+      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "required_operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "required_receipts": [
+        "gig_window_approval_receipt",
+        "location_proof_receipt",
+        "mileage_proof_receipt",
+        "gig_manager_charter_receipt"
+      ],
+      "required_scope_limits": [
+        "module_or_workflow_match",
+        "access_class=WINSHIP_DEVELOPER"
+      ],
+      "safer_alternative": "",
+      "time_constraint_status": "NO_URGENCY"
+    },
+    {
+      "allowed_default_on": true,
+      "deadline_local": "2026-05-28T16:00:00-04:00",
+      "do_not_spend_time_on": [
+        "new dashboards",
+        "bigger architecture changes",
+        "unbounded polling"
+      ],
+      "gravity_status": "SURVEILLANCE_RISK",
+      "manual_fallback_required_by": null,
+      "not_allowed_reasons": [
+        "Raw continuous location is not permitted.",
+        "Location work outside declared window is blocked.",
+        "Only declared charter actions are allowed."
+      ],
+      "operator_summary": "charter_gig_manager_v0: status=SURVEILLANCE_RISK. Decision rationale: Continuous or background location tracking is disallowed by default.; Location work must be constrained to the gig event window.; Action is not declared in this charter.. Reason codes: CONTINUOUS_LOCATION_TRACKING, LOCATION_WINDOW_MUST_BE_DECLARED, UNDECLARED_ACTION.",
+      "proof_refs": [
+        "generated/read_models/purpose_bound_automation_charter.json"
+      ],
+      "reason_codes": [
+        "CONTINUOUS_LOCATION_TRACKING",
+        "LOCATION_WINDOW_MUST_BE_DECLARED",
+        "UNDECLARED_ACTION"
+      ],
+      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "required_operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "required_receipts": [
+        "gig_window_approval_receipt",
+        "location_proof_receipt",
+        "mileage_proof_receipt",
+        "gig_manager_charter_receipt",
+        "gig_manager_review_receipt"
+      ],
+      "required_scope_limits": [
+        "module_or_workflow_match",
+        "access_class=WINSHIP_DEVELOPER",
+        "event_window_required",
+        "raw_data_minimization_required",
+        "declared_gig_window_required",
+        "action_declared_in_charter",
+        "operator_in_loop_required"
+      ],
+      "safer_alternative": "Use an event-window location request only during the declared gig/proof window and do not retain raw GPS outside that window.",
+      "time_constraint_status": "NO_URGENCY"
+    },
+    {
+      "allowed_default_on": true,
+      "deadline_local": "2026-05-28T16:00:00-04:00",
+      "do_not_spend_time_on": [
+        "new dashboards",
+        "bigger architecture changes",
+        "unbounded polling"
+      ],
+      "gravity_status": "PURPOSE_BOUND_OK",
+      "manual_fallback_required_by": null,
+      "not_allowed_reasons": [
+        "None"
+      ],
+      "operator_summary": "charter_gig_outfit_laundry_v0: status=PURPOSE_BOUND_OK. Decision rationale: meets current scope checks. Reason codes: none.",
+      "proof_refs": [
+        "generated/read_models/purpose_bound_automation_charter.json"
+      ],
+      "reason_codes": [],
+      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "required_operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "required_receipts": [
+        "outfit_prep_ready_receipt",
+        "washer_dryer_state_receipt",
+        "task_completion_receipt",
+        "gig_outfit_charter_receipt"
+      ],
+      "required_scope_limits": [
+        "module_or_workflow_match",
+        "access_class=WINSHIP_DEVELOPER"
+      ],
+      "safer_alternative": "",
+      "time_constraint_status": "NO_URGENCY"
+    },
+    {
+      "allowed_default_on": true,
+      "deadline_local": "2026-05-28T16:00:00-04:00",
+      "do_not_spend_time_on": [
+        "new dashboards",
+        "bigger architecture changes",
+        "unbounded polling"
+      ],
+      "gravity_status": "CUSTOMER_SAFE",
+      "manual_fallback_required_by": null,
+      "not_allowed_reasons": [
+        "None"
+      ],
+      "operator_summary": "This module watches only the approved Clara-owned threads and asks for approval before sending. Pause Turn off Inspect.",
+      "proof_refs": [
+        "generated/read_models/purpose_bound_automation_charter.json"
+      ],
+      "reason_codes": [],
+      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "required_operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "required_receipts": [
+        "thread_watch_receipt",
+        "guardian_approval_receipt",
+        "send_readiness_receipt",
+        "client_comms_charter_receipt"
+      ],
+      "required_scope_limits": [
+        "module_or_workflow_match",
+        "access_class=CUSTOMER_OPERATOR"
+      ],
+      "safer_alternative": "",
+      "time_constraint_status": "NO_URGENCY"
+    },
+    {
+      "allowed_default_on": true,
+      "deadline_local": "2026-05-28T16:00:00-04:00",
+      "do_not_spend_time_on": [
+        "new dashboards",
+        "bigger architecture changes",
+        "unbounded polling"
+      ],
+      "gravity_status": "NEEDS_NARROWING",
+      "manual_fallback_required_by": null,
+      "not_allowed_reasons": [
+        "General inbox watching is blocked.",
+        "Only declared charter actions are allowed."
+      ],
+      "operator_summary": "charter_client_comms_clara_v0: status=NEEDS_NARROWING. Decision rationale: Email reads must be restricted to Clara-owned threads.; Action is not declared in this charter.. Reason codes: UNOWNED_EMAIL_SURVEILLANCE, UNDECLARED_ACTION.",
+      "proof_refs": [
+        "generated/read_models/purpose_bound_automation_charter.json"
+      ],
+      "reason_codes": [
+        "UNOWNED_EMAIL_SURVEILLANCE",
+        "UNDECLARED_ACTION"
+      ],
+      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "required_operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "required_receipts": [
+        "thread_watch_receipt",
+        "guardian_approval_receipt",
+        "send_readiness_receipt",
+        "client_comms_charter_receipt",
+        "client_comms_review_receipt"
+      ],
+      "required_scope_limits": [
+        "module_or_workflow_match",
+        "access_class=WINSHIP_DEVELOPER",
+        "thread_scope_required",
+        "clara_owned_filter_required",
+        "action_declared_in_charter"
+      ],
+      "safer_alternative": "Declare the action in a module purpose charter and require explicit receipts.",
+      "time_constraint_status": "NO_URGENCY"
+    },
+    {
+      "allowed_default_on": false,
+      "deadline_local": "2026-05-28T16:00:00-04:00",
+      "do_not_spend_time_on": [
+        "new dashboards",
+        "bigger architecture changes",
+        "unbounded polling"
+      ],
+      "gravity_status": "NEEDS_OPERATOR_OPT_IN",
+      "manual_fallback_required_by": null,
+      "not_allowed_reasons": [
+        "No location purpose specified.",
+        "No declared proof window supplied.",
+        "Raw retention policy must be explicit and minimized."
+      ],
+      "operator_summary": "charter_phone_location_proof_v0: status=NEEDS_OPERATOR_OPT_IN. Decision rationale: Purpose must be explicit for phone location proof.; Phone proof requests require a declared window.; Raw location retention policy must be minimized.. Reason codes: MISSING_LOCATION_PURPOSE, MISSING_LOCATION_WINDOW, MISSING_RAW_RETENTION_CONTROL.",
+      "proof_refs": [
+        "generated/read_models/purpose_bound_automation_charter.json"
+      ],
+      "reason_codes": [
+        "MISSING_LOCATION_PURPOSE",
+        "MISSING_LOCATION_WINDOW",
+        "MISSING_RAW_RETENTION_CONTROL"
+      ],
+      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "required_operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "required_receipts": [
+        "location_purpose_receipt",
+        "location_window_receipt",
+        "location_retention_receipt",
+        "phone_location_proof_charter_receipt",
+        "phone_location_proof_review_receipt"
+      ],
+      "required_scope_limits": [
+        "module_or_workflow_match",
+        "access_class=WINSHIP_DEVELOPER",
+        "location_purpose_required",
+        "location_window_required",
+        "raw_data_minimization_required"
+      ],
+      "safer_alternative": "Require explicit purpose, event window, and raw retention minimization approvals.",
+      "time_constraint_status": "NO_URGENCY"
+    },
+    {
+      "allowed_default_on": false,
+      "deadline_local": "2026-05-28T16:00:00-04:00",
+      "do_not_spend_time_on": [
+        "new dashboards",
+        "bigger architecture changes",
+        "unbounded polling"
+      ],
+      "gravity_status": "NEEDS_OPERATOR_OPT_IN",
+      "manual_fallback_required_by": null,
+      "not_allowed_reasons": [
+        "Unapproved integration path blocked."
+      ],
+      "operator_summary": "charter_washer_dryer_integration_v0: status=NEEDS_OPERATOR_OPT_IN. Decision rationale: Only approved integration channels are allowed.. Reason codes: UNAPPROVED_INTEGRATION_PATH.",
+      "proof_refs": [
+        "generated/read_models/purpose_bound_automation_charter.json"
+      ],
+      "reason_codes": [
+        "UNAPPROVED_INTEGRATION_PATH"
+      ],
+      "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+      "required_operator_controls": [
+        "pause",
+        "revoke",
+        "inspect"
+      ],
+      "required_receipts": [
+        "integration_authorization_receipt",
+        "device_read_permission_receipt",
+        "workflow_scope_receipt",
+        "approved_integration_receipt",
+        "washer_dryer_integration_charter_receipt",
+        "washer_dryer_integration_review_receipt"
+      ],
+      "required_scope_limits": [
+        "module_or_workflow_match",
+        "access_class=WINSHIP_DEVELOPER",
+        "integration_whitelist_required"
+      ],
+      "safer_alternative": "Use only official integration paths and keep device reads behind an approval receipt.",
+      "time_constraint_status": "NO_URGENCY"
+    }
+  ],
+  "generated_at": "2026-05-28T12:00:00+00:00",
+  "gravity_statuses": [
+    "PURPOSE_BOUND_OK",
+    "NEEDS_NARROWING",
+    "NEEDS_OPERATOR_OPT_IN",
+    "SURVEILLANCE_RISK",
+    "BLOCKED_NO_CLEAR_PURPOSE",
+    "CUSTOMER_SAFE",
+    "DEVELOPER_ONLY"
+  ],
+  "machine_proof": {
+    "all_authority_flags_false": true,
+    "content_hash": "sha256:6c7380cda601f003020d05475b67aabea6625967b454fdf266df1682baf92416",
+    "example_count": 7,
+    "read_model_only": true,
+    "samples_total": 6,
+    "time_constraint_status": "NO_URGENCY"
+  },
+  "operator_summary": {
+    "customer_view": "Hermes shows module purpose and controls for approved scopes only.",
+    "developer_view": "Hermes evaluates purpose-bound capability proposals and returns narrowness, risks, and receipts."
+  },
+  "proof_refs": [
+    "generated/read_models/purpose_bound_automation_charter.json",
+    "generated/read_models/workflow_operating_mode_policy.json",
+    "generated/read_models/operator_work_mode_schema_bandwidth_policy.json"
+  ],
+  "read_model_id": "hermes_gravity_controller",
+  "required_decision_fields": [
+    "gravity_status",
+    "operator_summary",
+    "reason_codes",
+    "required_scope_limits",
+    "required_receipts",
+    "required_operator_controls",
+    "allowed_default_on",
+    "not_allowed_reasons",
+    "safer_alternative",
+    "proof_refs",
+    "time_constraint_status",
+    "deadline_local",
+    "manual_fallback_required_by",
+    "recommended_steel_thread",
+    "do_not_spend_time_on"
+  ],
+  "required_model_fields": [
+    "charter_ref",
+    "module_ref",
+    "workflow_ref",
+    "world_ref",
+    "purpose",
+    "desired_outcomes",
+    "operator_value",
+    "default_enabled",
+    "activation_condition",
+    "observation_window",
+    "observation_trigger",
+    "data_sources_allowed",
+    "sensors_allowed",
+    "raw_data_allowed",
+    "data_minimization_required",
+    "raw_data_retention",
+    "derived_proof_retention",
+    "proof_receipts",
+    "automatic_actions_allowed",
+    "approval_required_actions",
+    "forbidden_actions",
+    "forbidden_inferences",
+    "creep_boundary",
+    "operator_controls",
+    "pause_path",
+    "revoke_path",
+    "inspect_path",
+    "customer_visible_summary",
+    "developer_visible_summary",
+    "risk_level",
+    "privacy_class",
+    "access_class_allowed",
+    "channel_support"
+  ],
+  "schema_version": "hermes_gravity_controller_v0",
+  "time_constraint": {
+    "deadline_local": "2026-05-28T16:00:00-04:00",
+    "do_not_spend_time_on": [
+      "new dashboards",
+      "bigger architecture changes",
+      "unbounded polling"
+    ],
+    "manual_fallback_required_by": null,
+    "recommended_steel_thread": "Use on/off scoped controls and a tiny safe default with explicit receipts.",
+    "status": "NO_URGENCY"
+  },
+  "time_constraint_statuses": [
+    "NO_URGENCY",
+    "PRESSURE",
+    "URGENT",
+    "EXPIRED"
+  ]
+}

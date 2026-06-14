@@ -1,0 +1,374 @@
+{
+  "access_class": "WINSHIP_DEVELOPER",
+  "authority_boundary": {
+    "approval_execution_allowed": false,
+    "coupa_browser_allowed": false,
+    "email_send_allowed": false,
+    "gmail_draft_creation_allowed": false,
+    "gmail_polling_allowed": false,
+    "invoice_generation_allowed": false,
+    "ledger_mutation_allowed": false,
+    "live_model_call_allowed": false,
+    "production_mutation_allowed": false,
+    "repo_b_runtime_start_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_cell_read_allowed": false
+  },
+  "automation_ready_status": "NOT_SEND_READY",
+  "client_ref": "live_arts_md",
+  "contract_status": "READINESS_SENTINEL_NO_EXECUTION",
+  "critical_path": [
+    {
+      "required_receipt": "live_arts_md_invoice_candidate_selected_receipt",
+      "status": "BLOCKING",
+      "step_ref": "critical_path:choose_invoice_candidate",
+      "target": "Pick 2026-1001 Speaker Rental or 2026-1002 AV Tech for today's send.",
+      "title": "Choose invoice candidate"
+    },
+    {
+      "required_receipt": "invoice_attachment_confirmed_receipt",
+      "status": "BLOCKING",
+      "step_ref": "critical_path:artifact_attachment",
+      "target": "Export/link the correct invoice artifact and confirm attachment readiness.",
+      "title": "Get invoice artifact/attachment right"
+    },
+    {
+      "required_receipt": "recipient_confirmation_receipt",
+      "status": "BLOCKING",
+      "step_ref": "critical_path:recipients",
+      "target": "Confirm Dane as To, Draper/Earnie/Winship as CC, and provide missing emails.",
+      "title": "Confirm recipients"
+    },
+    {
+      "required_receipt": "clara_email_draft_receipt",
+      "status": "BLOCKED_BY_ARTIFACT_AND_RECIPIENTS",
+      "step_ref": "critical_path:clara_email",
+      "target": "Convert the target blueprint into the exact approval-ready client email after prerequisites exist.",
+      "title": "Finalize Clara email package"
+    },
+    {
+      "required_receipt": "manual_send_receipt_or_email_send_receipt",
+      "status": "DEADLINE_DECISION",
+      "step_ref": "critical_path:approval_or_manual_send",
+      "target": "If OpenClaw is not send-ready by safe cutoff, Winship manually sends and captures proof.",
+      "title": "Send path decision"
+    }
+  ],
+  "current_blockers": [
+    "invoice candidate not selected",
+    "invoice artifact/attachment not ready",
+    "recipient details unconfirmed",
+    "approval/send readiness disabled"
+  ],
+  "current_mode": {
+    "developer_context_available": true,
+    "human_trial_if_testing_in_app": true,
+    "primary": "OPERATOR_RUNTIME",
+    "urgency": "URGENT_DEADLINE",
+    "workflow_operating_mode_policy_ref": "generated/read_models/workflow_operating_mode_policy.json"
+  },
+  "deadline_local": "2026-05-28T16:00:00-04:00",
+  "do_not_spend_time_on": [
+    "Telegram integration",
+    "Coupa/PO rails",
+    "ledger automation",
+    "payment matching",
+    "new dashboards",
+    "large refactors",
+    "invoice generator architecture unless it directly produces today's safe artifact path"
+  ],
+  "drift_warnings": [
+    "Do not keep building general framework past the cutoff.",
+    "Do not fake send, attachment, approval, payment, or ledger receipts.",
+    "Running workbook facts are source intent, not send/payment proof.",
+    "If the invoice is manually sent, capture proof before resuming build work."
+  ],
+  "generated_at": "2026-05-28T15:01:54-04:00",
+  "live_arts_md_state": {
+    "approval_ready": false,
+    "attachment_ready": false,
+    "candidate_count": 3,
+    "clara_draft_status": "DRAFT_BLOCKED_PENDING_PREREQUISITES",
+    "clara_target_blueprint_present": true,
+    "invoice_artifact_status": "ARTIFACT_REQUIRED",
+    "invoice_candidates": [
+      {
+        "amount": 900,
+        "amount_display": "$900",
+        "artifact_status": "NOT_READY_REQUIRES_MANUAL_EXPORT_OR_LINK",
+        "bank_ledger_source_of_truth_for_actual_receipts": true,
+        "client": "Live Arts MD",
+        "invoice_id": "2026-1001",
+        "invoice_status": "Draft - ready to send",
+        "ledger_handoff_status": "PLANNING_ONLY_NO_MUTATION",
+        "ledger_posted": false,
+        "operator_provided_ranges": [
+          "June 2026 Speaker Rental!G2:G5",
+          "June 2026 Speaker Rental!F40:G43",
+          "June 2026 Speaker Rental!B49:G53"
+        ],
+        "paid": false,
+        "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+        "readiness_status": "NEEDS_ARTIFACT_RECIPIENT_GUARDIAN_APPROVAL",
+        "receipt_status": "UNPAID",
+        "review_status": "OPERATOR_HANDOFF_DRAFT_READY_TO_SEND",
+        "selection_action": {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1001",
+          "disabled_reason": null,
+          "enabled": true,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1001",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "June 2026 Speaker Rental",
+            "work_type": "Speaker Rental",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Select June 2026 Speaker Rental",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1001."
+        },
+        "send_readiness": "BLOCKED_NEEDS_ARTIFACT_RECIPIENT_GUARDIAN_APPROVAL",
+        "sent": false,
+        "sheet_label": "June 2026 Speaker Rental",
+        "submitted": false,
+        "work_type": "Speaker Rental",
+        "workbook_source_of_truth_for_invoice_intent": true
+      },
+      {
+        "amount": 4625,
+        "amount_display": "$4,625",
+        "artifact_status": "NOT_READY_REQUIRES_MANUAL_EXPORT_OR_LINK",
+        "bank_ledger_source_of_truth_for_actual_receipts": true,
+        "client": "Live Arts MD",
+        "invoice_id": "2026-1002",
+        "invoice_status": "Draft - verify before send",
+        "ledger_handoff_status": "PLANNING_ONLY_NO_MUTATION",
+        "ledger_posted": false,
+        "operator_provided_ranges": [
+          "June 2026 AV Tech!G2:G5",
+          "June 2026 AV Tech!F40:G43",
+          "June 2026 AV Tech!B49:G53"
+        ],
+        "paid": false,
+        "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+        "readiness_status": "NEEDS_OPERATOR_VERIFICATION",
+        "receipt_status": "UNPAID",
+        "review_status": "VERIFY_BEFORE_SEND",
+        "selection_action": {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1002",
+          "disabled_reason": null,
+          "enabled": true,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1002",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "June 2026 AV Tech",
+            "work_type": "AV Tech",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Select June 2026 AV Tech",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1002."
+        },
+        "send_readiness": "NOT_SEND_READY",
+        "sent": false,
+        "sheet_label": "June 2026 AV Tech",
+        "submitted": false,
+        "work_type": "AV Tech",
+        "workbook_source_of_truth_for_invoice_intent": true
+      },
+      {
+        "amount": 0,
+        "amount_display": "$0",
+        "artifact_status": "NOT_READY_REQUIRES_MANUAL_EXPORT_OR_LINK",
+        "bank_ledger_source_of_truth_for_actual_receipts": true,
+        "client": "Live Arts MD",
+        "invoice_id": "2026-1003",
+        "invoice_status": "Future/draft",
+        "ledger_handoff_status": "PLANNING_ONLY_NO_MUTATION",
+        "ledger_posted": false,
+        "operator_provided_ranges": [
+          "July 2026!G2:G5",
+          "July 2026!B49:G54"
+        ],
+        "paid": false,
+        "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+        "readiness_status": "FUTURE_NOT_SEND_READY",
+        "receipt_status": "UNPAID",
+        "review_status": "FUTURE_DRAFT_CHECK_JUNE_PAYMENT_STATUS_FIRST",
+        "selection_action": {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1003",
+          "disabled_reason": "Review this future invoice later after June payment status is known.",
+          "enabled": false,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1003",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "July 2026",
+            "work_type": "Future invoice",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Select July 2026",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1003."
+        },
+        "send_readiness": "NOT_SEND_READY",
+        "sent": false,
+        "sheet_label": "July 2026",
+        "submitted": false,
+        "work_type": "Future invoice",
+        "workbook_source_of_truth_for_invoice_intent": true
+      }
+    ],
+    "invoice_selection_status": "NEEDS_CANDIDATE_SELECTION",
+    "recipient_candidates": [
+      {
+        "confirmation_status": "CANDIDATE_UNCONFIRMED",
+        "display_name": "Dane",
+        "email": null,
+        "email_invented": false,
+        "email_status": "MISSING",
+        "lane": "to",
+        "proof_ref": null,
+        "role": "primary_invoice_contact"
+      },
+      {
+        "confirmation_status": "CANDIDATE_UNCONFIRMED",
+        "display_name": "Draper",
+        "email": null,
+        "email_invented": false,
+        "email_status": "MISSING",
+        "lane": "cc",
+        "proof_ref": null,
+        "role": "cc_candidate"
+      },
+      {
+        "confirmation_status": "CANDIDATE_UNCONFIRMED",
+        "display_name": "Earnie",
+        "email": null,
+        "email_invented": false,
+        "email_status": "MISSING",
+        "lane": "cc",
+        "proof_ref": null,
+        "role": "cc_candidate"
+      },
+      {
+        "confirmation_status": "CANDIDATE_UNCONFIRMED",
+        "display_name": "Winship",
+        "email": "winshiplive@gmail.com",
+        "email_invented": false,
+        "email_status": "KNOWN_OPERATOR_PROVIDED",
+        "lane": "cc",
+        "proof_ref": "operator_known_email:winshiplive@gmail.com",
+        "role": "operator_copy"
+      }
+    ],
+    "recipient_status": "RECIPIENT_INFO_REQUIRED",
+    "send_ready": false,
+    "source_workbook_confirmed": true,
+    "source_workbook_path": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clinets/Invoice Live Arts MD! Running.xlsx",
+    "supplier_portal_required": false
+  },
+  "long_term_goal": "Ledger/tax evidence after payment proof, not from workbook existence.",
+  "machine_proof": {
+    "all_authority_flags_false": true,
+    "content_hash": "sha256:ae67ab29b6f8188746e86b163b0546f80798a0c95552cf4d23d0886ca1e95ab1",
+    "hermes_approves": false,
+    "hermes_executes": false,
+    "hermes_sends": false,
+    "no_coupa_browser": true,
+    "no_email_send": true,
+    "no_gmail_draft": true,
+    "no_gmail_polling": true,
+    "no_invoice_generation": true,
+    "no_ledger_mutation": true,
+    "no_production_mutation": true,
+    "no_workbook_cell_read": true,
+    "read_model_only": true
+  },
+  "manual_fallback_required_by": "2026-05-28T15:45:00-04:00",
+  "medium_term_goal": "Capture send proof and start payment watch readiness.",
+  "mission_ref": "hermes_mission:live_arts_md_invoice_4pm_cutoff",
+  "next_right_sized_packages": [
+    {
+      "expected_receipt": "live_arts_md_invoice_candidate_selected_receipt",
+      "package_ref": "live_arts_md_select_invoice_candidate",
+      "prompt": "Select the Live Arts MD invoice candidate for today's send: 2026-1001 Speaker Rental or 2026-1002 AV Tech.",
+      "stop_condition": "No invoice candidate selected."
+    },
+    {
+      "expected_receipt": "operator_provided_invoice_artifact_linked_candidate_receipt",
+      "package_ref": "live_arts_md_link_invoice_artifact",
+      "prompt": "Link the operator-provided Live Arts MD invoice artifact by metadata only and keep it candidate-only until attachment confirmation.",
+      "stop_condition": "No artifact path or attachment confirmation."
+    },
+    {
+      "expected_receipt": "recipient_confirmation_receipt",
+      "package_ref": "live_arts_md_confirm_recipients",
+      "prompt": "Confirm Dane, Draper, Earnie, and Winship recipient details without inventing emails.",
+      "stop_condition": "Missing recipient email or inclusion confirmation."
+    },
+    {
+      "expected_receipt": "manual_send_receipt",
+      "package_ref": "live_arts_md_manual_send_receipt_after_fallback",
+      "prompt": "If Winship manually sends before 4 PM, capture the manual send receipt and payment watch target.",
+      "stop_condition": "Manual send proof missing."
+    }
+  ],
+  "operator_summary": "Live Arts MD is not send-ready in OpenClaw yet. The confirmed workbook and candidate facts exist, but the invoice candidate, attachment, recipients, approval, and send proof still block automation. If this is not cleared by the safe cutoff, Winship should manually send and record proof.",
+  "proof_refs": [
+    "generated/read_models/live_arts_md_invoice_review_bundle.json",
+    "generated/read_models/live_arts_md_invoice_candidate_register.json",
+    "generated/read_models/workflow_operating_mode_policy.json"
+  ],
+  "proof_to_capture_after_manual_send": [
+    "recipient list",
+    "subject",
+    "attachment/file name",
+    "send timestamp",
+    "invoice id",
+    "amount",
+    "payment watch target",
+    "manual send receipt"
+  ],
+  "read_model_id": "hermes_mission_sentinel",
+  "recommended_codex_mac_action": "Keep the app focused on choosing the invoice, linking/opening the artifact, recipient confirmation, and manual-send proof capture.",
+  "recommended_codex_pc_action": "Stop broad workflow building; only work on the shortest path to artifact/recipient/send-proof readiness.",
+  "recommended_human_action": "Prioritize selecting the invoice and confirming/linking the artifact before the manual fallback time.",
+  "schema_version": "hermes_mission_sentinel_v0",
+  "short_term_goal": "Select the invoice, get the artifact/email package correct, and confirm recipients.",
+  "time_remaining": {
+    "bucket": "UNDER_75_MINUTES",
+    "deadline_local": "2026-05-28T16:00:00-04:00",
+    "minutes_remaining": 58,
+    "now_local": "2026-05-28T15:01:54-04:00"
+  },
+  "urgent_goal": "Send the Live Arts MD invoice today before the 4:00 PM cutoff, or manually send it.",
+  "workflow_ref": "live_arts_md_invoice_workflow",
+  "world_ref": "finance"
+}

@@ -1,0 +1,1932 @@
+{
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_browser_access_allowed": false,
+    "live_card_action_execution_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_image_generation_allowed": false,
+    "live_invoice_generation_allowed": false,
+    "live_model_call_allowed": false,
+    "live_render_runtime_allowed": false,
+    "live_visual_agent_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_operation_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "capital_hilton_examples": {
+    "completion_blocked": {
+      "accessibility_payload": {
+        "plain_text_summary": "Completion card is blocked until send/submit proof receipts exist.",
+        "plain_text_title": "INVOICE SENT",
+        "screen_reader_order": [
+          "title",
+          "summary",
+          "bullets",
+          "actions",
+          "details"
+        ]
+      },
+      "blocked_actions": [
+        "email",
+        "Coupa access",
+        "browser",
+        "approval",
+        "invoice generation",
+        "attachment",
+        "payment update"
+      ],
+      "card_type": "COMPLETION",
+      "client_ref": "capital_hilton",
+      "detail_content": {
+        "collapsed_by_default": true,
+        "detail_bullets": [
+          "No send receipt exists.",
+          "No submit receipt exists.",
+          "No approval receipt exists."
+        ],
+        "proof_bullets": [],
+        "source_refs": [
+          "future_completion_receipt"
+        ]
+      },
+      "device_profile": {
+        "accessibility_mode": "plain_text_equivalent_required",
+        "compact_mode": true,
+        "detail_disclosure_mode": "collapsed_by_default",
+        "device_profile_id": "device_profile_mac_chat_completion_card",
+        "max_primary_actions": 3,
+        "max_visible_bullets": 5,
+        "next_safe_move": "Render compact card first; keep proof/details behind disclosure.",
+        "placement_rule": "inline_after_relevant_chat_turn",
+        "preferred_layout": "completion_card",
+        "size_class": "compact",
+        "target_surface": "mac_chat"
+      },
+      "lane_ref": "capital_hilton",
+      "next_safe_move": "Do not render as completed until receipts exist.",
+      "operator_actions": [
+        {
+          "action_id": "render_action_looks_right",
+          "action_scope": "local_review",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": true,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Looks right",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_change_something",
+          "action_scope": "local_edit",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Change something",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_whats_missing",
+          "action_scope": "show_missing_details",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "secondary",
+          "enabled": true,
+          "external_action": false,
+          "label": "What's missing?",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_store_as_procedure",
+          "action_scope": "future_backend_write",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "procedure_memory_writer",
+          "confirmation_required": false,
+          "disabled_reason": "Procedure memory write is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Store as procedure",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_prepare_package",
+          "action_scope": "future_backend_package",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "workflow_package_creator",
+          "confirmation_required": false,
+          "disabled_reason": "Package creation is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Prepare package",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        }
+      ],
+      "placement_hint": "do_not_show_as_success_without_receipts",
+      "privacy_boundary": "Safe operator card content only; no raw private bodies, credentials, protected evidence bodies, or raw payment references.",
+      "proof_status": "NEEDS_PROOF",
+      "render_packet_id": "render_packet_capital_hilton_completion_blocked",
+      "semantic_payload": {
+        "blocked_items": [
+          "send receipt missing",
+          "submit receipt missing",
+          "approval receipt missing"
+        ],
+        "confidence_note": "No completion proof exists in this contract.",
+        "key_facts": [],
+        "missing_items": [],
+        "next_question": null,
+        "next_safe_move": "Wait for proof receipts before rendering completion.",
+        "primary_message": "Do not show this as completion yet.",
+        "proof_bullets": [],
+        "short_summary": "Completion card is blocked until send/submit proof receipts exist.",
+        "source_refs": [
+          "future_completion_receipt"
+        ],
+        "title": "INVOICE SENT"
+      },
+      "source_card_ref": "future_completion_target",
+      "source_readback_ref": "operator_card_translation_mirror",
+      "style_directive": {
+        "accent_policy": "quiet accent; no celebration unless proof-backed completion",
+        "animation_hint": "none",
+        "background_policy": "plain surface; no decorative imagery required",
+        "density": "compact",
+        "forbidden_visuals": [
+          "celebratory completion without proof",
+          "green success for waiting",
+          "alarm styling for protective blocked state",
+          "machine diagnostics in operator card"
+        ],
+        "icon_hint": "octagon-alert",
+        "next_safe_move": "Apply tone without implying authority or completion.",
+        "style_id": "style_completion_fail_closed",
+        "tone": "fail_closed",
+        "urgency": "guarded",
+        "visual_metaphor": "status card, not dashboard"
+      },
+      "tenant_ref": "operator_winship_local",
+      "truth_status": "UNKNOWN_FAIL_CLOSED",
+      "visible_content": {
+        "bullets": [
+          "Completion is blocked.",
+          "Proof receipts are missing.",
+          "Waiting is not success."
+        ],
+        "primary_message": "Do not show this as completion yet.",
+        "short_summary": "Completion card is blocked until send/submit proof receipts exist.",
+        "title": "INVOICE SENT"
+      },
+      "visual_priority": "hidden_until_proof",
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "workflow_type": "invoice_delivery_workflow",
+      "world_ref": "finance"
+    },
+    "plan": {
+      "accessibility_payload": {
+        "plain_text_summary": "Confirm the invoice basis, build the invoice artifact, confirm Coupa/PO, draft the email, request approval, then send/submit only after gates are satisfied.",
+        "plain_text_title": "The plan",
+        "screen_reader_order": [
+          "title",
+          "summary",
+          "bullets",
+          "actions",
+          "details"
+        ]
+      },
+      "blocked_actions": [
+        "email",
+        "Coupa access",
+        "browser",
+        "approval",
+        "invoice generation",
+        "attachment",
+        "payment update"
+      ],
+      "card_type": "PLAN",
+      "client_ref": "capital_hilton",
+      "detail_content": {
+        "collapsed_by_default": true,
+        "detail_bullets": [
+          "No workflow run has started.",
+          "Future send/submit requires proof and approval rails."
+        ],
+        "proof_bullets": [],
+        "source_refs": [
+          "operator_card_translation_mirror"
+        ]
+      },
+      "device_profile": {
+        "accessibility_mode": "plain_text_equivalent_required",
+        "compact_mode": true,
+        "detail_disclosure_mode": "collapsed_by_default",
+        "device_profile_id": "device_profile_mac_chat_compact_chat_card",
+        "max_primary_actions": 3,
+        "max_visible_bullets": 5,
+        "next_safe_move": "Render compact card first; keep proof/details behind disclosure.",
+        "placement_rule": "inline_after_relevant_chat_turn",
+        "preferred_layout": "compact_chat_card",
+        "size_class": "compact",
+        "target_surface": "mac_chat"
+      },
+      "lane_ref": "capital_hilton",
+      "next_safe_move": "Review or change the plan before any future package is prepared.",
+      "operator_actions": [
+        {
+          "action_id": "render_action_looks_right",
+          "action_scope": "local_review",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": true,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Looks right",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_change_something",
+          "action_scope": "local_edit",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Change something",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_whats_missing",
+          "action_scope": "show_missing_details",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "secondary",
+          "enabled": true,
+          "external_action": false,
+          "label": "What's missing?",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_store_as_procedure",
+          "action_scope": "future_backend_write",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "procedure_memory_writer",
+          "confirmation_required": false,
+          "disabled_reason": "Procedure memory write is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Store as procedure",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_prepare_package",
+          "action_scope": "future_backend_package",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "workflow_package_creator",
+          "confirmation_required": false,
+          "disabled_reason": "Package creation is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Prepare package",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        }
+      ],
+      "placement_hint": "after_understanding_card",
+      "privacy_boundary": "Safe operator card content only; no raw private bodies, credentials, protected evidence bodies, or raw payment references.",
+      "proof_status": "NEEDS_PROOF",
+      "render_packet_id": "render_packet_capital_hilton_plan",
+      "semantic_payload": {
+        "blocked_items": [],
+        "confidence_note": "Backed by current PC readback; still subject to operator review.",
+        "key_facts": [
+          "Confirm invoice basis",
+          "Build invoice artifact",
+          "Confirm Coupa/PO",
+          "Draft email and request approval"
+        ],
+        "missing_items": [],
+        "next_question": "Do you want to change the plan?",
+        "next_safe_move": "Review or change the plan before any future package is prepared.",
+        "primary_message": "This is a plan for review, not a workflow run.",
+        "proof_bullets": [],
+        "short_summary": "Confirm the invoice basis, build the invoice artifact, confirm Coupa/PO, draft the email, request approval, then send/submit only after gates are satisfied.",
+        "source_refs": [
+          "operator_card_translation_mirror"
+        ],
+        "title": "The plan"
+      },
+      "source_card_ref": "operator_card_the_plan",
+      "source_readback_ref": "operator_card_translation_mirror",
+      "style_directive": {
+        "accent_policy": "quiet accent; no celebration unless proof-backed completion",
+        "animation_hint": "none",
+        "background_policy": "plain surface; no decorative imagery required",
+        "density": "compact",
+        "forbidden_visuals": [
+          "celebratory completion without proof",
+          "green success for waiting",
+          "alarm styling for protective blocked state",
+          "machine diagnostics in operator card"
+        ],
+        "icon_hint": "message-circle",
+        "next_safe_move": "Apply tone without implying authority or completion.",
+        "style_id": "style_plan_calm",
+        "tone": "calm",
+        "urgency": "normal",
+        "visual_metaphor": "status card, not dashboard"
+      },
+      "tenant_ref": "operator_winship_local",
+      "truth_status": "NEEDS_OPERATOR_REVIEW",
+      "visible_content": {
+        "bullets": [
+          "Confirm invoice basis.",
+          "Build invoice artifact.",
+          "Confirm Coupa/PO.",
+          "Draft email and request approval.",
+          "Send/submit only after gates."
+        ],
+        "primary_message": "This is a plan for review, not a workflow run.",
+        "short_summary": "Confirm the invoice basis, build the invoice artifact, confirm Coupa/PO, draft the email, request approval, then send/submit only after gates are satisfied.",
+        "title": "The plan"
+      },
+      "visual_priority": "secondary",
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "workflow_type": "invoice_delivery_workflow",
+      "world_ref": "finance"
+    },
+    "still_locked": {
+      "accessibility_payload": {
+        "plain_text_summary": "Nothing external happened. No email, Coupa access, browser, approval, invoice generation, attachment, or payment update.",
+        "plain_text_title": "Still locked",
+        "screen_reader_order": [
+          "title",
+          "summary",
+          "bullets",
+          "actions",
+          "details"
+        ]
+      },
+      "blocked_actions": [
+        "email",
+        "Coupa access",
+        "browser",
+        "approval",
+        "invoice generation",
+        "attachment",
+        "payment update"
+      ],
+      "card_type": "BLOCKED",
+      "client_ref": "capital_hilton",
+      "detail_content": {
+        "collapsed_by_default": true,
+        "detail_bullets": [
+          "The card can be rendered safely in chat.",
+          "No external adapter was invoked."
+        ],
+        "proof_bullets": [],
+        "source_refs": [
+          "operator_card_translation_mirror"
+        ]
+      },
+      "device_profile": {
+        "accessibility_mode": "plain_text_equivalent_required",
+        "compact_mode": true,
+        "detail_disclosure_mode": "collapsed_by_default",
+        "device_profile_id": "device_profile_mac_chat_compact_chat_card",
+        "max_primary_actions": 3,
+        "max_visible_bullets": 5,
+        "next_safe_move": "Render compact card first; keep proof/details behind disclosure.",
+        "placement_rule": "inline_after_relevant_chat_turn",
+        "preferred_layout": "compact_chat_card",
+        "size_class": "compact",
+        "target_surface": "mac_chat"
+      },
+      "lane_ref": "capital_hilton",
+      "next_safe_move": "Keep external actions locked until proof and approval rails exist.",
+      "operator_actions": [
+        {
+          "action_id": "render_action_looks_right",
+          "action_scope": "local_review",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": true,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Looks right",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_change_something",
+          "action_scope": "local_edit",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Change something",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_whats_missing",
+          "action_scope": "show_missing_details",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "secondary",
+          "enabled": true,
+          "external_action": false,
+          "label": "What's missing?",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_store_as_procedure",
+          "action_scope": "future_backend_write",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "procedure_memory_writer",
+          "confirmation_required": false,
+          "disabled_reason": "Procedure memory write is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Store as procedure",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_prepare_package",
+          "action_scope": "future_backend_package",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "workflow_package_creator",
+          "confirmation_required": false,
+          "disabled_reason": "Package creation is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Prepare package",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        }
+      ],
+      "placement_hint": "after_missing_info_card",
+      "privacy_boundary": "Safe operator card content only; no raw private bodies, credentials, protected evidence bodies, or raw payment references.",
+      "proof_status": "NEEDS_PROOF",
+      "render_packet_id": "render_packet_capital_hilton_still_locked",
+      "semantic_payload": {
+        "blocked_items": [
+          "email",
+          "Coupa access",
+          "browser",
+          "approval",
+          "invoice generation",
+          "attachment",
+          "payment update"
+        ],
+        "confidence_note": "Lock state is backed by source readback authority flags.",
+        "key_facts": [],
+        "missing_items": [],
+        "next_question": null,
+        "next_safe_move": "Keep external actions locked until proof and approval rails exist.",
+        "primary_message": "This is protective lock state, not failure.",
+        "proof_bullets": [],
+        "short_summary": "Nothing external happened. No email, Coupa access, browser, approval, invoice generation, attachment, or payment update.",
+        "source_refs": [
+          "operator_card_translation_mirror"
+        ],
+        "title": "Still locked"
+      },
+      "source_card_ref": "operator_card_still_locked",
+      "source_readback_ref": "operator_card_translation_mirror",
+      "style_directive": {
+        "accent_policy": "quiet accent; no celebration unless proof-backed completion",
+        "animation_hint": "none",
+        "background_policy": "plain surface; no decorative imagery required",
+        "density": "compact",
+        "forbidden_visuals": [
+          "celebratory completion without proof",
+          "green success for waiting",
+          "alarm styling for protective blocked state",
+          "machine diagnostics in operator card"
+        ],
+        "icon_hint": "lock",
+        "next_safe_move": "Apply tone without implying authority or completion.",
+        "style_id": "style_blocked_blocked",
+        "tone": "blocked",
+        "urgency": "guarded",
+        "visual_metaphor": "status card, not dashboard"
+      },
+      "tenant_ref": "operator_winship_local",
+      "truth_status": "LOCKED_EXTERNAL_ACTION",
+      "visible_content": {
+        "bullets": [
+          "Nothing external happened.",
+          "No email, Coupa access, browser, or approval.",
+          "No invoice generation, attachment, or payment update.",
+          "External actions remain locked."
+        ],
+        "primary_message": "This is protective lock state, not failure.",
+        "short_summary": "Nothing external happened. No email, Coupa access, browser, approval, invoice generation, attachment, or payment update.",
+        "title": "Still locked"
+      },
+      "visual_priority": "secondary",
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "workflow_type": "invoice_delivery_workflow",
+      "world_ref": "finance"
+    },
+    "still_needed": {
+      "accessibility_payload": {
+        "plain_text_summary": "OpenClaw still needs the PO/reference, Annette confirmation, final artifact/hash, Guardian approval, and send/submit receipts before this can complete.",
+        "plain_text_title": "Still needed",
+        "screen_reader_order": [
+          "title",
+          "summary",
+          "bullets",
+          "actions",
+          "details"
+        ]
+      },
+      "blocked_actions": [
+        "email",
+        "Coupa access",
+        "browser",
+        "approval",
+        "invoice generation",
+        "attachment",
+        "payment update"
+      ],
+      "card_type": "MISSING_INFO",
+      "client_ref": "capital_hilton",
+      "detail_content": {
+        "collapsed_by_default": true,
+        "detail_bullets": [
+          "Completion stays blocked until proof receipts exist.",
+          "Protected proof stays metadata-only."
+        ],
+        "proof_bullets": [],
+        "source_refs": [
+          "operator_card_translation_mirror"
+        ]
+      },
+      "device_profile": {
+        "accessibility_mode": "plain_text_equivalent_required",
+        "compact_mode": true,
+        "detail_disclosure_mode": "collapsed_by_default",
+        "device_profile_id": "device_profile_mac_chat_compact_chat_card",
+        "max_primary_actions": 3,
+        "max_visible_bullets": 5,
+        "next_safe_move": "Render compact card first; keep proof/details behind disclosure.",
+        "placement_rule": "inline_after_relevant_chat_turn",
+        "preferred_layout": "compact_chat_card",
+        "size_class": "compact",
+        "target_surface": "mac_chat"
+      },
+      "lane_ref": "capital_hilton",
+      "next_safe_move": "Ask for the Coupa reference or contact confirmation next.",
+      "operator_actions": [
+        {
+          "action_id": "render_action_looks_right",
+          "action_scope": "local_review",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": true,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Looks right",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_change_something",
+          "action_scope": "local_edit",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Change something",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_whats_missing",
+          "action_scope": "show_missing_details",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "secondary",
+          "enabled": true,
+          "external_action": false,
+          "label": "What's missing?",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_store_as_procedure",
+          "action_scope": "future_backend_write",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "procedure_memory_writer",
+          "confirmation_required": false,
+          "disabled_reason": "Procedure memory write is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Store as procedure",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_prepare_package",
+          "action_scope": "future_backend_package",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "workflow_package_creator",
+          "confirmation_required": false,
+          "disabled_reason": "Package creation is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Prepare package",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        }
+      ],
+      "placement_hint": "after_plan_card",
+      "privacy_boundary": "Safe operator card content only; no raw private bodies, credentials, protected evidence bodies, or raw payment references.",
+      "proof_status": "NEEDS_PROOF",
+      "render_packet_id": "render_packet_capital_hilton_still_needed",
+      "semantic_payload": {
+        "blocked_items": [],
+        "confidence_note": "Backed by current PC readback; still subject to operator review.",
+        "key_facts": [],
+        "missing_items": [
+          "Exact Coupa PO/reference",
+          "Annette confirmation",
+          "Final artifact/hash",
+          "Guardian approval",
+          "Send/submit receipts"
+        ],
+        "next_question": "Do you have the Coupa PO/reference or contact confirmation?",
+        "next_safe_move": "Ask for the Coupa reference or contact confirmation next.",
+        "primary_message": "These are the missing pieces before completion.",
+        "proof_bullets": [],
+        "short_summary": "OpenClaw still needs the PO/reference, Annette confirmation, final artifact/hash, Guardian approval, and send/submit receipts before this can complete.",
+        "source_refs": [
+          "operator_card_translation_mirror"
+        ],
+        "title": "Still needed"
+      },
+      "source_card_ref": "operator_card_still_needed",
+      "source_readback_ref": "operator_card_translation_mirror",
+      "style_directive": {
+        "accent_policy": "quiet accent; no celebration unless proof-backed completion",
+        "animation_hint": "none",
+        "background_policy": "plain surface; no decorative imagery required",
+        "density": "compact",
+        "forbidden_visuals": [
+          "celebratory completion without proof",
+          "green success for waiting",
+          "alarm styling for protective blocked state",
+          "machine diagnostics in operator card"
+        ],
+        "icon_hint": "triangle-alert",
+        "next_safe_move": "Apply tone without implying authority or completion.",
+        "style_id": "style_missing_info_warning",
+        "tone": "warning",
+        "urgency": "guarded",
+        "visual_metaphor": "status card, not dashboard"
+      },
+      "tenant_ref": "operator_winship_local",
+      "truth_status": "NEEDS_PROOF",
+      "visible_content": {
+        "bullets": [
+          "Exact Coupa PO/reference.",
+          "Annette confirmation.",
+          "Final artifact/hash.",
+          "Guardian approval.",
+          "Send/submit receipts."
+        ],
+        "primary_message": "These are the missing pieces before completion.",
+        "short_summary": "OpenClaw still needs the PO/reference, Annette confirmation, final artifact/hash, Guardian approval, and send/submit receipts before this can complete.",
+        "title": "Still needed"
+      },
+      "visual_priority": "secondary",
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "workflow_type": "invoice_delivery_workflow",
+      "world_ref": "finance"
+    },
+    "understanding": {
+      "accessibility_payload": {
+        "plain_text_summary": "Capital Hilton invoice: 4 dates at $400 each. OpenClaw thinks you want a Winship-branded Excel/PDF invoice sent to Annette, while Coupa/PO remains the official payment path.",
+        "plain_text_title": "What I understood",
+        "screen_reader_order": [
+          "title",
+          "summary",
+          "bullets",
+          "actions",
+          "details"
+        ]
+      },
+      "blocked_actions": [
+        "email",
+        "Coupa access",
+        "browser",
+        "approval",
+        "invoice generation",
+        "attachment",
+        "payment update"
+      ],
+      "card_type": "UNDERSTANDING",
+      "client_ref": "capital_hilton",
+      "detail_content": {
+        "collapsed_by_default": true,
+        "detail_bullets": [
+          "The source readback is current.",
+          "This packet summarizes intent; it does not confirm invoice delivery."
+        ],
+        "proof_bullets": [],
+        "source_refs": [
+          "operator_card_translation_mirror"
+        ]
+      },
+      "device_profile": {
+        "accessibility_mode": "plain_text_equivalent_required",
+        "compact_mode": true,
+        "detail_disclosure_mode": "collapsed_by_default",
+        "device_profile_id": "device_profile_mac_chat_compact_chat_card",
+        "max_primary_actions": 3,
+        "max_visible_bullets": 5,
+        "next_safe_move": "Render compact card first; keep proof/details behind disclosure.",
+        "placement_rule": "inline_after_relevant_chat_turn",
+        "preferred_layout": "compact_chat_card",
+        "size_class": "compact",
+        "target_surface": "mac_chat"
+      },
+      "lane_ref": "capital_hilton",
+      "next_safe_move": "Ask whether this understanding looks right.",
+      "operator_actions": [
+        {
+          "action_id": "render_action_looks_right",
+          "action_scope": "local_review",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": true,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Looks right",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_change_something",
+          "action_scope": "local_edit",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Change something",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_whats_missing",
+          "action_scope": "show_missing_details",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "secondary",
+          "enabled": true,
+          "external_action": false,
+          "label": "What's missing?",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_store_as_procedure",
+          "action_scope": "future_backend_write",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "procedure_memory_writer",
+          "confirmation_required": false,
+          "disabled_reason": "Procedure memory write is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Store as procedure",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_prepare_package",
+          "action_scope": "future_backend_package",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "workflow_package_creator",
+          "confirmation_required": false,
+          "disabled_reason": "Package creation is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Prepare package",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        }
+      ],
+      "placement_hint": "after_pc_readback_arrives",
+      "privacy_boundary": "Safe operator card content only; no raw private bodies, credentials, protected evidence bodies, or raw payment references.",
+      "proof_status": "NEEDS_OPERATOR_REVIEW",
+      "render_packet_id": "render_packet_capital_hilton_understanding",
+      "semantic_payload": {
+        "blocked_items": [],
+        "confidence_note": "Backed by current PC readback; still subject to operator review.",
+        "key_facts": [
+          "4 dates at $400 each",
+          "Winship-branded Excel/PDF invoice to Annette",
+          "Coupa/PO remains official payment path"
+        ],
+        "missing_items": [],
+        "next_question": "Does this understanding look right?",
+        "next_safe_move": "Ask whether this understanding looks right.",
+        "primary_message": "Draft understanding — not confirmed truth.",
+        "proof_bullets": [],
+        "short_summary": "Capital Hilton invoice: 4 dates at $400 each. OpenClaw thinks you want a Winship-branded Excel/PDF invoice sent to Annette, while Coupa/PO remains the official payment path.",
+        "source_refs": [
+          "operator_card_translation_mirror"
+        ],
+        "title": "What I understood"
+      },
+      "source_card_ref": "operator_card_what_i_understood",
+      "source_readback_ref": "operator_card_translation_mirror",
+      "style_directive": {
+        "accent_policy": "quiet accent; no celebration unless proof-backed completion",
+        "animation_hint": "none",
+        "background_policy": "plain surface; no decorative imagery required",
+        "density": "compact",
+        "forbidden_visuals": [
+          "celebratory completion without proof",
+          "green success for waiting",
+          "alarm styling for protective blocked state",
+          "machine diagnostics in operator card"
+        ],
+        "icon_hint": "message-circle",
+        "next_safe_move": "Apply tone without implying authority or completion.",
+        "style_id": "style_understanding_calm",
+        "tone": "calm",
+        "urgency": "normal",
+        "visual_metaphor": "status card, not dashboard"
+      },
+      "tenant_ref": "operator_winship_local",
+      "truth_status": "DRAFT_NOT_TRUTH",
+      "visible_content": {
+        "bullets": [
+          "4 dates at $400 each.",
+          "Excel/PDF invoice to Annette.",
+          "Coupa/PO stays the official payment path.",
+          "Draft understanding — not confirmed truth."
+        ],
+        "primary_message": "Draft understanding — not confirmed truth.",
+        "short_summary": "Capital Hilton invoice: 4 dates at $400 each. OpenClaw thinks you want a Winship-branded Excel/PDF invoice sent to Annette, while Coupa/PO remains the official payment path.",
+        "title": "What I understood"
+      },
+      "visual_priority": "primary",
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "workflow_type": "invoice_delivery_workflow",
+      "world_ref": "finance"
+    },
+    "waiting": {
+      "accessibility_payload": {
+        "plain_text_summary": "I sent your request and am waiting for the PC readback.",
+        "plain_text_title": "Waiting on PC",
+        "screen_reader_order": [
+          "title",
+          "summary",
+          "bullets",
+          "actions",
+          "details"
+        ]
+      },
+      "blocked_actions": [
+        "email",
+        "Coupa access",
+        "browser",
+        "approval",
+        "invoice generation",
+        "attachment",
+        "payment update"
+      ],
+      "card_type": "WAITING",
+      "client_ref": "capital_hilton",
+      "detail_content": {
+        "collapsed_by_default": true,
+        "detail_bullets": [
+          "This card should not use green success styling.",
+          "It is safe to replace once a current readback arrives."
+        ],
+        "proof_bullets": [],
+        "source_refs": [
+          "pending_request"
+        ]
+      },
+      "device_profile": {
+        "accessibility_mode": "plain_text_equivalent_required",
+        "compact_mode": true,
+        "detail_disclosure_mode": "collapsed_by_default",
+        "device_profile_id": "device_profile_mac_chat_compact_chat_card",
+        "max_primary_actions": 3,
+        "max_visible_bullets": 5,
+        "next_safe_move": "Render compact card first; keep proof/details behind disclosure.",
+        "placement_rule": "inline_after_relevant_chat_turn",
+        "preferred_layout": "compact_chat_card",
+        "size_class": "compact",
+        "target_surface": "mac_chat"
+      },
+      "lane_ref": "capital_hilton",
+      "next_safe_move": "Wait for the PC readback before claiming understanding.",
+      "operator_actions": [
+        {
+          "action_id": "render_action_looks_right",
+          "action_scope": "local_review",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": true,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Looks right",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_change_something",
+          "action_scope": "local_edit",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "primary",
+          "enabled": true,
+          "external_action": false,
+          "label": "Change something",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_whats_missing",
+          "action_scope": "show_missing_details",
+          "authority_required": "none",
+          "backend_rail_required": null,
+          "confirmation_required": false,
+          "disabled_reason": null,
+          "display_priority": "secondary",
+          "enabled": true,
+          "external_action": false,
+          "label": "What's missing?",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_store_as_procedure",
+          "action_scope": "future_backend_write",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "procedure_memory_writer",
+          "confirmation_required": false,
+          "disabled_reason": "Procedure memory write is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Store as procedure",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        },
+        {
+          "action_id": "render_action_prepare_package",
+          "action_scope": "future_backend_package",
+          "authority_required": "future_gated_backend_rail",
+          "backend_rail_required": "workflow_package_creator",
+          "confirmation_required": false,
+          "disabled_reason": "Package creation is not connected yet.",
+          "display_priority": "future",
+          "enabled": false,
+          "external_action": false,
+          "label": "Prepare package",
+          "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+        }
+      ],
+      "placement_hint": "after_request_sent_before_pc_readback",
+      "privacy_boundary": "Safe operator card content only; no raw private bodies, credentials, protected evidence bodies, or raw payment references.",
+      "proof_status": "NEEDS_PROOF",
+      "render_packet_id": "render_packet_capital_hilton_waiting",
+      "semantic_payload": {
+        "blocked_items": [],
+        "confidence_note": "No current backend readback attached.",
+        "key_facts": [
+          "Request is pending",
+          "No current readback has returned"
+        ],
+        "missing_items": [],
+        "next_question": null,
+        "next_safe_move": "Wait for the PC readback before claiming understanding.",
+        "primary_message": "Waiting is not success.",
+        "proof_bullets": [],
+        "short_summary": "I sent your request and am waiting for the PC readback.",
+        "source_refs": [
+          "pending_request"
+        ],
+        "title": "Waiting on PC"
+      },
+      "source_card_ref": "waiting_on_pc",
+      "source_readback_ref": "operator_card_translation_mirror",
+      "style_directive": {
+        "accent_policy": "quiet accent; no celebration unless proof-backed completion",
+        "animation_hint": "none",
+        "background_policy": "plain surface; no decorative imagery required",
+        "density": "compact",
+        "forbidden_visuals": [
+          "celebratory completion without proof",
+          "green success for waiting",
+          "alarm styling for protective blocked state",
+          "machine diagnostics in operator card"
+        ],
+        "icon_hint": "clock",
+        "next_safe_move": "Apply tone without implying authority or completion.",
+        "style_id": "style_waiting_waiting",
+        "tone": "waiting",
+        "urgency": "low",
+        "visual_metaphor": "status card, not dashboard"
+      },
+      "tenant_ref": "operator_winship_local",
+      "truth_status": "UNKNOWN_FAIL_CLOSED",
+      "visible_content": {
+        "bullets": [
+          "Waiting for PC readback.",
+          "No current understanding has returned.",
+          "Nothing external happened."
+        ],
+        "primary_message": "Waiting is not success.",
+        "short_summary": "I sent your request and am waiting for the PC readback.",
+        "title": "Waiting on PC"
+      },
+      "visual_priority": "temporary",
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "workflow_type": "invoice_delivery_workflow",
+      "world_ref": "finance"
+    }
+  },
+  "card_translation_and_filter_policy": {
+    "compression_rules": {
+      "max_visible_bullets": 5,
+      "move_extra_to_details": true,
+      "short_summary_required": true
+    },
+    "detail_content_rules": {
+      "collapsed_by_default": true,
+      "human_readable": true,
+      "proof_refs_metadata_only": true
+    },
+    "fail_closed_on_machine_language": true,
+    "forbidden_machine_terms": [
+      "schema",
+      "handler",
+      "lifecycle",
+      "artifact_type",
+      "target_handler",
+      "payload_hash",
+      "idempotency",
+      "manifest",
+      "JSON",
+      "SQLite",
+      "local outbox",
+      "visual-agnostic",
+      "metadata posture",
+      "raw ID",
+      "package ref"
+    ],
+    "next_safe_move": "Reject or rewrite packets with machine language in visible content.",
+    "policy_id": "operator_card_render_filter_policy_v0",
+    "replacement_terms": {
+      "JSON": "readback file",
+      "SQLite": "local state",
+      "handler": "rail",
+      "payload_hash": "proof reference",
+      "schema": "shape"
+    },
+    "visible_content_rules": {
+      "compact": true,
+      "human_readable": true,
+      "no_machine_terms": true,
+      "no_raw_private_values": true
+    }
+  },
+  "card_types": [
+    "UNDERSTANDING",
+    "PLAN",
+    "MISSING_INFO",
+    "BLOCKED",
+    "PROOF",
+    "APPROVAL",
+    "COMPLETION",
+    "WAITING",
+    "STALE",
+    "ERROR_FAIL_CLOSED"
+  ],
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_OPERATOR_CARD_RENDER_PACKET_CONTRACT",
+  "device_aware_card_spec": {
+    "accessibility_mode": "plain_text_equivalent_required",
+    "compact_mode": true,
+    "detail_disclosure_mode": "collapsed_by_default",
+    "device_profile_id": "device_profile_mac_chat_compact_chat_card",
+    "max_primary_actions": 3,
+    "max_visible_bullets": 5,
+    "next_safe_move": "Render compact card first; keep proof/details behind disclosure.",
+    "placement_rule": "inline_after_relevant_chat_turn",
+    "preferred_layout": "compact_chat_card",
+    "size_class": "compact",
+    "target_surface": "mac_chat"
+  },
+  "generated_at": "2026-05-25T01:19:12+00:00",
+  "machine_proof": {
+    "action_render_spec_present": true,
+    "all_live_authority_flags_false": true,
+    "all_operator_actions_external_false": true,
+    "blockers_present": true,
+    "capital_hilton_plan_present": true,
+    "capital_hilton_still_locked_present": true,
+    "capital_hilton_still_needed_present": true,
+    "capital_hilton_understanding_present": true,
+    "card_translation_and_filter_policy_model_present": true,
+    "card_types_present": true,
+    "completion_card_blocked_without_proof": true,
+    "content_hash": "sha256:a420f768e44b34e2ebf97af4977ef9c4ecd90585bba50d58a7998d2603bcdb68",
+    "credentials_or_secrets_included": false,
+    "device_aware_card_spec_model_present": true,
+    "device_aware_spec_present": true,
+    "external_action_performed": false,
+    "filter_policy_present": true,
+    "git_push_pull_fetch_run": false,
+    "mac_sync_import_run": false,
+    "machine_language_terms_absent": true,
+    "mission_control_swift_changed": false,
+    "network_used": false,
+    "operator_action_render_spec_model_present": true,
+    "operator_card_render_packet_contract_model_present": true,
+    "operator_card_render_packet_elioperator_report_model_present": true,
+    "operator_card_render_packet_model_present": true,
+    "raw_pii_in_visible_content": false,
+    "raw_private_bodies_included": false,
+    "render_packet_blocker_model_present": true,
+    "semantic_card_payload_model_present": true,
+    "source_translation_ready": true,
+    "truth_statuses_present": true,
+    "visible_bullets_compact": true,
+    "visual_style_directive_model_present": true,
+    "visual_style_directive_present": true,
+    "waiting_is_not_success": true
+  },
+  "model_schemas": {
+    "card_translation_and_filter_policy": {
+      "forbidden_visible_terms": [
+        "schema",
+        "handler",
+        "lifecycle",
+        "artifact_type",
+        "target_handler",
+        "payload_hash",
+        "idempotency",
+        "manifest",
+        "JSON",
+        "SQLite",
+        "local outbox",
+        "visual-agnostic",
+        "metadata posture",
+        "raw ID",
+        "package ref"
+      ],
+      "required_fields": [
+        "policy_id",
+        "forbidden_machine_terms",
+        "replacement_terms",
+        "compression_rules",
+        "visible_content_rules",
+        "detail_content_rules",
+        "fail_closed_on_machine_language",
+        "next_safe_move"
+      ]
+    },
+    "device_aware_card_spec": {
+      "preferred_layouts": [
+        "compact_chat_card",
+        "wide_summary_card",
+        "stack_card",
+        "proof_card",
+        "approval_card",
+        "completion_card",
+        "hidden_diagnostics_only"
+      ],
+      "required_fields": [
+        "device_profile_id",
+        "target_surface",
+        "size_class",
+        "max_visible_bullets",
+        "max_primary_actions",
+        "preferred_layout",
+        "compact_mode",
+        "detail_disclosure_mode",
+        "accessibility_mode",
+        "placement_rule",
+        "next_safe_move"
+      ],
+      "target_surfaces": [
+        "mac_chat",
+        "telegram",
+        "future_mobile",
+        "future_voice",
+        "dashboard_detail",
+        "developer_diagnostics"
+      ]
+    },
+    "operator_action_render_spec": {
+      "required_fields": [
+        "action_id",
+        "label",
+        "enabled",
+        "disabled_reason",
+        "action_scope",
+        "authority_required",
+        "confirmation_required",
+        "backend_rail_required",
+        "external_action",
+        "display_priority",
+        "next_safe_move"
+      ]
+    },
+    "operator_card_render_packet": {
+      "card_types": [
+        "UNDERSTANDING",
+        "PLAN",
+        "MISSING_INFO",
+        "BLOCKED",
+        "PROOF",
+        "APPROVAL",
+        "COMPLETION",
+        "WAITING",
+        "STALE",
+        "ERROR_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "render_packet_id",
+        "source_readback_ref",
+        "source_card_ref",
+        "workflow_ref",
+        "workflow_type",
+        "world_ref",
+        "lane_ref",
+        "client_ref",
+        "tenant_ref",
+        "card_type",
+        "truth_status",
+        "proof_status",
+        "visual_priority",
+        "placement_hint",
+        "device_profile",
+        "semantic_payload",
+        "visible_content",
+        "detail_content",
+        "operator_actions",
+        "blocked_actions",
+        "style_directive",
+        "accessibility_payload",
+        "privacy_boundary",
+        "next_safe_move"
+      ],
+      "truth_statuses": [
+        "DRAFT_NOT_TRUTH",
+        "BACKEND_READBACK_READY",
+        "RECEIPT_VERIFIED",
+        "NEEDS_OPERATOR_REVIEW",
+        "NEEDS_PROOF",
+        "LOCKED_EXTERNAL_ACTION",
+        "STALE",
+        "UNKNOWN_FAIL_CLOSED"
+      ]
+    },
+    "operator_card_render_packet_contract": {
+      "required_fields": [
+        "contract_id",
+        "doctrine",
+        "source_truth_policy",
+        "render_packet_policy",
+        "visual_agent_policy",
+        "chat_placement_policy",
+        "device_awareness_policy",
+        "privacy_policy",
+        "action_authority_policy",
+        "proof_disclosure_policy",
+        "machine_language_policy",
+        "current_live_authority",
+        "next_safe_move"
+      ]
+    },
+    "operator_card_render_packet_elioperator_report": {
+      "required_fields": [
+        "report_id",
+        "plain_summary",
+        "what_this_enables",
+        "what_this_does_not_do_yet",
+        "how_truth_flows",
+        "how_cards_are_composed",
+        "how_device_awareness_works",
+        "how_actions_remain_gated",
+        "next_safe_move"
+      ]
+    },
+    "render_packet_blocker": {
+      "blocker_types": [
+        "SOURCE_TRUTH_MISSING",
+        "SOURCE_READBACK_STALE",
+        "MACHINE_LANGUAGE_VISIBLE",
+        "RAW_PII_IN_VISIBLE_CONTENT",
+        "COMPLETION_WITHOUT_PROOF",
+        "EXTERNAL_ACTION_ENABLED_WITHOUT_GATE",
+        "CARD_WALL_OF_TEXT",
+        "DEVICE_SPEC_MISSING",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "semantic_card_payload": {
+      "required_fields": [
+        "title",
+        "short_summary",
+        "primary_message",
+        "key_facts",
+        "missing_items",
+        "proof_bullets",
+        "blocked_items",
+        "next_question",
+        "next_safe_move",
+        "confidence_note",
+        "source_refs"
+      ]
+    },
+    "visual_style_directive": {
+      "required_fields": [
+        "style_id",
+        "tone",
+        "urgency",
+        "visual_metaphor",
+        "accent_policy",
+        "density",
+        "background_policy",
+        "icon_hint",
+        "animation_hint",
+        "forbidden_visuals",
+        "next_safe_move"
+      ],
+      "tones": [
+        "calm",
+        "waiting",
+        "warning",
+        "proof",
+        "approval",
+        "completion",
+        "blocked",
+        "fail_closed"
+      ]
+    }
+  },
+  "operator_action_render_specs": [
+    {
+      "action_id": "render_action_looks_right",
+      "action_scope": "local_review",
+      "authority_required": "none",
+      "backend_rail_required": null,
+      "confirmation_required": true,
+      "disabled_reason": null,
+      "display_priority": "primary",
+      "enabled": true,
+      "external_action": false,
+      "label": "Looks right",
+      "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+    },
+    {
+      "action_id": "render_action_change_something",
+      "action_scope": "local_edit",
+      "authority_required": "none",
+      "backend_rail_required": null,
+      "confirmation_required": false,
+      "disabled_reason": null,
+      "display_priority": "primary",
+      "enabled": true,
+      "external_action": false,
+      "label": "Change something",
+      "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+    },
+    {
+      "action_id": "render_action_whats_missing",
+      "action_scope": "show_missing_details",
+      "authority_required": "none",
+      "backend_rail_required": null,
+      "confirmation_required": false,
+      "disabled_reason": null,
+      "display_priority": "secondary",
+      "enabled": true,
+      "external_action": false,
+      "label": "What's missing?",
+      "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+    },
+    {
+      "action_id": "render_action_store_as_procedure",
+      "action_scope": "future_backend_write",
+      "authority_required": "future_gated_backend_rail",
+      "backend_rail_required": "procedure_memory_writer",
+      "confirmation_required": false,
+      "disabled_reason": "Procedure memory write is not connected yet.",
+      "display_priority": "future",
+      "enabled": false,
+      "external_action": false,
+      "label": "Store as procedure",
+      "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+    },
+    {
+      "action_id": "render_action_prepare_package",
+      "action_scope": "future_backend_package",
+      "authority_required": "future_gated_backend_rail",
+      "backend_rail_required": "workflow_package_creator",
+      "confirmation_required": false,
+      "disabled_reason": "Package creation is not connected yet.",
+      "display_priority": "future",
+      "enabled": false,
+      "external_action": false,
+      "label": "Prepare package",
+      "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+    }
+  ],
+  "operator_card_render_packet": {
+    "accessibility_payload": {
+      "plain_text_summary": "Capital Hilton invoice: 4 dates at $400 each. OpenClaw thinks you want a Winship-branded Excel/PDF invoice sent to Annette, while Coupa/PO remains the official payment path.",
+      "plain_text_title": "What I understood",
+      "screen_reader_order": [
+        "title",
+        "summary",
+        "bullets",
+        "actions",
+        "details"
+      ]
+    },
+    "blocked_actions": [
+      "email",
+      "Coupa access",
+      "browser",
+      "approval",
+      "invoice generation",
+      "attachment",
+      "payment update"
+    ],
+    "card_type": "UNDERSTANDING",
+    "client_ref": "capital_hilton",
+    "detail_content": {
+      "collapsed_by_default": true,
+      "detail_bullets": [
+        "The source readback is current.",
+        "This packet summarizes intent; it does not confirm invoice delivery."
+      ],
+      "proof_bullets": [],
+      "source_refs": [
+        "operator_card_translation_mirror"
+      ]
+    },
+    "device_profile": {
+      "accessibility_mode": "plain_text_equivalent_required",
+      "compact_mode": true,
+      "detail_disclosure_mode": "collapsed_by_default",
+      "device_profile_id": "device_profile_mac_chat_compact_chat_card",
+      "max_primary_actions": 3,
+      "max_visible_bullets": 5,
+      "next_safe_move": "Render compact card first; keep proof/details behind disclosure.",
+      "placement_rule": "inline_after_relevant_chat_turn",
+      "preferred_layout": "compact_chat_card",
+      "size_class": "compact",
+      "target_surface": "mac_chat"
+    },
+    "lane_ref": "capital_hilton",
+    "next_safe_move": "Ask whether this understanding looks right.",
+    "operator_actions": [
+      {
+        "action_id": "render_action_looks_right",
+        "action_scope": "local_review",
+        "authority_required": "none",
+        "backend_rail_required": null,
+        "confirmation_required": true,
+        "disabled_reason": null,
+        "display_priority": "primary",
+        "enabled": true,
+        "external_action": false,
+        "label": "Looks right",
+        "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+      },
+      {
+        "action_id": "render_action_change_something",
+        "action_scope": "local_edit",
+        "authority_required": "none",
+        "backend_rail_required": null,
+        "confirmation_required": false,
+        "disabled_reason": null,
+        "display_priority": "primary",
+        "enabled": true,
+        "external_action": false,
+        "label": "Change something",
+        "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+      },
+      {
+        "action_id": "render_action_whats_missing",
+        "action_scope": "show_missing_details",
+        "authority_required": "none",
+        "backend_rail_required": null,
+        "confirmation_required": false,
+        "disabled_reason": null,
+        "display_priority": "secondary",
+        "enabled": true,
+        "external_action": false,
+        "label": "What's missing?",
+        "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+      },
+      {
+        "action_id": "render_action_store_as_procedure",
+        "action_scope": "future_backend_write",
+        "authority_required": "future_gated_backend_rail",
+        "backend_rail_required": "procedure_memory_writer",
+        "confirmation_required": false,
+        "disabled_reason": "Procedure memory write is not connected yet.",
+        "display_priority": "future",
+        "enabled": false,
+        "external_action": false,
+        "label": "Store as procedure",
+        "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+      },
+      {
+        "action_id": "render_action_prepare_package",
+        "action_scope": "future_backend_package",
+        "authority_required": "future_gated_backend_rail",
+        "backend_rail_required": "workflow_package_creator",
+        "confirmation_required": false,
+        "disabled_reason": "Package creation is not connected yet.",
+        "display_priority": "future",
+        "enabled": false,
+        "external_action": false,
+        "label": "Prepare package",
+        "next_safe_move": "Keep as local UI action unless a future proof-backed backend rail enables more."
+      }
+    ],
+    "placement_hint": "after_pc_readback_arrives",
+    "privacy_boundary": "Safe operator card content only; no raw private bodies, credentials, protected evidence bodies, or raw payment references.",
+    "proof_status": "NEEDS_OPERATOR_REVIEW",
+    "render_packet_id": "render_packet_capital_hilton_understanding",
+    "semantic_payload": {
+      "blocked_items": [],
+      "confidence_note": "Backed by current PC readback; still subject to operator review.",
+      "key_facts": [
+        "4 dates at $400 each",
+        "Winship-branded Excel/PDF invoice to Annette",
+        "Coupa/PO remains official payment path"
+      ],
+      "missing_items": [],
+      "next_question": "Does this understanding look right?",
+      "next_safe_move": "Ask whether this understanding looks right.",
+      "primary_message": "Draft understanding — not confirmed truth.",
+      "proof_bullets": [],
+      "short_summary": "Capital Hilton invoice: 4 dates at $400 each. OpenClaw thinks you want a Winship-branded Excel/PDF invoice sent to Annette, while Coupa/PO remains the official payment path.",
+      "source_refs": [
+        "operator_card_translation_mirror"
+      ],
+      "title": "What I understood"
+    },
+    "source_card_ref": "operator_card_what_i_understood",
+    "source_readback_ref": "operator_card_translation_mirror",
+    "style_directive": {
+      "accent_policy": "quiet accent; no celebration unless proof-backed completion",
+      "animation_hint": "none",
+      "background_policy": "plain surface; no decorative imagery required",
+      "density": "compact",
+      "forbidden_visuals": [
+        "celebratory completion without proof",
+        "green success for waiting",
+        "alarm styling for protective blocked state",
+        "machine diagnostics in operator card"
+      ],
+      "icon_hint": "message-circle",
+      "next_safe_move": "Apply tone without implying authority or completion.",
+      "style_id": "style_understanding_calm",
+      "tone": "calm",
+      "urgency": "normal",
+      "visual_metaphor": "status card, not dashboard"
+    },
+    "tenant_ref": "operator_winship_local",
+    "truth_status": "DRAFT_NOT_TRUTH",
+    "visible_content": {
+      "bullets": [
+        "4 dates at $400 each.",
+        "Excel/PDF invoice to Annette.",
+        "Coupa/PO stays the official payment path.",
+        "Draft understanding — not confirmed truth."
+      ],
+      "primary_message": "Draft understanding — not confirmed truth.",
+      "short_summary": "Capital Hilton invoice: 4 dates at $400 each. OpenClaw thinks you want a Winship-branded Excel/PDF invoice sent to Annette, while Coupa/PO remains the official payment path.",
+      "title": "What I understood"
+    },
+    "visual_priority": "primary",
+    "workflow_ref": "capital_hilton_invoice_workflow",
+    "workflow_type": "invoice_delivery_workflow",
+    "world_ref": "finance"
+  },
+  "operator_card_render_packet_contract": {
+    "action_authority_policy": {
+      "disabled_future_actions_may_be_present": true,
+      "external_action_requires_future_gated_rail": true,
+      "render_packet_does_not_enable_external_action": true
+    },
+    "chat_placement_policy": {
+      "card_packet_does_not_push_to_chat": true,
+      "chat_places_card_at_right_moment": true,
+      "placement_hint_required": true
+    },
+    "contract_id": "operator_card_render_packet_contract_v0",
+    "current_live_authority": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_browser_access_allowed": false,
+      "live_card_action_execution_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_image_generation_allowed": false,
+      "live_invoice_generation_allowed": false,
+      "live_model_call_allowed": false,
+      "live_render_runtime_allowed": false,
+      "live_visual_agent_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_operation_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "device_awareness_policy": {
+      "detail_disclosure_collapsed_by_default": true,
+      "mac_chat_default_compact": true,
+      "max_visible_bullets_enforced": true
+    },
+    "doctrine": {
+      "backend_owns_truth": true,
+      "chat_owns_timing_and_placement": true,
+      "operator_sees_object_not_machinery": true,
+      "render_packet_owns_semantic_card_payload": true,
+      "visual_agent_owns_presentation_later": true
+    },
+    "machine_language_policy": {
+      "fail_closed_on_visible_machine_language": true,
+      "forbidden_visible_terms": [
+        "schema",
+        "handler",
+        "lifecycle",
+        "artifact_type",
+        "target_handler",
+        "payload_hash",
+        "idempotency",
+        "manifest",
+        "JSON",
+        "SQLite",
+        "local outbox",
+        "visual-agnostic",
+        "metadata posture",
+        "raw ID",
+        "package ref"
+      ]
+    },
+    "next_safe_move": "Use semantic packets as the next stable interface between backend truth and chat visuals.",
+    "privacy_policy": {
+      "no_credentials": true,
+      "no_raw_payment_reference": true,
+      "no_raw_private_bodies": true,
+      "protected_evidence_metadata_only": true
+    },
+    "proof_disclosure_policy": {
+      "completion_without_proof_blocked": true,
+      "proof_details_collapsed_by_default": true,
+      "proof_summary_allowed": true
+    },
+    "render_packet_policy": {
+      "action_aware_but_authority_safe": true,
+      "details_collapsed_by_default": true,
+      "semantic_payload_required": true,
+      "visible_content_compact": true
+    },
+    "source_truth_policy": {
+      "completion_requires_proof_receipts": true,
+      "render_packet_does_not_create_truth": true,
+      "source_truth_or_readback_ref_required": true,
+      "stale_source_fails_closed": true
+    },
+    "visual_agent_policy": {
+      "future_gated": true,
+      "live_image_generation_allowed": false,
+      "live_render_runtime_allowed": false,
+      "live_visual_agent_allowed": false
+    }
+  },
+  "operator_card_render_packet_elioperator_report": {
+    "how_actions_remain_gated": "Actions are local or disabled unless a future gated backend rail exists; external action remains false.",
+    "how_cards_are_composed": "Cards have compact visible content, collapsed details, safe actions, style directives, and accessibility text.",
+    "how_device_awareness_works": "Mac chat defaults to compact cards with at most five visible bullets and details collapsed.",
+    "how_truth_flows": "Backend readback supplies truth; the render packet references it and carries the semantic card payload.",
+    "next_safe_move": "Use the Capital Hilton examples as the semantic contract for future Mac chat rendering.",
+    "plain_summary": "Render packets turn backend readback into compact semantic cards for chat without exposing machinery.",
+    "report_id": "operator_card_render_packet_elioperator_report_v0",
+    "what_this_does_not_do_yet": "It does not render UI, generate images, call models, dispatch agents, run workflows, or perform external actions.",
+    "what_this_enables": "Any workflow can summon a truth-backed card object that a future visual layer can render."
+  },
+  "operator_markdown_mode": "ELIOPERATOR",
+  "preferred_layouts": [
+    "compact_chat_card",
+    "wide_summary_card",
+    "stack_card",
+    "proof_card",
+    "approval_card",
+    "completion_card",
+    "hidden_diagnostics_only"
+  ],
+  "read_model_id": "operator_card_render_packet_contract",
+  "render_packet_blockers_by_id": {
+    "render_packet_blocker_card_wall_of_text": {
+      "blocker_id": "render_packet_blocker_card_wall_of_text",
+      "blocker_type": "CARD_WALL_OF_TEXT",
+      "condition": "Visible card content is too long for chat.",
+      "elioperator_warning": "ELIOPERATOR: Visible card content is too long for chat.",
+      "fail_closed": false,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "SHOULD_COMPRESS"
+    },
+    "render_packet_blocker_completion_without_proof": {
+      "blocker_id": "render_packet_blocker_completion_without_proof",
+      "blocker_type": "COMPLETION_WITHOUT_PROOF",
+      "condition": "Completion card cannot render without proof receipts.",
+      "elioperator_warning": "ELIOPERATOR: Completion card cannot render without proof receipts.",
+      "fail_closed": true,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "BLOCKS_RENDER"
+    },
+    "render_packet_blocker_device_spec_missing": {
+      "blocker_id": "render_packet_blocker_device_spec_missing",
+      "blocker_type": "DEVICE_SPEC_MISSING",
+      "condition": "Render packet has no device-aware spec.",
+      "elioperator_warning": "ELIOPERATOR: Render packet has no device-aware spec.",
+      "fail_closed": true,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "BLOCKS_RENDER"
+    },
+    "render_packet_blocker_external_action_enabled_without_gate": {
+      "blocker_id": "render_packet_blocker_external_action_enabled_without_gate",
+      "blocker_type": "EXTERNAL_ACTION_ENABLED_WITHOUT_GATE",
+      "condition": "External action cannot be enabled without a gated rail and receipt.",
+      "elioperator_warning": "ELIOPERATOR: External action cannot be enabled without a gated rail and receipt.",
+      "fail_closed": true,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "BLOCKS_RENDER"
+    },
+    "render_packet_blocker_machine_language_visible": {
+      "blocker_id": "render_packet_blocker_machine_language_visible",
+      "blocker_type": "MACHINE_LANGUAGE_VISIBLE",
+      "condition": "Visible card content contains machine-contract language.",
+      "elioperator_warning": "ELIOPERATOR: Visible card content contains machine-contract language.",
+      "fail_closed": true,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "BLOCKS_RENDER"
+    },
+    "render_packet_blocker_raw_pii_in_visible_content": {
+      "blocker_id": "render_packet_blocker_raw_pii_in_visible_content",
+      "blocker_type": "RAW_PII_IN_VISIBLE_CONTENT",
+      "condition": "Visible card content contains raw private data.",
+      "elioperator_warning": "ELIOPERATOR: Visible card content contains raw private data.",
+      "fail_closed": true,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "BLOCKS_RENDER"
+    },
+    "render_packet_blocker_source_readback_stale": {
+      "blocker_id": "render_packet_blocker_source_readback_stale",
+      "blocker_type": "SOURCE_READBACK_STALE",
+      "condition": "Source readback is stale.",
+      "elioperator_warning": "ELIOPERATOR: Source readback is stale.",
+      "fail_closed": true,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "BLOCKS_RENDER"
+    },
+    "render_packet_blocker_source_truth_missing": {
+      "blocker_id": "render_packet_blocker_source_truth_missing",
+      "blocker_type": "SOURCE_TRUTH_MISSING",
+      "condition": "Render packet has no source truth/readback reference.",
+      "elioperator_warning": "ELIOPERATOR: Render packet has no source truth/readback reference.",
+      "fail_closed": true,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "BLOCKS_RENDER"
+    },
+    "render_packet_blocker_unknown_fail_closed": {
+      "blocker_id": "render_packet_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown render packet state fails closed.",
+      "elioperator_warning": "ELIOPERATOR: Unknown render packet state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Fix the packet or render a safe blocked/waiting card.",
+      "severity": "BLOCKS_RENDER"
+    }
+  },
+  "schema_version": "operator_card_render_packet_contract_v0",
+  "semantic_card_payload": {
+    "blocked_items": [],
+    "confidence_note": "Backed by current PC readback; still subject to operator review.",
+    "key_facts": [
+      "4 dates at $400 each",
+      "Winship-branded Excel/PDF invoice to Annette",
+      "Coupa/PO remains official payment path"
+    ],
+    "missing_items": [],
+    "next_question": "Does this understanding look right?",
+    "next_safe_move": "Ask whether this understanding looks right.",
+    "primary_message": "Draft understanding — not confirmed truth.",
+    "proof_bullets": [],
+    "short_summary": "Capital Hilton invoice: 4 dates at $400 each. OpenClaw thinks you want a Winship-branded Excel/PDF invoice sent to Annette, while Coupa/PO remains the official payment path.",
+    "source_refs": [
+      "operator_card_translation_mirror"
+    ],
+    "title": "What I understood"
+  },
+  "source_translation_path": "generated/read_models/operator_card_translation_mirror.json",
+  "source_translation_present": true,
+  "source_translation_ready": true,
+  "target_surfaces": [
+    "mac_chat",
+    "telegram",
+    "future_mobile",
+    "future_voice",
+    "dashboard_detail",
+    "developer_diagnostics"
+  ],
+  "tones": [
+    "calm",
+    "waiting",
+    "warning",
+    "proof",
+    "approval",
+    "completion",
+    "blocked",
+    "fail_closed"
+  ],
+  "truth_statuses": [
+    "DRAFT_NOT_TRUTH",
+    "BACKEND_READBACK_READY",
+    "RECEIPT_VERIFIED",
+    "NEEDS_OPERATOR_REVIEW",
+    "NEEDS_PROOF",
+    "LOCKED_EXTERNAL_ACTION",
+    "STALE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "visual_style_directive": {
+    "accent_policy": "quiet accent; no celebration unless proof-backed completion",
+    "animation_hint": "none",
+    "background_policy": "plain surface; no decorative imagery required",
+    "density": "compact",
+    "forbidden_visuals": [
+      "celebratory completion without proof",
+      "green success for waiting",
+      "alarm styling for protective blocked state",
+      "machine diagnostics in operator card"
+    ],
+    "icon_hint": "message-circle",
+    "next_safe_move": "Apply tone without implying authority or completion.",
+    "style_id": "style_understanding_calm",
+    "tone": "calm",
+    "urgency": "normal",
+    "visual_metaphor": "status card, not dashboard"
+  }
+}

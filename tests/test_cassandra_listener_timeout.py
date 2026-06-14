@@ -29,7 +29,9 @@ def _load_listener(monkeypatch):
     sys.modules.pop("cassandra_listener", None)
     import cassandra_listener
 
-    return importlib.reload(cassandra_listener)
+    module = importlib.reload(cassandra_listener)
+    monkeypatch.setattr(module, "_pending_cassandra_approval_state", lambda: ("none", {}), raising=False)
+    return module
 
 
 def test_timeout_contract_success_sends_ack_then_result(monkeypatch):

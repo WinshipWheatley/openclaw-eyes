@@ -5,18 +5,22 @@
     "automation_execution_allowed": false,
     "browser_automation_allowed": false,
     "channel_message_send_allowed": false,
+    "code_laundering_allowed": false,
     "coupa_access_allowed": false,
     "credential_broker_active": false,
     "credential_handling_allowed": false,
+    "dependency_install_allowed": false,
     "email_send_allowed": false,
     "file_move_delete_cleanup_allowed": false,
     "git_push_pull_fetch_allowed": false,
     "invoice_generation_allowed": false,
     "ledger_write_allowed": false,
+    "license_evasion_allowed": false,
     "mac_sync_import_allowed": false,
     "mission_control_swift_change_allowed": false,
     "model_call_allowed": false,
     "network_operation_allowed": false,
+    "open_source_package_download_allowed": false,
     "operator_input_persistence_allowed": false,
     "protected_evidence_write_allowed": false,
     "queue_execution_allowed": false,
@@ -915,14 +919,16 @@
       "why_it_blocks": "OpenClaw must not capture broad private context as a side effect."
     }
   },
-  "generated_at": "2026-05-23T19:26:25+00:00",
+  "generated_at": "2026-05-27T22:42:49+00:00",
   "hard_rule": {
     "current_contract_models_future_candidates_only": true,
     "does_not_access_coupa_browser_network_or_accounts": true,
+    "does_not_download_install_or_vendor_open_source_code": true,
     "does_not_execute_automation": true,
     "does_not_generate_invoice_or_email": true,
     "does_not_handle_credentials": true,
     "does_not_launch_models_agents_tools_runtime_or_queues": true,
+    "does_not_launder_code_or_evade_licenses": true,
     "does_not_submit_approvals": true,
     "does_not_write_ledger_or_receipts": true,
     "may_access_external_system_now": false,
@@ -1727,7 +1733,7 @@
     "bottleneck_assessment_count": 6,
     "bottleneck_assessment_model_present": true,
     "capital_hilton_coupa_po_bottleneck_present": true,
-    "content_hash": "sha256:5098a4370905942752c437297c8108ee316322ab6a6fcb887e1aab3cebd01154",
+    "content_hash": "sha256:c52f438bea320504c4d98560c6ed94e71e532141f5c03d6fe1806b6d3d011537",
     "credential_handling_allowed": false,
     "credentials_or_secrets_included": false,
     "dead_on_arrival_criteria_count": 10,
@@ -1746,12 +1752,321 @@
     "invoice_email_ledger_approval_authority": false,
     "manual_fallback_is_not_target": true,
     "network_coupa_browser_authority": false,
+    "open_source_capability_scout_count": 1,
+    "open_source_capability_scout_model_present": true,
+    "open_source_scout_flags_copyleft": true,
+    "open_source_scout_grants_dependency_authority": false,
+    "open_source_scout_preserves_license_attribution": true,
+    "open_source_scout_recommendations_supported": true,
     "prior_lane_ref_count": 9,
     "raw_private_bodies_included": false,
     "readiness_evaluation_count": 4,
     "readiness_evaluation_model_present": true,
     "telegram_approval_split_brain_bottleneck_present": true
   },
+  "open_source_capability_scout_schema": {
+    "candidate_recommendations": [
+      "REUSE",
+      "WRAP",
+      "ADAPT",
+      "MINE_FOR_TESTS",
+      "BUILD_CUSTOM",
+      "AVOID"
+    ],
+    "license_postures": [
+      "PERMISSIVE_OK",
+      "WEAK_COPYLEFT_REVIEW",
+      "COPYLEFT_REVIEW_REQUIRED",
+      "COMMERCIAL_TERMS_REVIEW_REQUIRED",
+      "LICENSE_UNKNOWN_FAIL_CLOSED"
+    ],
+    "required_fields": [
+      "scout_id",
+      "capability_needed",
+      "target_runtime",
+      "privacy_security_requirements",
+      "acceptable_licenses",
+      "dependency_weight_limit",
+      "candidate_projects",
+      "license_summary",
+      "security_risk",
+      "integration_plan",
+      "code_can_be_used_directly",
+      "ideas_tests_docs_only",
+      "recommendation",
+      "recommended_next_step"
+    ],
+    "structure": "OpenSourceCapabilityScout"
+  },
+  "open_source_capability_scouts": [
+    {
+      "acceptable_licenses": [
+        "MIT",
+        "Apache-2.0",
+        "BSD",
+        "MPL-2.0/LGPL with review",
+        "AGPL-3.0 only with legal/commercial review"
+      ],
+      "candidate_projects": [
+        {
+          "attribution_required": true,
+          "code_can_be_used_directly": false,
+          "commercial_implication": "Copyleft obligations require legal review before app/backend distribution.",
+          "dependency_weight": "MEDIUM_HEAVY",
+          "ideas_tests_docs_only": false,
+          "integration_mode": "WRAP_AS_BACKEND_PROVIDER_AFTER_LICENSE_SECURITY_REVIEW",
+          "license": "AGPL-3.0",
+          "license_posture": "COPYLEFT_REVIEW_REQUIRED",
+          "project_home": "https://github.com/freedomofpress/dangerzone",
+          "project_name": "Dangerzone",
+          "project_ref": "dangerzone_backend_sanitizer",
+          "rationale": "Best fit for future untrusted/legal/discovery safe preview if installed as an isolated provider with receipts.",
+          "recommendation": "WRAP",
+          "security_risks": [
+            "container/sandbox dependency must be verified on target runtime",
+            "AGPL/commercial packaging implications must be reviewed before bundling",
+            "untrusted documents must stay isolated from production workflow state"
+          ],
+          "trust_basis": [
+            "Freedom of the Press Foundation project",
+            "purpose-built document sanitization workflow"
+          ]
+        },
+        {
+          "attribution_required": true,
+          "code_can_be_used_directly": false,
+          "commercial_implication": "Weak-copyleft/distribution terms need packaging review.",
+          "dependency_weight": "HEAVY",
+          "ideas_tests_docs_only": false,
+          "integration_mode": "ADAPT_ONLY_FOR_SANDBOXED_OFFICE_TO_PDF_CONVERSION",
+          "license": "MPL-2.0 / LGPL family components",
+          "license_posture": "WEAK_COPYLEFT_REVIEW",
+          "project_home": "https://www.libreoffice.org/",
+          "project_name": "LibreOffice headless",
+          "project_ref": "libreoffice_headless_converter",
+          "rationale": "Useful for trusted or sandboxed office conversion, but not sufficient alone for untrusted discovery-grade previews.",
+          "recommendation": "ADAPT",
+          "security_risks": [
+            "not primarily a malware sanitizer",
+            "must run sandboxed for untrusted input",
+            "document conversion can be heavyweight for low-latency client flows"
+          ],
+          "trust_basis": [
+            "mature office suite",
+            "common headless conversion path"
+          ]
+        },
+        {
+          "attribution_required": false,
+          "code_can_be_used_directly": false,
+          "commercial_implication": "Use is governed by Apple platform terms, not open-source reuse.",
+          "dependency_weight": "LIGHT",
+          "ideas_tests_docs_only": false,
+          "integration_mode": "REUSE_CLIENT_API_FOR_CURRENT_MAC_INSPECTION",
+          "license": "Platform API / Apple SDK terms",
+          "license_posture": "COMMERCIAL_TERMS_REVIEW_REQUIRED",
+          "project_home": "https://developer.apple.com/documentation/quicklook",
+          "project_name": "macOS Quick Look",
+          "project_ref": "mac_quicklook_client_preview",
+          "rationale": "Best current path for Mac invoice candidate inspection because it avoids backend rendering and keeps latency low.",
+          "recommendation": "REUSE",
+          "security_risks": [
+            "Mac-only client surface",
+            "does not create backend safe-preview proof by itself",
+            "not a cross-platform server-side sanitizer"
+          ],
+          "trust_basis": [
+            "native platform preview surface",
+            "no backend document renderer required"
+          ]
+        },
+        {
+          "attribution_required": true,
+          "code_can_be_used_directly": false,
+          "commercial_implication": "AGPL/commercial edition choice requires legal and product review.",
+          "dependency_weight": "TOO_HEAVY_FOR_V0",
+          "ideas_tests_docs_only": true,
+          "integration_mode": "AVOID_FOR_NOW",
+          "license": "AGPL-3.0 / commercial editions",
+          "license_posture": "COPYLEFT_REVIEW_REQUIRED",
+          "project_home": "https://github.com/ONLYOFFICE/DocumentServer",
+          "project_name": "ONLYOFFICE Document Server",
+          "project_ref": "onlyoffice_document_server",
+          "rationale": "Too heavy for current low-latency Mission Control preview needs.",
+          "recommendation": "AVOID",
+          "security_risks": [
+            "long-running network-facing service",
+            "heavy operational footprint",
+            "wider attack surface than needed for v0 preview"
+          ],
+          "trust_basis": [
+            "known document server project",
+            "browser-based viewing/editing capability"
+          ]
+        }
+      ],
+      "capability_needed": "safe preview provider for invoice, legal, discovery, and untrusted document artifacts",
+      "code_can_be_used_directly": false,
+      "dependency_weight_limit": "LIGHT_FOR_CURRENT_MAC_PREVIEW_MEDIUM_ALLOWED_FOR_FUTURE_BACKEND_SANITIZER",
+      "ideas_tests_docs_only": false,
+      "integration_plan": "Reuse Mac Quick Look now; wrap Dangerzone later behind safe_preview_provider readiness, receipts, sandbox checks, and production_ready=false until approved.",
+      "license_summary": "Quick Look is the current client-native path; Dangerzone is promising but AGPL; LibreOffice needs sandboxing and license review; ONLYOFFICE is too heavy for v0.",
+      "privacy_security_requirements": [
+        "no raw private document bodies in read-models",
+        "untrusted documents isolated before conversion",
+        "no long-running network-facing viewer unless explicitly approved",
+        "conversion receipts must record hashes and provider without exposing private content",
+        "Mac invoice candidate inspection should remain low-latency and client-native when possible"
+      ],
+      "recommendation": "WRAP",
+      "recommended_next_step": "Keep current Mac Quick Look path; continue Dangerzone backend provider only through the existing safe_preview_provider readiness lane.",
+      "scout_id": "safe_preview_provider_open_source_scout_v0",
+      "security_risk": "MEDIUM until backend sanitizer sandbox, license review, and conversion receipts are approved.",
+      "target_runtime": "PC/OpenClaw backend plus lightweight native Mission Control clients"
+    }
+  ],
+  "open_source_capability_scouts_by_id": {
+    "safe_preview_provider_open_source_scout_v0": {
+      "acceptable_licenses": [
+        "MIT",
+        "Apache-2.0",
+        "BSD",
+        "MPL-2.0/LGPL with review",
+        "AGPL-3.0 only with legal/commercial review"
+      ],
+      "candidate_projects": [
+        {
+          "attribution_required": true,
+          "code_can_be_used_directly": false,
+          "commercial_implication": "Copyleft obligations require legal review before app/backend distribution.",
+          "dependency_weight": "MEDIUM_HEAVY",
+          "ideas_tests_docs_only": false,
+          "integration_mode": "WRAP_AS_BACKEND_PROVIDER_AFTER_LICENSE_SECURITY_REVIEW",
+          "license": "AGPL-3.0",
+          "license_posture": "COPYLEFT_REVIEW_REQUIRED",
+          "project_home": "https://github.com/freedomofpress/dangerzone",
+          "project_name": "Dangerzone",
+          "project_ref": "dangerzone_backend_sanitizer",
+          "rationale": "Best fit for future untrusted/legal/discovery safe preview if installed as an isolated provider with receipts.",
+          "recommendation": "WRAP",
+          "security_risks": [
+            "container/sandbox dependency must be verified on target runtime",
+            "AGPL/commercial packaging implications must be reviewed before bundling",
+            "untrusted documents must stay isolated from production workflow state"
+          ],
+          "trust_basis": [
+            "Freedom of the Press Foundation project",
+            "purpose-built document sanitization workflow"
+          ]
+        },
+        {
+          "attribution_required": true,
+          "code_can_be_used_directly": false,
+          "commercial_implication": "Weak-copyleft/distribution terms need packaging review.",
+          "dependency_weight": "HEAVY",
+          "ideas_tests_docs_only": false,
+          "integration_mode": "ADAPT_ONLY_FOR_SANDBOXED_OFFICE_TO_PDF_CONVERSION",
+          "license": "MPL-2.0 / LGPL family components",
+          "license_posture": "WEAK_COPYLEFT_REVIEW",
+          "project_home": "https://www.libreoffice.org/",
+          "project_name": "LibreOffice headless",
+          "project_ref": "libreoffice_headless_converter",
+          "rationale": "Useful for trusted or sandboxed office conversion, but not sufficient alone for untrusted discovery-grade previews.",
+          "recommendation": "ADAPT",
+          "security_risks": [
+            "not primarily a malware sanitizer",
+            "must run sandboxed for untrusted input",
+            "document conversion can be heavyweight for low-latency client flows"
+          ],
+          "trust_basis": [
+            "mature office suite",
+            "common headless conversion path"
+          ]
+        },
+        {
+          "attribution_required": false,
+          "code_can_be_used_directly": false,
+          "commercial_implication": "Use is governed by Apple platform terms, not open-source reuse.",
+          "dependency_weight": "LIGHT",
+          "ideas_tests_docs_only": false,
+          "integration_mode": "REUSE_CLIENT_API_FOR_CURRENT_MAC_INSPECTION",
+          "license": "Platform API / Apple SDK terms",
+          "license_posture": "COMMERCIAL_TERMS_REVIEW_REQUIRED",
+          "project_home": "https://developer.apple.com/documentation/quicklook",
+          "project_name": "macOS Quick Look",
+          "project_ref": "mac_quicklook_client_preview",
+          "rationale": "Best current path for Mac invoice candidate inspection because it avoids backend rendering and keeps latency low.",
+          "recommendation": "REUSE",
+          "security_risks": [
+            "Mac-only client surface",
+            "does not create backend safe-preview proof by itself",
+            "not a cross-platform server-side sanitizer"
+          ],
+          "trust_basis": [
+            "native platform preview surface",
+            "no backend document renderer required"
+          ]
+        },
+        {
+          "attribution_required": true,
+          "code_can_be_used_directly": false,
+          "commercial_implication": "AGPL/commercial edition choice requires legal and product review.",
+          "dependency_weight": "TOO_HEAVY_FOR_V0",
+          "ideas_tests_docs_only": true,
+          "integration_mode": "AVOID_FOR_NOW",
+          "license": "AGPL-3.0 / commercial editions",
+          "license_posture": "COPYLEFT_REVIEW_REQUIRED",
+          "project_home": "https://github.com/ONLYOFFICE/DocumentServer",
+          "project_name": "ONLYOFFICE Document Server",
+          "project_ref": "onlyoffice_document_server",
+          "rationale": "Too heavy for current low-latency Mission Control preview needs.",
+          "recommendation": "AVOID",
+          "security_risks": [
+            "long-running network-facing service",
+            "heavy operational footprint",
+            "wider attack surface than needed for v0 preview"
+          ],
+          "trust_basis": [
+            "known document server project",
+            "browser-based viewing/editing capability"
+          ]
+        }
+      ],
+      "capability_needed": "safe preview provider for invoice, legal, discovery, and untrusted document artifacts",
+      "code_can_be_used_directly": false,
+      "dependency_weight_limit": "LIGHT_FOR_CURRENT_MAC_PREVIEW_MEDIUM_ALLOWED_FOR_FUTURE_BACKEND_SANITIZER",
+      "ideas_tests_docs_only": false,
+      "integration_plan": "Reuse Mac Quick Look now; wrap Dangerzone later behind safe_preview_provider readiness, receipts, sandbox checks, and production_ready=false until approved.",
+      "license_summary": "Quick Look is the current client-native path; Dangerzone is promising but AGPL; LibreOffice needs sandboxing and license review; ONLYOFFICE is too heavy for v0.",
+      "privacy_security_requirements": [
+        "no raw private document bodies in read-models",
+        "untrusted documents isolated before conversion",
+        "no long-running network-facing viewer unless explicitly approved",
+        "conversion receipts must record hashes and provider without exposing private content",
+        "Mac invoice candidate inspection should remain low-latency and client-native when possible"
+      ],
+      "recommendation": "WRAP",
+      "recommended_next_step": "Keep current Mac Quick Look path; continue Dangerzone backend provider only through the existing safe_preview_provider readiness lane.",
+      "scout_id": "safe_preview_provider_open_source_scout_v0",
+      "security_risk": "MEDIUM until backend sanitizer sandbox, license review, and conversion receipts are approved.",
+      "target_runtime": "PC/OpenClaw backend plus lightweight native Mission Control clients"
+    }
+  },
+  "open_source_scout_license_postures": [
+    "PERMISSIVE_OK",
+    "WEAK_COPYLEFT_REVIEW",
+    "COPYLEFT_REVIEW_REQUIRED",
+    "COMMERCIAL_TERMS_REVIEW_REQUIRED",
+    "LICENSE_UNKNOWN_FAIL_CLOSED"
+  ],
+  "open_source_scout_recommendations": [
+    "REUSE",
+    "WRAP",
+    "ADAPT",
+    "MINE_FOR_TESTS",
+    "BUILD_CUSTOM",
+    "AVOID"
+  ],
   "read_model_id": "automation_readiness_feasibility_evaluator_contract",
   "readiness_evaluations": [
     {

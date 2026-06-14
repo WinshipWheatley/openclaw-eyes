@@ -1,0 +1,352 @@
+{
+  "allowed_lm_input_fields": [
+    "world_ref",
+    "thread_ref",
+    "objective_ref",
+    "redacted_known_facts",
+    "proof_meter_labels",
+    "receipt_refs",
+    "gate_labels",
+    "missing_input",
+    "allowed_controls",
+    "blocked_action_summaries",
+    "human_safe_summaries",
+    "agent_voice_mode"
+  ],
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "codex_desktop_operator_assist_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_llm_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "hermes_sidecar_invocation_allowed": false,
+    "ledger_mutation_allowed": false,
+    "live_lm_invocation_allowed": false,
+    "local_model_runtime_allowed": false,
+    "memory_promotion_allowed": false,
+    "merge_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "protected_actions_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "candidate_source_options": [
+    {
+      "allowed_now": false,
+      "harness_ref": "local_llm_shadow_mode",
+      "missing_receipts": [
+        "operator_approval_receipt",
+        "model_harness_selected_receipt",
+        "model_invocation_boundary_receipt",
+        "no_tool_authority_receipt"
+      ],
+      "privacy_risk": "low_if_redacted_local_only",
+      "reason": "blocked_until_operator_approval_and_live_boundary_receipts",
+      "verifier_requirement": "proof_to_response_verifier_mandatory"
+    },
+    {
+      "allowed_now": false,
+      "harness_ref": "future_local_open_model",
+      "missing_receipts": [
+        "operator_approval_receipt",
+        "model_harness_selected_receipt",
+        "approved_local_model_identity_receipt",
+        "no_external_provider_receipt"
+      ],
+      "privacy_risk": "medium_until_model_identity_and_boundary_are_receipted",
+      "reason": "future_model_not_selected_or_approved",
+      "verifier_requirement": "proof_to_response_verifier_mandatory"
+    },
+    {
+      "allowed_now": false,
+      "harness_ref": "hermes_sidecar_candidate",
+      "missing_receipts": [
+        "explicit_hermes_proof_to_response_registration",
+        "operator_approval_receipt",
+        "no_tool_authority_receipt",
+        "no_external_provider_receipt"
+      ],
+      "privacy_risk": "unknown_until_sidecar_registration_and_boundary_are_receipted",
+      "reason": "blocked_until_explicit_registration_and_receipts",
+      "verifier_requirement": "proof_to_response_verifier_mandatory"
+    },
+    {
+      "allowed_now": false,
+      "harness_ref": "codex_desktop_operator_assist",
+      "missing_receipts": [
+        "operator_approval_receipt",
+        "codex_desktop_operator_assist_scope_receipt",
+        "no_tool_authority_receipt",
+        "redacted_proof_bundle_receipt"
+      ],
+      "privacy_risk": "medium_until_surface_scope_and_no_tool_authority_are_receipted",
+      "reason": "blocked_until_explicit_codex_desktop_assist_approval",
+      "verifier_requirement": "proof_to_response_verifier_mandatory"
+    },
+    {
+      "allowed_now": false,
+      "harness_ref": "external_llm_blocked_by_default",
+      "missing_receipts": [
+        "new_external_provider_exception_gate",
+        "operator_approval_receipt",
+        "privacy_review_receipt",
+        "no_external_provider_receipt_not_possible_for_external_provider"
+      ],
+      "privacy_risk": "unacceptable_for_default_local_private_proof",
+      "reason": "external_provider_blocked_by_default",
+      "verifier_requirement": "proof_to_response_verifier_mandatory"
+    }
+  ],
+  "expected_success_criteria": [
+    "concise_response",
+    "correct_agent_voice",
+    "no_unsupported_claims",
+    "proof_refs_intact",
+    "controls_safe",
+    "fallback_works_on_bad_draft",
+    "mac_can_render_text_first"
+  ],
+  "first_pilot_lane": {
+    "business_execution_allowed": false,
+    "expected_response": "Payment evidence is missing. Ledger stays untouched. Next: attach payment evidence.",
+    "objective_ref": "capital_hilton_payment_watch",
+    "protected_actions_allowed": false,
+    "reason": "Preferred first lane because it has low action risk, strong proof boundaries, no business execution, and a simple expected response.",
+    "risk_class": "low_action_risk",
+    "thread_ref": "capital_hilton",
+    "world_ref": "finance"
+  },
+  "forbidden_lm_input": [
+    "raw_finance_details",
+    "bank_account_numbers",
+    "credentials_tokens",
+    "operator_device_session_verification_secrets",
+    "raw_prompt_dumps",
+    "raw_artifact_ocr_text",
+    "workbook_email_ledger_bodies",
+    "hidden_machine_contracts",
+    "authority_granted_fields"
+  ],
+  "generated_at": "2026-06-07T01:17:13+00:00",
+  "implementation_boundary": {
+    "authority_grant_performed": false,
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "ledger_mutation_performed": false,
+    "live_lm_invoked": false,
+    "local_model_runtime_connected": false,
+    "memory_promotion_performed": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "tool_execution_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "all_candidates_blocked_for_live_invocation": true,
+    "authority_grant_performed": false,
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_llm_blocked_by_default": true,
+    "external_llm_invoked": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "ledger_mutation_performed": false,
+    "live_lm_invoked": false,
+    "local_model_runtime_connected": false,
+    "low_risk_first_lane_selected": true,
+    "memory_promotion_performed": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "preconditions_ready": true,
+    "ready_for_live_invocation": false,
+    "ready_for_operator_approval": true,
+    "tool_execution_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "verifier_mandatory": true,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "pilot_runtime_flow": [
+    {
+      "description": "Build Finance / Capital Hilton redacted proof bundle.",
+      "step_ref": "build_redacted_proof_bundle"
+    },
+    {
+      "description": "Send only allowed LM input fields to the selected local or explicitly approved harness.",
+      "step_ref": "send_allowed_fields_only"
+    },
+    {
+      "description": "Receive a concise draft response; no tool calls or business execution.",
+      "step_ref": "receive_draft"
+    },
+    {
+      "description": "Run proof-to-response verifier before publication.",
+      "step_ref": "run_deterministic_verifier"
+    },
+    {
+      "description": "Publish verified response or safe fallback if verification fails.",
+      "step_ref": "publish_or_fallback"
+    },
+    {
+      "description": "Record candidate source, bundle id, verifier result, rejected reason, and response hash.",
+      "step_ref": "record_receipt"
+    },
+    {
+      "description": "Keep tool authority, business actions, and worker spawn disabled.",
+      "step_ref": "no_tools_no_business_action_no_worker"
+    }
+  ],
+  "pilot_status": {
+    "missing_live_receipts": [
+      "operator_approval_receipt",
+      "model_harness_selected_receipt",
+      "no_external_provider_receipt",
+      "redacted_proof_bundle_receipt",
+      "no_tool_authority_receipt",
+      "verifier_pass_fail_receipt",
+      "published_response_hash_receipt"
+    ],
+    "pilot_scope": [
+      "finance_capital_hilton_payment_watch"
+    ],
+    "ready_for_live_invocation": false,
+    "ready_for_operator_approval": true,
+    "required_operator_approval_ref": "operator_approval_receipt:local_lm_proof_response_pilot:v0",
+    "selected_harness_ref": "local_llm_shadow_mode",
+    "selected_model_ref": ""
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SHADOW_PILOT_RUNTIME_READY"
+      ],
+      "active_candidate_source": "shadow_pilot_candidate",
+      "observed_status": "PROOF_TO_RESPONSE_SHADOW_PILOT_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_shadow_pilot_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_READINESS_GATE_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_READINESS_GATE_READY",
+      "precondition_ref": "local_lm_proof_response_readiness_gate",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_to_response_readiness_gate.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_HARNESS_INVENTORY_RECEIPTS_READY"
+      ],
+      "observed_status": "LOCAL_LM_HARNESS_INVENTORY_RECEIPTS_READY",
+      "precondition_ref": "local_lm_harness_inventory_receipts",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_harness_inventory_receipts.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_REDACTION_HARDENING_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_REDACTION_HARDENING_READY",
+      "precondition_ref": "proof_bundle_redaction_hardening",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_redaction_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_builder_redaction_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_builder_redaction_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "AGENT_RESPONSE_VOICE_MODES_READY"
+      ],
+      "observed_status": "AGENT_RESPONSE_VOICE_MODES_READY",
+      "precondition_ref": "agent_response_voice_modes",
+      "ready": true,
+      "source_ref": "generated/read_models/agent_response_voice_modes.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "GOLDILOCKS_GATE_CALIBRATION_READY"
+      ],
+      "observed_status": "GOLDILOCKS_GATE_CALIBRATION_READY",
+      "precondition_ref": "goldilocks_gate_calibration",
+      "ready": true,
+      "source_ref": "generated/read_models/goldilocks_gate_calibration.json"
+    }
+  ],
+  "purpose": "Choose the first live/local proof-to-response pilot lane and record required receipts before invocation.",
+  "read_model_id": "local_lm_proof_to_response_pilot_plan",
+  "required_receipts_before_live_invocation": [
+    "operator_approval_receipt",
+    "model_harness_selected_receipt",
+    "no_external_provider_receipt",
+    "redacted_proof_bundle_receipt",
+    "no_tool_authority_receipt",
+    "verifier_pass_fail_receipt",
+    "published_response_hash_receipt"
+  ],
+  "schema_version": "local_lm_proof_to_response_pilot_plan_v0",
+  "source_content_hashes": {
+    "allowed_lm_input_fields": "sha256:5132bdef1de90ae1f2c6a9eaa6554abf554807118240b5a592dccefc9c229e5e",
+    "candidate_source_options": "sha256:2865cd4e181934a58b3a9e6d2152c8d5334cb33999eb5cfb93de353ad1fe9705",
+    "pilot_status": "sha256:65ac70930694f75b50849317b836ba240721250e270e8cc2d08a28c3fc9ea680",
+    "preconditions": "sha256:5181d47a37e64c5de5afbdd977ea620a3efeaff552f88d17685b19e7131ee73b"
+  },
+  "source_refs": [
+    "generated/read_models/local_lm_proof_to_response_readiness_gate.json",
+    "generated/read_models/local_lm_harness_inventory_receipts.json",
+    "generated/read_models/proof_bundle_redaction_policy.json",
+    "generated/read_models/proof_bundle_builder_redaction_status.json",
+    "generated/read_models/agent_response_voice_modes.json",
+    "generated/read_models/proof_to_response_runtime_status.json",
+    "generated/read_models/proof_to_response_latest.json",
+    "generated/read_models/goldilocks_gate_calibration.json"
+  ],
+  "status": "LOCAL_LM_PROOF_RESPONSE_PILOT_PLAN_READY",
+  "stop_conditions": [
+    "model_claims_paid_sent_submitted",
+    "model_asks_for_hidden_or_prohibited_context",
+    "model_leaks_machine_contract_jargon",
+    "model_proposes_protected_action",
+    "verifier_fails",
+    "proof_bundle_contains_forbidden_field",
+    "external_provider_path_appears"
+  ]
+}

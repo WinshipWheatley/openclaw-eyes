@@ -1,0 +1,4063 @@
+{
+  "aggregated_lanes": {
+    "external_lm_eligibility_policy": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "content_hash": "sha256:1b2635597e8085fd01890461a14db7a99e6a249bee9af60bdadba43e01b1fb50",
+        "credentials_no_safe_model": true,
+        "finance_lm1_external_eligible": true,
+        "finance_lm2_external_eligible": true,
+        "legal_discovery_external_eligible": true,
+        "live_production_activation_allowed": false,
+        "model_call_performed": false,
+        "network_performed": false,
+        "personal_finance_external_eligible": true,
+        "production_live_lm_authority_granted": false,
+        "provider_key_material_access_performed": false,
+        "raw_values_block_external": true,
+        "strict_private_local_only": true,
+        "unminimized_blocks_external": true,
+        "unminimized_no_safe_model_until_repaired": true
+      },
+      "read_model_id": "external_lm_eligibility_policy"
+    },
+    "external_lm_safe_package_compiler": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "compiler_present": true,
+        "content_hash": "sha256:e702ddbee70aa95661355dc68f72198a14ed1b494a0648d0acb4aa16bb514f6b",
+        "deterministic_no_lm_needed": true,
+        "external_action_performed": false,
+        "legal_discovery_external_ready": true,
+        "lm1_safe_package_compiled": true,
+        "lm2_safe_package_compiled": true,
+        "low_sensitivity_tokenization_not_required": true,
+        "model_call_performed": false,
+        "personal_context_tokenized": true,
+        "personal_finance_external_ready": true,
+        "provider_activation_performed": false,
+        "raw_identifier_leak_blocked": true,
+        "raw_value_leak_blocked": true,
+        "send_request_grants_no_authority": true,
+        "strict_private_external_blocked": true,
+        "tool_execution_performed": false
+      },
+      "read_model_id": "external_lm_safe_package"
+    },
+    "gate1_operational_snapshot": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "capital_hilton_snapshot_safe_for_lm1": true,
+        "client_finance_classified": true,
+        "content_hash": "sha256:4c5440cd7e19f26540bcf4d743408e0c911c372b0dc360245dd85dc25ad19f97",
+        "external_action_performed": false,
+        "model_call_performed": false,
+        "privacy_policy_missing_blocks_lm1": true,
+        "privacy_policy_missing_reason": "TOKENIZATION_POLICY_REQUIRED",
+        "raw_values_included": false,
+        "snapshot_contract_present": true,
+        "spreadsheet_cell_read_performed": false,
+        "tokenization_required": true,
+        "tool_execution_performed": false,
+        "universal_intake_inference_attached": true,
+        "workbook_body_read_performed": false
+      },
+      "read_model_id": "gate1_operational_snapshot"
+    },
+    "gate1_privacy_request_readiness": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "content_hash": "sha256:0eaaf1f53ab8240cd2f65213db58571cae087d0e05885303fd6786f801fd5bad",
+        "external_action_performed": false,
+        "file_body_read_performed": false,
+        "finance_requires_tokenization": true,
+        "fixture_count": 5,
+        "live_model_call_performed": false,
+        "lm1_raw_values_allowed_any_fixture": false,
+        "normal_classified_low_metadata": true,
+        "spreadsheet_cell_read_performed": false,
+        "strict_local_only_fixture_exists": true,
+        "tool_execution_performed": false
+      },
+      "read_model_id": "gate1_privacy_request_readiness"
+    },
+    "gate_chain_harness": {
+      "read_model_id": "gate_chain_harness",
+      "summary": {
+        "all_execution_flags_false": true,
+        "blocked_as_expected": 7,
+        "clarification_as_expected": 1,
+        "db_isolated_from_business_ops_ledger": true,
+        "failed": 0,
+        "guardian_blocks": 3,
+        "guardian_passes": 6,
+        "isolated_sqlite_db_path": ".openclaw/test_harness/gate_chain_harness.sqlite",
+        "packages_compiled": 9,
+        "passed": 15,
+        "total_cases": 15
+      }
+    },
+    "guardian_trust_ramp_simulator": {
+      "read_model_id": "guardian_trust_ramp_simulator",
+      "score": {
+        "active_trust_label": "prepare_only",
+        "active_trust_level": 1,
+        "active_trust_statement": "Active trust is limited by live receipt evidence; simulation alone does not promote authority.",
+        "blocked_risk_classes": [
+          "wrong_client",
+          "stale_workbook",
+          "wrong_total",
+          "missing_po_reference",
+          "duplicate_send",
+          "missing_approval",
+          "unauthorized_sent_claim",
+          "changed_recipient",
+          "external_action_requested_without_authority"
+        ],
+        "candidate_trust_label": "guardian_may_auto_clear_routine_actions_with_notification_and_revocation",
+        "candidate_trust_level": 4,
+        "candidate_trust_statement": "Level 4-ready candidate from simulation only.",
+        "failed_count": 0,
+        "false_block_count": 0,
+        "false_block_rate": 0.0,
+        "false_block_scenarios": [],
+        "false_pass_count": 0,
+        "false_pass_risk": "NONE_IN_SIMULATION",
+        "false_pass_scenarios": [],
+        "gate2_accept_count": 4,
+        "gate2_block_or_context_count": 7,
+        "guardian_blocks": 2,
+        "guardian_passes": 2,
+        "live_receipts_verified": false,
+        "negative_case_count": 9,
+        "notification_requirements": [
+          "operator notification before any future Level 4 routine clearance",
+          "scoped response receipt after any future clearance",
+          "audit trail linking source_request_id to policy version"
+        ],
+        "packages_compiled": 4,
+        "passed_count": 11,
+        "positive_case_count": 2,
+        "promotion_requirements_remaining": [
+          "guardian_policy_version_receipt",
+          "notification_route_receipt",
+          "revocation_route_receipt",
+          "exact_operator_approval_policy_receipt",
+          "repeated_live_success_receipts",
+          "post_action_provider_receipt_policy"
+        ],
+        "required_human_approval_points": [
+          "correct_client_invoice_recipient_attachment",
+          "routine_delivery_review_packet",
+          "wrong_client",
+          "stale_workbook",
+          "wrong_total",
+          "missing_po_reference",
+          "duplicate_send",
+          "missing_approval",
+          "unauthorized_sent_claim",
+          "changed_recipient",
+          "external_action_requested_without_authority"
+        ],
+        "required_receipts": [
+          "guardian_policy_version_receipt",
+          "notification_route_receipt",
+          "revocation_route_receipt",
+          "exact_operator_approval_policy_receipt",
+          "repeated_live_success_receipts",
+          "post_action_provider_receipt_policy"
+        ],
+        "revocation_requirements": [
+          "operator-visible revoke control",
+          "per-workflow policy disable switch",
+          "post-action rollback or block receipt where applicable"
+        ],
+        "routine_guardian_clearable_candidates": [
+          "correct_client_invoice_recipient_attachment",
+          "routine_delivery_review_packet"
+        ],
+        "scenario_count": 11,
+        "unverified_live_receipts_supplied": []
+      }
+    },
+    "live_lm_activation_requirements": {
+      "machine_proof": {
+        "activation_production_receipt_intake_ready": true,
+        "activation_production_receipt_status_count": 7,
+        "activation_production_receipt_writer_authority_free": true,
+        "activation_production_receipts_present_count": 0,
+        "activation_receipt_contract_count": 7,
+        "activation_receipt_contracts_ready": true,
+        "activation_receipt_fixture_count": 7,
+        "activation_receipt_fixtures_satisfy_production": false,
+        "activation_receipt_fixtures_valid": true,
+        "activation_receipt_substrate_contract_rows": 7,
+        "activation_receipt_substrate_contracts_backed": true,
+        "activation_receipt_substrate_exists": true,
+        "activation_receipt_substrate_fixture_rows": 7,
+        "activation_receipt_substrate_fixtures_backed": true,
+        "activation_receipt_substrate_production_rows": 0,
+        "activation_receipt_substrate_satisfies_production": false,
+        "activation_receipt_substrate_table_count": 4,
+        "activation_receipt_substrate_valid_production_rows": 0,
+        "all_live_authority_false": true,
+        "content_hash": "sha256:1d804029b8b5f44bf0760950c8f195b9dbf7989357352438c9c1bc5194b2fa85",
+        "device_trust_live_activation_receipt_present": false,
+        "external_action_performed": false,
+        "live_lm1_ready": false,
+        "live_lm2_ready": false,
+        "live_lm_status": "NOT_ACTIVE",
+        "live_model_call_performed": false,
+        "live_model_enablement_receipt_present": false,
+        "live_shadow_comparison_receipt_present": true,
+        "live_shadow_model_call_recorded": true,
+        "missing_receipt_count": 7,
+        "model_api_call_performed": false,
+        "network_performed": false,
+        "privacy_policy_receipt_present": true,
+        "production_activation_beam_count": 7,
+        "production_activation_beams_explicit": true,
+        "production_state_mutation_performed": false,
+        "production_token_vault_ready_receipt_present": true,
+        "provider_activation_receipts_present": false,
+        "provider_activation_receipts_required": true,
+        "real_lm1_production_policy_receipt_present": false,
+        "real_lm2_production_policy_receipt_present": false,
+        "receipt_requirement_count": 10,
+        "rollback_disable_receipt_present": false,
+        "shadow_model_selection_receipt_present": true,
+        "shadow_provider_policy_receipt_present": true,
+        "shadow_receipts_satisfy_production_activation": false,
+        "tool_execution_performed": false
+      },
+      "read_model_id": "live_lm_activation_requirements"
+    },
+    "live_lm_readiness_gate": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "content_hash": "sha256:45692c32a052f176e21a52bd8a18a734dcec158e4fd0f9c64c54f6d5c3cff20d",
+        "live_default_not_active": true,
+        "live_model_call_performed": false,
+        "lm1_shadow_ready": true,
+        "lm2_shadow_ready": true,
+        "missing_model_policy_blocks": true,
+        "missing_tokenization_blocks": true,
+        "model_api_integration_performed": false
+      },
+      "read_model_id": "live_lm_readiness_gate"
+    },
+    "live_lm_shadow_trial": {
+      "machine_proof": {
+        "all_production_authority_false": true,
+        "content_hash": "sha256:41e14b9c3c0275cf89b467c526d55582f11dcbc8fdf785c100e447efe472213d",
+        "external_action_performed": false,
+        "gate2_accepted": true,
+        "gate3_compiled": true,
+        "gate4_validated": true,
+        "live_model_call_performed": true,
+        "live_shadow_receipt_valid": true,
+        "live_shadow_trial_present": true,
+        "lm1_expected_match": true,
+        "lm1_parse_ok": true,
+        "lm2_parse_ok": true,
+        "model_ref": "nemotron-3-nano:4b",
+        "network_scope": "localhost_ollama_only",
+        "production_state_mutation_performed": false,
+        "provider_class": "provider_class:local_ollama_shadow_test",
+        "raw_sensitive_data_included": false,
+        "send_submit_performed": false,
+        "tokenized_or_minimized": true,
+        "tool_execution_performed": false
+      },
+      "read_model_id": "live_lm_shadow_trial"
+    },
+    "model_router_policy": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "authority_granted": false,
+        "content_hash": "sha256:dc1d81df9b1fcbb1a15613375bac229e74fa62b3d7b0213d7c9781495feb9237",
+        "downgrade_testing_blocked_before_baseline": true,
+        "lm1_example_selects_fast_class": true,
+        "lm1_provider_policy_selected": true,
+        "lm1_thread_package_selects_fast_class": true,
+        "lm2_example_selects_stronger_class": true,
+        "lm2_provider_policy_selected": true,
+        "lm2_role_package_integrated_selects_class": true,
+        "local_fallback_selected_when_external_blocked": true,
+        "model_call_performed": false,
+        "network_performed": false,
+        "provider_key_material_access_performed": false,
+        "provider_policy_consulted": true,
+        "sensitive_example_blocks_without_tokenization": true
+      },
+      "read_model_id": "model_router_policy"
+    },
+    "private_mode_policy_readiness": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "all_states_block_raw_model_values": true,
+        "content_hash": "sha256:31f062dfd29593fca644125526be7d26cd3686f1a763efc930a9f0e084ee139c",
+        "external_action_performed": false,
+        "live_model_call_performed": false,
+        "private_mode_active": false,
+        "private_mode_policy_exported": true,
+        "production_state_mutation_performed": false,
+        "state_count": 3,
+        "strict_private_mode_active": false,
+        "strict_private_requires_local_only": true,
+        "strict_private_state_exists": true,
+        "tool_execution_performed": false
+      },
+      "read_model_id": "private_mode_policy_readiness"
+    },
+    "provider_policy_registry": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "content_hash": "sha256:136b4b0c7eba8c4b409aec0b26b916c7bf6f91d5e0fccb4be23971c2aac07ead",
+        "live_model_call_performed": false,
+        "lm1_policy_selects_fast_candidate": true,
+        "lm2_policy_selects_strong_candidate": true,
+        "local_fallback_selects_local_candidate": true,
+        "network_performed": false,
+        "private_cloud_candidate_rejected": true,
+        "provider_key_material_access_performed": false,
+        "raw_values_block_no_safe_model": true
+      },
+      "read_model_id": "provider_policy_registry"
+    },
+    "read_model_mirror_visibility": {
+      "machine_proof": {
+        "all_known_readiness_refs_recorded": true,
+        "all_live_authority_false": true,
+        "content_hash": "sha256:b4807d7f987c9725b591d8f7e913743117d1ee46d53baa5d3551945390126dbb",
+        "external_action_performed": false,
+        "generated_refs_present": true,
+        "mac_visible_guaranteed": false,
+        "network_performed": false,
+        "new_sync_system_created": false,
+        "operator_copies_available": true,
+        "production_state_mutation_performed": false,
+        "response_publication_performed": false,
+        "tool_execution_performed": false,
+        "visibility_record_count": 13
+      },
+      "read_model_id": "read_model_mirror_visibility"
+    },
+    "request_response_bridge_readiness": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "approved_inbox_only": true,
+        "content_hash": "sha256:248cccac17c55a75eccf1124b80f7aa0479a3346fb2fa046c783ec49e6dd9f29",
+        "external_action_performed": false,
+        "model_call_performed": false,
+        "per_request_response_written": true,
+        "ready_for_live_review": true,
+        "request_processed_by_this_readmodel": false,
+        "route_aware_processing_heartbeat_written": true,
+        "service_started_by_this_readmodel": false,
+        "service_template_present": true,
+        "status_read_model_present": true,
+        "terminal_response_written": true,
+        "tool_execution_performed": false,
+        "workflow_execution_performed": false
+      },
+      "read_model_id": "request_response_bridge_readiness"
+    },
+    "shadow_lm_mode": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "content_hash": "sha256:f307b0447a64fa13f8cc8c4d818abb41c68bb756796921c5043354c6011a7c6a",
+        "fixtures_only": true,
+        "harness_failed_count": 0,
+        "lm1_expected_actual_compared": true,
+        "lm1_live_call_performed": false,
+        "lm1_shadow_ready": true,
+        "lm2_expected_actual_compared": true,
+        "lm2_live_call_performed": false,
+        "lm2_shadow_ready": true,
+        "model_api_call_performed": false,
+        "shadow_comparison_count": 4,
+        "shadow_comparison_failed_count": 0,
+        "shadow_negative_case_count": 3,
+        "shadow_negative_cases_passed": true,
+        "shadow_results_persisted_in_isolated_db": true
+      },
+      "read_model_id": "shadow_lm_mode"
+    },
+    "token_vault_status": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "cloud_call_performed": false,
+        "cloud_lm_blocked_when_private": true,
+        "content_hash": "sha256:55ed9556200b0b68392a714f47d7273481e1c1a3ba151b9a793acb410a86e440",
+        "different_scope_token_differs": true,
+        "finance_policy_blocks_raw_model_visibility": true,
+        "finance_policy_tokenization_required": true,
+        "network_performed": false,
+        "privacy_policy_receipt_present": true,
+        "privacy_policy_receipt_shape_defined": true,
+        "privacy_readiness_production_token_vault_ready": true,
+        "privacy_readiness_synthetic_tokenization_ready": true,
+        "production_receipts_satisfy_live_activation": true,
+        "production_token_vault_raw_value_columns_present": false,
+        "production_token_vault_ready_receipt_present": true,
+        "production_token_vault_receipt_shape_defined": true,
+        "production_token_vault_required_tables_present": true,
+        "production_token_vault_substrate_exists": true,
+        "raw_values_exported": false,
+        "real_data_ingestion_performed": false,
+        "role_package_raw_values_included": false,
+        "stable_within_scope": true,
+        "strict_policy_local_only_required": true
+      },
+      "read_model_id": "token_vault_status"
+    },
+    "universal_intake_contract": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "ambiguous_fixture_asks_clarification": true,
+        "backend_paths_exposed": false,
+        "batch_fixture_all_draft_source_only": true,
+        "batch_fixture_all_high_confidence": true,
+        "batch_fixture_count": 3,
+        "capital_hilton_chain_ready": true,
+        "capital_hilton_fixture_inferred": true,
+        "capital_hilton_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "content_hash": "sha256:69b62ce7ab97c40518ca5d21aa60998cb0904fb3b4790c538d37181a0d724b4a",
+        "fixture_final_false": true,
+        "fixture_ledger_posted_false": true,
+        "fixture_paid_false": true,
+        "fixture_submitted_false": true,
+        "unknown_artifact_asks_clarification": true,
+        "unknown_artifact_not_invoice": true,
+        "workbook_body_read_performed": false
+      },
+      "read_model_id": "universal_intake_contract"
+    }
+  },
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "approval_execution_allowed": false,
+    "external_action_allowed": false,
+    "ledger_posting_allowed": false,
+    "live_lm_call_allowed": false,
+    "model_api_integration_allowed": false,
+    "network_allowed": false,
+    "ocr_allowed": false,
+    "pdf_generation_allowed": false,
+    "production_state_mutation_allowed": false,
+    "provider_key_material_access_allowed": false,
+    "send_submit_allowed": false,
+    "spreadsheet_cell_read_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_body_read_allowed": false,
+    "worker_dispatch_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "contract_status": "LM_READINESS_INTEGRATION_V2_NO_LIVE_LM",
+  "dashboard_summary": {
+    "activation_production_receipt_intake": "READY_METADATA_ONLY",
+    "can_lm1_shadow_test": true,
+    "can_lm2_shadow_test": true,
+    "external_lm_activation": "NOT_ACTIVE",
+    "external_lm_eligibility": "PRIVACY_SAFE_EXTERNAL_READY",
+    "external_lm_safe_package_compiler": "READY",
+    "gate1_operational_snapshot": "EXPORTED_CONNECTED",
+    "gate1_privacy_request": "EXPORTED",
+    "gate2_ingest": "ACCEPTED_INTENT",
+    "gate2_readback": "OPERATOR_VISIBLE",
+    "gate3_package": "ROLE_PACKAGE_COMPILED",
+    "gate3_package_readback": "OPERATOR_VISIBLE",
+    "gate4_guardian": "ROLE_OUTPUT_VALIDATED",
+    "live_lm_shadow_trial": "LIVE_SHADOW_PASSED",
+    "live_shadow_receipt": "PRESENT",
+    "lm1_external_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+    "lm1_external_safe_package": "READY",
+    "lm1_live": "NOT_ACTIVE",
+    "lm1_selected_provider": "provider_class:external_privacy_safe_fast_intent",
+    "lm1_shadow": "READY",
+    "lm1_shadow_comparison": "READY",
+    "lm1_thread_context_package": "CONNECTED_TO_GATE1",
+    "lm2_external_model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+    "lm2_external_safe_package": "READY",
+    "lm2_live": "NOT_ACTIVE",
+    "lm2_package_shadow": "READY",
+    "lm2_selected_provider": "provider_class:external_privacy_safe_role_reasoner",
+    "lm2_shadow_comparison": "READY",
+    "model_router": "SEEDED",
+    "next_blockers": [
+      "provider_activation_receipts_missing",
+      "live_model_enablement_receipt_missing",
+      "rollback_disable_receipt_missing",
+      "device_trust_live_activation_receipt_missing",
+      "real_lm1_production_policy_receipt_missing",
+      "real_lm2_production_policy_receipt_missing",
+      "private/strict-private mode product switch"
+    ],
+    "next_safe_move": "Keep running fixture/shadow comparisons and wire product confirmation surfaces only where the gates ask for missing privacy, scope, or approval.",
+    "privacy_readiness_status": "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM",
+    "private_mode_policy": "PRIVATE_MODE_POLICY_READY_INACTIVE",
+    "production_activation_beams": "EXPLICIT_SEVEN_BEAMS",
+    "production_live_blockers": "EXPLICIT",
+    "production_token_vault_ready": true,
+    "provider_activation_receipts": "RECEIPTS_REQUIRED_NOT_PRESENT",
+    "provider_policy_registry": "SEEDED",
+    "read_model_mirror_visibility": "READ_MODEL_VISIBILITY_PROOF_ONLY_NO_SYNC",
+    "request_response_bridge": "READY_FOR_LIVE_REVIEW",
+    "tokenization": "LOCAL_PRODUCTION_SUBSTRATE_READY_NO_REAL_DATA",
+    "tokenization_policy": "CLIENT_FINANCE_FILE_METADATA",
+    "trust_ramp_active_level": 1,
+    "trust_ramp_candidate_level": 4,
+    "universal_intake": "SEEDED",
+    "universal_intake_batch": "READY"
+  },
+  "generated_at": "2026-05-26T00:00:00+00:00",
+  "machine_proof": {
+    "activation_production_receipt_intake_ready": true,
+    "activation_production_receipt_status_count": 7,
+    "activation_production_receipt_writer_authority_free": true,
+    "activation_production_receipts_present_count": 0,
+    "activation_receipt_contract_count": 7,
+    "activation_receipt_contracts_ready": true,
+    "activation_receipt_fixtures_satisfy_production": false,
+    "activation_receipt_fixtures_valid": true,
+    "activation_receipt_substrate_contracts_backed": true,
+    "activation_receipt_substrate_fixtures_backed": true,
+    "activation_receipt_substrate_satisfies_production": false,
+    "all_live_authority_false": true,
+    "cloud_lm_allowed_when_private": false,
+    "content_hash": "sha256:645e322403f670791f41313d1a6f7436f190a883efa43249878ab8e28a14e4f3",
+    "dashboard_aggregates_seeded_lanes": true,
+    "end_to_end_non_live_chain_passed": true,
+    "external_action_performed": false,
+    "external_lm_eligibility_aggregated": true,
+    "external_lm_live_production_allowed": false,
+    "external_lm_safe_package_compiler_aggregated": true,
+    "external_safe_package_deterministic_no_lm_needed": true,
+    "external_safe_package_live_production_ready": false,
+    "external_safe_package_raw_value_leak_blocked": true,
+    "gate1_operational_snapshot_aggregated": true,
+    "gate1_privacy_request_readiness_aggregated": true,
+    "gate1_snapshot_connected_to_lm1_package": true,
+    "gate2_readback_operator_visible": true,
+    "gate3_model_may_see_raw_values": false,
+    "gate3_readback_operator_visible": true,
+    "gate3_tokenization_fields_present": true,
+    "live_activation_requirements_aggregated": true,
+    "live_lm_shadow_trial_aggregated": true,
+    "live_lm_status": "NOT_ACTIVE",
+    "live_shadow_model_call_recorded": true,
+    "live_shadow_receipt_valid": true,
+    "live_shadow_trial_status": "LIVE_SHADOW_PASSED",
+    "lm1_external_lm_allowed": true,
+    "lm1_external_safe_package_ready": true,
+    "lm1_model_class_selected": "FAST_EXTERNAL_INTENT_MODEL",
+    "lm1_package_built": true,
+    "lm1_package_connected_to_gate1": true,
+    "lm1_package_raw_values_included": false,
+    "lm1_package_tokenization_required": true,
+    "lm2_external_lm_allowed": true,
+    "lm2_external_safe_package_ready": true,
+    "lm2_model_class_selected": "STRONG_EXTERNAL_ROLE_MODEL",
+    "model_call_performed": false,
+    "network_performed": false,
+    "private_mode_active": false,
+    "private_mode_fields_present": true,
+    "private_mode_policy_active": false,
+    "private_mode_policy_readiness_aggregated": true,
+    "production_activation_beam_count": 7,
+    "production_activation_beams_explicit": true,
+    "production_state_mutation_performed": false,
+    "production_token_vault_ready": true,
+    "provider_activation_receipts_present": false,
+    "provider_activation_receipts_required": true,
+    "provider_policy_lm1_selected": true,
+    "provider_policy_lm2_selected": true,
+    "provider_policy_registry_aggregated": true,
+    "read_model_mirror_visibility_aggregated": true,
+    "read_model_mirror_visibility_mac_visible_guaranteed": false,
+    "request_response_bridge_readiness_aggregated": true,
+    "request_response_bridge_ready_for_live_review": true,
+    "shadow_comparison_failed_count": 0,
+    "shadow_model_selection_receipt_present": true,
+    "shadow_provider_policy_receipt_present": true,
+    "spreadsheet_cell_read_performed": false,
+    "strict_private_mode_active": false,
+    "strict_private_mode_policy_active": false,
+    "synthetic_tokenization_ready": true,
+    "tokenization_policy_blocks_raw_model_visibility": true,
+    "tool_execution_performed": false,
+    "universal_intake_batch_count": 3,
+    "universal_intake_batch_draft_source_only": true,
+    "workbook_body_read_performed": false
+  },
+  "read_model_id": "lm_readiness_dashboard",
+  "representative_flow": {
+    "external_lm_eligibility": {
+      "lm1": {
+        "authority_boundary": {
+          "external_action_allowed": false,
+          "ledger_posting_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_live_lm_authority_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "raw_sensitive_cloud_exposure_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false
+        },
+        "blocked_data_classes": [],
+        "context_minimization_applied": true,
+        "cost_control_notes": [
+          "Use stronger external models when the package is protected; reduce cost by minimizing context first.",
+          "Use local fallback for offline mode, explicit local-only choice, provider outage, credit-saving, or rare hard packages that cannot preserve meaning externally.",
+          "Do not treat privacy failure as automatic local fallback; repair tokenization/minimization or block the package.",
+          "Do not run weak/local downgrade tests until the external baseline has passed."
+        ],
+        "detokenization_required_inside_model": false,
+        "downgrade_testing_allowed_only_after_baseline_passes": true,
+        "eligibility_id": "external_lm_eligibility:6a281dfe0cd8c355",
+        "external_lm_allowed": true,
+        "guardian_privacy_gate_required": true,
+        "live_production_activation_allowed": false,
+        "local_lm_required": false,
+        "next_safe_move": "Package is privacy-eligible for a future external LM route, but production live LM remains off.",
+        "no_safe_model": false,
+        "package_minimized": true,
+        "package_token_estimate": 91,
+        "raw_values_included": false,
+        "reason_codes": [
+          "PII_VAULT_READY",
+          "PRIVACY_POLICY_RECEIPT_PRESENT",
+          "SENSITIVE_OR_PRIVATE_CONTEXT",
+          "TOKENIZATION_APPLIED",
+          "EXTERNAL_LM_PRIVACY_ELIGIBLE"
+        ],
+        "recommended_lane": "LM1",
+        "recommended_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+        "redundant_pass_avoidance": true,
+        "required_privacy_controls": [
+          "production_token_vault_ready",
+          "privacy_policy_receipt_present",
+          "tokenization_when_sensitive",
+          "raw_values_excluded",
+          "context_minimized",
+          "secrets_absent",
+          "no_model_side_detokenization",
+          "guardian_privacy_output_gate"
+        ],
+        "required_receipts": [
+          "production_token_vault_ready_receipt",
+          "privacy_policy_receipt",
+          "provider_policy_receipt",
+          "model_selection_policy_receipt",
+          "real_lm1_production_policy_receipt",
+          "guardian_privacy_output_gate_receipt"
+        ],
+        "safe_data_classes": [
+          "TOKENIZED_CLIENT_FINANCE_METADATA",
+          "MACHINE_INTENT_PROPOSAL_SCHEMA",
+          "MINIMIZED_ROLE_PACKAGE"
+        ],
+        "serial_package_recommended": true,
+        "token_budget_notes": [
+          "Estimated package tokens: 91.",
+          "Prefer serial role packages over broad context dumps.",
+          "Avoid redundant LM passes when Gate 2/Gate 4 already produced a deterministic answer."
+        ],
+        "tokenization_applied": true,
+        "use_beast_model_only_when_needed": true
+      },
+      "lm2": {
+        "authority_boundary": {
+          "external_action_allowed": false,
+          "ledger_posting_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_live_lm_authority_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "raw_sensitive_cloud_exposure_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false
+        },
+        "blocked_data_classes": [],
+        "context_minimization_applied": true,
+        "cost_control_notes": [
+          "Use stronger external models when the package is protected; reduce cost by minimizing context first.",
+          "Use local fallback for offline mode, explicit local-only choice, provider outage, credit-saving, or rare hard packages that cannot preserve meaning externally.",
+          "Do not treat privacy failure as automatic local fallback; repair tokenization/minimization or block the package.",
+          "Do not run weak/local downgrade tests until the external baseline has passed."
+        ],
+        "detokenization_required_inside_model": false,
+        "downgrade_testing_allowed_only_after_baseline_passes": true,
+        "eligibility_id": "external_lm_eligibility:9f955006975c07d1",
+        "external_lm_allowed": true,
+        "guardian_privacy_gate_required": true,
+        "live_production_activation_allowed": false,
+        "local_lm_required": false,
+        "next_safe_move": "Package is privacy-eligible for a future external LM route, but production live LM remains off.",
+        "no_safe_model": false,
+        "package_minimized": true,
+        "package_token_estimate": 64,
+        "raw_values_included": false,
+        "reason_codes": [
+          "PII_VAULT_READY",
+          "PRIVACY_POLICY_RECEIPT_PRESENT",
+          "SENSITIVE_OR_PRIVATE_CONTEXT",
+          "TOKENIZATION_APPLIED",
+          "EXTERNAL_LM_PRIVACY_ELIGIBLE"
+        ],
+        "recommended_lane": "LM2",
+        "recommended_model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+        "redundant_pass_avoidance": true,
+        "required_privacy_controls": [
+          "production_token_vault_ready",
+          "privacy_policy_receipt_present",
+          "tokenization_when_sensitive",
+          "raw_values_excluded",
+          "context_minimized",
+          "secrets_absent",
+          "no_model_side_detokenization",
+          "guardian_privacy_output_gate"
+        ],
+        "required_receipts": [
+          "production_token_vault_ready_receipt",
+          "privacy_policy_receipt",
+          "provider_policy_receipt",
+          "model_selection_policy_receipt",
+          "real_lm2_production_policy_receipt",
+          "guardian_privacy_output_gate_receipt"
+        ],
+        "safe_data_classes": [
+          "TOKENIZED_METADATA",
+          "MINIMIZED_ROLE_PACKAGE"
+        ],
+        "serial_package_recommended": true,
+        "token_budget_notes": [
+          "Estimated package tokens: 64.",
+          "Prefer serial role packages over broad context dumps.",
+          "Avoid redundant LM passes when Gate 2/Gate 4 already produced a deterministic answer."
+        ],
+        "tokenization_applied": true,
+        "use_beast_model_only_when_needed": true
+      }
+    },
+    "external_lm_safe_package": {
+      "compiler_status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILER_NO_LIVE_CALLS",
+      "deterministic_no_lm_needed": true,
+      "legal_discovery": {
+        "model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+        "raw_values_included": false,
+        "status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED"
+      },
+      "lm1_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+      "lm1_ready_for_external_shadow": true,
+      "lm1_status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED",
+      "lm2_model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+      "lm2_ready_for_external_shadow": true,
+      "lm2_status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED",
+      "low_sensitivity_weather": {
+        "status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED",
+        "tokenization_required": false
+      },
+      "personal_finance": {
+        "model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+        "raw_values_included": false,
+        "status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED"
+      },
+      "raw_value_leak_blocked": true,
+      "read_model_ref": "generated/read_models/external_lm_safe_package.json",
+      "strict_private_block": {
+        "plain_reason": "OpenClaw could not prepare this for an external model because private or credential-like content was present.",
+        "status": "EXTERNAL_LM_SAFE_PACKAGE_BLOCKED"
+      }
+    },
+    "gate1_operational_snapshot": {
+      "chain_contract": {
+        "live_lm_enabled": false,
+        "lm1_output_schema_required": "MachineIntentCandidate",
+        "output_to": "lm1_thread_context_package",
+        "safe_snapshot_can_feed_lm1_package": true,
+        "unsafe_snapshot_blocks_lm1_package": true
+      },
+      "contract_status": "GATE1_OPERATIONAL_SNAPSHOT_READY_NO_LIVE_LM",
+      "read_model_ref": "generated/read_models/gate1_operational_snapshot.json",
+      "safe_to_package_for_lm1": true,
+      "snapshot_id": "gate1_operational_snapshot:9f56312a928d41fd"
+    },
+    "gate1_privacy_request_readiness": {
+      "chain_contract": {
+        "gate_1_output_can_feed_lm1_package": true,
+        "live_lm_enabled": false,
+        "lm1_may_receive_raw_values": false,
+        "private_mode_can_raise_local_only_requirement": true,
+        "tokenization_declaration_required_for_private_or_finance": true
+      },
+      "contract_status": "GATE1_PRIVACY_TRIGGER_READY_NO_LIVE_LM",
+      "operator_summary": [
+        "OpenClaw can classify privacy posture before a future LM1 package is built.",
+        "Finance and private items require tokenized or summarized context.",
+        "Raw file bodies, workbook cells, credentials, and unrelated client details stay out."
+      ],
+      "read_model_ref": "generated/read_models/gate1_privacy_request_readiness.json"
+    },
+    "gate2_result_summary": {
+      "accepted_intent": {
+        "accepted_intent_id": "accepted_intent:1e4d4bb200a9aead",
+        "authority_granted": {
+          "agent_dispatch": false,
+          "approval_execution": false,
+          "candidate_promotion": false,
+          "credential_handling": false,
+          "external_action": false,
+          "file_body_read": false,
+          "file_mutation": false,
+          "ledger_posting": false,
+          "model_call": false,
+          "pdf_generation": false,
+          "raw_body_ingestion": false,
+          "send_submit": false,
+          "spreadsheet_cell_read": false,
+          "tool_execution": false,
+          "workbook_body_read": false,
+          "worker_dispatch": false,
+          "workflow_execution": false
+        },
+        "capability_refs": [
+          "status_readback",
+          "completion_proof_aggregation",
+          "dry_run",
+          "request_processing",
+          "request_response_service",
+          "route_aware_heartbeat",
+          "workflow_package_compilation",
+          "outbound_message_draft",
+          "outbound_message_send_gate",
+          "portal_transaction_package",
+          "portal_transaction_submit_gate",
+          "agent_voice_compilation",
+          "spoken_script_generation",
+          "visual_event_compilation",
+          "machine_intent_validation",
+          "approval_gate",
+          "record_keeping_write",
+          "binding:fixture:capital_hilton:status_readback",
+          "binding:fixture:capital_hilton:portal_package",
+          "binding:fixture:capital_hilton:outbound_message"
+        ],
+        "client_ref": "capital_hilton",
+        "confidence": "HIGH",
+        "context_refs_used": [
+          "tenant_scope:fixture_business_ops",
+          "scope:finance:capital_hilton:lm_readiness_fixture"
+        ],
+        "evidence_refs_used": [
+          "universal_intake_candidate:d7999c8ae2b62eb2"
+        ],
+        "intent_type": "ANSWER_STATUS",
+        "next_safe_move": "Next: describe the next safe invoice step; do not send, submit, post, or mark final.",
+        "project_ref": "",
+        "requested_action": "Answer the next safe move for the Capital Hilton invoice from safe read-models.",
+        "safe_action_type": "ANSWER_STATUS_READBACK",
+        "source_candidate_ref": "lm_readiness_candidate:f61cccdf8470e762",
+        "source_refs_used": [
+          "universal_intake:universal_intake_candidate:d7999c8ae2b62eb2"
+        ],
+        "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+        "target_agent_role": "CHIEF",
+        "target_worker_type": "PC_CODEX",
+        "validation_result_ref": "intent_validation_result:c75a9769bd94024d",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance"
+      },
+      "blocker_reasons": [],
+      "operator_readback": {
+        "accepted_intent_type": "ANSWER_STATUS",
+        "action_executed": false,
+        "blocked_or_clarification_reason": "",
+        "input_candidate_summary": {
+          "confidence": "HIGH",
+          "inferred_intent_type": "ANSWER_STATUS",
+          "intent_id": "lm_readiness_candidate:f61cccdf8470e762",
+          "operator_text": "what's next for the Capital Hilton invoice?",
+          "target_workflow_ref": "capital_hilton_invoice_workflow"
+        },
+        "outcome": "ACCEPTED_INTENT",
+        "plain_language_meaning": "OpenClaw can ingest this as a bounded internal intent. Nothing runs yet.",
+        "readback_id": "intent_ingest_readback:04f27b2cb94a6772",
+        "safe_action_type": "ANSWER_STATUS_READBACK",
+        "safe_next_chain_step": "Compile a bounded Gate 3 role package; do not execute the intent.",
+        "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+        "why_no_action_executed": "Gate 2 only validates intent ingestion. It never runs tools, workflows, sends, posts, or file actions."
+      },
+      "outcome": "ACCEPTED_INTENT"
+    },
+    "gate3_package_summary": {
+      "allowed_tools": [],
+      "detokenization_policy_ref": "detokenization_denied_without_explicit_policy_receipt",
+      "forbidden_tools": [
+        "gmail",
+        "coupa",
+        "browser",
+        "network",
+        "excel_writer",
+        "pdf_generator",
+        "ledger_writer",
+        "credential_vault",
+        "raw_body_reader",
+        "workflow_runner",
+        "agent_dispatcher",
+        "worker_dispatcher"
+      ],
+      "model_may_see_raw_values": false,
+      "operator_readback": {
+        "allowed_context_classes": [
+          "tenant_scope:fixture_business_ops",
+          "scope:finance:capital_hilton:lm_readiness_fixture",
+          "universal_intake_candidate:d7999c8ae2b62eb2",
+          "universal_intake:universal_intake_candidate:d7999c8ae2b62eb2"
+        ],
+        "authority_policy": {
+          "authority_boundary": {
+            "credential_handling_allowed": false,
+            "live_agent_dispatch_allowed": false,
+            "live_approval_execution_allowed": false,
+            "live_browser_allowed": false,
+            "live_candidate_promotion_allowed": false,
+            "live_coupa_access_allowed": false,
+            "live_email_send_allowed": false,
+            "live_external_action_allowed": false,
+            "live_file_body_read_allowed": false,
+            "live_file_mutation_allowed": false,
+            "live_ledger_posting_allowed": false,
+            "live_lm2_call_allowed": false,
+            "live_model_call_allowed": false,
+            "live_pdf_generation_allowed": false,
+            "live_send_submit_allowed": false,
+            "live_spreadsheet_cell_read_allowed": false,
+            "live_tool_execution_allowed": false,
+            "live_workbook_body_read_allowed": false,
+            "live_worker_dispatch_allowed": false,
+            "live_workflow_execution_allowed": false,
+            "network_allowed": false,
+            "raw_body_ingestion_allowed": false
+          },
+          "authority_policy_id": "package_authority_policy:3e564cfddcd955e8",
+          "external_action_authority_granted": false,
+          "next_safe_move": "No live authority is available in this package.",
+          "required_receipts_before_tools": [
+            "guardian_approval_receipt",
+            "exact_operator_approval_receipt",
+            "provider_or_adapter_receipt",
+            "post_action_proof_receipt"
+          ],
+          "send_submit_authority_granted": false,
+          "tool_authority_granted": false
+        },
+        "forbidden_context_classes": [
+          "credentials",
+          "tokens",
+          "raw private bodies",
+          "unrelated client data",
+          "unapproved file bodies"
+        ],
+        "gate4_readiness_state": "READY_FOR_GUARDIAN_OUTPUT_GATE",
+        "lm2_call_allowed": false,
+        "model_router_result": {
+          "authority_boundary": {
+            "authority_grant_allowed": false,
+            "external_action_allowed": false,
+            "live_model_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "blocked_reasons": [],
+          "chain_lane": "LM2_ROLE_RESPONSE",
+          "confidence": "HIGH",
+          "conservative_posture": true,
+          "decision_id": "model_routing_decision:1b95cf49a493bc27",
+          "expected_failure_modes": [
+            "malformed structured output",
+            "lower-quality reasoning",
+            "malformed JSON candidate",
+            "over-clarification"
+          ],
+          "fallback_provider_policy_id": "provider_policy:external_strong_role_privacy_safe",
+          "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+          "rejected_model_classes": [
+            "FAST_EXTERNAL_INTENT_MODEL",
+            "STRONG_EXTERNAL_ROLE_MODEL",
+            "LOCAL_ONLY_MODEL",
+            "FAST_STRUCTURED_INTENT_SMALL",
+            "STRONG_STRUCTURED_ROLE_REASONER",
+            "CONSERVATIVE_SENSITIVE_STRUCTURED"
+          ],
+          "rejected_provider_candidates": [
+            {
+              "expected_failure_modes": [
+                "malformed MachineIntentCandidate",
+                "under-specified intent",
+                "privacy-policy refusal"
+              ],
+              "model_class_ref": "FAST_EXTERNAL_INTENT_MODEL",
+              "model_ref": "model_class:fast_external_intent_model",
+              "policy_id": "provider_policy:external_fast_intent_privacy_safe",
+              "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+              "reject_reasons": [
+                "LANE_NOT_ALLOWED",
+                "MODEL_CLASS_NOT_REQUESTED"
+              ],
+              "usable": false,
+              "weaknesses": [
+                "must receive minimized/tokenized context",
+                "no tools",
+                "no direct authority",
+                "provider receipts required before production"
+              ]
+            },
+            {
+              "expected_failure_modes": [
+                "over-helpful completion claim",
+                "role drift",
+                "tool request outside package"
+              ],
+              "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+              "model_ref": "model_class:strong_external_role_model",
+              "policy_id": "provider_policy:external_strong_role_privacy_safe",
+              "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+              "reject_reasons": [
+                "MODEL_CLASS_NOT_REQUESTED"
+              ],
+              "usable": false,
+              "weaknesses": [
+                "higher cost",
+                "must be Guardian-gated",
+                "must receive minimized/tokenized package",
+                "provider receipts required before production"
+              ]
+            },
+            {
+              "expected_failure_modes": [
+                "false block",
+                "unnecessary clarification",
+                "weaker synthesis"
+              ],
+              "model_class_ref": "LOCAL_ONLY_MODEL",
+              "model_ref": "model_class:local_only_model",
+              "policy_id": "provider_policy:local_only_private",
+              "provider_ref": "provider_class:local_or_private_strict_local_model",
+              "reject_reasons": [
+                "MODEL_CLASS_NOT_REQUESTED"
+              ],
+              "usable": false,
+              "weaknesses": [
+                "not the production-quality external target",
+                "may underperform strong external reasoning"
+              ]
+            },
+            {
+              "expected_failure_modes": [
+                "under-specified intent",
+                "malformed JSON candidate"
+              ],
+              "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+              "model_ref": "model_class:fast_structured_intent_small",
+              "policy_id": "provider_policy:local_fixture_fast_intent",
+              "provider_ref": "provider_class:local_or_private_structured_stub",
+              "reject_reasons": [
+                "LANE_NOT_ALLOWED",
+                "MODEL_CLASS_NOT_REQUESTED"
+              ],
+              "usable": false,
+              "weaknesses": [
+                "not enough for nuanced role voice",
+                "not for broad context synthesis"
+              ]
+            },
+            {
+              "expected_failure_modes": [
+                "over-helpful completion claim",
+                "tool request outside package"
+              ],
+              "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+              "model_ref": "model_class:strong_structured_role_reasoner",
+              "policy_id": "provider_policy:local_fixture_strong_role",
+              "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+              "reject_reasons": [
+                "MODEL_CLASS_NOT_REQUESTED"
+              ],
+              "usable": false,
+              "weaknesses": [
+                "higher latency than LM1 class",
+                "requires Guardian output gate"
+              ]
+            },
+            {
+              "expected_failure_modes": [
+                "false block",
+                "unnecessary clarification"
+              ],
+              "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+              "model_ref": "model_class:conservative_sensitive_structured",
+              "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+              "provider_ref": "provider_class:local_or_private_conservative_stub",
+              "reject_reasons": [
+                "MODEL_CLASS_NOT_REQUESTED"
+              ],
+              "usable": false,
+              "weaknesses": [
+                "may over-clarify",
+                "higher latency",
+                "less warm voice"
+              ]
+            },
+            {
+              "expected_failure_modes": [
+                "privacy policy block",
+                "provider unavailability",
+                "schema drift"
+              ],
+              "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+              "model_ref": "model_class:cloud_structured_candidate",
+              "policy_id": "provider_policy:future_cloud_structured_candidate",
+              "provider_ref": "provider_class:future_cloud_structured_candidate",
+              "reject_reasons": [
+                "MODEL_CLASS_NOT_REQUESTED",
+                "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN"
+              ],
+              "usable": false,
+              "weaknesses": [
+                "privacy policy must be explicit",
+                "network/API key path required",
+                "cannot be used in private mode by default"
+              ]
+            }
+          ],
+          "request_id": "role_execution_package:6dfebc8374413c92:model_route",
+          "risk_notes": [],
+          "selected_model_class": "LOCAL_FALLBACK_MODEL",
+          "selected_model_ref": "model_class:local_fallback_model",
+          "selected_provider_policy_id": "provider_policy:local_fallback_structured",
+          "selected_provider_ref": "provider_class:local_or_private_fallback_model",
+          "selection_reason": "LM2 role response has no external eligibility proof; use local fallback. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
+          "structured_output_required": true,
+          "tokenization_required_before_live": false
+        },
+        "operator_message": "OpenClaw can prepare a Chief status response.",
+        "output_destination": {
+          "destination_type": "MISSION_CONTROL_SCOPED_RESPONSE",
+          "device_ref": "mission_control",
+          "gate_4_ref": "guardian_output_gate",
+          "next_safe_move": "A future LM2 response candidate must pass Guardian output gate before publication/action.",
+          "output_destination_id": "role_output_destination:3a921d6712e978a9",
+          "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+          "thread_ref": "lm_readiness_capital_hilton_next_step_fixture"
+        },
+        "package_role": "CHIEF",
+        "package_status": "ROLE_PACKAGE_COMPILED",
+        "privacy_tokenization": {
+          "detokenization_policy_ref": "detokenization_denied_without_explicit_policy_receipt",
+          "model_may_see_raw_values": false,
+          "privacy_level": "metadata_only_tokenized_refs",
+          "raw_values_included": false,
+          "token_scope": "scope:finance:capital_hilton:capital_hilton_invoice_workflow",
+          "token_vault_ref": "generated/read_models/token_vault_status.json",
+          "tokenization_applied": true
+        },
+        "readback_id": "role_package_readback:2a7258e2ba5e5e1f",
+        "task": "Answer the next safe move for the Capital Hilton invoice from safe read-models.",
+        "tool_policy": {
+          "allowed_actions": [
+            "respond_to_originating_device_thread",
+            "ask_clarifying_question",
+            "prepare_readback_text",
+            "compile_nonexecuting_package"
+          ],
+          "allowed_tools": [],
+          "forbidden_actions": [
+            "send_email",
+            "send_gmail",
+            "submit_to_coupa",
+            "open_browser",
+            "access_network",
+            "read_workbook_body",
+            "read_spreadsheet_cells",
+            "mutate_file",
+            "write_excel",
+            "generate_pdf",
+            "post_ledger_entry",
+            "mark_invoice_sent",
+            "mark_invoice_paid",
+            "execute_workflow",
+            "dispatch_agent",
+            "dispatch_worker",
+            "handle_credentials"
+          ],
+          "forbidden_tools": [
+            "gmail",
+            "coupa",
+            "browser",
+            "network",
+            "excel_writer",
+            "pdf_generator",
+            "ledger_writer",
+            "credential_vault",
+            "raw_body_reader",
+            "workflow_runner",
+            "agent_dispatcher",
+            "worker_dispatcher"
+          ],
+          "next_safe_move": "Treat all tools and external actions as blocked until a later gate provides receipts.",
+          "receipt_required_for_blocked_actions": [
+            "guardian_approval_receipt",
+            "exact_operator_approval_receipt",
+            "provider_or_adapter_receipt",
+            "post_action_proof_receipt"
+          ],
+          "tool_policy_id": "role_tool_policy:3e564cfddcd955e8"
+        }
+      },
+      "package_id": "role_execution_package:6dfebc8374413c92",
+      "package_status": "ROLE_PACKAGE_COMPILED",
+      "privacy_level": "metadata_only_tokenized_refs",
+      "raw_values_included": false,
+      "role_identity": "CHIEF",
+      "token_scope": "scope:finance:capital_hilton:capital_hilton_invoice_workflow",
+      "token_vault_ref": "generated/read_models/token_vault_status.json",
+      "tokenization_applied": true
+    },
+    "gate4_result_summary": {
+      "authority_granted": {
+        "agent_dispatch": false,
+        "approval_execution": false,
+        "credential_handling": false,
+        "external_action": false,
+        "file_body_read": false,
+        "file_mutation": false,
+        "model_call": false,
+        "raw_body_ingestion": false,
+        "send_submit": false,
+        "spreadsheet_cell_read": false,
+        "workbook_body_read": false,
+        "worker_dispatch": false,
+        "workflow_execution": false
+      },
+      "blocked_reasons": [],
+      "external_action_allowed": false,
+      "forbidden_actions": [],
+      "forbidden_claims": [],
+      "forbidden_tools": [],
+      "leakage_hits": [],
+      "next_safe_move": "Publish the scoped response; no external action is allowed.",
+      "output_publish_allowed": true,
+      "response_author": "CHIEF",
+      "source_candidate_id": "role_response_candidate:0d4c746b4acf16da",
+      "source_package_id": "role_execution_package:457b615c4c8149eb",
+      "validation_result_id": "role_output_validation:9282c4c1ae5ad8e2",
+      "verdict": "ROLE_OUTPUT_VALIDATED"
+    },
+    "live_lm_activation_requirements": {
+      "activation_production_receipt_intake": {
+        "default_production_rows": 0,
+        "intake_ready": true,
+        "metadata_only": true,
+        "next_safe_move": "Use record_activation_production_receipt_candidate only for governed production-review receipts.",
+        "writer_authority_free": true,
+        "writes_default_production_receipts": false
+      },
+      "activation_production_receipt_statuses": [
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "provider_model_receipts",
+          "governed_review_source": false,
+          "human_label": "Provider policy receipt",
+          "next_safe_move": "Collect this receipt through governed production review before live activation can be considered.",
+          "operator_approved": false,
+          "payload_hash": "",
+          "present": false,
+          "receipt_status": "MISSING_PRODUCTION_RECEIPT",
+          "receipt_type": "provider_policy_receipt",
+          "recorded_at": "",
+          "satisfies_production_activation": false
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "provider_model_receipts",
+          "governed_review_source": false,
+          "human_label": "Model selection policy receipt",
+          "next_safe_move": "Collect this receipt through governed production review before live activation can be considered.",
+          "operator_approved": false,
+          "payload_hash": "",
+          "present": false,
+          "receipt_status": "MISSING_PRODUCTION_RECEIPT",
+          "receipt_type": "model_selection_policy_receipt",
+          "recorded_at": "",
+          "satisfies_production_activation": false
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "live_enablement_receipt",
+          "governed_review_source": false,
+          "human_label": "Live enablement receipt",
+          "next_safe_move": "Collect this receipt through governed production review before live activation can be considered.",
+          "operator_approved": false,
+          "payload_hash": "",
+          "present": false,
+          "receipt_status": "MISSING_PRODUCTION_RECEIPT",
+          "receipt_type": "live_model_enablement_receipt",
+          "recorded_at": "",
+          "satisfies_production_activation": false
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "rollback_disable_receipt",
+          "governed_review_source": false,
+          "human_label": "Rollback/disable receipt",
+          "next_safe_move": "Collect this receipt through governed production review before live activation can be considered.",
+          "operator_approved": false,
+          "payload_hash": "",
+          "present": false,
+          "receipt_status": "MISSING_PRODUCTION_RECEIPT",
+          "receipt_type": "rollback_disable_receipt",
+          "recorded_at": "",
+          "satisfies_production_activation": false
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "device_trust_live_activation",
+          "governed_review_source": false,
+          "human_label": "Device trust / live activation receipt",
+          "next_safe_move": "Collect this receipt through governed production review before live activation can be considered.",
+          "operator_approved": false,
+          "payload_hash": "",
+          "present": false,
+          "receipt_status": "MISSING_PRODUCTION_RECEIPT",
+          "receipt_type": "device_trust_live_activation_receipt",
+          "recorded_at": "",
+          "satisfies_production_activation": false
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "real_lm_production_policy",
+          "governed_review_source": false,
+          "human_label": "Real LM1 production policy receipt",
+          "next_safe_move": "Collect this receipt through governed production review before live activation can be considered.",
+          "operator_approved": false,
+          "payload_hash": "",
+          "present": false,
+          "receipt_status": "MISSING_PRODUCTION_RECEIPT",
+          "receipt_type": "real_lm1_production_policy_receipt",
+          "recorded_at": "",
+          "satisfies_production_activation": false
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "real_lm_production_policy",
+          "governed_review_source": false,
+          "human_label": "Real LM2 production policy receipt",
+          "next_safe_move": "Collect this receipt through governed production review before live activation can be considered.",
+          "operator_approved": false,
+          "payload_hash": "",
+          "present": false,
+          "receipt_status": "MISSING_PRODUCTION_RECEIPT",
+          "receipt_type": "real_lm2_production_policy_receipt",
+          "recorded_at": "",
+          "satisfies_production_activation": false
+        }
+      ],
+      "activation_receipt_contracts": [
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "provider_model_receipts",
+          "blocks_live_lm1": true,
+          "blocks_live_lm2": true,
+          "can_be_collected_without_live_authority": true,
+          "fixture_validation_allowed": true,
+          "governed_review_required": true,
+          "human_label": "Provider policy receipt",
+          "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+          "operator_approval_required": true,
+          "operator_copy": "Provider policy can be reviewed without activating any provider or API key.",
+          "production_receipt_required": true,
+          "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+          "receipt_type": "provider_policy_receipt",
+          "required_false_controls": [
+            "provider_key_material_included",
+            "provider_api_call_enabled",
+            "live_lm_call_enabled",
+            "network_enabled"
+          ],
+          "required_true_controls": [
+            "provider_policy_defined",
+            "allowed_context_classes_declared",
+            "forbidden_context_classes_declared",
+            "provider_key_access_denied",
+            "network_authority_denied"
+          ]
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "provider_model_receipts",
+          "blocks_live_lm1": true,
+          "blocks_live_lm2": true,
+          "can_be_collected_without_live_authority": true,
+          "fixture_validation_allowed": true,
+          "governed_review_required": true,
+          "human_label": "Model selection policy receipt",
+          "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+          "operator_approval_required": true,
+          "operator_copy": "Model-selection policy can be checked as metadata without calling a model.",
+          "production_receipt_required": true,
+          "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+          "receipt_type": "model_selection_policy_receipt",
+          "required_false_controls": [
+            "model_call_performed",
+            "runtime_model_router_enabled",
+            "provider_api_call_enabled",
+            "live_lm_call_enabled"
+          ],
+          "required_true_controls": [
+            "lm1_model_class_policy_defined",
+            "lm2_model_class_policy_defined",
+            "fallback_model_class_defined",
+            "model_self_selection_denied",
+            "structured_output_requirement_defined"
+          ]
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "live_enablement_receipt",
+          "blocks_live_lm1": true,
+          "blocks_live_lm2": true,
+          "can_be_collected_without_live_authority": true,
+          "fixture_validation_allowed": true,
+          "governed_review_required": true,
+          "human_label": "Live enablement receipt",
+          "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+          "operator_approval_required": true,
+          "operator_copy": "Live enablement has a receipt shape, but the shape itself cannot enable live models.",
+          "production_receipt_required": true,
+          "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+          "receipt_type": "live_model_enablement_receipt",
+          "required_false_controls": [
+            "live_lm_enabled_by_receipt_shape",
+            "provider_api_call_enabled",
+            "tool_execution_enabled",
+            "production_state_mutation_enabled"
+          ],
+          "required_true_controls": [
+            "explicit_operator_enablement_required",
+            "default_state_not_active",
+            "all_other_receipts_required_first",
+            "operator_visible_status_required"
+          ]
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "rollback_disable_receipt",
+          "blocks_live_lm1": true,
+          "blocks_live_lm2": true,
+          "can_be_collected_without_live_authority": true,
+          "fixture_validation_allowed": true,
+          "governed_review_required": true,
+          "human_label": "Rollback/disable receipt",
+          "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+          "operator_approval_required": true,
+          "operator_copy": "Rollback and disable controls can be reviewed before any live model activation.",
+          "production_receipt_required": true,
+          "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+          "receipt_type": "rollback_disable_receipt",
+          "required_false_controls": [
+            "rollback_requires_provider_access",
+            "disable_depends_on_network",
+            "production_state_mutation_enabled",
+            "live_lm_call_enabled"
+          ],
+          "required_true_controls": [
+            "disable_switch_defined",
+            "rollback_path_defined",
+            "operator_visible_disable_defined",
+            "audit_log_required",
+            "default_disable_available"
+          ]
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "device_trust_live_activation",
+          "blocks_live_lm1": true,
+          "blocks_live_lm2": true,
+          "can_be_collected_without_live_authority": true,
+          "fixture_validation_allowed": true,
+          "governed_review_required": true,
+          "human_label": "Device trust / live activation receipt",
+          "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+          "operator_approval_required": true,
+          "operator_copy": "Device trust can be shaped as a receipt without granting live activation.",
+          "production_receipt_required": true,
+          "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+          "receipt_type": "device_trust_live_activation_receipt",
+          "required_false_controls": [
+            "untrusted_device_activation_allowed",
+            "arbitrary_destination_allowed",
+            "lm_inferred_routing_allowed",
+            "live_lm_call_enabled"
+          ],
+          "required_true_controls": [
+            "trusted_device_registry_required",
+            "source_device_binding_required",
+            "thread_scope_binding_required",
+            "request_replay_protection_required",
+            "scoped_response_route_required"
+          ]
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "real_lm_production_policy",
+          "blocks_live_lm1": true,
+          "blocks_live_lm2": false,
+          "can_be_collected_without_live_authority": true,
+          "fixture_validation_allowed": true,
+          "governed_review_required": true,
+          "human_label": "Real LM1 production policy receipt",
+          "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+          "operator_approval_required": true,
+          "operator_copy": "LM1 production policy can be reviewed as intent-proposal-only, with no tool or authority path.",
+          "production_receipt_required": true,
+          "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+          "receipt_type": "real_lm1_production_policy_receipt",
+          "required_false_controls": [
+            "lm1_can_execute_tools",
+            "lm1_can_grant_authority",
+            "lm1_can_dispatch_workers",
+            "raw_sensitive_values_allowed"
+          ],
+          "required_true_controls": [
+            "lm1_intent_only_policy_defined",
+            "machine_intent_candidate_schema_required",
+            "gate2_ingest_required",
+            "privacy_minimization_required",
+            "lm1_no_tool_authority_defined"
+          ]
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "beam_id": "real_lm_production_policy",
+          "blocks_live_lm1": false,
+          "blocks_live_lm2": true,
+          "can_be_collected_without_live_authority": true,
+          "fixture_validation_allowed": true,
+          "governed_review_required": true,
+          "human_label": "Real LM2 production policy receipt",
+          "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+          "operator_approval_required": true,
+          "operator_copy": "LM2 production policy can be reviewed as package-bound role response, with Guardian still behind it.",
+          "production_receipt_required": true,
+          "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+          "receipt_type": "real_lm2_production_policy_receipt",
+          "required_false_controls": [
+            "lm2_can_bypass_guardian",
+            "lm2_can_send_submit_without_receipt",
+            "lm2_can_post_ledger",
+            "raw_sensitive_values_allowed"
+          ],
+          "required_true_controls": [
+            "lm2_role_package_policy_defined",
+            "gate3_package_required",
+            "guardian_gate_required",
+            "forbidden_tools_explicit",
+            "no_send_submit_without_receipts"
+          ]
+        }
+      ],
+      "activation_receipt_fixture_results": [
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "governed_review_source": false,
+          "missing_true_controls": [],
+          "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+          "operator_approved": false,
+          "production_receipt_present": false,
+          "receipt_type": "provider_policy_receipt",
+          "receipt_type_matches": true,
+          "satisfies_production_activation": false,
+          "unsafe_authority_controls": [],
+          "unsafe_true_controls": [],
+          "valid_as_test_fixture": true,
+          "valid_for_contract": true,
+          "validation_status": "VALID_TEST_FIXTURE_ONLY"
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "governed_review_source": false,
+          "missing_true_controls": [],
+          "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+          "operator_approved": false,
+          "production_receipt_present": false,
+          "receipt_type": "model_selection_policy_receipt",
+          "receipt_type_matches": true,
+          "satisfies_production_activation": false,
+          "unsafe_authority_controls": [],
+          "unsafe_true_controls": [],
+          "valid_as_test_fixture": true,
+          "valid_for_contract": true,
+          "validation_status": "VALID_TEST_FIXTURE_ONLY"
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "governed_review_source": false,
+          "missing_true_controls": [],
+          "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+          "operator_approved": false,
+          "production_receipt_present": false,
+          "receipt_type": "live_model_enablement_receipt",
+          "receipt_type_matches": true,
+          "satisfies_production_activation": false,
+          "unsafe_authority_controls": [],
+          "unsafe_true_controls": [],
+          "valid_as_test_fixture": true,
+          "valid_for_contract": true,
+          "validation_status": "VALID_TEST_FIXTURE_ONLY"
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "governed_review_source": false,
+          "missing_true_controls": [],
+          "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+          "operator_approved": false,
+          "production_receipt_present": false,
+          "receipt_type": "rollback_disable_receipt",
+          "receipt_type_matches": true,
+          "satisfies_production_activation": false,
+          "unsafe_authority_controls": [],
+          "unsafe_true_controls": [],
+          "valid_as_test_fixture": true,
+          "valid_for_contract": true,
+          "validation_status": "VALID_TEST_FIXTURE_ONLY"
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "governed_review_source": false,
+          "missing_true_controls": [],
+          "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+          "operator_approved": false,
+          "production_receipt_present": false,
+          "receipt_type": "device_trust_live_activation_receipt",
+          "receipt_type_matches": true,
+          "satisfies_production_activation": false,
+          "unsafe_authority_controls": [],
+          "unsafe_true_controls": [],
+          "valid_as_test_fixture": true,
+          "valid_for_contract": true,
+          "validation_status": "VALID_TEST_FIXTURE_ONLY"
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "governed_review_source": false,
+          "missing_true_controls": [],
+          "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+          "operator_approved": false,
+          "production_receipt_present": false,
+          "receipt_type": "real_lm1_production_policy_receipt",
+          "receipt_type_matches": true,
+          "satisfies_production_activation": false,
+          "unsafe_authority_controls": [],
+          "unsafe_true_controls": [],
+          "valid_as_test_fixture": true,
+          "valid_for_contract": true,
+          "validation_status": "VALID_TEST_FIXTURE_ONLY"
+        },
+        {
+          "authority_boundary": {
+            "agent_dispatch_allowed": false,
+            "approval_execution_allowed": false,
+            "external_action_allowed": false,
+            "ledger_posting_allowed": false,
+            "live_lm_call_allowed": false,
+            "model_api_integration_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "provider_key_material_access_allowed": false,
+            "send_submit_allowed": false,
+            "tool_execution_allowed": false,
+            "worker_dispatch_allowed": false,
+            "workflow_execution_allowed": false
+          },
+          "governed_review_source": false,
+          "missing_true_controls": [],
+          "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+          "operator_approved": false,
+          "production_receipt_present": false,
+          "receipt_type": "real_lm2_production_policy_receipt",
+          "receipt_type_matches": true,
+          "satisfies_production_activation": false,
+          "unsafe_authority_controls": [],
+          "unsafe_true_controls": [],
+          "valid_as_test_fixture": true,
+          "valid_for_contract": true,
+          "validation_status": "VALID_TEST_FIXTURE_ONLY"
+        }
+      ],
+      "activation_receipt_substrate": {
+        "authority_boundary": {
+          "agent_dispatch_allowed": false,
+          "approval_execution_allowed": false,
+          "external_action_allowed": false,
+          "ledger_posting_allowed": false,
+          "live_lm_call_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false,
+          "worker_dispatch_allowed": false,
+          "workflow_execution_allowed": false
+        },
+        "contract_rows_persisted": 7,
+        "contracts_backed_by_sqlite": true,
+        "db_path": ".openclaw/activation/activation_receipts.sqlite",
+        "exists": true,
+        "fixture_validation_rows_persisted": 7,
+        "fixtures_backed_by_sqlite": true,
+        "missing_tables": [],
+        "next_safe_move": "Activation receipt contracts and production receipt intake are backed by local SQLite proof; collect governed production receipts before activation.",
+        "present_tables": [
+          "activation_production_receipts",
+          "activation_receipt_contracts",
+          "activation_receipt_fixture_validations",
+          "activation_receipt_metadata"
+        ],
+        "production_receipt_intake_ready": true,
+        "production_receipt_rows_present": 0,
+        "production_receipt_writer_authority_free": true,
+        "required_tables": [
+          "activation_receipt_metadata",
+          "activation_receipt_contracts",
+          "activation_receipt_fixture_validations",
+          "activation_production_receipts"
+        ],
+        "satisfies_production_activation": false,
+        "substrate_id": "activation_receipt_substrate:5a8d9c0f6ffd1954",
+        "valid_production_receipt_rows_present": 0
+      },
+      "contract_status": "LIVE_LM_ACTIVATION_BLOCKED_REQUIREMENTS_MISSING",
+      "live_lm1_activation_status": "NOT_READY",
+      "live_lm2_activation_status": "NOT_READY",
+      "live_shadow_receipt": {
+        "model_ref": "nemotron-3-nano:4b",
+        "present": true,
+        "provider_class": "provider_class:local_ollama_shadow_test",
+        "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
+        "status": "LIVE_SHADOW_PASSED"
+      },
+      "missing_receipts": [
+        "live_model_enablement_receipt",
+        "provider_policy_receipt",
+        "model_selection_policy_receipt",
+        "rollback_disable_receipt",
+        "device_trust_live_activation_receipt",
+        "real_lm1_production_policy_receipt",
+        "real_lm2_production_policy_receipt"
+      ],
+      "production_activation_beams": [
+        {
+          "beam_id": "production_token_vault",
+          "human_label": "Production token vault",
+          "operator_copy": "OpenClaw needs the production token vault to be ready before live model lanes can review sensitive work.",
+          "receipt_types": [
+            "production_token_vault_ready_receipt"
+          ],
+          "status": "PRESENT"
+        },
+        {
+          "beam_id": "provider_model_receipts",
+          "human_label": "Provider/model receipts",
+          "operator_copy": "OpenClaw needs recorded provider and model-selection receipts for each live lane.",
+          "receipt_types": [
+            "provider_policy_receipt",
+            "model_selection_policy_receipt"
+          ],
+          "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
+        },
+        {
+          "beam_id": "live_enablement_receipt",
+          "human_label": "Live enablement receipt",
+          "operator_copy": "OpenClaw needs an explicit live enablement receipt before LM1 or LM2 can leave shadow mode.",
+          "receipt_types": [
+            "live_model_enablement_receipt"
+          ],
+          "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
+        },
+        {
+          "beam_id": "privacy_receipt",
+          "human_label": "Privacy receipt",
+          "operator_copy": "OpenClaw needs a production privacy receipt before live model-shaped packages can be used.",
+          "receipt_types": [
+            "privacy_policy_receipt"
+          ],
+          "status": "PRESENT"
+        },
+        {
+          "beam_id": "rollback_disable_receipt",
+          "human_label": "Rollback/disable receipt",
+          "operator_copy": "OpenClaw needs a proven way to disable live model lanes before activation review.",
+          "receipt_types": [
+            "rollback_disable_receipt"
+          ],
+          "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
+        },
+        {
+          "beam_id": "device_trust_live_activation",
+          "human_label": "Device trust / live activation",
+          "operator_copy": "OpenClaw needs trusted-device and live-activation proof for Mission Control traffic before it can feed live model lanes.",
+          "receipt_types": [
+            "device_trust_live_activation_receipt"
+          ],
+          "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
+        },
+        {
+          "beam_id": "real_lm_production_policy",
+          "human_label": "Real LM1/LM2 production policy",
+          "operator_copy": "OpenClaw needs a real LM1/LM2 production policy for routing, privacy, fallback, and rollback before live activation review.",
+          "receipt_types": [
+            "real_lm1_production_policy_receipt",
+            "real_lm2_production_policy_receipt"
+          ],
+          "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
+        }
+      ],
+      "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
+      "read_model_ref": "generated/read_models/live_lm_activation_requirements.json",
+      "shadow_test_receipts": {
+        "model_selection_policy_receipt": {
+          "model_ref": "nemotron-3-nano:4b",
+          "present": true,
+          "satisfies_production_activation": false,
+          "scope": "shadow_test_only"
+        },
+        "provider_policy_receipt": {
+          "present": true,
+          "provider_class": "provider_class:local_ollama_shadow_test",
+          "satisfies_production_activation": false,
+          "scope": "shadow_test_only"
+        }
+      }
+    },
+    "live_lm_shadow_trial": {
+      "live_model_call_performed": true,
+      "live_shadow_receipt_valid": true,
+      "model_ref": "nemotron-3-nano:4b",
+      "provider_class": "provider_class:local_ollama_shadow_test",
+      "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
+      "trial_status": "LIVE_SHADOW_PASSED"
+    },
+    "lm1_model_decision": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "blocked_reasons": [],
+      "chain_lane": "LM1_INTENT_PROPOSAL",
+      "confidence": "HIGH",
+      "conservative_posture": true,
+      "decision_id": "model_routing_decision:7169124fbdb46d80",
+      "expected_failure_modes": [
+        "malformed structured output",
+        "malformed MachineIntentCandidate",
+        "under-specified intent",
+        "privacy-policy refusal"
+      ],
+      "fallback_provider_policy_id": "provider_policy:local_fallback_structured",
+      "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "rejected_model_classes": [
+        "STRONG_EXTERNAL_ROLE_MODEL",
+        "LOCAL_FALLBACK_MODEL",
+        "LOCAL_ONLY_MODEL",
+        "FAST_STRUCTURED_INTENT_SMALL",
+        "STRONG_STRUCTURED_ROLE_REASONER",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
+      "rejected_provider_candidates": [
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "role drift",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+          "model_ref": "model_class:strong_external_role_model",
+          "policy_id": "provider_policy:external_strong_role_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher cost",
+            "must be Guardian-gated",
+            "must receive minimized/tokenized package",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "lower-quality reasoning",
+            "malformed JSON candidate",
+            "over-clarification"
+          ],
+          "model_class_ref": "LOCAL_FALLBACK_MODEL",
+          "model_ref": "model_class:local_fallback_model",
+          "policy_id": "provider_policy:local_fallback_structured",
+          "provider_ref": "provider_class:local_or_private_fallback_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality target",
+            "weaker reasoning than preferred external classes"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification",
+            "weaker synthesis"
+          ],
+          "model_class_ref": "LOCAL_ONLY_MODEL",
+          "model_ref": "model_class:local_only_model",
+          "policy_id": "provider_policy:local_only_private",
+          "provider_ref": "provider_class:local_or_private_strict_local_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality external target",
+            "may underperform strong external reasoning"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
+      "request_id": "lm1_thread_context_package:f61cccdf8470e762:model_route",
+      "risk_notes": [],
+      "selected_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+      "selected_model_ref": "model_class:fast_external_intent_model",
+      "selected_provider_policy_id": "provider_policy:external_fast_intent_privacy_safe",
+      "selected_provider_ref": "provider_class:external_privacy_safe_fast_intent",
+      "selection_reason": "LM1 intent proposal is privacy-safe; prefer the fast external intent model class. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
+      "structured_output_required": true,
+      "tokenization_required_before_live": false
+    },
+    "lm1_thread_context_package": {
+      "allowed_context_classes": [
+        "source_request_id",
+        "device_ref",
+        "thread_ref",
+        "world_ref",
+        "metadata_summary",
+        "tokenized_refs",
+        "universal_intake_summary",
+        "privacy_trigger_result",
+        "tokenization_policy_result"
+      ],
+      "authority_granted": {
+        "external_action": false,
+        "model_call": false,
+        "send_submit": false,
+        "tool_execution": false,
+        "workflow_execution": false
+      },
+      "current_thread_ref": "thread_ref:finance_capital_hilton",
+      "current_world_ref": "finance",
+      "external_lm_eligibility": {
+        "authority_boundary": {
+          "external_action_allowed": false,
+          "ledger_posting_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_live_lm_authority_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "raw_sensitive_cloud_exposure_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false
+        },
+        "blocked_data_classes": [],
+        "context_minimization_applied": true,
+        "cost_control_notes": [
+          "Use stronger external models when the package is protected; reduce cost by minimizing context first.",
+          "Use local fallback for offline mode, explicit local-only choice, provider outage, credit-saving, or rare hard packages that cannot preserve meaning externally.",
+          "Do not treat privacy failure as automatic local fallback; repair tokenization/minimization or block the package.",
+          "Do not run weak/local downgrade tests until the external baseline has passed."
+        ],
+        "detokenization_required_inside_model": false,
+        "downgrade_testing_allowed_only_after_baseline_passes": true,
+        "eligibility_id": "external_lm_eligibility:6a281dfe0cd8c355",
+        "external_lm_allowed": true,
+        "guardian_privacy_gate_required": true,
+        "live_production_activation_allowed": false,
+        "local_lm_required": false,
+        "next_safe_move": "Package is privacy-eligible for a future external LM route, but production live LM remains off.",
+        "no_safe_model": false,
+        "package_minimized": true,
+        "package_token_estimate": 91,
+        "raw_values_included": false,
+        "reason_codes": [
+          "PII_VAULT_READY",
+          "PRIVACY_POLICY_RECEIPT_PRESENT",
+          "SENSITIVE_OR_PRIVATE_CONTEXT",
+          "TOKENIZATION_APPLIED",
+          "EXTERNAL_LM_PRIVACY_ELIGIBLE"
+        ],
+        "recommended_lane": "LM1",
+        "recommended_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+        "redundant_pass_avoidance": true,
+        "required_privacy_controls": [
+          "production_token_vault_ready",
+          "privacy_policy_receipt_present",
+          "tokenization_when_sensitive",
+          "raw_values_excluded",
+          "context_minimized",
+          "secrets_absent",
+          "no_model_side_detokenization",
+          "guardian_privacy_output_gate"
+        ],
+        "required_receipts": [
+          "production_token_vault_ready_receipt",
+          "privacy_policy_receipt",
+          "provider_policy_receipt",
+          "model_selection_policy_receipt",
+          "real_lm1_production_policy_receipt",
+          "guardian_privacy_output_gate_receipt"
+        ],
+        "safe_data_classes": [
+          "TOKENIZED_CLIENT_FINANCE_METADATA",
+          "MACHINE_INTENT_PROPOSAL_SCHEMA",
+          "MINIMIZED_ROLE_PACKAGE"
+        ],
+        "serial_package_recommended": true,
+        "token_budget_notes": [
+          "Estimated package tokens: 91.",
+          "Prefer serial role packages over broad context dumps.",
+          "Avoid redundant LM passes when Gate 2/Gate 4 already produced a deterministic answer."
+        ],
+        "tokenization_applied": true,
+        "use_beast_model_only_when_needed": true
+      },
+      "forbidden_context_classes": [
+        "raw workbook body",
+        "spreadsheet cells",
+        "credentials",
+        "raw private bodies",
+        "unrelated client data",
+        "full workbook",
+        "full sheet dump",
+        "external private data"
+      ],
+      "gate1_operational_snapshot": {
+        "allowed_context_classes": [
+          "source_request_id",
+          "device_ref",
+          "thread_ref",
+          "world_ref",
+          "metadata_summary",
+          "tokenized_refs",
+          "universal_intake_summary",
+          "privacy_trigger_result",
+          "tokenization_policy_result"
+        ],
+        "artifact_metadata": {
+          "artifact_kind": "running_invoice_workbook",
+          "body_read": false,
+          "external_shared": false,
+          "file_display_name": "Invoice Capitol Hilton Running.xlsx",
+          "file_extension": ".xlsx",
+          "file_type": "spreadsheet",
+          "ocr_performed": false,
+          "spreadsheet_cell_read": false,
+          "workbook_body_read": false
+        },
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "external_action_allowed": false,
+          "file_body_read_allowed": false,
+          "live_lm_call_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "ocr_allowed": false,
+          "production_state_mutation_allowed": false,
+          "raw_value_exposure_allowed": false,
+          "spreadsheet_cell_read_allowed": false,
+          "tool_execution_allowed": false,
+          "workbook_body_read_allowed": false,
+          "workflow_execution_allowed": false
+        },
+        "client_ref": "capital_hilton",
+        "forbidden_context_classes": [
+          "raw workbook body",
+          "spreadsheet cells",
+          "credentials",
+          "raw private bodies",
+          "unrelated client data",
+          "full workbook",
+          "full sheet dump",
+          "external private data"
+        ],
+        "next_safe_move": "Build the LM1 shadow package from this snapshot; no model call or action is allowed.",
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "private_mode_effect": {
+          "active": false,
+          "available": true,
+          "model_may_see_raw_values": false,
+          "operator_copy": "Private Mode would keep raw details local and use tokenized or summarized context.",
+          "raw_values_included": false,
+          "tokenization_required_when_active": true
+        },
+        "raw_values_included": false,
+        "safe_to_package_for_lm1": true,
+        "snapshot_id": "gate1_operational_snapshot:9f56312a928d41fd",
+        "source_device_ref": "mission_control_mac",
+        "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+        "strict_private_mode_effect": {
+          "active": false,
+          "available": true,
+          "local_only_required_when_active": true,
+          "model_may_see_raw_values": false,
+          "operator_copy": "Strict Private Mode would require local-only handling for sensitive packages.",
+          "raw_values_included": false
+        },
+        "thread_ref": "thread_ref:finance_capital_hilton",
+        "tokenization_policy": {
+          "authority_boundary": {
+            "cloud_tokenization_allowed": false,
+            "credential_handling_allowed": false,
+            "external_model_share_allowed": false,
+            "network_allowed": false,
+            "production_state_mutation_allowed": false,
+            "raw_value_export_allowed": false,
+            "real_data_ingestion_allowed": false
+          },
+          "detokenization_allowed": false,
+          "local_only_required": false,
+          "model_may_see_raw_values": false,
+          "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
+          "policy_decision_id": "tokenization_policy:7e0760610555939d",
+          "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+          "reason_codes": [
+            "SYNTHETIC_POLICY_ONLY",
+            "FINANCE_CONTEXT",
+            "CLIENT_FILE_METADATA",
+            "INVOICE_WORKBOOK_REFERENCE",
+            "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
+            "CLIENT_SCOPED"
+          ],
+          "synthetic_fixture_only": true,
+          "tokenization_required": true
+        },
+        "tokenization_required": true,
+        "universal_intake_inference": {
+          "artifact_kind": "running_invoice_workbook",
+          "authority_boundary": {
+            "external_action_allowed": false,
+            "file_body_read_allowed": false,
+            "ledger_posting_allowed": false,
+            "model_call_allowed": false,
+            "ocr_allowed": false,
+            "pdf_generation_allowed": false,
+            "production_state_mutation_allowed": false,
+            "send_submit_allowed": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false
+          },
+          "backend_paths_exposed": false,
+          "candidate_id": "universal_intake_candidate:d7999c8ae2b62eb2",
+          "chain_contract": {
+            "candidate_may_enter_gate_2_after_lm1_proposal": true,
+            "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+            "lm1_input_class": "metadata_only_intake_candidate",
+            "lm1_may_receive_raw_values": false,
+            "requires_tokenization_policy": true
+          },
+          "clarification_question": "",
+          "client_ref": "capital_hilton",
+          "confidence": "HIGH",
+          "final": false,
+          "intended_use": "register_or_resolve_invoice_workbook_artifact",
+          "ledger_posted": false,
+          "lm1_chain_ready": true,
+          "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+          "operator_headline": "Capital Hilton workbook recognized",
+          "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+          "paid": false,
+          "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+          "proposed_facts_only": true,
+          "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+          "submitted": false,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "unsafe_reason": "",
+        "user_message": "what's next for the Capital Hilton invoice?",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance"
+      },
+      "gate1_operational_snapshot_ref": "gate1_operational_snapshot:9f56312a928d41fd",
+      "gate1_privacy_flags": {
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "private_mode_active": false,
+        "raw_values_included": false,
+        "safe_to_package_for_lm1": true,
+        "strict_private_mode_active": false,
+        "tokenization_required": true,
+        "unsafe_reason": ""
+      },
+      "gate1_safe_to_package_for_lm1": true,
+      "model_router_result": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "external_action_allowed": false,
+          "live_model_call_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false,
+          "workflow_execution_allowed": false
+        },
+        "blocked_reasons": [],
+        "chain_lane": "LM1_INTENT_PROPOSAL",
+        "confidence": "HIGH",
+        "conservative_posture": true,
+        "decision_id": "model_routing_decision:7169124fbdb46d80",
+        "expected_failure_modes": [
+          "malformed structured output",
+          "malformed MachineIntentCandidate",
+          "under-specified intent",
+          "privacy-policy refusal"
+        ],
+        "fallback_provider_policy_id": "provider_policy:local_fallback_structured",
+        "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+        "rejected_model_classes": [
+          "STRONG_EXTERNAL_ROLE_MODEL",
+          "LOCAL_FALLBACK_MODEL",
+          "LOCAL_ONLY_MODEL",
+          "FAST_STRUCTURED_INTENT_SMALL",
+          "STRONG_STRUCTURED_ROLE_REASONER",
+          "CONSERVATIVE_SENSITIVE_STRUCTURED"
+        ],
+        "rejected_provider_candidates": [
+          {
+            "expected_failure_modes": [
+              "over-helpful completion claim",
+              "role drift",
+              "tool request outside package"
+            ],
+            "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+            "model_ref": "model_class:strong_external_role_model",
+            "policy_id": "provider_policy:external_strong_role_privacy_safe",
+            "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+            "reject_reasons": [
+              "LANE_NOT_ALLOWED",
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "higher cost",
+              "must be Guardian-gated",
+              "must receive minimized/tokenized package",
+              "provider receipts required before production"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "lower-quality reasoning",
+              "malformed JSON candidate",
+              "over-clarification"
+            ],
+            "model_class_ref": "LOCAL_FALLBACK_MODEL",
+            "model_ref": "model_class:local_fallback_model",
+            "policy_id": "provider_policy:local_fallback_structured",
+            "provider_ref": "provider_class:local_or_private_fallback_model",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not the production-quality target",
+              "weaker reasoning than preferred external classes"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "false block",
+              "unnecessary clarification",
+              "weaker synthesis"
+            ],
+            "model_class_ref": "LOCAL_ONLY_MODEL",
+            "model_ref": "model_class:local_only_model",
+            "policy_id": "provider_policy:local_only_private",
+            "provider_ref": "provider_class:local_or_private_strict_local_model",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not the production-quality external target",
+              "may underperform strong external reasoning"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "under-specified intent",
+              "malformed JSON candidate"
+            ],
+            "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+            "model_ref": "model_class:fast_structured_intent_small",
+            "policy_id": "provider_policy:local_fixture_fast_intent",
+            "provider_ref": "provider_class:local_or_private_structured_stub",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not enough for nuanced role voice",
+              "not for broad context synthesis"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "over-helpful completion claim",
+              "tool request outside package"
+            ],
+            "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+            "model_ref": "model_class:strong_structured_role_reasoner",
+            "policy_id": "provider_policy:local_fixture_strong_role",
+            "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+            "reject_reasons": [
+              "LANE_NOT_ALLOWED",
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "higher latency than LM1 class",
+              "requires Guardian output gate"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "false block",
+              "unnecessary clarification"
+            ],
+            "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+            "model_ref": "model_class:conservative_sensitive_structured",
+            "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+            "provider_ref": "provider_class:local_or_private_conservative_stub",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "may over-clarify",
+              "higher latency",
+              "less warm voice"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "privacy policy block",
+              "provider unavailability",
+              "schema drift"
+            ],
+            "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+            "model_ref": "model_class:cloud_structured_candidate",
+            "policy_id": "provider_policy:future_cloud_structured_candidate",
+            "provider_ref": "provider_class:future_cloud_structured_candidate",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "privacy policy must be explicit",
+              "network/API key path required",
+              "cannot be used in private mode by default"
+            ]
+          }
+        ],
+        "request_id": "lm1_thread_context_package:f61cccdf8470e762:model_route",
+        "risk_notes": [],
+        "selected_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+        "selected_model_ref": "model_class:fast_external_intent_model",
+        "selected_provider_policy_id": "provider_policy:external_fast_intent_privacy_safe",
+        "selected_provider_ref": "provider_class:external_privacy_safe_fast_intent",
+        "selection_reason": "LM1 intent proposal is privacy-safe; prefer the fast external intent model class. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
+        "structured_output_required": true,
+        "tokenization_required_before_live": false
+      },
+      "next_safe_move": "A future LM1 may propose MachineIntentCandidate JSON only; Gate 2 decides ingestion.",
+      "output_schema": [
+        "intent_id",
+        "source_request_id",
+        "original_operator_text",
+        "inferred_intent_type",
+        "target_world_ref",
+        "target_folder_ref",
+        "target_thread_ref",
+        "target_workflow_ref",
+        "target_agent_role",
+        "target_worker_type",
+        "requested_action",
+        "referenced_next_action",
+        "confidence",
+        "ambiguity_status",
+        "required_clarification",
+        "evidence_refs_used",
+        "context_refs_used",
+        "source_refs_used",
+        "missing_requirements",
+        "forbidden_assumptions",
+        "authority_requested",
+        "authority_granted",
+        "validation_required",
+        "next_safe_move"
+      ],
+      "package_id": "lm1_thread_context_package:f61cccdf8470e762",
+      "privacy": {
+        "detokenization_allowed": false,
+        "local_only_required": false,
+        "model_may_see_raw_values": false,
+        "next_safe_move": "Attach tokenization metadata to future role packages; never include raw sensitive values.",
+        "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+        "raw_values_included": false,
+        "reason_codes": [
+          "SYNTHETIC_POLICY_ONLY",
+          "FINANCE_CONTEXT",
+          "CLIENT_FILE_METADATA",
+          "INVOICE_WORKBOOK_REFERENCE",
+          "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
+          "CLIENT_SCOPED"
+        ],
+        "safe_for_role_package": true,
+        "token_kinds": [
+          "person_name",
+          "email",
+          "phone",
+          "bank_account",
+          "tax_id"
+        ],
+        "token_scope": "scope:finance:capital_hilton:lm_readiness_fixture",
+        "token_vault_ref": "generated/read_models/token_vault_status.json",
+        "tokenization_applied": true,
+        "tokenization_required": true
+      },
+      "privacy_classification": "CLIENT_FINANCE_FILE_METADATA",
+      "raw_values_included": false,
+      "source_device_ref": "mission_control_mac",
+      "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+      "tokenization_policy": {
+        "authority_boundary": {
+          "cloud_tokenization_allowed": false,
+          "credential_handling_allowed": false,
+          "external_model_share_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "raw_value_export_allowed": false,
+          "real_data_ingestion_allowed": false
+        },
+        "detokenization_allowed": false,
+        "local_only_required": false,
+        "model_may_see_raw_values": false,
+        "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
+        "policy_decision_id": "tokenization_policy:7e0760610555939d",
+        "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+        "reason_codes": [
+          "SYNTHETIC_POLICY_ONLY",
+          "FINANCE_CONTEXT",
+          "CLIENT_FILE_METADATA",
+          "INVOICE_WORKBOOK_REFERENCE",
+          "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
+          "CLIENT_SCOPED"
+        ],
+        "synthetic_fixture_only": true,
+        "tokenization_required": true
+      },
+      "tokenization_required": true,
+      "tools_allowed": [],
+      "universal_intake_chain_contract": {
+        "candidate_may_enter_gate_2_after_lm1_proposal": true,
+        "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "lm1_input_class": "metadata_only_intake_candidate",
+        "lm1_may_receive_raw_values": false,
+        "requires_tokenization_policy": true
+      },
+      "universal_intake_inference": {
+        "artifact_kind": "running_invoice_workbook",
+        "authority_boundary": {
+          "external_action_allowed": false,
+          "file_body_read_allowed": false,
+          "ledger_posting_allowed": false,
+          "model_call_allowed": false,
+          "ocr_allowed": false,
+          "pdf_generation_allowed": false,
+          "production_state_mutation_allowed": false,
+          "send_submit_allowed": false,
+          "spreadsheet_cell_read_allowed": false,
+          "workbook_body_read_allowed": false
+        },
+        "backend_paths_exposed": false,
+        "candidate_id": "universal_intake_candidate:d7999c8ae2b62eb2",
+        "chain_contract": {
+          "candidate_may_enter_gate_2_after_lm1_proposal": true,
+          "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+          "lm1_input_class": "metadata_only_intake_candidate",
+          "lm1_may_receive_raw_values": false,
+          "requires_tokenization_policy": true
+        },
+        "clarification_question": "",
+        "client_ref": "capital_hilton",
+        "confidence": "HIGH",
+        "final": false,
+        "intended_use": "register_or_resolve_invoice_workbook_artifact",
+        "ledger_posted": false,
+        "lm1_chain_ready": true,
+        "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+        "operator_headline": "Capital Hilton workbook recognized",
+        "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+        "paid": false,
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "proposed_facts_only": true,
+        "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+        "submitted": false,
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance"
+      },
+      "user_message": "what's next for the Capital Hilton invoice?"
+    },
+    "lm2_model_decision": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "blocked_reasons": [],
+      "chain_lane": "LM2_ROLE_RESPONSE",
+      "confidence": "HIGH",
+      "conservative_posture": true,
+      "decision_id": "model_routing_decision:aab0e4e7b336551a",
+      "expected_failure_modes": [
+        "malformed structured output",
+        "over-helpful completion claim",
+        "role drift",
+        "tool request outside package"
+      ],
+      "fallback_provider_policy_id": "provider_policy:local_fallback_structured",
+      "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "rejected_model_classes": [
+        "FAST_EXTERNAL_INTENT_MODEL",
+        "LOCAL_FALLBACK_MODEL",
+        "LOCAL_ONLY_MODEL",
+        "FAST_STRUCTURED_INTENT_SMALL",
+        "STRONG_STRUCTURED_ROLE_REASONER",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
+      "rejected_provider_candidates": [
+        {
+          "expected_failure_modes": [
+            "malformed MachineIntentCandidate",
+            "under-specified intent",
+            "privacy-policy refusal"
+          ],
+          "model_class_ref": "FAST_EXTERNAL_INTENT_MODEL",
+          "model_ref": "model_class:fast_external_intent_model",
+          "policy_id": "provider_policy:external_fast_intent_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "must receive minimized/tokenized context",
+            "no tools",
+            "no direct authority",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "lower-quality reasoning",
+            "malformed JSON candidate",
+            "over-clarification"
+          ],
+          "model_class_ref": "LOCAL_FALLBACK_MODEL",
+          "model_ref": "model_class:local_fallback_model",
+          "policy_id": "provider_policy:local_fallback_structured",
+          "provider_ref": "provider_class:local_or_private_fallback_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality target",
+            "weaker reasoning than preferred external classes"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification",
+            "weaker synthesis"
+          ],
+          "model_class_ref": "LOCAL_ONLY_MODEL",
+          "model_ref": "model_class:local_only_model",
+          "policy_id": "provider_policy:local_only_private",
+          "provider_ref": "provider_class:local_or_private_strict_local_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality external target",
+            "may underperform strong external reasoning"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
+      "request_id": "role_execution_package:6dfebc8374413c92:model_route",
+      "risk_notes": [],
+      "selected_model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+      "selected_model_ref": "model_class:strong_external_role_model",
+      "selected_provider_policy_id": "provider_policy:external_strong_role_privacy_safe",
+      "selected_provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+      "selection_reason": "LM2 role response is privacy-safe; prefer the strongest external role model class. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
+      "structured_output_required": true,
+      "tokenization_required_before_live": false
+    },
+    "privacy": {
+      "detokenization_allowed": false,
+      "local_only_required": false,
+      "model_may_see_raw_values": false,
+      "next_safe_move": "Attach tokenization metadata to future role packages; never include raw sensitive values.",
+      "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+      "raw_values_included": false,
+      "reason_codes": [
+        "SYNTHETIC_POLICY_ONLY",
+        "FINANCE_CONTEXT",
+        "CLIENT_FILE_METADATA",
+        "INVOICE_WORKBOOK_REFERENCE",
+        "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
+        "CLIENT_SCOPED"
+      ],
+      "safe_for_role_package": true,
+      "token_kinds": [
+        "person_name",
+        "email",
+        "phone",
+        "bank_account",
+        "tax_id"
+      ],
+      "token_scope": "scope:finance:capital_hilton:lm_readiness_fixture",
+      "token_vault_ref": "generated/read_models/token_vault_status.json",
+      "tokenization_applied": true,
+      "tokenization_required": true
+    },
+    "privacy_readiness_result": {
+      "authority_boundary": {
+        "cloud_tokenization_allowed": false,
+        "credential_handling_allowed": false,
+        "external_model_share_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "raw_value_export_allowed": false,
+        "real_data_ingestion_allowed": false
+      },
+      "cloud_lm_blocked_when_private": true,
+      "next_safe_move": "Keep live LM exposure off until the remaining activation receipts exist.",
+      "operator_summary": "Local privacy vault proof exists, but live models remain off.",
+      "privacy_readiness_id": "privacy_readiness:token_vault_v3",
+      "privacy_readiness_status": "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM",
+      "private_mode_backend_policy_exists": true,
+      "private_mode_requires_tokenization": true,
+      "production_token_vault_ready": true,
+      "real_sensitive_data_allowed": false,
+      "strict_private_requires_local_only": true,
+      "synthetic_tokenization_ready": true
+    },
+    "private_mode_policy_readiness": {
+      "active_state": "standard",
+      "contract_status": "PRIVATE_MODE_POLICY_READY_INACTIVE",
+      "package_effect_summary": {
+        "lm1": "Private settings change what context LM1 packages may include; they do not call LM1.",
+        "lm2": "Private settings change role-package privacy fields; they do not call LM2.",
+        "model_may_see_raw_values": false,
+        "raw_values_included": false,
+        "strict_private": "Strict Private Mode requires local-only model eligibility before any future live review."
+      },
+      "read_model_ref": "generated/read_models/private_mode_policy_readiness.json"
+    },
+    "private_mode_readiness": {
+      "cloud_lm_allowed_when_private": false,
+      "live_lm_exposure_allowed": false,
+      "local_only_required_when_strict": true,
+      "minimum_privacy_level_when_active": "CLIENT_FINANCE_FILE_METADATA",
+      "next_safe_move": "Mission Control may expose this later as a local setting; backend defaults remain inactive.",
+      "operator_summary": "Local privacy vault proof exists, but live models remain off.",
+      "privacy_readiness_status": "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM",
+      "private_mode_active": false,
+      "private_mode_available": true,
+      "production_token_vault_ready": true,
+      "strict_private_mode_active": false,
+      "strict_private_mode_available": true
+    },
+    "provider_policy_decisions": {
+      "lm1": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "external_action_allowed": false,
+          "live_model_call_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false,
+          "workflow_execution_allowed": false
+        },
+        "expected_failure_modes": [
+          "malformed MachineIntentCandidate",
+          "under-specified intent",
+          "privacy-policy refusal"
+        ],
+        "fallback_policy_id": "provider_policy:local_fallback_structured",
+        "next_safe_move": "Expose this as candidate policy only; no live model call is allowed.",
+        "no_safe_model": false,
+        "rejected_candidates": [
+          {
+            "expected_failure_modes": [
+              "over-helpful completion claim",
+              "role drift",
+              "tool request outside package"
+            ],
+            "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+            "model_ref": "model_class:strong_external_role_model",
+            "policy_id": "provider_policy:external_strong_role_privacy_safe",
+            "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+            "reject_reasons": [
+              "LANE_NOT_ALLOWED",
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "higher cost",
+              "must be Guardian-gated",
+              "must receive minimized/tokenized package",
+              "provider receipts required before production"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "lower-quality reasoning",
+              "malformed JSON candidate",
+              "over-clarification"
+            ],
+            "model_class_ref": "LOCAL_FALLBACK_MODEL",
+            "model_ref": "model_class:local_fallback_model",
+            "policy_id": "provider_policy:local_fallback_structured",
+            "provider_ref": "provider_class:local_or_private_fallback_model",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not the production-quality target",
+              "weaker reasoning than preferred external classes"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "false block",
+              "unnecessary clarification",
+              "weaker synthesis"
+            ],
+            "model_class_ref": "LOCAL_ONLY_MODEL",
+            "model_ref": "model_class:local_only_model",
+            "policy_id": "provider_policy:local_only_private",
+            "provider_ref": "provider_class:local_or_private_strict_local_model",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not the production-quality external target",
+              "may underperform strong external reasoning"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "under-specified intent",
+              "malformed JSON candidate"
+            ],
+            "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+            "model_ref": "model_class:fast_structured_intent_small",
+            "policy_id": "provider_policy:local_fixture_fast_intent",
+            "provider_ref": "provider_class:local_or_private_structured_stub",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not enough for nuanced role voice",
+              "not for broad context synthesis"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "over-helpful completion claim",
+              "tool request outside package"
+            ],
+            "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+            "model_ref": "model_class:strong_structured_role_reasoner",
+            "policy_id": "provider_policy:local_fixture_strong_role",
+            "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+            "reject_reasons": [
+              "LANE_NOT_ALLOWED",
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "higher latency than LM1 class",
+              "requires Guardian output gate"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "false block",
+              "unnecessary clarification"
+            ],
+            "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+            "model_ref": "model_class:conservative_sensitive_structured",
+            "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+            "provider_ref": "provider_class:local_or_private_conservative_stub",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "may over-clarify",
+              "higher latency",
+              "less warm voice"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "privacy policy block",
+              "provider unavailability",
+              "schema drift"
+            ],
+            "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+            "model_ref": "model_class:cloud_structured_candidate",
+            "policy_id": "provider_policy:future_cloud_structured_candidate",
+            "provider_ref": "provider_class:future_cloud_structured_candidate",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "privacy policy must be explicit",
+              "network/API key path required",
+              "cannot be used in private mode by default"
+            ]
+          }
+        ],
+        "request_id": "dashboard_lm1_provider_policy",
+        "risk_notes": [],
+        "selected_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+        "selected_model_ref": "model_class:fast_external_intent_model",
+        "selected_policy_id": "provider_policy:external_fast_intent_privacy_safe",
+        "selected_provider_ref": "provider_class:external_privacy_safe_fast_intent",
+        "selection_id": "provider_policy_selection:e186fbaa7a226651",
+        "selection_reason": "Selected first usable provider policy candidate for the requested lane/model class."
+      },
+      "lm2": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "external_action_allowed": false,
+          "live_model_call_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false,
+          "workflow_execution_allowed": false
+        },
+        "expected_failure_modes": [
+          "over-helpful completion claim",
+          "role drift",
+          "tool request outside package"
+        ],
+        "fallback_policy_id": "provider_policy:local_fallback_structured",
+        "next_safe_move": "Expose this as candidate policy only; no live model call is allowed.",
+        "no_safe_model": false,
+        "rejected_candidates": [
+          {
+            "expected_failure_modes": [
+              "malformed MachineIntentCandidate",
+              "under-specified intent",
+              "privacy-policy refusal"
+            ],
+            "model_class_ref": "FAST_EXTERNAL_INTENT_MODEL",
+            "model_ref": "model_class:fast_external_intent_model",
+            "policy_id": "provider_policy:external_fast_intent_privacy_safe",
+            "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+            "reject_reasons": [
+              "LANE_NOT_ALLOWED",
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "must receive minimized/tokenized context",
+              "no tools",
+              "no direct authority",
+              "provider receipts required before production"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "lower-quality reasoning",
+              "malformed JSON candidate",
+              "over-clarification"
+            ],
+            "model_class_ref": "LOCAL_FALLBACK_MODEL",
+            "model_ref": "model_class:local_fallback_model",
+            "policy_id": "provider_policy:local_fallback_structured",
+            "provider_ref": "provider_class:local_or_private_fallback_model",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not the production-quality target",
+              "weaker reasoning than preferred external classes"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "false block",
+              "unnecessary clarification",
+              "weaker synthesis"
+            ],
+            "model_class_ref": "LOCAL_ONLY_MODEL",
+            "model_ref": "model_class:local_only_model",
+            "policy_id": "provider_policy:local_only_private",
+            "provider_ref": "provider_class:local_or_private_strict_local_model",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not the production-quality external target",
+              "may underperform strong external reasoning"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "under-specified intent",
+              "malformed JSON candidate"
+            ],
+            "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+            "model_ref": "model_class:fast_structured_intent_small",
+            "policy_id": "provider_policy:local_fixture_fast_intent",
+            "provider_ref": "provider_class:local_or_private_structured_stub",
+            "reject_reasons": [
+              "LANE_NOT_ALLOWED",
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not enough for nuanced role voice",
+              "not for broad context synthesis"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "over-helpful completion claim",
+              "tool request outside package"
+            ],
+            "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+            "model_ref": "model_class:strong_structured_role_reasoner",
+            "policy_id": "provider_policy:local_fixture_strong_role",
+            "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "higher latency than LM1 class",
+              "requires Guardian output gate"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "false block",
+              "unnecessary clarification"
+            ],
+            "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+            "model_ref": "model_class:conservative_sensitive_structured",
+            "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+            "provider_ref": "provider_class:local_or_private_conservative_stub",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "may over-clarify",
+              "higher latency",
+              "less warm voice"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "privacy policy block",
+              "provider unavailability",
+              "schema drift"
+            ],
+            "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+            "model_ref": "model_class:cloud_structured_candidate",
+            "policy_id": "provider_policy:future_cloud_structured_candidate",
+            "provider_ref": "provider_class:future_cloud_structured_candidate",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED",
+              "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+              "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "privacy policy must be explicit",
+              "network/API key path required",
+              "cannot be used in private mode by default"
+            ]
+          }
+        ],
+        "request_id": "dashboard_lm2_provider_policy",
+        "risk_notes": [],
+        "selected_model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+        "selected_model_ref": "model_class:strong_external_role_model",
+        "selected_policy_id": "provider_policy:external_strong_role_privacy_safe",
+        "selected_provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+        "selection_id": "provider_policy_selection:c79fcdff4d33c2dd",
+        "selection_reason": "Selected first usable provider policy candidate for the requested lane/model class."
+      }
+    },
+    "read_model_mirror_visibility": {
+      "contract_status": "READ_MODEL_VISIBILITY_PROOF_ONLY_NO_SYNC",
+      "mirror_policy": {
+        "canonical_writer": "pc_generated_read_models",
+        "mac_visible_guaranteed_by_this_contract": false,
+        "new_sync_system_allowed": false,
+        "use_existing_scoped_response_bridge_for_chat": true
+      },
+      "read_model_ref": "generated/read_models/read_model_mirror_visibility.json"
+    },
+    "request_response_bridge_readiness": {
+      "bridge_contract": {
+        "approved_inbox_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
+        "dashboard_visible": true,
+        "latest_response_supported": true,
+        "ready_for_live_review": true,
+        "response_output_ref": "/mnt/e/openclaw/mission_control_responses/to_mac",
+        "route_aware_heartbeat_supported": true,
+        "scoped_response_filename_contract": "openclaw_response_for_mac_<source_request_id>.json",
+        "service_template_present": true,
+        "service_template_ref": "systemd/user/openclaw-request-response.service.in",
+        "status_read_model_ref": "generated/read_models/openclaw_request_response_service_status.json"
+      },
+      "read_model_ref": "generated/read_models/request_response_bridge_readiness.json",
+      "readiness_status": "READY_FOR_LIVE_REVIEW",
+      "safe_delivery_policy": {
+        "approved_inbox_only": true,
+        "arbitrary_destination_allowed": false,
+        "lm_inferred_routing_allowed": false,
+        "scoped_response_required": true,
+        "telegram_email_push_routing_allowed": false
+      }
+    },
+    "shadow_comparison_summary": {
+      "comparison_count": 4,
+      "failed": 0,
+      "lm1_candidate_matches": true,
+      "lm2_response_matches": true,
+      "negative_case_count": 3,
+      "negative_cases_passed": true,
+      "passed": 4
+    },
+    "tokenization_policy_result": {
+      "authority_boundary": {
+        "cloud_tokenization_allowed": false,
+        "credential_handling_allowed": false,
+        "external_model_share_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "raw_value_export_allowed": false,
+        "real_data_ingestion_allowed": false
+      },
+      "detokenization_allowed": false,
+      "local_only_required": false,
+      "model_may_see_raw_values": false,
+      "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
+      "policy_decision_id": "tokenization_policy:7e0760610555939d",
+      "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+      "reason_codes": [
+        "SYNTHETIC_POLICY_ONLY",
+        "FINANCE_CONTEXT",
+        "CLIENT_FILE_METADATA",
+        "INVOICE_WORKBOOK_REFERENCE",
+        "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
+        "CLIENT_SCOPED"
+      ],
+      "synthetic_fixture_only": true,
+      "tokenization_required": true
+    },
+    "universal_intake_batch_fixture": {
+      "authority_boundary": {
+        "external_action_allowed": false,
+        "file_body_read_allowed": false,
+        "ledger_posting_allowed": false,
+        "model_call_allowed": false,
+        "ocr_allowed": false,
+        "pdf_generation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "send_submit_allowed": false,
+        "spreadsheet_cell_read_allowed": false,
+        "workbook_body_read_allowed": false
+      },
+      "batch_confidence": "HIGH",
+      "batch_id": "universal_intake_batch:4250fd32d5d8095f",
+      "candidates": [
+        {
+          "artifact_kind": "running_invoice_workbook",
+          "authority_boundary": {
+            "external_action_allowed": false,
+            "file_body_read_allowed": false,
+            "ledger_posting_allowed": false,
+            "model_call_allowed": false,
+            "ocr_allowed": false,
+            "pdf_generation_allowed": false,
+            "production_state_mutation_allowed": false,
+            "send_submit_allowed": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false
+          },
+          "backend_paths_exposed": false,
+          "candidate_id": "universal_intake_candidate:acb835f3987f5dd4",
+          "chain_contract": {
+            "candidate_may_enter_gate_2_after_lm1_proposal": true,
+            "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+            "lm1_input_class": "metadata_only_intake_candidate",
+            "lm1_may_receive_raw_values": false,
+            "requires_tokenization_policy": true
+          },
+          "clarification_question": "",
+          "client_ref": "capital_hilton",
+          "confidence": "HIGH",
+          "final": false,
+          "intended_use": "register_or_resolve_invoice_workbook_artifact",
+          "ledger_posted": false,
+          "lm1_chain_ready": true,
+          "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+          "operator_headline": "Capital Hilton workbook recognized",
+          "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+          "paid": false,
+          "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+          "proposed_facts_only": true,
+          "source_request_id": "universal_intake_batch_running_invoice_workbooks:0",
+          "submitted": false,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        {
+          "artifact_kind": "running_invoice_workbook",
+          "authority_boundary": {
+            "external_action_allowed": false,
+            "file_body_read_allowed": false,
+            "ledger_posting_allowed": false,
+            "model_call_allowed": false,
+            "ocr_allowed": false,
+            "pdf_generation_allowed": false,
+            "production_state_mutation_allowed": false,
+            "send_submit_allowed": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false
+          },
+          "backend_paths_exposed": false,
+          "candidate_id": "universal_intake_candidate:cf1d2e86dcfaf49a",
+          "chain_contract": {
+            "candidate_may_enter_gate_2_after_lm1_proposal": true,
+            "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+            "lm1_input_class": "metadata_only_intake_candidate",
+            "lm1_may_receive_raw_values": false,
+            "requires_tokenization_policy": true
+          },
+          "clarification_question": "",
+          "client_ref": "live_arts_md",
+          "confidence": "HIGH",
+          "final": false,
+          "intended_use": "register_or_resolve_invoice_workbook_artifact",
+          "ledger_posted": false,
+          "lm1_chain_ready": true,
+          "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+          "operator_headline": "Live Arts MD workbook recognized",
+          "operator_message": "OpenClaw recognized this as a likely Live Arts MD running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+          "paid": false,
+          "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+          "proposed_facts_only": true,
+          "source_request_id": "universal_intake_batch_running_invoice_workbooks:1",
+          "submitted": false,
+          "workflow_ref": "live_arts_md_invoice_workflow",
+          "world_ref": "finance"
+        },
+        {
+          "artifact_kind": "running_invoice_workbook",
+          "authority_boundary": {
+            "external_action_allowed": false,
+            "file_body_read_allowed": false,
+            "ledger_posting_allowed": false,
+            "model_call_allowed": false,
+            "ocr_allowed": false,
+            "pdf_generation_allowed": false,
+            "production_state_mutation_allowed": false,
+            "send_submit_allowed": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false
+          },
+          "backend_paths_exposed": false,
+          "candidate_id": "universal_intake_candidate:cfdc89fbabeaac73",
+          "chain_contract": {
+            "candidate_may_enter_gate_2_after_lm1_proposal": true,
+            "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+            "lm1_input_class": "metadata_only_intake_candidate",
+            "lm1_may_receive_raw_values": false,
+            "requires_tokenization_policy": true
+          },
+          "clarification_question": "",
+          "client_ref": "st_annes",
+          "confidence": "HIGH",
+          "final": false,
+          "intended_use": "register_or_resolve_invoice_workbook_artifact",
+          "ledger_posted": false,
+          "lm1_chain_ready": true,
+          "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+          "operator_headline": "St. Anne's workbook recognized",
+          "operator_message": "OpenClaw recognized this as a likely St. Anne's running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+          "paid": false,
+          "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+          "proposed_facts_only": true,
+          "source_request_id": "universal_intake_batch_running_invoice_workbooks:2",
+          "submitted": false,
+          "workflow_ref": "st_annes_invoice_workflow",
+          "world_ref": "finance"
+        }
+      ],
+      "clarification_question": "",
+      "current_world_ref": "finance",
+      "needs_clarification": false,
+      "next_safe_action": "Prepare metadata-only intake candidates for each recognized running workbook; do not read files.",
+      "source_request_id": "universal_intake_batch_running_invoice_workbooks",
+      "user_note": "these are the invoice workbooks for the clients named in the files"
+    },
+    "universal_intake_inference": {
+      "artifact_kind": "running_invoice_workbook",
+      "authority_boundary": {
+        "external_action_allowed": false,
+        "file_body_read_allowed": false,
+        "ledger_posting_allowed": false,
+        "model_call_allowed": false,
+        "ocr_allowed": false,
+        "pdf_generation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "send_submit_allowed": false,
+        "spreadsheet_cell_read_allowed": false,
+        "workbook_body_read_allowed": false
+      },
+      "backend_paths_exposed": false,
+      "candidate_id": "universal_intake_candidate:d7999c8ae2b62eb2",
+      "chain_contract": {
+        "candidate_may_enter_gate_2_after_lm1_proposal": true,
+        "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "lm1_input_class": "metadata_only_intake_candidate",
+        "lm1_may_receive_raw_values": false,
+        "requires_tokenization_policy": true
+      },
+      "clarification_question": "",
+      "client_ref": "capital_hilton",
+      "confidence": "HIGH",
+      "final": false,
+      "intended_use": "register_or_resolve_invoice_workbook_artifact",
+      "ledger_posted": false,
+      "lm1_chain_ready": true,
+      "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+      "operator_headline": "Capital Hilton workbook recognized",
+      "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+      "paid": false,
+      "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+      "proposed_facts_only": true,
+      "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+      "submitted": false,
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "world_ref": "finance"
+    },
+    "what_would_be_sent_to_lm1": {
+      "allowed_context_classes": [
+        "source_request_id",
+        "device_ref",
+        "thread_ref",
+        "world_ref",
+        "metadata_summary",
+        "tokenized_refs",
+        "universal_intake_summary",
+        "privacy_trigger_result",
+        "tokenization_policy_result"
+      ],
+      "authority_granted": {
+        "external_action": false,
+        "model_call": false,
+        "send_submit": false,
+        "tool_execution": false,
+        "workflow_execution": false
+      },
+      "forbidden_context_classes": [
+        "raw workbook body",
+        "spreadsheet cells",
+        "credentials",
+        "raw private bodies",
+        "unrelated client data",
+        "full workbook",
+        "full sheet dump",
+        "external private data"
+      ],
+      "gate1_operational_snapshot_ref": "gate1_operational_snapshot:9f56312a928d41fd",
+      "gate1_privacy_flags": {
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "private_mode_active": false,
+        "raw_values_included": false,
+        "safe_to_package_for_lm1": true,
+        "strict_private_mode_active": false,
+        "tokenization_required": true,
+        "unsafe_reason": ""
+      },
+      "output_schema": [
+        "intent_id",
+        "source_request_id",
+        "original_operator_text",
+        "inferred_intent_type",
+        "target_world_ref",
+        "target_folder_ref",
+        "target_thread_ref",
+        "target_workflow_ref",
+        "target_agent_role",
+        "target_worker_type",
+        "requested_action",
+        "referenced_next_action",
+        "confidence",
+        "ambiguity_status",
+        "required_clarification",
+        "evidence_refs_used",
+        "context_refs_used",
+        "source_refs_used",
+        "missing_requirements",
+        "forbidden_assumptions",
+        "authority_requested",
+        "authority_granted",
+        "validation_required",
+        "next_safe_move"
+      ],
+      "package_id": "lm1_thread_context_package:f61cccdf8470e762",
+      "privacy": {
+        "detokenization_allowed": false,
+        "local_only_required": false,
+        "model_may_see_raw_values": false,
+        "next_safe_move": "Attach tokenization metadata to future role packages; never include raw sensitive values.",
+        "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+        "raw_values_included": false,
+        "reason_codes": [
+          "SYNTHETIC_POLICY_ONLY",
+          "FINANCE_CONTEXT",
+          "CLIENT_FILE_METADATA",
+          "INVOICE_WORKBOOK_REFERENCE",
+          "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
+          "CLIENT_SCOPED"
+        ],
+        "safe_for_role_package": true,
+        "token_kinds": [
+          "person_name",
+          "email",
+          "phone",
+          "bank_account",
+          "tax_id"
+        ],
+        "token_scope": "scope:finance:capital_hilton:lm_readiness_fixture",
+        "token_vault_ref": "generated/read_models/token_vault_status.json",
+        "tokenization_applied": true,
+        "tokenization_required": true
+      },
+      "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+      "tools_allowed": [],
+      "universal_intake_chain_contract": {
+        "candidate_may_enter_gate_2_after_lm1_proposal": true,
+        "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "lm1_input_class": "metadata_only_intake_candidate",
+        "lm1_may_receive_raw_values": false,
+        "requires_tokenization_policy": true
+      },
+      "universal_intake_inference": {
+        "artifact_kind": "running_invoice_workbook",
+        "authority_boundary": {
+          "external_action_allowed": false,
+          "file_body_read_allowed": false,
+          "ledger_posting_allowed": false,
+          "model_call_allowed": false,
+          "ocr_allowed": false,
+          "pdf_generation_allowed": false,
+          "production_state_mutation_allowed": false,
+          "send_submit_allowed": false,
+          "spreadsheet_cell_read_allowed": false,
+          "workbook_body_read_allowed": false
+        },
+        "backend_paths_exposed": false,
+        "candidate_id": "universal_intake_candidate:d7999c8ae2b62eb2",
+        "chain_contract": {
+          "candidate_may_enter_gate_2_after_lm1_proposal": true,
+          "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+          "lm1_input_class": "metadata_only_intake_candidate",
+          "lm1_may_receive_raw_values": false,
+          "requires_tokenization_policy": true
+        },
+        "clarification_question": "",
+        "client_ref": "capital_hilton",
+        "confidence": "HIGH",
+        "final": false,
+        "intended_use": "register_or_resolve_invoice_workbook_artifact",
+        "ledger_posted": false,
+        "lm1_chain_ready": true,
+        "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+        "operator_headline": "Capital Hilton workbook recognized",
+        "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+        "paid": false,
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "proposed_facts_only": true,
+        "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+        "submitted": false,
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance"
+      },
+      "user_message": "what's next for the Capital Hilton invoice?"
+    },
+    "what_would_be_sent_to_lm2": {
+      "role_package_summary": {
+        "authority_policy": {
+          "authority_boundary": {
+            "credential_handling_allowed": false,
+            "live_agent_dispatch_allowed": false,
+            "live_approval_execution_allowed": false,
+            "live_browser_allowed": false,
+            "live_candidate_promotion_allowed": false,
+            "live_coupa_access_allowed": false,
+            "live_email_send_allowed": false,
+            "live_external_action_allowed": false,
+            "live_file_body_read_allowed": false,
+            "live_file_mutation_allowed": false,
+            "live_ledger_posting_allowed": false,
+            "live_lm2_call_allowed": false,
+            "live_model_call_allowed": false,
+            "live_pdf_generation_allowed": false,
+            "live_send_submit_allowed": false,
+            "live_spreadsheet_cell_read_allowed": false,
+            "live_tool_execution_allowed": false,
+            "live_workbook_body_read_allowed": false,
+            "live_worker_dispatch_allowed": false,
+            "live_workflow_execution_allowed": false,
+            "network_allowed": false,
+            "raw_body_ingestion_allowed": false
+          },
+          "authority_policy_id": "package_authority_policy:3e564cfddcd955e8",
+          "external_action_authority_granted": false,
+          "next_safe_move": "No live authority is available in this package.",
+          "required_receipts_before_tools": [
+            "guardian_approval_receipt",
+            "exact_operator_approval_receipt",
+            "provider_or_adapter_receipt",
+            "post_action_proof_receipt"
+          ],
+          "send_submit_authority_granted": false,
+          "tool_authority_granted": false
+        },
+        "context_packet": {
+          "allowed_context_refs": [
+            "tenant_scope:fixture_business_ops",
+            "scope:finance:capital_hilton:lm_readiness_fixture",
+            "universal_intake_candidate:d7999c8ae2b62eb2",
+            "universal_intake:universal_intake_candidate:d7999c8ae2b62eb2"
+          ],
+          "context_packet_id": "role_context_packet:8e59327bc96ecba5",
+          "credential_material_allowed": false,
+          "evidence_refs": [
+            "universal_intake_candidate:d7999c8ae2b62eb2"
+          ],
+          "forbidden_context_refs": [
+            "credentials",
+            "tokens",
+            "raw private bodies",
+            "unrelated client data",
+            "unapproved file bodies"
+          ],
+          "next_safe_move": "Provide only safe refs/summaries to a future LM2 role call.",
+          "raw_body_allowed": false,
+          "source_refs": [
+            "universal_intake:universal_intake_candidate:d7999c8ae2b62eb2"
+          ]
+        },
+        "model_may_see_raw_values": false,
+        "package_id": "role_execution_package:6dfebc8374413c92",
+        "privacy_level": "metadata_only_tokenized_refs",
+        "raw_values_included": false,
+        "role_identity": "CHIEF",
+        "task": "Answer the next safe move for the Capital Hilton invoice from safe read-models.",
+        "tokenization_applied": true,
+        "tool_policy": {
+          "allowed_actions": [
+            "respond_to_originating_device_thread",
+            "ask_clarifying_question",
+            "prepare_readback_text",
+            "compile_nonexecuting_package"
+          ],
+          "allowed_tools": [],
+          "forbidden_actions": [
+            "send_email",
+            "send_gmail",
+            "submit_to_coupa",
+            "open_browser",
+            "access_network",
+            "read_workbook_body",
+            "read_spreadsheet_cells",
+            "mutate_file",
+            "write_excel",
+            "generate_pdf",
+            "post_ledger_entry",
+            "mark_invoice_sent",
+            "mark_invoice_paid",
+            "execute_workflow",
+            "dispatch_agent",
+            "dispatch_worker",
+            "handle_credentials"
+          ],
+          "forbidden_tools": [
+            "gmail",
+            "coupa",
+            "browser",
+            "network",
+            "excel_writer",
+            "pdf_generator",
+            "ledger_writer",
+            "credential_vault",
+            "raw_body_reader",
+            "workflow_runner",
+            "agent_dispatcher",
+            "worker_dispatcher"
+          ],
+          "next_safe_move": "Treat all tools and external actions as blocked until a later gate provides receipts.",
+          "receipt_required_for_blocked_actions": [
+            "guardian_approval_receipt",
+            "exact_operator_approval_receipt",
+            "provider_or_adapter_receipt",
+            "post_action_proof_receipt"
+          ],
+          "tool_policy_id": "role_tool_policy:3e564cfddcd955e8"
+        }
+      }
+    }
+  },
+  "representative_request": {
+    "filename": "Invoice Capitol Hilton Running.xlsx",
+    "source_request_id": "lm_readiness_capital_hilton_next_step_fixture",
+    "user_note": "what's next for the Capital Hilton invoice?",
+    "world_ref": "finance"
+  },
+  "schema_version": "lm_readiness_dashboard_v1"
+}

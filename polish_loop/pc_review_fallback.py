@@ -34,7 +34,10 @@ from pathlib import Path
 
 # LLM import — graceful degradation if chief_llm unavailable
 try:
-    sys.path.insert(0, "/home/openclaw")
+    REPO_ROOT = Path(__file__).resolve().parents[1]
+    if str(REPO_ROOT) in sys.path:
+        sys.path.remove(str(REPO_ROOT))
+    sys.path.insert(0, str(REPO_ROOT))
     from chief_llm import ollama_call, OLLAMA_MODEL_DEEP
     _LLM_AVAILABLE = True
 except ImportError:

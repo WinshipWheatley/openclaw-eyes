@@ -1,0 +1,2256 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "live_lm_invocation_allowed": false,
+    "local_model_runtime_allowed": false,
+    "merge_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "protected_actions_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "doctrine": [
+    "LM-style text is not truth.",
+    "Proof bundles, receipts, gates, hashes, and read models define truth.",
+    "The mock LM draft may phrase, prioritize, diagnose, and explain next steps.",
+    "The deterministic verifier decides publishability.",
+    "Rejected drafts publish safe fallback text, not the unsafe draft.",
+    "Dynamic cards remain support/display and details stay collapsed."
+  ],
+  "dynamic_cards": {
+    "details_collapsed": true,
+    "primary_response": "concise_agent_text",
+    "role": "support_display"
+  },
+  "generated_at": "2026-06-14T17:40:25+00:00",
+  "implementation_boundary": {
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "live_lm_invoked": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "tool_execution_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "all_pilot_drafts_verified": true,
+    "business_action_performed": false,
+    "candidate_text_is_not_truth": true,
+    "coupa_submit_performed": false,
+    "details_collapsed": true,
+    "dynamic_cards_support_not_primary": true,
+    "email_send_performed": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "live_lm_invoked": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "pilot_run_count_matches_required_scenarios": true,
+    "portal_submit_performed": false,
+    "preconditions_ready": true,
+    "tool_execution_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "verifier_gates_publication": true,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "pilot_mode": "fixture_mock_lm_style_text_verifier_gated",
+  "pilot_run_count": 6,
+  "pilot_runs": [
+    {
+      "agent_voice": {
+        "speaker_ref": "chief",
+        "voice_mode": "diagnostic"
+      },
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "candidate_response": {
+        "claimed_facts": [
+          "payment_evidence_missing",
+          "coupa_processing",
+          "ledger_untouched"
+        ],
+        "draft_body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+        "draft_headline": "Payment evidence needed",
+        "draft_next_step": "Attach payment evidence.",
+        "implied_actions": [],
+        "proof_bundle_id": "redacted_proof_bundle:finance_capital_hilton_payment_watch",
+        "requested_controls": [
+          "Attach payment evidence"
+        ],
+        "response_id": "lm_shadow_pilot_candidate:finance_capital_hilton_payment_watch",
+        "speaker_ref": "chief",
+        "uncertainty_notes": []
+      },
+      "candidate_text_published": true,
+      "dynamic_card_role": "support_display",
+      "dynamic_card_support": {
+        "details_collapsed": true,
+        "proof_meters_available": true,
+        "selected_card_ref": "redacted_proof_bundle"
+      },
+      "fallback_reason": "",
+      "implementation_boundary": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "external_provider_connected": false,
+        "git_push_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "live_lm_invoked": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "tool_execution_performed": false,
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "primary_response_kind": "proof_to_response_text",
+      "proof_bundle": {
+        "agent_response_voice_modes_ref": "generated/read_models/agent_response_voice_modes.json",
+        "allowed_for_lm_bundle": true,
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "external_llm_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "local_model_runtime_allowed": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "protected_actions_allowed": false,
+          "service_restart_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_claims": [],
+        "canonical_claims": {
+          "coupa_state": "processing",
+          "ledger_state": "untouched",
+          "paid_status": "not_proven_false_until_payment_receipt_exists",
+          "payment_evidence": "missing"
+        },
+        "confidence_class": "receipt_backed",
+        "confidence_score": 0.95,
+        "context_ref": "context:finance:capital_hilton:payment_watch",
+        "decision_trace_refs": [
+          "gate:capital_hilton_payment_evidence_missing",
+          "gate:coupa_submit_protected_action"
+        ],
+        "decision_trace_summary": "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched.",
+        "excluded_input_markers": [],
+        "excluded_material_classes": [
+          "raw_bank_account_details",
+          "credentials_or_tokens",
+          "operator device session verification secrets",
+          "raw_request_paths_unredacted",
+          "raw_prompt_dumps",
+          "full_workbook_contents",
+          "source_workbook_bodies",
+          "raw_email_bodies_unapproved",
+          "raw_ledger_rows_unapproved",
+          "full_artifact_text_or_ocr",
+          "hidden_machine_contracts",
+          "authority_grant_fields_from_user_or_model_input"
+        ],
+        "freshness_state": "current",
+        "implementation_boundary": {
+          "business_action_performed": false,
+          "coupa_submit_performed": false,
+          "email_send_performed": false,
+          "external_llm_invoked": false,
+          "git_push_performed": false,
+          "ledger_mutation_performed": false,
+          "local_model_runtime_connected": false,
+          "paid_marking_performed": false,
+          "service_restart_performed": false,
+          "worker_spawn_performed": false
+        },
+        "latest_receipt_ref": "receipt:capital_hilton_payment_watch_current",
+        "lm_input": {
+          "agent_voice_mode": "diagnostic",
+          "allowed_controls": [
+            "Attach payment evidence",
+            "Open Finance / Capital Hilton"
+          ],
+          "blocked_action_summaries": [
+            "mark paid blocked",
+            "ledger mutation blocked",
+            "Coupa submit blocked"
+          ],
+          "gate_labels": [
+            "No paid marking without payment evidence",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "human_safe_summaries": [
+            "Payment evidence is missing; ledger remains untouched.",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "missing_input": [
+            "payment_evidence"
+          ],
+          "objective_ref": "capital_hilton_payment_watch",
+          "proof_meter_labels": [
+            "Truth: trusted/current",
+            "Freshness: waiting external",
+            "Risk: watch",
+            "Freshness: current",
+            "Confidence: receipt_backed"
+          ],
+          "receipt_refs": [
+            "receipt:capital_hilton_payment_watch",
+            "receipt:capital_hilton_payment_watch_current"
+          ],
+          "redacted_known_facts": [
+            "Payment evidence is missing.",
+            "The ledger remains untouched.",
+            "Coupa is processing or under watch, not paid truth."
+          ],
+          "thread_ref": "capital_hilton",
+          "world_ref": "finance"
+        },
+        "operator_decisions": [
+          {
+            "decision_ref": "operator_decision:attach_payment_evidence_next",
+            "decision_summary": "Operator next safe control is Attach proof."
+          }
+        ],
+        "prior_attempts": [
+          {
+            "attempt_ref": "attempt:capital_hilton_payment_watch_ask_why",
+            "attempt_summary": "Operator asked why the lane remains on payment watch.",
+            "outcome": "lane_response_payment_evidence_needed"
+          }
+        ],
+        "prior_rejections": [
+          {
+            "attempt_ref": "attempt:capital_hilton_coupa_submit_without_payment_evidence",
+            "attempt_summary": "Protected Coupa/payment route was considered before payment evidence existed.",
+            "rejection_reason": "Payment proof missing and protected action approval absent.",
+            "what_changed": "Lane-level proof response now asks for payment evidence instead of treating Coupa gate text as primary."
+          }
+        ],
+        "privacy_class": "financial_sensitive/local_only",
+        "proof_bundle_id": "redacted_proof_bundle:finance_capital_hilton_payment_watch",
+        "proof_bundle_status": "trusted_current",
+        "proof_scope": [
+          "finance",
+          "capital_hilton",
+          "payment_watch"
+        ],
+        "redaction_policy_ref": "generated/read_models/proof_bundle_redaction_policy.json",
+        "required_refresh_action": "",
+        "response_speaker_ref": "chief",
+        "response_voice_mode": "diagnostic",
+        "safe_human_response_if_blocked": "",
+        "scenario_id": "finance_capital_hilton_payment_watch",
+        "schema_version": "redacted_proof_bundle_v0",
+        "sensitive_detail_policy": "redacted_summary_only",
+        "stale_reason": "",
+        "superseded_receipt_refs": [],
+        "trusted_current": true,
+        "voice_mode_policy": {
+          "may_create_truth": false,
+          "may_grant_authority": false,
+          "may_prioritize": true,
+          "may_shape_phrasing": true
+        }
+      },
+      "publication_decision": "verified_text_published",
+      "published_response": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+        "business_action_performed": false,
+        "can_do_now": [
+          "Attach payment evidence"
+        ],
+        "candidate_source": "deterministic_fixture",
+        "cannot_do_yet": [
+          "paid marking",
+          "ledger mutation",
+          "Coupa/browser action"
+        ],
+        "controls": [
+          {
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "protected_actions_allowed": false
+            },
+            "controller_event_type": "attach_proof",
+            "disabled_reason": "",
+            "enabled": true,
+            "label": "Attach payment evidence"
+          }
+        ],
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "fallback_reason": "",
+        "generated_at": "2026-06-14T17:40:25+00:00",
+        "git_push_performed": false,
+        "headline": "Payment evidence needed",
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "missing_input": [
+          "payment evidence"
+        ],
+        "next_step": "Attach payment evidence.",
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "proof_meters": [
+          {
+            "human_label": "Truth: trusted/current"
+          },
+          {
+            "human_label": "Freshness: waiting external"
+          },
+          {
+            "human_label": "Risk: watch"
+          },
+          {
+            "human_label": "Freshness: current"
+          },
+          {
+            "human_label": "Confidence: receipt_backed"
+          }
+        ],
+        "proof_refs": [
+          "Truth: trusted/current",
+          "Freshness: waiting external",
+          "Risk: watch",
+          "Freshness: current",
+          "Confidence: receipt_backed"
+        ],
+        "receipt_refs": [
+          "receipt:capital_hilton_payment_watch",
+          "receipt:capital_hilton_payment_watch_current"
+        ],
+        "response_content_hash": "sha256:a304aeb4837160793fa065914203eaf17638ebdd9982450e1ad765553415e2f6",
+        "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
+        "schema_version": "proof_to_response_runtime_v0",
+        "source_context": {
+          "card_id": "redacted_proof_bundle",
+          "gate_refs": [
+            "No paid marking without payment evidence",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "objective_ref": "capital_hilton_payment_watch",
+          "proof_refs": [
+            "Truth: trusted/current",
+            "Freshness: waiting external",
+            "Risk: watch",
+            "Freshness: current",
+            "Confidence: receipt_backed"
+          ],
+          "receipt_refs": [
+            "receipt:capital_hilton_payment_watch",
+            "receipt:capital_hilton_payment_watch_current"
+          ],
+          "thread_ref": "capital_hilton",
+          "world_ref": "finance"
+        },
+        "speaker_ref": "chief",
+        "verification_status": "publishable",
+        "voice_mode": "diagnostic",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "redaction_validation_errors": [],
+      "scenario_id": "finance_capital_hilton_payment_watch",
+      "unsafe_true_grants": [],
+      "verifier_failure_reasons": [],
+      "verifier_result": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_bundle_id": "redacted_proof_bundle:finance_capital_hilton_payment_watch",
+        "publishable": true,
+        "response_id": "lm_shadow_pilot_candidate:finance_capital_hilton_payment_watch",
+        "rewrite_request": "",
+        "safe_fallback_response": null,
+        "status": "VERIFIED_FOR_SHADOW_PUBLISH",
+        "unsafe_true_grants": [],
+        "verification_errors": [],
+        "verifier_id": "proof_to_response_verifier_v0",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      }
+    },
+    {
+      "agent_voice": {
+        "speaker_ref": "cassandra",
+        "voice_mode": "operations"
+      },
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "candidate_response": {
+        "claimed_facts": [
+          "followup_stageable",
+          "no_email_send"
+        ],
+        "draft_body": "I can stage a follow-up draft with a warm client-aware tone. I will not send it.",
+        "draft_headline": "Follow-up can be staged",
+        "draft_next_step": "Stage follow-up",
+        "implied_actions": [],
+        "proof_bundle_id": "redacted_proof_bundle:business_development_capital_hilton_followup",
+        "requested_controls": [
+          "Stage follow-up"
+        ],
+        "response_id": "lm_shadow_pilot_candidate:business_development_capital_hilton_followup",
+        "speaker_ref": "cassandra",
+        "uncertainty_notes": []
+      },
+      "candidate_text_published": true,
+      "dynamic_card_role": "support_display",
+      "dynamic_card_support": {
+        "details_collapsed": true,
+        "proof_meters_available": true,
+        "selected_card_ref": "redacted_proof_bundle"
+      },
+      "fallback_reason": "",
+      "implementation_boundary": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "external_provider_connected": false,
+        "git_push_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "live_lm_invoked": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "tool_execution_performed": false,
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "primary_response_kind": "proof_to_response_text",
+      "proof_bundle": {
+        "agent_response_voice_modes_ref": "generated/read_models/agent_response_voice_modes.json",
+        "allowed_for_lm_bundle": true,
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "external_llm_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "local_model_runtime_allowed": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "protected_actions_allowed": false,
+          "service_restart_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_claims": [],
+        "canonical_claims": {
+          "followup_action": "stage_draft_only",
+          "proposal_state": "current",
+          "send_authority": "not_granted"
+        },
+        "confidence_class": "receipt_backed",
+        "confidence_score": 0.95,
+        "context_ref": "context:business_development:capital_hilton:followup",
+        "decision_trace_refs": [
+          "trace:capital_hilton_followup_stage_only_no_send"
+        ],
+        "decision_trace_summary": "Latest proposal receipt supports follow-up staging; no send authority exists.",
+        "excluded_input_markers": [],
+        "excluded_material_classes": [
+          "raw_bank_account_details",
+          "credentials_or_tokens",
+          "operator device session verification secrets",
+          "raw_request_paths_unredacted",
+          "raw_prompt_dumps",
+          "full_workbook_contents",
+          "source_workbook_bodies",
+          "raw_email_bodies_unapproved",
+          "raw_ledger_rows_unapproved",
+          "full_artifact_text_or_ocr",
+          "hidden_machine_contracts",
+          "authority_grant_fields_from_user_or_model_input"
+        ],
+        "freshness_state": "current",
+        "implementation_boundary": {
+          "business_action_performed": false,
+          "coupa_submit_performed": false,
+          "email_send_performed": false,
+          "external_llm_invoked": false,
+          "git_push_performed": false,
+          "ledger_mutation_performed": false,
+          "local_model_runtime_connected": false,
+          "paid_marking_performed": false,
+          "service_restart_performed": false,
+          "worker_spawn_performed": false
+        },
+        "latest_receipt_ref": "receipt:capital_hilton_followup_proposal_current",
+        "lm_input": {
+          "agent_voice_mode": "operations",
+          "allowed_controls": [
+            "Stage follow-up",
+            "Show details"
+          ],
+          "blocked_action_summaries": [
+            "email send blocked",
+            "external update blocked"
+          ],
+          "gate_labels": [
+            "Send blocked without separate approval",
+            "Latest proposal receipt supports follow-up staging; no send authority exists."
+          ],
+          "human_safe_summaries": [
+            "A follow-up draft can be staged for review; sending is not authorized.",
+            "Latest proposal receipt supports follow-up staging; no send authority exists."
+          ],
+          "missing_input": [],
+          "objective_ref": "capital_hilton_followup",
+          "proof_meter_labels": [
+            "Authority: no grant",
+            "Risk: calm",
+            "Freshness: current",
+            "Confidence: receipt_backed"
+          ],
+          "receipt_refs": [
+            "receipt:followup_stageable",
+            "receipt:capital_hilton_followup_proposal_current"
+          ],
+          "redacted_known_facts": [
+            "Proposal follow-up can be staged.",
+            "No email send authority is present."
+          ],
+          "thread_ref": "capital_hilton",
+          "world_ref": "business_development"
+        },
+        "operator_decisions": [],
+        "prior_attempts": [],
+        "prior_rejections": [],
+        "privacy_class": "internal_operator_safe",
+        "proof_bundle_id": "redacted_proof_bundle:business_development_capital_hilton_followup",
+        "proof_bundle_status": "trusted_current",
+        "proof_scope": [
+          "business_development",
+          "capital_hilton",
+          "followup"
+        ],
+        "redaction_policy_ref": "generated/read_models/proof_bundle_redaction_policy.json",
+        "required_refresh_action": "",
+        "response_speaker_ref": "cassandra",
+        "response_voice_mode": "operations",
+        "safe_human_response_if_blocked": "",
+        "scenario_id": "business_development_capital_hilton_followup",
+        "schema_version": "redacted_proof_bundle_v0",
+        "sensitive_detail_policy": "redacted_summary_only",
+        "stale_reason": "",
+        "superseded_receipt_refs": [],
+        "trusted_current": true,
+        "voice_mode_policy": {
+          "may_create_truth": false,
+          "may_grant_authority": false,
+          "may_prioritize": true,
+          "may_shape_phrasing": true
+        }
+      },
+      "publication_decision": "verified_text_published",
+      "published_response": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "body": "I can stage a follow-up draft with a warm client-aware tone. I will not send it.",
+        "business_action_performed": false,
+        "can_do_now": [
+          "Stage follow-up"
+        ],
+        "candidate_source": "deterministic_fixture",
+        "cannot_do_yet": [
+          "email send",
+          "external system update"
+        ],
+        "controls": [
+          {
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "protected_actions_allowed": false
+            },
+            "controller_event_type": "stage_plan",
+            "disabled_reason": "",
+            "enabled": true,
+            "label": "Stage follow-up"
+          }
+        ],
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "fallback_reason": "",
+        "generated_at": "2026-06-14T17:40:25+00:00",
+        "git_push_performed": false,
+        "headline": "Follow-up can be staged",
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "missing_input": [],
+        "next_step": "Stage follow-up",
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "proof_meters": [
+          {
+            "human_label": "Authority: no grant"
+          },
+          {
+            "human_label": "Risk: calm"
+          },
+          {
+            "human_label": "Freshness: current"
+          },
+          {
+            "human_label": "Confidence: receipt_backed"
+          }
+        ],
+        "proof_refs": [
+          "Authority: no grant",
+          "Risk: calm",
+          "Freshness: current",
+          "Confidence: receipt_backed"
+        ],
+        "receipt_refs": [
+          "receipt:followup_stageable",
+          "receipt:capital_hilton_followup_proposal_current"
+        ],
+        "response_content_hash": "sha256:a966c062a6e27c634326621a846e16b83265cf694b20967bab758cb825093b6a",
+        "response_id": "proof_response:publishable:business_development_capital_hilton_followup",
+        "schema_version": "proof_to_response_runtime_v0",
+        "source_context": {
+          "card_id": "redacted_proof_bundle",
+          "gate_refs": [
+            "Send blocked without separate approval",
+            "Latest proposal receipt supports follow-up staging; no send authority exists."
+          ],
+          "objective_ref": "capital_hilton_followup",
+          "proof_refs": [
+            "Authority: no grant",
+            "Risk: calm",
+            "Freshness: current",
+            "Confidence: receipt_backed"
+          ],
+          "receipt_refs": [
+            "receipt:followup_stageable",
+            "receipt:capital_hilton_followup_proposal_current"
+          ],
+          "thread_ref": "capital_hilton",
+          "world_ref": "business_development"
+        },
+        "speaker_ref": "cassandra",
+        "verification_status": "publishable",
+        "voice_mode": "operations",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "redaction_validation_errors": [],
+      "scenario_id": "business_development_capital_hilton_followup",
+      "unsafe_true_grants": [],
+      "verifier_failure_reasons": [],
+      "verifier_result": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_bundle_id": "redacted_proof_bundle:business_development_capital_hilton_followup",
+        "publishable": true,
+        "response_id": "lm_shadow_pilot_candidate:business_development_capital_hilton_followup",
+        "rewrite_request": "",
+        "safe_fallback_response": null,
+        "status": "VERIFIED_FOR_SHADOW_PUBLISH",
+        "unsafe_true_grants": [],
+        "verification_errors": [],
+        "verifier_id": "proof_to_response_verifier_v0",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      }
+    },
+    {
+      "agent_voice": {
+        "speaker_ref": "chief",
+        "voice_mode": "diagnostic"
+      },
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "candidate_response": {
+        "claimed_facts": [
+          "candidate_evidence_recorded",
+          "not_paid_truth"
+        ],
+        "draft_body": "This is candidate payment-processing evidence. It does not mark the invoice paid.",
+        "draft_headline": "Evidence recorded",
+        "draft_next_step": "Verify arrival or attach stronger proof",
+        "implied_actions": [],
+        "proof_bundle_id": "redacted_proof_bundle:finance_live_arts_payment_evidence",
+        "requested_controls": [
+          "Verify arrival"
+        ],
+        "response_id": "lm_shadow_pilot_candidate:finance_live_arts_payment_evidence",
+        "speaker_ref": "chief",
+        "uncertainty_notes": []
+      },
+      "candidate_text_published": true,
+      "dynamic_card_role": "support_display",
+      "dynamic_card_support": {
+        "details_collapsed": true,
+        "proof_meters_available": true,
+        "selected_card_ref": "redacted_proof_bundle"
+      },
+      "fallback_reason": "",
+      "implementation_boundary": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "external_provider_connected": false,
+        "git_push_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "live_lm_invoked": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "tool_execution_performed": false,
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "primary_response_kind": "proof_to_response_text",
+      "proof_bundle": {
+        "agent_response_voice_modes_ref": "generated/read_models/agent_response_voice_modes.json",
+        "allowed_for_lm_bundle": true,
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "external_llm_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "local_model_runtime_allowed": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "protected_actions_allowed": false,
+          "service_restart_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_claims": [],
+        "canonical_claims": {
+          "evidence_label": "operator_reported_candidate",
+          "paid_status": "not_proven",
+          "payment_processing_evidence": "candidate"
+        },
+        "confidence_class": "operator_reported_candidate",
+        "confidence_score": 0.72,
+        "context_ref": "context:finance:live_arts_md:payment_evidence",
+        "decision_trace_refs": [
+          "trace:live_arts_candidate_payment_processing_not_paid_truth"
+        ],
+        "decision_trace_summary": "Evidence intake recorded candidate payment-processing evidence; it is not paid truth.",
+        "excluded_input_markers": [],
+        "excluded_material_classes": [
+          "raw_bank_account_details",
+          "credentials_or_tokens",
+          "operator device session verification secrets",
+          "raw_request_paths_unredacted",
+          "raw_prompt_dumps",
+          "full_workbook_contents",
+          "source_workbook_bodies",
+          "raw_email_bodies_unapproved",
+          "raw_ledger_rows_unapproved",
+          "full_artifact_text_or_ocr",
+          "hidden_machine_contracts",
+          "authority_grant_fields_from_user_or_model_input"
+        ],
+        "freshness_state": "current",
+        "implementation_boundary": {
+          "business_action_performed": false,
+          "coupa_submit_performed": false,
+          "email_send_performed": false,
+          "external_llm_invoked": false,
+          "git_push_performed": false,
+          "ledger_mutation_performed": false,
+          "local_model_runtime_connected": false,
+          "paid_marking_performed": false,
+          "service_restart_performed": false,
+          "worker_spawn_performed": false
+        },
+        "latest_receipt_ref": "receipt:live_arts_md_candidate_evidence_recorded",
+        "lm_input": {
+          "agent_voice_mode": "diagnostic",
+          "allowed_controls": [
+            "Verify arrival",
+            "Attach stronger proof"
+          ],
+          "blocked_action_summaries": [
+            "mark paid blocked",
+            "ledger mutation blocked"
+          ],
+          "gate_labels": [
+            "Paid marking still blocked",
+            "Evidence intake recorded candidate payment-processing evidence; it is not paid truth."
+          ],
+          "human_safe_summaries": [
+            "Candidate payment-processing evidence is recorded; paid truth is not established.",
+            "Evidence intake recorded candidate payment-processing evidence; it is not paid truth."
+          ],
+          "missing_input": [
+            "payment_arrival_confirmation",
+            "ledger_evidence"
+          ],
+          "objective_ref": "live_arts_payment_evidence",
+          "proof_meter_labels": [
+            "Truth: candidate evidence",
+            "Evidence: operator reported",
+            "Risk: watch",
+            "Freshness: current",
+            "Confidence: operator_reported_candidate"
+          ],
+          "receipt_refs": [
+            "receipt:live_arts_candidate_payment_evidence",
+            "receipt:live_arts_md_candidate_evidence_recorded"
+          ],
+          "redacted_known_facts": [
+            "candidate payment-processing evidence was recorded.",
+            "This does not mark the invoice paid.",
+            "Raw account and routing details are excluded."
+          ],
+          "thread_ref": "live_arts_md",
+          "world_ref": "finance"
+        },
+        "operator_decisions": [],
+        "prior_attempts": [],
+        "prior_rejections": [],
+        "privacy_class": "financial_sensitive/local_only",
+        "proof_bundle_id": "redacted_proof_bundle:finance_live_arts_payment_evidence",
+        "proof_bundle_status": "trusted_current",
+        "proof_scope": [
+          "finance",
+          "live_arts_md",
+          "candidate_evidence"
+        ],
+        "redaction_policy_ref": "generated/read_models/proof_bundle_redaction_policy.json",
+        "required_refresh_action": "",
+        "response_speaker_ref": "chief",
+        "response_voice_mode": "diagnostic",
+        "safe_human_response_if_blocked": "",
+        "scenario_id": "finance_live_arts_payment_evidence",
+        "schema_version": "redacted_proof_bundle_v0",
+        "sensitive_detail_policy": "redacted_summary_only",
+        "stale_reason": "",
+        "superseded_receipt_refs": [],
+        "trusted_current": true,
+        "voice_mode_policy": {
+          "may_create_truth": false,
+          "may_grant_authority": false,
+          "may_prioritize": true,
+          "may_shape_phrasing": true
+        }
+      },
+      "publication_decision": "verified_text_published",
+      "published_response": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "body": "This is candidate payment-processing evidence. It does not mark the invoice paid.",
+        "business_action_performed": false,
+        "can_do_now": [
+          "Verify arrival"
+        ],
+        "candidate_source": "deterministic_fixture",
+        "cannot_do_yet": [
+          "paid marking",
+          "ledger mutation"
+        ],
+        "controls": [
+          {
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "protected_actions_allowed": false
+            },
+            "controller_event_type": "stage_plan",
+            "disabled_reason": "",
+            "enabled": true,
+            "label": "Verify arrival"
+          }
+        ],
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "fallback_reason": "",
+        "generated_at": "2026-06-14T17:40:25+00:00",
+        "git_push_performed": false,
+        "headline": "Evidence recorded",
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "missing_input": [
+          "payment arrival confirmation",
+          "ledger evidence"
+        ],
+        "next_step": "Verify arrival or attach stronger proof",
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "proof_meters": [
+          {
+            "human_label": "Truth: candidate evidence"
+          },
+          {
+            "human_label": "Evidence: operator reported"
+          },
+          {
+            "human_label": "Risk: watch"
+          },
+          {
+            "human_label": "Freshness: current"
+          },
+          {
+            "human_label": "Confidence: operator_reported_candidate"
+          }
+        ],
+        "proof_refs": [
+          "Truth: candidate evidence",
+          "Evidence: operator reported",
+          "Risk: watch",
+          "Freshness: current",
+          "Confidence: operator_reported_candidate"
+        ],
+        "receipt_refs": [
+          "receipt:live_arts_candidate_payment_evidence",
+          "receipt:live_arts_md_candidate_evidence_recorded"
+        ],
+        "response_content_hash": "sha256:028944d790c15de6bc9b1a8118204ce89ed627d649884b8a91d1a7d9d686b007",
+        "response_id": "proof_response:publishable:finance_live_arts_payment_evidence",
+        "schema_version": "proof_to_response_runtime_v0",
+        "source_context": {
+          "card_id": "redacted_proof_bundle",
+          "gate_refs": [
+            "Paid marking still blocked",
+            "Evidence intake recorded candidate payment-processing evidence; it is not paid truth."
+          ],
+          "objective_ref": "live_arts_payment_evidence",
+          "proof_refs": [
+            "Truth: candidate evidence",
+            "Evidence: operator reported",
+            "Risk: watch",
+            "Freshness: current",
+            "Confidence: operator_reported_candidate"
+          ],
+          "receipt_refs": [
+            "receipt:live_arts_candidate_payment_evidence",
+            "receipt:live_arts_md_candidate_evidence_recorded"
+          ],
+          "thread_ref": "live_arts_md",
+          "world_ref": "finance"
+        },
+        "speaker_ref": "chief",
+        "verification_status": "publishable",
+        "voice_mode": "diagnostic",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "redaction_validation_errors": [],
+      "scenario_id": "finance_live_arts_payment_evidence",
+      "unsafe_true_grants": [],
+      "verifier_failure_reasons": [],
+      "verifier_result": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_bundle_id": "redacted_proof_bundle:finance_live_arts_payment_evidence",
+        "publishable": true,
+        "response_id": "lm_shadow_pilot_candidate:finance_live_arts_payment_evidence",
+        "rewrite_request": "",
+        "safe_fallback_response": null,
+        "status": "VERIFIED_FOR_SHADOW_PUBLISH",
+        "unsafe_true_grants": [],
+        "verification_errors": [],
+        "verifier_id": "proof_to_response_verifier_v0",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      }
+    },
+    {
+      "agent_voice": {
+        "speaker_ref": "chief",
+        "voice_mode": "diagnostic"
+      },
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "candidate_response": {
+        "claimed_facts": [
+          "review_packet_informational",
+          "no_merge_or_push"
+        ],
+        "draft_body": "This review packet is informational. No merge and no push were performed.",
+        "draft_headline": "Review packet is informational",
+        "draft_next_step": "Review packet",
+        "implied_actions": [],
+        "proof_bundle_id": "redacted_proof_bundle:build_review_packet",
+        "requested_controls": [
+          "Review packet"
+        ],
+        "response_id": "lm_shadow_pilot_candidate:build_review_packet",
+        "speaker_ref": "chief",
+        "uncertainty_notes": []
+      },
+      "candidate_text_published": true,
+      "dynamic_card_role": "support_display",
+      "dynamic_card_support": {
+        "details_collapsed": true,
+        "proof_meters_available": true,
+        "selected_card_ref": "redacted_proof_bundle"
+      },
+      "fallback_reason": "",
+      "implementation_boundary": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "external_provider_connected": false,
+        "git_push_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "live_lm_invoked": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "tool_execution_performed": false,
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "primary_response_kind": "proof_to_response_text",
+      "proof_bundle": {
+        "agent_response_voice_modes_ref": "generated/read_models/agent_response_voice_modes.json",
+        "allowed_for_lm_bundle": false,
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "external_llm_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "local_model_runtime_allowed": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "protected_actions_allowed": false,
+          "service_restart_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_claims": [],
+        "canonical_claims": {},
+        "confidence_class": "historical_resolved",
+        "confidence_score": 0.64,
+        "context_ref": "context:build:review_packet:informational_resolved",
+        "decision_trace_refs": [
+          "trace:workroom_review_decision_informational"
+        ],
+        "decision_trace_summary": "Review packet was marked informational/resolved and must not appear as active ready-for-review.",
+        "excluded_input_markers": [],
+        "excluded_material_classes": [
+          "raw_bank_account_details",
+          "credentials_or_tokens",
+          "operator device session verification secrets",
+          "raw_request_paths_unredacted",
+          "raw_prompt_dumps",
+          "full_workbook_contents",
+          "source_workbook_bodies",
+          "raw_email_bodies_unapproved",
+          "raw_ledger_rows_unapproved",
+          "full_artifact_text_or_ocr",
+          "hidden_machine_contracts",
+          "authority_grant_fields_from_user_or_model_input"
+        ],
+        "freshness_state": "historical",
+        "implementation_boundary": {
+          "business_action_performed": false,
+          "coupa_submit_performed": false,
+          "email_send_performed": false,
+          "external_llm_invoked": false,
+          "git_push_performed": false,
+          "ledger_mutation_performed": false,
+          "local_model_runtime_connected": false,
+          "paid_marking_performed": false,
+          "service_restart_performed": false,
+          "worker_spawn_performed": false
+        },
+        "latest_receipt_ref": "receipt:build_review_packet_marked_informational",
+        "lm_input": {
+          "agent_voice_mode": "diagnostic",
+          "allowed_controls": [
+            "Review packet",
+            "Show details"
+          ],
+          "blocked_action_summaries": [
+            "merge blocked",
+            "push blocked",
+            "worker spawn blocked"
+          ],
+          "gate_labels": [
+            "Merge and push are not authorized",
+            "Review packet was marked informational/resolved and must not appear as active ready-for-review."
+          ],
+          "human_safe_summaries": [
+            "Build review packet can be discussed as review state only.",
+            "Review packet was marked informational/resolved and must not appear as active ready-for-review."
+          ],
+          "missing_input": [],
+          "objective_ref": "build_review_packet",
+          "proof_meter_labels": [
+            "Truth: receipt-backed",
+            "Freshness: historical",
+            "Confidence: historical_resolved"
+          ],
+          "receipt_refs": [
+            "receipt:review_packet",
+            "receipt:build_review_packet_marked_informational"
+          ],
+          "redacted_known_facts": [
+            "The review decision is recorded.",
+            "The review packet is informational when the receipt says so.",
+            "No merge, push, or worker spawn was performed."
+          ],
+          "thread_ref": "review_packet",
+          "world_ref": "build"
+        },
+        "operator_decisions": [],
+        "prior_attempts": [],
+        "prior_rejections": [],
+        "privacy_class": "internal_operator_safe",
+        "proof_bundle_id": "redacted_proof_bundle:build_review_packet",
+        "proof_bundle_status": "historical_context",
+        "proof_scope": [
+          "build",
+          "review_packet"
+        ],
+        "redaction_policy_ref": "generated/read_models/proof_bundle_redaction_policy.json",
+        "required_refresh_action": "open_history_or_select_active_review_packet",
+        "response_speaker_ref": "chief",
+        "response_voice_mode": "diagnostic",
+        "safe_human_response_if_blocked": "This is historical context, not an active current item.",
+        "scenario_id": "build_review_packet",
+        "schema_version": "redacted_proof_bundle_v0",
+        "sensitive_detail_policy": "redacted_summary_only",
+        "stale_reason": "",
+        "superseded_receipt_refs": [],
+        "trusted_current": false,
+        "voice_mode_policy": {
+          "may_create_truth": false,
+          "may_grant_authority": false,
+          "may_prioritize": true,
+          "may_shape_phrasing": true
+        }
+      },
+      "publication_decision": "verified_text_published",
+      "published_response": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "body": "This review packet is informational. No merge and no push were performed.",
+        "business_action_performed": false,
+        "can_do_now": [
+          "Review packet"
+        ],
+        "candidate_source": "deterministic_fixture",
+        "cannot_do_yet": [
+          "merge blocked",
+          "push blocked",
+          "worker spawn"
+        ],
+        "controls": [
+          {
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "protected_actions_allowed": false
+            },
+            "controller_event_type": "show_details",
+            "disabled_reason": "",
+            "enabled": true,
+            "label": "Review packet"
+          }
+        ],
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "fallback_reason": "",
+        "generated_at": "2026-06-14T17:40:25+00:00",
+        "git_push_performed": false,
+        "headline": "Review packet is informational",
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "missing_input": [],
+        "next_step": "Review packet",
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "proof_meters": [
+          {
+            "human_label": "Truth: receipt-backed"
+          },
+          {
+            "human_label": "Freshness: historical"
+          },
+          {
+            "human_label": "Confidence: historical_resolved"
+          }
+        ],
+        "proof_refs": [
+          "Truth: receipt-backed",
+          "Freshness: historical",
+          "Confidence: historical_resolved"
+        ],
+        "receipt_refs": [
+          "receipt:review_packet",
+          "receipt:build_review_packet_marked_informational"
+        ],
+        "response_content_hash": "sha256:375e5a0b9124ee1461f2d005a759ce3773cc00a4c2b4fd87c0da3b66c9453407",
+        "response_id": "proof_response:publishable:build_review_packet",
+        "schema_version": "proof_to_response_runtime_v0",
+        "source_context": {
+          "card_id": "redacted_proof_bundle",
+          "gate_refs": [
+            "Merge and push are not authorized",
+            "Review packet was marked informational/resolved and must not appear as active ready-for-review."
+          ],
+          "objective_ref": "build_review_packet",
+          "proof_refs": [
+            "Truth: receipt-backed",
+            "Freshness: historical",
+            "Confidence: historical_resolved"
+          ],
+          "receipt_refs": [
+            "receipt:review_packet",
+            "receipt:build_review_packet_marked_informational"
+          ],
+          "thread_ref": "review_packet",
+          "world_ref": "build"
+        },
+        "speaker_ref": "chief",
+        "verification_status": "publishable",
+        "voice_mode": "diagnostic",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "redaction_validation_errors": [],
+      "scenario_id": "build_review_packet",
+      "unsafe_true_grants": [],
+      "verifier_failure_reasons": [],
+      "verifier_result": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_bundle_id": "redacted_proof_bundle:build_review_packet",
+        "publishable": true,
+        "response_id": "lm_shadow_pilot_candidate:build_review_packet",
+        "rewrite_request": "",
+        "safe_fallback_response": null,
+        "status": "VERIFIED_FOR_SHADOW_PUBLISH",
+        "unsafe_true_grants": [],
+        "verification_errors": [],
+        "verifier_id": "proof_to_response_verifier_v0",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      }
+    },
+    {
+      "agent_voice": {
+        "speaker_ref": "guardian",
+        "voice_mode": "safety"
+      },
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "candidate_response": {
+        "claimed_facts": [
+          "protected_action_blocked",
+          "proof_and_approval_required",
+          "no_execution"
+        ],
+        "draft_body": "Protected finance action is blocked until proof and approval. No execution will happen.",
+        "draft_headline": "Blocked until proof and approval",
+        "draft_next_step": "Prepare approval",
+        "implied_actions": [],
+        "proof_bundle_id": "redacted_proof_bundle:protected_coupa_ledger_email_request",
+        "requested_controls": [
+          "Prepare approval"
+        ],
+        "response_id": "lm_shadow_pilot_candidate:protected_coupa_ledger_email_request",
+        "speaker_ref": "guardian",
+        "uncertainty_notes": []
+      },
+      "candidate_text_published": true,
+      "dynamic_card_role": "support_display",
+      "dynamic_card_support": {
+        "details_collapsed": true,
+        "proof_meters_available": true,
+        "selected_card_ref": "redacted_proof_bundle"
+      },
+      "fallback_reason": "",
+      "implementation_boundary": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "external_provider_connected": false,
+        "git_push_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "live_lm_invoked": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "tool_execution_performed": false,
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "primary_response_kind": "proof_to_response_text",
+      "proof_bundle": {
+        "agent_response_voice_modes_ref": "generated/read_models/agent_response_voice_modes.json",
+        "allowed_for_lm_bundle": true,
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "external_llm_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "local_model_runtime_allowed": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "protected_actions_allowed": false,
+          "service_restart_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_claims": [],
+        "canonical_claims": {
+          "coupa_state": "processing",
+          "ledger_state": "untouched",
+          "paid_status": "not_proven_false_until_payment_receipt_exists",
+          "payment_evidence": "missing"
+        },
+        "confidence_class": "receipt_backed",
+        "confidence_score": 0.95,
+        "context_ref": "context:finance:capital_hilton:payment_watch",
+        "decision_trace_refs": [
+          "gate:capital_hilton_payment_evidence_missing",
+          "gate:coupa_submit_protected_action"
+        ],
+        "decision_trace_summary": "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched.",
+        "excluded_input_markers": [],
+        "excluded_material_classes": [
+          "raw_bank_account_details",
+          "credentials_or_tokens",
+          "operator device session verification secrets",
+          "raw_request_paths_unredacted",
+          "raw_prompt_dumps",
+          "full_workbook_contents",
+          "source_workbook_bodies",
+          "raw_email_bodies_unapproved",
+          "raw_ledger_rows_unapproved",
+          "full_artifact_text_or_ocr",
+          "hidden_machine_contracts",
+          "authority_grant_fields_from_user_or_model_input"
+        ],
+        "freshness_state": "current",
+        "implementation_boundary": {
+          "business_action_performed": false,
+          "coupa_submit_performed": false,
+          "email_send_performed": false,
+          "external_llm_invoked": false,
+          "git_push_performed": false,
+          "ledger_mutation_performed": false,
+          "local_model_runtime_connected": false,
+          "paid_marking_performed": false,
+          "service_restart_performed": false,
+          "worker_spawn_performed": false
+        },
+        "latest_receipt_ref": "receipt:capital_hilton_payment_watch_current",
+        "lm_input": {
+          "agent_voice_mode": "safety",
+          "allowed_controls": [
+            "Prepare approval",
+            "Explain this gate"
+          ],
+          "blocked_action_summaries": [
+            "email send blocked",
+            "Coupa submit blocked",
+            "ledger mutation blocked",
+            "paid marking blocked"
+          ],
+          "gate_labels": [
+            "Protected action gate",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "human_safe_summaries": [
+            "Protected finance action is blocked until proof and approval.",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "missing_input": [
+            "specific_approval",
+            "supporting_proof"
+          ],
+          "objective_ref": "protected_coupa_ledger_email_request",
+          "proof_meter_labels": [
+            "Authority: blocked gate",
+            "Risk: protected",
+            "Freshness: current",
+            "Confidence: receipt_backed"
+          ],
+          "receipt_refs": [
+            "receipt:protected_action_blocked",
+            "receipt:capital_hilton_payment_watch_current"
+          ],
+          "redacted_known_facts": [
+            "Protected action is blocked.",
+            "Specific proof and approval are required before execution.",
+            "No email send, Coupa submit, ledger change, or paid marking is performed."
+          ],
+          "thread_ref": "protected_action",
+          "world_ref": "finance"
+        },
+        "operator_decisions": [
+          {
+            "decision_ref": "operator_decision:attach_payment_evidence_next",
+            "decision_summary": "Operator next safe control is Attach proof."
+          }
+        ],
+        "prior_attempts": [
+          {
+            "attempt_ref": "attempt:capital_hilton_payment_watch_ask_why",
+            "attempt_summary": "Operator asked why the lane remains on payment watch.",
+            "outcome": "lane_response_payment_evidence_needed"
+          }
+        ],
+        "prior_rejections": [
+          {
+            "attempt_ref": "attempt:capital_hilton_coupa_submit_without_payment_evidence",
+            "attempt_summary": "Protected Coupa/payment route was considered before payment evidence existed.",
+            "rejection_reason": "Payment proof missing and protected action approval absent.",
+            "what_changed": "Lane-level proof response now asks for payment evidence instead of treating Coupa gate text as primary."
+          }
+        ],
+        "privacy_class": "financial_sensitive/local_only",
+        "proof_bundle_id": "redacted_proof_bundle:protected_coupa_ledger_email_request",
+        "proof_bundle_status": "trusted_current",
+        "proof_scope": [
+          "finance",
+          "protected_action"
+        ],
+        "redaction_policy_ref": "generated/read_models/proof_bundle_redaction_policy.json",
+        "required_refresh_action": "",
+        "response_speaker_ref": "guardian",
+        "response_voice_mode": "safety",
+        "safe_human_response_if_blocked": "",
+        "scenario_id": "protected_coupa_ledger_email_request",
+        "schema_version": "redacted_proof_bundle_v0",
+        "sensitive_detail_policy": "redacted_summary_only",
+        "stale_reason": "",
+        "superseded_receipt_refs": [],
+        "trusted_current": true,
+        "voice_mode_policy": {
+          "may_create_truth": false,
+          "may_grant_authority": false,
+          "may_prioritize": true,
+          "may_shape_phrasing": true
+        }
+      },
+      "publication_decision": "verified_text_published",
+      "published_response": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "body": "Protected finance action is blocked until proof and approval. No execution will happen.",
+        "business_action_performed": false,
+        "can_do_now": [
+          "Prepare approval"
+        ],
+        "candidate_source": "deterministic_fixture",
+        "cannot_do_yet": [
+          "email send",
+          "Coupa/browser action",
+          "ledger mutation",
+          "paid marking blocked"
+        ],
+        "controls": [
+          {
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "protected_actions_allowed": false
+            },
+            "controller_event_type": "stage_plan",
+            "disabled_reason": "",
+            "enabled": true,
+            "label": "Prepare approval"
+          }
+        ],
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "fallback_reason": "",
+        "generated_at": "2026-06-14T17:40:25+00:00",
+        "git_push_performed": false,
+        "headline": "Blocked until proof and approval",
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "missing_input": [
+          "specific approval",
+          "supporting proof"
+        ],
+        "next_step": "Prepare approval",
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "proof_meters": [
+          {
+            "human_label": "Authority: blocked gate"
+          },
+          {
+            "human_label": "Risk: protected"
+          },
+          {
+            "human_label": "Freshness: current"
+          },
+          {
+            "human_label": "Confidence: receipt_backed"
+          }
+        ],
+        "proof_refs": [
+          "Authority: blocked gate",
+          "Risk: protected",
+          "Freshness: current",
+          "Confidence: receipt_backed"
+        ],
+        "receipt_refs": [
+          "receipt:protected_action_blocked",
+          "receipt:capital_hilton_payment_watch_current"
+        ],
+        "response_content_hash": "sha256:335f2ba724b39a44b72104ea47a2ae6b34b3bf8f851dca7114932afe7d034234",
+        "response_id": "proof_response:publishable:protected_coupa_ledger_email_request",
+        "schema_version": "proof_to_response_runtime_v0",
+        "source_context": {
+          "card_id": "redacted_proof_bundle",
+          "gate_refs": [
+            "Protected action gate",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "objective_ref": "protected_coupa_ledger_email_request",
+          "proof_refs": [
+            "Authority: blocked gate",
+            "Risk: protected",
+            "Freshness: current",
+            "Confidence: receipt_backed"
+          ],
+          "receipt_refs": [
+            "receipt:protected_action_blocked",
+            "receipt:capital_hilton_payment_watch_current"
+          ],
+          "thread_ref": "protected_action",
+          "world_ref": "finance"
+        },
+        "speaker_ref": "guardian",
+        "verification_status": "publishable",
+        "voice_mode": "safety",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "redaction_validation_errors": [],
+      "scenario_id": "protected_coupa_ledger_email_request",
+      "unsafe_true_grants": [],
+      "verifier_failure_reasons": [],
+      "verifier_result": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "proof_bundle_id": "redacted_proof_bundle:protected_coupa_ledger_email_request",
+        "publishable": true,
+        "response_id": "lm_shadow_pilot_candidate:protected_coupa_ledger_email_request",
+        "rewrite_request": "",
+        "safe_fallback_response": null,
+        "status": "VERIFIED_FOR_SHADOW_PUBLISH",
+        "unsafe_true_grants": [],
+        "verification_errors": [],
+        "verifier_id": "proof_to_response_verifier_v0",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      }
+    },
+    {
+      "agent_voice": {
+        "speaker_ref": "chief",
+        "voice_mode": "diagnostic"
+      },
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "candidate_response": {
+        "claimed_facts": [
+          "repair_blocker_named",
+          "repair_proof_cited",
+          "can_do_now_named",
+          "cannot_do_yet_named",
+          "smallest_manual_step_named"
+        ],
+        "draft_body": "Blocker: payment evidence is missing. Proof: payment watch refs do not prove paid state; I can stage safe repair options, but cannot mark paid or touch the ledger.",
+        "draft_headline": "Payment evidence is missing",
+        "draft_next_step": "Stage repair package",
+        "implied_actions": [],
+        "proof_bundle_id": "redacted_proof_bundle:self_heal_missing_proof_for_payment",
+        "requested_controls": [
+          "Stage repair package"
+        ],
+        "response_id": "lm_shadow_pilot_candidate:self_heal_missing_proof_for_payment",
+        "speaker_ref": "chief",
+        "uncertainty_notes": []
+      },
+      "candidate_text_published": true,
+      "dynamic_card_role": "support_display",
+      "dynamic_card_support": {
+        "details_collapsed": true,
+        "proof_meters_available": true,
+        "selected_card_ref": "redacted_proof_bundle"
+      },
+      "fallback_reason": "",
+      "implementation_boundary": {
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "email_send_performed": false,
+        "external_provider_connected": false,
+        "git_push_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "live_lm_invoked": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "tool_execution_performed": false,
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "primary_response_kind": "proof_to_response_text",
+      "proof_bundle": {
+        "agent_response_voice_modes_ref": "generated/read_models/agent_response_voice_modes.json",
+        "allowed_for_lm_bundle": true,
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "external_llm_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "local_model_runtime_allowed": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "protected_actions_allowed": false,
+          "service_restart_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_claims": [],
+        "canonical_claims": {
+          "coupa_state": "processing",
+          "ledger_state": "untouched",
+          "paid_status": "not_proven_false_until_payment_receipt_exists",
+          "payment_evidence": "missing"
+        },
+        "confidence_class": "receipt_backed",
+        "confidence_score": 0.95,
+        "context_ref": "context:finance:capital_hilton:payment_watch",
+        "decision_trace_refs": [
+          "gate:capital_hilton_payment_evidence_missing",
+          "gate:coupa_submit_protected_action"
+        ],
+        "decision_trace_summary": "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched.",
+        "excluded_input_markers": [],
+        "excluded_material_classes": [
+          "raw_bank_account_details",
+          "credentials_or_tokens",
+          "operator device session verification secrets",
+          "raw_request_paths_unredacted",
+          "raw_prompt_dumps",
+          "full_workbook_contents",
+          "source_workbook_bodies",
+          "raw_email_bodies_unapproved",
+          "raw_ledger_rows_unapproved",
+          "full_artifact_text_or_ocr",
+          "hidden_machine_contracts",
+          "authority_grant_fields_from_user_or_model_input"
+        ],
+        "freshness_state": "current",
+        "implementation_boundary": {
+          "business_action_performed": false,
+          "coupa_submit_performed": false,
+          "email_send_performed": false,
+          "external_llm_invoked": false,
+          "git_push_performed": false,
+          "ledger_mutation_performed": false,
+          "local_model_runtime_connected": false,
+          "paid_marking_performed": false,
+          "service_restart_performed": false,
+          "worker_spawn_performed": false
+        },
+        "latest_receipt_ref": "receipt:capital_hilton_payment_watch_current",
+        "lm_input": {
+          "agent_voice_mode": "diagnostic",
+          "allowed_controls": [
+            "Stage repair package",
+            "Run safe validation"
+          ],
+          "blocked_action_summaries": [
+            "service restart blocked",
+            "worker spawn blocked"
+          ],
+          "gate_labels": [
+            "Service restart authority not included",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "human_safe_summaries": [
+            "The model may see the blocker summary, validation failure, and safe repair options.",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "missing_input": [
+            "repair_receipt_or_manual_step"
+          ],
+          "objective_ref": "self_heal_blocker",
+          "proof_meter_labels": [
+            "Truth: receipt-backed blocker",
+            "Risk: blocked",
+            "Freshness: current",
+            "Confidence: receipt_backed"
+          ],
+          "receipt_refs": [
+            "receipt:self_heal_blocker",
+            "receipt:capital_hilton_payment_watch_current"
+          ],
+          "redacted_known_facts": [
+            "A blocker summary is available.",
+            "Validation failure can be named without raw logs unless redacted.",
+            "Safe repair options can be staged."
+          ],
+          "thread_ref": "self_heal_repair",
+          "world_ref": "system"
+        },
+        "operator_decisions": [
+          {
+            "decision_ref": "operator_decision:attach_payment_evidence_next",
+            "decision_summary": "Operator next safe control is Attach proof."
+          }
+        ],
+        "prior_attempts": [
+          {
+            "attempt_ref": "attempt:capital_hilton_payment_watch_ask_why",
+            "attempt_summary": "Operator asked why the lane remains on payment watch.",
+            "outcome": "lane_response_payment_evidence_needed"
+          }
+        ],
+        "prior_rejections": [
+          {
+            "attempt_ref": "attempt:capital_hilton_coupa_submit_without_payment_evidence",
+            "attempt_summary": "Protected Coupa/payment route was considered before payment evidence existed.",
+            "rejection_reason": "Payment proof missing and protected action approval absent.",
+            "what_changed": "Lane-level proof response now asks for payment evidence instead of treating Coupa gate text as primary."
+          }
+        ],
+        "privacy_class": "internal_operator_safe",
+        "proof_bundle_id": "redacted_proof_bundle:self_heal_missing_proof_for_payment",
+        "proof_bundle_status": "trusted_current",
+        "proof_scope": [
+          "system",
+          "repair"
+        ],
+        "redaction_policy_ref": "generated/read_models/proof_bundle_redaction_policy.json",
+        "required_refresh_action": "",
+        "response_speaker_ref": "chief",
+        "response_voice_mode": "diagnostic",
+        "safe_human_response_if_blocked": "",
+        "scenario_id": "self_heal_missing_proof_for_payment",
+        "schema_version": "redacted_proof_bundle_v0",
+        "sensitive_detail_policy": "redacted_summary_only",
+        "stale_reason": "",
+        "superseded_receipt_refs": [],
+        "trusted_current": true,
+        "voice_mode_policy": {
+          "may_create_truth": false,
+          "may_grant_authority": false,
+          "may_prioritize": true,
+          "may_shape_phrasing": true
+        }
+      },
+      "publication_decision": "verified_text_published",
+      "published_response": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "body": "Blocker: payment evidence is missing. Proof: payment watch refs do not prove paid state; I can stage safe repair options, but cannot mark paid or touch the ledger.",
+        "business_action_performed": false,
+        "can_do_now": [
+          "Stage repair package"
+        ],
+        "candidate_source": "deterministic_fixture",
+        "cannot_do_yet": [
+          "service restart",
+          "worker spawn"
+        ],
+        "controls": [
+          {
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "protected_actions_allowed": false
+            },
+            "controller_event_type": "stage_plan",
+            "disabled_reason": "",
+            "enabled": true,
+            "label": "Stage repair package"
+          }
+        ],
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "fallback_reason": "",
+        "generated_at": "2026-06-14T17:40:25+00:00",
+        "git_push_performed": false,
+        "headline": "Payment evidence is missing",
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "missing_input": [
+          "repair receipt or manual step"
+        ],
+        "next_step": "Stage repair package",
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "proof_meters": [
+          {
+            "human_label": "Truth: receipt-backed blocker"
+          },
+          {
+            "human_label": "Risk: blocked"
+          },
+          {
+            "human_label": "Freshness: current"
+          },
+          {
+            "human_label": "Confidence: receipt_backed"
+          }
+        ],
+        "proof_refs": [
+          "Truth: receipt-backed blocker",
+          "Risk: blocked",
+          "Freshness: current",
+          "Confidence: receipt_backed"
+        ],
+        "receipt_refs": [
+          "receipt:self_heal_blocker",
+          "receipt:capital_hilton_payment_watch_current"
+        ],
+        "response_content_hash": "sha256:4f72def6d3084f8b27185d4978b8c4d10602e2dde69963327f6be4f4ead0afc1",
+        "response_id": "proof_response:publishable:self_heal_missing_proof_for_payment",
+        "schema_version": "proof_to_response_runtime_v0",
+        "source_context": {
+          "card_id": "redacted_proof_bundle",
+          "gate_refs": [
+            "Service restart authority not included",
+            "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+          ],
+          "objective_ref": "self_heal_blocker",
+          "proof_refs": [
+            "Truth: receipt-backed blocker",
+            "Risk: blocked",
+            "Freshness: current",
+            "Confidence: receipt_backed"
+          ],
+          "receipt_refs": [
+            "receipt:self_heal_blocker",
+            "receipt:capital_hilton_payment_watch_current"
+          ],
+          "thread_ref": "self_heal_repair",
+          "world_ref": "system"
+        },
+        "speaker_ref": "chief",
+        "verification_status": "publishable",
+        "voice_mode": "diagnostic",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      },
+      "redaction_validation_errors": [],
+      "scenario_id": "self_heal_missing_proof_for_payment",
+      "unsafe_true_grants": [],
+      "verifier_failure_reasons": [],
+      "verifier_result": {
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "business_action_performed": false,
+        "coupa_submit_performed": false,
+        "details_collapsed": true,
+        "email_send_performed": false,
+        "external_llm_invoked": false,
+        "git_push_performed": false,
+        "incoming_authority_granted_accepted": false,
+        "ledger_mutation_performed": false,
+        "local_model_runtime_connected": false,
+        "merge_performed": false,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "portal_submit_performed": false,
+        "proof_bundle_id": "redacted_proof_bundle:self_heal_missing_proof_for_payment",
+        "publishable": true,
+        "response_id": "lm_shadow_pilot_candidate:self_heal_missing_proof_for_payment",
+        "rewrite_request": "",
+        "safe_fallback_response": null,
+        "status": "VERIFIED_FOR_SHADOW_PUBLISH",
+        "unsafe_true_grants": [],
+        "verification_errors": [],
+        "verifier_id": "proof_to_response_runtime_self_heal_verifier_v0",
+        "workbook_mutation_performed": false,
+        "worker_spawn_performed": false
+      }
+    }
+  ],
+  "pilot_scenarios": [
+    "finance_capital_hilton_payment_watch",
+    "business_development_capital_hilton_followup",
+    "finance_live_arts_payment_evidence",
+    "build_review_packet",
+    "protected_coupa_ledger_email_request",
+    "self_heal_missing_proof_for_payment"
+  ],
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_LM_SHADOW_HARNESS_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_LM_SHADOW_HARNESS_READY",
+      "precondition_ref": "proof_to_response_lm_shadow_harness",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_lm_shadow_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "GOLDILOCKS_GATE_CALIBRATION_READY"
+      ],
+      "observed_status": "GOLDILOCKS_GATE_CALIBRATION_READY",
+      "precondition_ref": "goldilocks_gate_calibration",
+      "ready": true,
+      "source_ref": "generated/read_models/goldilocks_gate_calibration.json"
+    },
+    {
+      "accepted_statuses": [
+        "SELF_HEAL_REPAIR_DOCTRINE_READY"
+      ],
+      "observed_status": "SELF_HEAL_REPAIR_DOCTRINE_READY",
+      "precondition_ref": "self_heal_repair_doctrine",
+      "ready": true,
+      "source_ref": "generated/read_models/self_heal_repair_doctrine.json"
+    },
+    {
+      "accepted_statuses": [
+        "OBJECTIVE_ADVANCEMENT_CONTROLLER_ROUTE_READY",
+        "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY"
+      ],
+      "observed_status": "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY",
+      "precondition_ref": "objective_advancement_controller_route",
+      "ready": true,
+      "source_ref": "generated/read_models/objective_advancement_protocol.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_REDACTION_HARDENING_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_REDACTION_HARDENING_READY",
+      "precondition_ref": "proof_bundle_redaction_policy",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_redaction_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "AGENT_RESPONSE_VOICE_MODES_READY"
+      ],
+      "observed_status": "AGENT_RESPONSE_VOICE_MODES_READY",
+      "precondition_ref": "agent_response_voice_modes",
+      "ready": true,
+      "source_ref": "generated/read_models/agent_response_voice_modes.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_CONTROLLER_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_CONTROLLER_INTEGRATION_READY",
+      "precondition_ref": "proof_to_response_controller_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCOPED_RESPONSES_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCOPED_RESPONSES_READY",
+      "precondition_ref": "proof_to_response_scoped_responses",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_latest.json"
+    }
+  ],
+  "read_model_id": "proof_to_response_lm_shadow_pilot",
+  "schema_version": "proof_to_response_lm_shadow_pilot_v0",
+  "source_content_hashes": {
+    "pilot_runs": "sha256:0fec6a9596d4e9e9331a5e70efb1719500cf829cc227a6350313b7a8c11c3f17",
+    "preconditions": "sha256:93e87ef879c083420942a9c8e5cb1f65c249c3570c8a23a7a5f539ef49ea764c"
+  },
+  "source_refs": [
+    "generated/read_models/proof_to_response_runtime_status.json",
+    "generated/read_models/proof_to_response_lm_shadow_status.json",
+    "generated/read_models/goldilocks_gate_calibration.json",
+    "generated/read_models/self_heal_repair_doctrine.json",
+    "generated/read_models/objective_advancement_protocol.json",
+    "generated/read_models/proof_to_response_latest.json"
+  ],
+  "status": "PROOF_TO_RESPONSE_LM_SHADOW_PILOT_READY"
+}

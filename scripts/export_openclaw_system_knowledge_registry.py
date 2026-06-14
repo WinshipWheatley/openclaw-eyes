@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export the OpenClaw Eyes System Knowledge Registry."""
+"""Export the OpenClaw System Knowledge Registry artifacts."""
 
 from __future__ import annotations
 

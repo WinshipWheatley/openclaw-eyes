@@ -1,0 +1,2966 @@
+{
+  "aggregator": {
+    "aggregator_id": "capital_hilton_invoice_operator_readback_aggregator_v0",
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_execution_allowed": false,
+      "live_browser_allowed": false,
+      "live_completion_write_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_coupa_submit_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_file_mutation_allowed": false,
+      "live_gmail_send_allowed": false,
+      "live_mail_send_allowed": false,
+      "live_payment_tracking_write_allowed": false,
+      "live_provider_call_allowed": false,
+      "live_secret_reveal_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "doctrine": [
+      "Summarize existing Capital Hilton invoice rails only.",
+      "Do not create receipts, approvals, packages, drafts, submissions, sends, or completion writes.",
+      "Never claim sent, submitted, or complete without completion proof aggregator support.",
+      "Operator chat receives a concise human status with refs for details."
+    ],
+    "mac_chat_policy": [
+      "Output is shaped for one chat status card.",
+      "operator_headline and operator_message are directly displayable.",
+      "detail_refs point to underlying readmodels for drilldown."
+    ],
+    "next_safe_move": "Confirm PO/reference and protected refs, then create approval receipts before any future gated send or submit adapter can act.",
+    "operator_message_policy": [
+      "Plain language first; machine refs are detail_refs.",
+      "Blocked and missing states include how_to_fix.",
+      "Messages must state that nothing was sent, submitted, opened, approved, or marked complete."
+    ],
+    "proof_policy": [
+      "INVOICE SENT requires final email send and attachment proof receipts.",
+      "INVOICE SENT AND RECORDED requires all configured completion receipts.",
+      "Missing receipts are listed as missing; this lane does not infer them."
+    ],
+    "readiness_policy": [
+      "Ready means reviewable or proof-modeled, not executable.",
+      "Email send and Coupa submit remain false unless their gated adapters and approvals prove readiness.",
+      "Workflow run remains false in this lane."
+    ],
+    "source_readmodels": [
+      "generated/read_models/workflow_execution_package_compiler.json",
+      "generated/read_models/invoice_artifact_readback.json",
+      "generated/read_models/gated_email_draft_adapter.json",
+      "generated/read_models/gated_email_send_adapter.json",
+      "generated/read_models/coupa_supplier_portal_package_compiler.json",
+      "generated/read_models/gated_coupa_submit_adapter.json",
+      "generated/read_models/invoice_delivery_run_package_assembler.json",
+      "generated/read_models/invoice_delivery_dry_run_harness.json",
+      "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+      "generated/read_models/guardian_approval_request_wrapper.json",
+      "generated/read_models/protected_secret_intake_contract.json",
+      "generated/read_models/operator_file_metadata_readback.json"
+    ],
+    "status_policy": [
+      "Current status is fail-closed when any required rail is missing or blocked.",
+      "Package readiness is not execution authority.",
+      "Dry-run readiness is not completion proof.",
+      "Fixture completion may prove the display shape but does not change current state."
+    ]
+  },
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_approval_execution_allowed": false,
+    "live_browser_allowed": false,
+    "live_completion_write_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_file_mutation_allowed": false,
+    "live_gmail_send_allowed": false,
+    "live_mail_send_allowed": false,
+    "live_payment_tracking_write_allowed": false,
+    "live_provider_call_allowed": false,
+    "live_secret_reveal_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocker_types": [
+    "COMPLETION_CLAIM_WITHOUT_PROOF",
+    "SEND_READY_WITHOUT_APPROVAL",
+    "COUPA_READY_WITHOUT_APPROVAL",
+    "RUN_READY_WITHOUT_EXECUTION_GATE",
+    "MISSING_REQUIRED_RAIL",
+    "STALE_READMODEL",
+    "CONTRADICTORY_RAIL_STATUS",
+    "RAW_PRIVATE_BODY_EXPOSED",
+    "EXTERNAL_ACTION_ATTEMPTED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "chat_response": {
+    "concise_summary": "Draft/artifact review can continue, but send, Coupa submit, workflow run, and INVOICE SENT remain locked.",
+    "detail_refs": [
+      "generated/read_models/workflow_execution_package_compiler.json",
+      "generated/read_models/invoice_artifact_readback.json",
+      "generated/read_models/gated_email_draft_adapter.json",
+      "generated/read_models/gated_email_send_adapter.json",
+      "generated/read_models/coupa_supplier_portal_package_compiler.json",
+      "generated/read_models/gated_coupa_submit_adapter.json",
+      "generated/read_models/invoice_delivery_run_package_assembler.json",
+      "generated/read_models/invoice_delivery_dry_run_harness.json",
+      "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+      "generated/read_models/guardian_approval_request_wrapper.json",
+      "generated/read_models/protected_secret_intake_contract.json",
+      "generated/read_models/operator_file_metadata_readback.json"
+    ],
+    "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
+    "mac_chat_render_hint": "single_concise_status_card_with_detail_refs",
+    "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+    "operator_headline": "Capital Hilton invoice workflow is not ready yet",
+    "operator_message": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed Coupa PO/reference, protected Coupa credential ref for any future portal login, Guardian and exact operator approval receipts for send and submit, future email send receipt and attachment proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+    "response_id": "capital_hilton_operator_chat_response_current",
+    "source_status_ref": "capital_hilton_unified_status_current",
+    "what_is_blocked": [
+      "email send",
+      "Mail/Gmail send",
+      "Coupa access and submit",
+      "browser automation",
+      "workflow run",
+      "approval execution",
+      "payment tracking write",
+      "completion claim"
+    ],
+    "what_is_missing": [
+      "confirmed Coupa PO/reference",
+      "protected Coupa credential ref for any future portal login",
+      "Guardian and exact operator approval receipts for send and submit",
+      "future email send receipt and attachment proof",
+      "future Coupa submit receipt and confirmation proof",
+      "future payment tracking or local completion receipt if required",
+      "future gated provider adapters before execution"
+    ],
+    "what_is_ready": [
+      "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+      "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+      "local email draft artifact is available for review when the draft adapter readback is current",
+      "file source refs and package rails are available for review",
+      "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER"
+    ]
+  },
+  "client_ref": "client_ref:capital_hilton",
+  "contract_status": "DETERMINISTIC_CAPITAL_HILTON_OPERATOR_READBACK_NO_EXECUTION",
+  "examples": {
+    "completion_proof_blocked": {
+      "chat_response": {
+        "concise_summary": "Draft/artifact review can continue, but send, Coupa submit, workflow run, and INVOICE SENT remain locked.",
+        "detail_refs": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
+        "mac_chat_render_hint": "single_concise_status_card_with_detail_refs",
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "operator_headline": "OpenClaw cannot mark INVOICE SENT yet",
+        "operator_message": "OpenClaw cannot mark INVOICE SENT yet because the required proof receipts are missing. Nothing new was sent, submitted, opened, approved, or recorded by this check.",
+        "response_id": "capital_hilton_operator_chat_response_completion_proof_blocked",
+        "source_status_ref": "capital_hilton_unified_status_completion_proof_blocked",
+        "what_is_blocked": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim"
+        ],
+        "what_is_missing": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution"
+        ],
+        "what_is_ready": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER"
+        ]
+      },
+      "rail_summaries": [
+        {
+          "blocked": [
+            "execution remains locked"
+          ],
+          "how_to_fix": "Use package refs for review; do not execute.",
+          "missing": [],
+          "next_safe_move": "Keep building proof and approval rails.",
+          "proof_status": "delivery basis modeled from workflow package readback",
+          "rail_id": "rail_delivery_facts",
+          "rail_name": "DELIVERY_FACTS",
+          "rail_status": "DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/workflow_execution_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "payment submission",
+            "external action",
+            "credential handling",
+            "raw file body in read-model"
+          ],
+          "how_to_fix": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+          "missing": [],
+          "next_safe_move": "Pass attachment refs to Email Delivery Package Compiler; keep Guardian/send gates locked.",
+          "proof_status": "artifact/hash refs available",
+          "rail_id": "rail_invoice_artifact",
+          "rail_name": "INVOICE_ARTIFACT",
+          "rail_status": "ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/invoice_artifact_readback.json"
+        },
+        {
+          "blocked": [
+            "send remains locked"
+          ],
+          "how_to_fix": "Review the draft; do not send.",
+          "missing": [],
+          "next_safe_move": "Review the local .eml or metadata draft; keep future send behind Guardian/operator approval and a separate send adapter.",
+          "proof_status": "draft review artifact modeled",
+          "rail_id": "rail_email_draft",
+          "rail_name": "EMAIL_DRAFT",
+          "rail_status": "LOCAL_DRAFT_ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/gated_email_draft_adapter.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "provider send call",
+            "attachment send"
+          ],
+          "how_to_fix": "Create the Guardian approval packet and exact operator approval receipt for this package, then rerun the send readiness check.",
+          "missing": [
+            "confirmed recipient/contact ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live provider send adapter as a separate approved lane.",
+          "proof_status": "send receipt absent",
+          "rail_id": "rail_email_send",
+          "rail_name": "EMAIL_SEND",
+          "rail_status": "SEND_BLOCKED_MISSING_GATES",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_email_send_adapter.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+          "missing": [
+            "confirmed Coupa PO/reference"
+          ],
+          "next_safe_move": "Resolve missing PO/secret/approval proof refs, then keep Coupa/browser action locked until a future approved adapter exists.",
+          "proof_status": "package shape exists but official PO/reference is not confirmed in current status",
+          "rail_id": "rail_coupa_package",
+          "rail_name": "COUPA_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/coupa_supplier_portal_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser",
+            "portal login"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference as a protected/source ref, then rerun the submit readiness check.",
+          "missing": [
+            "confirmed Coupa PO/reference",
+            "protected Coupa credential/secret ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live Coupa/browser adapter as a separate approved lane.",
+          "proof_status": "submit receipt absent",
+          "rail_id": "rail_coupa_submit",
+          "rail_name": "COUPA_SUBMIT",
+          "rail_status": "SUBMIT_BLOCKED_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_coupa_submit_adapter.json"
+        },
+        {
+          "blocked": [
+            "workflow run",
+            "agent dispatch",
+            "completion claim"
+          ],
+          "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+          "missing": [
+            "approval receipts",
+            "proof receipts",
+            "future execution adapters"
+          ],
+          "next_safe_move": "Resolve missing PO/artifact/contact/approval/proof refs, then keep execution locked until future gated adapters exist.",
+          "proof_status": "run package is not execution authority",
+          "rail_id": "rail_run_package",
+          "rail_name": "RUN_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_run_package_assembler.json"
+        },
+        {
+          "blocked": [
+            "dry-run external action",
+            "completion claim"
+          ],
+          "how_to_fix": "Fill the missing component inputs, then rerun the dry-run.",
+          "missing": [
+            "proof receipts",
+            "approval receipts",
+            "future adapters"
+          ],
+          "next_safe_move": "Use the dry-run report to choose the next missing rail: artifact/proof, approval, email adapter, Coupa adapter, or payment receipt.",
+          "proof_status": "dry-run reports blocked/missing states only",
+          "rail_id": "rail_dry_run",
+          "rail_name": "DRY_RUN",
+          "rail_status": "DRY_RUN_BLOCKED_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_dry_run_harness.json"
+        },
+        {
+          "blocked": [
+            "INVOICE SENT claim",
+            "completion write"
+          ],
+          "how_to_fix": "Complete the governed send/submit/local-record lanes and attach their receipt refs, then rerun this aggregator.",
+          "missing": [
+            "EMAIL_SEND_RECEIPT",
+            "EMAIL_ATTACHMENT_PROOF",
+            "GMAIL_PROVIDER_MESSAGE_REF",
+            "COUPA_SUBMIT_RECEIPT",
+            "COUPA_CONFIRMATION_PROOF",
+            "INVOICE_ARTIFACT_SAVED_RECEIPT",
+            "INVOICE_ARTIFACT_HASH_PROOF",
+            "GUARDIAN_APPROVAL_RECEIPT",
+            "OPERATOR_APPROVAL_RECEIPT",
+            "PAYMENT_TRACKING_UPDATE_RECEIPT",
+            "LOCAL_RECORD_SAVED_RECEIPT"
+          ],
+          "next_safe_move": "Attach real send/submit/artifact/approval/local-record/payment receipts, then rerun this proof aggregator.",
+          "proof_status": "completion proof receipts missing",
+          "rail_id": "rail_completion_proof",
+          "rail_name": "COMPLETION_PROOF",
+          "rail_status": "COMPLETION_BLOCKED_NO_RECEIPTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_completion_proof_aggregator.json"
+        },
+        {
+          "blocked": [
+            "approval execution",
+            "action authorization"
+          ],
+          "how_to_fix": "Create exact operator approval receipt only through the future gated approval lane.",
+          "missing": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Have the Action Covenant Interrupter hand high-consequence covenant requests to this Guardian wrapper.",
+          "proof_status": "review packet exists; approval receipt is still separate",
+          "rail_id": "rail_guardian_approval",
+          "rail_name": "GUARDIAN_APPROVAL",
+          "rail_status": "APPROVAL_PACKET_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/guardian_approval_request_wrapper.json"
+        },
+        {
+          "blocked": [
+            "secret reveal",
+            "credential handling"
+          ],
+          "how_to_fix": "Use the protected secret intake flow later; never paste raw credentials into chat.",
+          "missing": [
+            "protected Coupa credential ref for future portal access"
+          ],
+          "next_safe_move": "Keep secrets as protected refs only.",
+          "proof_status": "protected secret intake contract exists; no live secret ref is consumed here",
+          "rail_id": "rail_secret_ref",
+          "rail_name": "SECRET_REF",
+          "rail_status": "DETERMINISTIC_CONTRACT_ONLY_PROTECTED_SECRET_INTAKE",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/protected_secret_intake_contract.json"
+        },
+        {
+          "blocked": [
+            "file body ingestion",
+            "OCR",
+            "raw content parsing"
+          ],
+          "how_to_fix": "Use source refs only; do not read raw file bodies.",
+          "missing": [],
+          "next_safe_move": "Reference safe source refs for drilldown.",
+          "proof_status": "metadata/source refs available without file body ingestion",
+          "rail_id": "rail_file_source_refs",
+          "rail_name": "FILE_SOURCE_REFS",
+          "rail_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/operator_file_metadata_readback.json"
+        }
+      ],
+      "unified_status": {
+        "blocked_items": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim",
+          "external action",
+          "execution remains locked",
+          "Coupa access or submit",
+          "payment submission",
+          "credential handling",
+          "raw file body in read-model",
+          "send remains locked",
+          "provider send call",
+          "attachment send",
+          "Coupa access",
+          "Coupa submit",
+          "browser",
+          "portal login",
+          "agent dispatch",
+          "dry-run external action",
+          "INVOICE SENT claim",
+          "completion write",
+          "action authorization",
+          "secret reveal",
+          "file body ingestion",
+          "OCR",
+          "raw content parsing"
+        ],
+        "can_mark_invoice_sent": false,
+        "can_run_workflow": false,
+        "can_send_email": false,
+        "can_submit_coupa": false,
+        "client_ref": "client_ref:capital_hilton",
+        "completion_label_status": "BLOCKED_MISSING_RECEIPTS",
+        "headline": "OpenClaw cannot mark INVOICE SENT yet",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution",
+          "confirmed recipient/contact ref",
+          "Guardian approval ref",
+          "exact operator approval receipt ref",
+          "exact approval phrase ref",
+          "protected Coupa credential/secret ref",
+          "approval receipts",
+          "proof receipts",
+          "future execution adapters",
+          "future adapters",
+          "EMAIL_SEND_RECEIPT",
+          "EMAIL_ATTACHMENT_PROOF",
+          "GMAIL_PROVIDER_MESSAGE_REF",
+          "COUPA_SUBMIT_RECEIPT",
+          "COUPA_CONFIRMATION_PROOF",
+          "INVOICE_ARTIFACT_SAVED_RECEIPT",
+          "INVOICE_ARTIFACT_HASH_PROOF",
+          "GUARDIAN_APPROVAL_RECEIPT",
+          "OPERATOR_APPROVAL_RECEIPT",
+          "PAYMENT_TRACKING_UPDATE_RECEIPT",
+          "LOCAL_RECORD_SAVED_RECEIPT",
+          "exact operator approval receipt",
+          "protected Coupa credential ref for future portal access"
+        ],
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "package_items": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "plain_status": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed PO/reference, protected refs, approval receipts, and final send/submit proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+        "proof_items": [
+          "invoice artifact/hash proof may be available from the artifact rail",
+          "completion proof aggregator currently blocks INVOICE SENT because final receipts are missing",
+          "send and submit receipts are absent in current status"
+        ],
+        "ready_items": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "INVOICE_ARTIFACT: ARTIFACT_READY",
+          "EMAIL_DRAFT: LOCAL_DRAFT_ARTIFACT_READY",
+          "GUARDIAN_APPROVAL: APPROVAL_PACKET_READY",
+          "FILE_SOURCE_REFS: DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER"
+        ],
+        "status_id": "capital_hilton_unified_status_completion_proof_blocked",
+        "tenant_ref": "tenant_ref:winship",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    },
+    "coupa_package_submit_blocked": {
+      "chat_response": {
+        "concise_summary": "Draft/artifact review can continue, but send, Coupa submit, workflow run, and INVOICE SENT remain locked.",
+        "detail_refs": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
+        "mac_chat_render_hint": "single_concise_status_card_with_detail_refs",
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "operator_headline": "Coupa package exists, but submit is blocked",
+        "operator_message": "The Coupa package shape can be reviewed, but Coupa access and submit are blocked until PO/reference, protected refs, approvals, and a future gated provider adapter exist.",
+        "response_id": "capital_hilton_operator_chat_response_coupa_package_submit_blocked",
+        "source_status_ref": "capital_hilton_unified_status_coupa_package_submit_blocked",
+        "what_is_blocked": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim"
+        ],
+        "what_is_missing": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution"
+        ],
+        "what_is_ready": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER"
+        ]
+      },
+      "rail_summaries": [
+        {
+          "blocked": [
+            "execution remains locked"
+          ],
+          "how_to_fix": "Use package refs for review; do not execute.",
+          "missing": [],
+          "next_safe_move": "Keep building proof and approval rails.",
+          "proof_status": "delivery basis modeled from workflow package readback",
+          "rail_id": "rail_delivery_facts",
+          "rail_name": "DELIVERY_FACTS",
+          "rail_status": "DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/workflow_execution_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "payment submission",
+            "external action",
+            "credential handling",
+            "raw file body in read-model"
+          ],
+          "how_to_fix": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+          "missing": [],
+          "next_safe_move": "Pass attachment refs to Email Delivery Package Compiler; keep Guardian/send gates locked.",
+          "proof_status": "artifact/hash refs available",
+          "rail_id": "rail_invoice_artifact",
+          "rail_name": "INVOICE_ARTIFACT",
+          "rail_status": "ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/invoice_artifact_readback.json"
+        },
+        {
+          "blocked": [
+            "send remains locked"
+          ],
+          "how_to_fix": "Review the draft; do not send.",
+          "missing": [],
+          "next_safe_move": "Review the local .eml or metadata draft; keep future send behind Guardian/operator approval and a separate send adapter.",
+          "proof_status": "draft review artifact modeled",
+          "rail_id": "rail_email_draft",
+          "rail_name": "EMAIL_DRAFT",
+          "rail_status": "LOCAL_DRAFT_ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/gated_email_draft_adapter.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "provider send call",
+            "attachment send"
+          ],
+          "how_to_fix": "Create the Guardian approval packet and exact operator approval receipt for this package, then rerun the send readiness check.",
+          "missing": [
+            "confirmed recipient/contact ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live provider send adapter as a separate approved lane.",
+          "proof_status": "send receipt absent",
+          "rail_id": "rail_email_send",
+          "rail_name": "EMAIL_SEND",
+          "rail_status": "SEND_BLOCKED_MISSING_GATES",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_email_send_adapter.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+          "missing": [
+            "confirmed Coupa PO/reference"
+          ],
+          "next_safe_move": "Resolve missing PO/secret/approval proof refs, then keep Coupa/browser action locked until a future approved adapter exists.",
+          "proof_status": "package shape exists but official PO/reference is not confirmed in current status",
+          "rail_id": "rail_coupa_package",
+          "rail_name": "COUPA_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/coupa_supplier_portal_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser",
+            "portal login"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference as a protected/source ref, then rerun the submit readiness check.",
+          "missing": [
+            "confirmed Coupa PO/reference",
+            "protected Coupa credential/secret ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live Coupa/browser adapter as a separate approved lane.",
+          "proof_status": "submit receipt absent",
+          "rail_id": "rail_coupa_submit",
+          "rail_name": "COUPA_SUBMIT",
+          "rail_status": "SUBMIT_BLOCKED_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_coupa_submit_adapter.json"
+        },
+        {
+          "blocked": [
+            "workflow run",
+            "agent dispatch",
+            "completion claim"
+          ],
+          "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+          "missing": [
+            "approval receipts",
+            "proof receipts",
+            "future execution adapters"
+          ],
+          "next_safe_move": "Resolve missing PO/artifact/contact/approval/proof refs, then keep execution locked until future gated adapters exist.",
+          "proof_status": "run package is not execution authority",
+          "rail_id": "rail_run_package",
+          "rail_name": "RUN_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_run_package_assembler.json"
+        },
+        {
+          "blocked": [
+            "dry-run external action",
+            "completion claim"
+          ],
+          "how_to_fix": "Fill the missing component inputs, then rerun the dry-run.",
+          "missing": [
+            "proof receipts",
+            "approval receipts",
+            "future adapters"
+          ],
+          "next_safe_move": "Use the dry-run report to choose the next missing rail: artifact/proof, approval, email adapter, Coupa adapter, or payment receipt.",
+          "proof_status": "dry-run reports blocked/missing states only",
+          "rail_id": "rail_dry_run",
+          "rail_name": "DRY_RUN",
+          "rail_status": "DRY_RUN_BLOCKED_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_dry_run_harness.json"
+        },
+        {
+          "blocked": [
+            "INVOICE SENT claim",
+            "completion write"
+          ],
+          "how_to_fix": "Complete the governed send/submit/local-record lanes and attach their receipt refs, then rerun this aggregator.",
+          "missing": [
+            "EMAIL_SEND_RECEIPT",
+            "EMAIL_ATTACHMENT_PROOF",
+            "GMAIL_PROVIDER_MESSAGE_REF",
+            "COUPA_SUBMIT_RECEIPT",
+            "COUPA_CONFIRMATION_PROOF",
+            "INVOICE_ARTIFACT_SAVED_RECEIPT",
+            "INVOICE_ARTIFACT_HASH_PROOF",
+            "GUARDIAN_APPROVAL_RECEIPT",
+            "OPERATOR_APPROVAL_RECEIPT",
+            "PAYMENT_TRACKING_UPDATE_RECEIPT",
+            "LOCAL_RECORD_SAVED_RECEIPT"
+          ],
+          "next_safe_move": "Attach real send/submit/artifact/approval/local-record/payment receipts, then rerun this proof aggregator.",
+          "proof_status": "completion proof receipts missing",
+          "rail_id": "rail_completion_proof",
+          "rail_name": "COMPLETION_PROOF",
+          "rail_status": "COMPLETION_BLOCKED_NO_RECEIPTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_completion_proof_aggregator.json"
+        },
+        {
+          "blocked": [
+            "approval execution",
+            "action authorization"
+          ],
+          "how_to_fix": "Create exact operator approval receipt only through the future gated approval lane.",
+          "missing": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Have the Action Covenant Interrupter hand high-consequence covenant requests to this Guardian wrapper.",
+          "proof_status": "review packet exists; approval receipt is still separate",
+          "rail_id": "rail_guardian_approval",
+          "rail_name": "GUARDIAN_APPROVAL",
+          "rail_status": "APPROVAL_PACKET_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/guardian_approval_request_wrapper.json"
+        },
+        {
+          "blocked": [
+            "secret reveal",
+            "credential handling"
+          ],
+          "how_to_fix": "Use the protected secret intake flow later; never paste raw credentials into chat.",
+          "missing": [
+            "protected Coupa credential ref for future portal access"
+          ],
+          "next_safe_move": "Keep secrets as protected refs only.",
+          "proof_status": "protected secret intake contract exists; no live secret ref is consumed here",
+          "rail_id": "rail_secret_ref",
+          "rail_name": "SECRET_REF",
+          "rail_status": "DETERMINISTIC_CONTRACT_ONLY_PROTECTED_SECRET_INTAKE",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/protected_secret_intake_contract.json"
+        },
+        {
+          "blocked": [
+            "file body ingestion",
+            "OCR",
+            "raw content parsing"
+          ],
+          "how_to_fix": "Use source refs only; do not read raw file bodies.",
+          "missing": [],
+          "next_safe_move": "Reference safe source refs for drilldown.",
+          "proof_status": "metadata/source refs available without file body ingestion",
+          "rail_id": "rail_file_source_refs",
+          "rail_name": "FILE_SOURCE_REFS",
+          "rail_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/operator_file_metadata_readback.json"
+        }
+      ],
+      "unified_status": {
+        "blocked_items": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim",
+          "external action",
+          "execution remains locked",
+          "Coupa access or submit",
+          "payment submission",
+          "credential handling",
+          "raw file body in read-model",
+          "send remains locked",
+          "provider send call",
+          "attachment send",
+          "Coupa access",
+          "Coupa submit",
+          "browser",
+          "portal login",
+          "agent dispatch",
+          "dry-run external action",
+          "INVOICE SENT claim",
+          "completion write",
+          "action authorization",
+          "secret reveal",
+          "file body ingestion",
+          "OCR",
+          "raw content parsing"
+        ],
+        "can_mark_invoice_sent": false,
+        "can_run_workflow": false,
+        "can_send_email": false,
+        "can_submit_coupa": false,
+        "client_ref": "client_ref:capital_hilton",
+        "completion_label_status": "BLOCKED_MISSING_RECEIPTS",
+        "headline": "Coupa package exists, but submit is blocked",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution",
+          "confirmed recipient/contact ref",
+          "Guardian approval ref",
+          "exact operator approval receipt ref",
+          "exact approval phrase ref",
+          "protected Coupa credential/secret ref",
+          "approval receipts",
+          "proof receipts",
+          "future execution adapters",
+          "future adapters",
+          "EMAIL_SEND_RECEIPT",
+          "EMAIL_ATTACHMENT_PROOF",
+          "GMAIL_PROVIDER_MESSAGE_REF",
+          "COUPA_SUBMIT_RECEIPT",
+          "COUPA_CONFIRMATION_PROOF",
+          "INVOICE_ARTIFACT_SAVED_RECEIPT",
+          "INVOICE_ARTIFACT_HASH_PROOF",
+          "GUARDIAN_APPROVAL_RECEIPT",
+          "OPERATOR_APPROVAL_RECEIPT",
+          "PAYMENT_TRACKING_UPDATE_RECEIPT",
+          "LOCAL_RECORD_SAVED_RECEIPT",
+          "exact operator approval receipt",
+          "protected Coupa credential ref for future portal access"
+        ],
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "package_items": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "plain_status": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed PO/reference, protected refs, approval receipts, and final send/submit proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+        "proof_items": [
+          "invoice artifact/hash proof may be available from the artifact rail",
+          "completion proof aggregator currently blocks INVOICE SENT because final receipts are missing",
+          "send and submit receipts are absent in current status"
+        ],
+        "ready_items": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "INVOICE_ARTIFACT: ARTIFACT_READY",
+          "EMAIL_DRAFT: LOCAL_DRAFT_ARTIFACT_READY",
+          "GUARDIAN_APPROVAL: APPROVAL_PACKET_READY",
+          "FILE_SOURCE_REFS: DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER"
+        ],
+        "status_id": "capital_hilton_unified_status_coupa_package_submit_blocked",
+        "tenant_ref": "tenant_ref:winship",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    },
+    "current_capital_hilton_not_ready": {
+      "chat_response": {
+        "concise_summary": "Draft/artifact review can continue, but send, Coupa submit, workflow run, and INVOICE SENT remain locked.",
+        "detail_refs": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
+        "mac_chat_render_hint": "single_concise_status_card_with_detail_refs",
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "operator_headline": "Capital Hilton invoice workflow is not ready yet",
+        "operator_message": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed Coupa PO/reference, protected Coupa credential ref for any future portal login, Guardian and exact operator approval receipts for send and submit, future email send receipt and attachment proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+        "response_id": "capital_hilton_operator_chat_response_current_not_ready",
+        "source_status_ref": "capital_hilton_unified_status_current_not_ready",
+        "what_is_blocked": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim"
+        ],
+        "what_is_missing": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution"
+        ],
+        "what_is_ready": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER"
+        ]
+      },
+      "rail_summaries": [
+        {
+          "blocked": [
+            "execution remains locked"
+          ],
+          "how_to_fix": "Use package refs for review; do not execute.",
+          "missing": [],
+          "next_safe_move": "Keep building proof and approval rails.",
+          "proof_status": "delivery basis modeled from workflow package readback",
+          "rail_id": "rail_delivery_facts",
+          "rail_name": "DELIVERY_FACTS",
+          "rail_status": "DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/workflow_execution_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "payment submission",
+            "external action",
+            "credential handling",
+            "raw file body in read-model"
+          ],
+          "how_to_fix": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+          "missing": [],
+          "next_safe_move": "Pass attachment refs to Email Delivery Package Compiler; keep Guardian/send gates locked.",
+          "proof_status": "artifact/hash refs available",
+          "rail_id": "rail_invoice_artifact",
+          "rail_name": "INVOICE_ARTIFACT",
+          "rail_status": "ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/invoice_artifact_readback.json"
+        },
+        {
+          "blocked": [
+            "send remains locked"
+          ],
+          "how_to_fix": "Review the draft; do not send.",
+          "missing": [],
+          "next_safe_move": "Review the local .eml or metadata draft; keep future send behind Guardian/operator approval and a separate send adapter.",
+          "proof_status": "draft review artifact modeled",
+          "rail_id": "rail_email_draft",
+          "rail_name": "EMAIL_DRAFT",
+          "rail_status": "LOCAL_DRAFT_ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/gated_email_draft_adapter.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "provider send call",
+            "attachment send"
+          ],
+          "how_to_fix": "Create the Guardian approval packet and exact operator approval receipt for this package, then rerun the send readiness check.",
+          "missing": [
+            "confirmed recipient/contact ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live provider send adapter as a separate approved lane.",
+          "proof_status": "send receipt absent",
+          "rail_id": "rail_email_send",
+          "rail_name": "EMAIL_SEND",
+          "rail_status": "SEND_BLOCKED_MISSING_GATES",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_email_send_adapter.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+          "missing": [
+            "confirmed Coupa PO/reference"
+          ],
+          "next_safe_move": "Resolve missing PO/secret/approval proof refs, then keep Coupa/browser action locked until a future approved adapter exists.",
+          "proof_status": "package shape exists but official PO/reference is not confirmed in current status",
+          "rail_id": "rail_coupa_package",
+          "rail_name": "COUPA_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/coupa_supplier_portal_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser",
+            "portal login"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference as a protected/source ref, then rerun the submit readiness check.",
+          "missing": [
+            "confirmed Coupa PO/reference",
+            "protected Coupa credential/secret ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live Coupa/browser adapter as a separate approved lane.",
+          "proof_status": "submit receipt absent",
+          "rail_id": "rail_coupa_submit",
+          "rail_name": "COUPA_SUBMIT",
+          "rail_status": "SUBMIT_BLOCKED_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_coupa_submit_adapter.json"
+        },
+        {
+          "blocked": [
+            "workflow run",
+            "agent dispatch",
+            "completion claim"
+          ],
+          "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+          "missing": [
+            "approval receipts",
+            "proof receipts",
+            "future execution adapters"
+          ],
+          "next_safe_move": "Resolve missing PO/artifact/contact/approval/proof refs, then keep execution locked until future gated adapters exist.",
+          "proof_status": "run package is not execution authority",
+          "rail_id": "rail_run_package",
+          "rail_name": "RUN_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_run_package_assembler.json"
+        },
+        {
+          "blocked": [
+            "dry-run external action",
+            "completion claim"
+          ],
+          "how_to_fix": "Fill the missing component inputs, then rerun the dry-run.",
+          "missing": [
+            "proof receipts",
+            "approval receipts",
+            "future adapters"
+          ],
+          "next_safe_move": "Use the dry-run report to choose the next missing rail: artifact/proof, approval, email adapter, Coupa adapter, or payment receipt.",
+          "proof_status": "dry-run reports blocked/missing states only",
+          "rail_id": "rail_dry_run",
+          "rail_name": "DRY_RUN",
+          "rail_status": "DRY_RUN_BLOCKED_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_dry_run_harness.json"
+        },
+        {
+          "blocked": [
+            "INVOICE SENT claim",
+            "completion write"
+          ],
+          "how_to_fix": "Complete the governed send/submit/local-record lanes and attach their receipt refs, then rerun this aggregator.",
+          "missing": [
+            "EMAIL_SEND_RECEIPT",
+            "EMAIL_ATTACHMENT_PROOF",
+            "GMAIL_PROVIDER_MESSAGE_REF",
+            "COUPA_SUBMIT_RECEIPT",
+            "COUPA_CONFIRMATION_PROOF",
+            "INVOICE_ARTIFACT_SAVED_RECEIPT",
+            "INVOICE_ARTIFACT_HASH_PROOF",
+            "GUARDIAN_APPROVAL_RECEIPT",
+            "OPERATOR_APPROVAL_RECEIPT",
+            "PAYMENT_TRACKING_UPDATE_RECEIPT",
+            "LOCAL_RECORD_SAVED_RECEIPT"
+          ],
+          "next_safe_move": "Attach real send/submit/artifact/approval/local-record/payment receipts, then rerun this proof aggregator.",
+          "proof_status": "completion proof receipts missing",
+          "rail_id": "rail_completion_proof",
+          "rail_name": "COMPLETION_PROOF",
+          "rail_status": "COMPLETION_BLOCKED_NO_RECEIPTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_completion_proof_aggregator.json"
+        },
+        {
+          "blocked": [
+            "approval execution",
+            "action authorization"
+          ],
+          "how_to_fix": "Create exact operator approval receipt only through the future gated approval lane.",
+          "missing": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Have the Action Covenant Interrupter hand high-consequence covenant requests to this Guardian wrapper.",
+          "proof_status": "review packet exists; approval receipt is still separate",
+          "rail_id": "rail_guardian_approval",
+          "rail_name": "GUARDIAN_APPROVAL",
+          "rail_status": "APPROVAL_PACKET_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/guardian_approval_request_wrapper.json"
+        },
+        {
+          "blocked": [
+            "secret reveal",
+            "credential handling"
+          ],
+          "how_to_fix": "Use the protected secret intake flow later; never paste raw credentials into chat.",
+          "missing": [
+            "protected Coupa credential ref for future portal access"
+          ],
+          "next_safe_move": "Keep secrets as protected refs only.",
+          "proof_status": "protected secret intake contract exists; no live secret ref is consumed here",
+          "rail_id": "rail_secret_ref",
+          "rail_name": "SECRET_REF",
+          "rail_status": "DETERMINISTIC_CONTRACT_ONLY_PROTECTED_SECRET_INTAKE",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/protected_secret_intake_contract.json"
+        },
+        {
+          "blocked": [
+            "file body ingestion",
+            "OCR",
+            "raw content parsing"
+          ],
+          "how_to_fix": "Use source refs only; do not read raw file bodies.",
+          "missing": [],
+          "next_safe_move": "Reference safe source refs for drilldown.",
+          "proof_status": "metadata/source refs available without file body ingestion",
+          "rail_id": "rail_file_source_refs",
+          "rail_name": "FILE_SOURCE_REFS",
+          "rail_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/operator_file_metadata_readback.json"
+        }
+      ],
+      "unified_status": {
+        "blocked_items": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim",
+          "external action",
+          "execution remains locked",
+          "Coupa access or submit",
+          "payment submission",
+          "credential handling",
+          "raw file body in read-model",
+          "send remains locked",
+          "provider send call",
+          "attachment send",
+          "Coupa access",
+          "Coupa submit",
+          "browser",
+          "portal login",
+          "agent dispatch",
+          "dry-run external action",
+          "INVOICE SENT claim",
+          "completion write",
+          "action authorization",
+          "secret reveal",
+          "file body ingestion",
+          "OCR",
+          "raw content parsing"
+        ],
+        "can_mark_invoice_sent": false,
+        "can_run_workflow": false,
+        "can_send_email": false,
+        "can_submit_coupa": false,
+        "client_ref": "client_ref:capital_hilton",
+        "completion_label_status": "BLOCKED_MISSING_RECEIPTS",
+        "headline": "Capital Hilton invoice workflow is not ready yet",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution",
+          "confirmed recipient/contact ref",
+          "Guardian approval ref",
+          "exact operator approval receipt ref",
+          "exact approval phrase ref",
+          "protected Coupa credential/secret ref",
+          "approval receipts",
+          "proof receipts",
+          "future execution adapters",
+          "future adapters",
+          "EMAIL_SEND_RECEIPT",
+          "EMAIL_ATTACHMENT_PROOF",
+          "GMAIL_PROVIDER_MESSAGE_REF",
+          "COUPA_SUBMIT_RECEIPT",
+          "COUPA_CONFIRMATION_PROOF",
+          "INVOICE_ARTIFACT_SAVED_RECEIPT",
+          "INVOICE_ARTIFACT_HASH_PROOF",
+          "GUARDIAN_APPROVAL_RECEIPT",
+          "OPERATOR_APPROVAL_RECEIPT",
+          "PAYMENT_TRACKING_UPDATE_RECEIPT",
+          "LOCAL_RECORD_SAVED_RECEIPT",
+          "exact operator approval receipt",
+          "protected Coupa credential ref for future portal access"
+        ],
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "package_items": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "plain_status": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed PO/reference, protected refs, approval receipts, and final send/submit proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+        "proof_items": [
+          "invoice artifact/hash proof may be available from the artifact rail",
+          "completion proof aggregator currently blocks INVOICE SENT because final receipts are missing",
+          "send and submit receipts are absent in current status"
+        ],
+        "ready_items": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "INVOICE_ARTIFACT: ARTIFACT_READY",
+          "EMAIL_DRAFT: LOCAL_DRAFT_ARTIFACT_READY",
+          "GUARDIAN_APPROVAL: APPROVAL_PACKET_READY",
+          "FILE_SOURCE_REFS: DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER"
+        ],
+        "status_id": "capital_hilton_unified_status_current_not_ready",
+        "tenant_ref": "tenant_ref:winship",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    },
+    "email_draft_ready_send_blocked": {
+      "chat_response": {
+        "concise_summary": "Draft/artifact review can continue, but send, Coupa submit, workflow run, and INVOICE SENT remain locked.",
+        "detail_refs": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
+        "mac_chat_render_hint": "single_concise_status_card_with_detail_refs",
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "operator_headline": "Email draft is ready for review, but sending is locked",
+        "operator_message": "The email draft is ready for review, but sending is still locked. Guardian approval, exact operator approval, provider gate, and final send receipt are still missing.",
+        "response_id": "capital_hilton_operator_chat_response_email_draft_ready_send_blocked",
+        "source_status_ref": "capital_hilton_unified_status_email_draft_ready_send_blocked",
+        "what_is_blocked": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim"
+        ],
+        "what_is_missing": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution"
+        ],
+        "what_is_ready": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER"
+        ]
+      },
+      "rail_summaries": [
+        {
+          "blocked": [
+            "execution remains locked"
+          ],
+          "how_to_fix": "Use package refs for review; do not execute.",
+          "missing": [],
+          "next_safe_move": "Keep building proof and approval rails.",
+          "proof_status": "delivery basis modeled from workflow package readback",
+          "rail_id": "rail_delivery_facts",
+          "rail_name": "DELIVERY_FACTS",
+          "rail_status": "DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/workflow_execution_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "payment submission",
+            "external action",
+            "credential handling",
+            "raw file body in read-model"
+          ],
+          "how_to_fix": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+          "missing": [],
+          "next_safe_move": "Pass attachment refs to Email Delivery Package Compiler; keep Guardian/send gates locked.",
+          "proof_status": "artifact/hash refs available",
+          "rail_id": "rail_invoice_artifact",
+          "rail_name": "INVOICE_ARTIFACT",
+          "rail_status": "ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/invoice_artifact_readback.json"
+        },
+        {
+          "blocked": [
+            "send remains locked"
+          ],
+          "how_to_fix": "Review the draft; do not send.",
+          "missing": [],
+          "next_safe_move": "Review the local .eml or metadata draft; keep future send behind Guardian/operator approval and a separate send adapter.",
+          "proof_status": "draft review artifact modeled",
+          "rail_id": "rail_email_draft",
+          "rail_name": "EMAIL_DRAFT",
+          "rail_status": "LOCAL_DRAFT_ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/gated_email_draft_adapter.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "provider send call",
+            "attachment send"
+          ],
+          "how_to_fix": "Create the Guardian approval packet and exact operator approval receipt for this package, then rerun the send readiness check.",
+          "missing": [
+            "confirmed recipient/contact ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live provider send adapter as a separate approved lane.",
+          "proof_status": "send receipt absent",
+          "rail_id": "rail_email_send",
+          "rail_name": "EMAIL_SEND",
+          "rail_status": "SEND_BLOCKED_MISSING_GATES",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_email_send_adapter.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+          "missing": [
+            "confirmed Coupa PO/reference"
+          ],
+          "next_safe_move": "Resolve missing PO/secret/approval proof refs, then keep Coupa/browser action locked until a future approved adapter exists.",
+          "proof_status": "package shape exists but official PO/reference is not confirmed in current status",
+          "rail_id": "rail_coupa_package",
+          "rail_name": "COUPA_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/coupa_supplier_portal_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser",
+            "portal login"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference as a protected/source ref, then rerun the submit readiness check.",
+          "missing": [
+            "confirmed Coupa PO/reference",
+            "protected Coupa credential/secret ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live Coupa/browser adapter as a separate approved lane.",
+          "proof_status": "submit receipt absent",
+          "rail_id": "rail_coupa_submit",
+          "rail_name": "COUPA_SUBMIT",
+          "rail_status": "SUBMIT_BLOCKED_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_coupa_submit_adapter.json"
+        },
+        {
+          "blocked": [
+            "workflow run",
+            "agent dispatch",
+            "completion claim"
+          ],
+          "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+          "missing": [
+            "approval receipts",
+            "proof receipts",
+            "future execution adapters"
+          ],
+          "next_safe_move": "Resolve missing PO/artifact/contact/approval/proof refs, then keep execution locked until future gated adapters exist.",
+          "proof_status": "run package is not execution authority",
+          "rail_id": "rail_run_package",
+          "rail_name": "RUN_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_run_package_assembler.json"
+        },
+        {
+          "blocked": [
+            "dry-run external action",
+            "completion claim"
+          ],
+          "how_to_fix": "Fill the missing component inputs, then rerun the dry-run.",
+          "missing": [
+            "proof receipts",
+            "approval receipts",
+            "future adapters"
+          ],
+          "next_safe_move": "Use the dry-run report to choose the next missing rail: artifact/proof, approval, email adapter, Coupa adapter, or payment receipt.",
+          "proof_status": "dry-run reports blocked/missing states only",
+          "rail_id": "rail_dry_run",
+          "rail_name": "DRY_RUN",
+          "rail_status": "DRY_RUN_BLOCKED_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_dry_run_harness.json"
+        },
+        {
+          "blocked": [
+            "INVOICE SENT claim",
+            "completion write"
+          ],
+          "how_to_fix": "Complete the governed send/submit/local-record lanes and attach their receipt refs, then rerun this aggregator.",
+          "missing": [
+            "EMAIL_SEND_RECEIPT",
+            "EMAIL_ATTACHMENT_PROOF",
+            "GMAIL_PROVIDER_MESSAGE_REF",
+            "COUPA_SUBMIT_RECEIPT",
+            "COUPA_CONFIRMATION_PROOF",
+            "INVOICE_ARTIFACT_SAVED_RECEIPT",
+            "INVOICE_ARTIFACT_HASH_PROOF",
+            "GUARDIAN_APPROVAL_RECEIPT",
+            "OPERATOR_APPROVAL_RECEIPT",
+            "PAYMENT_TRACKING_UPDATE_RECEIPT",
+            "LOCAL_RECORD_SAVED_RECEIPT"
+          ],
+          "next_safe_move": "Attach real send/submit/artifact/approval/local-record/payment receipts, then rerun this proof aggregator.",
+          "proof_status": "completion proof receipts missing",
+          "rail_id": "rail_completion_proof",
+          "rail_name": "COMPLETION_PROOF",
+          "rail_status": "COMPLETION_BLOCKED_NO_RECEIPTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_completion_proof_aggregator.json"
+        },
+        {
+          "blocked": [
+            "approval execution",
+            "action authorization"
+          ],
+          "how_to_fix": "Create exact operator approval receipt only through the future gated approval lane.",
+          "missing": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Have the Action Covenant Interrupter hand high-consequence covenant requests to this Guardian wrapper.",
+          "proof_status": "review packet exists; approval receipt is still separate",
+          "rail_id": "rail_guardian_approval",
+          "rail_name": "GUARDIAN_APPROVAL",
+          "rail_status": "APPROVAL_PACKET_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/guardian_approval_request_wrapper.json"
+        },
+        {
+          "blocked": [
+            "secret reveal",
+            "credential handling"
+          ],
+          "how_to_fix": "Use the protected secret intake flow later; never paste raw credentials into chat.",
+          "missing": [
+            "protected Coupa credential ref for future portal access"
+          ],
+          "next_safe_move": "Keep secrets as protected refs only.",
+          "proof_status": "protected secret intake contract exists; no live secret ref is consumed here",
+          "rail_id": "rail_secret_ref",
+          "rail_name": "SECRET_REF",
+          "rail_status": "DETERMINISTIC_CONTRACT_ONLY_PROTECTED_SECRET_INTAKE",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/protected_secret_intake_contract.json"
+        },
+        {
+          "blocked": [
+            "file body ingestion",
+            "OCR",
+            "raw content parsing"
+          ],
+          "how_to_fix": "Use source refs only; do not read raw file bodies.",
+          "missing": [],
+          "next_safe_move": "Reference safe source refs for drilldown.",
+          "proof_status": "metadata/source refs available without file body ingestion",
+          "rail_id": "rail_file_source_refs",
+          "rail_name": "FILE_SOURCE_REFS",
+          "rail_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/operator_file_metadata_readback.json"
+        }
+      ],
+      "unified_status": {
+        "blocked_items": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim",
+          "external action",
+          "execution remains locked",
+          "Coupa access or submit",
+          "payment submission",
+          "credential handling",
+          "raw file body in read-model",
+          "send remains locked",
+          "provider send call",
+          "attachment send",
+          "Coupa access",
+          "Coupa submit",
+          "browser",
+          "portal login",
+          "agent dispatch",
+          "dry-run external action",
+          "INVOICE SENT claim",
+          "completion write",
+          "action authorization",
+          "secret reveal",
+          "file body ingestion",
+          "OCR",
+          "raw content parsing"
+        ],
+        "can_mark_invoice_sent": false,
+        "can_run_workflow": false,
+        "can_send_email": false,
+        "can_submit_coupa": false,
+        "client_ref": "client_ref:capital_hilton",
+        "completion_label_status": "BLOCKED_MISSING_RECEIPTS",
+        "headline": "Email draft is ready for review, but sending is locked",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution",
+          "confirmed recipient/contact ref",
+          "Guardian approval ref",
+          "exact operator approval receipt ref",
+          "exact approval phrase ref",
+          "protected Coupa credential/secret ref",
+          "approval receipts",
+          "proof receipts",
+          "future execution adapters",
+          "future adapters",
+          "EMAIL_SEND_RECEIPT",
+          "EMAIL_ATTACHMENT_PROOF",
+          "GMAIL_PROVIDER_MESSAGE_REF",
+          "COUPA_SUBMIT_RECEIPT",
+          "COUPA_CONFIRMATION_PROOF",
+          "INVOICE_ARTIFACT_SAVED_RECEIPT",
+          "INVOICE_ARTIFACT_HASH_PROOF",
+          "GUARDIAN_APPROVAL_RECEIPT",
+          "OPERATOR_APPROVAL_RECEIPT",
+          "PAYMENT_TRACKING_UPDATE_RECEIPT",
+          "LOCAL_RECORD_SAVED_RECEIPT",
+          "exact operator approval receipt",
+          "protected Coupa credential ref for future portal access"
+        ],
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "package_items": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "plain_status": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed PO/reference, protected refs, approval receipts, and final send/submit proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+        "proof_items": [
+          "invoice artifact/hash proof may be available from the artifact rail",
+          "completion proof aggregator currently blocks INVOICE SENT because final receipts are missing",
+          "send and submit receipts are absent in current status"
+        ],
+        "ready_items": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "INVOICE_ARTIFACT: ARTIFACT_READY",
+          "EMAIL_DRAFT: LOCAL_DRAFT_ARTIFACT_READY",
+          "GUARDIAN_APPROVAL: APPROVAL_PACKET_READY",
+          "FILE_SOURCE_REFS: DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER"
+        ],
+        "status_id": "capital_hilton_unified_status_email_draft_ready_send_blocked",
+        "tenant_ref": "tenant_ref:winship",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    },
+    "false_invoice_sent_claim_blocked": {
+      "chat_response": {
+        "concise_summary": "Draft/artifact review can continue, but send, Coupa submit, workflow run, and INVOICE SENT remain locked.",
+        "detail_refs": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
+        "mac_chat_render_hint": "single_concise_status_card_with_detail_refs",
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "operator_headline": "INVOICE SENT claim blocked",
+        "operator_message": "OpenClaw cannot mark INVOICE SENT yet because no email send receipt and attachment proof are present.",
+        "response_id": "capital_hilton_operator_chat_response_false_invoice_sent_claim_blocked",
+        "source_status_ref": "capital_hilton_unified_status_false_invoice_sent_claim_blocked",
+        "what_is_blocked": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim"
+        ],
+        "what_is_missing": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution"
+        ],
+        "what_is_ready": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER"
+        ]
+      },
+      "rail_summaries": [
+        {
+          "blocked": [
+            "execution remains locked"
+          ],
+          "how_to_fix": "Use package refs for review; do not execute.",
+          "missing": [],
+          "next_safe_move": "Keep building proof and approval rails.",
+          "proof_status": "delivery basis modeled from workflow package readback",
+          "rail_id": "rail_delivery_facts",
+          "rail_name": "DELIVERY_FACTS",
+          "rail_status": "DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/workflow_execution_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "payment submission",
+            "external action",
+            "credential handling",
+            "raw file body in read-model"
+          ],
+          "how_to_fix": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+          "missing": [],
+          "next_safe_move": "Pass attachment refs to Email Delivery Package Compiler; keep Guardian/send gates locked.",
+          "proof_status": "artifact/hash refs available",
+          "rail_id": "rail_invoice_artifact",
+          "rail_name": "INVOICE_ARTIFACT",
+          "rail_status": "ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/invoice_artifact_readback.json"
+        },
+        {
+          "blocked": [
+            "send remains locked"
+          ],
+          "how_to_fix": "Review the draft; do not send.",
+          "missing": [],
+          "next_safe_move": "Review the local .eml or metadata draft; keep future send behind Guardian/operator approval and a separate send adapter.",
+          "proof_status": "draft review artifact modeled",
+          "rail_id": "rail_email_draft",
+          "rail_name": "EMAIL_DRAFT",
+          "rail_status": "LOCAL_DRAFT_ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/gated_email_draft_adapter.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "provider send call",
+            "attachment send"
+          ],
+          "how_to_fix": "Create the Guardian approval packet and exact operator approval receipt for this package, then rerun the send readiness check.",
+          "missing": [
+            "confirmed recipient/contact ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live provider send adapter as a separate approved lane.",
+          "proof_status": "send receipt absent",
+          "rail_id": "rail_email_send",
+          "rail_name": "EMAIL_SEND",
+          "rail_status": "SEND_BLOCKED_MISSING_GATES",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_email_send_adapter.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+          "missing": [
+            "confirmed Coupa PO/reference"
+          ],
+          "next_safe_move": "Resolve missing PO/secret/approval proof refs, then keep Coupa/browser action locked until a future approved adapter exists.",
+          "proof_status": "package shape exists but official PO/reference is not confirmed in current status",
+          "rail_id": "rail_coupa_package",
+          "rail_name": "COUPA_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/coupa_supplier_portal_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser",
+            "portal login"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference as a protected/source ref, then rerun the submit readiness check.",
+          "missing": [
+            "confirmed Coupa PO/reference",
+            "protected Coupa credential/secret ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live Coupa/browser adapter as a separate approved lane.",
+          "proof_status": "submit receipt absent",
+          "rail_id": "rail_coupa_submit",
+          "rail_name": "COUPA_SUBMIT",
+          "rail_status": "SUBMIT_BLOCKED_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_coupa_submit_adapter.json"
+        },
+        {
+          "blocked": [
+            "workflow run",
+            "agent dispatch",
+            "completion claim"
+          ],
+          "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+          "missing": [
+            "approval receipts",
+            "proof receipts",
+            "future execution adapters"
+          ],
+          "next_safe_move": "Resolve missing PO/artifact/contact/approval/proof refs, then keep execution locked until future gated adapters exist.",
+          "proof_status": "run package is not execution authority",
+          "rail_id": "rail_run_package",
+          "rail_name": "RUN_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_run_package_assembler.json"
+        },
+        {
+          "blocked": [
+            "dry-run external action",
+            "completion claim"
+          ],
+          "how_to_fix": "Fill the missing component inputs, then rerun the dry-run.",
+          "missing": [
+            "proof receipts",
+            "approval receipts",
+            "future adapters"
+          ],
+          "next_safe_move": "Use the dry-run report to choose the next missing rail: artifact/proof, approval, email adapter, Coupa adapter, or payment receipt.",
+          "proof_status": "dry-run reports blocked/missing states only",
+          "rail_id": "rail_dry_run",
+          "rail_name": "DRY_RUN",
+          "rail_status": "DRY_RUN_BLOCKED_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_dry_run_harness.json"
+        },
+        {
+          "blocked": [
+            "INVOICE SENT claim",
+            "completion write"
+          ],
+          "how_to_fix": "Complete the governed send/submit/local-record lanes and attach their receipt refs, then rerun this aggregator.",
+          "missing": [
+            "EMAIL_SEND_RECEIPT",
+            "EMAIL_ATTACHMENT_PROOF",
+            "GMAIL_PROVIDER_MESSAGE_REF",
+            "COUPA_SUBMIT_RECEIPT",
+            "COUPA_CONFIRMATION_PROOF",
+            "INVOICE_ARTIFACT_SAVED_RECEIPT",
+            "INVOICE_ARTIFACT_HASH_PROOF",
+            "GUARDIAN_APPROVAL_RECEIPT",
+            "OPERATOR_APPROVAL_RECEIPT",
+            "PAYMENT_TRACKING_UPDATE_RECEIPT",
+            "LOCAL_RECORD_SAVED_RECEIPT"
+          ],
+          "next_safe_move": "Attach real send/submit/artifact/approval/local-record/payment receipts, then rerun this proof aggregator.",
+          "proof_status": "completion proof receipts missing",
+          "rail_id": "rail_completion_proof",
+          "rail_name": "COMPLETION_PROOF",
+          "rail_status": "COMPLETION_BLOCKED_NO_RECEIPTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_completion_proof_aggregator.json"
+        },
+        {
+          "blocked": [
+            "approval execution",
+            "action authorization"
+          ],
+          "how_to_fix": "Create exact operator approval receipt only through the future gated approval lane.",
+          "missing": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Have the Action Covenant Interrupter hand high-consequence covenant requests to this Guardian wrapper.",
+          "proof_status": "review packet exists; approval receipt is still separate",
+          "rail_id": "rail_guardian_approval",
+          "rail_name": "GUARDIAN_APPROVAL",
+          "rail_status": "APPROVAL_PACKET_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/guardian_approval_request_wrapper.json"
+        },
+        {
+          "blocked": [
+            "secret reveal",
+            "credential handling"
+          ],
+          "how_to_fix": "Use the protected secret intake flow later; never paste raw credentials into chat.",
+          "missing": [
+            "protected Coupa credential ref for future portal access"
+          ],
+          "next_safe_move": "Keep secrets as protected refs only.",
+          "proof_status": "protected secret intake contract exists; no live secret ref is consumed here",
+          "rail_id": "rail_secret_ref",
+          "rail_name": "SECRET_REF",
+          "rail_status": "DETERMINISTIC_CONTRACT_ONLY_PROTECTED_SECRET_INTAKE",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/protected_secret_intake_contract.json"
+        },
+        {
+          "blocked": [
+            "file body ingestion",
+            "OCR",
+            "raw content parsing"
+          ],
+          "how_to_fix": "Use source refs only; do not read raw file bodies.",
+          "missing": [],
+          "next_safe_move": "Reference safe source refs for drilldown.",
+          "proof_status": "metadata/source refs available without file body ingestion",
+          "rail_id": "rail_file_source_refs",
+          "rail_name": "FILE_SOURCE_REFS",
+          "rail_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/operator_file_metadata_readback.json"
+        }
+      ],
+      "unified_status": {
+        "blocked_items": [
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access and submit",
+          "browser automation",
+          "workflow run",
+          "approval execution",
+          "payment tracking write",
+          "completion claim",
+          "external action",
+          "execution remains locked",
+          "Coupa access or submit",
+          "payment submission",
+          "credential handling",
+          "raw file body in read-model",
+          "send remains locked",
+          "provider send call",
+          "attachment send",
+          "Coupa access",
+          "Coupa submit",
+          "browser",
+          "portal login",
+          "agent dispatch",
+          "dry-run external action",
+          "INVOICE SENT claim",
+          "completion write",
+          "action authorization",
+          "secret reveal",
+          "file body ingestion",
+          "OCR",
+          "raw content parsing",
+          "INVOICE SENT without proof receipts"
+        ],
+        "can_mark_invoice_sent": false,
+        "can_run_workflow": false,
+        "can_send_email": false,
+        "can_submit_coupa": false,
+        "client_ref": "client_ref:capital_hilton",
+        "completion_label_status": "BLOCKED_MISSING_RECEIPTS",
+        "headline": "INVOICE SENT claim blocked",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "protected Coupa credential ref for any future portal login",
+          "Guardian and exact operator approval receipts for send and submit",
+          "future email send receipt and attachment proof",
+          "future Coupa submit receipt and confirmation proof",
+          "future payment tracking or local completion receipt if required",
+          "future gated provider adapters before execution",
+          "confirmed recipient/contact ref",
+          "Guardian approval ref",
+          "exact operator approval receipt ref",
+          "exact approval phrase ref",
+          "protected Coupa credential/secret ref",
+          "approval receipts",
+          "proof receipts",
+          "future execution adapters",
+          "future adapters",
+          "EMAIL_SEND_RECEIPT",
+          "EMAIL_ATTACHMENT_PROOF",
+          "GMAIL_PROVIDER_MESSAGE_REF",
+          "COUPA_SUBMIT_RECEIPT",
+          "COUPA_CONFIRMATION_PROOF",
+          "INVOICE_ARTIFACT_SAVED_RECEIPT",
+          "INVOICE_ARTIFACT_HASH_PROOF",
+          "GUARDIAN_APPROVAL_RECEIPT",
+          "OPERATOR_APPROVAL_RECEIPT",
+          "PAYMENT_TRACKING_UPDATE_RECEIPT",
+          "LOCAL_RECORD_SAVED_RECEIPT",
+          "exact operator approval receipt",
+          "protected Coupa credential ref for future portal access"
+        ],
+        "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+        "package_items": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "plain_status": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed PO/reference, protected refs, approval receipts, and final send/submit proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+        "proof_items": [
+          "invoice artifact/hash proof may be available from the artifact rail",
+          "completion proof aggregator currently blocks INVOICE SENT because final receipts are missing",
+          "send and submit receipts are absent in current status"
+        ],
+        "ready_items": [
+          "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+          "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+          "local email draft artifact is available for review when the draft adapter readback is current",
+          "file source refs and package rails are available for review",
+          "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "INVOICE_ARTIFACT: ARTIFACT_READY",
+          "EMAIL_DRAFT: LOCAL_DRAFT_ARTIFACT_READY",
+          "GUARDIAN_APPROVAL: APPROVAL_PACKET_READY",
+          "FILE_SOURCE_REFS: DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER"
+        ],
+        "status_id": "capital_hilton_unified_status_false_invoice_sent_claim_blocked",
+        "tenant_ref": "tenant_ref:winship",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    },
+    "fully_complete_fixture": {
+      "chat_response": {
+        "concise_summary": "Fixture completion is proof-backed; no live action was performed.",
+        "detail_refs": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "how_to_fix": "No fix for the fixture; preserve proof refs.",
+        "mac_chat_render_hint": "single_concise_status_card_with_detail_refs",
+        "next_safe_move": "Preserve proof refs and show the proof-backed completion readback only.",
+        "operator_headline": "INVOICE SENT AND RECORDED",
+        "operator_message": "INVOICE SENT AND RECORDED. Proofs show email, attachment, Coupa, artifact, approval, local record, and payment tracking receipts in the fixture. This aggregator performed no action.",
+        "response_id": "capital_hilton_operator_chat_response_fully_complete_fixture",
+        "source_status_ref": "capital_hilton_unified_status_fully_complete_fixture",
+        "what_is_blocked": [
+          "no new action performed by this aggregator"
+        ],
+        "what_is_missing": [],
+        "what_is_ready": [
+          "email send receipt and attachment proof are present in the fixture",
+          "Coupa submit and confirmation proof are present in the fixture",
+          "invoice artifact/hash, Guardian approval, operator approval, local record, and payment tracking proofs are present in the fixture"
+        ]
+      },
+      "rail_summaries": [
+        {
+          "blocked": [
+            "execution remains locked"
+          ],
+          "how_to_fix": "Use package refs for review; do not execute.",
+          "missing": [],
+          "next_safe_move": "Keep building proof and approval rails.",
+          "proof_status": "delivery basis modeled from workflow package readback",
+          "rail_id": "rail_delivery_facts",
+          "rail_name": "DELIVERY_FACTS",
+          "rail_status": "DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/workflow_execution_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "payment submission",
+            "external action",
+            "credential handling",
+            "raw file body in read-model"
+          ],
+          "how_to_fix": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+          "missing": [],
+          "next_safe_move": "Pass attachment refs to Email Delivery Package Compiler; keep Guardian/send gates locked.",
+          "proof_status": "artifact/hash refs available",
+          "rail_id": "rail_invoice_artifact",
+          "rail_name": "INVOICE_ARTIFACT",
+          "rail_status": "ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/invoice_artifact_readback.json"
+        },
+        {
+          "blocked": [
+            "send remains locked"
+          ],
+          "how_to_fix": "Review the draft; do not send.",
+          "missing": [],
+          "next_safe_move": "Review the local .eml or metadata draft; keep future send behind Guardian/operator approval and a separate send adapter.",
+          "proof_status": "draft review artifact modeled",
+          "rail_id": "rail_email_draft",
+          "rail_name": "EMAIL_DRAFT",
+          "rail_status": "LOCAL_DRAFT_ARTIFACT_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/gated_email_draft_adapter.json"
+        },
+        {
+          "blocked": [
+            "email send",
+            "provider send call",
+            "attachment send"
+          ],
+          "how_to_fix": "Create the Guardian approval packet and exact operator approval receipt for this package, then rerun the send readiness check.",
+          "missing": [
+            "confirmed recipient/contact ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live provider send adapter as a separate approved lane.",
+          "proof_status": "send receipt absent",
+          "rail_id": "rail_email_send",
+          "rail_name": "EMAIL_SEND",
+          "rail_status": "SEND_BLOCKED_MISSING_GATES",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_email_send_adapter.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+          "missing": [
+            "confirmed Coupa PO/reference"
+          ],
+          "next_safe_move": "Resolve missing PO/secret/approval proof refs, then keep Coupa/browser action locked until a future approved adapter exists.",
+          "proof_status": "package shape exists but official PO/reference is not confirmed in current status",
+          "rail_id": "rail_coupa_package",
+          "rail_name": "COUPA_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/coupa_supplier_portal_package_compiler.json"
+        },
+        {
+          "blocked": [
+            "Coupa access",
+            "Coupa submit",
+            "browser",
+            "portal login"
+          ],
+          "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference as a protected/source ref, then rerun the submit readiness check.",
+          "missing": [
+            "confirmed Coupa PO/reference",
+            "protected Coupa credential/secret ref",
+            "Guardian approval ref",
+            "exact operator approval receipt ref",
+            "exact approval phrase ref"
+          ],
+          "next_safe_move": "Use the dry-run output to resolve missing gates; build any live Coupa/browser adapter as a separate approved lane.",
+          "proof_status": "submit receipt absent",
+          "rail_id": "rail_coupa_submit",
+          "rail_name": "COUPA_SUBMIT",
+          "rail_status": "SUBMIT_BLOCKED_MISSING_PO",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/gated_coupa_submit_adapter.json"
+        },
+        {
+          "blocked": [
+            "workflow run",
+            "agent dispatch",
+            "completion claim"
+          ],
+          "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+          "missing": [
+            "approval receipts",
+            "proof receipts",
+            "future execution adapters"
+          ],
+          "next_safe_move": "Resolve missing PO/artifact/contact/approval/proof refs, then keep execution locked until future gated adapters exist.",
+          "proof_status": "run package is not execution authority",
+          "rail_id": "rail_run_package",
+          "rail_name": "RUN_PACKAGE",
+          "rail_status": "NOT_READY_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_run_package_assembler.json"
+        },
+        {
+          "blocked": [
+            "dry-run external action",
+            "completion claim"
+          ],
+          "how_to_fix": "Fill the missing component inputs, then rerun the dry-run.",
+          "missing": [
+            "proof receipts",
+            "approval receipts",
+            "future adapters"
+          ],
+          "next_safe_move": "Use the dry-run report to choose the next missing rail: artifact/proof, approval, email adapter, Coupa adapter, or payment receipt.",
+          "proof_status": "dry-run reports blocked/missing states only",
+          "rail_id": "rail_dry_run",
+          "rail_name": "DRY_RUN",
+          "rail_status": "DRY_RUN_BLOCKED_MISSING_INPUTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_dry_run_harness.json"
+        },
+        {
+          "blocked": [
+            "INVOICE SENT claim",
+            "completion write"
+          ],
+          "how_to_fix": "Complete the governed send/submit/local-record lanes and attach their receipt refs, then rerun this aggregator.",
+          "missing": [
+            "EMAIL_SEND_RECEIPT",
+            "EMAIL_ATTACHMENT_PROOF",
+            "GMAIL_PROVIDER_MESSAGE_REF",
+            "COUPA_SUBMIT_RECEIPT",
+            "COUPA_CONFIRMATION_PROOF",
+            "INVOICE_ARTIFACT_SAVED_RECEIPT",
+            "INVOICE_ARTIFACT_HASH_PROOF",
+            "GUARDIAN_APPROVAL_RECEIPT",
+            "OPERATOR_APPROVAL_RECEIPT",
+            "PAYMENT_TRACKING_UPDATE_RECEIPT",
+            "LOCAL_RECORD_SAVED_RECEIPT"
+          ],
+          "next_safe_move": "Attach real send/submit/artifact/approval/local-record/payment receipts, then rerun this proof aggregator.",
+          "proof_status": "completion proof receipts missing",
+          "rail_id": "rail_completion_proof",
+          "rail_name": "COMPLETION_PROOF",
+          "rail_status": "COMPLETION_BLOCKED_NO_RECEIPTS",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/invoice_delivery_completion_proof_aggregator.json"
+        },
+        {
+          "blocked": [
+            "approval execution",
+            "action authorization"
+          ],
+          "how_to_fix": "Create exact operator approval receipt only through the future gated approval lane.",
+          "missing": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Have the Action Covenant Interrupter hand high-consequence covenant requests to this Guardian wrapper.",
+          "proof_status": "review packet exists; approval receipt is still separate",
+          "rail_id": "rail_guardian_approval",
+          "rail_name": "GUARDIAN_APPROVAL",
+          "rail_status": "APPROVAL_PACKET_READY",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/guardian_approval_request_wrapper.json"
+        },
+        {
+          "blocked": [
+            "secret reveal",
+            "credential handling"
+          ],
+          "how_to_fix": "Use the protected secret intake flow later; never paste raw credentials into chat.",
+          "missing": [
+            "protected Coupa credential ref for future portal access"
+          ],
+          "next_safe_move": "Keep secrets as protected refs only.",
+          "proof_status": "protected secret intake contract exists; no live secret ref is consumed here",
+          "rail_id": "rail_secret_ref",
+          "rail_name": "SECRET_REF",
+          "rail_status": "DETERMINISTIC_CONTRACT_ONLY_PROTECTED_SECRET_INTAKE",
+          "ready": false,
+          "source_readmodel_ref": "generated/read_models/protected_secret_intake_contract.json"
+        },
+        {
+          "blocked": [
+            "file body ingestion",
+            "OCR",
+            "raw content parsing"
+          ],
+          "how_to_fix": "Use source refs only; do not read raw file bodies.",
+          "missing": [],
+          "next_safe_move": "Reference safe source refs for drilldown.",
+          "proof_status": "metadata/source refs available without file body ingestion",
+          "rail_id": "rail_file_source_refs",
+          "rail_name": "FILE_SOURCE_REFS",
+          "rail_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
+          "ready": true,
+          "source_readmodel_ref": "generated/read_models/operator_file_metadata_readback.json"
+        }
+      ],
+      "unified_status": {
+        "blocked_items": [
+          "no new action performed by this aggregator"
+        ],
+        "can_mark_invoice_sent": true,
+        "can_run_workflow": false,
+        "can_send_email": false,
+        "can_submit_coupa": false,
+        "client_ref": "client_ref:capital_hilton",
+        "completion_label_status": "COMPLETION_CONFIRMED_FIXTURE_ONLY",
+        "headline": "INVOICE SENT AND RECORDED",
+        "missing_items": [],
+        "next_safe_move": "Preserve proof refs and show the proof-backed completion readback only.",
+        "package_items": [
+          "generated/read_models/workflow_execution_package_compiler.json",
+          "generated/read_models/invoice_artifact_readback.json",
+          "generated/read_models/gated_email_draft_adapter.json",
+          "generated/read_models/gated_email_send_adapter.json",
+          "generated/read_models/coupa_supplier_portal_package_compiler.json",
+          "generated/read_models/gated_coupa_submit_adapter.json",
+          "generated/read_models/invoice_delivery_run_package_assembler.json",
+          "generated/read_models/invoice_delivery_dry_run_harness.json",
+          "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+          "generated/read_models/guardian_approval_request_wrapper.json",
+          "generated/read_models/protected_secret_intake_contract.json",
+          "generated/read_models/operator_file_metadata_readback.json"
+        ],
+        "plain_status": "The complete fixture has all required proof refs. This aggregator did not send, submit, open, approve, or record anything.",
+        "proof_items": [
+          "EMAIL_SEND_RECEIPT",
+          "EMAIL_ATTACHMENT_PROOF",
+          "COUPA_SUBMIT_RECEIPT",
+          "COUPA_CONFIRMATION_PROOF",
+          "INVOICE_ARTIFACT_HASH_PROOF",
+          "GUARDIAN_APPROVAL_RECEIPT",
+          "OPERATOR_APPROVAL_RECEIPT"
+        ],
+        "ready_items": [
+          "email send receipt and attachment proof are present in the fixture",
+          "Coupa submit and confirmation proof are present in the fixture",
+          "invoice artifact/hash, Guardian approval, operator approval, local record, and payment tracking proofs are present in the fixture"
+        ],
+        "status_id": "capital_hilton_unified_status_fully_complete_fixture",
+        "tenant_ref": "tenant_ref:winship",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      }
+    }
+  },
+  "generated_at": "2026-05-25T22:42:54+00:00",
+  "invoice_status_blockers": [
+    {
+      "blocker_id": "invoice_status_blocker_completion_without_proof",
+      "blocker_type": "COMPLETION_CLAIM_WITHOUT_PROOF",
+      "condition": "INVOICE SENT is requested without completion proof receipts.",
+      "elioperator_warning": "Completion cannot be displayed without proof receipts.",
+      "fail_closed": true,
+      "next_safe_move": "Attach send/attachment/submit/approval/local-record receipts first.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_send_without_approval",
+      "blocker_type": "SEND_READY_WITHOUT_APPROVAL",
+      "condition": "Email send readiness appears without Guardian and exact operator approval receipts.",
+      "elioperator_warning": "Send remains locked until approval receipts exist.",
+      "fail_closed": true,
+      "next_safe_move": "Create Guardian packet and exact operator approval receipt.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_coupa_without_approval",
+      "blocker_type": "COUPA_READY_WITHOUT_APPROVAL",
+      "condition": "Coupa submit readiness appears without Guardian and exact operator approval receipts.",
+      "elioperator_warning": "Coupa submit remains locked until approval receipts exist.",
+      "fail_closed": true,
+      "next_safe_move": "Create Guardian packet and exact operator approval receipt.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_run_without_gate",
+      "blocker_type": "RUN_READY_WITHOUT_EXECUTION_GATE",
+      "condition": "Run package appears ready without execution gate receipts.",
+      "elioperator_warning": "Workflow run is not authorized in this lane.",
+      "fail_closed": true,
+      "next_safe_move": "Keep execution locked and return readback only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_missing_required_rail",
+      "blocker_type": "MISSING_REQUIRED_RAIL",
+      "condition": "A required rail readmodel is unavailable.",
+      "elioperator_warning": "Operator status is incomplete until the rail is regenerated.",
+      "fail_closed": true,
+      "next_safe_move": "Regenerate the missing readmodel and rerun this aggregator.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_stale_readmodel",
+      "blocker_type": "STALE_READMODEL",
+      "condition": "A source readmodel is stale for the current workflow state.",
+      "elioperator_warning": "Stale status must not drive execution.",
+      "fail_closed": true,
+      "next_safe_move": "Refresh source rails before acting.",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_contradiction",
+      "blocker_type": "CONTRADICTORY_RAIL_STATUS",
+      "condition": "One rail says ready while a gated adapter or proof rail says blocked.",
+      "elioperator_warning": "Contradictory rails fail closed.",
+      "fail_closed": true,
+      "next_safe_move": "Trust proof/gate blockers and rerun source rails.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_raw_body",
+      "blocker_type": "RAW_PRIVATE_BODY_EXPOSED",
+      "condition": "Raw private body appears in operator readback.",
+      "elioperator_warning": "Raw body exposure is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Use refs and safe summaries only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_external_action",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "Aggregator attempts send, submit, browser, payment, workflow, approval, or completion action.",
+      "elioperator_warning": "External action is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Return operator readback only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_status_blocker_unknown",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown operator status state.",
+      "elioperator_warning": "Unknown state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Ask for scoped rail readmodels.",
+      "severity": "high"
+    }
+  ],
+  "mac_response_preview": {
+    "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
+    "internal_status": "BLOCKED_MISSING_RECEIPTS",
+    "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+    "operator_headline": "Capital Hilton invoice workflow is not ready yet",
+    "operator_message": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed Coupa PO/reference, protected Coupa credential ref for any future portal login, Guardian and exact operator approval receipts for send and submit, future email send receipt and attachment proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+    "readback_files": [
+      "generated/read_models/capital_hilton_invoice_operator_readback.json"
+    ],
+    "request_type": "CAPITAL_HILTON_INVOICE_STATUS_READBACK",
+    "terminal": true,
+    "what_happened": "OpenClaw aggregated existing Capital Hilton invoice workflow rail readmodels into one status.",
+    "why_it_happened": "The operator needs one chat-facing status instead of inspecting separate readmodels."
+  },
+  "machine_proof": {
+    "all_live_authority_false": true,
+    "approval_execution_performed": false,
+    "browser_access_performed": false,
+    "completion_write_performed": false,
+    "coupa_access_performed": false,
+    "coupa_submit_performed": false,
+    "credential_handling_performed": false,
+    "email_send_performed": false,
+    "external_action_performed": false,
+    "git_push_performed": false,
+    "gmail_send_performed": false,
+    "mac_sync_import_performed": false,
+    "mail_send_performed": false,
+    "payment_tracking_write_performed": false,
+    "raw_body_ingestion_performed": false,
+    "secret_reveal_performed": false,
+    "swift_change_performed": false,
+    "workflow_run_performed": false
+  },
+  "model_schemas": {
+    "CapitalHiltonInvoiceOperatorReadbackAggregator": [
+      "aggregator_id",
+      "doctrine",
+      "source_readmodels",
+      "status_policy",
+      "readiness_policy",
+      "proof_policy",
+      "operator_message_policy",
+      "mac_chat_policy",
+      "authority_boundary",
+      "next_safe_move"
+    ],
+    "CapitalHiltonInvoiceUnifiedStatus": [
+      "status_id",
+      "workflow_ref",
+      "client_ref",
+      "tenant_ref",
+      "headline",
+      "plain_status",
+      "ready_items",
+      "missing_items",
+      "blocked_items",
+      "proof_items",
+      "package_items",
+      "next_safe_move",
+      "can_mark_invoice_sent",
+      "can_send_email",
+      "can_submit_coupa",
+      "can_run_workflow",
+      "completion_label_status"
+    ],
+    "InvoiceStatusBlocker": [
+      "blocker_id",
+      "blocker_type",
+      "condition",
+      "severity",
+      "elioperator_warning",
+      "fail_closed",
+      "next_safe_move"
+    ],
+    "InvoiceWorkflowRailSummary": [
+      "rail_id",
+      "rail_name",
+      "source_readmodel_ref",
+      "rail_status",
+      "ready",
+      "missing",
+      "blocked",
+      "proof_status",
+      "how_to_fix",
+      "next_safe_move"
+    ],
+    "OperatorChatResponse": [
+      "response_id",
+      "source_status_ref",
+      "operator_headline",
+      "operator_message",
+      "concise_summary",
+      "what_is_ready",
+      "what_is_missing",
+      "what_is_blocked",
+      "how_to_fix",
+      "next_safe_move",
+      "detail_refs",
+      "mac_chat_render_hint"
+    ]
+  },
+  "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+  "operator_summary": "Capital Hilton invoice workflow is summarized into one human readback. The current status is not ready: send, Coupa submit, workflow run, and INVOICE SENT remain locked.",
+  "rail_names": [
+    "DELIVERY_FACTS",
+    "INVOICE_ARTIFACT",
+    "EMAIL_DRAFT",
+    "EMAIL_SEND",
+    "COUPA_PACKAGE",
+    "COUPA_SUBMIT",
+    "RUN_PACKAGE",
+    "DRY_RUN",
+    "COMPLETION_PROOF",
+    "GUARDIAN_APPROVAL",
+    "SECRET_REF",
+    "FILE_SOURCE_REFS"
+  ],
+  "rail_summaries": [
+    {
+      "blocked": [
+        "execution remains locked"
+      ],
+      "how_to_fix": "Use package refs for review; do not execute.",
+      "missing": [],
+      "next_safe_move": "Keep building proof and approval rails.",
+      "proof_status": "delivery basis modeled from workflow package readback",
+      "rail_id": "rail_delivery_facts",
+      "rail_name": "DELIVERY_FACTS",
+      "rail_status": "DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+      "ready": true,
+      "source_readmodel_ref": "generated/read_models/workflow_execution_package_compiler.json"
+    },
+    {
+      "blocked": [
+        "email send",
+        "Mail/Gmail send",
+        "Coupa access or submit",
+        "browser automation",
+        "payment submission",
+        "external action",
+        "credential handling",
+        "raw file body in read-model"
+      ],
+      "how_to_fix": "Use the attachment refs in the Email Delivery Package Compiler and keep Guardian/send gates locked.",
+      "missing": [],
+      "next_safe_move": "Pass attachment refs to Email Delivery Package Compiler; keep Guardian/send gates locked.",
+      "proof_status": "artifact/hash refs available",
+      "rail_id": "rail_invoice_artifact",
+      "rail_name": "INVOICE_ARTIFACT",
+      "rail_status": "ARTIFACT_READY",
+      "ready": true,
+      "source_readmodel_ref": "generated/read_models/invoice_artifact_readback.json"
+    },
+    {
+      "blocked": [
+        "send remains locked"
+      ],
+      "how_to_fix": "Review the draft; do not send.",
+      "missing": [],
+      "next_safe_move": "Review the local .eml or metadata draft; keep future send behind Guardian/operator approval and a separate send adapter.",
+      "proof_status": "draft review artifact modeled",
+      "rail_id": "rail_email_draft",
+      "rail_name": "EMAIL_DRAFT",
+      "rail_status": "LOCAL_DRAFT_ARTIFACT_READY",
+      "ready": true,
+      "source_readmodel_ref": "generated/read_models/gated_email_draft_adapter.json"
+    },
+    {
+      "blocked": [
+        "email send",
+        "provider send call",
+        "attachment send"
+      ],
+      "how_to_fix": "Create the Guardian approval packet and exact operator approval receipt for this package, then rerun the send readiness check.",
+      "missing": [
+        "confirmed recipient/contact ref",
+        "Guardian approval ref",
+        "exact operator approval receipt ref",
+        "exact approval phrase ref"
+      ],
+      "next_safe_move": "Use the dry-run output to resolve missing gates; build any live provider send adapter as a separate approved lane.",
+      "proof_status": "send receipt absent",
+      "rail_id": "rail_email_send",
+      "rail_name": "EMAIL_SEND",
+      "rail_status": "SEND_BLOCKED_MISSING_GATES",
+      "ready": false,
+      "source_readmodel_ref": "generated/read_models/gated_email_send_adapter.json"
+    },
+    {
+      "blocked": [
+        "Coupa access",
+        "Coupa submit",
+        "browser"
+      ],
+      "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+      "missing": [
+        "confirmed Coupa PO/reference"
+      ],
+      "next_safe_move": "Resolve missing PO/secret/approval proof refs, then keep Coupa/browser action locked until a future approved adapter exists.",
+      "proof_status": "package shape exists but official PO/reference is not confirmed in current status",
+      "rail_id": "rail_coupa_package",
+      "rail_name": "COUPA_PACKAGE",
+      "rail_status": "NOT_READY_MISSING_PO",
+      "ready": false,
+      "source_readmodel_ref": "generated/read_models/coupa_supplier_portal_package_compiler.json"
+    },
+    {
+      "blocked": [
+        "Coupa access",
+        "Coupa submit",
+        "browser",
+        "portal login"
+      ],
+      "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference as a protected/source ref, then rerun the submit readiness check.",
+      "missing": [
+        "confirmed Coupa PO/reference",
+        "protected Coupa credential/secret ref",
+        "Guardian approval ref",
+        "exact operator approval receipt ref",
+        "exact approval phrase ref"
+      ],
+      "next_safe_move": "Use the dry-run output to resolve missing gates; build any live Coupa/browser adapter as a separate approved lane.",
+      "proof_status": "submit receipt absent",
+      "rail_id": "rail_coupa_submit",
+      "rail_name": "COUPA_SUBMIT",
+      "rail_status": "SUBMIT_BLOCKED_MISSING_PO",
+      "ready": false,
+      "source_readmodel_ref": "generated/read_models/gated_coupa_submit_adapter.json"
+    },
+    {
+      "blocked": [
+        "workflow run",
+        "agent dispatch",
+        "completion claim"
+      ],
+      "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+      "missing": [
+        "approval receipts",
+        "proof receipts",
+        "future execution adapters"
+      ],
+      "next_safe_move": "Resolve missing PO/artifact/contact/approval/proof refs, then keep execution locked until future gated adapters exist.",
+      "proof_status": "run package is not execution authority",
+      "rail_id": "rail_run_package",
+      "rail_name": "RUN_PACKAGE",
+      "rail_status": "NOT_READY_MISSING_INPUTS",
+      "ready": false,
+      "source_readmodel_ref": "generated/read_models/invoice_delivery_run_package_assembler.json"
+    },
+    {
+      "blocked": [
+        "dry-run external action",
+        "completion claim"
+      ],
+      "how_to_fix": "Fill the missing component inputs, then rerun the dry-run.",
+      "missing": [
+        "proof receipts",
+        "approval receipts",
+        "future adapters"
+      ],
+      "next_safe_move": "Use the dry-run report to choose the next missing rail: artifact/proof, approval, email adapter, Coupa adapter, or payment receipt.",
+      "proof_status": "dry-run reports blocked/missing states only",
+      "rail_id": "rail_dry_run",
+      "rail_name": "DRY_RUN",
+      "rail_status": "DRY_RUN_BLOCKED_MISSING_INPUTS",
+      "ready": false,
+      "source_readmodel_ref": "generated/read_models/invoice_delivery_dry_run_harness.json"
+    },
+    {
+      "blocked": [
+        "INVOICE SENT claim",
+        "completion write"
+      ],
+      "how_to_fix": "Complete the governed send/submit/local-record lanes and attach their receipt refs, then rerun this aggregator.",
+      "missing": [
+        "EMAIL_SEND_RECEIPT",
+        "EMAIL_ATTACHMENT_PROOF",
+        "GMAIL_PROVIDER_MESSAGE_REF",
+        "COUPA_SUBMIT_RECEIPT",
+        "COUPA_CONFIRMATION_PROOF",
+        "INVOICE_ARTIFACT_SAVED_RECEIPT",
+        "INVOICE_ARTIFACT_HASH_PROOF",
+        "GUARDIAN_APPROVAL_RECEIPT",
+        "OPERATOR_APPROVAL_RECEIPT",
+        "PAYMENT_TRACKING_UPDATE_RECEIPT",
+        "LOCAL_RECORD_SAVED_RECEIPT"
+      ],
+      "next_safe_move": "Attach real send/submit/artifact/approval/local-record/payment receipts, then rerun this proof aggregator.",
+      "proof_status": "completion proof receipts missing",
+      "rail_id": "rail_completion_proof",
+      "rail_name": "COMPLETION_PROOF",
+      "rail_status": "COMPLETION_BLOCKED_NO_RECEIPTS",
+      "ready": false,
+      "source_readmodel_ref": "generated/read_models/invoice_delivery_completion_proof_aggregator.json"
+    },
+    {
+      "blocked": [
+        "approval execution",
+        "action authorization"
+      ],
+      "how_to_fix": "Create exact operator approval receipt only through the future gated approval lane.",
+      "missing": [
+        "exact operator approval receipt"
+      ],
+      "next_safe_move": "Have the Action Covenant Interrupter hand high-consequence covenant requests to this Guardian wrapper.",
+      "proof_status": "review packet exists; approval receipt is still separate",
+      "rail_id": "rail_guardian_approval",
+      "rail_name": "GUARDIAN_APPROVAL",
+      "rail_status": "APPROVAL_PACKET_READY",
+      "ready": true,
+      "source_readmodel_ref": "generated/read_models/guardian_approval_request_wrapper.json"
+    },
+    {
+      "blocked": [
+        "secret reveal",
+        "credential handling"
+      ],
+      "how_to_fix": "Use the protected secret intake flow later; never paste raw credentials into chat.",
+      "missing": [
+        "protected Coupa credential ref for future portal access"
+      ],
+      "next_safe_move": "Keep secrets as protected refs only.",
+      "proof_status": "protected secret intake contract exists; no live secret ref is consumed here",
+      "rail_id": "rail_secret_ref",
+      "rail_name": "SECRET_REF",
+      "rail_status": "DETERMINISTIC_CONTRACT_ONLY_PROTECTED_SECRET_INTAKE",
+      "ready": false,
+      "source_readmodel_ref": "generated/read_models/protected_secret_intake_contract.json"
+    },
+    {
+      "blocked": [
+        "file body ingestion",
+        "OCR",
+        "raw content parsing"
+      ],
+      "how_to_fix": "Use source refs only; do not read raw file bodies.",
+      "missing": [],
+      "next_safe_move": "Reference safe source refs for drilldown.",
+      "proof_status": "metadata/source refs available without file body ingestion",
+      "rail_id": "rail_file_source_refs",
+      "rail_name": "FILE_SOURCE_REFS",
+      "rail_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
+      "ready": true,
+      "source_readmodel_ref": "generated/read_models/operator_file_metadata_readback.json"
+    }
+  ],
+  "read_model_id": "capital_hilton_invoice_operator_readback",
+  "schema_version": "capital_hilton_invoice_operator_readback_v0",
+  "tenant_ref": "tenant_ref:winship",
+  "unified_status": {
+    "blocked_items": [
+      "email send",
+      "Mail/Gmail send",
+      "Coupa access and submit",
+      "browser automation",
+      "workflow run",
+      "approval execution",
+      "payment tracking write",
+      "completion claim",
+      "external action",
+      "execution remains locked",
+      "Coupa access or submit",
+      "payment submission",
+      "credential handling",
+      "raw file body in read-model",
+      "send remains locked",
+      "provider send call",
+      "attachment send",
+      "Coupa access",
+      "Coupa submit",
+      "browser",
+      "portal login",
+      "agent dispatch",
+      "dry-run external action",
+      "INVOICE SENT claim",
+      "completion write",
+      "action authorization",
+      "secret reveal",
+      "file body ingestion",
+      "OCR",
+      "raw content parsing"
+    ],
+    "can_mark_invoice_sent": false,
+    "can_run_workflow": false,
+    "can_send_email": false,
+    "can_submit_coupa": false,
+    "client_ref": "client_ref:capital_hilton",
+    "completion_label_status": "BLOCKED_MISSING_RECEIPTS",
+    "headline": "Capital Hilton invoice workflow is not ready yet",
+    "missing_items": [
+      "confirmed Coupa PO/reference",
+      "protected Coupa credential ref for any future portal login",
+      "Guardian and exact operator approval receipts for send and submit",
+      "future email send receipt and attachment proof",
+      "future Coupa submit receipt and confirmation proof",
+      "future payment tracking or local completion receipt if required",
+      "future gated provider adapters before execution",
+      "confirmed recipient/contact ref",
+      "Guardian approval ref",
+      "exact operator approval receipt ref",
+      "exact approval phrase ref",
+      "protected Coupa credential/secret ref",
+      "approval receipts",
+      "proof receipts",
+      "future execution adapters",
+      "future adapters",
+      "EMAIL_SEND_RECEIPT",
+      "EMAIL_ATTACHMENT_PROOF",
+      "GMAIL_PROVIDER_MESSAGE_REF",
+      "COUPA_SUBMIT_RECEIPT",
+      "COUPA_CONFIRMATION_PROOF",
+      "INVOICE_ARTIFACT_SAVED_RECEIPT",
+      "INVOICE_ARTIFACT_HASH_PROOF",
+      "GUARDIAN_APPROVAL_RECEIPT",
+      "OPERATOR_APPROVAL_RECEIPT",
+      "PAYMENT_TRACKING_UPDATE_RECEIPT",
+      "LOCAL_RECORD_SAVED_RECEIPT",
+      "exact operator approval receipt",
+      "protected Coupa credential ref for future portal access"
+    ],
+    "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+    "package_items": [
+      "generated/read_models/workflow_execution_package_compiler.json",
+      "generated/read_models/invoice_artifact_readback.json",
+      "generated/read_models/gated_email_draft_adapter.json",
+      "generated/read_models/gated_email_send_adapter.json",
+      "generated/read_models/coupa_supplier_portal_package_compiler.json",
+      "generated/read_models/gated_coupa_submit_adapter.json",
+      "generated/read_models/invoice_delivery_run_package_assembler.json",
+      "generated/read_models/invoice_delivery_dry_run_harness.json",
+      "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+      "generated/read_models/guardian_approval_request_wrapper.json",
+      "generated/read_models/protected_secret_intake_contract.json",
+      "generated/read_models/operator_file_metadata_readback.json"
+    ],
+    "plain_status": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed PO/reference, protected refs, approval receipts, and final send/submit proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+    "proof_items": [
+      "invoice artifact/hash proof may be available from the artifact rail",
+      "completion proof aggregator currently blocks INVOICE SENT because final receipts are missing",
+      "send and submit receipts are absent in current status"
+    ],
+    "ready_items": [
+      "delivery basis is modeled for four Capital Hilton performance dates at $400/show",
+      "bounded invoice artifact and hash refs are available when the artifact builder readback is current",
+      "local email draft artifact is available for review when the draft adapter readback is current",
+      "file source refs and package rails are available for review",
+      "DELIVERY_FACTS: DETERMINISTIC_NON_EXECUTING_WORKFLOW_EXECUTION_PACKAGE_COMPILER",
+      "INVOICE_ARTIFACT: ARTIFACT_READY",
+      "EMAIL_DRAFT: LOCAL_DRAFT_ARTIFACT_READY",
+      "GUARDIAN_APPROVAL: APPROVAL_PACKET_READY",
+      "FILE_SOURCE_REFS: DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER"
+    ],
+    "status_id": "capital_hilton_unified_status_current",
+    "tenant_ref": "tenant_ref:winship",
+    "workflow_ref": "capital_hilton_invoice_workflow"
+  },
+  "workflow_ref": "capital_hilton_invoice_workflow"
+}

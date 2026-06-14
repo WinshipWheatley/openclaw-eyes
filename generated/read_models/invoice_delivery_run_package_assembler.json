@@ -1,0 +1,1751 @@
+{
+  "assembler": {
+    "approval_policy": [
+      "Guardian packet and exact operator approval receipt are required before any future execution adapter could act.",
+      "Approval execution remains false in this lane.",
+      "Natural chat confirmation is not sufficient authority."
+    ],
+    "assembler_id": "invoice_delivery_run_package_assembler_v0",
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_execution_allowed": false,
+      "live_attachment_send_allowed": false,
+      "live_browser_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_coupa_submit_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_gmail_send_allowed": false,
+      "live_invoice_generation_allowed": false,
+      "live_mail_send_allowed": false,
+      "live_payment_tracking_write_allowed": false,
+      "live_run_package_execution_allowed": false,
+      "live_secret_reveal_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "component_package_policy": [
+      "Component statuses summarize delivery facts, invoice artifact, email package, Coupa package, Guardian approval, action covenant, secret refs, final readback, and payment tracking.",
+      "Missing components produce how_to_fix guidance.",
+      "Component readiness does not imply execution authority."
+    ],
+    "doctrine": [
+      "Assembler composes packages, not actions.",
+      "Assembler states readiness honestly and exposes missing inputs.",
+      "Assembler does not execute packages, dispatch agents, send email, access Coupa, open browsers, authorize approvals, or claim completion.",
+      "Truth comes from component refs, proof refs, and future receipts."
+    ],
+    "execution_gate_policy": [
+      "All action flags are false.",
+      "Missing gates must name approval, proof, secret, and adapter needs explicitly.",
+      "Future adapter requirements are visible but not active."
+    ],
+    "final_readback_policy": [
+      "Final completion readback is a future target only.",
+      "No readback may claim sent, submitted, recorded, or complete without receipts."
+    ],
+    "next_safe_move": "Show run-package readiness to the operator and resolve missing refs before any future gated execution.",
+    "proof_policy": [
+      "Required proofs include artifact/hash, email package, Coupa package, protected secret ref if needed, approvals, and future send/submit/payment receipts.",
+      "Completion is blocked until receipts exist."
+    ],
+    "readiness_policy": [
+      "Not-ready packages list missing items and why they matter.",
+      "Review-ready packages still have no execution authority.",
+      "Do not say ready to run unless all required packages, proofs, gates, adapters, and receipts exist."
+    ],
+    "source_workflow_policy": [
+      "Capital Hilton invoice workflow is the first proof case.",
+      "Delivery facts, package refs, approval refs, and proof refs remain source-addressable.",
+      "Raw private bodies and credentials are excluded."
+    ]
+  },
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_approval_execution_allowed": false,
+    "live_attachment_send_allowed": false,
+    "live_browser_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_gmail_send_allowed": false,
+    "live_invoice_generation_allowed": false,
+    "live_mail_send_allowed": false,
+    "live_payment_tracking_write_allowed": false,
+    "live_run_package_execution_allowed": false,
+    "live_secret_reveal_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocker_types": [
+    "DELIVERY_FACTS_MISSING",
+    "INVOICE_ARTIFACT_MISSING",
+    "EMAIL_PACKAGE_MISSING",
+    "COUPA_PACKAGE_MISSING",
+    "APPROVAL_MISSING",
+    "ACTION_COVENANT_MISSING",
+    "SECRET_REF_MISSING",
+    "PROOF_MISSING",
+    "EXECUTION_ADAPTER_MISSING",
+    "EMAIL_SEND_ATTEMPTED",
+    "COUPA_SUBMIT_ATTEMPTED",
+    "BROWSER_ATTEMPTED",
+    "COMPLETION_CLAIM_WITHOUT_RECEIPTS",
+    "EXTERNAL_ACTION_ATTEMPTED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "capital_hilton_required_operator_readback": "OpenClaw has assembled the Capital Hilton invoice delivery run package shape. It is not ready to execute yet. The workflow still needs [missing items]. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+  "component_types": [
+    "DELIVERY_FACTS",
+    "INVOICE_ARTIFACT",
+    "EMAIL_PACKAGE",
+    "COUPA_PACKAGE",
+    "GUARDIAN_APPROVAL",
+    "ACTION_COVENANT",
+    "SECRET_REF",
+    "FINAL_READBACK",
+    "PAYMENT_TRACKING"
+  ],
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_INVOICE_DELIVERY_RUN_PACKAGE_ASSEMBLER",
+  "delivery_channels": [
+    "EMAIL_TO_CONTACT",
+    "COUPA_SUPPLIER_PORTAL",
+    "LOCAL_RECORDS",
+    "PAYMENT_TRACKING",
+    "UNKNOWN"
+  ],
+  "examples": {
+    "capital_hilton_not_ready": {
+      "completion_target": {
+        "available_receipts": [],
+        "completion_allowed": false,
+        "completion_label": "INVOICE_SENT_AND_RECORDED",
+        "completion_readback": "Completion target is modeled only. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "completion_target_id": "invoice_delivery_completion_target_57a992a93db26480",
+        "missing_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "invoice artifact saved receipt",
+          "attachment proof receipt",
+          "Guardian approval receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "next_safe_move": "Do not claim completion until all required receipts exist.",
+        "proof_bullets": [
+          "Invoice artifact/hash proves the local attachment package.",
+          "Guardian and operator receipts prove approval posture.",
+          "Future email and Coupa receipts would prove external delivery/submission.",
+          "Future payment tracking receipt would prove local status recording."
+        ],
+        "required_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "invoice artifact saved receipt",
+          "attachment proof receipt",
+          "Guardian approval receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0"
+      },
+      "components": [
+        {
+          "blocked_actions": [],
+          "component_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+          "component_status_id": "invoice_delivery_component_ded260c6c54a3c00",
+          "component_type": "DELIVERY_FACTS",
+          "how_to_fix": "Use captured delivery facts.",
+          "missing_items": [],
+          "next_safe_move": "Use captured delivery facts.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "READY"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_599d7af9965aaf3d",
+          "component_type": "INVOICE_ARTIFACT",
+          "how_to_fix": "Generate/attach/hash Winship-branded invoice PDF/XLSX.",
+          "missing_items": [
+            "final invoice artifact/hash"
+          ],
+          "next_safe_move": "Generate/attach/hash Winship-branded invoice PDF/XLSX.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "MISSING_ARTIFACT_AND_HASH"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_4b7cd636d019d3f8",
+          "component_type": "EMAIL_PACKAGE",
+          "how_to_fix": "Confirm recipient and compile email delivery package.",
+          "missing_items": [
+            "confirmed recipient/contact route",
+            "email delivery package"
+          ],
+          "next_safe_move": "Confirm recipient and compile email delivery package.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "MISSING_EMAIL_PACKAGE"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_e91474ee8019d6d5",
+          "component_type": "COUPA_PACKAGE",
+          "how_to_fix": "Confirm PO/reference and compile Coupa package.",
+          "missing_items": [
+            "confirmed Coupa PO/reference",
+            "Coupa supplier portal package"
+          ],
+          "next_safe_move": "Confirm PO/reference and compile Coupa package.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "MISSING_COUPA_PACKAGE"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_666af249fba0d8a8",
+          "component_type": "GUARDIAN_APPROVAL",
+          "how_to_fix": "Create Guardian approval packet.",
+          "missing_items": [
+            "Guardian approval"
+          ],
+          "next_safe_move": "Create Guardian approval packet.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "MISSING_APPROVAL"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_d998323318968755",
+          "component_type": "ACTION_COVENANT",
+          "how_to_fix": "Create action covenant for SEND_EMAIL/SUBMIT_COUPA as needed.",
+          "missing_items": [
+            "Action Covenant"
+          ],
+          "next_safe_move": "Create action covenant for SEND_EMAIL/SUBMIT_COUPA as needed.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "MISSING_COVENANT"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_94300a8aafb84124",
+          "component_type": "SECRET_REF",
+          "how_to_fix": "Use future protected secret intake only if portal login becomes required.",
+          "missing_items": [
+            "protected secret ref if future Coupa login required"
+          ],
+          "next_safe_move": "Use future protected secret intake only if portal login becomes required.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "NOT_REQUESTED_YET"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_31bfa6b1b6f9e36a",
+          "component_type": "FINAL_READBACK",
+          "how_to_fix": "Do not create final completion readback until receipts exist.",
+          "missing_items": [
+            "send/submit receipts"
+          ],
+          "next_safe_move": "Do not create final completion readback until receipts exist.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "FUTURE_TARGET_ONLY"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_8b0c498fe47fc7b1",
+          "component_type": "PAYMENT_TRACKING",
+          "how_to_fix": "Do not write payment tracking in this lane.",
+          "missing_items": [
+            "payment tracking update receipt, future"
+          ],
+          "next_safe_move": "Do not write payment tracking in this lane.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+          "status": "FUTURE_TARGET_ONLY"
+        }
+      ],
+      "execution_gate": {
+        "action_executed": false,
+        "browser_allowed": false,
+        "coupa_submit_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "gate_id": "invoice_delivery_execution_gate_57a992a93db26480",
+        "missing_gates": [
+          "confirmed Coupa PO/reference",
+          "final invoice artifact/hash",
+          "confirmed recipient/contact route",
+          "email delivery package",
+          "Coupa supplier portal package",
+          "Guardian approval",
+          "exact operator approval",
+          "send/submit receipts",
+          "Guardian approval packet",
+          "Action Covenant",
+          "exact operator approval receipt",
+          "future execution adapters",
+          "future send/submit/payment receipts"
+        ],
+        "next_safe_move": "Keep execution locked; collect approval/proof/adapter receipts in future gated lanes.",
+        "required_action_covenant_ref": "missing",
+        "required_adapter_refs": [
+          "future_gated_email_send_adapter",
+          "future_gated_coupa_browser_adapter",
+          "future_payment_tracking_receipt_adapter"
+        ],
+        "required_guardian_approval_ref": "missing",
+        "required_operator_approval_ref": "operator_approval_receipt:future_exact_approval",
+        "required_secret_refs": [],
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+        "workflow_run_allowed": false
+      },
+      "readiness_readback": {
+        "blocked_summary": "run package execution, workflow run, email send, Mail/Gmail send, Coupa access or submit, browser automation, secret reveal, approval execution, payment tracking write, external action, credential handling",
+        "component_summaries": [
+          "DELIVERY_FACTS: READY",
+          "INVOICE_ARTIFACT: MISSING_ARTIFACT_AND_HASH",
+          "EMAIL_PACKAGE: MISSING_EMAIL_PACKAGE",
+          "COUPA_PACKAGE: MISSING_COUPA_PACKAGE",
+          "GUARDIAN_APPROVAL: MISSING_APPROVAL",
+          "ACTION_COVENANT: MISSING_COVENANT",
+          "SECRET_REF: NOT_REQUESTED_YET",
+          "FINAL_READBACK: FUTURE_TARGET_ONLY",
+          "PAYMENT_TRACKING: FUTURE_TARGET_ONLY"
+        ],
+        "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+        "missing_summary": "confirmed Coupa PO/reference; final invoice artifact/hash; confirmed recipient/contact route; email delivery package; Coupa supplier portal package; Guardian approval; exact operator approval; send/submit receipts",
+        "next_safe_move": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+        "operator_headline": "Invoice run package needs an artifact",
+        "operator_message": "OpenClaw has assembled the Capital Hilton invoice delivery run package shape. It is not ready to execute yet. The workflow still needs confirmed Coupa PO/reference; final invoice artifact/hash; confirmed recipient/contact route; email delivery package; Coupa supplier portal package; Guardian approval; exact operator approval; send/submit receipts. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "readback_id": "invoice_delivery_readiness_readback_ac87df5146ff1bc1",
+        "ready_summary": "1 of 9 components are ready for review.",
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+        "status": "NOT_READY_MISSING_ARTIFACT"
+      },
+      "run_package": {
+        "action_covenant_ref": "",
+        "available_proofs": [
+          "delivery facts confirmed"
+        ],
+        "blocked_actions": [
+          "run package execution",
+          "workflow run",
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access or submit",
+          "browser automation",
+          "secret reveal",
+          "approval execution",
+          "payment tracking write",
+          "external action",
+          "credential handling"
+        ],
+        "client_ref": "client_ref:capital_hilton",
+        "completion_target": "INVOICE_SENT_AND_RECORDED",
+        "coupa_package_ref": "",
+        "delivery_channels": [
+          "EMAIL_TO_CONTACT",
+          "COUPA_SUPPLIER_PORTAL",
+          "LOCAL_RECORDS",
+          "PAYMENT_TRACKING"
+        ],
+        "delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "delivery_goal": "Deliver and track the Capital Hilton invoice using local records/email follow-up and the official Coupa/PO payment rail.",
+        "email_delivery_package_ref": "",
+        "execution_gate_status": "NO_EXECUTION_AUTHORITY",
+        "guardian_approval_ref": "",
+        "invoice_artifact_ref": "",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "final invoice artifact/hash",
+          "confirmed recipient/contact route",
+          "email delivery package",
+          "Coupa supplier portal package",
+          "Guardian approval",
+          "exact operator approval",
+          "send/submit receipts"
+        ],
+        "next_safe_move": "Resolve missing package/proof/gate items; do not execute.",
+        "readiness_status": "NOT_READY_MISSING_INPUTS",
+        "required_proofs": [
+          "delivery facts confirmed",
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "email delivery package ref",
+          "Coupa supplier portal package ref",
+          "Guardian approval packet",
+          "protected secret ref if future Coupa login is required",
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future attachment proof receipt",
+          "future payment tracking update receipt"
+        ],
+        "required_secret_refs": [],
+        "run_package_id": "invoice_delivery_run_package_capital_hilton_not_ready_v0",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "tenant_ref": "tenant_ref:winship"
+      }
+    },
+    "capital_hilton_ready_for_review_not_execution": {
+      "completion_target": {
+        "available_receipts": [
+          "invoice artifact saved receipt",
+          "Guardian approval receipt"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE_SENT_AND_RECORDED",
+        "completion_readback": "Completion target is modeled only. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "completion_target_id": "invoice_delivery_completion_target_c0ff493a02647b23",
+        "missing_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "attachment proof receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "next_safe_move": "Do not claim completion until all required receipts exist.",
+        "proof_bullets": [
+          "Invoice artifact/hash proves the local attachment package.",
+          "Guardian and operator receipts prove approval posture.",
+          "Future email and Coupa receipts would prove external delivery/submission.",
+          "Future payment tracking receipt would prove local status recording."
+        ],
+        "required_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "invoice artifact saved receipt",
+          "attachment proof receipt",
+          "Guardian approval receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0"
+      },
+      "components": [
+        {
+          "blocked_actions": [],
+          "component_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+          "component_status_id": "invoice_delivery_component_6e3077cf381dcb85",
+          "component_type": "DELIVERY_FACTS",
+          "how_to_fix": "Use captured delivery facts.",
+          "missing_items": [],
+          "next_safe_move": "Use captured delivery facts.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "READY"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "component_status_id": "invoice_delivery_component_699639485f12e8fd",
+          "component_type": "INVOICE_ARTIFACT",
+          "how_to_fix": "Use artifact/hash refs; do not send.",
+          "missing_items": [],
+          "next_safe_move": "Use artifact/hash refs; do not send.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "READY_WITH_HASH"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+          "component_status_id": "invoice_delivery_component_45d884ca1a216105",
+          "component_type": "EMAIL_PACKAGE",
+          "how_to_fix": "Review only; future send adapter remains gated.",
+          "missing_items": [
+            "future email send receipt"
+          ],
+          "next_safe_move": "Review only; future send adapter remains gated.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "READY_FOR_REVIEW_NOT_SEND"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "coupa_package_capital_hilton_complete_except_approval_v0",
+          "component_status_id": "invoice_delivery_component_25f2c908a10245ee",
+          "component_type": "COUPA_PACKAGE",
+          "how_to_fix": "Review only; future Coupa adapter remains gated.",
+          "missing_items": [
+            "future Coupa submit/confirmation receipt if Coupa required"
+          ],
+          "next_safe_move": "Review only; future Coupa adapter remains gated.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "READY_FOR_REVIEW_NOT_SUBMIT"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+          "component_status_id": "invoice_delivery_component_53907c0975cae420",
+          "component_type": "GUARDIAN_APPROVAL",
+          "how_to_fix": "Wait for future exact operator approval receipt.",
+          "missing_items": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Wait for future exact operator approval receipt.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "PACKET_EXISTS_NOT_APPROVED"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "capital_hilton_coupa_submit_covenant_v0",
+          "component_status_id": "invoice_delivery_component_752f9756ccc0d310",
+          "component_type": "ACTION_COVENANT",
+          "how_to_fix": "Use exact phrase only in future approval lane.",
+          "missing_items": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Use exact phrase only in future approval lane.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "COVENANT_EXISTS"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "secret_ref:coupa_use_once_capital_hilton",
+          "component_status_id": "invoice_delivery_component_8f1232e644627bfc",
+          "component_type": "SECRET_REF",
+          "how_to_fix": "Keep secret value hidden; future adapter can use only approved ref.",
+          "missing_items": [],
+          "next_safe_move": "Keep secret value hidden; future adapter can use only approved ref.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "PROTECTED_REF_MODELED"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_f4dba02d73e8dfb0",
+          "component_type": "FINAL_READBACK",
+          "how_to_fix": "Create final readback only after receipts exist.",
+          "missing_items": [
+            "send/submit receipts"
+          ],
+          "next_safe_move": "Create final readback only after receipts exist.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "FUTURE_TARGET_ONLY"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_5eec1dbbb54f7180",
+          "component_type": "PAYMENT_TRACKING",
+          "how_to_fix": "Do not write payment tracking in this lane.",
+          "missing_items": [
+            "payment tracking update receipt, future"
+          ],
+          "next_safe_move": "Do not write payment tracking in this lane.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "FUTURE_TARGET_ONLY"
+        }
+      ],
+      "execution_gate": {
+        "action_executed": false,
+        "browser_allowed": false,
+        "coupa_submit_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "gate_id": "invoice_delivery_execution_gate_c0ff493a02647b23",
+        "missing_gates": [
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future payment tracking update receipt",
+          "future execution adapters",
+          "future send/submit/payment receipts"
+        ],
+        "next_safe_move": "Keep execution locked; collect approval/proof/adapter receipts in future gated lanes.",
+        "required_action_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_adapter_refs": [
+          "future_gated_email_send_adapter",
+          "future_gated_coupa_browser_adapter",
+          "future_payment_tracking_receipt_adapter"
+        ],
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "required_operator_approval_ref": "operator_approval_receipt:future_exact_approval",
+        "required_secret_refs": [
+          "secret_ref:coupa_use_once_capital_hilton"
+        ],
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+        "workflow_run_allowed": false
+      },
+      "readiness_readback": {
+        "blocked_summary": "run package execution, workflow run, email send, Mail/Gmail send, Coupa access or submit, browser automation, secret reveal, approval execution, payment tracking write, external action, credential handling",
+        "component_summaries": [
+          "DELIVERY_FACTS: READY",
+          "INVOICE_ARTIFACT: READY_WITH_HASH",
+          "EMAIL_PACKAGE: READY_FOR_REVIEW_NOT_SEND",
+          "COUPA_PACKAGE: READY_FOR_REVIEW_NOT_SUBMIT",
+          "GUARDIAN_APPROVAL: PACKET_EXISTS_NOT_APPROVED",
+          "ACTION_COVENANT: COVENANT_EXISTS",
+          "SECRET_REF: PROTECTED_REF_MODELED",
+          "FINAL_READBACK: FUTURE_TARGET_ONLY",
+          "PAYMENT_TRACKING: FUTURE_TARGET_ONLY"
+        ],
+        "how_to_fix": "Review the package and collect missing approval/proof/adapter receipts; execution remains locked.",
+        "missing_summary": "exact operator approval receipt; future email send receipt; future Coupa submit/confirmation receipt if Coupa required; future payment tracking update receipt",
+        "next_safe_move": "Review the package and collect missing approval/proof/adapter receipts; execution remains locked.",
+        "operator_headline": "Invoice run package is review-only",
+        "operator_message": "OpenClaw has assembled the Capital Hilton invoice delivery run package for review. It still has no execution authority. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "readback_id": "invoice_delivery_readiness_readback_f78af73ace6136ba",
+        "ready_summary": "7 of 9 components are ready for review.",
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+        "status": "RUN_PACKAGE_READY_FOR_REVIEW"
+      },
+      "run_package": {
+        "action_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "available_proofs": [
+          "delivery facts confirmed",
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "email delivery package ref",
+          "Coupa supplier portal package ref",
+          "Guardian approval packet",
+          "protected secret ref if future Coupa login is required"
+        ],
+        "blocked_actions": [
+          "run package execution",
+          "workflow run",
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access or submit",
+          "browser automation",
+          "secret reveal",
+          "approval execution",
+          "payment tracking write",
+          "external action",
+          "credential handling"
+        ],
+        "client_ref": "client_ref:capital_hilton",
+        "completion_target": "INVOICE_SENT_AND_RECORDED",
+        "coupa_package_ref": "coupa_package_capital_hilton_complete_except_approval_v0",
+        "delivery_channels": [
+          "EMAIL_TO_CONTACT",
+          "COUPA_SUPPLIER_PORTAL",
+          "LOCAL_RECORDS",
+          "PAYMENT_TRACKING"
+        ],
+        "delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "delivery_goal": "Deliver and track the Capital Hilton invoice using local records/email follow-up and the official Coupa/PO payment rail.",
+        "email_delivery_package_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+        "execution_gate_status": "NO_EXECUTION_AUTHORITY",
+        "guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "invoice_artifact_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+        "missing_items": [
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future payment tracking update receipt"
+        ],
+        "next_safe_move": "Resolve missing package/proof/gate items; do not execute.",
+        "readiness_status": "WAITING_FOR_OPERATOR_APPROVAL",
+        "required_proofs": [
+          "delivery facts confirmed",
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "email delivery package ref",
+          "Coupa supplier portal package ref",
+          "Guardian approval packet",
+          "protected secret ref if future Coupa login is required",
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future attachment proof receipt",
+          "future payment tracking update receipt"
+        ],
+        "required_secret_refs": [
+          "secret_ref:coupa_use_once_capital_hilton"
+        ],
+        "run_package_id": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "tenant_ref": "tenant_ref:winship"
+      }
+    },
+    "completion_target_blocked": {
+      "completion_target": {
+        "available_receipts": [
+          "invoice artifact saved receipt",
+          "Guardian approval receipt"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE_SENT_AND_RECORDED",
+        "completion_readback": "Completion target is modeled only. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "completion_target_id": "invoice_delivery_completion_target_c0ff493a02647b23",
+        "missing_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "attachment proof receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "next_safe_move": "Do not claim completion until all required receipts exist.",
+        "proof_bullets": [
+          "Invoice artifact/hash proves the local attachment package.",
+          "Guardian and operator receipts prove approval posture.",
+          "Future email and Coupa receipts would prove external delivery/submission.",
+          "Future payment tracking receipt would prove local status recording."
+        ],
+        "required_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "invoice artifact saved receipt",
+          "attachment proof receipt",
+          "Guardian approval receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0"
+      },
+      "components": [
+        {
+          "blocked_actions": [],
+          "component_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+          "component_status_id": "invoice_delivery_component_6e3077cf381dcb85",
+          "component_type": "DELIVERY_FACTS",
+          "how_to_fix": "Use captured delivery facts.",
+          "missing_items": [],
+          "next_safe_move": "Use captured delivery facts.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "READY"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "component_status_id": "invoice_delivery_component_699639485f12e8fd",
+          "component_type": "INVOICE_ARTIFACT",
+          "how_to_fix": "Use artifact/hash refs; do not send.",
+          "missing_items": [],
+          "next_safe_move": "Use artifact/hash refs; do not send.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "READY_WITH_HASH"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+          "component_status_id": "invoice_delivery_component_45d884ca1a216105",
+          "component_type": "EMAIL_PACKAGE",
+          "how_to_fix": "Review only; future send adapter remains gated.",
+          "missing_items": [
+            "future email send receipt"
+          ],
+          "next_safe_move": "Review only; future send adapter remains gated.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "READY_FOR_REVIEW_NOT_SEND"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "coupa_package_capital_hilton_complete_except_approval_v0",
+          "component_status_id": "invoice_delivery_component_25f2c908a10245ee",
+          "component_type": "COUPA_PACKAGE",
+          "how_to_fix": "Review only; future Coupa adapter remains gated.",
+          "missing_items": [
+            "future Coupa submit/confirmation receipt if Coupa required"
+          ],
+          "next_safe_move": "Review only; future Coupa adapter remains gated.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "READY_FOR_REVIEW_NOT_SUBMIT"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+          "component_status_id": "invoice_delivery_component_53907c0975cae420",
+          "component_type": "GUARDIAN_APPROVAL",
+          "how_to_fix": "Wait for future exact operator approval receipt.",
+          "missing_items": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Wait for future exact operator approval receipt.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "PACKET_EXISTS_NOT_APPROVED"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "capital_hilton_coupa_submit_covenant_v0",
+          "component_status_id": "invoice_delivery_component_752f9756ccc0d310",
+          "component_type": "ACTION_COVENANT",
+          "how_to_fix": "Use exact phrase only in future approval lane.",
+          "missing_items": [
+            "exact operator approval receipt"
+          ],
+          "next_safe_move": "Use exact phrase only in future approval lane.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "COVENANT_EXISTS"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "secret_ref:coupa_use_once_capital_hilton",
+          "component_status_id": "invoice_delivery_component_8f1232e644627bfc",
+          "component_type": "SECRET_REF",
+          "how_to_fix": "Keep secret value hidden; future adapter can use only approved ref.",
+          "missing_items": [],
+          "next_safe_move": "Keep secret value hidden; future adapter can use only approved ref.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "PROTECTED_REF_MODELED"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_f4dba02d73e8dfb0",
+          "component_type": "FINAL_READBACK",
+          "how_to_fix": "Create final readback only after receipts exist.",
+          "missing_items": [
+            "send/submit receipts"
+          ],
+          "next_safe_move": "Create final readback only after receipts exist.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "FUTURE_TARGET_ONLY"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_5eec1dbbb54f7180",
+          "component_type": "PAYMENT_TRACKING",
+          "how_to_fix": "Do not write payment tracking in this lane.",
+          "missing_items": [
+            "payment tracking update receipt, future"
+          ],
+          "next_safe_move": "Do not write payment tracking in this lane.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+          "status": "FUTURE_TARGET_ONLY"
+        }
+      ],
+      "execution_gate": {
+        "action_executed": false,
+        "browser_allowed": false,
+        "coupa_submit_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "gate_id": "invoice_delivery_execution_gate_c0ff493a02647b23",
+        "missing_gates": [
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future payment tracking update receipt",
+          "future execution adapters",
+          "future send/submit/payment receipts"
+        ],
+        "next_safe_move": "Keep execution locked; collect approval/proof/adapter receipts in future gated lanes.",
+        "required_action_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_adapter_refs": [
+          "future_gated_email_send_adapter",
+          "future_gated_coupa_browser_adapter",
+          "future_payment_tracking_receipt_adapter"
+        ],
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "required_operator_approval_ref": "operator_approval_receipt:future_exact_approval",
+        "required_secret_refs": [
+          "secret_ref:coupa_use_once_capital_hilton"
+        ],
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+        "workflow_run_allowed": false
+      },
+      "readiness_readback": {
+        "blocked_summary": "run package execution, workflow run, email send, Mail/Gmail send, Coupa access or submit, browser automation, secret reveal, approval execution, payment tracking write, external action, credential handling",
+        "component_summaries": [
+          "DELIVERY_FACTS: READY",
+          "INVOICE_ARTIFACT: READY_WITH_HASH",
+          "EMAIL_PACKAGE: READY_FOR_REVIEW_NOT_SEND",
+          "COUPA_PACKAGE: READY_FOR_REVIEW_NOT_SUBMIT",
+          "GUARDIAN_APPROVAL: PACKET_EXISTS_NOT_APPROVED",
+          "ACTION_COVENANT: COVENANT_EXISTS",
+          "SECRET_REF: PROTECTED_REF_MODELED",
+          "FINAL_READBACK: FUTURE_TARGET_ONLY",
+          "PAYMENT_TRACKING: FUTURE_TARGET_ONLY"
+        ],
+        "how_to_fix": "Review the package and collect missing approval/proof/adapter receipts; execution remains locked.",
+        "missing_summary": "exact operator approval receipt; future email send receipt; future Coupa submit/confirmation receipt if Coupa required; future payment tracking update receipt",
+        "next_safe_move": "Review the package and collect missing approval/proof/adapter receipts; execution remains locked.",
+        "operator_headline": "Invoice run package is review-only",
+        "operator_message": "OpenClaw has assembled the Capital Hilton invoice delivery run package for review. It still has no execution authority. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "readback_id": "invoice_delivery_readiness_readback_f78af73ace6136ba",
+        "ready_summary": "7 of 9 components are ready for review.",
+        "run_package_ref": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+        "status": "RUN_PACKAGE_READY_FOR_REVIEW"
+      },
+      "run_package": {
+        "action_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "available_proofs": [
+          "delivery facts confirmed",
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "email delivery package ref",
+          "Coupa supplier portal package ref",
+          "Guardian approval packet",
+          "protected secret ref if future Coupa login is required"
+        ],
+        "blocked_actions": [
+          "run package execution",
+          "workflow run",
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access or submit",
+          "browser automation",
+          "secret reveal",
+          "approval execution",
+          "payment tracking write",
+          "external action",
+          "credential handling"
+        ],
+        "client_ref": "client_ref:capital_hilton",
+        "completion_target": "INVOICE_SENT_AND_RECORDED",
+        "coupa_package_ref": "coupa_package_capital_hilton_complete_except_approval_v0",
+        "delivery_channels": [
+          "EMAIL_TO_CONTACT",
+          "COUPA_SUPPLIER_PORTAL",
+          "LOCAL_RECORDS",
+          "PAYMENT_TRACKING"
+        ],
+        "delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "delivery_goal": "Deliver and track the Capital Hilton invoice using local records/email follow-up and the official Coupa/PO payment rail.",
+        "email_delivery_package_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+        "execution_gate_status": "NO_EXECUTION_AUTHORITY",
+        "guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "invoice_artifact_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+        "missing_items": [
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future payment tracking update receipt"
+        ],
+        "next_safe_move": "Resolve missing package/proof/gate items; do not execute.",
+        "readiness_status": "WAITING_FOR_OPERATOR_APPROVAL",
+        "required_proofs": [
+          "delivery facts confirmed",
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "email delivery package ref",
+          "Coupa supplier portal package ref",
+          "Guardian approval packet",
+          "protected secret ref if future Coupa login is required",
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future attachment proof receipt",
+          "future payment tracking update receipt"
+        ],
+        "required_secret_refs": [
+          "secret_ref:coupa_use_once_capital_hilton"
+        ],
+        "run_package_id": "invoice_delivery_run_package_capital_hilton_ready_for_review_v0",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "tenant_ref": "tenant_ref:winship"
+      }
+    },
+    "missing_artifact_blocks_attachment": {
+      "completion_target": {
+        "available_receipts": [],
+        "completion_allowed": false,
+        "completion_label": "INVOICE_SENT_AND_RECORDED",
+        "completion_readback": "Completion target is modeled only. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "completion_target_id": "invoice_delivery_completion_target_22cc012a6c222cbc",
+        "missing_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "invoice artifact saved receipt",
+          "attachment proof receipt",
+          "Guardian approval receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "next_safe_move": "Do not claim completion until all required receipts exist.",
+        "proof_bullets": [
+          "Invoice artifact/hash proves the local attachment package.",
+          "Guardian and operator receipts prove approval posture.",
+          "Future email and Coupa receipts would prove external delivery/submission.",
+          "Future payment tracking receipt would prove local status recording."
+        ],
+        "required_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "invoice artifact saved receipt",
+          "attachment proof receipt",
+          "Guardian approval receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "run_package_ref": "invoice_delivery_run_package_missing_artifact_v0"
+      },
+      "components": [
+        {
+          "blocked_actions": [],
+          "component_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+          "component_status_id": "invoice_delivery_component_ae58b01cdd2ea2d0",
+          "component_type": "DELIVERY_FACTS",
+          "how_to_fix": "Use captured delivery facts.",
+          "missing_items": [],
+          "next_safe_move": "Use captured delivery facts.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_missing_artifact_v0",
+          "status": "READY"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_bce777e9ce2cdc19",
+          "component_type": "INVOICE_ARTIFACT",
+          "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX.",
+          "missing_items": [
+            "invoice artifact saved receipt",
+            "invoice artifact hash/fingerprint"
+          ],
+          "next_safe_move": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_missing_artifact_v0",
+          "status": "MISSING_ARTIFACT_AND_HASH"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "email_delivery_package_pending_missing_attachment",
+          "component_status_id": "invoice_delivery_component_e5d0dd336171ae69",
+          "component_type": "EMAIL_PACKAGE",
+          "how_to_fix": "Recompile email package after artifact/hash exists.",
+          "missing_items": [
+            "invoice artifact/hash"
+          ],
+          "next_safe_move": "Recompile email package after artifact/hash exists.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_missing_artifact_v0",
+          "status": "BLOCKED_BY_ARTIFACT"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "coupa_package_capital_hilton_missing_artifact",
+          "component_status_id": "invoice_delivery_component_3d1c3bdd8bb12c81",
+          "component_type": "COUPA_PACKAGE",
+          "how_to_fix": "Recompile Coupa package after artifact/hash exists.",
+          "missing_items": [
+            "invoice artifact/hash"
+          ],
+          "next_safe_move": "Recompile Coupa package after artifact/hash exists.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_missing_artifact_v0",
+          "status": "BLOCKED_BY_ARTIFACT"
+        }
+      ],
+      "execution_gate": {
+        "action_executed": false,
+        "browser_allowed": false,
+        "coupa_submit_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "gate_id": "invoice_delivery_execution_gate_22cc012a6c222cbc",
+        "missing_gates": [
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future execution adapters",
+          "future send/submit/payment receipts"
+        ],
+        "next_safe_move": "Keep execution locked; collect approval/proof/adapter receipts in future gated lanes.",
+        "required_action_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_adapter_refs": [
+          "future_gated_email_send_adapter",
+          "future_gated_coupa_browser_adapter",
+          "future_payment_tracking_receipt_adapter"
+        ],
+        "required_guardian_approval_ref": "missing",
+        "required_operator_approval_ref": "operator_approval_receipt:future_exact_approval",
+        "required_secret_refs": [],
+        "run_package_ref": "invoice_delivery_run_package_missing_artifact_v0",
+        "workflow_run_allowed": false
+      },
+      "readiness_readback": {
+        "blocked_summary": "run package execution, workflow run, email send, Mail/Gmail send, Coupa access or submit, browser automation, secret reveal, approval execution, payment tracking write, external action, credential handling",
+        "component_summaries": [
+          "DELIVERY_FACTS: READY",
+          "INVOICE_ARTIFACT: MISSING_ARTIFACT_AND_HASH",
+          "EMAIL_PACKAGE: BLOCKED_BY_ARTIFACT",
+          "COUPA_PACKAGE: BLOCKED_BY_ARTIFACT"
+        ],
+        "how_to_fix": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+        "missing_summary": "invoice artifact saved receipt; invoice artifact hash/fingerprint",
+        "next_safe_move": "Generate, attach, and hash the Winship-branded invoice PDF/XLSX before package review.",
+        "operator_headline": "Invoice run package needs an artifact",
+        "operator_message": "OpenClaw has assembled the Capital Hilton invoice delivery run package shape. It is not ready to execute yet. The workflow still needs invoice artifact saved receipt; invoice artifact hash/fingerprint. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "readback_id": "invoice_delivery_readiness_readback_831510c065299e29",
+        "ready_summary": "1 of 4 components are ready for review.",
+        "run_package_ref": "invoice_delivery_run_package_missing_artifact_v0",
+        "status": "NOT_READY_MISSING_ARTIFACT"
+      },
+      "run_package": {
+        "action_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "available_proofs": [
+          "delivery facts confirmed"
+        ],
+        "blocked_actions": [
+          "run package execution",
+          "workflow run",
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access or submit",
+          "browser automation",
+          "secret reveal",
+          "approval execution",
+          "payment tracking write",
+          "external action",
+          "credential handling"
+        ],
+        "client_ref": "client_ref:capital_hilton",
+        "completion_target": "INVOICE_SENT_AND_RECORDED",
+        "coupa_package_ref": "coupa_package_capital_hilton_missing_artifact",
+        "delivery_channels": [
+          "EMAIL_TO_CONTACT",
+          "COUPA_SUPPLIER_PORTAL",
+          "LOCAL_RECORDS",
+          "PAYMENT_TRACKING"
+        ],
+        "delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "delivery_goal": "Deliver and track the Capital Hilton invoice using local records/email follow-up and the official Coupa/PO payment rail.",
+        "email_delivery_package_ref": "email_delivery_package_pending_missing_attachment",
+        "execution_gate_status": "MISSING_PROOF",
+        "guardian_approval_ref": "",
+        "invoice_artifact_ref": "",
+        "missing_items": [
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint"
+        ],
+        "next_safe_move": "Resolve missing package/proof/gate items; do not execute.",
+        "readiness_status": "NOT_READY_MISSING_INPUTS",
+        "required_proofs": [
+          "delivery facts confirmed",
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "email delivery package ref",
+          "Coupa supplier portal package ref",
+          "Guardian approval packet",
+          "protected secret ref if future Coupa login is required",
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future attachment proof receipt",
+          "future payment tracking update receipt"
+        ],
+        "required_secret_refs": [],
+        "run_package_id": "invoice_delivery_run_package_missing_artifact_v0",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "tenant_ref": "tenant_ref:winship"
+      }
+    },
+    "missing_coupa_package_blocks_payment_rail": {
+      "completion_target": {
+        "available_receipts": [
+          "invoice artifact saved receipt"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE_SENT_AND_RECORDED",
+        "completion_readback": "Completion target is modeled only. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "completion_target_id": "invoice_delivery_completion_target_bc902a2c7dda21e7",
+        "missing_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "attachment proof receipt",
+          "Guardian approval receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "next_safe_move": "Do not claim completion until all required receipts exist.",
+        "proof_bullets": [
+          "Invoice artifact/hash proves the local attachment package.",
+          "Guardian and operator receipts prove approval posture.",
+          "Future email and Coupa receipts would prove external delivery/submission.",
+          "Future payment tracking receipt would prove local status recording."
+        ],
+        "required_receipts": [
+          "email send receipt, future",
+          "Coupa submit/confirmation receipt, future if Coupa required",
+          "invoice artifact saved receipt",
+          "attachment proof receipt",
+          "Guardian approval receipt",
+          "operator approval receipt",
+          "payment tracking update receipt, future"
+        ],
+        "run_package_ref": "invoice_delivery_run_package_missing_coupa_package_v0"
+      },
+      "components": [
+        {
+          "blocked_actions": [],
+          "component_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+          "component_status_id": "invoice_delivery_component_5b54c48c36e4c3e2",
+          "component_type": "DELIVERY_FACTS",
+          "how_to_fix": "Use captured delivery facts.",
+          "missing_items": [],
+          "next_safe_move": "Use captured delivery facts.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_missing_coupa_package_v0",
+          "status": "READY"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "component_status_id": "invoice_delivery_component_05780ad1a3a2eeb1",
+          "component_type": "INVOICE_ARTIFACT",
+          "how_to_fix": "Use artifact/hash refs.",
+          "missing_items": [],
+          "next_safe_move": "Use artifact/hash refs.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_missing_coupa_package_v0",
+          "status": "READY_WITH_HASH"
+        },
+        {
+          "blocked_actions": [],
+          "component_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+          "component_status_id": "invoice_delivery_component_f41d700905584851",
+          "component_type": "EMAIL_PACKAGE",
+          "how_to_fix": "Review only; future send adapter remains gated.",
+          "missing_items": [
+            "future email send receipt"
+          ],
+          "next_safe_move": "Review only; future send adapter remains gated.",
+          "ready": true,
+          "run_package_ref": "invoice_delivery_run_package_missing_coupa_package_v0",
+          "status": "READY_FOR_REVIEW_NOT_SEND"
+        },
+        {
+          "blocked_actions": [
+            "run package execution",
+            "workflow run",
+            "email send",
+            "Mail/Gmail send",
+            "Coupa access or submit",
+            "browser automation",
+            "secret reveal",
+            "approval execution",
+            "payment tracking write",
+            "external action",
+            "credential handling"
+          ],
+          "component_ref": "",
+          "component_status_id": "invoice_delivery_component_38ca70c0e969a088",
+          "component_type": "COUPA_PACKAGE",
+          "how_to_fix": "Confirm PO/reference and compile Coupa package.",
+          "missing_items": [
+            "confirmed Coupa PO/reference",
+            "Coupa supplier portal package ref"
+          ],
+          "next_safe_move": "Confirm PO/reference and compile Coupa package.",
+          "ready": false,
+          "run_package_ref": "invoice_delivery_run_package_missing_coupa_package_v0",
+          "status": "MISSING_COUPA_PACKAGE"
+        }
+      ],
+      "execution_gate": {
+        "action_executed": false,
+        "browser_allowed": false,
+        "coupa_submit_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "gate_id": "invoice_delivery_execution_gate_bc902a2c7dda21e7",
+        "missing_gates": [
+          "confirmed Coupa PO/reference",
+          "Coupa supplier portal package ref",
+          "exact operator approval receipt",
+          "future execution adapters",
+          "future send/submit/payment receipts"
+        ],
+        "next_safe_move": "Keep execution locked; collect approval/proof/adapter receipts in future gated lanes.",
+        "required_action_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_adapter_refs": [
+          "future_gated_email_send_adapter",
+          "future_gated_coupa_browser_adapter",
+          "future_payment_tracking_receipt_adapter"
+        ],
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_email_v0",
+        "required_operator_approval_ref": "operator_approval_receipt:future_exact_approval",
+        "required_secret_refs": [],
+        "run_package_ref": "invoice_delivery_run_package_missing_coupa_package_v0",
+        "workflow_run_allowed": false
+      },
+      "readiness_readback": {
+        "blocked_summary": "run package execution, workflow run, email send, Mail/Gmail send, Coupa access or submit, browser automation, secret reveal, approval execution, payment tracking write, external action, credential handling",
+        "component_summaries": [
+          "DELIVERY_FACTS: READY",
+          "INVOICE_ARTIFACT: READY_WITH_HASH",
+          "EMAIL_PACKAGE: READY_FOR_REVIEW_NOT_SEND",
+          "COUPA_PACKAGE: MISSING_COUPA_PACKAGE"
+        ],
+        "how_to_fix": "Confirm PO/reference and compile the Coupa supplier portal package.",
+        "missing_summary": "confirmed Coupa PO/reference; Coupa supplier portal package ref",
+        "next_safe_move": "Confirm PO/reference and compile the Coupa supplier portal package.",
+        "operator_headline": "Invoice run package needs a Coupa package",
+        "operator_message": "OpenClaw has assembled the Capital Hilton invoice delivery run package shape. It is not ready to execute yet. The workflow still needs confirmed Coupa PO/reference; Coupa supplier portal package ref. Nothing has been sent, submitted, opened, approved, or recorded as complete.",
+        "readback_id": "invoice_delivery_readiness_readback_55c1fe4c51c7337a",
+        "ready_summary": "3 of 4 components are ready for review.",
+        "run_package_ref": "invoice_delivery_run_package_missing_coupa_package_v0",
+        "status": "NOT_READY_MISSING_COUPA_PACKAGE"
+      },
+      "run_package": {
+        "action_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "available_proofs": [
+          "delivery facts confirmed",
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "email delivery package ref"
+        ],
+        "blocked_actions": [
+          "run package execution",
+          "workflow run",
+          "email send",
+          "Mail/Gmail send",
+          "Coupa access or submit",
+          "browser automation",
+          "secret reveal",
+          "approval execution",
+          "payment tracking write",
+          "external action",
+          "credential handling"
+        ],
+        "client_ref": "client_ref:capital_hilton",
+        "completion_target": "INVOICE_SENT_AND_RECORDED",
+        "coupa_package_ref": "",
+        "delivery_channels": [
+          "EMAIL_TO_CONTACT",
+          "COUPA_SUPPLIER_PORTAL",
+          "LOCAL_RECORDS",
+          "PAYMENT_TRACKING"
+        ],
+        "delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "delivery_goal": "Deliver and track the Capital Hilton invoice using local records/email follow-up and the official Coupa/PO payment rail.",
+        "email_delivery_package_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+        "execution_gate_status": "MISSING_PROOF",
+        "guardian_approval_ref": "guardian_approval_capital_hilton_email_v0",
+        "invoice_artifact_ref": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "Coupa supplier portal package ref"
+        ],
+        "next_safe_move": "Resolve missing package/proof/gate items; do not execute.",
+        "readiness_status": "NOT_READY_MISSING_INPUTS",
+        "required_proofs": [
+          "delivery facts confirmed",
+          "invoice artifact saved receipt",
+          "invoice artifact hash/fingerprint",
+          "email delivery package ref",
+          "Coupa supplier portal package ref",
+          "Guardian approval packet",
+          "protected secret ref if future Coupa login is required",
+          "exact operator approval receipt",
+          "future email send receipt",
+          "future Coupa submit/confirmation receipt if Coupa required",
+          "future attachment proof receipt",
+          "future payment tracking update receipt"
+        ],
+        "required_secret_refs": [],
+        "run_package_id": "invoice_delivery_run_package_missing_coupa_package_v0",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "tenant_ref": "tenant_ref:winship"
+      }
+    }
+  },
+  "execution_gate_statuses": [
+    "NO_EXECUTION_AUTHORITY",
+    "MISSING_APPROVAL",
+    "MISSING_PROOF",
+    "MISSING_SECRET_REF",
+    "MISSING_ADAPTER",
+    "FUTURE_EXECUTION_TARGET_ONLY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "invoice_delivery_run_package_blockers": [
+    {
+      "blocker_id": "invoice_run_blocker_facts",
+      "blocker_type": "DELIVERY_FACTS_MISSING",
+      "condition": "Delivery facts refs are missing.",
+      "elioperator_warning": "Delivery facts are missing.",
+      "fail_closed": true,
+      "next_safe_move": "Capture delivery facts first.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_artifact",
+      "blocker_type": "INVOICE_ARTIFACT_MISSING",
+      "condition": "Invoice artifact/hash refs are missing.",
+      "elioperator_warning": "Invoice artifact is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Generate/attach/hash invoice artifact.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_email",
+      "blocker_type": "EMAIL_PACKAGE_MISSING",
+      "condition": "Email delivery package ref is missing.",
+      "elioperator_warning": "Email package is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Compile email delivery package.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_coupa",
+      "blocker_type": "COUPA_PACKAGE_MISSING",
+      "condition": "Coupa package ref is missing.",
+      "elioperator_warning": "Coupa package is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Compile Coupa package with PO/reference posture.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_approval",
+      "blocker_type": "APPROVAL_MISSING",
+      "condition": "Guardian approval packet or operator receipt is missing.",
+      "elioperator_warning": "Approval is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Create Guardian packet and future operator receipt.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_covenant",
+      "blocker_type": "ACTION_COVENANT_MISSING",
+      "condition": "Action Covenant is missing.",
+      "elioperator_warning": "Action Covenant is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Create covenant for gated actions.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_secret",
+      "blocker_type": "SECRET_REF_MISSING",
+      "condition": "Protected secret ref is missing for future portal access.",
+      "elioperator_warning": "Protected secret ref is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Use future protected secret intake; do not expose credentials.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_proof",
+      "blocker_type": "PROOF_MISSING",
+      "condition": "Required proof or receipt refs are missing.",
+      "elioperator_warning": "Proof is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Attach proof refs or wait for future receipts.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_adapter",
+      "blocker_type": "EXECUTION_ADAPTER_MISSING",
+      "condition": "Future gated execution adapter is missing.",
+      "elioperator_warning": "Execution adapter is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Keep package review-only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_email_send",
+      "blocker_type": "EMAIL_SEND_ATTEMPTED",
+      "condition": "Assembler attempts email send.",
+      "elioperator_warning": "Email send is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Return run package/readback only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_coupa_submit",
+      "blocker_type": "COUPA_SUBMIT_ATTEMPTED",
+      "condition": "Assembler attempts Coupa submit.",
+      "elioperator_warning": "Coupa submit is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Return run package/readback only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_browser",
+      "blocker_type": "BROWSER_ATTEMPTED",
+      "condition": "Assembler attempts browser access.",
+      "elioperator_warning": "Browser access is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Stay local and deterministic.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_completion",
+      "blocker_type": "COMPLETION_CLAIM_WITHOUT_RECEIPTS",
+      "condition": "Completion is claimed without receipts.",
+      "elioperator_warning": "Completion claim is blocked without receipts.",
+      "fail_closed": true,
+      "next_safe_move": "Require send/submit/artifact/approval/payment receipts.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_external",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "Assembler attempts external action.",
+      "elioperator_warning": "External action is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Keep package read-model only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "invoice_run_blocker_unknown",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown run package state.",
+      "elioperator_warning": "Unknown run package state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Ask for scoped missing refs.",
+      "severity": "high"
+    }
+  ],
+  "machine_proof": {
+    "all_live_authority_false": true,
+    "approval_execution_performed": false,
+    "browser_access_performed": false,
+    "completion_claimed": false,
+    "coupa_access_performed": false,
+    "coupa_submit_performed": false,
+    "credential_handling_performed": false,
+    "email_send_performed": false,
+    "external_action_performed": false,
+    "git_push_performed": false,
+    "gmail_send_performed": false,
+    "mac_sync_import_performed": false,
+    "mail_send_performed": false,
+    "payment_tracking_write_performed": false,
+    "raw_body_ingestion_performed": false,
+    "run_package_execution_performed": false,
+    "secret_reveal_performed": false,
+    "swift_change_performed": false,
+    "workflow_run_performed": false
+  },
+  "next_safe_move": "Resolve missing PO/artifact/contact/approval/proof refs, then keep execution locked until future gated adapters exist.",
+  "operator_summary": "OpenClaw can now assemble the Capital Hilton invoice delivery run package shape across delivery facts, invoice artifact refs, email package refs, Coupa package refs, Guardian/covenant refs, proof plans, execution gates, and future completion receipts. It does not execute.",
+  "read_model_id": "invoice_delivery_run_package_assembler",
+  "readback_statuses": [
+    "RUN_PACKAGE_READY_FOR_REVIEW",
+    "NOT_READY_MISSING_ARTIFACT",
+    "NOT_READY_MISSING_EMAIL_PACKAGE",
+    "NOT_READY_MISSING_COUPA_PACKAGE",
+    "NOT_READY_MISSING_APPROVAL",
+    "NOT_READY_MISSING_SECRET_REF",
+    "NOT_READY_MISSING_PROOF",
+    "BLOCKED_EXECUTION_GATE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "readiness_statuses": [
+    "NOT_READY_MISSING_INPUTS",
+    "PARTIAL_READY_FOR_REVIEW",
+    "READY_FOR_GUARDIAN_REVIEW",
+    "WAITING_FOR_OPERATOR_APPROVAL",
+    "APPROVED_NOT_EXECUTABLE",
+    "EXECUTION_GATED",
+    "COMPLETION_BLOCKED_MISSING_PROOF",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "invoice_delivery_run_package_assembler_v0"
+}

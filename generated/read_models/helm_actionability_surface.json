@@ -1,0 +1,321 @@
+{
+  "action_cards": [
+    {
+      "action_label": "Mark as test",
+      "action_type": "mark_test",
+      "business_action": false,
+      "card_id": "st_annes_smoke_work_log_event",
+      "completed": true,
+      "completed_summary": "St. Anne's test event cleared.",
+      "headline": "St. Anne's church sound entry is staged as smoke/test.",
+      "invoice_inclusion_allowed": false,
+      "lifecycle_status": "RESOLVED_TEST_EVENT",
+      "payload_ref": "generated/read_models/st_annes_work_log_review_surface.json#st_annes_work_log:2026-06-01:church_sound:ef129d515f03e14c",
+      "plain_summary": "The June 1 church sound event is visible for review and is currently not included in invoice rollup.",
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/st_annes_work_log_events.json",
+        "generated/read_models/st_annes_work_log_review_surface.json"
+      ],
+      "review_action_ref": "mark_as_test_st_annes_work_log_event",
+      "safe_to_auto_stage": true,
+      "secondary_actions": [
+        {
+          "action_type": "stage_package_request",
+          "label": "Confirm as real work",
+          "payload_ref": "generated/read_models/st_annes_work_log_review_surface.json#confirm_st_annes_work_log_event"
+        },
+        {
+          "action_type": "navigate",
+          "label": "Open Finance / St. Anne's",
+          "payload_ref": "generated/read_models/st_annes_work_log_review_surface.json",
+          "target_thread_ref": "st_annes",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_type": "stage_package_request",
+          "label": "Discard smoke event",
+          "payload_ref": "generated/read_models/st_annes_work_log_review_surface.json#discard_st_annes_work_log_event"
+        }
+      ],
+      "speaker_ref": "cassandra",
+      "status_label": "Smoke/test not included",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "visible_by_default": false
+    },
+    {
+      "action_label": "Open Finance / St. Anne's",
+      "action_type": "navigate",
+      "business_action": false,
+      "card_id": "safe_next_st_annes_review",
+      "completed": true,
+      "completed_summary": "St. Anne's test event cleared.",
+      "headline": "Safe next: review St. Anne's.",
+      "lifecycle_status": "RESOLVED_TEST_EVENT",
+      "payload_ref": "generated/read_models/st_annes_work_log_review_surface.json",
+      "plain_summary": "The safest concrete next move is to open the St. Anne's review lane and resolve the staged smoke/test work-log entry.",
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/st_annes_work_log_events.json",
+        "generated/read_models/st_annes_work_log_review_surface.json"
+      ],
+      "safe_to_auto_stage": false,
+      "speaker_ref": "openclaw",
+      "status_label": "Ready for operator review",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "visible_by_default": false
+    },
+    {
+      "action_label": "Open Finance / Capital Hilton",
+      "action_type": "navigate",
+      "business_action": false,
+      "card_id": "capital_hilton_payment_watch",
+      "headline": "Capital Hilton payment watch is finance-only.",
+      "payload_ref": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+      "plain_summary": "The invoice run is recorded, payment truth is not created here, and provider actions remain locked.",
+      "safe_to_auto_stage": false,
+      "speaker_ref": "chief",
+      "status_label": "Watch only",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance"
+    },
+    {
+      "action_label": "Open Business Development / Capital Hilton",
+      "action_type": "navigate",
+      "business_action": false,
+      "card_id": "capital_hilton_proposal_watch",
+      "headline": "Capital Hilton proposal is waiting for client review.",
+      "payload_ref": "generated/read_models/capital_hilton_business_development_proposal.json",
+      "plain_summary": "The safe action is to view the Business Development lane and watch the proposal status without sending anything.",
+      "safe_to_auto_stage": false,
+      "speaker_ref": "chief",
+      "status_label": "Client review pending",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development"
+    }
+  ],
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "portal_submit_allowed": false,
+    "sent": false
+  },
+  "generated_at": "2026-06-02T17:25:00-04:00",
+  "guardian_checklist": [
+    {
+      "plain_label": "Email send locked",
+      "safe_action": "Explain this gate",
+      "status": "locked",
+      "why_it_matters": "Email send is an external action and needs an explicit send gate."
+    },
+    {
+      "plain_label": "Coupa submit locked",
+      "safe_action": "Open relevant lane",
+      "status": "locked",
+      "why_it_matters": "Coupa submit requires operator-present review, login context, final confirmation, and receipt preservation."
+    },
+    {
+      "plain_label": "Ledger posting locked",
+      "safe_action": "Explain this gate",
+      "status": "locked",
+      "why_it_matters": "Ledger posting and paid truth require separate payment evidence."
+    },
+    {
+      "plain_label": "Excel mutation locked",
+      "safe_action": "Stage approval packet only if safe",
+      "status": "locked",
+      "why_it_matters": "Workbook changes need patch approval and stable workbook permissions."
+    },
+    {
+      "plain_label": "PDF export locked",
+      "safe_action": "Explain this gate",
+      "status": "locked",
+      "why_it_matters": "PDF export needs an artifact-backed flow with validation before downstream use."
+    }
+  ],
+  "history_policy": {
+    "proof_collapsed_by_default": true,
+    "raw_request_bodies_visible_by_default": false,
+    "show_full_history_by_default": false,
+    "show_recent_context_count": 3
+  },
+  "lifecycle": {
+    "active_action_count": 2,
+    "generated_at": "2026-06-14T17:44:30+00:00",
+    "proof_collapsed_by_default": true,
+    "resolved_action_count": 2,
+    "resolved_action_refs": [
+      "st_annes_smoke_work_log_event",
+      "safe_next_st_annes_review"
+    ],
+    "schema_version": "helm_action_lifecycle_status_v0",
+    "status": "HELM_ACTION_LIFECYCLE_READY"
+  },
+  "machine_proof": {
+    "business_action_truth_created": false,
+    "buttons_are_navigation_staging_review_or_explain_only": true,
+    "history_hidden_by_default": true,
+    "proof_collapsed_by_default": true,
+    "raw_long_prompts_stored": false,
+    "raw_proof_dumped": false,
+    "read_model_contract_only": true,
+    "send_coupa_ledger_excel_export_gated": true,
+    "unsafe_true_grants_absent": true
+  },
+  "mode": "operator_calm",
+  "next_safe_action": "Open Finance / St. Anne's work-log review and resolve the smoke/test event without adding it to invoice rollup unless the operator confirms it as real work.",
+  "primary_next_action": {
+    "action_id": "capital_hilton_payment_watch",
+    "action_type": "navigate",
+    "label": "Open Finance / Capital Hilton",
+    "payload_ref": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "reason": "The St. Anne's review card is resolved, so Helm advances to the next visible action card.",
+    "target_thread_ref": "capital_hilton",
+    "target_world_ref": "finance"
+  },
+  "proof_explainers": [
+    {
+      "human_title": "St. Anne's work-log review surface",
+      "proof_ref": "generated/read_models/st_annes_work_log_review_surface.json",
+      "question_text": "What does this proof mean?",
+      "system_question_payload_ref": "system_question_payload:st_annes_work_log_review_surface"
+    },
+    {
+      "human_title": "Capital Hilton invoice operator run status",
+      "proof_ref": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+      "question_text": "What does this proof mean?",
+      "system_question_payload_ref": "system_question_payload:capital_hilton_invoice_operator_run_status"
+    },
+    {
+      "human_title": "Capital Hilton business development proposal",
+      "proof_ref": "generated/read_models/capital_hilton_business_development_proposal.json",
+      "question_text": "What does this proof mean?",
+      "system_question_payload_ref": "system_question_payload:capital_hilton_business_development_proposal"
+    },
+    {
+      "human_title": "Package event index",
+      "proof_ref": "generated/read_models/package_event_index.json",
+      "question_text": "What does this proof mean?",
+      "system_question_payload_ref": "system_question_payload:package_event_index"
+    },
+    {
+      "human_title": "Automation permission registry",
+      "proof_ref": "generated/read_models/automation_permission_registry.json",
+      "question_text": "What does this proof mean?",
+      "system_question_payload_ref": "system_question_payload:automation_permission_registry"
+    }
+  ],
+  "purpose": "Turn Helm into a calm action desk with suggested questions, precomputed answers, safe next actions, lane navigation, Guardian gates, and collapsed proof explanation targets.",
+  "read_model_id": "helm_actionability_surface",
+  "schema_version": "helm_actionability_surface_v0",
+  "source_read_models": [
+    "generated/read_models/overnight_workboard.json",
+    "generated/read_models/operator_conversation_journal.json",
+    "generated/read_models/package_event_index.json",
+    "generated/read_models/st_annes_work_log_events.json",
+    "generated/read_models/st_annes_work_log_review_surface.json",
+    "generated/read_models/automation_permission_registry.json",
+    "generated/read_models/operator_human_readability_surface.json",
+    "generated/read_models/helm_composer_contract.json",
+    "generated/read_models/system_question_answer_contract.json",
+    "generated/read_models/hardwired_vs_spawned_agents.json",
+    "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/st_annes_invoice_status.json"
+  ],
+  "status": "HELM_ACTIONABILITY_SURFACE_READY",
+  "suggested_questions": [
+    {
+      "action": {
+        "action_type": "navigate",
+        "label": "Open Finance / Capital Hilton",
+        "payload_ref": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "target_thread_ref": "capital_hilton",
+        "target_world_ref": "finance"
+      },
+      "precomputed_answer": {
+        "headline": "Safe next: Open Finance / Capital Hilton.",
+        "next_safe_action": "Open Finance / Capital Hilton",
+        "plain_summary": "The St. Anne's review card is resolved, so Helm advances to the next visible action card.",
+        "speaker_ref": "openclaw"
+      },
+      "question_id": "safe_next",
+      "question_text": "What is safe next?"
+    },
+    {
+      "action": {
+        "action_type": "review_event",
+        "label": "Review St. Anne's church sound entry",
+        "payload_ref": "generated/read_models/st_annes_work_log_review_surface.json#st_annes_work_log:2026-06-01:church_sound:ef129d515f03e14c",
+        "target_thread_ref": "st_annes",
+        "target_world_ref": "finance"
+      },
+      "precomputed_answer": {
+        "headline": "The church sound entry is staged as smoke/test.",
+        "next_safe_action": "Mark as test, or open the review lane to confirm as real work.",
+        "plain_summary": "The event is visible in the St. Anne's work-log review surface and is not included in invoice rollup unless the operator confirms it as real work.",
+        "speaker_ref": "cassandra"
+      },
+      "question_id": "st_annes_church_sound",
+      "question_text": "Mark that I'm at church running sound."
+    },
+    {
+      "action": {
+        "action_type": "system_question",
+        "label": "Ask Hermes to explain agent roles",
+        "payload_ref": "generated/read_models/hardwired_vs_spawned_agents.json",
+        "target_thread_ref": "architecture",
+        "target_world_ref": "system"
+      },
+      "precomputed_answer": {
+        "headline": "Chief is a standing role; spawned workers are temporary packages.",
+        "next_safe_action": "Open the hardwired-vs-spawned explainer proof target.",
+        "plain_summary": "Chief is part of the named OpenClaw architecture and watches gates, packages, and diagnostics. A spawned worker is a bounded execution packet with no persistent identity or broad authority.",
+        "speaker_ref": "hermes"
+      },
+      "question_id": "hardwired_vs_spawned",
+      "question_text": "What is the difference between Chief and a spawned worker?"
+    },
+    {
+      "action": {
+        "action_type": "navigate",
+        "label": "Open Finance / Capital Hilton",
+        "payload_ref": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "target_thread_ref": "capital_hilton",
+        "target_world_ref": "finance"
+      },
+      "precomputed_answer": {
+        "headline": "Capital Hilton needs an operator-present provider gate.",
+        "next_safe_action": "Open Finance / Capital Hilton payment watch.",
+        "plain_summary": "The recorded run keeps Coupa submit, browser access, email send, and ledger posting locked. The safe action is to inspect the finance lane, not to submit through Coupa.",
+        "speaker_ref": "chief"
+      },
+      "question_id": "capital_hilton_invoice_block",
+      "question_text": "Why did Submit Capital Hilton invoice block?"
+    },
+    {
+      "action": {
+        "action_type": "inspect_proof",
+        "label": "Explain email gate",
+        "payload_ref": "generated/read_models/automation_permission_registry.json#gmail_send",
+        "target_thread_ref": "guardian",
+        "target_world_ref": "system"
+      },
+      "precomputed_answer": {
+        "headline": "No email send authority is granted.",
+        "next_safe_action": "Explain the email send gate.",
+        "plain_summary": "Helm Actionability can explain the gate or stage an approval packet, but it cannot send email or open Gmail.",
+        "speaker_ref": "guardian"
+      },
+      "question_id": "email_authority",
+      "question_text": "Can this send email?"
+    }
+  ],
+  "surface_ref": "helm_actionability_surface"
+}

@@ -1,0 +1,258 @@
+{
+  "adapter_functions": [
+    "create_worker_package_from_assignment_loop",
+    "create_worker_package_from_lm_consult_request"
+  ],
+  "agent_usability_matrix": [
+    {
+      "agent": "Cassandra",
+      "can_dispatch": false,
+      "can_ingest_result": false,
+      "can_request_worker_package": true,
+      "can_summarize_next_action": true,
+      "can_verify_proof": false,
+      "missing_integration": "Use orchestrator rails to create Assignment Loop or LM Consult request; dispatch remains operator/Chief controlled."
+    },
+    {
+      "agent": "Chief",
+      "can_dispatch": true,
+      "can_ingest_result": true,
+      "can_request_worker_package": true,
+      "can_summarize_next_action": true,
+      "can_verify_proof": true,
+      "missing_integration": "No automatic model execution; dispatch/ingest remains explicit."
+    },
+    {
+      "agent": "Niles",
+      "can_dispatch": false,
+      "can_ingest_result": false,
+      "can_request_worker_package": true,
+      "can_summarize_next_action": true,
+      "can_verify_proof": false,
+      "missing_integration": "Creative lane requests need packaged context; no DAW/media daemon authority."
+    },
+    {
+      "agent": "Hermes",
+      "can_dispatch": false,
+      "can_ingest_result": false,
+      "can_request_worker_package": true,
+      "can_summarize_next_action": true,
+      "can_verify_proof": false,
+      "missing_integration": "Adapter/boundary role only; do not start a sidecar in this consolidation."
+    },
+    {
+      "agent": "Guardian",
+      "can_dispatch": false,
+      "can_ingest_result": false,
+      "can_request_worker_package": false,
+      "can_summarize_next_action": true,
+      "can_verify_proof": true,
+      "missing_integration": "Guardian remains separate approval/safety gate and does not become a worker dispatcher."
+    },
+    {
+      "agent": "Watch Desk",
+      "can_dispatch": false,
+      "can_ingest_result": false,
+      "can_request_worker_package": false,
+      "can_summarize_next_action": true,
+      "can_verify_proof": false,
+      "missing_integration": "Projection only; push_allowed remains false."
+    }
+  ],
+  "authority_boundary": {
+    "authority_granted_from_raw_text_allowed": false,
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_model_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "gmail_ui_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "lm2_tool_expansion_allowed": false,
+    "merge_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "canonical_spine": {
+    "agent_role_registry": "openclaw_agent_role_registry.py",
+    "authority_boundary": {
+      "authority_granted_from_raw_text_allowed": false,
+      "browser_access_allowed": false,
+      "coupa_allowed": false,
+      "email_send_allowed": false,
+      "external_model_allowed": false,
+      "git_push_allowed": false,
+      "gmail_allowed": false,
+      "gmail_ui_allowed": false,
+      "ledger_mutation_allowed": false,
+      "ledger_posting_allowed": false,
+      "lm2_tool_expansion_allowed": false,
+      "merge_allowed": false,
+      "paid": false,
+      "paid_marking_allowed": false,
+      "pdf_export_allowed": false,
+      "portal_submit_allowed": false,
+      "sent": false,
+      "workbook_mutation_allowed": false,
+      "worker_spawn_allowed": false
+    },
+    "canonical_spine_file": "codex_work_package_lifecycle.py",
+    "canonical_spine_id": "lm2_canonical_worker_spine",
+    "cli_surface": "scripts/openclaw_run.py",
+    "consult_transport": "openclaw_lm_consult_spine.py",
+    "execution_allowed": false,
+    "model_invocation_allowed": false,
+    "projection": "watch_desk_feed.py",
+    "proof_verifier": "proof_to_response_verifier.py",
+    "provider_metadata_sources": [
+      "provider_access_catalog.py",
+      "provider_access_auth_status.py"
+    ],
+    "role": "OpenClaw canonical worker run registry and result-ingest spine",
+    "runtime_mutation_allowed": false,
+    "schema_version": "LM2_CANONICAL_SPINE_V0",
+    "sqlite_registry_path": "generated/system_knowledge/codex_work_package_lifecycle.sqlite",
+    "task_container": "assignment_loop_contract.py"
+  },
+  "current_known_blockers": [
+    "No automatic model execution is enabled.",
+    "Repo B remains reference-only.",
+    "Provider auth/subscription metadata does not grant execution authority."
+  ],
+  "generated_at": "2026-06-13T16:39:24+00:00",
+  "machine_proof": {
+    "content_hash": "sha256:7b51e37036a7c8c06f17e092c3d9e80fd20e9386e2371fcc6fa144f2727ff88f",
+    "no_model_calls": true,
+    "no_new_queue_database": true,
+    "repo_b_reference_only": true,
+    "watch_desk_push_allowed_false": true
+  },
+  "module_roles": [
+    {
+      "disposition": "canonical",
+      "path": "codex_work_package_lifecycle.py",
+      "reason": "Owns package queue, dispatch claims, result ingest, validation receipts, activation decisions, SQLite registry, and Watch Desk projection.",
+      "role": "runtime_spine"
+    },
+    {
+      "disposition": "canonical_cli",
+      "path": "scripts/openclaw_run.py",
+      "reason": "Existing operator CLI for status/show/dispatch/ingest against codex_work_package_lifecycle.py.",
+      "role": "cli_control_surface"
+    },
+    {
+      "disposition": "canonical_contract",
+      "path": "assignment_loop_contract.py",
+      "reason": "Defines bounded assignment fields: goal, sources, standard, permission boundary, proof, and stop condition.",
+      "role": "task_container"
+    },
+    {
+      "disposition": "canonical_transport",
+      "path": "openclaw_lm_consult_spine.py",
+      "reason": "Provider-neutral advisory request/result contract; can stage work that becomes a canonical worker package.",
+      "role": "consult_transport"
+    },
+    {
+      "disposition": "canonical_contract",
+      "path": "openclaw_agent_role_registry.py",
+      "reason": "Provides compact role cards and full context refs for LM2 packages without inlining large agent docs.",
+      "role": "agent_role_context"
+    },
+    {
+      "disposition": "support_metadata",
+      "path": "provider_access_catalog.py",
+      "reason": "Describes installed/provider access modes; metadata does not grant execution authority.",
+      "role": "provider_access_metadata"
+    },
+    {
+      "disposition": "support_metadata",
+      "path": "provider_access_auth_status.py",
+      "reason": "Records safe auth/subscription status probes without model invocation or credential values.",
+      "role": "provider_auth_metadata"
+    },
+    {
+      "disposition": "canonical_verifier",
+      "path": "proof_to_response_verifier.py",
+      "reason": "Deterministic proof-to-response publication gate; invoked by worker result ingest only when explicit proof specs are supplied.",
+      "role": "proof_verification"
+    },
+    {
+      "disposition": "canonical_projection",
+      "path": "watch_desk_feed.py",
+      "reason": "Displays canonical worker lifecycle items without adding a dashboard or new lane.",
+      "role": "projection"
+    },
+    {
+      "disposition": "deprecated_runtime_retained",
+      "path": "spawned_worker_package_lifecycle.py",
+      "reason": "Retained for historical spawned-worker lifecycle contract/read model; runtime queue is canonical elsewhere.",
+      "role": "contract_only"
+    },
+    {
+      "disposition": "compatibility",
+      "path": "cross_machine_worker_dispatch_package.py",
+      "reason": "Retained for cross-machine packaging metadata; not a live dispatch runtime.",
+      "role": "support_metadata"
+    },
+    {
+      "disposition": "future_contract_not_runtime",
+      "path": "openclaw_lm_child_package_gate.py",
+      "reason": "Retained as future child-package gate contract; no LM2 spawning path is enabled here.",
+      "role": "contract_only"
+    },
+    {
+      "disposition": "metadata_router_not_runtime_registry",
+      "path": "model_work_package_router.py",
+      "reason": "Deterministic model class/package metadata; canonical runtime registry remains codex_work_package_lifecycle.py.",
+      "role": "support_metadata"
+    }
+  ],
+  "repo_b_legacy_disposition_summary": {
+    "candidate_pattern_only_count": 3,
+    "represented_in_repo_a_count": 3,
+    "superseded_count": 2,
+    "unknown_needs_review_count": 2,
+    "unsafe_blocked_count": 5
+  },
+  "runtime_spine_files": [
+    "codex_work_package_lifecycle.py",
+    "scripts/openclaw_run.py",
+    "assignment_loop_contract.py",
+    "openclaw_lm_consult_spine.py",
+    "provider_access_catalog.py",
+    "provider_access_auth_status.py",
+    "proof_to_response_verifier.py",
+    "watch_desk_feed.py"
+  ],
+  "safety_flags": {
+    "confirmed_reference_data_created": false,
+    "guardian_approval_created": false,
+    "hydration_run": false,
+    "model_api_called": false,
+    "new_sqlite_registry_created": false,
+    "repo_b_code_imported": false,
+    "runtime_policy_mutated": false,
+    "worker_spawned": false
+  },
+  "schema_version": "LM2_CANONICAL_WORKER_SPINE_CONSOLIDATION_V0",
+  "status": "OPENCLAW_LM2_CANONICAL_WORKER_SPINE_CONSOLIDATION_READY",
+  "watch_desk_behavior": {
+    "new_dashboard_created": false,
+    "new_lane_created": false,
+    "projection_source": "codex_work_package_lifecycle.py build_read_model watch_desk_items",
+    "push_allowed": false
+  },
+  "what_not_to_build_next": [
+    "Do not create another worker registry or queue database.",
+    "Do not resurrect Repo B google_access_broker/OAuth/credential bridge code.",
+    "Do not create a new model router or approval system.",
+    "Do not let LM2 output mutate runtime directly."
+  ]
+}

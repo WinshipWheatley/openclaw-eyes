@@ -1,0 +1,295 @@
+{
+  "authority_boundary": {
+    "approval_packet_is_invocation_approval": false,
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_llm_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "invocation_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "local_model_runtime_allowed": false,
+    "memory_promotion_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "proof_bundle_allowed": false,
+    "protected_actions_allowed": false,
+    "tool_authority_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "content_hash": "sha256:85c05dd30add69d65439419d3fa17a23e95e5dd4ed1c5aa1dada778a1785de1c",
+  "generated_at": "2026-06-07T21:35:46+00:00",
+  "implementation_boundary": {
+    "browser_access_performed": false,
+    "business_action_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_api_called": false,
+    "external_llm_invoked": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "model_invocation_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "prompt_sent": false,
+    "proof_bundle_sent": false,
+    "secret_read_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "business_action_performed": false,
+    "external_api_called": false,
+    "fallback_required": true,
+    "invocation_allowed": false,
+    "local_model_runtime_connected": false,
+    "model_invocation_performed": false,
+    "packet_pending_operator_review": true,
+    "preconditions_ready": true,
+    "prompt_sent": false,
+    "proof_bundle_allowed": false,
+    "proof_bundle_sent": false,
+    "protected_actions_blocked": true,
+    "review_only": true,
+    "schema_adapter_required": true,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "verifier_required": true
+  },
+  "packet": {
+    "allowed_input": "redacted freshness-gated proof bundle only",
+    "allowed_input_fields": [
+      "world_ref",
+      "thread_ref",
+      "objective_ref",
+      "redacted_known_facts",
+      "proof_meter_labels",
+      "receipt_refs",
+      "gate_labels",
+      "missing_input",
+      "allowed_controls",
+      "blocked_action_summaries",
+      "human_safe_summaries",
+      "agent_voice_mode"
+    ],
+    "boundary": {
+      "browser_gmail_coupa_allowed": false,
+      "email_send_submit_allowed": false,
+      "external_provider_allowed": false,
+      "ledger_workbook_pdf_paid_mutation_allowed": false,
+      "memory_promotion_allowed": false,
+      "operator_device_session_secrets_allowed": false,
+      "push_merge_allowed": false,
+      "raw_finance_private_proof_allowed": false,
+      "tool_use_allowed": false,
+      "worker_spawn_allowed": false
+    },
+    "decision_options": [
+      "approve_one_time_local_lm_retry_with_schema_adapter",
+      "request_more_detail",
+      "choose_different_model",
+      "reject_for_now"
+    ],
+    "fallback_required": true,
+    "forbidden_actions": [
+      "external_provider_call",
+      "tool_use",
+      "memory_promotion",
+      "browser_access",
+      "gmail_access",
+      "coupa_access",
+      "email_send",
+      "send",
+      "submit",
+      "ledger_mutation",
+      "workbook_mutation",
+      "pdf_export",
+      "paid_marking",
+      "worker_spawn",
+      "git_push",
+      "merge",
+      "raw_finance_private_proof",
+      "operator_device_session_secrets"
+    ],
+    "forbidden_inputs": [
+      "raw_finance_details",
+      "private_finance_proof",
+      "bank_account_numbers",
+      "routing_numbers",
+      "credentials_or_tokens",
+      "operator_device_session_verification_secrets",
+      "raw_prompt_dumps",
+      "raw_artifact_or_ocr_text",
+      "workbook_bodies",
+      "email_bodies",
+      "ledger_rows",
+      "internal_paths",
+      "authority_granted_fields"
+    ],
+    "invocation_allowed": false,
+    "lane": "finance/capital_hilton",
+    "model": "qwen3:8b-q4_K_M",
+    "one_retry_attempt_only_if_later_approved": true,
+    "packet_id": "approval_packet:local_lm_proof_response_retry:finance_capital_hilton:qwen_schema_adapter:v0",
+    "prior_attempt_result": "failed_non_json",
+    "proof_bundle_allowed": false,
+    "question": "What should I do here?",
+    "required_prompt_mode": "json_only",
+    "required_receipts_before_retry": [
+      "operator_approval_receipt",
+      "model_invocation_boundary_receipt",
+      "redacted_freshness_gated_proof_bundle_receipt",
+      "json_only_prompt_receipt",
+      "valid_example_included_receipt",
+      "no_external_provider_receipt",
+      "no_tool_authority_receipt",
+      "verifier_pass_fail_receipt",
+      "published_response_hash_or_fallback_receipt"
+    ],
+    "required_valid_example": true,
+    "retry_reason": "schema_adapter_now_ready",
+    "runtime": "ollama",
+    "schema_adapter_ref": "proof_to_response_schema_adapter.adapt_model_draft",
+    "schema_adapter_required": true,
+    "status": "pending_operator_review",
+    "verifier_ref": "proof_to_response_verifier.verify_lm_shadow_response",
+    "verifier_required": true
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY",
+      "precondition_ref": "local_lm_proof_response_pilot_postmortem",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_response_pilot_postmortem.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
+      "precondition_ref": "proof_to_response_schema_adapter",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_schema_adapter_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_MODEL_SELECTION_FOR_PROOF_RESPONSE_READY"
+      ],
+      "observed_status": "LOCAL_MODEL_SELECTION_FOR_PROOF_RESPONSE_READY",
+      "precondition_ref": "local_model_selection_for_proof_response",
+      "ready": true,
+      "source_ref": "generated/read_models/local_model_selection_for_proof_response.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_freshness_trace_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_builder_redaction_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_builder_redaction_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_ONE_TIME_PILOT_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_ONE_TIME_PILOT_READY",
+      "precondition_ref": "local_lm_proof_response_one_time_pilot",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_response_one_time_pilot.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_RESPONSE_MODEL_QUALITY_COMPARISON_READY"
+      ],
+      "observed_status": "PROOF_RESPONSE_MODEL_QUALITY_COMPARISON_READY",
+      "precondition_ref": "proof_response_model_quality_comparison",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_model_quality_comparison.json"
+    }
+  ],
+  "prior_attempt": {
+    "fallback_correctly_published": true,
+    "machine_contract_jargon_present": false,
+    "non_json": true,
+    "prior_attempt_result": "failed_non_json",
+    "protected_action_promises_present": false,
+    "source_failure_type": "non_json_structurally_invalid_empty_candidate",
+    "structurally_invalid": true,
+    "unsupported_completion_claims_present": false,
+    "what_failed": "Model output did not parse as the required JSON response, so the verifier received an empty candidate."
+  },
+  "purpose": "Review-only approval packet for one future local Qwen proof-to-response retry using the JSON-only schema adapter.",
+  "read_model_id": "local_lm_proof_response_retry_approval_packet",
+  "retry_rationale": {
+    "comparison_recommended_next_test": "retry_local_with_schema_adapter",
+    "json_only_prompt_contract_ready": true,
+    "reasons": [
+      "The local qwen run failed primarily because it did not return JSON, not because it made unsafe business claims.",
+      "The schema adapter and aligned synthetic external sample show that verifier-compatible JSON can pass without loosening rules.",
+      "The shadow baseline remains clean, so the next local test should target schema compliance before expanding external samples."
+    ],
+    "retry_reason": "schema_adapter_now_ready",
+    "schema_adapter_ready": true,
+    "verifier_candidate_mapping_ready": true
+  },
+  "schema_version": "local_lm_proof_response_retry_approval_packet_v0",
+  "source_content_hashes": {
+    "generated/read_models/local_lm_proof_response_one_time_pilot.json": "sha256:17f768faf78f94b32da9972432eecb29bde5c5b09856186262a2cf55f6ad6bfe",
+    "generated/read_models/local_lm_proof_response_pilot_postmortem.json": "sha256:9839f6f5025a0c4cf0f7663350ff90b898b9e0dd4a12e49d95cb4bb529633868",
+    "generated/read_models/local_model_selection_for_proof_response.json": "sha256:6927224c0fab61c3a73bfa7f87ada086670e9948bfc98de8175290f603aba765",
+    "generated/read_models/proof_bundle_builder_redaction_status.json": "sha256:780d261bb9e30f0461338c25889c96d46ab03db992d4a312f58bac1275d556c2",
+    "generated/read_models/proof_bundle_freshness_trace_status.json": "sha256:98cfbf6c2f635cc48fbb9d63760382f779753bd768ae100ad3c4c31a4bec5056",
+    "generated/read_models/proof_to_response_model_quality_comparison.json": "sha256:575eca8c61a28016ef7f9c36fd22607c4419c8129d034b43337299462e7627fa",
+    "generated/read_models/proof_to_response_runtime_status.json": "sha256:369e7e76cf28664a3923d5b67ba4f0841cf5ba73e12af4bc56b082a46a63c731",
+    "generated/read_models/proof_to_response_schema_adapter_status.json": "sha256:3f61817947e2b29ac617c387b4eb3fe686f49b49cbc6ef60f135703fcf2bc00f"
+  },
+  "source_refs": [
+    "generated/read_models/local_lm_proof_response_pilot_postmortem.json",
+    "generated/read_models/proof_to_response_schema_adapter_status.json",
+    "generated/read_models/local_model_selection_for_proof_response.json",
+    "generated/read_models/proof_bundle_freshness_trace_status.json",
+    "generated/read_models/proof_bundle_builder_redaction_status.json",
+    "generated/read_models/proof_to_response_runtime_status.json",
+    "generated/read_models/local_lm_proof_response_one_time_pilot.json",
+    "generated/read_models/proof_to_response_model_quality_comparison.json"
+  ],
+  "status": "LOCAL_LM_PROOF_RESPONSE_RETRY_APPROVAL_PACKET_READY"
+}

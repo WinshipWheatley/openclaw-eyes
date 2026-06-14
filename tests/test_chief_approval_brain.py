@@ -442,3 +442,31 @@ class TestChiefApprovalDualWrite:
         assert calls[0][1] == "TIMEOUT"
         assert calls[0][0]["status"] == "pending"
         assert json.loads(pending_path.read_text(encoding="utf-8")) == {}
+
+    def test_pytest_default_pending_path_fails_closed_without_polling(self, monkeypatch):
+        import chief_approval_brain as approval_brain
+
+        calls = []
+        monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+        monkeypatch.setattr(approval_brain, "PENDING_FILE", approval_brain.DEFAULT_PENDING_FILE, raising=False)
+        monkeypatch.setattr(approval_brain, "_is_hard_t2", lambda action: False)
+        monkeypatch.setattr(approval_brain, "_append_log", lambda *args, **kwargs: calls.append(args))
+        monkeypatch.setattr(
+            approval_brain,
+            "_send_via_guardian",
+            lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("guardian send should not run")),
+        )
+        monkeypatch.setattr(
+            approval_brain.time,
+            "sleep",
+            lambda seconds: (_ for _ in ()).throw(AssertionError("approval polling should not run")),
+        )
+
+        ok = approval_brain.request_approval(
+            "Synthetic default-path approval request",
+            explicit_tier=2,
+        )
+
+        assert ok is False
+        assert calls
+        assert calls[0][2] == "DENIED - TEST MODE"

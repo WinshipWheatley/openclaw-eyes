@@ -101,7 +101,9 @@ def test_retrieval_receipt_blocked(clean_db):
     conn.close()
 
 def test_side_effect_replay_safe_default(clean_db):
-    append_side_effect("pkt_456", "email_draft", "pending", db_path=clean_db)
+    side_effect_id = append_side_effect("pkt_456", "email_draft", "pending", db_path=clean_db)
+
+    assert side_effect_id == "side_effect:1"
 
     conn = sqlite3.connect(clean_db)
     cursor = conn.cursor()

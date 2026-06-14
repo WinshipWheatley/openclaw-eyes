@@ -1,0 +1,932 @@
+{
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "browser_allowed": false,
+    "credential_handling_allowed": false,
+    "external_action_allowed": false,
+    "file_body_read_allowed": false,
+    "handler_execution_allowed": false,
+    "model_call_allowed": false,
+    "network_allowed": false,
+    "ocr_allowed": false,
+    "response_publication_allowed": false,
+    "spreadsheet_cell_read_allowed": false,
+    "workbook_body_read_allowed": false,
+    "worker_dispatch_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "contract_status": "DETERMINISTIC_REQUEST_ROUTER_NO_EXECUTION",
+  "machine_proof": {
+    "all_live_authority_false": true,
+    "future_handlers_can_register_without_transport_change": true,
+    "handler_registration_boundary_present": true,
+    "router_has_no_handler_execution": true,
+    "router_has_no_response_publication": true
+  },
+  "read_model_id": "openclaw_request_router",
+  "registered_handlers": [
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "client_invoice_sheet_schema_mapping.capital_hilton",
+      "handler_label": "Capital Hilton invoice sheet schema mapping",
+      "intended_use": "client_invoice_sheet_schema_mapping",
+      "next_safe_move": "Consume the operator-provided mapping receipt and update audit handoff readiness.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "approve_readable_artifact_reference.generic",
+      "handler_label": "Approved readable artifact reference",
+      "intended_use": "approve_readable_artifact_reference",
+      "next_safe_move": "Record the approved readable artifact reference and recompute downstream readiness.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "approve_readable_artifact_reference.generic",
+      "handler_label": "Approved readable artifact reference",
+      "intended_use": "approve_readable_artifact_reference",
+      "next_safe_move": "Record the approved readable artifact reference and recompute downstream readiness.",
+      "project_refs": [],
+      "request_kind": "ARTIFACT_REFERENCE_APPROVAL",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "register_or_resolve_invoice_workbook_artifact.generic",
+      "handler_label": "Register or resolve invoice workbook artifact",
+      "intended_use": "register_or_resolve_invoice_workbook_artifact",
+      "next_safe_move": "Consume Mac artifact intake package and resolve PC-readable reference safely.",
+      "project_refs": [],
+      "request_kind": "ARTIFACT_INTAKE_REQUEST",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "register_or_resolve_invoice_workbook_artifact.generic",
+      "handler_label": "Register or resolve invoice workbook artifact",
+      "intended_use": "register_or_resolve_invoice_workbook_artifact",
+      "next_safe_move": "Consume Mac artifact intake package and resolve PC-readable reference safely.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "confirm_source_workbook_reference",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "replace_source_workbook_reference",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "start_invoice_record_selection",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "regenerate_or_link_invoice_artifact",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "request_supplier_portal_submission_proof",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "request_coupa_submission_proof",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "review_and_confirm_recipients",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "show_approval_prerequisites",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "review_clara_draft_prerequisites",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "edit_clara_draft_request",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "prepare_send_approval_request",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "setup_payment_watch_after_submission",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "explain_invoice_review",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "confirm_invoice_review_candidate",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_review_action_request.capital_hilton",
+      "handler_label": "Capital Hilton invoice review guided action",
+      "intended_use": "open_invoice_workbook_candidate",
+      "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD invoice review guided action",
+      "intended_use": "replace_source_workbook_reference",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD invoice review guided action",
+      "intended_use": "start_invoice_record_selection",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD invoice review guided action",
+      "intended_use": "prepare_selected_invoice_pdf_artifact",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD invoice review guided action",
+      "intended_use": "review_and_confirm_recipients",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD invoice review guided action",
+      "intended_use": "show_approval_prerequisites",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD invoice review guided action",
+      "intended_use": "explain_invoice_review",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "invoice_review_action_request.st_annes",
+      "handler_label": "St. Anne's invoice review guided action",
+      "intended_use": "replace_source_workbook_reference",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "st_annes_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "invoice_review_action_request.st_annes",
+      "handler_label": "St. Anne's invoice review guided action",
+      "intended_use": "start_invoice_record_selection",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "st_annes_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "invoice_review_action_request.st_annes",
+      "handler_label": "St. Anne's invoice review guided action",
+      "intended_use": "prepare_selected_invoice_pdf_artifact",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "st_annes_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "invoice_review_action_request.st_annes",
+      "handler_label": "St. Anne's invoice review guided action",
+      "intended_use": "review_and_confirm_recipients",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "st_annes_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "invoice_review_action_request.st_annes",
+      "handler_label": "St. Anne's invoice review guided action",
+      "intended_use": "show_approval_prerequisites",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "st_annes_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "invoice_review_action_request.st_annes",
+      "handler_label": "St. Anne's invoice review guided action",
+      "intended_use": "explain_invoice_review",
+      "next_safe_move": "Start the guided simple invoice review fix path without external action authority.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "st_annes_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD PDF candidate operator decision",
+      "intended_use": "approve_pdf_candidate",
+      "next_safe_move": "Record the Live Arts MD PDF candidate operator decision only; no send, ledger, browser, Gmail, Coupa, or portal authority is granted.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD PDF candidate operator decision",
+      "intended_use": "reject_pdf_candidate",
+      "next_safe_move": "Record the Live Arts MD PDF candidate operator decision only; no send, ledger, browser, Gmail, Coupa, or portal authority is granted.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD PDF candidate operator decision result",
+      "intended_use": "selected_invoice_pdf_candidate_review_decision",
+      "next_safe_move": "Record the Live Arts MD PDF candidate operator decision only; false or absent authority grants remain denied and no send, ledger, browser, Gmail, Coupa, or portal action is authorized.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_RESULT",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD PDF candidate operator decision result",
+      "intended_use": "selected_invoice_pdf_candidate_review_decision",
+      "next_safe_move": "Record the Live Arts MD PDF candidate operator decision only; false or absent authority grants remain denied and no send, ledger, browser, Gmail, Coupa, or portal action is authorized.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_record_selection_result.capital_hilton",
+      "handler_label": "Capital Hilton invoice record selection result",
+      "intended_use": "confirm_invoice_record_selection",
+      "next_safe_move": "Record the operator-confirmed invoice page/period without reading workbook cells.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "invoice_record_selection_result.capital_hilton",
+      "handler_label": "Capital Hilton invoice record selection result",
+      "intended_use": "confirm_invoice_record_selection",
+      "next_safe_move": "Record the operator-confirmed invoice page/period without reading workbook cells.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_RESULT",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "selected_invoice_pdf_export_completed_candidate.live_arts_md",
+      "handler_label": "Live Arts MD PDF export completion result",
+      "intended_use": "selected_invoice_pdf_export_completed_candidate",
+      "next_safe_move": "Record the exported invoice PDF metadata and keep the result candidate-only until operator confirms attachment.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_RESULT",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "selected_invoice_pdf_export_completed_candidate.live_arts_md",
+      "handler_label": "Live Arts MD PDF export completion result",
+      "intended_use": "selected_invoice_pdf_export_completed_candidate",
+      "next_safe_move": "Record the exported invoice PDF metadata and keep the result candidate-only until operator confirms attachment.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "selected_invoice_pdf_export_completed_candidate.st_annes",
+      "handler_label": "St. Anne's PDF export completion result",
+      "intended_use": "selected_invoice_pdf_export_completed_candidate",
+      "next_safe_move": "Record the exported invoice PDF metadata and keep the result candidate-only until operator confirms attachment.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_RESULT",
+      "workflow_refs": [
+        "st_annes_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "selected_invoice_pdf_export_completed_candidate.st_annes",
+      "handler_label": "St. Anne's PDF export completion result",
+      "intended_use": "selected_invoice_pdf_export_completed_candidate",
+      "next_safe_move": "Record the exported invoice PDF metadata and keep the result candidate-only until operator confirms attachment.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [
+        "st_annes_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "workflow_package_queue.operator_instruction",
+      "handler_label": "Workflow Package Queue operator instruction",
+      "intended_use": "",
+      "next_safe_move": "Record the generic operator instruction as a dry-run package queue item; all business action authority remains denied.",
+      "project_refs": [],
+      "request_kind": "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "workflow_package_queue.operator_instruction",
+      "handler_label": "Workflow Package Queue operator instruction",
+      "intended_use": "",
+      "next_safe_move": "Record the generic operator instruction as a dry-run package queue item; all business action authority remains denied.",
+      "project_refs": [],
+      "request_kind": "WORKFLOW_PACKAGE_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "st_annes_work_log_review.action_consumer",
+      "handler_label": "St. Anne's work-log review action consumer",
+      "intended_use": "",
+      "next_safe_move": "Record the St. Anne's work-log review action locally; no Excel, invoice, PDF, email, Telegram, ledger, paid, or external action authority is granted.",
+      "project_refs": [],
+      "request_kind": "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "st_annes_work_log_event"
+      ],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "st_annes_work_log_review.action_consumer",
+      "handler_label": "St. Anne's work-log review action consumer",
+      "intended_use": "",
+      "next_safe_move": "Record the St. Anne's work-log review action locally; no Excel, invoice, PDF, email, Telegram, ledger, paid, or external action authority is granted.",
+      "project_refs": [],
+      "request_kind": "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_V0",
+      "workflow_refs": [
+        "st_annes_work_log_event"
+      ],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "workroom_review_decision_consumer.record_decision",
+      "handler_label": "Workroom review decision consumer",
+      "intended_use": "",
+      "next_safe_move": "Record the review packet decision receipt only; no merge, push, worker spawn, or business action authority is granted.",
+      "project_refs": [],
+      "request_kind": "WORKROOM_REVIEW_DECISION_REQUEST",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "workroom_review_decision_consumer.record_decision",
+      "handler_label": "Workroom review decision consumer",
+      "intended_use": "",
+      "next_safe_move": "Record the review packet decision receipt only; no merge, push, worker spawn, or business action authority is granted.",
+      "project_refs": [],
+      "request_kind": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "client_invoice_workbook_registry.register_workbook",
+      "handler_label": "Client invoice workbook registration",
+      "intended_use": "",
+      "next_safe_move": "Register the workbook reference as metadata only; do not open, read, mutate, or audit workbook cells.",
+      "project_refs": [],
+      "request_kind": "WORKBOOK_REGISTRATION_REQUEST",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "client_invoice_workbook_registry.register_workbook",
+      "handler_label": "Client invoice workbook registration",
+      "intended_use": "",
+      "next_safe_move": "Register the workbook reference as metadata only; do not open, read, mutate, or audit workbook cells.",
+      "project_refs": [],
+      "request_kind": "WORKBOOK_REGISTRATION_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "evidence_intake.record_candidate_evidence",
+      "handler_label": "Verified operator evidence intake",
+      "intended_use": "payment_proof",
+      "next_safe_move": "Validate the verified operator envelope, record candidate evidence locally, and emit a dynamic card without ledger, workbook, paid, provider, or external action authority.",
+      "project_refs": [],
+      "request_kind": "EVIDENCE_INTAKE_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "evidence_intake.record_candidate_evidence",
+      "handler_label": "Verified operator evidence intake",
+      "intended_use": "invoice_proof",
+      "next_safe_move": "Validate the verified operator envelope, record candidate evidence locally, and emit a dynamic card without ledger, workbook, paid, provider, or external action authority.",
+      "project_refs": [],
+      "request_kind": "EVIDENCE_INTAKE_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "evidence_intake.record_candidate_evidence",
+      "handler_label": "Verified operator evidence intake",
+      "intended_use": "proposal_proof",
+      "next_safe_move": "Validate the verified operator envelope, record candidate evidence locally, and emit a dynamic card without ledger, workbook, paid, provider, or external action authority.",
+      "project_refs": [],
+      "request_kind": "EVIDENCE_INTAKE_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "evidence_intake.record_candidate_evidence",
+      "handler_label": "Verified operator evidence intake",
+      "intended_use": "work_log_proof",
+      "next_safe_move": "Validate the verified operator envelope, record candidate evidence locally, and emit a dynamic card without ledger, workbook, paid, provider, or external action authority.",
+      "project_refs": [],
+      "request_kind": "EVIDENCE_INTAKE_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "evidence_intake.record_candidate_evidence",
+      "handler_label": "Verified operator evidence intake",
+      "intended_use": "general_reference",
+      "next_safe_move": "Validate the verified operator envelope, record candidate evidence locally, and emit a dynamic card without ledger, workbook, paid, provider, or external action authority.",
+      "project_refs": [],
+      "request_kind": "EVIDENCE_INTAKE_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    }
+  ],
+  "route_statuses": [
+    "ROUTE_MATCHED",
+    "ROUTE_REJECTED_UNREGISTERED_INTENT",
+    "ROUTE_BLOCKED_AUTHORITY",
+    "ROUTE_UNSUPPORTED_KIND"
+  ],
+  "schema_version": "openclaw_request_router_v0"
+}

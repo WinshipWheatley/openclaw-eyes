@@ -1,0 +1,1271 @@
+{
+  "app_static_rendering_to_replace": {
+    "basis": "Inferred from backend payload shapes; this audit did not inspect or modify the Mac Swift app.",
+    "currently_backend_emits": [
+      "visible_cards",
+      "operator_display",
+      "response_kind",
+      "headline",
+      "one_line_answer",
+      "eliwinship",
+      "primary_status",
+      "primary_blocker",
+      "next_action",
+      "missing_items_short",
+      "detail_summary",
+      "proof_refs",
+      "debug_refs",
+      "mac_render_hint",
+      "operator_action_payloads",
+      "local_surface_request"
+    ],
+    "eventually_strip_from_app": [
+      "hardcoded client-specific status cards",
+      "hardcoded response_kind-to-layout mappings",
+      "local action enablement policy that duplicates backend gates",
+      "proof disclosure heuristics that are not source-backed",
+      "special-case wording for Capital Hilton and St. Anne's lanes"
+    ],
+    "generic_dynamic_card_packet_required_fields": [
+      "card_id",
+      "schema_version",
+      "source_request_id",
+      "world_ref",
+      "thread_ref",
+      "workflow_ref",
+      "client_ref",
+      "card_type",
+      "semantic_status",
+      "truth_status",
+      "headline",
+      "plain_summary",
+      "bullets",
+      "next_safe_action",
+      "proof_refs",
+      "receipt_refs",
+      "gate_state",
+      "blocked_actions",
+      "allowed_actions",
+      "action_payloads",
+      "authority_boundary",
+      "detail_disclosure",
+      "freshness",
+      "confidence",
+      "accessibility_text",
+      "device_render_hint",
+      "content_hash"
+    ],
+    "should_be_backend_generated_dynamically": [
+      "status/progress cards",
+      "lane context cards",
+      "Guardian gate cards",
+      "proof and receipt disclosure cards",
+      "workroom review packet cards",
+      "approval request cards",
+      "safe operator action buttons",
+      "blocked action explanations",
+      "business object state cards"
+    ]
+  },
+  "audit_mode": "read_only_current_state_no_architecture_assumptions",
+  "audit_scope": {
+    "actual_chain_summary": "OpenClaw currently has a bounded Mission Control request-file service. It classifies approved request files, routes them through deterministic local rails, writes heartbeat/response readbacks, and uses read models/SQLite receipts for selected rails. The LM and worker stages are mostly contract-only, LM-shaped selection, package staging, no-op worker receipts, and review packet lifecycle, not live model or worker execution.",
+    "external_llms_invoked": false,
+    "external_systems_opened": false,
+    "generated_artifacts_only": true,
+    "hypothesis_checked": "chat goal -> privacy gate -> LM planner -> package compiler -> SQLite registry -> authority gate -> LM2/worker cage -> receipt -> operator review -> business-action gate -> dynamic app card",
+    "runtime_mutation_performed_by_this_audit": false,
+    "workers_spawned": false
+  },
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "child_agent_run_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_llm_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "local_model_runtime_allowed": false,
+    "merge_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "current_runtime_examples": [
+    {
+      "answer_headline": "Stay on payment watch",
+      "blocked_actions": [
+        "Coupa/browser action",
+        "ledger mutation",
+        "package staging",
+        "diagnostic workflow queue routing"
+      ],
+      "example": "What should I do here? in Finance / Capital Hilton",
+      "observed_chain": [
+        "Mission Control package request file",
+        "openclaw_request_response_service selects WORKFLOW_PACKAGE_REQUEST",
+        "openclaw_request_processor routes to workflow_package_request_consumer",
+        "consumer detects contextual system question",
+        "system_question_answer answers from finance/capital_hilton lane",
+        "no package is recorded",
+        "no diagnostic workflow queue route is used",
+        "Mac response is published"
+      ],
+      "plain_summary": "Coupa is processing. Wait for payment evidence before anything touches the ledger.",
+      "proof_refs": [
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "generated/read_models/operator_action_payloads.json",
+        "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+        "generated/read_models/finance_thread_index.json"
+      ]
+    },
+    {
+      "example": "LM-bounded Capital Hilton payment watch",
+      "mode": "contract_only_no_live_lm",
+      "model_invoked": false,
+      "observed_chain": [
+        "lm_bounded_operator_orchestration_latest reads local read models",
+        "selects existing operator action payload capital_hilton.payment.open_finance",
+        "rejects proof/ledger mutation as unsafe or unsupported until evidence exists",
+        "safe_to_execute_now remains false"
+      ],
+      "selected_action_grants_authority": false
+    },
+    {
+      "current_decision_history_count": 3,
+      "example": "Workroom review decision",
+      "observed_chain": [
+        "Mission Control review decision request",
+        "request router selects workroom_review_decision_consumer.record_decision",
+        "consumer validates packet/action/preconditions",
+        "records local receipt/read model",
+        "no merge, push, worker spawn, or business action"
+      ],
+      "read_model": "generated/read_models/workroom_review_decision_status.json"
+    },
+    {
+      "example": "Workbook registration",
+      "observed_chain": [
+        "Mission Control workbook registration request",
+        "request router selects client_invoice_workbook_registry.register_workbook",
+        "processor writes metadata-only workbook registry read model",
+        "no workbook body read, spreadsheet cell read, mutation, PDF export, email, Coupa, or ledger action"
+      ],
+      "read_model": "generated/read_models/client_invoice_workbook_registry.json"
+    }
+  ],
+  "differences_from_hypothesized_chain": [
+    "The current runtime is not a single linear universal chain; it is a request-family router with separate deterministic rails.",
+    "The privacy gate exists as hash-only package-queue privacy rows, not a universal dynamic PII gate before every rail.",
+    "LM1 is not live; it is contract-only/deterministic selection over existing action payloads.",
+    "The package compiler exists for the workflow-package rail, not every request family.",
+    "SQLite package truth exists, but only selected rails have SQLite-backed canonical rows.",
+    "Capability/provider gate exists as dry-run gate rows and registry read models, not a live provider executor.",
+    "LM2/worker cage is not live; it is child-package gate contracts, package stubs, and review lifecycle.",
+    "Worker receipts are no-op/offline/rail-specific, not live worker cage receipts.",
+    "Business-action gates are closed by default; no live executor was found.",
+    "Dynamic cards are partial and fragmented; a generic card packet is still needed."
+  ],
+  "direct_answers": [
+    {
+      "answer": "LM1 exists as LM-shaped contract/read-model logic in lm_bounded_operator_orchestration.py, backed by generated/read_models/lm_bounded_operator_orchestration_latest.json. Related deterministic substitutes are deterministic_intent_interpreter.py and workflow_package_queue.classify_intent. No live LM1 planner was found in the audited path.",
+      "question": "Where does LM1 currently exist?"
+    },
+    {
+      "answer": "Contract-only and deterministic substitute. The latest LM-bounded read model reports mode=contract_only_no_live_lm, model_invoked=false, external_provider_connected=false, and local_model_runtime_connected=false.",
+      "question": "Is LM1 live, shadow, deterministic substitute, or contract-only?"
+    },
+    {
+      "answer": "LM2 is represented by generated/read_models/openclaw_lm_child_package_gate.json, generated/system_knowledge/openclaw_lm_child_package_gate.sqlite, spawned_worker_package_lifecycle.py, worker_package_staging.py, workroom_review_packet_index.py, and workroom_review_decision_consumer.py.",
+      "question": "Where does LM2 currently exist?"
+    },
+    {
+      "answer": "It is package staging, child-package gating, no-spawn lifecycle, and review packet lifecycle. The audited evidence says worker_spawn_performed=false and worker_execution_performed=false; no real worker cage execution was observed.",
+      "question": "Is LM2 a real worker cage or just package staging/review packet lifecycle?"
+    },
+    {
+      "answer": "workflow_package_queue.create_package creates dry-run workflow packages through workflow_package_request_consumer.consume_workflow_package_request. workflow_composer creates plans only, not queued packages. mac_worker_handoff_package can create metadata-only Mac handoff packages. worker_package_staging creates package stubs from handoff events without execution.",
+      "question": "What currently creates packages?"
+    },
+    {
+      "answer": "Dry-run workflow packages are stored in generated/system_knowledge/workflow_package_queue.sqlite and summarized in generated/read_models/workflow_package_queue_contract.json. Cross-request package events are indexed in generated/system_knowledge/package_event_index.sqlite and generated/read_models/package_event_index.json. Mac handoff packages, when available, are written to the configured /mnt/e/openclaw/mission_control_handoffs/to_mac path.",
+      "question": "Where are packages stored?"
+    },
+    {
+      "answer": "openclaw_request_router blocks request envelopes with true authority flags; workflow_package_request_consumer validates Mission Control package envelopes; workflow_package_queue records privacy, capability, operator-review, no-op worker, and business-action gate rows; gate_decision_ledger and approval_request_queue record separate gate/approval state; guardian_output_gate validates outgoing responses; harness_provider_selection_registry keeps provider choice from granting authority.",
+      "question": "What validates package authority?"
+    },
+    {
+      "answer": "The current safeguards are source refs, protected hashes, SQLite rows, receipts, approval/gate logs, evidence confidence scoring, memory promotion gates, and machine-proof fields that keep LM-shaped output from becoming truth by itself. system_question_answer reads local read models and SQLite metadata; LM-bounded orchestration may only choose existing deterministic action payloads.",
+      "question": "What prevents false recursive truth?"
+    },
+    {
+      "answer": "Based on backend payloads, the app currently has to interpret ad hoc response fields such as visible_cards, operator_display, response_kind, primary_status, primary_blocker, next_action, proof refs, status tones, and action payloads. These should converge into a single backend-generated card packet for status, proof, lane context, gate state, and actions.",
+      "question": "What does the app currently render that should instead be generated dynamically?"
+    },
+    {
+      "answer": "A generic card packet should include card_id, source_request_id, world/thread/lane refs, semantic_status, truth_status, headline, summary, bullets, next_safe_action, proof_refs, receipt_refs, gate_state, authority_boundary, action_payloads, disabled action reasons, freshness, confidence, detail disclosure content, accessibility text, device/render hints, and content/proof hashes.",
+      "question": "What generic dynamic card schema does the backend need?"
+    },
+    {
+      "answer": "Once the generic card packet is stable, the Mac app can strip hardcoded client/status card copy, special-case Capital Hilton and St. Anne card mappings, duplicated response-kind rendering logic, local proof disclosure heuristics, and local action button policy that should be backend-authored.",
+      "question": "What can the app eventually strip away?"
+    },
+    {
+      "answer": "First preserve current deterministic rails and tests. Next emit a generic backend card packet alongside existing response fields. Then route system-question, workflow-package, workroom-review, and workbook-registration responses into that packet. Keep the Mac renderer backward-compatible until parity is proven. Only after card truth is backend-owned should approval/action executors or live worker cages be added behind separate gates.",
+      "question": "What is the next safest implementation sequence?"
+    }
+  ],
+  "false_recursive_truth_audit": {
+    "accepted_truth_sources": [
+      "source file",
+      "generated read model",
+      "SQLite row",
+      "receipt",
+      "hash",
+      "approval log",
+      "operator-confirmed memory"
+    ],
+    "current_guards": [
+      "workflow_package_queue stores protected_text_hash and raw_text_stored=0 for package inputs",
+      "lm_bounded_operator_orchestration requires selected action to exist in operator_action_payloads",
+      "system_question_answer answers from local read models and SQLite metadata only",
+      "evidence_confidence_scoring ranks receipts/hashes/source rows above generated summaries",
+      "memory_promotion_gate keeps candidate memory separate from truth promotion",
+      "guardian_output_gate validates response payloads before publication"
+    ],
+    "remaining_risks": [
+      "Ad hoc response/card fields may make generated summaries look like app truth if not paired with explicit proof refs.",
+      "Approval records can be mistaken for execution proof unless card copy separates approval, execution, and receipt.",
+      "LM-shaped recommendation copy can sound authoritative unless safe_to_execute and provider_choice_grants_authority stay visible."
+    ],
+    "rule": "LM output is never truth by itself."
+  },
+  "generated_at": "2026-06-05T00:44:20Z",
+  "latest_head_observed": "8db5e8e feat: publish operator controller protocol",
+  "machine_proof": {
+    "agent_loop_started": false,
+    "audit_read_only": true,
+    "browser_access_performed": false,
+    "browser_or_gmail_or_coupa_opened": false,
+    "business_action_performed": false,
+    "child_agent_run_performed": false,
+    "coupa_access_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "runtime_code_modified": false,
+    "service_restarted": false,
+    "spreadsheet_cell_read_performed": false,
+    "submit_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "workbook_body_read_performed": false,
+    "workbook_mutation_performed": false,
+    "workbook_open_performed": false,
+    "worker_spawn_performed": false
+  },
+  "next_safest_implementation_sequence": [
+    {
+      "step": 1,
+      "why_safe": "Preserves current deterministic rails before UI schema changes.",
+      "work": "Freeze existing request-response, workflow-package, system-question, workroom-review, and workbook-registration behavior with focused regression tests."
+    },
+    {
+      "step": 2,
+      "why_safe": "Allows Mac fallback to existing rendering while proving the new packet.",
+      "work": "Add backend dynamic_card_packet as an additive field beside existing visible_cards/operator_display fields."
+    },
+    {
+      "step": 3,
+      "why_safe": "These rails already have clear receipts and no live external actions.",
+      "work": "Populate dynamic_card_packet for system-question, workflow-package, workroom-review, and workbook-registration rails first."
+    },
+    {
+      "step": 4,
+      "why_safe": "Prevents app copy regressions while removing hardcoding.",
+      "work": "Add bridge equality and Mac-render smoke tests that compare old card content to new card packets."
+    },
+    {
+      "step": 5,
+      "why_safe": "Receipts become the truth boundary before any executor expansion.",
+      "work": "Only after dynamic cards are stable, define a universal receipt envelope shared by package, approval, review, and future worker rails."
+    },
+    {
+      "step": 6,
+      "why_safe": "Avoids turning plans, approvals, or generated copy into execution authority.",
+      "work": "Keep live LM/worker/business-action activation blocked until privacy, authority, sandbox, receipt, review, and rollback gates are test-backed."
+    }
+  ],
+  "primary_sources": {
+    "read_models": [
+      "generated/read_models/openclaw_request_processor_status.json",
+      "generated/read_models/openclaw_request_response_service_status.json",
+      "generated/read_models/workflow_package_queue_contract.json",
+      "generated/read_models/workflow_package_request_consumer_status.json",
+      "generated/read_models/system_question_answer_contract.json",
+      "generated/read_models/workflow_composer_latest.json",
+      "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+      "generated/read_models/operator_action_payloads.json",
+      "generated/read_models/harness_provider_selection_registry.json",
+      "generated/read_models/worker_package_staging_status.json",
+      "generated/read_models/spawned_worker_package_lifecycle.json",
+      "generated/read_models/workroom_review_packet_index.json",
+      "generated/read_models/workroom_review_decision_status.json",
+      "generated/read_models/agent_handoff_event_status.json",
+      "generated/read_models/gate_decision_ledger.json",
+      "generated/read_models/approval_request_queue.json",
+      "generated/read_models/evidence_confidence_scoring.json",
+      "generated/read_models/memory_promotion_gate.json",
+      "generated/read_models/package_event_index.json",
+      "generated/read_models/operator_card_render_packet_contract.json",
+      "generated/read_models/local_surface_request_contract.json",
+      "generated/read_models/guardian_output_gate.json",
+      "generated/read_models/openclaw_lm_child_package_gate.json"
+    ],
+    "runtime_files": [
+      "openclaw_request_response_service.py",
+      "openclaw_request_processor.py",
+      "openclaw_request_router.py",
+      "workflow_package_queue.py",
+      "workflow_package_request_consumer.py",
+      "system_question_answer.py",
+      "lm_bounded_operator_orchestration.py",
+      "workflow_composer.py",
+      "operator_action_payloads.py",
+      "worker_package_staging.py",
+      "spawned_worker_package_lifecycle.py",
+      "workroom_review_packet_index.py",
+      "workroom_review_decision_consumer.py",
+      "agent_handoff_event_consumer.py",
+      "gate_decision_ledger.py",
+      "approval_request_queue.py",
+      "evidence_confidence_scoring.py",
+      "memory_promotion_gate.py",
+      "harness_provider_selection_registry.py",
+      "package_event_index.py",
+      "client_invoice_workbook_registry.py"
+    ],
+    "sqlite_metadata": [
+      {
+        "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+        "tables": {
+          "business_action_gate_results": 68,
+          "capability_gate_results": 68,
+          "intent_classification_results": 68,
+          "operator_review_receipts": 68,
+          "package_inputs": 68,
+          "packages": 68,
+          "privacy_gate_results": 68,
+          "worker_assignments": 68,
+          "worker_results": 68
+        }
+      },
+      {
+        "path": "generated/system_knowledge/package_event_index.sqlite",
+        "tables": {
+          "package_event_index": 32,
+          "package_event_index_sources": 6
+        }
+      },
+      {
+        "path": "generated/system_knowledge/gate_decision_ledger.sqlite",
+        "tables": {
+          "gate_decisions": 10
+        }
+      },
+      {
+        "path": "generated/system_knowledge/approval_request_queue.sqlite",
+        "tables": {
+          "approval_requests": 7
+        }
+      },
+      {
+        "path": "generated/system_knowledge/openclaw_lm_child_package_gate.sqlite",
+        "tables": {
+          "child_package_request": 4,
+          "child_spawn_policy": 5,
+          "lm_package": 5,
+          "package_gate_decision": 6,
+          "package_receipt": 1
+        }
+      },
+      {
+        "exists": false,
+        "path": "generated/system_knowledge/workroom_review_decisions.sqlite"
+      }
+    ]
+  },
+  "proof_refs_collapsed_by_default": true,
+  "read_model_id": "operator_runtime_chain_current_state_audit",
+  "required_distinctions": {
+    "action_payload_exists_does_not_mean_action_authority_exists": true,
+    "lm_shaped_does_not_mean_live_lm": true,
+    "memory_exists_does_not_mean_canonical_truth": true,
+    "package_staged_does_not_mean_worker_executed": true,
+    "ui_card_exists_does_not_mean_backend_dynamic_surface_complete": true
+  },
+  "schema_version": "operator_runtime_chain_current_state_audit_v1",
+  "stage_audit": [
+    {
+      "authority_boundary": "Service authority flags deny broad watch, live workflow execution, model/tool/agent dispatch, email, Coupa, browser, raw body ingestion, Mac sync import, network, and git push/pull/fetch.",
+      "current_gaps": [
+        "Input is file-envelope based, not a universal chat event bus.",
+        "Unsupported request families fail closed."
+      ],
+      "current_state": "Mission Control emits supported request files into the approved inbox. The service scans that bounded inbox, deduplicates by request id/idempotency/payload hash, and processes one request or a bounded watch window.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "partial",
+      "files": [
+        "openclaw_request_response_service.py",
+        "openclaw_request_processor.py",
+        "openclaw_request_router.py"
+      ],
+      "live_dry_run_contract": "live_local_file_pickup_with_deterministic_processing",
+      "next_required_work": "Keep the request envelope contract explicit and attach a generic card response envelope without changing request execution semantics.",
+      "proof_receipt_output": "processing heartbeat JSON, terminal Mac response JSON, service status read model, response manifest",
+      "read_models": [
+        "generated/read_models/openclaw_request_response_service_status.json",
+        "generated/read_models/openclaw_request_processor_status.json"
+      ],
+      "sqlite": [],
+      "stage_name": "Chat/input envelope",
+      "stage_number": 1
+    },
+    {
+      "authority_boundary": "Context identifies the lane only; it does not grant lane, file, workbook, send, ledger, merge, push, or worker authority.",
+      "current_gaps": [
+        "Context envelope is not yet universal across every request family.",
+        "Context conflict resolution is deterministic but narrow."
+      ],
+      "current_state": "current_world_ref/current_thread_ref are honored in workflow-package/system-question requests and used for contextual lane answers. Routing metadata also records cross-lane routing when an instruction belongs elsewhere.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "partial",
+      "files": [
+        "workflow_package_request_consumer.py",
+        "system_question_answer.py",
+        "openclaw_request_router.py"
+      ],
+      "live_dry_run_contract": "live_for_supported_request_envelopes",
+      "next_required_work": "Normalize current context fields across all request envelopes and card packets.",
+      "proof_receipt_output": "workflow package request receipts include current and target world/thread refs plus cross_lane_routed flags",
+      "read_models": [
+        "generated/read_models/finance_thread_index.json",
+        "generated/read_models/operator_next_decision.json",
+        "generated/read_models/openclaw_workroom_registry.json"
+      ],
+      "sqlite": [],
+      "stage_name": "Current context envelope",
+      "stage_number": 2
+    },
+    {
+      "authority_boundary": "Privacy gate does not authorize provider calls, raw prompt storage, raw workbook reads, or external sharing.",
+      "current_gaps": [
+        "PII handling is package-queue specific.",
+        "local_llm_intent_shadow_harness.json was missing in this audit."
+      ],
+      "current_state": "The package queue has a hash-only privacy gate and records raw_text_stored=0. The local LLM privacy upgrade is planning-only. There is no universal dynamic PII classifier in front of every runtime rail.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "partial",
+      "files": [
+        "workflow_package_queue.py",
+        "workflow_package_request_consumer.py",
+        "system_question_answer.py"
+      ],
+      "live_dry_run_contract": "dry_run_for_package_queue_privacy_rows",
+      "next_required_work": "Promote privacy evaluation into a shared preflight contract before any future LM/provider planning path.",
+      "proof_receipt_output": "protected_text_hash, privacy_gate_results rows, package_inputs raw_text_stored=0",
+      "read_models": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/local_llm_intent_privacy_upgrade_plan.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/workflow_package_queue.sqlite#privacy_gate_results",
+        "generated/system_knowledge/workflow_package_queue.sqlite#package_inputs"
+      ],
+      "stage_name": "Dynamic PII/privacy gate",
+      "stage_number": 3
+    },
+    {
+      "authority_boundary": "No model invocation, provider connection, worker spawn, business action, or authority creation.",
+      "current_gaps": [
+        "No live LM1 planner exists.",
+        "Planner output is not a package truth source.",
+        "LM-shaped copy has no authority unless mapped to deterministic payloads and gates."
+      ],
+      "current_state": "LM1 is not live. LM-bounded orchestration is contract_only_no_live_lm and may only select existing deterministic operator action payloads. workflow_composer plans before execution with safe_to_execute=false. workflow_package_queue.classify_intent is deterministic string matching.",
+      "deterministic_or_lm_shaped": "lm_shaped_contract_validated_by_deterministic_payloads",
+      "exists": "partial",
+      "files": [
+        "lm_bounded_operator_orchestration.py",
+        "workflow_composer.py",
+        "workflow_package_queue.py",
+        "deterministic_intent_interpreter.py"
+      ],
+      "live_dry_run_contract": "contract_only_and_deterministic_substitute",
+      "next_required_work": "Keep LM1 shadow/contract-only until privacy gates, deterministic validation, receipts, and operator review are all proven for each outcome.",
+      "proof_receipt_output": "LM-bounded latest read model, workflow composer latest read model, deterministic validation section",
+      "read_models": [
+        "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+        "generated/read_models/workflow_composer_latest.json",
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "sqlite": [],
+      "stage_name": "LM1 planner / intent-to-package interpreter",
+      "stage_number": 4
+    },
+    {
+      "authority_boundary": "Compiled package authority_boundary defaults all protected actions false.",
+      "current_gaps": [
+        "Supported package types are narrow.",
+        "Composer plans do not yet feed an approved package-staging API automatically."
+      ],
+      "current_state": "workflow_package_queue.create_package compiles supported instructions into dry-run packages with privacy, intent, capability, worker assignment, worker result, operator review, and business-action gate sections.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "yes_for_workflow_package_rail",
+      "files": [
+        "workflow_package_queue.py",
+        "workflow_package_request_consumer.py"
+      ],
+      "live_dry_run_contract": "dry_run_noop_workers_only",
+      "next_required_work": "Add an explicit operator-approved stage-from-composer bridge before accepting composer plans as package inputs.",
+      "proof_receipt_output": "workflow package request result receipt and normalized SQLite package rows",
+      "read_models": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/workflow_package_request_consumer_status.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/workflow_package_queue.sqlite"
+      ],
+      "stage_name": "Deterministic package compiler",
+      "stage_number": 5
+    },
+    {
+      "authority_boundary": "Registry rows are proof/status only; registry writes do not execute actions or grant authority.",
+      "current_gaps": [
+        "Package registry owns package state but not a full universal runtime chain.",
+        "Review decision receipts currently have JSON/read-model status; no workroom_review_decisions.sqlite was present."
+      ],
+      "current_state": "Package rows are normalized into workflow_package_queue.sqlite. package_event_index.sqlite indexes packages, Mission Control requests/responses, conversation entries, and selected read models without moving or executing packages.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "yes",
+      "files": [
+        "workflow_package_queue.py",
+        "package_event_index.py"
+      ],
+      "live_dry_run_contract": "live_local_sqlite_registry_for_generated_package_truth",
+      "next_required_work": "Use package_event_index as the cross-reference layer while keeping canonical writes in their owning SQLite stores.",
+      "proof_receipt_output": "packages, package_inputs, gate/result/review rows, package_event_index rows",
+      "read_models": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/package_event_index.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/workflow_package_queue.sqlite",
+        "generated/system_knowledge/package_event_index.sqlite"
+      ],
+      "stage_name": "SQLite/package registry",
+      "stage_number": 6
+    },
+    {
+      "authority_boundary": "Provider choice does not grant authority; external LLM, Coupa/browser, local model runtime, and Codex automation remain blocked unless a separate future gate exists.",
+      "current_gaps": [
+        "No live capability executor.",
+        "Provider gate is not yet a universal runtime middleware."
+      ],
+      "current_state": "Package queue capability gates block or allow dry-run package states. Harness provider selection is a registry only and does not invoke models/providers. Operator action payloads stage/navigate/review only.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "partial",
+      "files": [
+        "workflow_package_queue.py",
+        "harness_provider_selection_registry.py",
+        "operator_action_payloads.py"
+      ],
+      "live_dry_run_contract": "dry_run_gate_rows_and_registry_only_provider_selection",
+      "next_required_work": "Keep provider selection as a non-executing registry and require separate receipts before any provider adapter can become live.",
+      "proof_receipt_output": "capability_gate_results rows, provider selection read model, action payload read model",
+      "read_models": [
+        "generated/read_models/harness_provider_selection_registry.json",
+        "generated/read_models/operator_assist_provider_registry.json",
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/workflow_package_queue.sqlite#capability_gate_results"
+      ],
+      "stage_name": "Capability/provider gate",
+      "stage_number": 7
+    },
+    {
+      "authority_boundary": "Gate/approval rows record state; business action authority must still pass a separate executor/gate that is not present in this chain.",
+      "current_gaps": [
+        "Approval request and business action execution remain separated but no universal approved-action executor is in this audited chain.",
+        "Approvals should not be mistaken for live authority."
+      ],
+      "current_state": "Gate decisions and approval requests are recorded locally. The router blocks envelopes that request true authority. Approval queue entries do not themselves execute approved actions.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "partial",
+      "files": [
+        "gate_decision_ledger.py",
+        "approval_request_queue.py",
+        "openclaw_request_router.py"
+      ],
+      "live_dry_run_contract": "live_local_gate_and_approval_records_without_execution",
+      "next_required_work": "Make approval state explicit in generic cards and keep execution adapters separate until proof-backed executor gates exist.",
+      "proof_receipt_output": "gate_decisions rows, approval_requests rows, no-execution read models",
+      "read_models": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/approval_request_queue.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/gate_decision_ledger.sqlite",
+        "generated/system_knowledge/approval_request_queue.sqlite"
+      ],
+      "stage_name": "Approval/Gate Decision Ledger",
+      "stage_number": 8
+    },
+    {
+      "authority_boundary": "Worker does not inherit speaker authority. Child spawning, worker execution, tool calls, external LLMs, push, and business actions remain false.",
+      "current_gaps": [
+        "No real worker cage runtime exists.",
+        "No live LM2 receipt from executed worker output exists in this path."
+      ],
+      "current_state": "LM2/child-worker behavior is modeled as deterministic gate contracts, staged package stubs, and review lifecycle. It does not spawn workers, run child agents, call models, or execute tools.",
+      "deterministic_or_lm_shaped": "deterministic_contract_for_future_worker_outputs",
+      "exists": "contract_only",
+      "files": [
+        "spawned_worker_package_lifecycle.py",
+        "worker_package_staging.py",
+        "agent_handoff_event_consumer.py"
+      ],
+      "live_dry_run_contract": "contract_only_and_package_stub_generation_only",
+      "next_required_work": "Do not add live worker execution until package input, sandbox, authority, receipt, and review gates are all test-backed.",
+      "proof_receipt_output": "child package gate read model/SQLite, staging status, review lifecycle contract",
+      "read_models": [
+        "generated/read_models/openclaw_lm_child_package_gate.json",
+        "generated/read_models/spawned_worker_package_lifecycle.json",
+        "generated/read_models/worker_package_staging_status.json",
+        "generated/read_models/agent_handoff_event_status.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/openclaw_lm_child_package_gate.sqlite"
+      ],
+      "stage_name": "LM2/child-worker cage",
+      "stage_number": 9
+    },
+    {
+      "authority_boundary": "A receipt is proof of local processing/output, not authority to mutate business systems.",
+      "current_gaps": [
+        "No live worker result receipt from a real cage.",
+        "Receipt shapes are rail-specific rather than one generic receipt envelope."
+      ],
+      "current_state": "Workflow package queue records no-op worker results. Workroom review decision consumer records review receipts. Reality Bounce can write offline receipts when Guardian validates fixture output, but no live worker execution was observed.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "partial",
+      "files": [
+        "workflow_package_queue.py",
+        "workroom_review_decision_consumer.py",
+        "reality_bounce_harness.py"
+      ],
+      "live_dry_run_contract": "noop_or_offline_receipt_only",
+      "next_required_work": "Standardize receipt fields before adding any live worker executor.",
+      "proof_receipt_output": "worker_results rows, workroom review decision receipts, package_receipt row",
+      "read_models": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/workroom_review_decision_status.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/workflow_package_queue.sqlite#worker_results",
+        "generated/system_knowledge/openclaw_lm_child_package_gate.sqlite#package_receipt"
+      ],
+      "stage_name": "Worker result receipt",
+      "stage_number": 10
+    },
+    {
+      "authority_boundary": "Review packet index cannot merge, push, spawn, or grant business authority.",
+      "current_gaps": [
+        "Index depends on generated read models and activity feed; no dedicated review packet SQLite store was found.",
+        "Review packet creation and worker execution are not unified."
+      ],
+      "current_state": "A PR-like review packet index exists as local read-model generation only. Current read model reports review_packet_count=2.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "yes",
+      "files": [
+        "workroom_review_packet_index.py",
+        "spawned_worker_package_lifecycle.py"
+      ],
+      "live_dry_run_contract": "read_model_generation_only_no_merge_push_or_worker_spawn",
+      "next_required_work": "Keep the index as read-only proof until worker results have stable receipts and review packet storage policy.",
+      "proof_receipt_output": "workroom_review_packet_index.json packets with proof refs and authority fields",
+      "read_models": [
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/spawned_worker_package_lifecycle.json",
+        "generated/read_models/openclaw_workroom_activity_feed.json"
+      ],
+      "sqlite": [],
+      "stage_name": "Review packet index",
+      "stage_number": 11
+    },
+    {
+      "authority_boundary": "Review decisions do not merge, push, spawn workers, send, submit, mutate ledgers/workbooks, or grant business authority.",
+      "current_gaps": [
+        "Operator decision is not yet a universal action executor.",
+        "Action payloads and approval requests need a shared dynamic card/action contract."
+      ],
+      "current_state": "Workroom review decisions can record approve-for-record, request-rework, or mark-informational receipts. Operator action payloads render safe buttons. Older operator_action rails exist but were not the main runtime chain audited here.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "partial",
+      "files": [
+        "workroom_review_decision_consumer.py",
+        "operator_action_payloads.py",
+        "operator_action.py",
+        "operator_action_inbox.py"
+      ],
+      "live_dry_run_contract": "local_decision_receipt_only_for_workrooms",
+      "next_required_work": "Unify review/approval/action payloads in a generic backend action schema before adding executors.",
+      "proof_receipt_output": "workroom_review_decision_status.json, review decision receipts, operator action payloads",
+      "read_models": [
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/workroom_review_decision_contract.json",
+        "generated/read_models/operator_action_payloads.json",
+        "generated/read_models/operator_actions.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/approval_request_queue.sqlite",
+        "generated/system_knowledge/gate_decision_ledger.sqlite"
+      ],
+      "stage_name": "Operator decision",
+      "stage_number": 12
+    },
+    {
+      "authority_boundary": "Email, Gmail, browser, Coupa, portal submit, ledger, workbook mutation/open/body read, PDF export, paid/sent, merge, push, worker spawn, and external action stay closed.",
+      "current_gaps": [
+        "Closed gates are present but a positive executor path is intentionally absent.",
+        "Future approvals must not be treated as action completion proof."
+      ],
+      "current_state": "Business-action gates exist primarily as closed gate rows, blocked action lists, and Guardian output validation. There is no audited live business-action executor.",
+      "deterministic_or_lm_shaped": "deterministic",
+      "exists": "partial",
+      "files": [
+        "workflow_package_queue.py",
+        "guardian_output_gate.py",
+        "operator_action_payloads.py",
+        "harness_provider_selection_registry.py"
+      ],
+      "live_dry_run_contract": "closed_gate_contract_and_sqlite_rows",
+      "next_required_work": "If business actions are ever added, introduce a separate executor gate with source proof, human approval, dry-run preview, execution receipt, and post-run review.",
+      "proof_receipt_output": "business_action_gate_results rows, Guardian validation payload, action payload authority boundaries",
+      "read_models": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/guardian_output_gate.json",
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/workflow_package_queue.sqlite#business_action_gate_results"
+      ],
+      "stage_name": "Business-action gate",
+      "stage_number": 13
+    },
+    {
+      "authority_boundary": "Cards and answers can render or stage safe payloads only; they cannot execute external actions or grant authority.",
+      "current_gaps": [
+        "Card schema is fragmented across visible_cards, operator_display, response_kind, local_surface_request, and operator_action_payloads.",
+        "The Mac app likely still has to hardcode some response/status/card mapping because the backend lacks a single generic packet."
+      ],
+      "current_state": "The backend emits layered response fields, visible_cards, operator_display, local_surface_request, Guardian output validation, and Mac render hints. There is also a non-executing operator card render contract. These pieces are not yet one canonical generic dynamic card packet.",
+      "deterministic_or_lm_shaped": "deterministic_response_composition",
+      "exists": "partial",
+      "files": [
+        "openclaw_request_processor.py",
+        "openclaw_request_response_service.py",
+        "system_question_answer.py",
+        "operator_action_payloads.py"
+      ],
+      "live_dry_run_contract": "live_response_payloads_plus_contract_only_card_schema",
+      "next_required_work": "Emit a generic dynamic_card_packet alongside existing fields and migrate Mac rendering to that packet behind a compatibility fallback.",
+      "proof_receipt_output": "openclaw_response_for_mac*.json, local_surface_request, operator_display, visible_cards, card render contract",
+      "read_models": [
+        "generated/read_models/operator_card_render_packet_contract.json",
+        "generated/read_models/local_surface_request_contract.json",
+        "generated/read_models/operator_action_payloads.json",
+        "generated/read_models/system_question_answer_contract.json"
+      ],
+      "sqlite": [],
+      "stage_name": "Dynamic operator card/answer",
+      "stage_number": 14
+    },
+    {
+      "authority_boundary": "Memory candidates do not mutate business truth, promote paid/sent state, expose raw prompts, or bypass approval.",
+      "current_gaps": [
+        "Promotion is not a universal final stage in the live request chain.",
+        "Operator-confirmed memory still needs explicit source and approval boundaries for each domain."
+      ],
+      "current_state": "Memory promotion and evidence scoring exist as generated governance/read-model layers. They help classify source strength and prevent generated summaries from becoming truth automatically.",
+      "deterministic_or_lm_shaped": "deterministic_scoring_and_promotion_policy",
+      "exists": "partial",
+      "files": [
+        "memory_promotion_gate.py",
+        "evidence_confidence_scoring.py",
+        "system_question_answer.py"
+      ],
+      "live_dry_run_contract": "read_model_governance_only",
+      "next_required_work": "Tie generic card/receipt outputs to evidence confidence and memory promotion candidates without automatic promotion.",
+      "proof_receipt_output": "memory promotion entries, evidence confidence facts, operator conversation journal refs",
+      "read_models": [
+        "generated/read_models/memory_promotion_gate.json",
+        "generated/read_models/evidence_confidence_scoring.json",
+        "generated/read_models/operator_conversation_journal.json"
+      ],
+      "sqlite": [
+        "generated/system_knowledge/operator_conversation_journal.sqlite"
+      ],
+      "stage_name": "Memory distillation/promotion",
+      "stage_number": 15
+    }
+  ],
+  "stage_rows": [
+    {
+      "authority_boundary": "Inbound authority is denied unless a deterministic handler explicitly permits a safe local action; protected actions stay false.",
+      "confidence": "high",
+      "currently_exists": "true",
+      "implementation_type": "deterministic",
+      "input_shape": "JSON request files in /mnt/e/openclaw/mission_control_capture_requests/inbox with request id/idempotency metadata, source surface, and typed payload fields.",
+      "known_failure_modes": [
+        "filename family unsupported",
+        "malformed JSON",
+        "duplicate idempotency/scoped response",
+        "missing required fields"
+      ],
+      "notes": "Mission Control enters through bridge files, not a direct in-process app call.",
+      "output_shape": "Candidate selection, processing heartbeat, then response JSON in /mnt/e/openclaw/mission_control_responses/to_mac.",
+      "primary_files": [
+        "openclaw_request_response_service.py",
+        "openclaw_request_processor.py"
+      ],
+      "read_model_involvement": [
+        "openclaw_request_response_service_status.json",
+        "openclaw_request_processor_status.json",
+        "openclaw_response_for_mac.json"
+      ],
+      "receipt_proof_output": "Processing heartbeat, terminal Mac response JSON, service status processed-key evidence.",
+      "sqlite_involvement": "None at file pickup; downstream handlers may write generated/system_knowledge SQLite.",
+      "stage_name": "Mission Control request input"
+    },
+    {
+      "authority_boundary": "Router/processor scan authority_boundary and performed-action flags, then block unsafe true grants.",
+      "confidence": "high",
+      "currently_exists": "true",
+      "implementation_type": "deterministic",
+      "input_shape": "Request path plus JSON envelope; filename patterns and request_type/kind identify workflow package, workroom review, workbook registration, chat, file intake, and related families.",
+      "known_failure_modes": [
+        "safe Mac envelope shape not aliased",
+        "handler not listed in service supported families",
+        "family-specific preflight mismatch"
+      ],
+      "notes": "The Workroom review repair showed that request_type aliases and filename families are operationally important.",
+      "output_shape": "Selected request family/handler or blocked unsupported response.",
+      "primary_files": [
+        "openclaw_request_processor.py",
+        "openclaw_request_router.py",
+        "openclaw_request_response_service.py"
+      ],
+      "read_model_involvement": [
+        "openclaw_request_router.json",
+        "openclaw_request_processor_status.json"
+      ],
+      "receipt_proof_output": "Response detail fields include selected handler/classification and why_it_happened.",
+      "sqlite_involvement": "None in router dispatch.",
+      "stage_name": "Request classification and router dispatch"
+    },
+    {
+      "authority_boundary": "Context identifies lane/thread only; it grants no send, ledger, workbook, worker, model, or provider authority.",
+      "confidence": "medium-high",
+      "currently_exists": "partial",
+      "implementation_type": "deterministic",
+      "input_shape": "Request fields such as current_world_ref, current_thread_ref, target_world_ref, target_thread_ref, source_surface, and local read-model refs.",
+      "known_failure_modes": [
+        "missing lane context",
+        "stale generated read model",
+        "context conflict handled narrowly by request family"
+      ],
+      "notes": "The hypothesized single context layer is not a unified runtime component yet.",
+      "output_shape": "Lane-biased operator_display, system-question answer, next-decision/action summary, or cross-lane route note.",
+      "primary_files": [
+        "workflow_package_request_consumer.py",
+        "system_question_answer.py",
+        "package_event_index.py",
+        "operator_next_decision.py"
+      ],
+      "read_model_involvement": [
+        "package_event_index.json",
+        "operator_conversation_journal.json",
+        "operator_next_decision.json",
+        "system_question_answer_contract.json"
+      ],
+      "receipt_proof_output": "Proof refs to read models/SQLite paths; raw conversation bodies are not primary operator text.",
+      "sqlite_involvement": "SQLite supplies metadata/proof in system_question_answer and package_event_index, but there is no universal context DB.",
+      "stage_name": "Context and lane enrichment"
+    },
+    {
+      "authority_boundary": "Privacy handling does not authorize external providers, raw body disclosure, or model invocation.",
+      "confidence": "medium",
+      "currently_exists": "partial",
+      "implementation_type": "deterministic",
+      "input_shape": "Source text, source_surface, request family, authority_boundary, and provider/model eligibility context.",
+      "known_failure_modes": [
+        "rule-based rather than live dynamic PII classifier",
+        "non-package rails rely on separate preflight/read-model policy"
+      ],
+      "notes": "Privacy exists, but it is not yet a single mandatory first stage for every request family.",
+      "output_shape": "privacy_gate_result rows, protected_text_hash package records, local_only answer policy, or blocked preflight.",
+      "primary_files": [
+        "workflow_package_queue.py",
+        "workflow_package_request_consumer.py",
+        "openclaw_request_processor.py",
+        "gate1_privacy_request_readiness.py"
+      ],
+      "read_model_involvement": [
+        "gate1_privacy_request_readiness.json",
+        "workflow_package_queue_contract.json",
+        "local_llm_intent_privacy_upgrade_plan.json"
+      ],
+      "receipt_proof_output": "Package records include privacy impact/protected hash; system-question answers report local_only.",
+      "sqlite_involvement": "workflow_package_queue.sqlite stores privacy_gate_results and package_inputs with protected_text_hash/raw_text_stored=0.",
+      "stage_name": "Privacy and PII gate"
+    },
+    {
+      "authority_boundary": "model_invocation_allowed=false, external_provider_connect_allowed=false, local_model_runtime_allowed=false, worker_spawn_allowed=false.",
+      "confidence": "high",
+      "currently_exists": "partial",
+      "implementation_type": "lm_shaped_contract",
+      "input_shape": "Local read models, deterministic action payloads, lane context, and example prompts/questions.",
+      "known_failure_modes": [
+        "LM-shaped copy can look like live reasoning",
+        "candidate plans can become stale if treated as canonical truth"
+      ],
+      "notes": "LM-shaped does not mean a live LM is running.",
+      "output_shape": "LM-shaped contract read models, deterministic candidate choices, local-only system answers, and plan-only workflow composer outputs.",
+      "primary_files": [
+        "lm_bounded_operator_orchestration.py",
+        "workflow_composer.py",
+        "deterministic_intent_interpreter.py",
+        "system_question_answer.py",
+        "machine_intent_candidate_validator.py"
+      ],
+      "read_model_involvement": [
+        "lm_bounded_operator_orchestration_latest.json",
+        "workflow_composer_latest.json",
+        "deterministic_intent_interpreter.json",
+        "live_lm_readiness_gate.json"
+      ],
+      "receipt_proof_output": "Read models explicitly state contract_only_no_live_lm, model_invoked=false, provider_connected=false.",
+      "sqlite_involvement": "No live model runtime SQLite in the current chain; shadow/readiness SQLite exists as test-harness state only.",
+      "stage_name": "LM planner / intent-to-machine-contract layer"
+    },
+    {
+      "authority_boundary": "Unsafe true grants block; business_action_gate is closed by default.",
+      "confidence": "high",
+      "currently_exists": "true",
+      "implementation_type": "deterministic",
+      "input_shape": "WORKFLOW_PACKAGE_REQUEST_V0 envelope with source text, source surface, target/current lane refs, requested workflow, and false authority flags.",
+      "known_failure_modes": [
+        "unsupported workflow_ref",
+        "capability gate block",
+        "dry-run package misread as worker execution"
+      ],
+      "notes": "This is the strongest real match for the hypothesized compiler/package registry stage.",
+      "output_shape": "Package object with package_id, workflow_ref, privacy/capability/business gates, no-op worker assignment/result, and operator-review receipt.",
+      "primary_files": [
+        "workflow_package_request_consumer.py",
+        "workflow_package_queue.py"
+      ],
+      "read_model_involvement": [
+        "workflow_package_queue_contract.json",
+        "workflow_package_request_consumer_status.json"
+      ],
+      "receipt_proof_output": "Consumer receipt/operator_display and normalized package/gate rows.",
+      "sqlite_involvement": "Writes workflow_package_queue.sqlite packages, package_inputs, privacy_gate_results, intent_classification_results, capability_gate_results, worker_assignments, worker_results, operator_review_receipts, and business_action_gate_results.",
+      "stage_name": "Deterministic package compiler"
+    },
+    {
+      "authority_boundary": "Indexing does not create business action, sent, paid, or ledger truth.",
+      "confidence": "high",
+      "currently_exists": "true",
+      "implementation_type": "deterministic",
+      "input_shape": "Package records, request/response refs, journal refs, source read models, and generated receipt refs.",
+      "known_failure_modes": [
+        "duplicate package concepts across DBs",
+        "summary mistaken for source truth",
+        "dirty SQLite from live service activity"
+      ],
+      "notes": "The business ledger is deliberately excluded from package truth.",
+      "output_shape": "SQLite package/gate rows plus compact package_event_index rows and read model.",
+      "primary_files": [
+        "workflow_package_queue.py",
+        "package_event_index.py",
+        "sqlite_governance_registry.py"
+      ],
+      "read_model_involvement": [
+        "package_event_index.json",
+        "sqlite_governance_registry.json",
+        "backend_queue_recovery_status.json"
+      ],
+      "receipt_proof_output": "Rows and refs/hashes/summaries; raw prompt bodies are not dumped.",
+      "sqlite_involvement": "workflow_package_queue.sqlite is package truth; package_event_index.sqlite indexes refs; gate_decision_ledger.sqlite and approval_request_queue.sqlite are governance truth, not package truth.",
+      "stage_name": "SQLite/package registry truth"
+    },
+    {
+      "authority_boundary": "Protected actions remain false: email, Coupa, ledger, workbook mutation, PDF export, paid, submit, push, worker spawn, external provider, live model.",
+      "confidence": "high",
+      "currently_exists": "true",
+      "implementation_type": "deterministic",
+      "input_shape": "Requested action, request family, authority_boundary, performed flags, workflow_ref, target lane, and gate refs.",
+      "known_failure_modes": [
+        "approval queue mistaken for executor",
+        "enabled UI action mistaken for authority"
+      ],
+      "notes": "Action payload exists does not mean action authority exists.",
+      "output_shape": "Blocked/allowed/approval_required decision records, pending approval rows, disabled action payloads, and Guardian/Chief display responses.",
+      "primary_files": [
+        "openclaw_request_processor.py",
+        "openclaw_request_router.py",
+        "workflow_package_request_consumer.py",
+        "workflow_package_queue.py",
+        "gate_decision_ledger.py",
+        "approval_request_queue.py",
+        "operator_action_payloads.py"
+      ],
+      "read_model_involvement": [
+        "gate_decision_ledger.json",
+        "approval_request_queue.json",
+        "operator_action_payloads.json",
+        "automation_permission_registry.json"
+      ],
+      "receipt_proof_output": "Gate rows, approval rows, response blockers, disabled_reason fields.",
+      "sqlite_involvement": "workflow_package_queue.sqlite stores capability/business gates; gate_decision_ledger.sqlite stores decisions; approval_request_queue.sqlite stores pending approvals.",
+      "stage_name": "Capability and authority gates"
+    },
+    {
+      "authority_boundary": "worker_spawn_allowed=false, child_agent_run_allowed=false, external_llm_allowed=false, git_push_allowed=false.",
+      "confidence": "high",
+      "currently_exists": "partial",
+      "implementation_type": "contract_only",
+      "input_shape": "Handoff event, worker_ref, package stub fields, lifecycle state, and review packet refs.",
+      "known_failure_modes": [
+        "package staged misread as worker executed",
+        "speaker authority accidentally inferred for worker",
+        "example review packet mistaken for live result"
+      ],
+      "notes": "Package staged does not mean worker executed.",
+      "output_shape": "Worker package stubs, lifecycle contracts, example review packet entries, handoff receipts/activity posts.",
+      "primary_files": [
+        "worker_package_staging.py",
+        "spawned_worker_package_lifecycle.py",
+        "openclaw_lm_child_package_gate.py",
+        "agent_handoff_event_consumer.py"
+      ],
+      "read_model_involvement": [
+        "worker_package_staging_status.json",
+        "spawned_worker_package_lifecycle.json",
+        "openclaw_lm_child_package_gate.json",
+        "agent_handoff_event_status.json"
+      ],
+      "receipt_proof_output": "Staging/status receipts require result_receipt_required=true; staging itself is not worker output.",
+      "sqlite_involvement": "openclaw_lm_child_package_gate.sqlite stores policy/contract/receipt-shaped rows, not live worker execution truth.",
+      "stage_name": "LM2 / child LM / worker cage"
+    },
+    {
+      "authority_boundary": "Receipts prove local deterministic handler output only; no protected business execution is implied without executor receipt.",
+      "confidence": "high",
+      "currently_exists": "true",
+      "implementation_type": "deterministic",
+      "input_shape": "Handler receipt/result object, readback files, package refs, decision refs, and source request refs.",
+      "known_failure_modes": [
+        "summary replaces receipt in UI",
+        "latest response mirror overwritten by later request",
+        "stale read model persists"
+      ],
+      "notes": "Receipts are stronger evidence than generated narrative text.",
+      "output_shape": "Bridge response JSON, local read-model updates, package_event_index rows, and collapsed proof refs.",
+      "primary_files": [
+        "openclaw_request_processor.py",
+        "openclaw_request_response_service.py",
+        "workflow_package_request_consumer.py",
+        "workroom_review_decision_consumer.py",
+        "agent_handoff_event_consumer.py",
+        "package_event_index.py"
+      ],
+      "read_model_involvement": [
+        "workroom_review_decision_status.json",
+        "package_event_index.json",
+        "openclaw_request_response_service_status.json"
+      ],
+      "receipt_proof_output": "Response files under /mnt/e/openclaw/mission_control_responses/to_mac plus generated read models.",
+      "sqlite_involvement": "Receipts may be stored/indexed in workflow_package_queue.sqlite, package_event_index.sqlite, and governance SQLite files.",
+      "stage_name": "Receipts and proof output"
+    },
+    {
+      "authority_boundary": "Review records a decision only; merge, push, send, ledger, workbook, PDF, Coupa, paid remain false.",
+      "confidence": "high",
+      "currently_exists": "partial",
+      "implementation_type": "deterministic",
+      "input_shape": "Review packet id, action payload, decision_action approve/request_rework/mark_informational, and pending approval records.",
+      "known_failure_modes": [
+        "packet still visible until lifecycle refresh",
+        "approval-for-record misread as merge/push authority"
+      ],
+      "notes": "The exact Mac mark_review_packet_informational request now has response proof and status history.",
+      "output_shape": "Decision receipt/status, actionability/next-decision surfaces when regenerated, compact workroom activity posts.",
+      "primary_files": [
+        "workroom_review_packet_index.py",
+        "workroom_review_decision_consumer.py",
+        "operator_action_payloads.py",
+        "approval_request_queue.py",
+        "operator_next_decision.py"
+      ],
+      "read_model_involvement": [
+        "workroom_review_packet_index.json",
+        "workroom_review_decision_status.json",
+        "operator_action_payloads.json",
+        "operator_next_decision.json"
+      ],
+      "receipt_proof_output": "Workroom review decision receipts with no_merge/no_push/no_business_action true.",
+      "sqlite_involvement": "Approval requests are SQLite-backed; Workroom review decisions are generated read-model receipts.",
+      "stage_name": "Operator review"
+    },
+    {
+      "authority_boundary": "No send/submit/ledger/workbook/PDF/paid authority is granted by read models or approval queues.",
+      "confidence": "high",
+      "currently_exists": "true",
+      "implementation_type": "deterministic",
+      "input_shape": "Protected action request or package with possible business effect.",
+      "known_failure_modes": [
+        "approval existence mistaken for execution",
+        "payment proof intake enabled before evidence"
+      ],
+      "notes": "The current gate system is conservative and should be preserved.",
+      "output_shape": "Closed gate, blocked gate, approval_required item, or disabled action payload.",
+      "primary_files": [
+        "workflow_package_queue.py",
+        "gate_decision_ledger.py",
+        "approval_request_queue.py",
+        "operator_action_payloads.py",
+        "automation_permission_registry.py"
+      ],
+      "read_model_involvement": [
+        "gate_decision_ledger.json",
+        "approval_request_queue.json",
+        "automation_permission_registry.json"
+      ],
+      "receipt_proof_output": "Gate rows and approval request rows record decisions only.",
+      "sqlite_involvement": "workflow_package_queue.sqlite business_action_gate_results, gate_decision_ledger.sqlite, approval_request_queue.sqlite.",
+      "stage_name": "Business-action gate"
+    },
+    {
+      "authority_boundary": "UI card/action visibility is not backend action authority.",
+      "confidence": "medium",
+      "currently_exists": "partial",
+      "implementation_type": "deterministic",
+      "input_shape": "Handler result, operator_display, visible_cards, layered_response_fields, spoken_response_packet, visual_event_package, and action payloads.",
+      "known_failure_modes": [
+        "Mac hardcodes some lane card logic",
+        "mixed response shapes",
+        "stale action card noise"
+      ],
+      "notes": "Backend payloads are dynamic fragments; operator_controller_protocol is additive protocol evidence, not a runtime executor.",
+      "output_shape": "Bridge response JSON and read models consumed by Mac/Helm surfaces.",
+      "primary_files": [
+        "openclaw_request_processor.py",
+        "operator_action_payloads.py",
+        "system_question_answer.py",
+        "operator_controller_protocol.py"
+      ],
+      "read_model_involvement": [
+        "operator_action_payloads.json",
+        "operator_controller_protocol.json",
+        "operator_next_decision.json",
+        "system_question_answer_contract.json",
+        "openclaw_response_for_mac.json"
+      ],
+      "receipt_proof_output": "Response files include display/card fields and proof refs collapsed by default.",
+      "sqlite_involvement": "Indirect only through read models and system-question SQLite metadata.",
+      "stage_name": "Dynamic app cards and answers"
+    },
+    {
+      "authority_boundary": "Memory cannot promote itself into canonical business truth; generated summaries cannot override receipts.",
+      "confidence": "medium-high",
+      "currently_exists": "partial",
+      "implementation_type": "deterministic",
+      "input_shape": "Receipts, artifact refs, generated summaries, memory candidates, and canonical state entries.",
+      "known_failure_modes": [
+        "candidate memory treated as canonical",
+        "generated summary treated as stronger than receipt"
+      ],
+      "notes": "Memory exists does not mean canonical truth.",
+      "output_shape": "Confidence labels, memory candidates, promotion gate records, and canonical truth map.",
+      "primary_files": [
+        "evidence_confidence_scoring.py",
+        "operator_memory_distillation.py",
+        "memory_promotion_gate.py",
+        "canonical_state_map.py"
+      ],
+      "read_model_involvement": [
+        "evidence_confidence_scoring.json",
+        "operator_memory_distillation.json",
+        "memory_promotion_gate.json",
+        "canonical_state_map.json"
+      ],
+      "receipt_proof_output": "Proof refs attached to facts/memories; promotion_status remains candidate unless approved.",
+      "sqlite_involvement": "No single memory SQLite truth store in this audited path; journal/package/artifact SQLite can supply proof refs.",
+      "stage_name": "Memory/evidence/canonical truth controls"
+    }
+  ],
+  "status": "OPERATOR_RUNTIME_CHAIN_CURRENT_STATE_AUDIT_READY",
+  "validation_expectations": {
+    "bridge_equality_required": true,
+    "git_diff_check_required": true,
+    "json_parse_bridge": true,
+    "json_parse_local": true,
+    "unsafe_true_grant_scan_required": true
+  },
+  "what_already_works_well_and_should_not_be_changed": [
+    "Approved-inbox bounded request pickup and duplicate skipping.",
+    "Fail-closed router behavior when authority_boundary contains true grants.",
+    "Contextual system-question short-circuit that prevents diagnostic package staging.",
+    "Workflow package queue storing raw text as protected hashes rather than raw prompt bodies.",
+    "Capability and business-action gates defaulting to closed.",
+    "Operator review packet language that separates worker output from speaker authority.",
+    "Provider selection registry stating provider choice does not grant authority."
+  ],
+  "what_exists_but_is_dry_run_or_contract_only": [
+    "Workflow Composer is planning only and safe_to_execute=false.",
+    "LM-bounded operator orchestration is contract_only_no_live_lm.",
+    "Harness provider selection is registry only.",
+    "Spawned worker package lifecycle is read-model contract only.",
+    "Worker package staging creates local package stubs only.",
+    "OpenClaw LM child package gate models child package policy but does not spawn swarms.",
+    "Operator card render packet contract is non-executing.",
+    "Business-action gate rows are closed and not an executor."
+  ],
+  "what_is_missing": [
+    "A universal runtime envelope that makes context, privacy, proof refs, and dynamic card output consistent across all request families.",
+    "A live LM1 planner; current state is intentionally contract-only/deterministic substitute.",
+    "A real LM2 worker cage runtime with sandbox, authority checks, receipts, and review.",
+    "A single generic dynamic card packet emitted by the backend for every operator-visible response.",
+    "A dedicated universal receipt envelope for package, worker, review, approval, and business-action outcomes.",
+    "A positive business-action executor gate; current gates are closed and protective.",
+    "A universal approval-to-execution bridge; current approval records do not execute actions."
+  ]
+}

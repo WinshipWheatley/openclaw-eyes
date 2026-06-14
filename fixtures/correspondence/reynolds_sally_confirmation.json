@@ -1,0 +1,13 @@
+{
+  "fixture_id": "reynolds_sally_confirmation_v0",
+  "thread_id": "fixture_reynolds_sally_2026_06_27",
+  "sender_name": "Sally",
+  "safe_source": "synthetic_correspondence_fixture",
+  "body_summary": "Sally confirmed the June 27 Reynolds Tavern gig sounds good.",
+  "expected_status": "draft_ready_pending_approval",
+  "expected_classification": "confirmation",
+  "send_hold_expected": true,
+  "gmail_api_allowed": false,
+  "email_send_allowed": false,
+  "raw_body_stored": false
+}

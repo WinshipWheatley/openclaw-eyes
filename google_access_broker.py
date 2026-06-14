@@ -46,8 +46,10 @@ Public API:
 
 import json
 import sys
+import importlib
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Mapping
 from zoneinfo import ZoneInfo
 
 
@@ -117,6 +119,65 @@ def _load_credentials():
 
 # ── Audit logging ─────────────────────────────────────────────────────────────
 
+_AUDIT_BODY_PARAM_KEYS = {"body", "body_text", "message_body"}
+_AUDIT_APPROVAL_CONTEXT_KEEP_KEYS = {
+    "request_id",
+    "idempotency_key",
+    "objective_id",
+    "payload_hash",
+    "body_hash",
+    "authority_refs",
+    "credential_lease_refs",
+    "authority_envelope_ref",
+    "authority_envelope_id",
+    "credential_lease_ref",
+    "credential_lease_id",
+    "exact_send_gate",
+}
+
+_GMAIL_BROKER_RUNTIME_IMPORTS = (
+    "googleapiclient.discovery",
+    "google.oauth2.credentials",
+    "google.auth.transport.requests",
+)
+
+
+def _redact_audit_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {
+            str(k): _redact_audit_value(v)
+            for k, v in value.items()
+            if str(k) not in _AUDIT_BODY_PARAM_KEYS
+        }
+    if isinstance(value, list):
+        return [_redact_audit_value(item) for item in value]
+    return value
+
+
+def _redact_approval_context(value: Any) -> dict:
+    if not isinstance(value, Mapping):
+        return {"redacted": True}
+    return {
+        key: _redact_audit_value(value[key])
+        for key in _AUDIT_APPROVAL_CONTEXT_KEEP_KEYS
+        if key in value
+    }
+
+
+def _redact_audit_params(params: Mapping[str, Any]) -> dict:
+    redacted = {}
+    for key, value in params.items():
+        key_str = str(key)
+        if key_str in _AUDIT_BODY_PARAM_KEYS:
+            continue
+        if key_str == "approval_context":
+            redacted[key_str] = _redact_approval_context(value)
+            redacted["approval_context_redacted"] = True
+            continue
+        redacted[key_str] = _redact_audit_value(value)
+    return redacted
+
+
 def _audit(agent: str, capability: str, params: dict,
            result_ok: bool, error: str = "") -> None:
     """Append one JSONL line to the Google access audit log."""
@@ -124,7 +185,7 @@ def _audit(agent: str, capability: str, params: dict,
         "ts":         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "agent":      agent,
         "capability": capability,
-        "params":     {k: v for k, v in params.items() if k not in {"body_text", "approval_context"}},
+        "params":     _redact_audit_params(params),
         "ok":         result_ok,
         "error":      error,
     }
@@ -155,6 +216,56 @@ def _request_approval(action: str, tier: int, approval_context: dict | None = No
     except ImportError:
         print("[google_broker] approval gate unavailable — defaulting to deny", flush=True)
         return False
+
+
+def _import_runtime_dependency(module_name: str):
+    return importlib.import_module(module_name)
+
+
+def check_gmail_broker_runtime_dependencies() -> dict:
+    """Import Gmail broker runtime modules without loading credentials."""
+    missing: list[dict[str, str]] = []
+    for module_name in _GMAIL_BROKER_RUNTIME_IMPORTS:
+        try:
+            _import_runtime_dependency(module_name)
+        except Exception as exc:
+            missing.append(
+                {
+                    "module": module_name,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                }
+            )
+    return {
+        "ok": not missing,
+        "checked_modules": list(_GMAIL_BROKER_RUNTIME_IMPORTS),
+        "missing": missing,
+        "credentials_read": False,
+        "google_api_called": False,
+    }
+
+
+def _exact_send_gate_context_verified(
+    agent: str,
+    capability: str,
+    params: Mapping[str, Any],
+) -> bool:
+    """True when Cassandra's exact-send gate already verified human approval."""
+    if agent.lower() != "cassandra" or capability != "google.gmail.send":
+        return False
+    context = params.get("approval_context")
+    if not isinstance(context, Mapping):
+        return False
+    request_id = str(params.get("exact_send_request_id") or context.get("request_id") or "")
+    idempotency_key = str(params.get("idempotency_key") or context.get("idempotency_key") or "")
+    return bool(
+        context.get("exact_send_gate") is True
+        and request_id
+        and idempotency_key == request_id
+        and context.get("payload_hash")
+        and context.get("authority_refs")
+        and context.get("credential_lease_refs")
+    )
 
 
 # ── Capability executors ──────────────────────────────────────────────────────
@@ -781,10 +892,19 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         _audit(agent, capability, params, False, msg)
         return {"ok": False, "data": None, "error": msg}
 
+    if capability.startswith("google.gmail."):
+        readiness = check_gmail_broker_runtime_dependencies()
+        if not readiness["ok"]:
+            missing = ", ".join(item["module"] for item in readiness["missing"])
+            msg = f"missing Gmail broker runtime dependencies: {missing}"
+            _audit(agent, capability, params, False, msg)
+            return {"ok": False, "data": readiness, "error": msg}
+
     approval_class = get_class(agent, capability)
 
     # 2. Approval gate (Class B and C only)
     #    Class A reads auto-proceed — gating would make reads unusable.
+    exact_send_gate_verified = _exact_send_gate_context_verified(agent, capability, params)
     if approval_class == "B":
         action = f"Google broker: {agent} → {capability}"
         if not _request_approval(action, tier=1, approval_context=params.get("approval_context")):
@@ -792,7 +912,7 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
             return {"ok": False, "data": None, "error": "denied at L1 approval gate"}
     elif approval_class == "C":
         action = f"Google broker: {agent} → {capability}"
-        if not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
+        if not exact_send_gate_verified and not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
             _audit(agent, capability, params, False, "denied at L2")
             return {"ok": False, "data": None, "error": "denied at L2 approval gate"}
 

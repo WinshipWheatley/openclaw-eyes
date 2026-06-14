@@ -39,6 +39,10 @@ LEGACY_HITL_STATE_REF = "/mnt/c/OpenClaw/logs/hitl_pending_state.json"
 CANONICAL_ACTION_TYPE = "cassandra_hitl_proposal"
 PAYLOAD_SCHEMA_VERSION = "legacy_cassandra_hitl_proposal_observation_v0"
 DEFAULT_TTL_SECONDS = 86400
+RUNTIME_METADATA_PAYLOAD_KEYS = frozenset({
+    "decision_receipt",
+    "execution_result",
+})
 DECISION_LABELS = {
     "APPROVED": ("decision_shadow_observed", "approved_observed", "approved"),
     "DENIED": ("decision_shadow_rejected", "denied_observed", "denied"),
@@ -133,7 +137,12 @@ def _payload_key_summary(payload: object) -> tuple[list[str], int, int]:
     if not isinstance(payload, Mapping):
         return [], 0, 0
 
-    top_level_key_count = len(payload)
+    stable_payload = {
+        key: value
+        for key, value in payload.items()
+        if str(key) not in RUNTIME_METADATA_PAYLOAD_KEYS
+    }
+    top_level_key_count = len(stable_payload)
     safe_keys: list[str] = []
     unsafe_count = 0
 
@@ -149,7 +158,7 @@ def _payload_key_summary(payload: object) -> tuple[list[str], int, int]:
             for item in value:
                 visit(item)
 
-    for key, value in payload.items():
+    for key, value in stable_payload.items():
         key_text = str(key)
         if key_text in FORBIDDEN_PAYLOAD_KEYS:
             unsafe_count += 1
@@ -187,13 +196,19 @@ def _payload_hash_basis(
     payload_key_count: int,
     unsafe_payload_key_count: int,
 ) -> dict[str, Any]:
+    legacy_payload = record.get("payload") if isinstance(record.get("payload"), Mapping) else {}
+    stable_payload = {
+        key: value
+        for key, value in legacy_payload.items()
+        if str(key) not in RUNTIME_METADATA_PAYLOAD_KEYS
+    }
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
         "source_surface_id": CASSANDRA_SOURCE_SURFACE,
         "legacy_action_id": str(record.get("action_id", "")).strip(),
         "source_agent": str(record.get("source_agent", "")).strip(),
         "legacy_action_type": str(record.get("action_type", "")).strip(),
-        "legacy_payload": record.get("payload") if isinstance(record.get("payload"), Mapping) else {},
+        "legacy_payload": stable_payload,
         "idempotency_key": str(record.get("idempotency_key", "")).strip(),
         "review_state": str(record.get("review_state", "")).strip(),
         "review_reason_codes": list(record.get("review_reason_codes") or []),

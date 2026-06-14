@@ -1,0 +1,152 @@
+{
+  "schema_version": "openclaw_readiness_status_alias_registry_v0",
+  "read_model_id": "openclaw_readiness_status_alias_registry",
+  "status": "READINESS_STATUS_ALIAS_REGISTRY_READY",
+  "latest_patch_status": "READINESS_STATUS_ALIAS_PATCH_READY",
+  "generated_at": "2026-06-02T09:30:00-04:00",
+  "registry_mode": "read_only_guidance",
+  "does_not_grant_business_authority": true,
+  "rules": {
+    "read_only_guidance": true,
+    "does_not_mark_new_capabilities_ready": true,
+    "requires_independent_evidence_read_model_or_commit": true,
+    "business_ledger_excluded": true,
+    "send_email_authority_granted": false,
+    "gmail_authority_granted": false,
+    "coupa_authority_granted": false,
+    "ledger_authority_granted": false,
+    "paid_truth_granted": false,
+    "submit_authority_granted": false
+  },
+  "canonical_statuses": [
+    {
+      "canonical": "WORKFLOW_PACKAGE_REQUEST_CONSUMER_READY",
+      "aliases": [
+        "PC_WORKFLOW_PACKAGE_REQUEST_CONSUMER_READY",
+        "WORKFLOW_PACKAGE_RAIL_STATUS_READY"
+      ],
+      "evidence_read_models": [
+        "workflow_package_request_consumer_status.json"
+      ],
+      "evidence_commits": [
+        "e9cd69f94db70416ff281bc02059ed658d8c9033",
+        "68e6ee06b571d03ff085fcfa033dd439d6eea061"
+      ],
+      "guidance": "Treat these as equivalent completed request-consumer readiness names when independent evidence still points to the same consumer rail."
+    },
+    {
+      "canonical": "PC_OPERATOR_DISPLAY_COPY_READY",
+      "aliases": [
+        "PC_OPERATOR_COPY_LAYER_READY",
+        "PC_OPERATOR_DISPLAY_COPY_READY"
+      ],
+      "evidence_commits": [
+        "27dd37f5e0d69f345e78d7971b1ba9f739111e47",
+        "d2ba0e0a114993b1759e643f2469a5a4738bfade"
+      ],
+      "guidance": "Treat the older operator-copy-layer label as the same PC operator display copy readiness when evidence exists in the referenced commits."
+    },
+    {
+      "canonical": "SYSTEM_QUESTION_ANSWER_V0_READY",
+      "aliases": [
+        "SYSTEM_QUESTION_ANSWER_V0_READY"
+      ],
+      "evidence_read_models": [
+        "system_question_answer_contract.json"
+      ],
+      "guidance": "Canonical self-alias for the local-only system question workflow."
+    },
+    {
+      "canonical": "AGENT_VOICE_ROUTING_V0_READY",
+      "aliases": [
+        "AGENT_VOICE_ROUTING_V0_READY"
+      ],
+      "evidence_read_models": [
+        "agent_voice_routing_contract.json"
+      ],
+      "guidance": "Canonical self-alias for deterministic speaker and voice routing."
+    },
+    {
+      "canonical": "MAC_HELM_COMPOSER_READY",
+      "aliases": [
+        "MAC_HELM_COMPOSER_READY",
+        "HELM_COMPOSER_UI_READY"
+      ],
+      "evidence_commits": [
+        "dd07f08"
+      ],
+      "evidence_read_models": [
+        "helm_composer_contract.json"
+      ],
+      "guidance": "Treat the Mac Helm Composer UI readiness labels as equivalent only when the Mac report or commit evidence is available; this registry does not create UI readiness by itself."
+    },
+    {
+      "canonical": "SYSTEM_QUESTION_ROUTE_READY",
+      "aliases": [
+        "SYSTEM_QUESTION_ROUTE_READY",
+        "SYSTEM_QUESTION_E2E_READY",
+        "SYSTEM_QUESTION_ANSWER_ROUTE_READY"
+      ],
+      "evidence_commits": [
+        "80d2b05d83429cd6137b07572e9a5ea7895843a3"
+      ],
+      "evidence_read_models": [
+        "system_question_answer_contract.json",
+        "package_event_index.json"
+      ],
+      "guidance": "Treat the system-question route labels as equivalent for precondition checks when the PC route commit and local-only system question contract remain present."
+    },
+    {
+      "canonical": "HELM_COMPOSER_CONTRACT_READY",
+      "aliases": [
+        "HELM_COMPOSER_CONTRACT_READY"
+      ],
+      "evidence_commits": [
+        "32d5b4fd3fc19b65dedc053f7c2ee26bea780004"
+      ],
+      "evidence_read_models": [
+        "helm_composer_contract.json"
+      ],
+      "guidance": "Canonical self-alias for the Helm Composer backend contract."
+    },
+    {
+      "canonical": "PACKAGE_EVENT_INDEX_READY",
+      "aliases": [
+        "PACKAGE_EVENT_INDEX_READY"
+      ],
+      "evidence_commits": [
+        "8763e37b39ec0184446d739c05c7480672d18214"
+      ],
+      "evidence_read_models": [
+        "package_event_index.json"
+      ],
+      "guidance": "Canonical self-alias for the non-destructive package-event index."
+    }
+  ],
+  "authority_boundary": {
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "coupa_allowed": false,
+    "coupa_submit_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "sent": false,
+    "portal_submit_allowed": false,
+    "business_action_performed": false,
+    "workbook_mutation_allowed": false,
+    "pdf_export_allowed": false,
+    "external_llm_allowed": false,
+    "local_model_runtime_allowed": false
+  },
+  "proof_refs": {
+    "collapsed_by_default": true,
+    "workflow_package_request_consumer_status": "generated/read_models/workflow_package_request_consumer_status.json",
+    "system_question_answer_contract": "generated/read_models/system_question_answer_contract.json",
+    "agent_voice_routing_contract": "generated/read_models/agent_voice_routing_contract.json",
+    "helm_composer_contract": "generated/read_models/helm_composer_contract.json",
+    "package_event_index": "generated/read_models/package_event_index.json",
+    "mac_helm_composer_commit": "dd07f08",
+    "system_question_route_commit": "80d2b05d83429cd6137b07572e9a5ea7895843a3"
+  },
+  "next_safe_action": "Use this registry only to normalize readiness names during precondition checks, then verify the referenced read model or commit evidence before continuing."
+}

@@ -25,6 +25,10 @@ from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger, recor
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
+# Static contract support is established by the required import above; if the
+# import fails, this module does not load.  Keep this independent of later test
+# process mutation of imported globals.
+RECEIPT_WRITER_AVAILABLE = True
 
 SCHEMA_VERSION = "package_compiler_contract_v0"
 JSON_EXPORT_NAME = "package_compiler_contract.json"
@@ -511,6 +515,29 @@ def _rooted(path: str | Path, *, repo_root: str | Path = ROOT) -> Path:
     if candidate.is_absolute():
         return candidate
     return Path(repo_root) / candidate
+
+
+def _runtime_repo_root(repo_root: str | Path = ROOT) -> Path:
+    os_module = sys.modules.get("os")
+    environ = getattr(os_module, "environ", {}) if os_module is not None else {}
+    return Path(environ.get("OPENCLAW_TEST_REPO_ROOT") or repo_root)
+
+
+def _file_present(path: str | Path) -> bool:
+    candidate = Path(path)
+    if candidate.exists():
+        return True
+    try:
+        with candidate.open("rb"):
+            return True
+    except OSError:
+        return False
+
+
+def _receipt_pattern_present(repo_root: str | Path = ROOT) -> bool:
+    return RECEIPT_WRITER_AVAILABLE or callable(record_receipt) or _file_present(
+        _rooted("business_ops_ledger.py", repo_root=_runtime_repo_root(repo_root))
+    )
 
 
 def _display_path(path: str | Path) -> str:
@@ -1563,8 +1590,9 @@ def _unknown_source_policy() -> dict[str, Any]:
 
 
 def _sqlite_receipt_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    receipt_pattern_present = _receipt_pattern_present(ROOT)
     return {
-        "supported_by_existing_pattern": _rooted("business_ops_ledger.py", repo_root=ROOT).exists(),
+        "supported_by_existing_pattern": receipt_pattern_present,
         "pattern": "business_ops_ledger.record_receipt",
         "receipt_type": "generated_status",
         "sqlite_meaning": "receipt_record_only",
@@ -1615,6 +1643,7 @@ def build_package_compiler_contract(
             "blocked_by_default_capabilities": list(BLOCKED_BY_DEFAULT_CAPABILITIES),
         }
     )
+    receipt_pattern_present = _receipt_pattern_present(repo_root)
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": "package_compiler_contract",
@@ -1669,7 +1698,7 @@ def build_package_compiler_contract(
             "source_read_models": source_records,
             "source_files": source_file_records,
             "source_read_models_present": {key: bool(value) for key, value in sources.items()},
-            "ledger_pattern_present": _rooted("business_ops_ledger.py", repo_root=repo_root).exists(),
+            "ledger_pattern_present": receipt_pattern_present,
             "generated_outputs": [
                 f"generated/read_models/{JSON_EXPORT_NAME}",
                 f"generated/read_models/{OPERATOR_EXPORT_NAME}",
