@@ -6,6 +6,7 @@ from pathlib import Path
 
 import openclaw_system_knowledge_registry as registry
 from scripts.export_openclaw_system_knowledge_registry import main as export_main
+from scripts.query_system_knowledge_registry import main as query_main
 
 
 REQUIRED_COMPONENTS = {
@@ -242,3 +243,71 @@ def test_query_system_knowledge_registry_answers_shape_unknowns_and_orbit(tmp_pa
     assert any(item["unknown_id"] == "unknown_correspondence_gmail_scope" for item in unknowns["items"])
     assert orbit["answer_type"] == "orbit_and_atlas"
     assert orbit["items"]["atlas_summary"]["root_count"] == 1
+
+
+def test_combined_system_self_knowledge_query_answers_all_sections(tmp_path: Path) -> None:
+    atlas_path = tmp_path / "atlas.json"
+    atlas_path.write_text(
+        json.dumps({"summary": {"root_count": 1, "directory_count": 2}, "directories": []}),
+        encoding="utf-8",
+    )
+
+    answer = registry.query_system_knowledge_registry(
+        "what's the system's shape / what does it know / not know / in orbit?",
+        repo_root=tmp_path,
+        atlas_path=atlas_path,
+    )
+    rendered = registry.format_system_knowledge_answer(answer)
+
+    assert answer["answer_type"] == "system_self_knowledge"
+    assert "system_shape" in answer["items"]
+    assert "known_unknowns" in answer["items"]
+    assert "orbit_and_atlas" in answer["items"]
+    assert answer["items"]["orbit_and_atlas"]["atlas_summary"]["root_count"] == 1
+    assert any(
+        item["unknown_id"] == "unknown_live_business_ops_ledger_missing"
+        for item in answer["items"]["known_unknowns"]
+    )
+    assert "Shape:" in rendered
+    assert "Knows:" in rendered
+    assert "Does not know:" in rendered
+    assert "In orbit:" in rendered
+    assert "no model call" in rendered
+
+
+def test_query_system_knowledge_registry_cli_json_and_operator(capsys, tmp_path: Path) -> None:
+    atlas_path = tmp_path / "atlas.json"
+    atlas_path.write_text(
+        json.dumps({"summary": {"root_count": 1, "directory_count": 3}, "directories": []}),
+        encoding="utf-8",
+    )
+
+    assert query_main(
+        [
+            "--repo-root",
+            str(tmp_path),
+            "--atlas-path",
+            str(atlas_path),
+            "--format",
+            "json",
+            "--question",
+            "what's the system's shape / what does it know / not know / in orbit?",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["answer_type"] == "system_self_knowledge"
+
+    assert query_main(
+        [
+            "--repo-root",
+            str(tmp_path),
+            "--atlas-path",
+            str(atlas_path),
+            "--format",
+            "operator",
+            "what is in orbit",
+        ]
+    ) == 0
+    output = capsys.readouterr().out
+    assert "OpenClaw Orbit" in output
+    assert "read-only" in output

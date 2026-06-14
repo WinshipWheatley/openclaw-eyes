@@ -60,6 +60,11 @@ from cassandra_custom_tools import handle_operator_objective as _handle_operator
 from operator_universal_intake import try_process_surface_operator_intake as _try_universal_operator_intake
 from cassandra_guided_review import process_guided_review_message as _process_guided_review_message
 from operator_context_switchboard import process_operator_context_switchboard_message as _process_operator_context_switchboard_message
+from openclaw_system_knowledge_registry import (
+    format_system_knowledge_answer as _format_system_knowledge_answer,
+    is_system_knowledge_registry_query as _is_system_knowledge_registry_query,
+    query_system_knowledge_registry as _query_system_knowledge_registry,
+)
 from cassandra_pii_hooks import (
     tokenize_prompt as _pii_tokenize,
     rehydrate_reply as _pii_rehydrate_reply,
@@ -5595,6 +5600,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
 
     # Deterministic Intent (Business Ops Spine Step 2)
     ops_intent = classify_business_ops_intent(query)
+    system_knowledge_query = _is_system_knowledge_registry_query(query)
 
     # Formalize the Context/Capability Packet (Business Ops Spine Step 3)
     ops_packet = assemble_business_ops_packet(
@@ -5604,8 +5610,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     )
 
     # Record the event and packet receipt in the SQLite Ledger (Business Ops Spine Step 7)
-    # Skip ledger write for deterministic status inquiries (Step 5) to ensure pure read-only behavior.
-    if ops_intent.intent_name == "ops_status":
+    # Skip ledger write for deterministic status/self-knowledge inquiries to preserve pure read-only behavior.
+    if ops_intent.intent_name == "ops_status" or system_knowledge_query:
         event_id = None
     else:
         event_id = record_cassandra_packet_event(query, ops_packet)
@@ -5621,6 +5627,33 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         save_state(state)
         _log_conversation(text, [date_awareness_reply], route="date_awareness", metadata={"event_id": event_id})
         return [date_awareness_reply]
+
+    if system_knowledge_query:
+        answer_kwargs: dict[str, Any] = {}
+        if session_meta.get("system_knowledge_repo_root"):
+            answer_kwargs["repo_root"] = session_meta["system_knowledge_repo_root"]
+        if session_meta.get("system_knowledge_ledger_path"):
+            answer_kwargs["ledger_path"] = session_meta["system_knowledge_ledger_path"]
+        if session_meta.get("system_knowledge_atlas_path"):
+            answer_kwargs["atlas_path"] = session_meta["system_knowledge_atlas_path"]
+        answer = _query_system_knowledge_registry(query, **answer_kwargs)
+        reply = [_format_system_knowledge_answer(answer)]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="system_knowledge_registry_query",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "answer_type": answer.get("answer_type"),
+                "model_called": False,
+                "external_calls_performed": False,
+                "runtime_mutation_performed": False,
+                "business_action_performed": False,
+            },
+        )
+        return reply
 
     objective_result = _handle_operator_objective(
         query,

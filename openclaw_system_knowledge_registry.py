@@ -1022,6 +1022,62 @@ def compact_json(payload: Any) -> str:
     return json.dumps(payload, separators=(",", ":"), sort_keys=True)
 
 
+def _normalized_question(question: str) -> str:
+    text = str(question or "").lower()
+    text = text.replace("’", "'").replace("?", " ").replace("/", " ")
+    return " ".join(text.split())
+
+
+def is_system_knowledge_registry_query(question: str) -> bool:
+    """Return True for operator/agent questions this registry can answer."""
+
+    text = _normalized_question(question)
+    if not text:
+        return False
+    direct_phrases = (
+        "system knowledge registry",
+        "self knowledge registry",
+        "self-knowledge registry",
+        "system self knowledge",
+        "system self-knowledge",
+        "what is in orbit",
+        "what's in orbit",
+        "whats in orbit",
+        "floating in orbit",
+    )
+    if any(phrase in text for phrase in direct_phrases):
+        return True
+    system_terms = ("system", "openclaw", "registry")
+    knowledge_terms = (
+        "shape",
+        "know",
+        "known",
+        "unknown",
+        "not know",
+        "doesn't know",
+        "does not know",
+        "capability",
+        "component",
+        "orbit",
+        "orphan",
+    )
+    return any(term in text for term in system_terms) and any(term in text for term in knowledge_terms)
+
+
+def _question_topics(question: str) -> set[str]:
+    text = _normalized_question(question)
+    topics: set[str] = set()
+    if any(term in text for term in ("unknown", "not know", "doesn't know", "does not know", "missing")):
+        topics.add("unknowns")
+    if any(term in text for term in ("orbit", "floating", "orphan", "graph", "atlas")):
+        topics.add("orbit")
+    if any(term in text for term in ("task", "next", "build", "work")):
+        topics.add("tasks")
+    if any(term in text for term in ("shape", "system", "component", "capability", "registry")):
+        topics.add("shape")
+    return topics
+
+
 def generated_paths(repo_root: Path) -> dict[str, Path]:
     return {
         "json": repo_root / READ_MODEL_DIR / JSON_EXPORT_NAME,
@@ -1178,6 +1234,68 @@ def _load_json_if_exists(path: Path | None) -> dict[str, Any] | None:
         return None
 
 
+def _live_projection_known_unknowns(projection: dict[str, Any]) -> list[dict[str, str]]:
+    unknowns: list[dict[str, str]] = []
+    ledger_counts = projection.get("ledger_counts")
+    if isinstance(ledger_counts, dict):
+        ledger_status = ledger_counts.get("status")
+        if ledger_status == "missing":
+            unknowns.append(
+                {
+                    "unknown_id": "unknown_live_business_ops_ledger_missing",
+                    "subject": "Business ops ledger live projection",
+                    "unknown_status": "MISSING_IN_THIS_WORKTREE",
+                    "reason": "The configured ledger SQLite file is not present, so live ledger counts cannot be projected here.",
+                    "next_safe_check": "Run the query against the live repo ledger path or let PC-18/claude-mac confirm ledger export availability.",
+                }
+            )
+        elif ledger_status == "unreadable":
+            unknowns.append(
+                {
+                    "unknown_id": "unknown_live_business_ops_ledger_unreadable",
+                    "subject": "Business ops ledger live projection",
+                    "unknown_status": "UNREADABLE_SQLITE",
+                    "reason": "The configured ledger SQLite file exists but could not be opened read-only.",
+                    "next_safe_check": "Verify file permissions and SQLite integrity without mutating the ledger.",
+                }
+            )
+        else:
+            missing_tables = sorted(
+                table for table, count in ledger_counts.items() if count == "missing"
+            )
+            if missing_tables:
+                unknowns.append(
+                    {
+                        "unknown_id": "unknown_live_business_ops_ledger_tables",
+                        "subject": "Business ops ledger table coverage",
+                        "unknown_status": "EXPECTED_TABLES_MISSING",
+                        "reason": f"Expected ledger tables are absent from the live projection: {', '.join(missing_tables)}.",
+                        "next_safe_check": "Coordinate table/schema changes through the PC-18 ledger lane; do not patch ledger schema from this registry lane.",
+                    }
+                )
+    if not projection.get("atlas_path") or not projection.get("atlas_summary"):
+        unknowns.append(
+            {
+                "unknown_id": "unknown_live_filesystem_atlas_missing",
+                "subject": "Filesystem atlas live projection",
+                "unknown_status": "ATLAS_MISSING_OR_EMPTY",
+                "reason": "No readable atlas summary was found for the live projection.",
+                "next_safe_check": "Refresh or provide the established filesystem atlas artifact, then rerun the query.",
+            }
+        )
+    if not projection.get("graphiffy_path"):
+        unknowns.append(
+            {
+                "unknown_id": "unknown_live_graphiffy_missing",
+                "subject": "Graphiffy orbit projection",
+                "unknown_status": "GRAPHIFY_MISSING",
+                "reason": "No readable Graphiffy artifact was found, so orphaned/in-orbit node sampling is incomplete.",
+                "next_safe_check": "Refresh or provide the established Graphiffy artifact, then rerun the query.",
+            }
+        )
+    return unknowns
+
+
 def build_live_registry_projection(
     repo_root: Path | str | None = None,
     *,
@@ -1233,7 +1351,7 @@ def build_live_registry_projection(
         if isinstance(node, dict)
         and node.get("move_safety_posture") in {"candidate_only_after_validation", "unknown_manual_review"}
     ][:25]
-    return {
+    projection = {
         "projection_version": "openclaw_live_registry_projection_v0",
         "source_mode": "read_only_ledger_and_atlas_metadata",
         "ledger_path": ledger.as_posix(),
@@ -1251,6 +1369,8 @@ def build_live_registry_projection(
             "external_call": False,
         },
     }
+    projection["live_known_unknowns"] = _live_projection_known_unknowns(projection)
+    return projection
 
 
 def query_system_knowledge_registry(
@@ -1265,36 +1385,69 @@ def query_system_knowledge_registry(
     root = Path(repo_root) if repo_root is not None else ROOT
     payload = build_registry(root)
     live_projection = build_live_registry_projection(root, ledger_path=ledger_path, atlas_path=atlas_path)
-    text = " ".join((question or "").lower().split())
-    if any(term in text for term in ("unknown", "not know", "doesn't know", "does not know", "missing")):
+    topics = _question_topics(question)
+    static_unknowns = list(payload["known_unknowns"])
+    live_unknowns = list(live_projection.get("live_known_unknowns") or [])
+    all_unknowns = static_unknowns + live_unknowns
+    if len(topics & {"shape", "unknowns", "orbit"}) >= 2:
+        answer_type = "system_self_knowledge"
+        items = {
+            "system_shape": {
+                "components": payload["component_inventory"],
+                "capabilities": payload["capabilities"],
+                "knowledge_claims": payload["knowledge_claims"],
+            },
+            "known_unknowns": all_unknowns,
+            "orbit_and_atlas": {
+                "brain_route_inventory": payload["brain_route_inventory"],
+                "atlas_summary": live_projection["atlas_summary"],
+                "orbit_like_node_sample": live_projection["orbit_like_node_sample"],
+                "graphiffy_node_count": live_projection["graphiffy_node_count"],
+            },
+            "live_projection": live_projection,
+        }
+        summary = (
+            f"{len(payload['component_inventory'])} components, "
+            f"{len(payload['capabilities'])} capabilities, "
+            f"{len(payload['knowledge_claims'])} knowledge claims, "
+            f"{len(all_unknowns)} known unknowns, and "
+            f"{len(payload['brain_route_inventory'])} orbit brain records are available."
+        )
+    elif "unknowns" in topics:
         answer_type = "known_unknowns"
-        items = payload["known_unknowns"]
-        summary = f"{len(items)} known unknowns are recorded."
-    elif any(term in text for term in ("orbit", "floating", "orphan", "graph", "atlas")):
+        items = all_unknowns
+        summary = f"{len(items)} known unknowns are recorded, including live projection gaps."
+    elif "orbit" in topics:
         answer_type = "orbit_and_atlas"
         items = {
             "brain_route_inventory": payload["brain_route_inventory"],
             "atlas_summary": live_projection["atlas_summary"],
             "orbit_like_node_sample": live_projection["orbit_like_node_sample"],
+            "graphiffy_node_count": live_projection["graphiffy_node_count"],
         }
         summary = "Orbit posture comes from brain-route inventory plus atlas/Graphiffy metadata."
-    elif any(term in text for term in ("task", "next", "build", "work")):
+    elif "tasks" in topics:
         answer_type = "build_tasks"
         items = payload["build_tasks"]
         summary = f"{len(items)} build tasks are recorded."
-    elif any(term in text for term in ("shape", "system", "component", "capability", "know")):
+    elif "shape" in topics:
         answer_type = "system_shape"
         items = {
             "components": payload["component_inventory"],
             "capabilities": payload["capabilities"],
+            "knowledge_claims": payload["knowledge_claims"],
             "live_projection": live_projection,
         }
-        summary = f"{len(payload['component_inventory'])} components and {len(payload['capabilities'])} capabilities are recorded."
+        summary = (
+            f"{len(payload['component_inventory'])} components, "
+            f"{len(payload['capabilities'])} capabilities, and "
+            f"{len(payload['knowledge_claims'])} knowledge claims are recorded."
+        )
     else:
         answer_type = "overview"
         items = {
             "components": payload["coverage_assessment"]["seeded_component_ids"],
-            "known_unknown_count": len(payload["known_unknowns"]),
+            "known_unknown_count": len(all_unknowns),
             "build_task_count": len(payload["build_tasks"]),
             "live_projection": live_projection,
         }
@@ -1319,6 +1472,114 @@ def query_system_knowledge_registry(
             "business_action": False,
         },
     }
+
+
+def _status_line(item: dict[str, Any], id_key: str, status_key: str, subject_key: str = "subject") -> str:
+    label = str(item.get(subject_key) or item.get(id_key) or "").strip()
+    status = str(item.get(status_key) or "").strip()
+    identifier = str(item.get(id_key) or "").strip()
+    if label and status:
+        return f"{label} ({status})"
+    return label or identifier
+
+
+def _sample_lines(items: list[dict[str, Any]], *, id_key: str, status_key: str, subject_key: str = "subject", limit: int = 4) -> str:
+    if not items:
+        return "none"
+    return "; ".join(
+        _status_line(item, id_key=id_key, status_key=status_key, subject_key=subject_key)
+        for item in items[:limit]
+    )
+
+
+def format_system_knowledge_answer(answer: dict[str, Any]) -> str:
+    """Format a deterministic registry answer for Cassandra/CLI operator use."""
+
+    answer_type = str(answer.get("answer_type") or "overview")
+    items = answer.get("items") if isinstance(answer.get("items"), dict) else {}
+    authority = answer.get("authority_boundary") if isinstance(answer.get("authority_boundary"), dict) else {}
+    boundary = (
+        "Boundary: read-only registry query; no model call, external call, "
+        "runtime mutation, or business action."
+        if authority.get("read_only") is True
+        else "Boundary: registry answer only."
+    )
+    if answer_type == "system_self_knowledge":
+        shape = items.get("system_shape") if isinstance(items, dict) else {}
+        orbit = items.get("orbit_and_atlas") if isinstance(items, dict) else {}
+        live = items.get("live_projection") if isinstance(items, dict) else {}
+        components = list((shape or {}).get("components") or [])
+        capabilities = list((shape or {}).get("capabilities") or [])
+        claims = list((shape or {}).get("knowledge_claims") or [])
+        unknowns = list((items or {}).get("known_unknowns") or [])
+        brains = list((orbit or {}).get("brain_route_inventory") or [])
+        atlas_summary = dict((orbit or {}).get("atlas_summary") or {})
+        orbit_sample = list((orbit or {}).get("orbit_like_node_sample") or [])
+        ledger_counts = (live or {}).get("ledger_counts") if isinstance(live, dict) else {}
+        ledger_status = ledger_counts.get("status", "available") if isinstance(ledger_counts, dict) else "unknown"
+        claim_subjects = ", ".join(str(claim.get("subject") or claim.get("claim_id")) for claim in claims[:4]) or "none"
+        return "\n".join(
+            [
+                "OpenClaw System Knowledge (read-only)",
+                f"Shape: {len(components)} components, {len(capabilities)} capabilities, {len(brains)} orbit brain records.",
+                f"Knows: {len(claims)} registry claims; first subjects: {claim_subjects}.",
+                f"Does not know: {len(unknowns)} known unknowns; {_sample_lines(unknowns, id_key='unknown_id', status_key='unknown_status')}.",
+                (
+                    "In orbit: "
+                    f"atlas roots={atlas_summary.get('root_count', 0)}, "
+                    f"directories={atlas_summary.get('directory_count', 0)}, "
+                    f"Graphiffy nodes={(orbit or {}).get('graphiffy_node_count', 0)}, "
+                    f"sampled nodes={len(orbit_sample)}."
+                ),
+                f"Live ledger projection: {ledger_status}.",
+                boundary,
+            ]
+        )
+    if answer_type == "known_unknowns":
+        unknowns = list(answer.get("items") or [])
+        return "\n".join(
+            [
+                "OpenClaw Known Unknowns (read-only)",
+                f"Count: {len(unknowns)}.",
+                _sample_lines(unknowns, id_key="unknown_id", status_key="unknown_status"),
+                boundary,
+            ]
+        )
+    if answer_type == "orbit_and_atlas":
+        orbit = answer.get("items") if isinstance(answer.get("items"), dict) else {}
+        brains = list((orbit or {}).get("brain_route_inventory") or [])
+        atlas_summary = dict((orbit or {}).get("atlas_summary") or {})
+        orbit_sample = list((orbit or {}).get("orbit_like_node_sample") or [])
+        return "\n".join(
+            [
+                "OpenClaw Orbit (read-only)",
+                f"Brain-route records: {len(brains)}.",
+                f"Atlas: roots={atlas_summary.get('root_count', 0)}, directories={atlas_summary.get('directory_count', 0)}.",
+                f"Graphiffy nodes: {(orbit or {}).get('graphiffy_node_count', 0)}; sampled orbit-like nodes: {len(orbit_sample)}.",
+                boundary,
+            ]
+        )
+    if answer_type == "system_shape":
+        shape = answer.get("items") if isinstance(answer.get("items"), dict) else {}
+        components = list((shape or {}).get("components") or [])
+        capabilities = list((shape or {}).get("capabilities") or [])
+        claims = list((shape or {}).get("knowledge_claims") or [])
+        return "\n".join(
+            [
+                "OpenClaw System Shape (read-only)",
+                f"Components: {len(components)}.",
+                f"Capabilities: {len(capabilities)}.",
+                f"Knowledge claims: {len(claims)}.",
+                boundary,
+            ]
+        )
+    return "\n".join(
+        [
+            "OpenClaw System Knowledge (read-only)",
+            str(answer.get("summary") or "Registry overview returned."),
+            boundary,
+        ]
+    )
 
 
 def sqlite_rows(payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
