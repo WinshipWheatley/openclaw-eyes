@@ -50,6 +50,24 @@ LEGACY_TIER_TO_G3: dict[str, dict[str, Any]] = {
 
 
 SURFACE_CONVERGENCE: dict[str, dict[str, Any]] = {
+    "invoice_send": {
+        "surface": "invoice_send",
+        "legacy_brain": None,
+        "legacy_gate": None,
+        "legacy_tier": "tier_2",
+        "canonical_gate": G3_GATE,
+        "g3_gate_state": "PENDING_APPROVAL",
+        "single_authoritative_gate": G3_GATE,
+        "legacy_gate_runtime_role": "none",
+        "legacy_direct_send_allowed": False,
+        "double_gate_allowed": False,
+        "executor_registered": True,
+        "approval_required": True,
+        "execution_allowed": False,
+        "external_send_allowed": False,
+        "send_hold_ref": SEND_HOLD_REF,
+        "executor_mode": "square_sandbox_only",
+    },
     "email_send": {
         "surface": "email_send",
         "legacy_brain": "chief_email_brain.py",

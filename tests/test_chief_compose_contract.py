@@ -251,12 +251,12 @@ def test_compose_malformed_classifier_result_gates_not_fast_path(monkeypatch):
     assert result.pending_approval is not None
 
 
-def test_execute_packet_refuses_unwired_surface():
+def test_execute_packet_registered_invoice_surface_fails_closed_for_missing_packet():
     receipt = execute_packet("packet_fixture", surface="invoice_send", db_path=str(TEMP_DB))
 
     assert receipt.ok is False
     assert receipt.gate_state is GateState.FAILED
-    assert "No executor wired" in receipt.detail
+    assert "agent work packet not found" in receipt.detail
     assert receipt.side_effect_id
 
     import sqlite3
@@ -268,4 +268,4 @@ def test_execute_packet_refuses_unwired_surface():
         ).fetchone()
     finally:
         conn.close()
-    assert row == ("invoice_send", "blocked_no_executor", 1)
+    assert row == ("invoice_send.square.sandbox", "blocked_guard_failed", 1)

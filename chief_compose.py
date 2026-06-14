@@ -264,3 +264,12 @@ def execute_packet_with_state(
             detail=f"Executor error: {exc}",
         )
         return _with_side_effect_receipt(receipt, status="executor_exception", db_path=db_path)
+
+
+def _register_default_executors() -> None:
+    from invoice_send_executor import execute_invoice_send_packet
+
+    register_executor("invoice_send", execute_invoice_send_packet)
+
+
+_register_default_executors()
