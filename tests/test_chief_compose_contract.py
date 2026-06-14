@@ -199,6 +199,19 @@ def test_packet_stale_hash_check_fails_closed(monkeypatch):
     assert receipt.ok is False
     assert receipt.gate_state is GateState.FAILED
     assert "stale-hash" in receipt.detail
+    assert receipt.side_effect_id
+
+    import sqlite3
+
+    conn = sqlite3.connect(TEMP_DB)
+    try:
+        row = conn.execute(
+            "SELECT effect_type, status, approval_required FROM side_effects WHERE packet_id = ?",
+            (result.packet_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+    assert row == ("invoice_send", "blocked_stale_hash", 1)
 
 
 def test_compose_malformed_classifier_result_gates_not_fast_path(monkeypatch):
@@ -244,3 +257,15 @@ def test_execute_packet_refuses_unwired_surface():
     assert receipt.ok is False
     assert receipt.gate_state is GateState.FAILED
     assert "No executor wired" in receipt.detail
+    assert receipt.side_effect_id
+
+    import sqlite3
+
+    conn = sqlite3.connect(TEMP_DB)
+    try:
+        row = conn.execute(
+            "SELECT effect_type, status, approval_required FROM side_effects WHERE packet_id = 'packet_fixture'"
+        ).fetchone()
+    finally:
+        conn.close()
+    assert row == ("invoice_send", "blocked_no_executor", 1)

@@ -32,6 +32,7 @@ REQUIRED_COMPONENTS = {
     "gig_intake_flow",
     "correspondence_agent_plan",
     "approval_gate_convergence",
+    "system_knowledge_query",
 }
 
 
@@ -52,6 +53,7 @@ def test_registry_includes_required_current_components() -> None:
     assert "unsafe_to_start" in components["hermes"]["authority_boundary"]
     assert "logical/spawned" in components["niles"]["summary"]
     assert "does not execute business logic" in components["guardian"]["authority_boundary"]
+    assert "read-only" in components["system_knowledge_query"]["authority_boundary"]
 
 
 def test_authority_boundary_blocks_live_and_sensitive_actions() -> None:
@@ -79,6 +81,9 @@ def test_known_unknowns_and_build_tasks_present() -> None:
     assert "task_email_send_executor_scaffold" in tasks
     assert "task_land_reynolds_gig" in tasks
     assert "task_refresh_graphiffy_atlas" in tasks
+    assert "task_wire_nervous_system" in tasks
+    unknown_statuses = {item["unknown_id"]: item["unknown_status"] for item in payload["known_unknowns"]}
+    assert unknown_statuses["unknown_graphiffy_atlas_staleness"] == "RESOLVED_PC17"
 
 
 def test_orbit_brain_map_is_landed_as_structured_registry_records() -> None:
@@ -118,6 +123,7 @@ def test_exporter_writes_artifacts_and_sqlite_tables(tmp_path: Path) -> None:
     seed_sql = paths["seed_sql"].read_text(encoding="utf-8")
 
     assert payload["schema_version"] == registry.SCHEMA_VERSION
+    assert payload["live_projection"]["source_mode"] == "read_only_ledger_and_atlas_metadata"
     assert "## Components" in operator_markdown
     assert "## Known Unknowns" in operator_markdown
     assert "## Authority Boundaries" in operator_markdown
@@ -174,3 +180,65 @@ def test_registry_declares_safe_posture() -> None:
     assert payload["safety_assertions"]["no_external_calls"] is True
     assert "posture_no_external_calls" in posture_ids
     assert "posture_no_live_grants" in posture_ids
+
+
+def test_live_projection_reads_ledger_and_atlas_metadata(tmp_path: Path) -> None:
+    from business_ops_ledger import append_event, init_business_ops_ledger
+
+    ledger_path = tmp_path / "ledger.sqlite"
+    atlas_path = tmp_path / "atlas.json"
+    init_business_ops_ledger(str(ledger_path))
+    append_event("evt_projection", "test_event", "tester", db_path=str(ledger_path))
+    atlas_path.write_text(
+        json.dumps(
+            {
+                "summary": {"root_count": 1, "directory_count": 2, "priority_file_count": 1},
+                "directories": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    projection = registry.build_live_registry_projection(
+        tmp_path,
+        ledger_path=ledger_path,
+        atlas_path=atlas_path,
+    )
+
+    assert projection["source_mode"] == "read_only_ledger_and_atlas_metadata"
+    assert projection["ledger_counts"]["events"] == 1
+    assert projection["atlas_summary"]["priority_file_count"] == 1
+    assert projection["authority_boundary"]["read_only"] is True
+    assert projection["authority_boundary"]["external_call"] is False
+
+
+def test_query_system_knowledge_registry_answers_shape_unknowns_and_orbit(tmp_path: Path) -> None:
+    atlas_path = tmp_path / "atlas.json"
+    atlas_path.write_text(
+        json.dumps({"summary": {"root_count": 1, "directory_count": 1}, "directories": []}),
+        encoding="utf-8",
+    )
+
+    shape = registry.query_system_knowledge_registry(
+        "what is the shape of the system?",
+        repo_root=tmp_path,
+        atlas_path=atlas_path,
+    )
+    unknowns = registry.query_system_knowledge_registry(
+        "what does it not know yet?",
+        repo_root=tmp_path,
+        atlas_path=atlas_path,
+    )
+    orbit = registry.query_system_knowledge_registry(
+        "what is floating in orbit?",
+        repo_root=tmp_path,
+        atlas_path=atlas_path,
+    )
+
+    assert shape["answer_type"] == "system_shape"
+    assert "components" in shape["items"]
+    assert shape["authority_boundary"]["model_call"] is False
+    assert unknowns["answer_type"] == "known_unknowns"
+    assert any(item["unknown_id"] == "unknown_correspondence_gmail_scope" for item in unknowns["items"])
+    assert orbit["answer_type"] == "orbit_and_atlas"
+    assert orbit["items"]["atlas_summary"]["root_count"] == 1

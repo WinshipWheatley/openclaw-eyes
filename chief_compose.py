@@ -12,6 +12,7 @@ systems unless a future surface is explicitly registered and approved.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, Callable
 
 from compose_contract import ComposeResult, ExecutionReceipt, GateState, is_action_intent
@@ -177,6 +178,42 @@ def get_packet_approval_state(
     ).to_dict()
 
 
+def _record_executor_side_effect(
+    *,
+    packet_id: str,
+    surface: str,
+    status: str,
+    db_path: str | None = None,
+) -> str | None:
+    from business_ops_ledger import append_side_effect, init_business_ops_ledger
+
+    init_business_ops_ledger(db_path)
+    return append_side_effect(
+        packet_id=packet_id,
+        effect_type=surface,
+        status=status,
+        approval_required=True,
+        approval_tier="operator_final_send",
+        replay_safe=False,
+        external_ref=None,
+        db_path=db_path,
+    )
+
+
+def _with_side_effect_receipt(receipt: ExecutionReceipt, *, status: str, db_path: str | None = None) -> ExecutionReceipt:
+    if receipt.side_effect_id:
+        return receipt
+    side_effect_id = _record_executor_side_effect(
+        packet_id=receipt.packet_id,
+        surface=receipt.surface,
+        status=status,
+        db_path=db_path,
+    )
+    meta = dict(receipt.meta)
+    meta["side_effect_recorded"] = bool(side_effect_id)
+    return replace(receipt, side_effect_id=side_effect_id, meta=meta)
+
+
 def execute_packet_with_state(
     packet_id: str,
     *,
@@ -192,29 +229,38 @@ def execute_packet_with_state(
                 db_path=db_path,
             )
         except ValueError as exc:
-            return ExecutionReceipt(packet_id=packet_id, surface=surface, ok=False, detail=str(exc))
+            receipt = ExecutionReceipt(packet_id=packet_id, surface=surface, ok=False, detail=str(exc))
+            return _with_side_effect_receipt(receipt, status="blocked_packet_state_unavailable", db_path=db_path)
         if state["stale"]:
-            return ExecutionReceipt(
+            receipt = ExecutionReceipt(
                 packet_id=packet_id,
                 surface=surface,
                 ok=False,
                 detail="Packet stale-hash check failed. Nothing was sent.",
                 meta={"approval_state": state},
             )
+            return _with_side_effect_receipt(receipt, status="blocked_stale_hash", db_path=db_path)
     fn = EXECUTORS.get(surface)
     if fn is None:
-        return ExecutionReceipt(
+        receipt = ExecutionReceipt(
             packet_id=packet_id,
             surface=surface,
             ok=False,
             detail=f"No executor wired for surface '{surface}'. Nothing was sent.",
         )
+        return _with_side_effect_receipt(receipt, status="blocked_no_executor", db_path=db_path)
     try:
-        return fn(packet_id=packet_id, db_path=db_path)
+        receipt = fn(packet_id=packet_id, db_path=db_path)
+        return _with_side_effect_receipt(
+            receipt,
+            status="executor_ok" if receipt.ok else "executor_failed",
+            db_path=db_path,
+        )
     except Exception as exc:
-        return ExecutionReceipt(
+        receipt = ExecutionReceipt(
             packet_id=packet_id,
             surface=surface,
             ok=False,
             detail=f"Executor error: {exc}",
         )
+        return _with_side_effect_receipt(receipt, status="executor_exception", db_path=db_path)

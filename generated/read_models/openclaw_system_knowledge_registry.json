@@ -347,17 +347,17 @@
     {
       "boundary": "No Gmail body reading without scope decision; no email send.",
       "owner_lane": "PC Codex",
-      "rationale": "PC-9 remains: watch, understand, calendar-aware draft, gate; Gmail scope must be explicit.",
-      "status": "pending_send_hold_safetied",
+      "rationale": "PC-9 scaffold exists for fixture/approved-summary planning; real Gmail scope must remain explicit.",
+      "status": "scaffolded_pc9_send_hold_safetied",
       "task_id": "task_correspondence_watcher",
       "task_rank": 6,
       "title": "Wire correspondence watcher loop safely"
     },
     {
-      "boundary": "Executor must remain unregistered and non-firing until tested and approved.",
+      "boundary": "Executor remains unregistered and non-firing until tested and approved.",
       "owner_lane": "PC Codex",
-      "rationale": "PC-10 remains: approved packet to email brain to side-effect receipt, but SEND_HOLD prevents firing.",
-      "status": "pending_send_hold_safetied",
+      "rationale": "PC-10 scaffold exists and records blocked side-effect rows; SEND_HOLD prevents firing.",
+      "status": "scaffolded_pc10_send_hold_safetied",
       "task_id": "task_email_send_executor_scaffold",
       "task_rank": 7,
       "title": "Scaffold email_send executor unregistered"
@@ -375,10 +375,19 @@
       "boundary": "Use established local generator only; no external API or service mutation.",
       "owner_lane": "PC Codex",
       "rationale": "PC-17 should make graph artifacts reflect compose/API/orchestration reality.",
-      "status": "pending",
+      "status": "completed_pc17",
       "task_id": "task_refresh_graphiffy_atlas",
       "task_rank": 9,
       "title": "Refresh atlas/Graphiffy after compose/orchestration wiring"
+    },
+    {
+      "boundary": "No sends, model calls, service restarts, or live polish-loop activation.",
+      "owner_lane": "PC Codex",
+      "rationale": "PC-18/19/20 should route executor/file/atlas state into the ledger and expose deterministic self-knowledge answers.",
+      "status": "in_progress_pc18_pc19_pc20",
+      "task_id": "task_wire_nervous_system",
+      "task_rank": 10,
+      "title": "Wire ledger tracking, live registry query, and parked polish-loop package design"
     }
   ],
   "capabilities": [
@@ -444,6 +453,14 @@
       "capability_name": "Single G3 gate metadata for legacy email/SMS surfaces",
       "component_id": "approval_gate_convergence",
       "evidence_basis": "approval_gate_convergence.py",
+      "evidence_status": "CONFIRMED_LOCAL"
+    },
+    {
+      "boundary": "answers from registry/ledger/atlas metadata only; no LLM guess or live authority",
+      "capability_id": "capability_system_knowledge_query",
+      "capability_name": "Agent-queryable registry answers",
+      "component_id": "system_knowledge_query",
+      "evidence_basis": "query_system_knowledge_registry",
       "evidence_status": "CONFIRMED_LOCAL"
     }
   ],
@@ -740,12 +757,24 @@
       ],
       "evidence_status": "CONFIRMED_LOCAL",
       "summary": "Legacy email/SMS/approval surfaces converge onto the G3 packet gate in compose preview metadata."
+    },
+    {
+      "authority_boundary": "Registry query is read-only and does not call models, tools, runtimes, services, or external APIs.",
+      "component_id": "system_knowledge_query",
+      "component_type": "agent_query_surface",
+      "display_name": "System Knowledge Registry Query",
+      "evidence_paths": [
+        "openclaw_system_knowledge_registry.py",
+        "tests/test_openclaw_system_knowledge_registry.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Deterministic helper for agents to answer system-shape, known-unknown, orbit, and task questions from registry/ledger/atlas data."
     }
   ],
   "coverage_assessment": {
     "brain_route_record_count": 10,
-    "build_task_count": 9,
-    "component_count": 23,
+    "build_task_count": 10,
+    "component_count": 24,
     "covered_high_level_areas": [
       "Cassandra",
       "Chief",
@@ -769,7 +798,8 @@
       "Orbit Brain Map",
       "Gig Intake Flow",
       "Correspondence Agent Plan",
-      "Approval Gate Convergence"
+      "Approval Gate Convergence",
+      "System Knowledge Registry Query"
     ],
     "known_unknown_count": 9,
     "orchestration_decision_count": 5,
@@ -796,7 +826,8 @@
       "orbit_brain_map",
       "gig_intake_flow",
       "correspondence_agent_plan",
-      "approval_gate_convergence"
+      "approval_gate_convergence",
+      "system_knowledge_query"
     ]
   },
   "current_safety_posture": [
@@ -947,7 +978,7 @@
     },
     {
       "next_safe_check": "Ask Winship whether Gmail readonly body scope is allowed for the correspondence watcher.",
-      "reason": "Correspondence design needs a metadata-vs-readonly-body scope decision before reading replies.",
+      "reason": "Correspondence scaffold is present, but real Gmail body reading still needs a metadata-vs-readonly-body scope decision.",
       "subject": "Correspondence watcher Gmail scope",
       "unknown_id": "unknown_correspondence_gmail_scope",
       "unknown_status": "OPERATOR_SCOPE_DECISION_REQUIRED"
@@ -960,13 +991,215 @@
       "unknown_status": "RESOLVED_PC16"
     },
     {
-      "next_safe_check": "Run the existing atlas/graphiffy generator without inventing a new path.",
-      "reason": "Atlas/Graphiffy artifacts predate compose/API/orchestration additions and need refresh.",
+      "next_safe_check": "Refresh again after major new source roots or compose/API spine changes.",
+      "reason": "PC-17 refreshed atlas/Graphiffy artifacts to include live compose/API source nodes and orchestration layer.",
       "subject": "Graphiffy/atlas freshness",
       "unknown_id": "unknown_graphiffy_atlas_staleness",
-      "unknown_status": "NEXT_TASK_PC17"
+      "unknown_status": "RESOLVED_PC17"
     }
   ],
+  "live_projection": {
+    "atlas_path": "/mnt/e/openclaw/orchestration/artifacts/openclaw_filesystem_atlas.json",
+    "atlas_summary": {
+      "blocked_path_count": 10,
+      "categories": {
+        "cache_or_build_artifact": 667,
+        "generated_read_model": 127,
+        "git_worktree": 278,
+        "openclaw_workspace": 2150,
+        "protected_or_sensitive": 87,
+        "repo_root": 12
+      },
+      "directory_count": 3321,
+      "machine_counts": {
+        "pc": 3321
+      },
+      "move_candidate_count": 794,
+      "move_safety_postures": {
+        "candidate_only_after_validation": 667,
+        "generated_output_reference": 127,
+        "private_or_sensitive_off_limits": 87,
+        "repo_root_do_not_move_without_repo_plan": 12,
+        "unsafe_to_move_active_dependency": 2428
+      },
+      "priority_file_count": 5,
+      "root_count": 8
+    },
+    "authority_boundary": {
+      "external_call": false,
+      "ledger_mutation": false,
+      "model_call": false,
+      "read_only": true,
+      "runtime_mutation": false
+    },
+    "graphiffy_node_count": 3340,
+    "graphiffy_path": "/mnt/e/openclaw/orchestration/artifacts/openclaw_filesystem_graphiffy.json",
+    "ledger_counts": {
+      "agent_work_packet_receipts": 4,
+      "agent_work_packets": 4,
+      "canonical_facts": 84,
+      "events": 458,
+      "file_inventory": 3326,
+      "intent_records": 142,
+      "packets": 365,
+      "side_effects": 0
+    },
+    "ledger_path": "/home/openclaw/.openclaw/business_ops/ledger.sqlite",
+    "orbit_like_node_sample": [
+      {
+        "category": "cache_or_build_artifact",
+        "label": "workflows",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aho-corasick-1.1.4/.github/workflows"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "nfa",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aho-corasick-1.1.4/src/nfa"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "packed",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aho-corasick-1.1.4/src/packed"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "util",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aho-corasick-1.1.4/src/util"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "allocated_memory",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/alloc-no-stdlib-2.0.4/src/allocated_memory"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "bin",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/alloc-no-stdlib-2.0.4/src/bin"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "bin",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/alloc-stdlib-0.2.2/src/bin"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "workflows",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.102/.github/workflows"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "common",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.102/tests/common"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "drop",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.102/tests/drop"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "ui",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.102/tests/ui"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "workflows",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-broadcast-0.7.2/.github/workflows"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "os",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-io-2.6.0/src/os"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "reactor",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-io-2.6.0/src/reactor"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "rwlock",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-lock-3.4.2/src/rwlock"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "common",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-lock-3.4.2/tests/common"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "reaper",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-process-2.5.0/src/reaper"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "workflows",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-recursion-1.1.1/.github/workflows"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "expand",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-recursion-1.1.1/tests/expand"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "ui",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-recursion-1.1.1/tests/ui"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "workflows",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-trait-0.1.89/.github/workflows"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "executor",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-trait-0.1.89/tests/executor"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "ui",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/async-trait-0.1.89/tests/ui"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "auto",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/atk-0.18.2/src/auto"
+      },
+      {
+        "category": "cache_or_build_artifact",
+        "label": "support",
+        "move_safety_posture": "candidate_only_after_validation",
+        "path": "/home/openclaw/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.0/tests/support"
+      }
+    ],
+    "projection_version": "openclaw_live_registry_projection_v0",
+    "source_mode": "read_only_ledger_and_atlas_metadata"
+  },
   "no_external_calls": true,
   "no_live_action_grants": true,
   "no_runtime_mutation": true,
@@ -1057,7 +1290,7 @@
   },
   "schema_version": "openclaw_system_knowledge_registry_v0",
   "source_audit": {
-    "checked_path_count": 50,
+    "checked_path_count": 52,
     "missing_checked_paths": [
       "generated/read_models/reference_data_hydration_status.json",
       "operator_intake_events.py",

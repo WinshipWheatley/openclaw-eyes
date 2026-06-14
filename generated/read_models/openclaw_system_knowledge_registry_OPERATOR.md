@@ -3,11 +3,11 @@
 ## Summary
 - Registry ID: `openclaw_system_knowledge_registry`
 - Schema version: `openclaw_system_knowledge_registry_v0`
-- Component count: 23
+- Component count: 24
 - Brain route records: 10
 - Orchestration decisions: 5
 - Known unknown count: 9
-- Build task count: 9
+- Build task count: 10
 - Boundary: documentation/read-model/SQLite only.
 - READY means registry artifacts validated; it does not grant runtime, business, model, or GitHub authority.
 
@@ -50,6 +50,7 @@
 - `gig_intake_flow`: CONFIRMED_LOCAL - Cassandra can collect gig facts, persist session state, and stage approval packets for intro email and invoice.
 - `correspondence_agent_plan`: PLANNED_SEND_HOLD - Design for watch, understand, calendar-aware draft, and gate loop for inbound correspondence.
 - `approval_gate_convergence`: CONFIRMED_LOCAL - Legacy email/SMS/approval surfaces converge onto the G3 packet gate in compose preview metadata.
+- `system_knowledge_query`: CONFIRMED_LOCAL - Deterministic helper for agents to answer system-shape, known-unknown, orbit, and task questions from registry/ledger/atlas data.
 
 ## Brain Route Inventory
 - `chief_musiclaw_brain`: WIRE / read_only_category_added - read-only Q&A; no legal advice authority
@@ -79,7 +80,7 @@
 - `unknown_private_finance_truth`: Private finance proofs - BLOCKED_BY_BOUNDARY. Next: Use redacted proof-bundle and evidence-intake lanes with explicit permission.
 - `unknown_correspondence_gmail_scope`: Correspondence watcher Gmail scope - OPERATOR_SCOPE_DECISION_REQUIRED. Next: Ask Winship whether Gmail readonly body scope is allowed for the correspondence watcher.
 - `unknown_reynolds_canonical_ledger_row`: Reynolds gig canonical ledger row - RESOLVED_PC16. Next: Use the pending approval packet ids for future approved draft/send work; do not send under SEND_HOLD.
-- `unknown_graphiffy_atlas_staleness`: Graphiffy/atlas freshness - NEXT_TASK_PC17. Next: Run the existing atlas/graphiffy generator without inventing a new path.
+- `unknown_graphiffy_atlas_staleness`: Graphiffy/atlas freshness - RESOLVED_PC17. Next: Refresh again after major new source roots or compose/API spine changes.
 
 ## Build Tasks
 1. Apply and validate registry patch on Mac (Mac Codex) - ready_for_mac_apply
@@ -87,10 +88,11 @@
 3. Prove or reject live ChatGPT 5.5 advisory adapter (Hermes / Guardian) - future_gated
 4. Resolve Mac map import gap separately (PC/Mac Sync) - separate_lane_required
 5. Keep voice/Kokoro caveat separate (Cassandra) - known_caveat
-6. Wire correspondence watcher loop safely (PC Codex) - pending_send_hold_safetied
-7. Scaffold email_send executor unregistered (PC Codex) - pending_send_hold_safetied
+6. Wire correspondence watcher loop safely (PC Codex) - scaffolded_pc9_send_hold_safetied
+7. Scaffold email_send executor unregistered (PC Codex) - scaffolded_pc10_send_hold_safetied
 8. Land Reynolds gig as canonical business record (PC Codex) - completed_pc16
-9. Refresh atlas/Graphiffy after compose/orchestration wiring (PC Codex) - pending
+9. Refresh atlas/Graphiffy after compose/orchestration wiring (PC Codex) - completed_pc17
+10. Wire ledger tracking, live registry query, and parked polish-loop package design (PC Codex) - in_progress_pc18_pc19_pc20
 
 ## Current Safety Posture
 - `posture_no_external_calls`: enforced_by_design - Registry exporter writes local artifacts only.

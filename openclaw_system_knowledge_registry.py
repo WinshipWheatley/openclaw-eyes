@@ -411,6 +411,15 @@ COMPONENTS: tuple[dict[str, Any], ...] = (
         "Legacy email/SMS/approval surfaces converge onto the G3 packet gate in compose preview metadata.",
         "No legacy direct send, double gate, executor registration, or external send authority is granted.",
     ),
+    _component(
+        "system_knowledge_query",
+        "System Knowledge Registry Query",
+        "agent_query_surface",
+        "CONFIRMED_LOCAL",
+        ["openclaw_system_knowledge_registry.py", "tests/test_openclaw_system_knowledge_registry.py"],
+        "Deterministic helper for agents to answer system-shape, known-unknown, orbit, and task questions from registry/ledger/atlas data.",
+        "Registry query is read-only and does not call models, tools, runtimes, services, or external APIs.",
+    ),
 )
 
 ORBIT_BRAIN_ROUTE_RECORDS: tuple[dict[str, str], ...] = (
@@ -624,6 +633,14 @@ CAPABILITIES: tuple[dict[str, str], ...] = (
         "evidence_basis": "approval_gate_convergence.py",
         "boundary": "no double-gate, no direct legacy send, no registered executor",
     },
+    {
+        "capability_id": "capability_system_knowledge_query",
+        "component_id": "system_knowledge_query",
+        "capability_name": "Agent-queryable registry answers",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "query_system_knowledge_registry",
+        "boundary": "answers from registry/ledger/atlas metadata only; no LLM guess or live authority",
+    },
 )
 
 WORKFLOW_RAILS: tuple[dict[str, str], ...] = (
@@ -791,7 +808,7 @@ KNOWN_UNKNOWNS: tuple[dict[str, str], ...] = (
         "unknown_id": "unknown_correspondence_gmail_scope",
         "subject": "Correspondence watcher Gmail scope",
         "unknown_status": "OPERATOR_SCOPE_DECISION_REQUIRED",
-        "reason": "Correspondence design needs a metadata-vs-readonly-body scope decision before reading replies.",
+        "reason": "Correspondence scaffold is present, but real Gmail body reading still needs a metadata-vs-readonly-body scope decision.",
         "next_safe_check": "Ask Winship whether Gmail readonly body scope is allowed for the correspondence watcher.",
     },
     {
@@ -804,9 +821,9 @@ KNOWN_UNKNOWNS: tuple[dict[str, str], ...] = (
     {
         "unknown_id": "unknown_graphiffy_atlas_staleness",
         "subject": "Graphiffy/atlas freshness",
-        "unknown_status": "NEXT_TASK_PC17",
-        "reason": "Atlas/Graphiffy artifacts predate compose/API/orchestration additions and need refresh.",
-        "next_safe_check": "Run the existing atlas/graphiffy generator without inventing a new path.",
+        "unknown_status": "RESOLVED_PC17",
+        "reason": "PC-17 refreshed atlas/Graphiffy artifacts to include live compose/API source nodes and orchestration layer.",
+        "next_safe_check": "Refresh again after major new source roots or compose/API spine changes.",
     },
 )
 
@@ -861,8 +878,8 @@ BUILD_TASKS: tuple[dict[str, Any], ...] = (
         "task_rank": 6,
         "title": "Wire correspondence watcher loop safely",
         "owner_lane": "PC Codex",
-        "rationale": "PC-9 remains: watch, understand, calendar-aware draft, gate; Gmail scope must be explicit.",
-        "status": "pending_send_hold_safetied",
+        "rationale": "PC-9 scaffold exists for fixture/approved-summary planning; real Gmail scope must remain explicit.",
+        "status": "scaffolded_pc9_send_hold_safetied",
         "boundary": "No Gmail body reading without scope decision; no email send.",
     },
     {
@@ -870,9 +887,9 @@ BUILD_TASKS: tuple[dict[str, Any], ...] = (
         "task_rank": 7,
         "title": "Scaffold email_send executor unregistered",
         "owner_lane": "PC Codex",
-        "rationale": "PC-10 remains: approved packet to email brain to side-effect receipt, but SEND_HOLD prevents firing.",
-        "status": "pending_send_hold_safetied",
-        "boundary": "Executor must remain unregistered and non-firing until tested and approved.",
+        "rationale": "PC-10 scaffold exists and records blocked side-effect rows; SEND_HOLD prevents firing.",
+        "status": "scaffolded_pc10_send_hold_safetied",
+        "boundary": "Executor remains unregistered and non-firing until tested and approved.",
     },
     {
         "task_id": "task_land_reynolds_gig",
@@ -889,8 +906,17 @@ BUILD_TASKS: tuple[dict[str, Any], ...] = (
         "title": "Refresh atlas/Graphiffy after compose/orchestration wiring",
         "owner_lane": "PC Codex",
         "rationale": "PC-17 should make graph artifacts reflect compose/API/orchestration reality.",
-        "status": "pending",
+        "status": "completed_pc17",
         "boundary": "Use established local generator only; no external API or service mutation.",
+    },
+    {
+        "task_id": "task_wire_nervous_system",
+        "task_rank": 10,
+        "title": "Wire ledger tracking, live registry query, and parked polish-loop package design",
+        "owner_lane": "PC Codex",
+        "rationale": "PC-18/19/20 should route executor/file/atlas state into the ledger and expose deterministic self-knowledge answers.",
+        "status": "in_progress_pc18_pc19_pc20",
+        "boundary": "No sends, model calls, service restarts, or live polish-loop activation.",
     },
 )
 
@@ -1063,6 +1089,7 @@ def build_registry(repo_root: Path | str | None = None, generated_at: str = DEFA
             "Gig Intake Flow",
             "Correspondence Agent Plan",
             "Approval Gate Convergence",
+            "System Knowledge Registry Query",
         ],
     }
     return {
@@ -1100,6 +1127,7 @@ def build_registry(repo_root: Path | str | None = None, generated_at: str = DEFA
         "coverage_assessment": coverage,
         "source_audit": _source_audit(root),
         "generated_outputs": {name: str(path.relative_to(root)) for name, path in output_paths.items()},
+        "live_projection": build_live_registry_projection(root),
         "no_secrets": True,
         "no_live_action_grants": True,
         "no_runtime_mutation": True,
@@ -1109,6 +1137,186 @@ def build_registry(repo_root: Path | str | None = None, generated_at: str = DEFA
             "no_live_action_grants": True,
             "no_runtime_mutation": True,
             "no_external_calls": True,
+        },
+    }
+
+
+def _first_existing_path(paths: tuple[Path, ...]) -> Path | None:
+    for path in paths:
+        if path.is_file():
+            return path
+    return None
+
+
+def _sqlite_table_counts(path: Path, table_names: tuple[str, ...]) -> dict[str, int | str]:
+    if not path.is_file():
+        return {"status": "missing"}
+    uri = f"file:{path.as_posix()}?mode=ro"
+    counts: dict[str, int | str] = {}
+    try:
+        with sqlite3.connect(uri, uri=True) as conn:
+            existing = {
+                row[0]
+                for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            }
+            for table in table_names:
+                if table not in existing:
+                    counts[table] = "missing"
+                else:
+                    counts[table] = int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+    except sqlite3.Error:
+        return {"status": "unreadable"}
+    return counts
+
+
+def _load_json_if_exists(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def build_live_registry_projection(
+    repo_root: Path | str | None = None,
+    *,
+    ledger_path: str | Path | None = None,
+    atlas_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Build a read-only live projection from the ledger and atlas artifacts."""
+
+    root = Path(repo_root) if repo_root is not None else ROOT
+    ledger = Path(ledger_path) if ledger_path is not None else root / ".openclaw/business_ops/ledger.sqlite"
+    atlas = (
+        Path(atlas_path)
+        if atlas_path is not None
+        else _first_existing_path(
+            (
+                root / "generated/read_models/openclaw_filesystem_atlas.json",
+                Path("/mnt/e/openclaw/orchestration/artifacts/openclaw_filesystem_atlas.json"),
+                Path("/mnt/e/openclaw-source/generated/read_models/openclaw_filesystem_atlas.json"),
+            )
+        )
+    )
+    graphiffy = _first_existing_path(
+        (
+            root / "generated/read_models/openclaw_filesystem_graphiffy.json",
+            Path("/mnt/e/openclaw/orchestration/artifacts/openclaw_filesystem_graphiffy.json"),
+            Path("/mnt/e/openclaw-source/generated/read_models/openclaw_filesystem_graphiffy.json"),
+        )
+    )
+    ledger_counts = _sqlite_table_counts(
+        ledger,
+        (
+            "events",
+            "packets",
+            "side_effects",
+            "file_inventory",
+            "canonical_facts",
+            "agent_work_packets",
+            "agent_work_packet_receipts",
+            "intent_records",
+        ),
+    )
+    atlas_payload = _load_json_if_exists(atlas)
+    graph_payload = _load_json_if_exists(graphiffy)
+    graph_nodes = graph_payload.get("nodes") if isinstance(graph_payload, dict) else []
+    orbit_like_nodes = [
+        {
+            "label": node.get("label"),
+            "path": node.get("path"),
+            "category": node.get("category"),
+            "move_safety_posture": node.get("move_safety_posture"),
+        }
+        for node in graph_nodes
+        if isinstance(node, dict)
+        and node.get("move_safety_posture") in {"candidate_only_after_validation", "unknown_manual_review"}
+    ][:25]
+    return {
+        "projection_version": "openclaw_live_registry_projection_v0",
+        "source_mode": "read_only_ledger_and_atlas_metadata",
+        "ledger_path": ledger.as_posix(),
+        "ledger_counts": ledger_counts,
+        "atlas_path": atlas.as_posix() if atlas else None,
+        "atlas_summary": dict(atlas_payload.get("summary") or {}) if isinstance(atlas_payload, dict) else {},
+        "graphiffy_path": graphiffy.as_posix() if graphiffy else None,
+        "graphiffy_node_count": len(graph_nodes) if isinstance(graph_nodes, list) else 0,
+        "orbit_like_node_sample": orbit_like_nodes,
+        "authority_boundary": {
+            "read_only": True,
+            "ledger_mutation": False,
+            "runtime_mutation": False,
+            "model_call": False,
+            "external_call": False,
+        },
+    }
+
+
+def query_system_knowledge_registry(
+    question: str,
+    *,
+    repo_root: Path | str | None = None,
+    ledger_path: str | Path | None = None,
+    atlas_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Return deterministic registry answers for agents without LLM guessing."""
+
+    root = Path(repo_root) if repo_root is not None else ROOT
+    payload = build_registry(root)
+    live_projection = build_live_registry_projection(root, ledger_path=ledger_path, atlas_path=atlas_path)
+    text = " ".join((question or "").lower().split())
+    if any(term in text for term in ("unknown", "not know", "doesn't know", "does not know", "missing")):
+        answer_type = "known_unknowns"
+        items = payload["known_unknowns"]
+        summary = f"{len(items)} known unknowns are recorded."
+    elif any(term in text for term in ("orbit", "floating", "orphan", "graph", "atlas")):
+        answer_type = "orbit_and_atlas"
+        items = {
+            "brain_route_inventory": payload["brain_route_inventory"],
+            "atlas_summary": live_projection["atlas_summary"],
+            "orbit_like_node_sample": live_projection["orbit_like_node_sample"],
+        }
+        summary = "Orbit posture comes from brain-route inventory plus atlas/Graphiffy metadata."
+    elif any(term in text for term in ("task", "next", "build", "work")):
+        answer_type = "build_tasks"
+        items = payload["build_tasks"]
+        summary = f"{len(items)} build tasks are recorded."
+    elif any(term in text for term in ("shape", "system", "component", "capability", "know")):
+        answer_type = "system_shape"
+        items = {
+            "components": payload["component_inventory"],
+            "capabilities": payload["capabilities"],
+            "live_projection": live_projection,
+        }
+        summary = f"{len(payload['component_inventory'])} components and {len(payload['capabilities'])} capabilities are recorded."
+    else:
+        answer_type = "overview"
+        items = {
+            "components": payload["coverage_assessment"]["seeded_component_ids"],
+            "known_unknown_count": len(payload["known_unknowns"]),
+            "build_task_count": len(payload["build_tasks"]),
+            "live_projection": live_projection,
+        }
+        summary = "Registry overview returned; ask for shape, unknowns, orbit, or tasks for a narrower answer."
+    return {
+        "status": "ok",
+        "query": question,
+        "answer_type": answer_type,
+        "summary": summary,
+        "items": items,
+        "source_refs": {
+            "registry": "openclaw_system_knowledge_registry.py",
+            "ledger_path": live_projection["ledger_path"],
+            "atlas_path": live_projection["atlas_path"],
+            "graphiffy_path": live_projection["graphiffy_path"],
+        },
+        "authority_boundary": {
+            "read_only": True,
+            "model_call": False,
+            "external_call": False,
+            "runtime_mutation": False,
+            "business_action": False,
         },
     }
 
