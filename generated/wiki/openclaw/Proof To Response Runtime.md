@@ -28,17 +28,32 @@ Verifier-only runtime for publishing concise agent responses from machine proof.
 
 ## Runtime Scenarios
 
-- `finance_capital_hilton_payment_watch`: Payment evidence needed -> `publishable` via `lm2_room_backed_worker_structured_output_retry`
+- `finance_capital_hilton_payment_watch`: Payment evidence needed -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_paid_ledger_blocker`: Paid marking is blocked -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_attach_proof_explanation`: Proof can be recorded -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_handle_boundary`: I can handle the safe part -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_package_context`: LM2 would get bounded context -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_allowed_scope`: Allowed: explain and collect proof -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_forbidden_scope`: Protected actions stay blocked -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_freshness_uncertainty`: Evidence is the uncertainty -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_decision_trace`: Payment watch is still active -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_fallback_lane_answer`: Payment watch is the safe lane -> `publishable` via `shadow_pilot_candidate`
+- `finance_live_arts_payment_evidence`: Evidence recorded -> `publishable` via `shadow_pilot_candidate`
+- `business_development_capital_hilton_followup`: Follow-up can be staged -> `publishable` via `shadow_pilot_candidate`
+- `build_review_packet`: Review packet is informational -> `publishable` via `shadow_pilot_candidate`
+- `unknown_context`: Needs lane context -> `publishable` via `shadow_pilot_candidate`
+- `protected_coupa_ledger_email_request`: Blocked until proof and approval -> `publishable` via `shadow_pilot_candidate`
+- `self_heal_missing_proof_for_payment`: Payment evidence is missing -> `fallback` via `shadow_pilot_candidate`
 
 ## Receipt Store
 
 - SQLite: `generated/system_knowledge/proof_to_response_runtime.sqlite`
-- Published responses: `73`
-- SQLite rows: `73`
+- Published responses: `16`
+- SQLite rows: `16`
 
 ## Boundary
 
-- Active candidate source: `lm2_room_backed_worker_structured_output_retry`
+- Active candidate source: `shadow_pilot_candidate`
 - Supported candidate sources: `deterministic_fixture`, `shadow_pilot_candidate`, `future_live_lm_blocked`.
 - No live LM invocation.
 - No local model runtime connection.

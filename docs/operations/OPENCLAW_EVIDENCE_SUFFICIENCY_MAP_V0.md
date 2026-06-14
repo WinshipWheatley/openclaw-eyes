@@ -71,7 +71,7 @@ The path to human-readable synthesis must be built on a machine-contract layer f
 4. **Chief Synthesis**: High-level alignment check and prioritization.
 5. **Cassandra Tasteful Human Report**: Final concise, grounded briefing for the operator.
 
-## 6. Future Growth and Layered Evidence
+## 6. Future Growth Pattern
 
 1. Identify a small, reliable evidence loop.
 2. Prove the loop with a test/receipt.

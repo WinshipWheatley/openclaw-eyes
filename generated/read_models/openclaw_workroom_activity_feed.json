@@ -30,7 +30,7 @@
   },
   "channel_post_counts": {
     "architecture_hermes": 1,
-    "build_mission_control_mac": 3,
+    "build_mission_control_mac": 2,
     "build_openclaw_backend": 3,
     "business_development_capital_hilton": 15,
     "finance_capital_hilton": 20,
@@ -40,9 +40,7 @@
   },
   "decision_lifecycle": {
     "applied": true,
-    "decision_post_ids": [
-      "workroom_post:6511de7db794faf2"
-    ],
+    "decision_post_ids": [],
     "decision_source_ref": "generated/read_models/workroom_review_decision_status.json",
     "lifecycle_status_ref": "generated/read_models/workroom_review_decision_lifecycle_status.json"
   },
@@ -53,7 +51,7 @@
     "raw_request_bodies_included": false,
     "show_machine_details_by_default": false
   },
-  "generated_at": "2026-06-03T12:03:45+00:00",
+  "generated_at": "2026-06-14T03:26:40+00:00",
   "machine_proof": {
     "agent_handoff_event_consumer_applied": true,
     "agent_handoff_event_post_added": true,
@@ -62,7 +60,7 @@
     "business_action_performed": false,
     "coupa_access_performed": false,
     "decision_lifecycle_applied": true,
-    "decision_post_count": 1,
+    "decision_post_count": 0,
     "downstream_worker_assigned": false,
     "email_send_performed": false,
     "external_llm_called": false,
@@ -90,7 +88,7 @@
     "worker_spawn_performed": false
   },
   "mode": "local_read_model_generation_only_no_live_slack",
-  "post_count": 79,
+  "post_count": 78,
   "posts": [
     {
       "business_action_performed": true,
@@ -1958,40 +1956,6 @@
     },
     {
       "business_action_performed": false,
-      "channel_ref": "build_mission_control_mac",
-      "completed": true,
-      "decision_action": "approve_review_packet_for_record",
-      "decision_receipt_id": "workroom_review_decision_consumer:92254cebc0a326a9",
-      "headline": "Review recorded",
-      "next_safe_action": "Record complete. No merge or push performed.",
-      "package_id": "pkg:example:mission_control_ui_patch",
-      "plain_summary": "Chief recorded the operator review decision only; no merge or push ran.",
-      "post_id": "workroom_post:6511de7db794faf2",
-      "post_type": "decision",
-      "proof_refs": [
-        "generated/read_models/workroom_review_packet_index.json",
-        "generated/read_models/workroom_review_decision_contract.json",
-        "generated/read_models/package_event_index.json",
-        "generated/read_models/workroom_review_decision_status.json",
-        "generated/screenshots/example_mission_control_review.png",
-        "generated/read_models/spawned_worker_package_lifecycle.json#mac_ui_package_review",
-        "generated/read_models/workroom_review_decision_status.json#workroom_review_decision_consumer:92254cebc0a326a9",
-        "generated/read_models/workroom_review_decision_lifecycle_status.json"
-      ],
-      "proof_refs_collapsed": true,
-      "review_decision_status": "OPERATOR_REVIEW_RECORDED",
-      "review_packet_id": "review_packet:1ec9dae46a22e6ae",
-      "show_machine_details_by_default": false,
-      "source_kind": "workroom_review_decision_lifecycle",
-      "speaker_ref": "chief",
-      "status_label": "Operator Review Recorded",
-      "target_thread_ref": "build_mission_control_mac",
-      "target_world_ref": "build",
-      "timestamp": "2026-06-03T04:13:52+00:00",
-      "visible_by_default": false
-    },
-    {
-      "business_action_performed": false,
       "channel_ref": "build_openclaw_backend",
       "downstream_worker_assigned": false,
       "from_agent": "chief",
@@ -2028,8 +1992,7 @@
     ],
     "build_mission_control_mac": [
       "workroom_post:b5fba3cbdb7c57cd",
-      "workroom_post:c28d9b73520dbeeb",
-      "workroom_post:6511de7db794faf2"
+      "workroom_post:c28d9b73520dbeeb"
     ],
     "build_openclaw_backend": [
       "workroom_post:2bc78bbe7db92b6d",

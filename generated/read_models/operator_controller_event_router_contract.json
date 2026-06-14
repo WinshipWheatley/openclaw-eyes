@@ -43,7 +43,8 @@
     "request_rework",
     "mark_informational",
     "stop_hold_cancel",
-    "show_details"
+    "show_details",
+    "set_run_mode"
   ],
   "examples": [
     {
@@ -71,7 +72,7 @@
       "name": "Protected Coupa submit do_it"
     }
   ],
-  "generated_at": "2026-06-09T01:13:21+00:00",
+  "generated_at": "2026-06-14T03:26:57+00:00",
   "machine_proof": {
     "authority_requested_does_not_imply_authority_granted": true,
     "business_action_performed": false,
@@ -213,6 +214,11 @@
       "backend_route": "dynamic_card_packet.proof_drawer",
       "controller_event_type": "show_details",
       "effect": "proof/details card only"
+    },
+    {
+      "backend_route": "global_run_mode_context.handle_run_mode_set_request",
+      "controller_event_type": "set_run_mode",
+      "effect": "backend-persisted run-mode state and transition receipt only; no business execution"
     }
   ],
   "rules": [

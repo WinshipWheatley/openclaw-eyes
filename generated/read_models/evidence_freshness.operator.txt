@@ -2,9 +2,9 @@ Evidence Freshness Read-Model v0
 
 Evidence:
 - Git HEAD: `omitted_for_standardized_export_stability`.
-- Generated status current: `true`.
+- Generated status current: `false`.
 - Read-model exports current: `true`.
-- Tracked 18 expected artifacts: current=18, stale=0, missing=0, unknown=0.
+- Tracked 18 expected artifacts: current=16, stale=2, missing=0, unknown=0.
 
 Boundary:
 - Evidence Freshness v0 uses safe repo-local generated status files and `generated/read_models/` artifacts only.

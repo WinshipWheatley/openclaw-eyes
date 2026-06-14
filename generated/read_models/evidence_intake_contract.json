@@ -38,7 +38,7 @@
       "operator_reported"
     ]
   },
-  "generated_at": "2026-06-05T18:44:27+00:00",
+  "generated_at": "2026-06-14T03:26:33+00:00",
   "intended_uses": [
     "payment_proof",
     "invoice_proof",
@@ -158,6 +158,6 @@
     "authority_boundary"
   ],
   "schema_version": "evidence_intake_contract_v0",
-  "sqlite_path": "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
+  "sqlite_path": "/home/openclaw/worktrees/integrate/generated/system_knowledge/evidence_intake.sqlite",
   "status": "EVIDENCE_INTAKE_READY"
 }

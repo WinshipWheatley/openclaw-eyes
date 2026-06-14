@@ -1,4 +1,4 @@
-INSERT OR REPLACE INTO capital_hilton_invoice_operator_run_status (receipt_sha256, generated_at, client_ref, workflow_ref, source_receipt_status, coupa_status_observed, workbook_invoice_number, coupa_invoice_number, invoice_number_portal_normalized, full_automation_report_path, full_automation_report_sha256, run_report_path, pdf_path, pdf_sha256, email_status, ledger_mutation_performed, paid, authority_flags_all_false, payload_json) VALUES ('a6edefabc2fdc3f7ea5ae9c8c5e5a49c7bccdb29d31468dbaa667b3a04520040', '2026-06-01T22:28:55+00:00', 'capital_hilton', 'capital_hilton_invoice_operator_run', 'CAPITAL_HILTON_INVOICE_SUBMITTED_AND_EMAIL_SENT', 'Processing', '2026-1006', '2026 1006', 1, '/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md', '36ac70d82bd158016a4f005c1b999917c91f0bb43987dd07ececb4fb96c39b52', '/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md', '/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf', '9e3ee65b771cb9efeec640880bf9234bbdd738419a2a420b7fcfb8bc7cda65f4', 'sent_operator_assisted', 0, 0, 1, '{
+INSERT OR REPLACE INTO capital_hilton_invoice_operator_run_status (receipt_sha256, generated_at, client_ref, workflow_ref, source_receipt_status, coupa_status_observed, workbook_invoice_number, coupa_invoice_number, invoice_number_portal_normalized, full_automation_report_path, full_automation_report_sha256, run_report_path, pdf_path, pdf_sha256, email_status, ledger_mutation_performed, paid, authority_flags_all_false, payload_json) VALUES ('a6edefabc2fdc3f7ea5ae9c8c5e5a49c7bccdb29d31468dbaa667b3a04520040', '2026-06-14T04:38:20+00:00', 'capital_hilton', 'capital_hilton_invoice_operator_run', 'CAPITAL_HILTON_INVOICE_SUBMITTED_AND_EMAIL_SENT', 'Processing', '2026-1006', '2026 1006', 1, '/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md', '36ac70d82bd158016a4f005c1b999917c91f0bb43987dd07ececb4fb96c39b52', '/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md', '/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf', '9e3ee65b771cb9efeec640880bf9234bbdd738419a2a420b7fcfb8bc7cda65f4', 'sent_operator_assisted', 0, 0, 1, '{
   "artifact_refs": {
     "full_automation_report": {
       "kind": "operator_run_full_automation_report",
@@ -73,7 +73,7 @@ INSERT OR REPLACE INTO capital_hilton_invoice_operator_run_status (receipt_sha25
   "cell_before": "Friday, May 29, 2026 (scheduled)",
   "client_display_name": "Capital Hilton",
   "client_ref": "capital_hilton",
-  "content_hash": "sha256:ddc33faafc954bd07336d476a638e80451b33086bded7cb8ad67156ecbfbe682",
+  "content_hash": "sha256:3f42596cf5c835afd09550eac862c31aa8fa749e28e204430bc4d967f84b410a",
   "corrected_cell": "May 2026!C25",
   "coupa_confirmation_ref": "WINSHIP LIVE (GLOBL-0000897564) invoice #2026 1006 is processing",
   "coupa_customer": "Hilton | Smart Spend",
@@ -98,7 +98,7 @@ INSERT OR REPLACE INTO capital_hilton_invoice_operator_run_status (receipt_sha25
   "future_gig_cell": "May 2026!C26",
   "future_gig_preserved": true,
   "future_gig_value": "Friday, June 5, 2026 (scheduled)",
-  "generated_at": "2026-06-01T22:28:55+00:00",
+  "generated_at": "2026-06-14T04:38:20+00:00",
   "invoice_number_normalization_reason": "Hilton Coupa disallows special characters",
   "invoice_number_note": "Coupa rejected special characters; workbook/PDF retains 2026-1006 while submitted Coupa invoice uses 2026 1006.",
   "invoice_number_portal_normalized": true,

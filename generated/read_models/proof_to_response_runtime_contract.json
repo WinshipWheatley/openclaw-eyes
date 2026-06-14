@@ -52,7 +52,7 @@
     "Controls remain controller events and never grant protected authority.",
     "Details and proof stay collapsed by default."
   ],
-  "generated_at": "2026-06-08T14:01:09+00:00",
+  "generated_at": "2026-06-14T03:53:07+00:00",
   "implementation_boundary": {
     "business_action_performed": false,
     "coupa_submit_performed": false,
@@ -223,7 +223,15 @@
   "status": "PROOF_TO_RESPONSE_RUNTIME_READY",
   "supported_scenarios": [
     "finance_capital_hilton_payment_watch",
+    "finance_capital_hilton_paid_ledger_blocker",
     "finance_capital_hilton_attach_proof_explanation",
+    "finance_capital_hilton_handle_boundary",
+    "finance_capital_hilton_package_context",
+    "finance_capital_hilton_allowed_scope",
+    "finance_capital_hilton_forbidden_scope",
+    "finance_capital_hilton_freshness_uncertainty",
+    "finance_capital_hilton_decision_trace",
+    "finance_capital_hilton_fallback_lane_answer",
     "finance_live_arts_payment_evidence",
     "business_development_capital_hilton_followup",
     "build_review_packet",

@@ -69,5 +69,5 @@ A receipt records what happened and what did not happen. It is not an approval, 
 
 - Receipt count: `11`
 - SQLite row count: `11`
-- SQLite: `/home/openclaw/generated/system_knowledge/universal_receipts.sqlite`
+- SQLite: `/home/openclaw/worktrees/integrate/generated/system_knowledge/universal_receipts.sqlite`
 - Unsafe true grants absent: `true`

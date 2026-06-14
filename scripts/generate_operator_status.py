@@ -342,7 +342,23 @@ def get_source_inventory_operator_status():
 
 def format_source_inventory_section(source_inventory_operator_status):
     if not source_inventory_operator_status:
-        return []
+        return [
+            "",
+            "## 3. Source Inventory",
+            "Bounded Source Inventory v0",
+            "",
+            "Evidence:",
+            "- Source inventory status was not supplied for this snapshot.",
+            "",
+            "Boundary:",
+            "- No source bodies are read or emitted by this placeholder.",
+            "",
+            "Blocked:",
+            "- Treat this section as unavailable for current proof until source inventory status is supplied.",
+            "",
+            "Next safe move:",
+            "- Regenerate generated status with source inventory available before using this section as current context.",
+        ]
 
     return [
         "",

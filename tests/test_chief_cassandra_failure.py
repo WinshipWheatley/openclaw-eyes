@@ -10,13 +10,13 @@ def test_investigate_timeout_reports_pending_approval(monkeypatch, tmp_path):
     pending_path = tmp_path / "approval_pending.json"
     pending_path.write_text(
         json.dumps(
-            {
-                "id": "ABCD1234",
-                "status": "pending",
-                "action": "Google broker: cassandra → google.gmail.send",
-                "requested_at": "2026-04-18 12:00:00",
-            }
-        ),
+                {
+                    "id": "ABCD1234",
+                    "status": "pending",
+                    "action": "Google broker: cassandra → google.gmail.send",
+                    "requested_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            ),
         encoding="utf-8",
     )
 

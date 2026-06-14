@@ -34,7 +34,7 @@
     "workbook_mutation_allowed": false,
     "worker_spawn_allowed": false
   },
-  "generated_at": "2026-06-07T17:01:15+00:00",
+  "generated_at": "2026-06-14T03:53:08+00:00",
   "implementation_boundary": {
     "browser_access_performed": false,
     "business_action_performed": false,
@@ -296,7 +296,7 @@
           "requested_controls": [
             "Attach payment evidence"
           ],
-          "response_id": "proof_to_response_schema_adapter_candidate:c392dfb14a3e31b7",
+          "response_id": "proof_to_response_schema_adapter_candidate:c2fdabdccc7732ed",
           "speaker_ref": "chief",
           "uncertainty_notes": []
         },
@@ -326,7 +326,7 @@
           "workbook_mutation_allowed": false,
           "worker_spawn_allowed": false
         },
-        "generated_at": "2026-06-07T17:01:15+00:00",
+        "generated_at": "2026-06-14T03:53:08+00:00",
         "machine_proof": {
           "browser_access_performed": false,
           "business_action_performed": false,
@@ -371,7 +371,7 @@
           "pdf_export_performed": false,
           "proof_bundle_id": "proof_bundle:finance_capital_hilton_payment_watch",
           "publishable": true,
-          "response_id": "proof_to_response_schema_adapter_candidate:c392dfb14a3e31b7",
+          "response_id": "proof_to_response_schema_adapter_candidate:c2fdabdccc7732ed",
           "rewrite_request": "",
           "safe_fallback_response": null,
           "status": "VERIFIED_FOR_SHADOW_PUBLISH",

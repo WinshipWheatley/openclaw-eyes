@@ -29,9 +29,7 @@
     "applied": true,
     "decision_source_ref": "generated/read_models/workroom_review_decision_status.json",
     "lifecycle_status_ref": "generated/read_models/workroom_review_decision_lifecycle_status.json",
-    "updated_packet_ids": [
-      "review_packet:1ec9dae46a22e6ae"
-    ]
+    "updated_packet_ids": []
   },
   "display_policy": {
     "plain_summary_first": true,
@@ -39,7 +37,7 @@
     "review_packet_only": true,
     "show_machine_details_by_default": false
   },
-  "generated_at": "2026-06-03T12:07:06+00:00",
+  "generated_at": "2026-06-14T03:26:40+00:00",
   "lifecycle_states": [
     "PACKAGE_STAGED",
     "WORKER_ASSIGNED",
@@ -63,7 +61,7 @@
     "completed_packets_hidden_by_default": true,
     "coupa_access_performed": false,
     "decision_lifecycle_applied": true,
-    "decision_updated_packet_count": 1,
+    "decision_updated_packet_count": 0,
     "email_send_performed": false,
     "git_push_performed": false,
     "gmail_access_performed": false,

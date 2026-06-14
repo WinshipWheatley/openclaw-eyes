@@ -1,4 +1,5 @@
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -8,6 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import proof_to_response_lm_shadow_pilot as pilot
+import proof_to_response_runtime as runtime
 
 
 FIXED_NOW = "2026-06-06T22:30:00+00:00"
@@ -26,6 +28,31 @@ def _run(scenario_id: str = "finance_capital_hilton_payment_watch", candidate=No
         candidate_response=candidate,
         generated_at=FIXED_NOW,
     )
+
+
+def _read_model_root_with_controller_integration(tmp_path: Path) -> Path:
+    read_model_root = tmp_path / "read_models"
+    read_model_root.mkdir(parents=True, exist_ok=True)
+    for source in (ROOT / "generated" / "read_models").glob("*.json"):
+        shutil.copy2(source, read_model_root / source.name)
+
+    publish_result = runtime.publish_response(
+        "finance_capital_hilton_payment_watch",
+        read_model_root=read_model_root,
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "proof_to_response_runtime.sqlite",
+    )
+    publish_result["published_response"]["source_request_id"] = "controller_request:shadow_pilot_fixture"
+    runtime.export_controller_integration_response(
+        publish_result,
+        read_model_root=read_model_root,
+        export_root=read_model_root,
+        bridge_export_root=tmp_path / "runtime_bridge",
+        wiki_path=tmp_path / "Proof To Response Runtime.md",
+        sqlite_path=tmp_path / "proof_to_response_runtime.sqlite",
+        generated_at=FIXED_NOW,
+    )
+    return read_model_root
 
 
 def test_lm_style_capital_hilton_response_passes_inside_proof():
@@ -133,8 +160,11 @@ def test_dynamic_cards_remain_support():
     assert run["published_response"]["details_collapsed"] is True
 
 
-def test_pilot_read_model_builds_all_required_scenarios():
-    read_model = pilot.build_read_model(generated_at=FIXED_NOW)
+def test_pilot_read_model_builds_all_required_scenarios(tmp_path):
+    read_model = pilot.build_read_model(
+        read_model_root=_read_model_root_with_controller_integration(tmp_path),
+        generated_at=FIXED_NOW,
+    )
 
     assert read_model["status"] == pilot.READY_STATUS
     assert read_model["pilot_run_count"] == 6
@@ -146,7 +176,7 @@ def test_pilot_read_model_builds_all_required_scenarios():
 
 def test_export_json_bridge_equality_and_unsafe_scan(tmp_path):
     result = pilot.export_proof_to_response_lm_shadow_pilot(
-        read_model_root=ROOT / "generated/read_models",
+        read_model_root=_read_model_root_with_controller_integration(tmp_path),
         export_root=tmp_path / "read_models",
         bridge_export_root=tmp_path / "bridge",
         wiki_path=tmp_path / "Proof To Response LM Shadow Pilot.md",

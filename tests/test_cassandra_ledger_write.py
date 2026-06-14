@@ -1,24 +1,17 @@
 
-import os
 import sqlite3
 import pytest
 import hashlib
 from unittest.mock import patch, MagicMock
 from cassandra_brain import handle, record_cassandra_packet_event
-from business_ops_ledger import init_business_ops_ledger, DEFAULT_DB_PATH
-
-TEST_DB_PATH = "tests/test_cassandra_ledger.sqlite"
+from business_ops_ledger import init_business_ops_ledger
 
 @pytest.fixture
-def clean_db():
-    if os.path.exists(TEST_DB_PATH):
-        os.remove(TEST_DB_PATH)
-    init_business_ops_ledger(TEST_DB_PATH)
-    # Monkeypatch the default path in cassandra_brain
-    with patch("business_ops_ledger.DEFAULT_DB_PATH", TEST_DB_PATH):
-        yield TEST_DB_PATH
-    if os.path.exists(TEST_DB_PATH):
-        os.remove(TEST_DB_PATH)
+def clean_db(tmp_path, monkeypatch):
+    test_db_path = tmp_path / "test_cassandra_ledger.sqlite"
+    monkeypatch.setenv("OPENCLAW_LEDGER_PATH", str(test_db_path))
+    init_business_ops_ledger(str(test_db_path))
+    yield str(test_db_path)
 
 def test_handle_records_ledger_event_and_packet(clean_db):
     """

@@ -1879,7 +1879,7 @@ def _candidate_from_direct_answer(raw_text: str) -> str:
 
 
 def _normalize_candidate_for_question(candidate_text: str, question: Mapping[str, Any] | None) -> str:
-    text = " ".join(str(candidate_text or "").strip(" .").split())
+    text = " ".join(str(candidate_text or "").strip().split())
     normalized = _normalize_topic_text(text)
     question_text = _normalize_topic_text(
         " ".join(

@@ -23,7 +23,7 @@ import cassandra_capability as cap
 def stub_side_effects(monkeypatch, tmp_path):
     """Stub all external I/O so tests run offline."""
     # Stub LLM call — make it smart enough to respect the capability context
-    def _smart_call(prompt, deep, cloud_ok=False):
+    def _smart_call(prompt, deep=False, cloud_ok=False, **_kwargs):
         if "pii_vault: NOT CONNECTED" in prompt:
             return "PII vault is not connected, so I can't look up that information."
         if "future_exec: NOT CONNECTED" in prompt:
@@ -46,7 +46,7 @@ def stub_side_effects(monkeypatch, tmp_path):
     
     # Route capture
     captured_routes = []
-    def _capture_route(user_text, replies, route="llm"):
+    def _capture_route(user_text, replies, route="llm", **_kwargs):
         captured_routes.append(route)
     monkeypatch.setattr(cb, "_log_conversation", _capture_route)
     
@@ -60,6 +60,40 @@ def stub_side_effects(monkeypatch, tmp_path):
     log_file = tmp_path / "correspondence.jsonl"
     monkeypatch.setattr(cb, "_CORRESPONDENCE_LOG", log_file)
     monkeypatch.setattr(cb, "_FOLLOWUP_LOG", tmp_path / "pending_followups.jsonl")
+
+    nicknames_path = tmp_path / "contact_nicknames.json"
+    nicknames_path.write_text(
+        json.dumps(
+            {
+                "dad": {
+                    "name": "Henry Winship Wheatley III",
+                    "tier": "inner_circle",
+                    "aliases": ["Henry Wheatley", "Mr. Wheatley"],
+                    "pinned_email": "dad@example.com",
+                },
+                "mom": {
+                    "name": "Susan Elizabeth Wheatley",
+                    "tier": "inner_circle",
+                    "aliases": ["Susan Wheatley", "Mrs. Wheatley"],
+                    "pinned_email": "mom@example.com",
+                },
+                "draper": {
+                    "name": "Draper Carter",
+                    "tier": "inner_circle",
+                    "aliases": ["Draper"],
+                    "pinned_email": "draper@example.com",
+                },
+                "sampleclient": {
+                    "name": "Sarah Johansen",
+                    "tier": "client",
+                    "aliases": ["Sarah"],
+                    "pinned_email": "sampleclient@example.com",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cb, "_NICKNAMES_PATH", nicknames_path, raising=False)
     
     # Ensure state file is in temp dir too if possible, 
     # but at least stub save_state to avoid real writes

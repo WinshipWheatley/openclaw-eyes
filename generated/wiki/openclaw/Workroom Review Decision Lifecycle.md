@@ -1,11 +1,11 @@
 # Workroom Review Decision Lifecycle
 
-Status: `WORKROOM_REVIEW_DECISION_LIFECYCLE_READY`
+Status: `WORKROOM_REVIEW_DECISION_LIFECYCLE_NOT_READY`
 
 This read model overlay applies recorded review decisions to Workroom review packet visibility and activity posts.
 
-Decisions applied: `1`
-Packets updated: `1`
+Decisions applied: `0`
+Packets updated: `0`
 
 ## Packet Status Counts
 

@@ -113,6 +113,7 @@ def _evidence_request(tmp_path: Path):
     artifact.write_bytes(b"fake payment processing screenshot")
     payload = {
         "request_type": evidence_intake.REQUEST_TYPE,
+        "original_request_type": evidence_intake.REQUEST_TYPE,
         "source_surface": "mission_control",
         "current_world_ref": "finance",
         "current_thread_ref": "live_arts_md",
@@ -149,6 +150,7 @@ def _evidence_request(tmp_path: Path):
         created_at=FIXED_NOW,
     )
     request["operator_envelope"]["request_hash"] = verified_operator_envelope.compute_request_hash(request)
+    request["operator_authority_envelope"]["request_hash"] = envelope.compute_request_hash(request)
     return request
 
 

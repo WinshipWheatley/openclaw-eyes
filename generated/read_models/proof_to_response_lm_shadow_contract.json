@@ -50,7 +50,7 @@
     "The LM may not create truth, authority, or execution.",
     "The verifier decides whether the LM response can publish."
   ],
-  "generated_at": "2026-06-06T18:06:10+00:00",
+  "generated_at": "2026-06-14T03:26:57+00:00",
   "lm_shadow_response_schema": {
     "purpose": "draft response the future LM would produce from the bundle",
     "required_fields": [

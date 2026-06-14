@@ -41,20 +41,20 @@ def test_capital_hilton_payment_watch_card_generated_no_coupa_or_ledger_action()
         "Coupa is processing. Wait for payment evidence before anything touches the ledger."
     )
     assert card["trust_state"] == "trusted_current"
-    assert card["actions"] == [
-        {
-            "action_id": "capital_hilton.payment.open_finance",
-            "label": "Open Finance / Capital Hilton",
-            "action_type": "navigate",
-            "enabled": True,
-            "disabled_reason": None,
-            "payload_ref": (
-                "generated/read_models/operator_action_payloads.json#"
-                "action_payloads.capital_hilton.payment.open_finance"
-            ),
-            "business_action": False,
-        }
+    assert [action["action_id"] for action in card["actions"]] == [
+        "capital_hilton.payment.ask_why",
+        "capital_hilton.payment.advance_objective",
+        "capital_hilton.payment.record_proof",
     ]
+    assert [action["controller_event_type"] for action in card["actions"]] == [
+        "ask_why",
+        "advance_objective",
+        "attach_proof",
+    ]
+    assert {action["control_scope"] for action in card["actions"]} == {"lane"}
+    assert all(action["text_response_preferred"] is True for action in card["actions"])
+    assert all(action["enabled"] is True for action in card["actions"])
+    assert all(action["business_action"] is False for action in card["actions"])
     assert card["authority_boundary"]["coupa_allowed"] is False
     assert card["authority_boundary"]["ledger_posting_allowed"] is False
     assert packet["machine_proof"]["coupa_access_performed"] is False

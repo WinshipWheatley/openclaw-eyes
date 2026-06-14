@@ -7,7 +7,7 @@
       "basis": "generated_status_check",
       "body_ingested": false,
       "exists": true,
-      "freshness_state": "current",
+      "freshness_state": "stale",
       "path": "Operator/GENERATED_CURRENT_STATE.md"
     },
     {
@@ -15,7 +15,7 @@
       "basis": "generated_status_check",
       "body_ingested": false,
       "exists": true,
-      "freshness_state": "current",
+      "freshness_state": "stale",
       "path": "Operator/GENERATED_NEXT_ACTIONS.md"
     },
     {
@@ -173,18 +173,18 @@
     "raw_source_body_export"
   ],
   "freshness_counts": {
-    "current": 18,
+    "current": 16,
     "missing": 0,
-    "stale": 0,
+    "stale": 2,
     "unknown": 0
   },
   "generated_status_check": {
     "checked": true,
-    "current": true,
-    "exit_code": 0,
-    "status": "current"
+    "current": false,
+    "exit_code": 1,
+    "status": "stale_or_missing"
   },
-  "generated_status_current": true,
+  "generated_status_current": false,
   "git_head": "omitted_for_standardized_export_stability",
   "git_head_basis": "omitted_to_avoid_commit_self_invalidation",
   "hard_drive_scan": false,

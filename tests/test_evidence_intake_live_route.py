@@ -9,6 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import evidence_intake
+import first_class_operator_envelope as authority_envelope
 import openclaw_request_processor as processor
 import openclaw_request_response_service as service
 import verified_operator_envelope as operator_envelope
@@ -41,19 +42,21 @@ def _valid_request(tmp_path: Path, *, request_id: str = "evidence_intake_live_ro
     payload = {
         "request_id": request_id,
         "request_type": evidence_intake.REQUEST_TYPE,
+        "original_request_type": evidence_intake.REQUEST_TYPE,
         "source_surface": "mission_control",
         "current_world_ref": "finance",
         "current_thread_ref": "live_arts_md",
         "claimed_client_ref": "live_arts_md",
         "claimed_workflow_ref": "live_arts_md_payment_watch",
         "artifact_path": artifact.as_posix(),
+        "artifact_hash_allowed": True,
         "artifact_kind": "screenshot",
         "operator_note": "Live Arts MD payment processing proof for invoice 2026-1001.",
         "privacy_class": "financial_sensitive",
         "intended_use": "payment_proof",
         "authority_boundary": dict(evidence_intake.AUTHORITY_BOUNDARY),
     }
-    return operator_envelope.attach_verified_operator_envelope(
+    request = operator_envelope.attach_verified_operator_envelope(
         payload,
         operator_ref="operator:winship",
         app_instance_ref="mission_control:mac",
@@ -61,6 +64,24 @@ def _valid_request(tmp_path: Path, *, request_id: str = "evidence_intake_live_ro
         session_ref="session:evidence-live-route",
         created_at=FIXED_NOW,
     )
+    request = authority_envelope.attach_verified_authority_envelope(
+        request,
+        operator_ref="operator:winship",
+        app_instance_ref="mission_control:mac",
+        device_ref="device:macbook",
+        device_class="mac",
+        session_ref="session:evidence-live-route",
+        source_surface="dropzone",
+        current_world_ref="finance",
+        current_thread_ref="live_arts_md",
+        active_entity_ref="dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        controller_action_type="attach_proof",
+        authority_requested=[],
+        created_at=FIXED_NOW,
+    )
+    request["operator_envelope"]["request_hash"] = operator_envelope.compute_request_hash(request)
+    request["operator_authority_envelope"]["request_hash"] = authority_envelope.compute_request_hash(request)
+    return request
 
 
 def _write_json(path: Path, payload: dict) -> None:

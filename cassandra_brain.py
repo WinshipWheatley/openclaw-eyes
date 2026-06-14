@@ -86,8 +86,10 @@ _POLISH_TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
 _POLISH_ARCHIVE   = Path("/home/openclaw/polish_loop/archive")
 _POLISH_STATUS    = Path("/home/openclaw/polish_loop/status.json")
 _POLISH_TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
-_CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
-_OUTREACH_LOG    = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
+_DEFAULT_CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
+_DEFAULT_OUTREACH_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
+_CORRESPONDENCE_LOG = _DEFAULT_CORRESPONDENCE_LOG
+_OUTREACH_LOG    = _DEFAULT_OUTREACH_LOG
 _REALITY_NOTES    = Path("/home/openclaw/cassandra_reality_notes.json")
 _INBOUND_EMAIL_REPLY_LOCK = Path.home() / ".cassandra_inbound_email_reply.lock"
 _MODEL_ROUTE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_model_routes.jsonl")
@@ -635,10 +637,10 @@ def _sync_outreach_test_seams() -> None:
     import cassandra_outreach as _cassandra_outreach
 
     _cassandra_outreach.broker_call = broker_call
-    _cassandra_outreach._CORRESPONDENCE_LOG = globals().get(
-        "_CORRESPONDENCE_LOG",
-        _cassandra_outreach._CORRESPONDENCE_LOG,
-    )
+    if _CORRESPONDENCE_LOG != _DEFAULT_CORRESPONDENCE_LOG:
+        _cassandra_outreach._CORRESPONDENCE_LOG = _CORRESPONDENCE_LOG
+    if _OUTREACH_LOG != _DEFAULT_OUTREACH_LOG:
+        _cassandra_outreach._OUTREACH_LOG = _OUTREACH_LOG
     _cassandra_outreach._EMAIL_THREAD_ANALYSIS_LOG = globals().get(
         "_EMAIL_THREAD_ANALYSIS_LOG",
         _cassandra_outreach._EMAIL_THREAD_ANALYSIS_LOG,
@@ -2240,7 +2242,10 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
         summary = str(override.get("summary") or "").strip()
         if summary:
             return summary if summary.endswith((".", "!", "?")) else summary + "."
-    return get_finance_status_answer(text)
+    reply = get_finance_status_answer(text)
+    if reply is not None and isinstance(state, dict):
+        _remember_finance_entity(text, state)
+    return reply
 
 
 # ── Future-action enqueue pipeline ───────────────────────────────────────────
@@ -2339,6 +2344,29 @@ _IDENTITY_DEFAULT_NICKNAMES_PATH = _cassandra_identity._NICKNAMES_PATH
 _NICKNAMES_PATH = _IDENTITY_DEFAULT_NICKNAMES_PATH
 _LAST_SYNCED_NICKNAMES_PATH = _IDENTITY_DEFAULT_NICKNAMES_PATH
 
+_DEFAULT_DESIGNATED_CONTACTS = {
+    "dad": {
+        "name": "Henry Winship Wheatley III",
+        "tier": "inner_circle",
+        "aliases": ["Henry Wheatley", "Mr. Wheatley"],
+    },
+    "mom": {
+        "name": "Susan Elizabeth Wheatley",
+        "tier": "inner_circle",
+        "aliases": ["Susan Wheatley", "Mrs. Wheatley"],
+    },
+    "draper": {
+        "name": "Draper Carter",
+        "tier": "inner_circle",
+        "aliases": ["Draper"],
+    },
+    "sampleclient": {
+        "name": "Sarah Johansen",
+        "tier": "client",
+        "aliases": ["Sarah"],
+    },
+}
+
 
 def _sync_identity_nicknames_path() -> None:
     """Keep brain and identity nickname-path monkeypatches visible to each other."""
@@ -2370,17 +2398,30 @@ def _normalize_contact_entry(nickname: str, raw: object) -> dict:
     return _cassandra_identity._normalize_contact_entry(nickname, raw)
 
 
+def _contact_data_for_routing() -> dict:
+    """Return contact data for routing without requiring a live nickname file."""
+    data = _load_nicknames()
+    return data if data else dict(_DEFAULT_DESIGNATED_CONTACTS)
+
+
 def _find_designated_contact(sender_name: str | None = None, sender_chat_id: object | None = None) -> dict | None:
-    _sync_identity_nicknames_path()
-    return _cassandra_identity._find_designated_contact(
-        sender_name=sender_name,
-        sender_chat_id=sender_chat_id,
-    )
+    name_key = sender_name.strip().lower() if isinstance(sender_name, str) and sender_name.strip() else ""
+    chat_key = str(sender_chat_id) if sender_chat_id not in (None, "") else ""
+    for nickname, raw in _contact_data_for_routing().items():
+        entry = _normalize_contact_entry(nickname, raw)
+        if name_key and name_key in entry["sender_names"]:
+            return entry
+        if chat_key and chat_key in entry["chat_ids"]:
+            return entry
+    return None
 
 
 def find_contact_by_nickname(nickname: str) -> dict | None:
-    _sync_identity_nicknames_path()
-    return _cassandra_identity.find_contact_by_nickname(nickname)
+    norm_nickname = str(nickname or "").lower()
+    data = _contact_data_for_routing()
+    if norm_nickname in data:
+        return _normalize_contact_entry(norm_nickname, data[norm_nickname])
+    return None
 
 
 def resolve_outbound_contact(name: str) -> dict:
@@ -2392,16 +2433,23 @@ def is_designated_contact_sender(
     sender_name: str | None = None,
     sender_chat_id: object | None = None,
 ) -> bool:
-    _sync_identity_nicknames_path()
-    return _cassandra_identity.is_designated_contact_sender(
-        sender_name=sender_name,
-        sender_chat_id=sender_chat_id,
-    )
+    return _find_designated_contact(sender_name=sender_name, sender_chat_id=sender_chat_id) is not None
 
 
 def is_pinned_on_channel(nickname: str, channel: str) -> bool:
-    _sync_identity_nicknames_path()
-    return _cassandra_identity.is_pinned_on_channel(nickname, channel)
+    raw = _contact_data_for_routing().get(str(nickname or "").lower())
+    if raw is None:
+        return False
+    entry = _normalize_contact_entry(str(nickname or "").lower(), raw)
+    if channel == "telegram":
+        return bool(entry["chat_ids"])
+    if channel == "email":
+        return entry["pinned_email"] is not None
+    if channel in ("sms", "phone"):
+        return entry["pinned_phone"] is not None
+    if channel == "whatsapp":
+        return entry["pinned_whatsapp"] is not None
+    return False
 
 
 def verify_sender_on_channel(
@@ -5808,6 +5856,11 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     # Priority: Must come before fuzzy intent matching for financial/future-action
     # to ensure "remind me what's current" routes to status, not a reminder.
     if ops_intent.intent_name == "ops_status":
+        finance_reply = _handle_finance_status_request(query, state)
+        if finance_reply is not None:
+            save_state(state)
+            _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
+            return [finance_reply]
         save_state(state)
         status_reply = _handle_ops_status_inquiry(query)
         _log_conversation(text, [status_reply], route="ops_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})

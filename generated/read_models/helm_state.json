@@ -95,7 +95,7 @@
     "total": 6
   },
   "evidence": [
-    "Generated operator status check is `current`.",
+    "Generated operator status check is `stale_or_missing`.",
     "Generated status artifacts present: current_state=true, next_actions=true.",
     "Source Inventory reports 13 allowlisted metadata-only records with body_ingested=false.",
     "Source Inventory represents 8 blocked no-go examples without body read.",
@@ -111,27 +111,23 @@
   },
   "generated_status": {
     "checked": true,
-    "current": true,
-    "exit_code": 0,
-    "status": "current"
+    "current": false,
+    "exit_code": 1,
+    "status": "stale_or_missing"
   },
   "helm_state": {
-    "label": "Inspect Only",
-    "meaning": "The helm may be inspected as deterministic read-model context, but no backend action or activation is authorized.",
+    "label": "Stale Evidence",
+    "meaning": "The displayed claim may be based on old or insufficiently current generated evidence.",
     "must_never_imply": [
-      "execution authority",
-      "operator approval",
-      "agent activation",
-      "broker wiring",
-      "customer deployment"
+      "the claim is false",
+      "runtime failure",
+      "agent failure"
     ],
     "required_evidence": [
-      "generated status is current",
-      "source/context read-models are available",
-      "runtime activation gate remains blocked"
+      "generated status check failed or freshness rule is not satisfied"
     ],
-    "state": "inspect_only",
-    "state_family": "read_only"
+    "state": "stale_evidence",
+    "state_family": "system_integrity"
   },
   "mode": "deterministic_read_model",
   "next_safe_move": "Use this read-model as inspect-only cockpit context; add deterministic evidence-freshness, agent-presence, and strategic-gravity records before the app claims dynamic helm behavior.",

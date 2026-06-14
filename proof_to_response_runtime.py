@@ -1296,6 +1296,10 @@ def build_status_read_model(
     )
     no_verifier_unsafe = all(not run.get("published_response", {}).get("authority_boundary", {}).get("protected_actions_allowed") for run in runs)
     row_count = _receipt_count(sqlite_path)
+    first_run = runs[0] if runs and isinstance(runs[0], Mapping) else {}
+    first_response = first_run.get("published_response") if isinstance(first_run.get("published_response"), Mapping) else {}
+    first_source_context = first_response.get("source_context") if isinstance(first_response.get("source_context"), Mapping) else {}
+    first_scenario_id = str(first_run.get("scenario_id") or "")
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": STATUS_READ_MODEL_ID,
@@ -1304,6 +1308,12 @@ def build_status_read_model(
         "contract_ref": "generated/read_models/proof_to_response_runtime_contract.json",
         "latest_ref": "generated/read_models/proof_to_response_latest.json",
         "sqlite_ref": "generated/system_knowledge/proof_to_response_runtime.sqlite",
+        "source_request_id": str(
+            first_response.get("source_request_id")
+            or (f"runtime_scenario:{first_scenario_id}" if first_scenario_id else "")
+        ),
+        "world_ref": str(first_response.get("world_ref") or first_source_context.get("world_ref") or ""),
+        "thread_ref": str(first_response.get("thread_ref") or first_source_context.get("thread_ref") or ""),
         "source_content_hashes": {
             "contract": _content_hash(contract),
             "runtime_runs": _content_hash(runs),
@@ -1741,6 +1751,7 @@ def export_proof_to_response_runtime(
     wiki_path: Path = DEFAULT_WIKI_PATH,
     sqlite_path: Path = DEFAULT_SQLITE_PATH,
     generated_at: str | None = None,
+    candidate_source: str = CANDIDATE_SOURCE_DETERMINISTIC,
 ) -> dict[str, str]:
     generated_at = generated_at or utc_now()
     sqlite_path = _rooted(sqlite_path)
@@ -1749,6 +1760,7 @@ def export_proof_to_response_runtime(
         read_model_root=read_model_root,
         generated_at=generated_at,
         sqlite_path=sqlite_path,
+        candidate_source=candidate_source,
     )
     contract = build_contract_read_model(read_model_root=read_model_root, generated_at=generated_at)
     status = build_status_read_model(
@@ -1808,6 +1820,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bridge-export-root", default=str(DEFAULT_BRIDGE_EXPORT_ROOT))
     parser.add_argument("--wiki-path", default=str(DEFAULT_WIKI_PATH))
     parser.add_argument("--sqlite-path", default=str(DEFAULT_SQLITE_PATH))
+    parser.add_argument("--candidate-source", default=CANDIDATE_SOURCE_DETERMINISTIC, choices=CANDIDATE_SOURCES)
     parser.add_argument("--generated-at")
     parser.add_argument("--no-bridge", action="store_true")
     parser.add_argument("--format", choices=("summary", "json"), default="summary")
@@ -1823,6 +1836,7 @@ def main(argv: list[str] | None = None) -> int:
         wiki_path=Path(args.wiki_path),
         sqlite_path=Path(args.sqlite_path),
         generated_at=args.generated_at,
+        candidate_source=args.candidate_source,
     )
     if args.format == "json":
         print(stable_json(result), end="")

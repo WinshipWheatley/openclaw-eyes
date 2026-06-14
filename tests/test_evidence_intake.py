@@ -9,6 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import evidence_intake as intake
+import first_class_operator_envelope as authority_envelope
 import verified_operator_envelope as envelope
 
 
@@ -25,19 +26,21 @@ def _request(tmp_path: Path, *, note: str | None = None):
     artifact = _artifact(tmp_path)
     payload = {
         "request_type": intake.REQUEST_TYPE,
+        "original_request_type": intake.REQUEST_TYPE,
         "source_surface": "mission_control",
         "current_world_ref": "finance",
         "current_thread_ref": "live_arts_md",
         "claimed_client_ref": "live_arts_md",
         "claimed_workflow_ref": "live_arts_md_payment_watch",
         "artifact_path": str(artifact),
+        "artifact_hash_allowed": True,
         "artifact_kind": "screenshot",
         "operator_note": note or "Live Arts MD screenshot shows payment processing for invoice 2026-1001.",
         "privacy_class": "financial_sensitive",
         "intended_use": "payment_proof",
         "authority_boundary": dict(intake.AUTHORITY_BOUNDARY),
     }
-    return envelope.attach_verified_operator_envelope(
+    request = envelope.attach_verified_operator_envelope(
         payload,
         operator_ref="operator:winship",
         app_instance_ref="mission_control:pc",
@@ -45,6 +48,24 @@ def _request(tmp_path: Path, *, note: str | None = None):
         session_ref="session:evidence-test",
         created_at=FIXED_NOW,
     )
+    request = authority_envelope.attach_verified_authority_envelope(
+        request,
+        operator_ref="operator:winship",
+        app_instance_ref="mission_control:pc",
+        device_ref="device:pc",
+        device_class="unknown",
+        session_ref="session:evidence-test",
+        source_surface="dropzone",
+        current_world_ref="finance",
+        current_thread_ref="live_arts_md",
+        active_entity_ref="dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        controller_action_type="attach_proof",
+        authority_requested=[],
+        created_at=FIXED_NOW,
+    )
+    request["operator_envelope"]["request_hash"] = envelope.compute_request_hash(request)
+    request["operator_authority_envelope"]["request_hash"] = authority_envelope.compute_request_hash(request)
+    return request
 
 
 def _sqlite_count(path: Path, table: str) -> int:

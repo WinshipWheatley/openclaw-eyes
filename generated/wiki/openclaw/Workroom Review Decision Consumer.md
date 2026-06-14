@@ -12,12 +12,12 @@ This consumer records operator review decisions against Workroom review packets.
 
 ## Latest Decision
 
-- Receipt: `workroom_review_decision_consumer:80dc2fab0833c207`
-- Packet: `review_packet:c4ec166103f9aa35`
-- Action: `mark_review_packet_informational`
-- Status: `INFORMATIONAL_REVIEW_CLOSED`
-- Speaker: `chief`
-- Next safe action: No action needed.
+- Receipt: ``
+- Packet: ``
+- Action: ``
+- Status: ``
+- Speaker: ``
+- Next safe action:
 
 ## Boundary
 

@@ -15,7 +15,7 @@ Evidence Intake records operator-dropped screenshots and files as candidate evid
 ## Payment Proof
 
 - Evidence status: `CANDIDATE_EVIDENCE_RECORDED`
-- Payment state: `payment_proof_candidate`
+- Payment state: `payment_processing_evidence_received`
 - Payment-processing evidence is not paid proof.
 - Paid truth requires payment or ledger confirmation and operator review.
 
@@ -30,7 +30,7 @@ Evidence Intake records operator-dropped screenshots and files as candidate evid
 
 - Contract read model: `generated/read_models/evidence_intake_contract.json`
 - Status read model: `generated/read_models/evidence_intake_status.json`
-- SQLite: `/home/openclaw/generated/system_knowledge/evidence_intake.sqlite`
+- SQLite: `/home/openclaw/worktrees/integrate/generated/system_knowledge/evidence_intake.sqlite`
 
 ## Machine Proof
 

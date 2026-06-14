@@ -28,14 +28,15 @@ It is a controller layer, not a business executor.
 - `request_rework|mark_informational` -> `workroom_review_decision_consumer.record_decision_only`: review decision receipt only; no merge or push
 - `do_it` -> `operator_action_payloads deterministic safe route or objective_advancement_protocol when selected payload permits`: safe internal route, objective advancement, or protected action staged/blocked
 - `show_details` -> `dynamic_card_packet.proof_drawer`: proof/details card only
+- `set_run_mode` -> `global_run_mode_context.handle_run_mode_set_request`: backend-persisted run-mode state and transition receipt only; no business execution
 
 ## Latest Receipt
 
-- Receipt: `operator_controller_event_router:ea992fe06dc55ae8`
-- Event: `chat_goal`
-- Status: `CAPABILITY_GAP_AUTHORITY_REQUEST_READY`
-- Backend route: `operator_conversation_router.route_conversation_text`
-- Route ref: `operator_conversation_router:1cd8308fddb84a44`
+- Receipt: ``
+- Event: ``
+- Status: ``
+- Backend route: ``
+- Route ref: ``
 
 ## Safety Boundary
 
