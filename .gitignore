@@ -23,6 +23,8 @@
 
 !chief_listener.py
 !chief_router.py
+!chief_compose.py
+!compose_contract.py
 !chief_session_manager.py
 !chief_sender.py
 !chief_worker.py
@@ -994,6 +996,7 @@
 !scripts/import_external_system_knowledge_registry.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
+!tests/test_chief_compose_contract.py
 !tests/test_steel_thread_radar.py
 !tests/test_parked_autonomous_capital_pipeline_experiment.py
 !tests/test_post_security_governance_batch_manifest.py

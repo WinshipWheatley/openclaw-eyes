@@ -486,6 +486,11 @@ def _next_safe_move(category: str, agent_id: str | None, candidate_action_type: 
     return "Ask the operator for a clearer target agent, file, world, or allowed action; do not execute anything."
 
 
+def _approval_required_for(status: str, candidate_action_type: str | None) -> bool:
+    """Only cleanly routed, non-action requests may use the read-only fast path."""
+    return status != "routed" or bool(candidate_action_type)
+
+
 def _latest_recent_file_context_run(conn: sqlite3.Connection) -> str | None:
     try:
         row = conn.execute(
@@ -891,6 +896,7 @@ ON CONFLICT(run_id) DO UPDATE SET
         )
 
         next_safe_move = _next_safe_move(category, routed_agent_id, candidate_action_type)
+        approval_required = _approval_required_for(status, candidate_action_type)
         conn.execute(
             """
 INSERT INTO intent_records (
@@ -900,7 +906,7 @@ INSERT INTO intent_records (
   world_hint, intent_category, confidence, approval_required,
   execution_allowed, action_request_created, candidate_action_type,
   next_safe_move, status, routing_reason, rejection_reason
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, 0, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)
 ON CONFLICT(intent_id) DO UPDATE SET
   run_id = excluded.run_id,
   source_kind = excluded.source_kind,
@@ -916,7 +922,7 @@ ON CONFLICT(intent_id) DO UPDATE SET
   world_hint = excluded.world_hint,
   intent_category = excluded.intent_category,
   confidence = excluded.confidence,
-  approval_required = 1,
+  approval_required = excluded.approval_required,
   execution_allowed = 0,
   action_request_created = 0,
   candidate_action_type = excluded.candidate_action_type,
@@ -952,6 +958,7 @@ ON CONFLICT(intent_id) DO UPDATE SET
                 world_hint,
                 category,
                 confidence,
+                1 if approval_required else 0,
                 candidate_action_type,
                 next_safe_move,
                 status,
@@ -997,13 +1004,15 @@ ON CONFLICT(candidate_id) DO UPDATE SET
             status = "needs_operator_review"
             routing_reason += "; file reference is unresolved in recent File Event Queue metadata"
             next_safe_move = _next_safe_move(category, routed_agent_id, candidate_action_type)
+            approval_required = _approval_required_for(status, candidate_action_type)
             conn.execute(
                 """
 UPDATE intent_records
-SET status = ?, routing_reason = ?, next_safe_move = ?, confidence = MIN(confidence, 0.55)
+SET status = ?, routing_reason = ?, next_safe_move = ?, confidence = MIN(confidence, 0.55),
+    approval_required = ?
 WHERE intent_id = ?
 """.strip(),
-                (status, routing_reason, next_safe_move, resolved_intent_id),
+                (status, routing_reason, next_safe_move, 1 if approval_required else 0, resolved_intent_id),
             )
 
         conn.execute(
@@ -1012,11 +1021,11 @@ INSERT INTO intent_plan_proposals (
   proposal_id, intent_id, proposed_next_safe_move, candidate_action_type,
   approval_required, execution_allowed, action_request_created,
   truth_promotion_claimed, created_at
-) VALUES (?, ?, ?, ?, 1, 0, 0, 0, ?)
+) VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?)
 ON CONFLICT(proposal_id) DO UPDATE SET
   proposed_next_safe_move = excluded.proposed_next_safe_move,
   candidate_action_type = excluded.candidate_action_type,
-  approval_required = 1,
+  approval_required = excluded.approval_required,
   execution_allowed = 0,
   action_request_created = 0,
   truth_promotion_claimed = 0
@@ -1026,6 +1035,7 @@ ON CONFLICT(proposal_id) DO UPDATE SET
                 resolved_intent_id,
                 next_safe_move,
                 candidate_action_type,
+                1 if approval_required else 0,
                 now,
             ),
         )
@@ -1133,7 +1143,7 @@ WHERE run_id = ?
             status=final["status"],
             next_safe_move=next_safe_move,
             candidate_action_type=candidate_action_type,
-            approval_required=True,
+            approval_required=approval_required,
             execution_allowed=False,
             action_request_created=False,
             context_link_count=len(links),

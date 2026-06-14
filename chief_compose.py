@@ -1,0 +1,150 @@
+"""Unified composer seam for safe operator messages.
+
+This module is additive and not wired into the running listener. It gives the
+future API a single front door:
+
+    PII redaction -> deterministic intent route -> read-only reply or gated
+    work packet -> human approval -> executor.
+
+The executor registry is empty by default. Nothing sends or mutates external
+systems unless a future surface is explicitly registered and approved.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Callable
+
+from compose_contract import ComposeResult, ExecutionReceipt, GateState, is_action_intent
+
+
+DEFAULT_SOURCE_KIND = "mission_control"
+DEFAULT_SOURCE_CHANNEL = "mac_app"
+DEFAULT_REQUESTED_BY = "winship"
+
+
+def _branch_for(result: Any) -> str:
+    """Return blocked, gated, or fast. Missing fields fail toward gated."""
+    rejection = getattr(result, "rejection_reason", None)
+    status = getattr(result, "status", "") or ""
+    if rejection or status.lower() == "rejected":
+        return "blocked"
+    if getattr(result, "approval_required", True):
+        return "gated"
+    return "fast"
+
+
+def _segments_from_routed(routed: dict[str, Any]) -> list[str]:
+    replies = routed.get("replies")
+    if isinstance(replies, list) and replies:
+        return [str(reply) for reply in replies if str(reply).strip()]
+    reply = routed.get("reply")
+    return [str(reply)] if reply and str(reply).strip() else []
+
+
+def compose(
+    text: str,
+    *,
+    source_kind: str = DEFAULT_SOURCE_KIND,
+    source_channel: str = DEFAULT_SOURCE_CHANNEL,
+    requested_by: str = DEFAULT_REQUESTED_BY,
+    source_message_id: str | None = None,
+    db_path: str | None = None,
+) -> ComposeResult:
+    text = (text or "").strip()
+    if not text:
+        return ComposeResult.read_only("empty", ["Say or type something and I will route it."])
+
+    from intent_router import route_operator_intent
+    from pii_vault import redact_text
+
+    redacted, _token_map = redact_text(text)
+    result = route_operator_intent(
+        text=redacted,
+        source_kind=source_kind,
+        source_channel=source_channel,
+        requested_by=requested_by,
+        source_message_id=source_message_id,
+        db_path=db_path,
+    )
+    intent = getattr(result, "candidate_action_type", None) or getattr(result, "intent_category", "unknown")
+    branch = _branch_for(result)
+
+    if branch == "blocked":
+        reason = getattr(result, "rejection_reason", None) or "That request was refused at intake."
+        return ComposeResult.blocked(intent, str(reason), run_id=getattr(result, "run_id", None))
+
+    if branch == "gated":
+        from agent_work_packet import build_agent_work_packet
+
+        packet = build_agent_work_packet(
+            intent_id=getattr(result, "intent_id", None),
+            run_id=getattr(result, "run_id", None),
+            db_path=db_path,
+        )
+        goal = getattr(packet, "goal", "") or "Proposed action"
+        surface = intent or "unknown"
+        return ComposeResult.pending(
+            intent=intent,
+            packet_id=getattr(packet, "packet_id", "unknown"),
+            surface=surface,
+            segments=[goal, "Approve to proceed, or tell me what to change."],
+            preview={
+                "goal": goal,
+                "candidate_action_type": getattr(result, "candidate_action_type", None),
+                "world_hint": getattr(result, "world_hint", None),
+                "execution_allowed": getattr(packet, "execution_allowed", False),
+            },
+            run_id=getattr(result, "run_id", None),
+            next_safe_move=getattr(result, "next_safe_move", None),
+        )
+
+    from chief_router import route_message
+
+    routed = route_message(text)
+    routed_intent = routed.get("intent", intent)
+    if is_action_intent(routed_intent):
+        return ComposeResult(
+            intent=routed_intent,
+            gate_state=GateState.BLOCKED,
+            segments=[
+                "Routing disagreement: intake marked this safe but the legacy router "
+                "treats it as an action. Held for review; not executed.",
+            ],
+            meta={
+                "a1_intent": intent,
+                "router_intent": routed_intent,
+                "needs": "taxonomy_alignment",
+            },
+        )
+    return ComposeResult.read_only(
+        routed_intent,
+        _segments_from_routed(routed),
+        run_id=getattr(result, "run_id", None),
+    )
+
+
+EXECUTORS: dict[str, Callable[..., ExecutionReceipt]] = {}
+
+
+def register_executor(surface: str, fn: Callable[..., ExecutionReceipt]) -> None:
+    EXECUTORS[surface] = fn
+
+
+def execute_packet(packet_id: str, *, surface: str, db_path: str | None = None) -> ExecutionReceipt:
+    fn = EXECUTORS.get(surface)
+    if fn is None:
+        return ExecutionReceipt(
+            packet_id=packet_id,
+            surface=surface,
+            ok=False,
+            detail=f"No executor wired for surface '{surface}'. Nothing was sent.",
+        )
+    try:
+        return fn(packet_id=packet_id, db_path=db_path)
+    except Exception as exc:
+        return ExecutionReceipt(
+            packet_id=packet_id,
+            surface=surface,
+            ok=False,
+            detail=f"Executor error: {exc}",
+        )
