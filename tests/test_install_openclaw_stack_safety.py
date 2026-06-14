@@ -110,7 +110,8 @@ def test_request_response_service_template_is_bounded_and_operator_activated():
     source = REQUEST_RESPONSE_UNIT.read_text(encoding="utf-8")
 
     assert "scripts/run_openclaw_request_response_service.py" in source
-    assert "--watch-seconds 300" in source
+    assert "--watch-seconds 21600" in source
+    assert "--watch-seconds 300" not in source
     assert "--max-requests 100" in source
     assert "ConditionPathIsDirectory=/mnt/e/openclaw/mission_control_capture_requests/inbox" in source
     assert "ConditionPathIsDirectory=/mnt/e/openclaw/mission_control_responses/to_mac" in source
