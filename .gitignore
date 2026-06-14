@@ -1078,6 +1078,7 @@
 !tests/test_openclaw_lm_consult_spine.py
 !tests/test_openclaw_api_server.py
 !tests/test_gig_intake.py
+!tests/test_orbit_compose_wiring.py
 !tests/test_openclaw_system_knowledge_registry.py
 !tests/test_helm_calm_surface.py
 !tests/test_external_system_knowledge_registry_materializer.py

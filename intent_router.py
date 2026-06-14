@@ -47,6 +47,27 @@ INTENT_CATEGORIES = {
     "obs_launch",
     "livestream_setup",
     "gig_intake",
+    "musiclaw_query",
+    "publishing_query",
+    "cpa_query",
+    "financial_report",
+    "analytics_report",
+    "goals_check",
+    "momentum_check",
+    "reflection_report",
+    "system_report",
+    "calendar_query",
+    "brand_guide",
+    "content_calendar",
+    "scout_report",
+    "phone_assist",
+    "backup_status",
+    "album_request",
+    "brainstorm_status",
+    "queue_status",
+    "integration_proposals",
+    "trinity_check",
+    "marketing_ideas",
     "invoice_status_lookup",
     "pending_approval_lookup",
     "schedule_lookup",
@@ -85,6 +106,27 @@ READ_ONLY_INTENT_CATEGORIES = {
     "approval_explainer",
     "capability_query",
     "gig_intake",
+    "musiclaw_query",
+    "publishing_query",
+    "cpa_query",
+    "financial_report",
+    "analytics_report",
+    "goals_check",
+    "momentum_check",
+    "reflection_report",
+    "system_report",
+    "calendar_query",
+    "brand_guide",
+    "content_calendar",
+    "scout_report",
+    "phone_assist",
+    "backup_status",
+    "album_request",
+    "brainstorm_status",
+    "queue_status",
+    "integration_proposals",
+    "trinity_check",
+    "marketing_ideas",
 }
 ROUTER_CANDIDATE_ACTION_TYPES = set(ALLOWED_ACTIONS) | ACTION_INTENT_CATEGORIES
 
@@ -427,6 +469,73 @@ def _detect_agent(phrase_text: str, aliases: dict[str, str]) -> tuple[str | None
     return agent_id, phrase
 
 
+def _orbit_read_only_category_for_text(phrase_text: str) -> tuple[str, str] | None:
+    has = lambda *phrases: any(_contains_phrase(phrase_text, phrase) for phrase in phrases)
+    contains = lambda *needles: any(needle in phrase_text for needle in needles)
+
+    if has("music law", "legal question", "my rights", "ten fingers", "log rhythm", "log rhythm records", "music contract", "sync license", "copyright", "royalty dispute") or contains("publishing rights", "master rights", "work for hire"):
+        return "musiclaw_query", "music-law read-only brain wording matched"
+    if has("publishing status", "catalog status", "sync opportunities", "sync ready", "song rights", "pro registration", "ascap", "bmi") or contains("publishing catalog", "what songs are registered"):
+        return "publishing_query", "publishing read-only brain wording matched"
+    if (
+        has("what did i make", "income this month", "income summary", "what do i owe", "quarterly tax", "estimated tax", "tax estimate", "what can i deduct", "deductions", "write off", "write-off", "quarterly", "cpa", "tax owed")
+        and not has("log expense", "add expense", "i spent", "i paid for", "expense")
+    ):
+        return "cpa_query", "CPA read-only brain wording matched"
+    if has("financial report", "profit and loss", "outstanding invoices", "who owes me", "unpaid invoices", "payment history", "revenue this month", "quarterly projection", "tax projection", "financial summary", "income report", "how's business", "hows business") or contains("p&l"):
+        return "financial_report", "financial read-only brain wording matched"
+    if has("analytics", "weekly metrics", "metrics report", "show analytics", "business report"):
+        return "analytics_report", "analytics read-only brain wording matched"
+    if (
+        has("goals", "goal check", "how am i doing", "goal progress", "check in", "goal tracker")
+        and not has("update goal", "set goal", "milestone goal")
+    ):
+        return "goals_check", "goals read-only brain wording matched"
+    if has("momentum", "am i on track", "activity check", "how active am i", "artist mode", "admin mode", "am i in artist", "am i in admin", "momentum report"):
+        return "momentum_check", "momentum read-only brain wording matched"
+    if has("reflection report", "monthly report", "what's working", "whats working", "usage report", "system reflection", "how are things going", "assess the system", "how is the system doing"):
+        return "reflection_report", "reflection read-only brain wording matched"
+    if has("system report", "daily report", "what ran today", "status report", "worker report", "watcher report", "what happened today", "how is the system"):
+        return "system_report", "reporter read-only brain wording matched"
+    if has("what's my week", "whats my week", "what's today", "whats today", "what's coming up", "whats coming up", "what do i have", "my week", "this week", "upcoming events", "what's happening") or (contains("calendar", "schedule") and has("what is on", "what's on", "whats on", "show me")):
+        return "calendar_query", "calendar read-only brain wording matched"
+    if has("brand guide", "style guide", "brand rules", "is this on brand", "on brand check", "brand check", "dpr brand", "fundo brand guide"):
+        return "brand_guide", "brand read-only brain wording matched"
+    if (
+        has("content calendar", "content schedule", "what's due for posting", "whats due for posting", "content status", "posting schedule", "what needs to go up")
+        and not has("mark posted", "schedule post")
+    ):
+        return "content_calendar", "content read-only brain wording matched"
+    if has("scout report", "what's new in ai", "whats new in ai", "tech digest", "research report", "new tools", "ai tools", "new in ai", "what's new in tech", "whats new in tech", "music tech", "new platforms"):
+        return "scout_report", "scout read-only brain wording matched"
+    if has("call script", "talking points", "what should i say to", "how should i approach", "script for calling", "call log", "call history", "recent calls", "show calls"):
+        return "phone_assist", "phone read-only brain wording matched"
+    if (
+        has("backup status", "check backup", "git status", "is the repo current", "repo status")
+        and not has("backup now", "push backup", "do backup", "backup push")
+    ):
+        return "backup_status", "backup read-only brain wording matched"
+    if has("album status", "session status", "album arc", "album story", "track order", "lyric arc", "album analysis", "song order", "mix brief", "mix status", "mix ready"):
+        return "album_request", "album read-only brain wording matched"
+    if has("brainstorm status", "brainstorm watch", "brainstorm check", "watching ideas", "idea list", "brainstorm queue", "brainstorm backlog", "show ideas"):
+        return "brainstorm_status", "brainstorm read-only brain wording matched"
+    if has("queue status", "what's queued", "what s queued", "whats queued", "show queue", "pending queue", "done queue"):
+        return "queue_status", "queue read-only brain wording matched"
+    if (
+        has("integration proposal", "integration proposals", "what can we add", "what can i add", "proposals", "propose")
+        and not has("approve prop", "reject prop")
+    ):
+        return "integration_proposals", "integration read-only brain wording matched"
+    if has("trinity check", "system audit", "brain audit", "trinity status", "trinity report", "check trinities", "what's missing", "queue gaps"):
+        return "trinity_check", "trinity read-only brain wording matched"
+    if (
+        has("marketing", "content idea", "content ideas", "what should i post", "what can i post", "what can i make", "post about", "reel", "tiktok", "instagram", "youtube", "social media", "what to post", "marketing idea")
+        and not has("log that", "i posted", "mark as posted", "schedule post", "draft a caption", "draft a hook", "write a caption", "write a hook")
+    ):
+        return "marketing_ideas", "marketing read-only brain wording matched"
+    return None
+
+
 def _category_for_text(phrase_text: str, explicit_agent_id: str | None) -> tuple[str, str]:
     has = lambda *phrases: any(_contains_phrase(phrase_text, phrase) for phrase in phrases)
     contains = lambda *needles: any(needle in phrase_text for needle in needles)
@@ -457,10 +566,21 @@ def _category_for_text(phrase_text: str, explicit_agent_id: str | None) -> tuple
         return "pending_approval_lookup", "pending approval/status lookup wording matched"
     if (contains("invoice", "bill", "paid", "payment") and asks_status) or has("did the invoice thing go out"):
         return "invoice_status_lookup", "invoice/payment status lookup wording matched"
+    if (
+        has("content calendar", "content schedule", "what's due for posting", "whats due for posting", "content status", "posting schedule", "what needs to go up")
+        and not has("mark posted", "schedule post")
+    ):
+        return "content_calendar", "content read-only brain wording matched"
+    if has("what's my week", "whats my week", "what's today", "whats today", "what's coming up", "whats coming up", "what do i have", "my week", "this week", "upcoming events", "what's happening"):
+        return "calendar_query", "calendar read-only brain wording matched"
     if (contains("calendar", "schedule", "today", "tomorrow", "meeting") and not actionish) or contains("what is on the schedule", "what's on the schedule"):
         return "schedule_lookup", "schedule lookup wording matched"
     if contains("what can you do", "can you", "are you able", "capability", "capabilities"):
         return "capability_query", "capability query wording matched"
+
+    orbit_read_only = _orbit_read_only_category_for_text(phrase_text)
+    if orbit_read_only:
+        return orbit_read_only
 
     booking_phrase = has(
         "booked",
@@ -545,6 +665,30 @@ def _default_agent_for_category(category: str, phrase_text: str) -> tuple[str | 
         return "cassandra", f"default Cassandra route for {category}"
     if category in {"obs_launch", "livestream_setup"}:
         return "chief", f"default Chief route for {category}"
+    if category in {
+        "musiclaw_query",
+        "publishing_query",
+        "cpa_query",
+        "financial_report",
+        "analytics_report",
+        "goals_check",
+        "momentum_check",
+        "reflection_report",
+        "system_report",
+        "calendar_query",
+        "brand_guide",
+        "content_calendar",
+        "scout_report",
+        "phone_assist",
+        "backup_status",
+        "album_request",
+        "brainstorm_status",
+        "queue_status",
+        "integration_proposals",
+        "trinity_check",
+        "marketing_ideas",
+    }:
+        return "chief", f"default Chief route for {category}"
     if category in {"markdown_reorg_request", "read_model_refresh_request", "project_capsule_request", "status_orientation_request"}:
         return "chief", f"default Chief route for {category}"
     if category == "file_context_request":
@@ -563,15 +707,19 @@ def _default_agent_for_category(category: str, phrase_text: str) -> tuple[str | 
 
 
 def _world_for(agent_id: str | None, category: str) -> str:
-    if category in {"invoice_send", "invoice_status_lookup", "ledger_mutation", "coupa_submit"}:
+    if category in {"invoice_send", "invoice_status_lookup", "ledger_mutation", "coupa_submit", "cpa_query", "financial_report"}:
         return "finance"
+    if category in {"musiclaw_query", "publishing_query"}:
+        return "business_development"
     if category in {"email_send", "sms_send", "phone_log", "calendar_create", "pending_approval_lookup", "schedule_lookup", "approval_explainer", "capability_query"}:
+        return "communications"
+    if category in {"calendar_query", "phone_assist"}:
         return "communications"
     if category == "gig_intake":
         return "business_development"
-    if category in {"obs_launch", "livestream_setup"}:
+    if category in {"obs_launch", "livestream_setup", "analytics_report", "goals_check", "momentum_check", "reflection_report", "system_report", "scout_report", "backup_status", "brainstorm_status", "queue_status", "integration_proposals", "trinity_check"}:
         return "operations"
-    if agent_id == "niles" or category in {"music_project_request", "file_context_request"}:
+    if agent_id == "niles" or category in {"music_project_request", "file_context_request", "album_request", "brand_guide", "content_calendar", "marketing_ideas"}:
         return "music_art"
     if agent_id == "guardian" or category == "safety_review_request":
         return "security"
@@ -620,6 +768,8 @@ def _next_safe_move(category: str, agent_id: str | None, candidate_action_type: 
         return "Explain current capabilities and boundaries in plain language; do not create a new action packet."
     if category == "gig_intake":
         return "Start a Cassandra gig-intake session, pre-fill extractable booking details, and ask only for missing confirmation fields. No send or invoice execution is allowed."
+    if category in READ_ONLY_INTENT_CATEGORIES:
+        return f"Route `{category}` through the existing read-only brain handler; do not create an action packet."
     if category == "markdown_reorg_request":
         return "Query Markdown Knowledge Atlas and draft an advisory reorg/archive plan; do not move files."
     if category == "file_context_request":
