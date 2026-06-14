@@ -60,6 +60,21 @@ def test_legacy_send_and_approval_surfaces_converge_to_one_g3_gate(surface):
     assert convergence["send_hold_active"] is True
 
 
+def test_invoice_send_executor_is_registered_but_send_hold_blocks_execution():
+    blocked = convergence_for_surface("invoice_send")
+    ready_after_hold = convergence_for_surface("invoice_send", send_hold_active=False)
+
+    assert blocked["canonical_gate"] == G3_GATE
+    assert blocked["executor_registered"] is False
+    assert blocked["execution_allowed"] is False
+    assert blocked["external_send_allowed"] is False
+    assert blocked["executor_mode"] == "square_sandbox_only"
+
+    assert ready_after_hold["executor_registered"] is True
+    assert ready_after_hold["execution_allowed"] is False
+    assert ready_after_hold["external_send_allowed"] is False
+
+
 @pytest.mark.parametrize(
     ("text", "surface"),
     [
