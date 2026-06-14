@@ -5916,6 +5916,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         )
         skip_guided_review = False
         skip_universal_intake = False
+        email_send_request = gmail_decision.allowed and _detect_send_email_intent(query)
         if switchboard_decision is not None:
             switch_decision = str(switchboard_decision.get("decision") or "")
             if switch_decision in {"new_task_interrupt", "new_task_stage", "clarification_needed", "unsupported_but_logged"}:
@@ -5987,6 +5988,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             if switch_decision == "approval_passthrough":
                 skip_guided_review = True
                 skip_universal_intake = True
+        if email_send_request:
+            skip_universal_intake = True
 
         guided_review_response = None
         if not skip_guided_review:

@@ -114,6 +114,7 @@ def stub_side_effects(monkeypatch, tmp_path):
         },
         raising=False,
     )
+    monkeypatch.setattr(cb, "_start_email_send_after_draft", lambda **_kwargs: None, raising=False)
 
     # Mock broker call to avoid real network/subprocess and still let the
     # email flow resolve contacts before send.
