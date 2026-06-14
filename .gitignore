@@ -54,6 +54,8 @@
 !chief_approval_brain.py
 !chief_reporter_brain.py
 !chief_validator_brain.py
+!chief_tax_sorter.py
+!fin_fortress_auditor.py
 !launch_ladder_contract_check.py
 !backend_sqlite_schema.py
 !backend_sqlite_runtime.py
@@ -515,6 +517,7 @@
 # tools/ — standalone utility modules
 !tools/
 !tools/file_verify.py
+!tools/future_action_queue.py
 !scripts/
 !scripts/openclaw_receipts.py
 !scripts/check_cassandra_capability_drift.py
@@ -1096,6 +1099,9 @@
 !generated/read_models/*.md
 generated/read_models/*_status.json
 generated/read_models/watch_desk_feed.json
+!generated/read_models/proof_to_response_lm_shadow_status.json
+!generated/read_models/universal_receipt_envelope_status.json
+!generated/read_models/world_status.json
 !generated/system_knowledge/
 generated/system_knowledge/*.sqlite
 !generated/system_knowledge/openclaw_service_supervision.sqlite

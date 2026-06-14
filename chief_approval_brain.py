@@ -40,7 +40,8 @@ from pathlib import Path
 
 import chief_env
 
-PENDING_FILE    = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
+DEFAULT_PENDING_FILE = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
+PENDING_FILE    = DEFAULT_PENDING_FILE
 VAULT_LOG       = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Approval Log.md")
 _SLOT_LOCK_FILE = Path.home() / ".chief_approval.lock"  # local ext4 — reliable flock
 POLL_INTERVAL   = 2     # seconds between checks
@@ -443,6 +444,13 @@ def _build_l1_prompt(action: str) -> str:
     return f"\n  Action: {action}\n  Proceed? [y/N]: "
 
 
+def _test_mode_fail_closed_default_path() -> bool:
+    return (
+        os.environ.get("OPENCLAW_TEST_MODE") == "1"
+        and Path(PENDING_FILE).resolve(strict=False) == DEFAULT_PENDING_FILE.resolve(strict=False)
+    )
+
+
 # ── Level 1 — local terminal confirmation ─────────────────────────────────────
 
 def _confirm_terminal(action: str) -> bool | None:
@@ -544,6 +552,11 @@ def request_approval(
         "hash":         action_hash,
         "approval_context": approval_context or {},
     }
+
+    if _test_mode_fail_closed_default_path():
+        elapsed = time.time() - start
+        _append_log(action, requester, "DENIED - TEST MODE", requested_at, elapsed, tier=tier)
+        return False
 
     # Snapshot active album session so listener can resume after gate closes.
     try:
