@@ -2345,8 +2345,12 @@ def compare_manifest_to_backend(
         }
     observed = set(observed_records)
     extra_files = sorted(observed - expected)
-    nonblocking_extra_files = list(extra_files)
-    blocking_extra_files: list[str] = []
+    nonblocking_extra_files = [
+        relative_path for relative_path in extra_files if relative_path == STABLE_MAP_OPTIONAL_RECEIPT_FILE
+    ]
+    blocking_extra_files = [
+        relative_path for relative_path in extra_files if relative_path not in set(nonblocking_extra_files)
+    ]
     matched: list[str] = []
     mismatched: list[str] = []
     for relative_path in sorted(expected & observed):

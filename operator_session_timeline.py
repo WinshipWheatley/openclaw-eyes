@@ -451,13 +451,16 @@ def _receipt_events(universal_receipts: Mapping[str, Any], *, fallback_timestamp
             *[str(ref) for ref in receipt.get("hash_refs") or [] if str(ref)],
             *[str(ref) for ref in receipt.get("read_model_refs") or [] if str(ref)],
         ]
+        card_id = str(receipt.get("card_id") or "")
+        if receipt_type == "review_decision_recorded" and not card_id:
+            card_id = "dynamic_card.build.review_packet.completed_historical_receipt"
         events.append(
             build_timeline_event(
                 event_type,
                 timestamp=str(receipt.get("created_at") or fallback_timestamp),
                 world_ref=str(receipt.get("world_ref") or "system"),
                 thread_ref=str(receipt.get("thread_ref") or "timeline"),
-                card_id=str(receipt.get("card_id") or ""),
+                card_id=card_id,
                 controller_event_type=str(receipt.get("controller_event_id") or "").split(":", 2)[1]
                 if str(receipt.get("controller_event_id") or "").startswith("controller_event:")
                 else "",
@@ -486,7 +489,7 @@ def _receipt_summary(receipt: Mapping[str, Any]) -> str:
     if receipt_type == "approval_recorded":
         return "Approval need recorded; approval receipt is not execution proof."
     if receipt_type == "review_decision_recorded":
-        return "Review decision recorded as receipt history; no merge or push."
+        return "Workroom review was marked informational and moved to completed history; no merge or push."
     if receipt_type == "gate_blocked":
         return "Protected gate blocked; no authority was granted."
     if receipt_type == "dynamic_card_emitted":

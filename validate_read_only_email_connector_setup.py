@@ -366,13 +366,24 @@ def validate_setup(
         setup_status = "oauth_human_consent_required"
         granted_scopes_status = "oauth_human_consent_required"
     else:
-        probe = oauth_scope_probe or _probe_google_oauth_scopes
-        probe_result = probe(
-            credential_path=credential_path,
-            token_path=token_path,
-            token_path_external=bool(token_status["external"]),
-            requested_scope=requested_scope,
-        )
+        if oauth_scope_probe is None:
+            probe_result = {
+                "dependency_status": VALIDATOR_DEPENDENCY_MISSING,
+                "missing_dependencies": ["explicit_oauth_scope_probe"],
+                "probe_status": "dependency_missing",
+                "granted_scopes": [],
+                "token_refresh_attempted": False,
+                "token_refresh_succeeded": False,
+                "token_valid": False,
+                "token_file_read": False,
+            }
+        else:
+            probe_result = oauth_scope_probe(
+                credential_path=credential_path,
+                token_path=token_path,
+                token_path_external=bool(token_status["external"]),
+                requested_scope=requested_scope,
+            )
         token_refresh_attempted = bool(probe_result.get("token_refresh_attempted"))
         token_refresh_succeeded = bool(probe_result.get("token_refresh_succeeded"))
         validator_dependency_status = str(probe_result.get("dependency_status") or "present")

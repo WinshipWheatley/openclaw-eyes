@@ -133,7 +133,7 @@ def publish_pc_bridge_read_models(
             }
         )
 
-    status = "ok" if not missing and not blocked else "incomplete"
+    status = "ok" if copied and not blocked else "incomplete"
     return {
         "status": status,
         "bridge_version": "pc_direct_read_model_bridge_v0",
