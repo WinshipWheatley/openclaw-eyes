@@ -196,6 +196,108 @@
     "runtime_service_mutation_allowed": false,
     "workbook_pdf_ledger_invoice_mutation_allowed": false
   },
+  "brain_route_inventory": [
+    {
+      "boundary": "read-only Q&A; no legal advice authority",
+      "brain_id": "chief_musiclaw_brain",
+      "compose_status": "read_only_category_added",
+      "current_state": "real",
+      "disposition_action": "WIRE",
+      "evidence_ref": "orbit_brain_map.md; intent_router.py",
+      "legacy_router_wired": "yes",
+      "mission_lane": "legal/high"
+    },
+    {
+      "boundary": "read-only rights/catalog posture only",
+      "brain_id": "chief_publishing_brain",
+      "compose_status": "read_only_category_added",
+      "current_state": "real",
+      "disposition_action": "WIRE",
+      "evidence_ref": "orbit_brain_map.md; intent_router.py",
+      "legacy_router_wired": "yes",
+      "mission_lane": "rights/high"
+    },
+    {
+      "boundary": "read-only tax/accounting orientation; no tax advice or filing",
+      "brain_id": "chief_cpa_brain",
+      "compose_status": "read_only_category_added",
+      "current_state": "real",
+      "disposition_action": "WIRE",
+      "evidence_ref": "orbit_brain_map.md; intent_router.py",
+      "legacy_router_wired": "yes",
+      "mission_lane": "finance/high"
+    },
+    {
+      "boundary": "read-only finance reports; no ledger mutation",
+      "brain_id": "chief_financial_brain",
+      "compose_status": "read_only_category_added",
+      "current_state": "real",
+      "disposition_action": "WIRE",
+      "evidence_ref": "orbit_brain_map.md; intent_router.py",
+      "legacy_router_wired": "yes",
+      "mission_lane": "finance/high"
+    },
+    {
+      "boundary": "do not use for invoice authority; superseded by billing/gig flows",
+      "brain_id": "chief_invoice_brain",
+      "compose_status": "not_wired_retire_candidate",
+      "current_state": "legacy",
+      "disposition_action": "RETIRE",
+      "evidence_ref": "orbit_brain_map.md; orbit_lockin.md",
+      "legacy_router_wired": "no_or_orphaned",
+      "mission_lane": "booking/med"
+    },
+    {
+      "boundary": "draft/gate only; no executor registered under SEND_HOLD",
+      "brain_id": "chief_email_brain",
+      "compose_status": "g3_convergence_metadata_added",
+      "current_state": "real",
+      "disposition_action": "WIRE_G3_GATE",
+      "evidence_ref": "orbit_brain_map.md; approval_gate_convergence.py",
+      "legacy_router_wired": "yes",
+      "mission_lane": "finance/high"
+    },
+    {
+      "boundary": "draft/gate only; no executor registered under SEND_HOLD",
+      "brain_id": "chief_sms_brain",
+      "compose_status": "g3_convergence_metadata_added",
+      "current_state": "real",
+      "disposition_action": "WIRE_G3_GATE",
+      "evidence_ref": "orbit_brain_map.md; approval_gate_convergence.py",
+      "legacy_router_wired": "yes",
+      "mission_lane": "finance/high"
+    },
+    {
+      "boundary": "background alerter only; no send or mutation authority",
+      "brain_id": "chief_watcher_brain",
+      "compose_status": "verified_active_service_not_compose_wired",
+      "current_state": "real",
+      "disposition_action": "VERIFY",
+      "evidence_ref": "orbit_lockin.md",
+      "legacy_router_wired": "partial",
+      "mission_lane": "ops/high"
+    },
+    {
+      "boundary": "must route through gated billing/gig/invoice flows, not generic read-only",
+      "brain_id": "chief_billing_brain",
+      "compose_status": "surveyed_mixed_write_session_surface",
+      "current_state": "real",
+      "disposition_action": "PARK_FOR_GATED_BILLING_FLOW",
+      "evidence_ref": "orbit_lockin.md; chief_billing_brain.py",
+      "legacy_router_wired": "not_in_original_sweep",
+      "mission_lane": "finance/high"
+    },
+    {
+      "boundary": "read-only categories only; write-like phrases fail closed to gated paths",
+      "brain_id": "read_only_orbit_brain_group",
+      "compose_status": "pc12_categories_added",
+      "current_state": "real",
+      "disposition_action": "WIRE",
+      "evidence_ref": "intent_router.py; tests/test_orbit_compose_wiring.py",
+      "legacy_router_wired": "yes",
+      "mission_lane": "independent_artist_stack"
+    }
+  ],
   "build_tasks": [
     {
       "boundary": "Mac applies patch and runs local validation; no PC push.",
@@ -241,6 +343,42 @@
       "task_id": "task_voice_caveat",
       "task_rank": 5,
       "title": "Keep voice/Kokoro caveat separate"
+    },
+    {
+      "boundary": "No Gmail body reading without scope decision; no email send.",
+      "owner_lane": "PC Codex",
+      "rationale": "PC-9 remains: watch, understand, calendar-aware draft, gate; Gmail scope must be explicit.",
+      "status": "pending_send_hold_safetied",
+      "task_id": "task_correspondence_watcher",
+      "task_rank": 6,
+      "title": "Wire correspondence watcher loop safely"
+    },
+    {
+      "boundary": "Executor must remain unregistered and non-firing until tested and approved.",
+      "owner_lane": "PC Codex",
+      "rationale": "PC-10 remains: approved packet to email brain to side-effect receipt, but SEND_HOLD prevents firing.",
+      "status": "pending_send_hold_safetied",
+      "task_id": "task_email_send_executor_scaffold",
+      "task_rank": 7,
+      "title": "Scaffold email_send executor unregistered"
+    },
+    {
+      "boundary": "Use provenance and no send/invoice execution.",
+      "owner_lane": "PC Codex",
+      "rationale": "PC-16 should dogfood gig intake by moving Reynolds facts from share artifact to canonical ledger.",
+      "status": "pending",
+      "task_id": "task_land_reynolds_gig",
+      "task_rank": 8,
+      "title": "Land Reynolds gig as canonical business record"
+    },
+    {
+      "boundary": "Use established local generator only; no external API or service mutation.",
+      "owner_lane": "PC Codex",
+      "rationale": "PC-17 should make graph artifacts reflect compose/API/orchestration reality.",
+      "status": "pending",
+      "task_id": "task_refresh_graphiffy_atlas",
+      "task_rank": 9,
+      "title": "Refresh atlas/Graphiffy after compose/orchestration wiring"
     }
   ],
   "capabilities": [
@@ -282,6 +420,30 @@
       "capability_name": "Operator-openable artifact copy and manifest",
       "component_id": "artifact_link_normalizer",
       "evidence_basis": "scripts/operator_artifact_link_normalizer.py",
+      "evidence_status": "CONFIRMED_LOCAL"
+    },
+    {
+      "boundary": "records candidate gig facts and pending packets only; no send/execution",
+      "capability_id": "capability_gig_intake_flow",
+      "capability_name": "Conversational gig fact intake and approval packet staging",
+      "component_id": "gig_intake_flow",
+      "evidence_basis": "gig_intake.py and orchestration gig intake design",
+      "evidence_status": "CONFIRMED_LOCAL"
+    },
+    {
+      "boundary": "metadata/design only until Gmail scope and executor approval are resolved",
+      "capability_id": "capability_correspondence_agent_plan",
+      "capability_name": "Correspondence watcher/draft/gate design",
+      "component_id": "correspondence_agent_plan",
+      "evidence_basis": "correspondence_agent_spec.md",
+      "evidence_status": "PLANNED_SEND_HOLD"
+    },
+    {
+      "boundary": "no double-gate, no direct legacy send, no registered executor",
+      "capability_id": "capability_legacy_gate_convergence",
+      "capability_name": "Single G3 gate metadata for legacy email/SMS surfaces",
+      "component_id": "approval_gate_convergence",
+      "evidence_basis": "approval_gate_convergence.py",
       "evidence_status": "CONFIRMED_LOCAL"
     }
   ],
@@ -515,11 +677,75 @@
       ],
       "evidence_status": "CONFIRMED_DEGRADED_OR_NONCANONICAL",
       "summary": "Voice/Kokoro may be degraded or side-effect-only; text route is canonical."
+    },
+    {
+      "authority_boundary": "Executor registry is intentionally empty unless a separate approved executor is registered.",
+      "component_id": "compose_gate_pipeline",
+      "component_type": "operator_front_door",
+      "display_name": "Compose/Gate Pipeline",
+      "evidence_paths": [
+        "compose_contract.py",
+        "chief_compose.py",
+        "/mnt/e/openclaw/orchestration/artifacts/COMPOSER_GATE_PIPELINE_DESIGN.md"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "The compose front door routes redacted operator text to read-only handlers or G3 packet approval."
+    },
+    {
+      "authority_boundary": "Map is a planning/source inventory record; it does not start brains or grant runtime authority.",
+      "component_id": "orbit_brain_map",
+      "component_type": "system_map",
+      "display_name": "Orbit Brain Map",
+      "evidence_paths": [
+        "/mnt/e/openclaw/orchestration/artifacts/orbit_brain_map.md",
+        "/mnt/e/openclaw/orchestration/artifacts/orbit_lockin.md"
+      ],
+      "evidence_status": "CONFIRMED_ORCHESTRATION_SOURCE",
+      "summary": "Structured inventory of old-router brains and their WIRE/RETIRE/VERIFY disposition into compose."
+    },
+    {
+      "authority_boundary": "No send or invoice execution occurs without explicit approval and a future registered executor.",
+      "component_id": "gig_intake_flow",
+      "component_type": "business_intake_flow",
+      "display_name": "Gig Intake Flow",
+      "evidence_paths": [
+        "gig_intake.py",
+        "tests/test_gig_intake.py",
+        "/mnt/e/openclaw/orchestration/artifacts/gig_intake_flow_design.md",
+        "/mnt/e/openclaw/orchestration/artifacts/gig_slot_schema.json"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Cassandra can collect gig facts, persist session state, and stage approval packets for intro email and invoice."
+    },
+    {
+      "authority_boundary": "Gmail body scope and live send remain unapproved; SEND_HOLD keeps this design non-executing.",
+      "component_id": "correspondence_agent_plan",
+      "component_type": "correspondence_design",
+      "display_name": "Correspondence Agent Plan",
+      "evidence_paths": [
+        "/mnt/e/openclaw/orchestration/artifacts/correspondence_agent_spec.md"
+      ],
+      "evidence_status": "PLANNED_SEND_HOLD",
+      "summary": "Design for watch, understand, calendar-aware draft, and gate loop for inbound correspondence."
+    },
+    {
+      "authority_boundary": "No legacy direct send, double gate, executor registration, or external send authority is granted.",
+      "component_id": "approval_gate_convergence",
+      "component_type": "gate_convergence",
+      "display_name": "Approval Gate Convergence",
+      "evidence_paths": [
+        "approval_gate_convergence.py",
+        "chief_compose.py",
+        "tests/test_approval_gate_convergence.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Legacy email/SMS/approval surfaces converge onto the G3 packet gate in compose preview metadata."
     }
   ],
   "coverage_assessment": {
-    "build_task_count": 5,
-    "component_count": 18,
+    "brain_route_record_count": 10,
+    "build_task_count": 9,
+    "component_count": 23,
     "covered_high_level_areas": [
       "Cassandra",
       "Chief",
@@ -538,9 +764,15 @@
       "Artifact Link Normalizer",
       "PC/Mac Sync",
       "Invoice/Ledger discovery",
-      "Voice/Kokoro caveat"
+      "Voice/Kokoro caveat",
+      "Compose/Gate Pipeline",
+      "Orbit Brain Map",
+      "Gig Intake Flow",
+      "Correspondence Agent Plan",
+      "Approval Gate Convergence"
     ],
-    "known_unknown_count": 6,
+    "known_unknown_count": 9,
+    "orchestration_decision_count": 5,
     "seeded_component_ids": [
       "cassandra",
       "chief",
@@ -559,7 +791,12 @@
       "artifact_link_normalizer",
       "pc_mac_sync",
       "invoice_ledger_discovery",
-      "voice_kokoro_caveat"
+      "voice_kokoro_caveat",
+      "compose_gate_pipeline",
+      "orbit_brain_map",
+      "gig_intake_flow",
+      "correspondence_agent_plan",
+      "approval_gate_convergence"
     ]
   },
   "current_safety_posture": [
@@ -633,6 +870,36 @@
       ],
       "evidence_status": "CONFIRMED_LOCAL_CAVEAT",
       "subject": "Cassandra voice"
+    },
+    {
+      "claim": "The shared orchestration folder is a working bus; durable decisions must land in the registry or ledger.",
+      "claim_id": "claim_orchestration_share_not_machine_record",
+      "confidence": "high",
+      "evidence_paths": [
+        "/mnt/e/openclaw/orchestration/inbox/to-codex-pc/0006-land-into-canonical-stores.md"
+      ],
+      "evidence_status": "CONFIRMED_OPERATOR_DIRECTION",
+      "subject": "Orchestration workspace"
+    },
+    {
+      "claim": "Most old-router brains are real logic needing compose wiring, not rebuilds.",
+      "claim_id": "claim_orbit_brains_are_wiring_work",
+      "confidence": "medium",
+      "evidence_paths": [
+        "/mnt/e/openclaw/orchestration/artifacts/orbit_brain_map.md"
+      ],
+      "evidence_status": "CONFIRMED_ORCHESTRATION_SOURCE",
+      "subject": "Orbit brain map"
+    },
+    {
+      "claim": "External sends remain blocked while SEND_HOLD is active.",
+      "claim_id": "claim_send_hold_active",
+      "confidence": "high",
+      "evidence_paths": [
+        "/mnt/e/openclaw/orchestration/SEND_HOLD.md"
+      ],
+      "evidence_status": "CONFIRMED_ACTIVE_BOUNDARY",
+      "subject": "SEND_HOLD"
     }
   ],
   "known_unknowns": [
@@ -677,12 +944,75 @@
       "subject": "Private finance proofs",
       "unknown_id": "unknown_private_finance_truth",
       "unknown_status": "BLOCKED_BY_BOUNDARY"
+    },
+    {
+      "next_safe_check": "Ask Winship whether Gmail readonly body scope is allowed for the correspondence watcher.",
+      "reason": "Correspondence design needs a metadata-vs-readonly-body scope decision before reading replies.",
+      "subject": "Correspondence watcher Gmail scope",
+      "unknown_id": "unknown_correspondence_gmail_scope",
+      "unknown_status": "OPERATOR_SCOPE_DECISION_REQUIRED"
+    },
+    {
+      "next_safe_check": "Run PC-16 through the tested gig-intake pipeline with provenance.",
+      "reason": "Reynolds gig facts are still primarily an orchestration artifact until landed through the gig-intake ledger path.",
+      "subject": "Reynolds gig canonical ledger row",
+      "unknown_id": "unknown_reynolds_canonical_ledger_row",
+      "unknown_status": "NEXT_TASK_PC16"
+    },
+    {
+      "next_safe_check": "Run the existing atlas/graphiffy generator without inventing a new path.",
+      "reason": "Atlas/Graphiffy artifacts predate compose/API/orchestration additions and need refresh.",
+      "subject": "Graphiffy/atlas freshness",
+      "unknown_id": "unknown_graphiffy_atlas_staleness",
+      "unknown_status": "NEXT_TASK_PC17"
     }
   ],
   "no_external_calls": true,
   "no_live_action_grants": true,
   "no_runtime_mutation": true,
   "no_secrets": true,
+  "orchestration_decisions": [
+    {
+      "boundary": "read-only fast path or G3 packet path; no direct executor by default",
+      "decision": "compose(text) is the one operator front door.",
+      "decision_id": "decision_compose_front_door",
+      "next_safe_action": "Keep adding intent categories and packet previews through compose.",
+      "source_ref": "INTEGRATION_MAP.md; COMPOSER_GATE_PIPELINE_DESIGN.md",
+      "status": "accepted"
+    },
+    {
+      "boundary": "Do not stage unrelated generated runtime drift.",
+      "decision": "Volatile generated snapshots are not source-of-truth changes by themselves.",
+      "decision_id": "decision_generated_churn_not_authority",
+      "next_safe_action": "Commit source/test/read-model artifacts intentionally by task.",
+      "source_ref": "board.md DECISIONS",
+      "status": "accepted"
+    },
+    {
+      "boundary": "No Square publish/send while SEND_HOLD is active.",
+      "decision": "Square is approved as a payment rail, while branded invoice artifacts remain what the client sees.",
+      "decision_id": "decision_square_payment_rail",
+      "next_safe_action": "Use Square sandbox/spec work only until hold is lifted and executor is approved.",
+      "source_ref": "board.md DECISIONS",
+      "status": "approved_direction_not_executor"
+    },
+    {
+      "boundary": "Drafts only until executors are wired and Winship approves.",
+      "decision": "First real send target is Reynolds Tavern, not Capital Hilton.",
+      "decision_id": "decision_first_real_send_reynolds",
+      "next_safe_action": "Stage Reynolds packets; do not send under SEND_HOLD.",
+      "source_ref": "board.md DECISIONS; artifacts/reynolds",
+      "status": "accepted_planning_target"
+    },
+    {
+      "boundary": "No email, SMS, Square publish/send, outbound third-party Telegram, calendar invites, or posting.",
+      "decision": "No external sends of any kind until the hold is explicitly lifted.",
+      "decision_id": "decision_send_hold_active",
+      "next_safe_action": "Continue drafting, designing, contract tests, and safetied wiring only.",
+      "source_ref": "SEND_HOLD.md",
+      "status": "active_boundary"
+    }
+  ],
   "registry_id": "openclaw_system_knowledge_registry",
   "registry_name": "OpenClaw System Knowledge Registry",
   "repo": {
@@ -695,6 +1025,8 @@
     "system_component",
     "capability",
     "workflow_rail",
+    "brain_route_inventory",
+    "orchestration_decision",
     "knowledge_claim",
     "known_unknown",
     "build_task",
@@ -707,6 +1039,8 @@
     "system_component",
     "capability",
     "workflow_rail",
+    "brain_route_inventory",
+    "orchestration_decision",
     "knowledge_claim",
     "known_unknown",
     "build_task",
@@ -723,7 +1057,7 @@
   },
   "schema_version": "openclaw_system_knowledge_registry_v0",
   "source_audit": {
-    "checked_path_count": 44,
+    "checked_path_count": 50,
     "missing_checked_paths": [
       "generated/read_models/reference_data_hydration_status.json",
       "operator_intake_events.py",
@@ -739,6 +1073,8 @@
       "system_component",
       "capability",
       "workflow_rail",
+      "brain_route_inventory",
+      "orchestration_decision",
       "knowledge_claim",
       "known_unknown",
       "build_task",
@@ -781,6 +1117,30 @@
       "evidence_status": "CONFIRMED_LOCAL",
       "rail_name": "Bounded assignment lifecycle",
       "workflow_id": "rail_assignment_loop"
+    },
+    {
+      "boundary": "executor registry empty by default",
+      "component_id": "compose_gate_pipeline",
+      "evidence_basis": "compose_contract.py, chief_compose.py, tests/test_chief_compose_contract.py",
+      "evidence_status": "CONFIRMED_LOCAL",
+      "rail_name": "Compose front door to read-only or G3 packet",
+      "workflow_id": "rail_compose_gate_pipeline"
+    },
+    {
+      "boundary": "candidate gig metadata and pending approval packets only",
+      "component_id": "gig_intake_flow",
+      "evidence_basis": "tests/test_gig_intake.py and artifacts/reynolds",
+      "evidence_status": "CONFIRMED_LOCAL",
+      "rail_name": "Reynolds-style gig intake and handoff",
+      "workflow_id": "rail_reynolds_gig_intake"
+    },
+    {
+      "boundary": "no Gmail body assumption, no send, no executor registration",
+      "component_id": "correspondence_agent_plan",
+      "evidence_basis": "correspondence_agent_spec.md",
+      "evidence_status": "PLANNED_SEND_HOLD",
+      "rail_name": "Inbound correspondence watcher/draft/gate loop",
+      "workflow_id": "rail_correspondence_watcher_plan"
     }
   ]
 }

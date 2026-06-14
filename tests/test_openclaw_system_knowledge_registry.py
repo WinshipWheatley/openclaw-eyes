@@ -27,6 +27,11 @@ REQUIRED_COMPONENTS = {
     "pc_mac_sync",
     "invoice_ledger_discovery",
     "voice_kokoro_caveat",
+    "compose_gate_pipeline",
+    "orbit_brain_map",
+    "gig_intake_flow",
+    "correspondence_agent_plan",
+    "approval_gate_convergence",
 }
 
 
@@ -70,6 +75,34 @@ def test_known_unknowns_and_build_tasks_present() -> None:
     assert "unknown_confirmed_reference_data" in unknowns
     assert "task_verify_mac_patch_apply" in tasks
     assert "task_promote_confirmed_reference_data" in tasks
+    assert "task_correspondence_watcher" in tasks
+    assert "task_email_send_executor_scaffold" in tasks
+    assert "task_land_reynolds_gig" in tasks
+    assert "task_refresh_graphiffy_atlas" in tasks
+
+
+def test_orbit_brain_map_is_landed_as_structured_registry_records() -> None:
+    payload = registry.build_registry(Path.cwd())
+    brains = {item["brain_id"]: item for item in payload["brain_route_inventory"]}
+
+    assert payload["coverage_assessment"]["brain_route_record_count"] == len(registry.ORBIT_BRAIN_ROUTE_RECORDS)
+    assert brains["chief_invoice_brain"]["disposition_action"] == "RETIRE"
+    assert brains["chief_watcher_brain"]["disposition_action"] == "VERIFY"
+    assert brains["chief_billing_brain"]["disposition_action"] == "PARK_FOR_GATED_BILLING_FLOW"
+    assert brains["chief_email_brain"]["compose_status"] == "g3_convergence_metadata_added"
+    assert brains["read_only_orbit_brain_group"]["compose_status"] == "pc12_categories_added"
+    assert "no executor registered" in brains["chief_email_brain"]["boundary"]
+
+
+def test_orchestration_decisions_are_machine_readable_and_send_hold_safe() -> None:
+    payload = registry.build_registry(Path.cwd())
+    decisions = {item["decision_id"]: item for item in payload["orchestration_decisions"]}
+
+    assert payload["coverage_assessment"]["orchestration_decision_count"] == len(registry.ORCHESTRATION_DECISIONS)
+    assert decisions["decision_compose_front_door"]["status"] == "accepted"
+    assert decisions["decision_send_hold_active"]["status"] == "active_boundary"
+    assert "No external sends" in decisions["decision_send_hold_active"]["decision"]
+    assert "No Square publish/send" in decisions["decision_square_payment_rail"]["boundary"]
 
 
 def test_exporter_writes_artifacts_and_sqlite_tables(tmp_path: Path) -> None:

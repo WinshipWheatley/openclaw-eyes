@@ -33,6 +33,28 @@ CREATE TABLE IF NOT EXISTS workflow_rail (
   PRIMARY KEY (workflow_id)
 );
 
+CREATE TABLE IF NOT EXISTS brain_route_inventory (
+  brain_id TEXT NOT NULL,
+  legacy_router_wired TEXT NOT NULL,
+  current_state TEXT NOT NULL,
+  mission_lane TEXT NOT NULL,
+  disposition_action TEXT NOT NULL,
+  compose_status TEXT NOT NULL,
+  evidence_ref TEXT NOT NULL,
+  boundary TEXT NOT NULL,
+  PRIMARY KEY (brain_id)
+);
+
+CREATE TABLE IF NOT EXISTS orchestration_decision (
+  decision_id TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  decision TEXT NOT NULL,
+  status TEXT NOT NULL,
+  boundary TEXT NOT NULL,
+  next_safe_action TEXT NOT NULL,
+  PRIMARY KEY (decision_id)
+);
+
 CREATE TABLE IF NOT EXISTS knowledge_claim (
   claim_id TEXT NOT NULL,
   subject TEXT NOT NULL,

@@ -3,9 +3,11 @@
 ## Summary
 - Registry ID: `openclaw_system_knowledge_registry`
 - Schema version: `openclaw_system_knowledge_registry_v0`
-- Component count: 18
-- Known unknown count: 6
-- Build task count: 5
+- Component count: 23
+- Brain route records: 10
+- Orchestration decisions: 5
+- Known unknown count: 9
+- Build task count: 9
 - Boundary: documentation/read-model/SQLite only.
 - READY means registry artifacts validated; it does not grant runtime, business, model, or GitHub authority.
 
@@ -43,6 +45,30 @@
 - `pc_mac_sync`: PARTIAL_LOCAL - Tracks read-model shuttle and PC/Mac generated artifact sync posture.
 - `invoice_ledger_discovery`: CONFIRMED_LOCAL_BOUNDARY - Finance routes can explain proof state, payment watch, and candidate evidence posture.
 - `voice_kokoro_caveat`: CONFIRMED_DEGRADED_OR_NONCANONICAL - Voice/Kokoro may be degraded or side-effect-only; text route is canonical.
+- `compose_gate_pipeline`: CONFIRMED_LOCAL - The compose front door routes redacted operator text to read-only handlers or G3 packet approval.
+- `orbit_brain_map`: CONFIRMED_ORCHESTRATION_SOURCE - Structured inventory of old-router brains and their WIRE/RETIRE/VERIFY disposition into compose.
+- `gig_intake_flow`: CONFIRMED_LOCAL - Cassandra can collect gig facts, persist session state, and stage approval packets for intro email and invoice.
+- `correspondence_agent_plan`: PLANNED_SEND_HOLD - Design for watch, understand, calendar-aware draft, and gate loop for inbound correspondence.
+- `approval_gate_convergence`: CONFIRMED_LOCAL - Legacy email/SMS/approval surfaces converge onto the G3 packet gate in compose preview metadata.
+
+## Brain Route Inventory
+- `chief_musiclaw_brain`: WIRE / read_only_category_added - read-only Q&A; no legal advice authority
+- `chief_publishing_brain`: WIRE / read_only_category_added - read-only rights/catalog posture only
+- `chief_cpa_brain`: WIRE / read_only_category_added - read-only tax/accounting orientation; no tax advice or filing
+- `chief_financial_brain`: WIRE / read_only_category_added - read-only finance reports; no ledger mutation
+- `chief_invoice_brain`: RETIRE / not_wired_retire_candidate - do not use for invoice authority; superseded by billing/gig flows
+- `chief_email_brain`: WIRE_G3_GATE / g3_convergence_metadata_added - draft/gate only; no executor registered under SEND_HOLD
+- `chief_sms_brain`: WIRE_G3_GATE / g3_convergence_metadata_added - draft/gate only; no executor registered under SEND_HOLD
+- `chief_watcher_brain`: VERIFY / verified_active_service_not_compose_wired - background alerter only; no send or mutation authority
+- `chief_billing_brain`: PARK_FOR_GATED_BILLING_FLOW / surveyed_mixed_write_session_surface - must route through gated billing/gig/invoice flows, not generic read-only
+- `read_only_orbit_brain_group`: WIRE / pc12_categories_added - read-only categories only; write-like phrases fail closed to gated paths
+
+## Orchestration Decisions
+- `decision_compose_front_door`: accepted - compose(text) is the one operator front door. Next: Keep adding intent categories and packet previews through compose.
+- `decision_generated_churn_not_authority`: accepted - Volatile generated snapshots are not source-of-truth changes by themselves. Next: Commit source/test/read-model artifacts intentionally by task.
+- `decision_square_payment_rail`: approved_direction_not_executor - Square is approved as a payment rail, while branded invoice artifacts remain what the client sees. Next: Use Square sandbox/spec work only until hold is lifted and executor is approved.
+- `decision_first_real_send_reynolds`: accepted_planning_target - First real send target is Reynolds Tavern, not Capital Hilton. Next: Stage Reynolds packets; do not send under SEND_HOLD.
+- `decision_send_hold_active`: active_boundary - No external sends of any kind until the hold is explicitly lifted. Next: Continue drafting, designing, contract tests, and safetied wiring only.
 
 ## Known Unknowns
 - `unknown_missing_prior_commit`: Reported local registry commit - UNKNOWN_UNREACHABLE. Next: Use this rebuilt branch/patch as the review source unless the original commit is later restored.
@@ -51,6 +77,9 @@
 - `unknown_confirmed_reference_data`: Confirmed reference data - BLOCKING_ABSENCE_OR_NOT_CONFIRMED_HERE. Next: Run a separate promotion task over confirmed guided-review answers.
 - `unknown_runtime_service_freshness`: Runtime service state - OUT_OF_SCOPE. Next: Use a verify-only runtime readiness lane if service freshness matters.
 - `unknown_private_finance_truth`: Private finance proofs - BLOCKED_BY_BOUNDARY. Next: Use redacted proof-bundle and evidence-intake lanes with explicit permission.
+- `unknown_correspondence_gmail_scope`: Correspondence watcher Gmail scope - OPERATOR_SCOPE_DECISION_REQUIRED. Next: Ask Winship whether Gmail readonly body scope is allowed for the correspondence watcher.
+- `unknown_reynolds_canonical_ledger_row`: Reynolds gig canonical ledger row - NEXT_TASK_PC16. Next: Run PC-16 through the tested gig-intake pipeline with provenance.
+- `unknown_graphiffy_atlas_staleness`: Graphiffy/atlas freshness - NEXT_TASK_PC17. Next: Run the existing atlas/graphiffy generator without inventing a new path.
 
 ## Build Tasks
 1. Apply and validate registry patch on Mac (Mac Codex) - ready_for_mac_apply
@@ -58,6 +87,10 @@
 3. Prove or reject live ChatGPT 5.5 advisory adapter (Hermes / Guardian) - future_gated
 4. Resolve Mac map import gap separately (PC/Mac Sync) - separate_lane_required
 5. Keep voice/Kokoro caveat separate (Cassandra) - known_caveat
+6. Wire correspondence watcher loop safely (PC Codex) - pending_send_hold_safetied
+7. Scaffold email_send executor unregistered (PC Codex) - pending_send_hold_safetied
+8. Land Reynolds gig as canonical business record (PC Codex) - pending
+9. Refresh atlas/Graphiffy after compose/orchestration wiring (PC Codex) - pending
 
 ## Current Safety Posture
 - `posture_no_external_calls`: enforced_by_design - Registry exporter writes local artifacts only.
