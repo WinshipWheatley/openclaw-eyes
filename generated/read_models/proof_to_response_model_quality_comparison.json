@@ -83,7 +83,7 @@
         "published_as_real_finance_truth": false,
         "synthetic_only": true,
         "verification_errors": [],
-        "verifier_status": "VERIFIED_FOR_SHADOW_PUBLISH"
+        "verifier_status": "verifier_pass"
       },
       "max_quality_score": 15,
       "metrics": {
@@ -146,8 +146,8 @@
     "shadow_mock_response_baseline": "verifier_clean_fixture",
     "synthetic_external_response": "verifier_pass_after_fact_alignment"
   },
-  "content_hash": "sha256:7adf417682daf419276a34c72d4f32b7438177b4734a880bbb90a149911a4b36",
-  "generated_at": "2026-06-07T21:30:11+00:00",
+  "content_hash": "sha256:8805801b5619f3777eb30e1061c2fe73d846702ea974f3b083fcb2adfe56688a",
+  "generated_at": "2026-06-07T22:00:00+00:00",
   "implementation_boundary": {
     "browser_access_performed": false,
     "business_action_performed": false,
@@ -209,12 +209,13 @@
     },
     {
       "accepted_statuses": [
-        "EXTERNAL_SYNTHETIC_FACT_ALIGNMENT_READY"
+        "EXTERNAL_SYNTHETIC_FACT_ALIGNMENT_READY",
+        "EXTERNAL_LM_SYNTHETIC_RESPONSE_CAPTURE_READY"
       ],
-      "observed_status": "EXTERNAL_SYNTHETIC_FACT_ALIGNMENT_READY",
+      "observed_status": "EXTERNAL_LM_SYNTHETIC_RESPONSE_CAPTURE_READY",
       "precondition_ref": "external_synthetic_fact_alignment",
       "ready": true,
-      "source_ref": "generated/read_models/external_lm_synthetic_response_capture_status.json"
+      "source_ref": "generated/read_models/external_lm_synthetic_response_capture_contract.json"
     },
     {
       "accepted_statuses": [
@@ -232,7 +233,7 @@
       "observed_status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
       "precondition_ref": "proof_to_response_schema_adapter",
       "ready": true,
-      "source_ref": "generated/read_models/proof_to_response_schema_adapter_status.json"
+      "source_ref": "generated/read_models/proof_to_response_schema_adapter_contract.json"
     },
     {
       "accepted_statuses": [
@@ -241,7 +242,7 @@
       "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
       "precondition_ref": "proof_to_response_runtime",
       "ready": true,
-      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+      "source_ref": "generated/read_models/proof_to_response_runtime_contract.json"
     },
     {
       "accepted_statuses": [
@@ -285,32 +286,22 @@
     "stay_shadow_only"
   ],
   "schema_adapter_summary": {
-    "adapter_ready": true,
+    "adapter_ready": false,
     "status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
-    "strict_schema_required_fields": [
-      "headline",
-      "body",
-      "next_step",
-      "missing_input",
-      "can_do_now",
-      "cannot_do_yet",
-      "claimed_facts",
-      "requested_controls",
-      "uncertainty_notes"
-    ]
+    "strict_schema_required_fields": []
   },
   "schema_version": "proof_to_response_model_quality_comparison_v0",
   "source_content_hashes": {
-    "generated/read_models/external_lm_synthetic_response_capture_status.json": "sha256:abf42a4c1ede19cbca565df0c7250e33e1e7d21722554b9c438532d0f13d05e2",
+    "generated/read_models/external_lm_synthetic_response_capture_contract.json": "sha256:153de65890097471c44454152852ba777376d3b5ffb10301e795bf47a350bb3b",
     "generated/read_models/external_lm_synthetic_test_packet.json": "sha256:6a9cd207b51362c090f061bb22ca4cd99dd2e851a70f3e92663cb4cc389f17cd",
     "generated/read_models/local_lm_proof_response_pilot_postmortem.json": "sha256:9839f6f5025a0c4cf0f7663350ff90b898b9e0dd4a12e49d95cb4bb529633868",
     "generated/read_models/proof_to_response_lm_shadow_pilot.json": "sha256:b4b2da033be230ad478ba5b8ef31b93aee2740c929f981cae8548fbb28e5b11c",
-    "generated/read_models/proof_to_response_schema_adapter_status.json": "sha256:3f61817947e2b29ac617c387b4eb3fe686f49b49cbc6ef60f135703fcf2bc00f"
+    "generated/read_models/proof_to_response_schema_adapter_contract.json": "sha256:81b6bb947c42ef6cd41b2128d928050ebc493956568188cfaa23d1b31ea60496"
   },
   "source_refs": [
     "generated/read_models/local_lm_proof_response_pilot_postmortem.json",
-    "generated/read_models/external_lm_synthetic_response_capture_status.json",
-    "generated/read_models/proof_to_response_schema_adapter_status.json",
+    "generated/read_models/external_lm_synthetic_response_capture_contract.json",
+    "generated/read_models/proof_to_response_schema_adapter_contract.json",
     "generated/read_models/external_lm_synthetic_test_packet.json",
     "generated/read_models/proof_to_response_lm_shadow_pilot.json"
   ],
