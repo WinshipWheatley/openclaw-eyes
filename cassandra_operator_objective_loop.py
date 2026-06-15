@@ -19,6 +19,8 @@ from zoneinfo import ZoneInfo
 
 import ar_counterparty_contact_operations as ar_ops
 import authority_secret_custody as custody
+from approval_gate_convergence import convergence_for_surface
+from email_send_executor import DEFAULT_SEND_HOLD_PATH
 import mac_local_action_bridge
 
 
@@ -2346,6 +2348,7 @@ def run_exact_send_operator_action_routeback(
     transport: Any = None,
     live_transport_enabled: bool = True,
     live_db_execution_policy: str = EXACT_SEND_LIVE_DB_POLICY_FRESH_EXACT_APPROVAL_ONLY,
+    send_hold_path: Path | str = DEFAULT_SEND_HOLD_PATH,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     """Route an approved HITL exact-send action into Cassandra's exact-send gate."""
@@ -2361,6 +2364,11 @@ def run_exact_send_operator_action_routeback(
         receipt_dir = Path("/tmp/openclaw-mission-control/exact_send_hitl_routeback_v0") / safe_request
 
     def refused(reason: str) -> dict[str, Any]:
+        send_hold_active = reason == "send_hold_active"
+        gate_convergence = convergence_for_surface(
+            "exact_gmail_send",
+            send_hold_active=send_hold_active,
+        )
         receipt = _exact_send_refusal_receipt(
             schema_version=EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_SCHEMA,
             response_status="EXACT_SEND_LIVE_TRANSPORT_REFUSED",
@@ -2374,8 +2382,16 @@ def run_exact_send_operator_action_routeback(
             broker_called=False,
             fake_broker_called=False,
         )
+        if send_hold_active:
+            receipt.update(
+                {
+                    "send_hold_active": True,
+                    "send_hold_ref": str(send_hold_path),
+                    "gate_convergence": gate_convergence,
+                }
+            )
         receipt_path = _write_exact_send_receipt(receipt_dir, "exact_send_hitl_routeback_refusal_receipt", receipt)
-        return {
+        result = {
             "schema_version": "EXACT_SEND_HITL_ROUTEBACK_RESULT_V0",
             "response_status": "EXACT_SEND_HITL_ROUTEBACK_REFUSED",
             "refusal_reason": reason,
@@ -2388,6 +2404,15 @@ def run_exact_send_operator_action_routeback(
             "gmail_api_called": False,
             "email_send_performed": False,
         }
+        if send_hold_active:
+            result.update(
+                {
+                    "send_hold_active": True,
+                    "send_hold_ref": str(send_hold_path),
+                    "gate_convergence": gate_convergence,
+                }
+            )
+        return result
 
     if action_type != "exact_gmail_send":
         return refused("wrong_action_type")
@@ -2397,6 +2422,8 @@ def run_exact_send_operator_action_routeback(
         return refused("request_id_idempotency_mismatch")
     if route_back.get("type") != "cassandra_exact_send_executor":
         return refused("route_back_not_cassandra_exact_send_executor")
+    if Path(send_hold_path).is_file():
+        return refused("send_hold_active")
 
     approval_decision = build_exact_send_approval_decision_from_operator_action(
         action,
