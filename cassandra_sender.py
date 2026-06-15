@@ -35,6 +35,24 @@ def send_message(text: str, chat_id: str | int | None = None) -> None:
     response.raise_for_status()
 
 
+def send_document(document_path: str, chat_id: str | int | None = None, caption: str = "") -> None:
+    import harness_context
+    if harness_context.is_harness_mode():
+        print(f"[harness] no-send Telegram document: {document_path}", flush=True)
+        return
+    token = _token()
+    target_chat = chat_id or _chat_id()
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    with open(document_path, "rb") as f:
+        response = requests.post(
+            url,
+            data={"chat_id": target_chat, "caption": caption},
+            files={"document": (os.path.basename(document_path), f, "application/pdf")},
+            timeout=30,
+        )
+    response.raise_for_status()
+
+
 def send_voice_note(audio_path: str, chat_id: str | None = None) -> None:
     import harness_context
     if harness_context.is_harness_mode():
