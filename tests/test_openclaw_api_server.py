@@ -1,5 +1,7 @@
 import sys
 import types
+import hashlib
+import sqlite3
 
 import pytest
 
@@ -93,6 +95,72 @@ def test_file_reference_records_metadata_only(tmp_path):
     assert result["exists"] is True
     assert result["metadata_only"] is True
     assert result["stored_ref"].startswith("file_inventory:")
+    assert result["raw_body_read"] is False
+    assert result["content_extracted"] is False
+
+
+def test_file_reference_records_sha256_location_and_dedups(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    source = tmp_path / "invoice-proof.txt"
+    source.write_text("same file body\n", encoding="utf-8")
+    expected_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+
+    first = api.register_file_reference(
+        path_ref=str(source),
+        display_name="Invoice proof.txt",
+        intended_use="invoice_proof_reference",
+        db_path=db_path,
+    )
+    second = api.register_file_reference(
+        path_ref=str(source),
+        display_name="Invoice proof updated label.txt",
+        intended_use="invoice_proof_reference",
+        db_path=db_path,
+    )
+
+    assert first["acknowledged"] is True
+    assert second["acknowledged"] is True
+    assert first["file_id"] == second["file_id"]
+    assert first["content_hash"] == expected_hash
+    assert first["stored_location"] == source.resolve().as_posix()
+
+    conn = sqlite3.connect(db_path)
+    try:
+        rows = conn.execute(
+            """
+SELECT file_id, root_id, absolute_path, file_name, size_bytes, content_hash,
+       ingest_eligibility
+FROM file_inventory
+"""
+        ).fetchall()
+    finally:
+        conn.close()
+
+    assert len(rows) == 1
+    assert rows[0][0] == first["file_id"]
+    assert rows[0][1] == api.FILE_INTAKE_ROOT_ID
+    assert rows[0][2] == source.resolve().as_posix()
+    assert rows[0][3] == "Invoice proof updated label.txt"
+    assert rows[0][4] == len("same file body\n")
+    assert rows[0][5] == expected_hash
+    assert rows[0][6] == "eligible_metadata_only"
+
+
+def test_file_reference_bad_input_returns_clean_error_without_inventory_write(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    missing = api.register_file_reference(path_ref="", db_path=db_path)
+    absent = api.register_file_reference(path_ref=str(tmp_path / "missing.pdf"), db_path=db_path)
+    directory = api.register_file_reference(path_ref=str(tmp_path), db_path=db_path)
+
+    assert missing["acknowledged"] is False
+    assert missing["error"] == "missing_path_ref"
+    assert absent["acknowledged"] is False
+    assert absent["error"] == "path_not_found"
+    assert directory["acknowledged"] is False
+    assert directory["error"] == "not_a_regular_file"
+    assert missing["raw_body_read"] is False
+    assert absent["content_extracted"] is False
+    assert not db_path.exists()
 
 
 def test_create_app_reports_missing_dependency_when_fastapi_absent():

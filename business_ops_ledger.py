@@ -274,6 +274,21 @@ def record_file_inventory_entry(
             file_name, extension, file_type_guess, size_bytes, modified_at,
             content_hash, sensitivity_guess, ingest_eligibility, exclusion_reason
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(file_id) DO UPDATE SET
+            root_id = excluded.root_id,
+            drive_label = excluded.drive_label,
+            absolute_path = excluded.absolute_path,
+            relative_path = excluded.relative_path,
+            file_name = excluded.file_name,
+            extension = excluded.extension,
+            file_type_guess = excluded.file_type_guess,
+            size_bytes = excluded.size_bytes,
+            modified_at = excluded.modified_at,
+            discovered_at = CURRENT_TIMESTAMP,
+            content_hash = excluded.content_hash,
+            sensitivity_guess = excluded.sensitivity_guess,
+            ingest_eligibility = excluded.ingest_eligibility,
+            exclusion_reason = excluded.exclusion_reason
     """
     params = (
         file_id, root_id, drive_label, absolute_path, relative_path,
