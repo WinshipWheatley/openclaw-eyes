@@ -105,6 +105,11 @@ def test_status_read_model_shape_blocks_all_delivery(monkeypatch):
     assert payload["real_briefing_delivery_triggered"] is False
     assert payload["real_voice_delivery_triggered"] is False
     assert payload["niles_used_for_cassandra_path"] is False
+    assert payload["operator_telegram_delivery"]["toggle_default"] == "off"
+    assert payload["operator_telegram_delivery"]["default_when_off"] == "dry_run_to_log"
+    assert payload["operator_telegram_delivery"]["operator_only"] is True
+    assert payload["operator_telegram_delivery"]["external_client_send_allowed"] is False
+    assert payload["operator_telegram_delivery"]["send_hold_touched"] is False
     assert payload["services"]["watcher"]["advanced_beyond_startup_guard"] is True
     assert payload["services"]["briefing_scheduler"]["advanced_beyond_startup_guard"] is True
 

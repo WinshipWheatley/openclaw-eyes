@@ -1,4 +1,4 @@
-"""No-send morning brief failover chain.
+"""No-send morning/operator brief failover chain.
 
 The chain is intentionally small and deterministic at the bottom:
 Cassandra -> Chief -> Hermes -> Guardian -> deterministic template.
@@ -226,7 +226,7 @@ def validate_morning_brief(text: object) -> tuple[bool, str]:
         "prompt:",
         "current context:",
         "task - morning briefing",
-        "task \u2014 morning briefing",
+        "task -- morning briefing",
         "you are cassandra",
         "you are chief",
         "<think>",
@@ -272,7 +272,7 @@ def run_morning_brief_failover(
     now: datetime | None = None,
     order: tuple[str, ...] = PROVIDER_ORDER,
 ) -> MorningBriefResult:
-    """Return the first valid internal morning brief in failover order."""
+    """Return the first valid internal morning/operator brief in failover order."""
     snapshot = facts or load_morning_brief_facts(db_path=db_path, now=now)
     provider_map = dict(default_morning_brief_providers() if providers is None else providers)
     attempts: list[MorningBriefAttempt] = []
@@ -281,14 +281,7 @@ def run_morning_brief_failover(
         started = time.monotonic()
         fn = provider_map.get(provider)
         if fn is None:
-            attempts.append(
-                _attempt(
-                    provider=provider,
-                    ok=False,
-                    reason="provider_missing",
-                    started=started,
-                )
-            )
+            attempts.append(_attempt(provider=provider, ok=False, reason="provider_missing", started=started))
             continue
 
         try:
@@ -317,15 +310,7 @@ def run_morning_brief_failover(
             continue
 
         ok, reason = validate_morning_brief(candidate)
-        attempts.append(
-            _attempt(
-                provider=provider,
-                ok=ok,
-                reason=reason,
-                started=started,
-                preview=_preview(candidate),
-            )
-        )
+        attempts.append(_attempt(provider=provider, ok=ok, reason=reason, started=started, preview=_preview(candidate)))
         if ok:
             return MorningBriefResult(
                 text=_one_line(_coerce_text(candidate), limit=2400),
