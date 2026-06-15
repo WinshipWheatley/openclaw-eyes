@@ -1,17 +1,6 @@
 import pytest
 import sqlite3
-import os
 from scripts.inventory_scanner import scan_root
-
-DB_PATH = "/tmp/test_inventory_persist.sqlite"
-
-@pytest.fixture(autouse=True)
-def cleanup():
-    if os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
-    yield
-    if os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
 
 def test_unknown_root_rejected():
     with pytest.raises(ValueError, match="Unknown root_id"):
@@ -25,9 +14,10 @@ def test_dry_run_scans_correctly():
     assert "data/example.json" in paths
     assert "nested/deeper/file.txt" in paths
 
-def test_db_persistence():
-    scan_root("test_fixture_01", db_path=DB_PATH)
-    conn = sqlite3.connect(DB_PATH)
+def test_db_persistence(tmp_path):
+    db_path = tmp_path / "test_inventory_persist.sqlite"
+    scan_root("test_fixture_01", db_path=str(db_path))
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT count(*) FROM file_inventory")
     count = cursor.fetchone()[0]
@@ -60,13 +50,26 @@ def test_approval_guard_accepted():
     finally:
         ROOT_REGISTRY["test_fixture_01"] = orig_config
 
-def test_real_root_persistence():
+def test_real_root_persistence(tmp_path):
+    db_path = tmp_path / "fake.db"
+
     # Persistence requires replace
     with pytest.raises(ValueError, match="require --replace"):
-        scan_root("openclaw_docs_dryrun_01", dry_run=False, db_path="/tmp/fake.db", confirm_real_root=True, replace=False)
+        scan_root(
+            "openclaw_docs_dryrun_01",
+            dry_run=False,
+            db_path=str(db_path),
+            confirm_real_root=True,
+            replace=False,
+        )
     
     # Success path
-    results = scan_root("openclaw_docs_dryrun_01", dry_run=False, db_path="/tmp/fake.db", confirm_real_root=True, replace=True)
+    results = scan_root(
+        "openclaw_docs_dryrun_01",
+        dry_run=False,
+        db_path=str(db_path),
+        confirm_real_root=True,
+        replace=True,
+    )
     assert len(results) > 0
-    assert os.path.exists("/tmp/fake.db")
-    os.remove("/tmp/fake.db")
+    assert db_path.exists()
