@@ -8,6 +8,7 @@ runtime installs FastAPI/uvicorn.
 from __future__ import annotations
 
 import hashlib
+import mimetypes
 import os
 import sqlite3
 from datetime import datetime, timezone
@@ -31,6 +32,8 @@ except ModuleNotFoundError:  # pragma: no cover - current repo venv lacks FastAP
 FASTAPI_AVAILABLE = FastAPI is not None
 DEFAULT_BIND_HOSTS = ("127.0.0.1",)
 DEFAULT_API_TOKEN_ENV = "OPENCLAW_API_TOKEN"
+FILE_INTAKE_ROOT_ID = "api_file_intake"
+FILE_INTAKE_NEXT_SAFE_MOVE = "Use this file as a protected reference, or request future gated extraction."
 
 
 def utc_now() -> str:
@@ -141,6 +144,40 @@ def approve_packet(
     return receipt.to_dict()
 
 
+def _clean_file_intake_error(error: str, *, path_ref: str = "") -> dict[str, Any]:
+    return {
+        "file_id": None,
+        "stored_ref": None,
+        "stored_location": None,
+        "acknowledged": False,
+        "exists": False,
+        "metadata_only": True,
+        "raw_body_read": False,
+        "content_extracted": False,
+        "hash_policy": None,
+        "error": error,
+        "path_ref": path_ref,
+        "next_safe_move": "Provide a bounded local file path for metadata-only registration.",
+    }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _file_type_guess(path: Path) -> str | None:
+    guessed, _encoding = mimetypes.guess_type(path.name)
+    if guessed:
+        return guessed
+    if path.suffix:
+        return path.suffix.lstrip(".")
+    return None
+
+
 def register_file_reference(
     *,
     path_ref: str,
@@ -148,46 +185,59 @@ def register_file_reference(
     intended_use: str = "",
     db_path: str | Path | None = None,
 ) -> dict[str, Any]:
+    path_ref = (path_ref or "").strip()
+    if not path_ref:
+        return _clean_file_intake_error("missing_path_ref")
     path = Path(path_ref).expanduser()
     absolute = path.resolve(strict=False)
-    exists = absolute.exists()
-    stat = absolute.stat() if exists else None
-    size_bytes = int(stat.st_size) if stat else 0
-    modified_at = (
-        datetime.fromtimestamp(stat.st_mtime, timezone.utc).replace(microsecond=0).isoformat()
-        if stat
-        else utc_now()
-    )
+    if not absolute.exists():
+        return _clean_file_intake_error("path_not_found", path_ref=path_ref)
+    if not absolute.is_file():
+        return _clean_file_intake_error("not_a_regular_file", path_ref=path_ref)
+
+    stat = absolute.stat()
+    size_bytes = int(stat.st_size)
+    modified_at = datetime.fromtimestamp(stat.st_mtime, timezone.utc).replace(microsecond=0).isoformat()
+    content_hash = _sha256_file(absolute)
     name = display_name or absolute.name or "operator_file"
     extension = absolute.suffix or None
-    metadata_hash = hashlib.sha256(
-        "\0".join([absolute.as_posix(), str(size_bytes), modified_at, intended_use]).encode("utf-8")
-    ).hexdigest()
-    file_id = f"api_file_{metadata_hash[:20]}"
+    file_type_guess = _file_type_guess(absolute)
+    file_id = f"api_file_{content_hash[:20]}"
+    source_ref_id = f"filesrc_{content_hash[:20]}"
     init_business_ops_ledger(str(db_path or DEFAULT_DB_PATH))
     ok = record_file_inventory_entry(
         file_id=file_id,
-        root_id="api_file_intake",
-        drive_label=None,
+        root_id=FILE_INTAKE_ROOT_ID,
+        drive_label="local",
         absolute_path=absolute.as_posix(),
         relative_path=absolute.name or absolute.as_posix(),
         file_name=name,
         extension=extension,
-        file_type_guess=extension.lstrip(".") if extension else None,
+        file_type_guess=file_type_guess,
         size_bytes=size_bytes,
         modified_at=modified_at,
-        content_hash=f"metadata:{metadata_hash}",
-        sensitivity_guess="unknown",
-        ingest_eligibility="eligible_metadata_only" if exists else "unknown",
-        exclusion_reason=None if exists else "path_not_verified",
+        content_hash=content_hash,
+        sensitivity_guess="protected_business",
+        ingest_eligibility="eligible_metadata_only",
+        exclusion_reason=None,
         db_path=str(db_path) if db_path else None,
     )
     return {
         "file_id": file_id,
+        "source_ref_id": source_ref_id,
         "stored_ref": f"file_inventory:{file_id}",
+        "stored_location": absolute.as_posix(),
         "acknowledged": bool(ok),
-        "exists": exists,
+        "exists": True,
         "metadata_only": True,
+        "raw_body_read": False,
+        "content_extracted": False,
+        "content_hash": content_hash,
+        "hash_policy": "content_sha256",
+        "size_bytes": size_bytes,
+        "file_type_guess": file_type_guess,
+        "intended_use": intended_use,
+        "next_safe_move": FILE_INTAKE_NEXT_SAFE_MOVE,
     }
 
 
