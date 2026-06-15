@@ -81,6 +81,41 @@ class TelegramDeliveryReceipt:
         return data
 
 
+@dataclass(frozen=True)
+class TelegramDocumentDeliveryReceipt:
+    status: str
+    delivery_kind: str
+    document_path: str
+    document_hash: str
+    caption: str
+    caption_hash: str
+    target_ref: str
+    toggle_enabled: bool
+    dry_run: bool
+    sent: bool
+    telegram_send_attempted: bool
+    telegram_sender_called: bool
+    authorized_telegram_only: bool = True
+    authorized_telegram_user_id_configured: bool = False
+    document_exists: bool = False
+    external_client_send_performed: bool = False
+    email_send_performed: bool = False
+    send_hold_touched: bool = False
+    log_path: str = ""
+    log_error: str = ""
+    source_refs: tuple[str, ...] = ()
+    error_type: str = ""
+    error: str = ""
+    created_at: str = ""
+
+    def to_dict(self, *, include_caption: bool = True) -> dict[str, Any]:
+        data = asdict(self)
+        data["source_refs"] = list(self.source_refs)
+        if not include_caption:
+            data.pop("caption", None)
+        return data
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -243,10 +278,30 @@ def _append_receipt_log(
     return ""
 
 
+def _append_document_receipt_log(
+    receipt: TelegramDocumentDeliveryReceipt,
+    *,
+    dry_run_log_path: str | Path,
+) -> str:
+    try:
+        path = Path(dry_run_log_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.open("a", encoding="utf-8").write(stable_json(receipt.to_dict(include_caption=False)))
+    except Exception as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return ""
+
+
 def _default_telegram_sender(message_text: str, *, chat_id: str) -> Any:
     from cassandra_sender import send_message
 
     return send_message(message_text, chat_id=chat_id)
+
+
+def _default_telegram_document_sender(document_path: str | Path, *, chat_id: str, caption: str = "") -> Any:
+    from cassandra_sender import send_document
+
+    return send_document(str(document_path), chat_id=chat_id, caption=caption)
 
 
 def deliver_to_authorized_telegram(
@@ -347,6 +402,119 @@ def deliver_to_authorized_telegram(
     return replace(receipt, log_error=log_error) if log_error else receipt
 
 
+def deliver_document_to_authorized_telegram(
+    *,
+    document_path: str | Path,
+    caption: str,
+    delivery_kind: str,
+    env: Mapping[str, str] | None = None,
+    toggle_path: str | Path = DEFAULT_TOGGLE_PATH,
+    dry_run_log_path: str | Path = DEFAULT_DRY_RUN_LOG_PATH,
+    authorized_chat_id: str | int | None = None,
+    telegram_document_sender: TelegramSender | None = None,
+    source_refs: tuple[str, ...] = (),
+) -> TelegramDocumentDeliveryReceipt:
+    env_map = os.environ if env is None else env
+    enabled = telegram_delivery_enabled(env=env_map, toggle_path=toggle_path)
+    target, target_status, target_ref = _resolve_authorized_chat_id(
+        env=env_map,
+        authorized_chat_id=authorized_chat_id,
+    )
+    document = Path(document_path)
+    document_exists = document.is_file()
+    created_at = utc_now()
+    base = {
+        "delivery_kind": delivery_kind,
+        "document_path": str(document_path),
+        "document_hash": _hash_text(str(document_path)),
+        "caption": caption,
+        "caption_hash": _hash_text(caption),
+        "target_ref": target_ref,
+        "toggle_enabled": enabled,
+        "authorized_telegram_user_id_configured": bool(target),
+        "document_exists": document_exists,
+        "log_path": str(dry_run_log_path),
+        "source_refs": source_refs,
+        "created_at": created_at,
+    }
+
+    if target_status == "unauthorized_target_mismatch":
+        receipt = TelegramDocumentDeliveryReceipt(
+            status="blocked_unauthorized_telegram_target",
+            dry_run=True,
+            sent=False,
+            telegram_send_attempted=False,
+            telegram_sender_called=False,
+            **base,
+        )
+        log_error = _append_document_receipt_log(receipt, dry_run_log_path=dry_run_log_path)
+        return replace(receipt, log_error=log_error) if log_error else receipt
+
+    if not enabled:
+        receipt = TelegramDocumentDeliveryReceipt(
+            status="dry_run_logged_toggle_off",
+            dry_run=True,
+            sent=False,
+            telegram_send_attempted=False,
+            telegram_sender_called=False,
+            **base,
+        )
+        log_error = _append_document_receipt_log(receipt, dry_run_log_path=dry_run_log_path)
+        return replace(receipt, log_error=log_error) if log_error else receipt
+
+    if not target:
+        receipt = TelegramDocumentDeliveryReceipt(
+            status="blocked_missing_authorized_telegram_id",
+            dry_run=True,
+            sent=False,
+            telegram_send_attempted=False,
+            telegram_sender_called=False,
+            **base,
+        )
+        log_error = _append_document_receipt_log(receipt, dry_run_log_path=dry_run_log_path)
+        return replace(receipt, log_error=log_error) if log_error else receipt
+
+    if not document_exists:
+        receipt = TelegramDocumentDeliveryReceipt(
+            status="blocked_missing_document",
+            dry_run=True,
+            sent=False,
+            telegram_send_attempted=False,
+            telegram_sender_called=False,
+            **base,
+        )
+        log_error = _append_document_receipt_log(receipt, dry_run_log_path=dry_run_log_path)
+        return replace(receipt, log_error=log_error) if log_error else receipt
+
+    sender = telegram_document_sender or _default_telegram_document_sender
+    try:
+        sender(str(document_path), chat_id=target, caption=caption)
+    except Exception as exc:
+        receipt = TelegramDocumentDeliveryReceipt(
+            status="telegram_document_delivery_failed",
+            dry_run=False,
+            sent=False,
+            telegram_send_attempted=True,
+            telegram_sender_called=True,
+            error_type=type(exc).__name__,
+            error=str(exc)[:240],
+            **base,
+        )
+        log_error = _append_document_receipt_log(receipt, dry_run_log_path=dry_run_log_path)
+        return replace(receipt, log_error=log_error) if log_error else receipt
+
+    receipt = TelegramDocumentDeliveryReceipt(
+        status="sent_document_to_authorized_telegram",
+        dry_run=False,
+        sent=True,
+        telegram_send_attempted=True,
+        telegram_sender_called=True,
+        **base,
+    )
+    log_error = _append_document_receipt_log(receipt, dry_run_log_path=dry_run_log_path)
+    return replace(receipt, log_error=log_error) if log_error else receipt
+
+
 def deliver_operator_brief_to_telegram(
     *,
     brief_path: str | Path = DEFAULT_OPERATOR_BRIEF_PATH,
@@ -441,9 +609,11 @@ __all__ = [
     "SCHEMA_VERSION",
     "TOGGLE_ENV_VAR",
     "TelegramDeliveryReceipt",
+    "TelegramDocumentDeliveryReceipt",
     "build_operator_brief_message",
     "build_reynolds_package_message",
     "build_telegram_delivery_status",
+    "deliver_document_to_authorized_telegram",
     "deliver_operator_brief_to_telegram",
     "deliver_reynolds_package_to_telegram",
     "deliver_to_authorized_telegram",
