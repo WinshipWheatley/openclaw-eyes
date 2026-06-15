@@ -1,3 +1,4 @@
+import importlib
 import sys
 import types
 from pathlib import Path
@@ -23,6 +24,31 @@ def clean_temp_db():
         TEMP_DB.unlink()
     except FileNotFoundError:
         pass
+
+
+def test_chief_invoice_brain_is_retired_import_safe_tombstone():
+    module = importlib.import_module("chief_invoice_brain")
+    source = Path(module.__file__).read_text(encoding="utf-8")
+
+    assert module.RETIRED is True
+    assert module.status()["disposition"] == "retired"
+    assert module.status()["send_performed"] is False
+    assert module.status()["polling_loop_active"] is False
+    assert "invoice_send_executor.py" in module.status()["superseded_by"]
+    assert module.get_questions("INVOICE") == []
+    assert module.handle("INVOICE") == [
+        "chief_invoice_brain.py is retired. Use the gated billing/invoice executor path."
+    ]
+    assert "while True" not in source
+    assert "subprocess" not in source
+    assert "chief_sender.py" not in source
+
+
+def test_orbit_router_does_not_import_retired_invoice_brain():
+    source = Path("chief_router.py").read_text(encoding="utf-8")
+
+    assert "chief_billing_brain import" in source
+    assert "chief_invoice_brain" not in source
 
 
 def _stub_chief_router(monkeypatch):
