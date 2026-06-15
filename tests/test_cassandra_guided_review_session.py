@@ -297,6 +297,74 @@ def test_question_flow_records_answers_skip_defer_summary_and_done_artifacts(tmp
     assert "Do not import Log Rhythm Records" in prompt
 
 
+def test_chatter_between_guided_review_answers_is_not_recorded_or_advanced(tmp_path):
+    start = _start(tmp_path)
+    review_root = tmp_path / "review"
+    read_model_root = tmp_path / "read_models"
+    first_question_id = start["current_question_id"]
+
+    chatter = guided.process_guided_review_message(
+        "ok",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    chatter_session = _load_session(chatter)
+
+    assert chatter["progress"]["answered"] == 0
+    assert chatter["current_question_id"] == first_question_id
+    assert chatter_session["current_question_id"] == first_question_id
+    assert chatter_session["answer_records"] == []
+    assert chatter_session["coach_interactions"][-1]["command"] == "conversation_chatter_not_recorded"
+    assert chatter_session["coach_interactions"][-1]["answer_recorded"] is False
+    assert "did not record" in chatter["reply_text"]
+
+    first_answer = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only; Zelle is okay for trusted clients.",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    first_answer_session = _load_session(first_answer)
+    second_question_id = first_answer["current_question_id"]
+
+    assert first_answer["progress"]["answered"] == 1
+    assert second_question_id != first_question_id
+    assert len(first_answer_session["answer_records"]) == 1
+
+    aside = guided.process_guided_review_message(
+        "thanks, one sec",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+    )
+    aside_session = _load_session(aside)
+
+    assert aside["progress"]["answered"] == 1
+    assert aside["current_question_id"] == second_question_id
+    assert aside_session["current_question_id"] == second_question_id
+    assert len(aside_session["answer_records"]) == 1
+    assert aside_session["coach_interactions"][-1]["command"] == "conversation_chatter_not_recorded"
+    assert aside_session["coach_interactions"][-1]["answer_recorded"] is False
+
+    second_answer = guided.process_guided_review_message(
+        "Clara can send follow-up invoices only after I approve the exact wording.",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        generated_at_utc="2026-06-12T12:04:00+00:00",
+    )
+    second_answer_session = _load_session(second_answer)
+
+    assert second_answer["progress"]["answered"] == 2
+    assert second_answer["current_question_id"] != second_question_id
+    assert len(second_answer_session["answer_records"]) == 2
+    assert second_answer_session["answer_records"][1]["raw_answer_text"].startswith("Clara can send")
+
+
 def test_telegram_dryrun_guided_review_saves_test_only_artifacts(tmp_path):
     promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
     review_root = tmp_path / "review"
