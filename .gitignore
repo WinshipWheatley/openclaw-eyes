@@ -506,6 +506,7 @@
 !tests/test_openclaw_pytest_sandbox.py
 !tests/test_chief_musiclaw_safety.py
 !tests/test_chief_morning_synthesis.py
+!tests/test_morning_brief_failover.py
 !tests/test_hitl_transaction_limit_gate.py
 !tests/test_cassandra_email_thread_analysis.py
 !tests/test_inner_circle_integration.py
@@ -573,6 +574,7 @@
 !chief_eod_harness.py
 !guardian_schema_harness.py
 !morning_brief_harness.py
+!morning_brief_failover.py
 !generate_runtime_snapshot.py
 !staging/
 !staging/guardian_schema_harness/
