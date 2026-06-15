@@ -82,6 +82,42 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> Path:
     return path
 
 
+def _write_data_room_promotion_fixture(lab_root: Path, *, generated_at: str) -> Path:
+    """Write the smallest clean-checkout fixture needed for the edge lab."""
+    return _write_json(
+        lab_root / "openclaw_data_room_promotion_review_v0.json",
+        {
+            "schema_version": "openclaw_data_room_promotion_review_v0",
+            "created_at_utc": generated_at,
+            "authoritative": False,
+            "safe_to_import_as_provisional": True,
+            "source_artifacts": ["cassandra_human_edge_lab_fixture"],
+            "review_status": "test_fixture_needs_winship_review",
+            "safety_flags": dict(AUTHORITY_BOUNDARY),
+            "review_records": [
+                {
+                    "record_id": "payment_privacy:trusted_clients",
+                    "review_category": "policy_decision",
+                    "provisional_fact": (
+                        "Payment options can be easier for trusted clients, but private "
+                        "bank details and private addresses must not be exposed to strangers."
+                    ),
+                    "proposed_promoted_value": (
+                        "Should trusted clients get easier payment options while new clients "
+                        "stay payment-privacy gated?"
+                    ),
+                    "recommended_action": "confirm",
+                    "risk_if_wrong": "Private payment or address details could be exposed too broadly.",
+                    "authoritative": False,
+                    "promotion_requires_winship_confirmation": True,
+                    "confidence": "test_fixture",
+                    "review_status": "operator_review_required",
+                }
+            ],
+        },
+    )
+
+
 def _reset_owned_lab_path(path: Path) -> None:
     allowed_names = {"data_room", "data_room_read_models", "router"}
     resolved = path.resolve()
@@ -91,6 +127,24 @@ def _reset_owned_lab_path(path: Path) -> None:
         shutil.rmtree(path)
     elif path.exists():
         path.unlink()
+
+
+def _load_latest_guided_review_session(review_root: Path) -> tuple[Path, dict[str, Any]]:
+    active_index = review_root / "data_room_guided_review_active_session.json"
+    if active_index.is_file():
+        active = json.loads(active_index.read_text(encoding="utf-8"))
+        session_path = Path(str(active.get("session_path") or ""))
+        if session_path.is_file():
+            return session_path, json.loads(session_path.read_text(encoding="utf-8"))
+    session_paths = [
+        path
+        for path in review_root.glob("data_room_guided_review_session_*.json")
+        if path.is_file() and not path.name.endswith("_OPERATOR.md")
+    ]
+    if not session_paths:
+        return Path(""), {}
+    session_path = max(session_paths, key=lambda path: path.stat().st_mtime_ns)
+    return session_path, json.loads(session_path.read_text(encoding="utf-8"))
 
 
 def _line_count(path: Path) -> int:
@@ -189,12 +243,14 @@ def run_data_room_human_edge_scenario(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
-    root = _rooted(lab_root) / "data_room"
-    read_root = _rooted(lab_root) / "data_room_read_models"
+    lab_base = _rooted(lab_root)
+    root = lab_base / "data_room"
+    read_root = lab_base / "data_room_read_models"
+    promotion_review_path = _write_data_room_promotion_fixture(lab_base, generated_at=generated_at)
     _reset_owned_lab_path(root)
     _reset_owned_lab_path(read_root)
     turns = [
-        ("Cassandra, let's go over the Data Room.", "2026-06-13T15:00:00+00:00"),
+        ("Cassandra, go over the Data Room.", "2026-06-13T15:00:00+00:00"),
         ("I don't know what that means. Explain it like I'm five.", "2026-06-13T15:01:00+00:00"),
         ("What do you recommend and why?", "2026-06-13T15:02:00+00:00"),
         (
@@ -216,6 +272,7 @@ def run_data_room_human_edge_scenario(
             surface="telegram_dryrun",
             review_root=root,
             read_model_root=read_root,
+            promotion_review_path=promotion_review_path,
             generated_at_utc=timestamp,
         )
         responses.append(
@@ -230,10 +287,7 @@ def run_data_room_human_edge_scenario(
                 "detoured_out_of_guided_review": response is None,
             }
         )
-    active_index = root / "data_room_guided_review_active_session.json"
-    active = json.loads(active_index.read_text(encoding="utf-8")) if active_index.exists() else {}
-    session_path = Path(str(active.get("session_path") or "")) if active else Path("")
-    session = json.loads(session_path.read_text(encoding="utf-8")) if session_path.exists() else {}
+    session_path, session = _load_latest_guided_review_session(root)
     read_model_path = read_root / guided_review.READ_MODEL_NAME
     summary = {
         "schema_version": "CASSANDRA_HUMAN_EDGE_DATA_ROOM_SCENARIO_V0",
