@@ -1090,6 +1090,7 @@
 !tests/test_gig_intake.py
 !tests/test_orbit_compose_wiring.py
 !tests/test_approval_gate_convergence.py
+!tests/test_exact_send_send_hold.py
 !tests/test_openclaw_system_knowledge_registry.py
 !tests/test_skill_vetter_description_limit.py
 !tests/test_check_skill_metadata.py
