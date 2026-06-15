@@ -3,11 +3,28 @@ import os
 from pathlib import Path
 from scripts.file_path_dependency_scan import scan_repo, REQUIRED_TERMS
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 def test_scanner_read_only():
     """Scanner should only generate reports and not mutate repo state."""
     report = scan_repo()
     assert report["metadata"]["mode"] == "read-only/static-reference-scan"
     assert report["cleanup_decision_posture"]["allowed_actions"] == "none"
+    assert report["metadata"]["repo_root"] == str(REPO_ROOT)
+
+def test_scanner_accepts_explicit_root_and_skips_symlink_files(tmp_path):
+    """Scanner should support isolated roots and avoid symlink file reads."""
+    source = tmp_path / "source.md"
+    source.write_text("mac_eyes\n/mnt/c/OpenClaw\n", encoding="utf-8")
+    (tmp_path / "source-link.md").symlink_to(source)
+
+    report = scan_repo(root=tmp_path)
+
+    assert report["metadata"]["repo_root"] == str(tmp_path.resolve())
+    assert report["metadata"]["scanned_file_count"] == 1
+    assert report["dependency_sensitive_files"] == {
+        "source.md": ["/mnt/c/OpenClaw", "mac_eyes"]
+    }
 
 def test_scanner_forbidden_dirs_skipped():
     """Scanner must skip forbidden directories."""

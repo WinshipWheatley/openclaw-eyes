@@ -640,6 +640,7 @@
 !scripts/generate_operator_status.py
 !scripts/green_gate.sh
 !scripts/pre-push.hook
+!tests/test_green_gate_script.py
 !scripts/generate_agent_context.py
 !scripts/record_test_proof_receipt.py
 !scripts/audit_proof_coverage.py

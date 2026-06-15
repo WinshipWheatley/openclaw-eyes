@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple
 
-ROOT = Path("/home/openclaw")
+ROOT = Path(__file__).resolve().parents[1]
 
 # Skip configurations
 SKIPPED_DIRS = {
@@ -57,6 +57,8 @@ REPORT_MD = REPORT_DIR / "FILE_PATH_DEPENDENCY_SCAN.md"
 REPORT_JSON = REPORT_DIR / "FILE_PATH_DEPENDENCY_SCAN.json"
 
 def is_text_file(filepath: Path) -> bool:
+    if filepath.is_symlink() or not filepath.is_file():
+        return False
     if filepath.suffix.lower() in SKIPPED_EXTENSIONS:
         return False
     if filepath.name.startswith("."):
@@ -68,19 +70,20 @@ def is_text_file(filepath: Path) -> bool:
             chunk = f.read(1024)
             if b'\0' in chunk:
                 return False
-    except Exception:
+    except (OSError, ValueError):
         return False
     return True
 
-def get_risk_class(filepath: Path) -> str:
-    path_str = str(filepath.relative_to(ROOT))
+def get_risk_class(filepath: Path, root: Path = ROOT) -> str:
+    path_str = str(filepath.relative_to(root))
     if path_str.startswith("scripts/") or path_str.startswith("Launchers/") or "dashboard" in path_str.lower() or path_str.endswith(".sh") or path_str.endswith(".py"):
         return "high risk"
     elif path_str.startswith("docs/") or path_str.startswith("reports/") or path_str.endswith(".md"):
         return "medium risk"
     return "low risk"
 
-def scan_repo() -> Dict[str, Any]:
+def scan_repo(root: Path | str | None = None) -> Dict[str, Any]:
+    scan_root = Path(root).resolve() if root is not None else ROOT
     scanned_count = 0
     term_matches: Dict[str, Dict[str, Any]] = {
         term: {"count": 0, "files": set()}
@@ -89,7 +92,7 @@ def scan_repo() -> Dict[str, Any]:
     
     file_references: Dict[str, Set[str]] = {}
 
-    for dirpath, dirnames, filenames in os.walk(ROOT):
+    for dirpath, dirnames, filenames in os.walk(scan_root):
         # Exclude skipped directories in-place
         dirnames[:] = [d for d in dirnames if d not in SKIPPED_DIRS and not d.startswith(".")]
 
@@ -105,7 +108,7 @@ def scan_repo() -> Dict[str, Any]:
             except Exception:
                 continue
 
-            rel_path = str(filepath.relative_to(ROOT))
+            rel_path = str(filepath.relative_to(scan_root))
             found_terms_in_file = set()
 
             for term in REQUIRED_TERMS:
@@ -119,7 +122,7 @@ def scan_repo() -> Dict[str, Any]:
                 file_references[rel_path] = found_terms_in_file
 
     dependency_sensitive = {
-        path: list(terms)
+        path: sorted(terms)
         for path, terms in file_references.items()
         if len(terms) > 1
     }
@@ -143,15 +146,15 @@ def scan_repo() -> Dict[str, Any]:
     }
     
     for path in file_references:
-        risk = get_risk_class(ROOT / path)
+        risk = get_risk_class(scan_root / path, scan_root)
         risk_classes[risk].append(path)
 
     return {
         "metadata": {
             "mode": "read-only/static-reference-scan",
-            "repo_root": str(ROOT),
+            "repo_root": str(scan_root),
             "scanned_file_count": scanned_count,
-            "skipped_categories": list(SKIPPED_DIRS) + ["binary files", "private roots"]
+            "skipped_categories": sorted(SKIPPED_DIRS) + ["binary files", "private roots"]
         },
         "term_summary": term_summary,
         "dependency_sensitive_files": dependency_sensitive,
