@@ -1097,6 +1097,115 @@ WHERE action_id = ?
         conn.close()
 
 
+def _turnstile_result_status(
+    *,
+    ok: bool,
+    side_effect_status: str,
+    detail: str,
+    meta: dict[str, Any] | None,
+) -> str:
+    if ok:
+        return "completed"
+    text = f"{side_effect_status} {detail}".lower()
+    meta = meta or {}
+    if bool(meta.get("send_hold_active")) or "send_hold" in text or "blocked" in text:
+        return "blocked"
+    if "refused" in text or "refus" in text:
+        return "refused"
+    return "failed"
+
+
+def record_executor_turnstile_action(
+    *,
+    packet_id: str,
+    surface: str,
+    ok: bool,
+    side_effect_status: str,
+    detail: str = "",
+    side_effect_id: str | None = None,
+    db_path: str | Path | None = None,
+    meta: dict[str, Any] | None = None,
+) -> str:
+    """Record one idempotent operator-action receipt for a compose executor outcome."""
+
+    packet_id = (packet_id or "").strip()
+    surface = (surface or "").strip()
+    if not packet_id:
+        raise ValueError("packet_id is required")
+    if not surface:
+        raise ValueError("surface is required")
+
+    path = init_operator_action_schema(db_path)
+    action_id = _row_id("opact_turnstile", packet_id, surface)
+    receipt_id = f"opreceipt_turnstile_{action_id}"
+    now = utc_now()
+    status = _turnstile_result_status(
+        ok=ok,
+        side_effect_status=side_effect_status,
+        detail=detail,
+        meta=meta,
+    )
+    summary = f"Compose executor {surface} recorded as {status} for packet {packet_id}."
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute(
+            """
+INSERT INTO operator_action_requests (
+  action_id, action_type, requested_by, reason, created_at, updated_at,
+  status, approval_required, validation_status, validation_summary,
+  request_receipt_id, source_kind, source_channel, source_raw_text_present,
+  source_raw_text_stored
+) VALUES (?, ?, 'chief_compose', ?, ?, ?, ?, 1, 'turnstile_recorded', ?, ?,
+          'mission_control', 'chief_compose.execute_packet', 0, 0)
+ON CONFLICT(action_id) DO UPDATE SET
+  updated_at = excluded.updated_at,
+  status = excluded.status,
+  validation_status = excluded.validation_status,
+  validation_summary = excluded.validation_summary,
+  request_receipt_id = excluded.request_receipt_id,
+  source_kind = excluded.source_kind,
+  source_channel = excluded.source_channel,
+  source_raw_text_present = 0,
+  source_raw_text_stored = 0
+""".strip(),
+            (
+                action_id,
+                surface,
+                f"Auto-record compose executor outcome for packet {packet_id}.",
+                now,
+                now,
+                status,
+                summary,
+                receipt_id,
+            ),
+        )
+        _insert_receipt(
+            conn,
+            receipt_id=receipt_id,
+            action_id=action_id,
+            receipt_type="executor_turnstile_receipt",
+            result=status,
+            summary=summary,
+            payload={
+                "packet_id": packet_id,
+                "surface": surface,
+                "ok": bool(ok),
+                "side_effect_status": side_effect_status,
+                "side_effect_id": side_effect_id,
+                "detail": detail,
+                "compose_executor_path": True,
+                "external_action_authority_changed": False,
+                **NO_AUTHORITY_FLAGS,
+                "receipt_meta": meta or {},
+            },
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return receipt_id
+
+
 def _all_rows(conn: sqlite3.Connection, table: str, order_by: str) -> list[dict[str, Any]]:
     rows = conn.execute(f"SELECT * FROM {table} ORDER BY {order_by}").fetchall()
     return [dict(row) for row in rows]
@@ -1603,6 +1712,7 @@ __all__ = [
     "format_request_result",
     "init_operator_action_schema",
     "operator_action_table_names",
+    "record_executor_turnstile_action",
     "request_operator_action",
     "stable_json",
 ]

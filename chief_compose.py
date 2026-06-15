@@ -201,16 +201,35 @@ def _record_executor_side_effect(
 
 
 def _with_side_effect_receipt(receipt: ExecutionReceipt, *, status: str, db_path: str | None = None) -> ExecutionReceipt:
-    if receipt.side_effect_id:
-        return receipt
-    side_effect_id = _record_executor_side_effect(
-        packet_id=receipt.packet_id,
-        surface=receipt.surface,
-        status=status,
-        db_path=db_path,
-    )
+    side_effect_id = receipt.side_effect_id
     meta = dict(receipt.meta)
+    if not side_effect_id:
+        side_effect_id = _record_executor_side_effect(
+            packet_id=receipt.packet_id,
+            surface=receipt.surface,
+            status=status,
+            db_path=db_path,
+        )
     meta["side_effect_recorded"] = bool(side_effect_id)
+    try:
+        from operator_action import record_executor_turnstile_action
+
+        operator_action_receipt_id = record_executor_turnstile_action(
+            packet_id=receipt.packet_id,
+            surface=receipt.surface,
+            ok=receipt.ok,
+            side_effect_status=status,
+            detail=receipt.detail,
+            side_effect_id=side_effect_id,
+            db_path=db_path,
+            meta=meta,
+        )
+    except Exception as exc:
+        operator_action_receipt_id = None
+        meta["operator_action_record_error"] = str(exc)
+    meta["operator_action_recorded"] = bool(operator_action_receipt_id)
+    if operator_action_receipt_id:
+        meta["operator_action_receipt_id"] = operator_action_receipt_id
     return replace(receipt, side_effect_id=side_effect_id, meta=meta)
 
 
