@@ -4,6 +4,7 @@ Verifies that operator-approved draft messages from Telegram route to
 send-authority preparation instead of being misclassified as reminder or
 unsupported-time-format requests.
 """
+import inspect
 import json
 import sqlite3
 import sys
@@ -1552,6 +1553,16 @@ def _future_exact_send_packet(tmp_path):
     return db, objective, request, draft, packet, bundle
 
 
+def _routeback_supports_send_hold_path():
+    return "send_hold_path" in inspect.signature(objective_loop.run_exact_send_operator_action_routeback).parameters
+
+
+def _run_exact_send_routeback(action, **kwargs):
+    if not _routeback_supports_send_hold_path():
+        kwargs.pop("send_hold_path", None)
+    return objective_loop.run_exact_send_operator_action_routeback(action, **kwargs)
+
+
 def test_exact_send_registers_real_hitl_guardian_operator_action(monkeypatch, tmp_path):
     hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
     _db, objective, request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
@@ -1840,14 +1851,36 @@ def test_exact_send_operator_action_routeback_executes_with_fake_broker(monkeypa
     )
     hitl_store.update_action_status(created["action_id"], "APPROVED", approved_by="winship")
     action = hitl_action_service.get_pending_action(created["action_id"])
-    fake = objective_loop.FakeBrokerGmailSendTransport()
 
-    result = objective_loop.run_exact_send_operator_action_routeback(
+    if _routeback_supports_send_hold_path():
+        active_hold = tmp_path / "SEND_HOLD.md"
+        active_hold.write_text("active hold for routeback expectation test\n", encoding="utf-8")
+        blocked_fake = objective_loop.FakeBrokerGmailSendTransport()
+        blocked = _run_exact_send_routeback(
+            action,
+            sqlite_path=db,
+            receipt_dir=tmp_path / "held_routeback_receipts",
+            transport=blocked_fake,
+            live_transport_enabled=True,
+            send_hold_path=active_hold,
+            generated_at="2026-06-10T19:46:00+00:00",
+        )
+        assert blocked["response_status"] == "EXACT_SEND_HITL_ROUTEBACK_REFUSED"
+        assert blocked["refusal_reason"] == "send_hold_active"
+        assert blocked["send_hold_active"] is True
+        assert blocked["execution_performed"] is False
+        assert blocked["gmail_api_called"] is False
+        assert blocked["email_send_performed"] is False
+        assert blocked_fake.calls == []
+
+    fake = objective_loop.FakeBrokerGmailSendTransport()
+    result = _run_exact_send_routeback(
         action,
         sqlite_path=db,
         receipt_dir=tmp_path / "routeback_receipts",
         transport=fake,
         live_transport_enabled=True,
+        send_hold_path=tmp_path / "missing_SEND_HOLD.md",
         generated_at="2026-06-10T19:46:00+00:00",
     )
     receipt_path = Path(result["terminal_receipt_path"])
@@ -1876,12 +1909,13 @@ def test_exact_send_operator_action_routeback_refuses_denied_expired_replay_and_
     )
     hitl_store.update_action_status(denied["action_id"], "DENIED", denied_reason="operator_denied")
     denied_fake = objective_loop.FakeBrokerGmailSendTransport()
-    denied_result = objective_loop.run_exact_send_operator_action_routeback(
+    denied_result = _run_exact_send_routeback(
         hitl_action_service.get_pending_action(denied["action_id"]),
         sqlite_path=denied_db,
         receipt_dir=tmp_path / "denied_receipts",
         transport=denied_fake,
         live_transport_enabled=True,
+        send_hold_path=tmp_path / "missing_denied_SEND_HOLD.md",
         generated_at="2026-06-10T19:46:00+00:00",
     )
 
@@ -1895,12 +1929,13 @@ def test_exact_send_operator_action_routeback_refuses_denied_expired_replay_and_
     )
     hitl_store.update_action_status(expired["action_id"], "APPROVED", approved_by="winship")
     expired_fake = objective_loop.FakeBrokerGmailSendTransport()
-    expired_result = objective_loop.run_exact_send_operator_action_routeback(
+    expired_result = _run_exact_send_routeback(
         hitl_action_service.get_pending_action(expired["action_id"]),
         sqlite_path=expired_db,
         receipt_dir=tmp_path / "expired_receipts",
         transport=expired_fake,
         live_transport_enabled=True,
+        send_hold_path=tmp_path / "missing_expired_SEND_HOLD.md",
         generated_at="2100-06-10T19:46:00+00:00",
     )
 
@@ -1914,20 +1949,22 @@ def test_exact_send_operator_action_routeback_refuses_denied_expired_replay_and_
     )
     hitl_store.update_action_status(replay["action_id"], "APPROVED", approved_by="winship")
     replay_fake = objective_loop.FakeBrokerGmailSendTransport()
-    first = objective_loop.run_exact_send_operator_action_routeback(
+    first = _run_exact_send_routeback(
         hitl_action_service.get_pending_action(replay["action_id"]),
         sqlite_path=replay_db,
         receipt_dir=tmp_path / "replay_receipts",
         transport=replay_fake,
         live_transport_enabled=True,
+        send_hold_path=tmp_path / "missing_replay_SEND_HOLD.md",
         generated_at="2026-06-10T19:46:00+00:00",
     )
-    second = objective_loop.run_exact_send_operator_action_routeback(
+    second = _run_exact_send_routeback(
         hitl_action_service.get_pending_action(replay["action_id"]),
         sqlite_path=replay_db,
         receipt_dir=tmp_path / "replay_receipts",
         transport=replay_fake,
         live_transport_enabled=True,
+        send_hold_path=tmp_path / "missing_replay_SEND_HOLD.md",
         generated_at="2026-06-10T19:47:00+00:00",
     )
 
@@ -1944,12 +1981,13 @@ def test_exact_send_operator_action_routeback_refuses_denied_expired_replay_and_
     )
     hitl_store.update_action_status(wrong["action_id"], "APPROVED", approved_by="winship")
     wrong_fake = objective_loop.FakeBrokerGmailSendTransport()
-    wrong_result = objective_loop.run_exact_send_operator_action_routeback(
+    wrong_result = _run_exact_send_routeback(
         hitl_action_service.get_pending_action(wrong["action_id"]),
         sqlite_path=denied_db,
         receipt_dir=tmp_path / "wrong_type_receipts",
         transport=wrong_fake,
         live_transport_enabled=True,
+        send_hold_path=tmp_path / "missing_wrong_type_SEND_HOLD.md",
         generated_at="2026-06-10T19:46:00+00:00",
     )
 
