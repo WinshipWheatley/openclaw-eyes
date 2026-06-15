@@ -82,109 +82,40 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> Path:
     return path
 
 
-def _promotion_review_record(
-    record_id: str,
-    category: str,
-    fact: str,
-    proposed: str,
-    *,
-    confidence: str = "medium",
-    risk: str = "wrong runtime behavior",
-    action: str = "defer",
-) -> dict[str, Any]:
-    return {
-        "record_id": record_id,
-        "provisional_marker": "*",
-        "authoritative": False,
-        "promotion_requires_winship_confirmation": True,
-        "review_category": category,
-        "provisional_fact": f"* {fact}",
-        "proposed_promoted_value": f"* {proposed}",
-        "confidence": confidence,
-        "source": "cassandra_human_edge_lab_fixture#review_records",
-        "risk_if_wrong": risk,
-        "recommended_action": action,
-    }
-
-
-def _write_data_room_promotion_review_fixture(path: Path) -> Path:
-    payload = {
-        "schema_version": "OPENCLAW_DATA_ROOM_PROMOTION_REVIEW_V0",
-        "authoritative": False,
-        "source_artifacts": [
-            "cassandra_human_edge_lab_fixture:clean_checkout",
-        ],
-        "review_records": [
-            _promotion_review_record(
-                "business_identity:payment_contact_exposure_policy",
-                "policy_decision",
-                "Phone, address, Zelle, and direct deposit exposure need trust-tiered review.",
-                "Winship must define which payment instructions are safe by default and which require manual approval.",
-                confidence="high",
-                risk="Could expose private payment details.",
-            ),
-            _promotion_review_record(
-                "identity:clara_reid",
-                "policy_decision",
-                "Clara Reid can eventually send invoices but not as default for every client.",
-                "Winship must decide Clara signature, sender, and original-invoice vs follow-up policy.",
-            ),
-            _promotion_review_record(
-                "identity:niles_technical_director",
-                "policy_decision",
-                "Niles is a provisional technical director persona.",
-                "Winship must define when Niles can be public-facing.",
-            ),
-            _promotion_review_record(
-                "identity:log_rhythm_records_off_limits",
-                "do_not_import",
-                "Log Rhythm Records is off-limits, historical, and not active.",
-                "Do not import Log Rhythm Records into active identity/client/sender/routing logic.",
-                confidence="high",
-                risk="Could revive a historical identity.",
-                action="reject",
-            ),
-            _promotion_review_record(
-                "rate:live_arts_multiple_services",
-                "needs_correction",
-                "Live Arts Maryland has speaker rental and A/V support mixed together.",
-                "Split Live Arts service records by source and service type.",
-                risk="Wrong service grouping could create wrong invoices.",
-                action="revise",
-            ),
-            _promotion_review_record(
-                "client:capital_hilton",
-                "needs_source",
-                "Capital Hilton is a current stable gig but needs rate/service/payment rhythm.",
-                "Promote only after Winship confirms rate, service, rhythm, Annette, and Will contact handling.",
-                confidence="medium-high",
-                risk="Wrong assumptions could affect a current client.",
-                action="source needed",
-            ),
-            _promotion_review_record(
-                "invoice_policy:numbering_and_filename",
-                "policy_decision",
-                "Invoice numbering is inconsistent; WL-YYYY-#### is proposed only.",
-                "Winship must decide whether to reset future numbering and map old invoices.",
-            ),
-            _promotion_review_record(
-                "expense_categories:provisional_labels",
-                "confirm_ready",
-                "Expense categories are provisional business labels only.",
-                "Use expense categories as business labels only, not tax logic.",
-                risk="Could be mistaken for tax advice.",
-                action="confirm",
-            ),
-            _promotion_review_record(
-                "venues:provisional_list",
-                "needs_correction",
-                "Venue list mixes venues, mileage destinations, and client contexts.",
-                "Promote only reviewed venues and keep mileage destinations separate.",
-                action="revise",
-            ),
-        ],
-    }
-    return _write_json(path, payload)
+def _write_data_room_promotion_fixture(lab_root: Path, *, generated_at: str) -> Path:
+    """Write the smallest clean-checkout fixture needed for the edge lab."""
+    return _write_json(
+        lab_root / "openclaw_data_room_promotion_review_v0.json",
+        {
+            "schema_version": "openclaw_data_room_promotion_review_v0",
+            "created_at_utc": generated_at,
+            "authoritative": False,
+            "safe_to_import_as_provisional": True,
+            "source_artifacts": ["cassandra_human_edge_lab_fixture"],
+            "review_status": "test_fixture_needs_winship_review",
+            "safety_flags": dict(AUTHORITY_BOUNDARY),
+            "review_records": [
+                {
+                    "record_id": "payment_privacy:trusted_clients",
+                    "review_category": "policy_decision",
+                    "provisional_fact": (
+                        "Payment options can be easier for trusted clients, but private "
+                        "bank details and private addresses must not be exposed to strangers."
+                    ),
+                    "proposed_promoted_value": (
+                        "Should trusted clients get easier payment options while new clients "
+                        "stay payment-privacy gated?"
+                    ),
+                    "recommended_action": "confirm",
+                    "risk_if_wrong": "Private payment or address details could be exposed too broadly.",
+                    "authoritative": False,
+                    "promotion_requires_winship_confirmation": True,
+                    "confidence": "test_fixture",
+                    "review_status": "operator_review_required",
+                }
+            ],
+        },
+    )
 
 
 def _reset_owned_lab_path(path: Path) -> None:
@@ -196,6 +127,24 @@ def _reset_owned_lab_path(path: Path) -> None:
         shutil.rmtree(path)
     elif path.exists():
         path.unlink()
+
+
+def _load_latest_guided_review_session(review_root: Path) -> tuple[Path, dict[str, Any]]:
+    active_index = review_root / "data_room_guided_review_active_session.json"
+    if active_index.is_file():
+        active = json.loads(active_index.read_text(encoding="utf-8"))
+        session_path = Path(str(active.get("session_path") or ""))
+        if session_path.is_file():
+            return session_path, json.loads(session_path.read_text(encoding="utf-8"))
+    session_paths = [
+        path
+        for path in review_root.glob("data_room_guided_review_session_*.json")
+        if path.is_file() and not path.name.endswith("_OPERATOR.md")
+    ]
+    if not session_paths:
+        return Path(""), {}
+    session_path = max(session_paths, key=lambda path: path.stat().st_mtime_ns)
+    return session_path, json.loads(session_path.read_text(encoding="utf-8"))
 
 
 def _line_count(path: Path) -> int:
@@ -294,13 +243,14 @@ def run_data_room_human_edge_scenario(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
-    root = _rooted(lab_root) / "data_room"
-    read_root = _rooted(lab_root) / "data_room_read_models"
+    lab_base = _rooted(lab_root)
+    root = lab_base / "data_room"
+    read_root = lab_base / "data_room_read_models"
+    promotion_review_path = _write_data_room_promotion_fixture(lab_base, generated_at=generated_at)
     _reset_owned_lab_path(root)
     _reset_owned_lab_path(read_root)
-    promotion_review_path = _write_data_room_promotion_review_fixture(root / guided_review.DEFAULT_PROMOTION_REVIEW_FILENAME)
     turns = [
-        ("Cassandra, let's go over the Data Room.", "2026-06-13T15:00:00+00:00"),
+        ("Cassandra, go over the Data Room.", "2026-06-13T15:00:00+00:00"),
         ("I don't know what that means. Explain it like I'm five.", "2026-06-13T15:01:00+00:00"),
         ("What do you recommend and why?", "2026-06-13T15:02:00+00:00"),
         (
@@ -337,11 +287,7 @@ def run_data_room_human_edge_scenario(
                 "detoured_out_of_guided_review": response is None,
             }
         )
-    active_index = root / "data_room_guided_review_active_session.json"
-    active = json.loads(active_index.read_text(encoding="utf-8")) if active_index.exists() else {}
-    raw_session_path = str(active.get("session_path") or "").strip() if active else ""
-    session_path = Path(raw_session_path) if raw_session_path else None
-    session = json.loads(session_path.read_text(encoding="utf-8")) if session_path and session_path.is_file() else {}
+    session_path, session = _load_latest_guided_review_session(root)
     read_model_path = read_root / guided_review.READ_MODEL_NAME
     summary = {
         "schema_version": "CASSANDRA_HUMAN_EDGE_DATA_ROOM_SCENARIO_V0",
