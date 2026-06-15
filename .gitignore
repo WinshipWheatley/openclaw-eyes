@@ -520,6 +520,7 @@
 !tests/test_cassandra_packet_templates.py
 !tests/test_chief_packet_templates.py
 !tests/test_guardian_packet_templates.py
+!tests/test_guardian_watchdog.py
 !tests/test_hermes_packet_templates.py
 
 # tools/ — standalone utility modules
@@ -573,6 +574,7 @@
 !chief_end_of_day_review.py
 !chief_eod_harness.py
 !guardian_schema_harness.py
+!guardian_watchdog.py
 !morning_brief_harness.py
 !morning_brief_failover.py
 !generate_runtime_snapshot.py
