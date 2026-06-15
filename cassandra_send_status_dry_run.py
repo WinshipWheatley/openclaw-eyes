@@ -316,6 +316,22 @@ def format_service_status_marker(service_name: str, status: dict[str, Any]) -> s
 
 def build_status_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
     ts = generated_at or utc_now()
+    try:
+        from cassandra_telegram_delivery import build_telegram_delivery_status
+
+        operator_telegram_delivery = build_telegram_delivery_status()
+    except Exception as exc:
+        operator_telegram_delivery = {
+            "schema_version": "cassandra_telegram_delivery_v0",
+            "delivery_surface": "telegram_operator_internal",
+            "telegram_delivery_state": "status_unavailable",
+            "toggle_default": "off",
+            "default_when_off": "dry_run_to_log",
+            "operator_only": True,
+            "external_client_send_allowed": False,
+            "send_hold_touched": False,
+            "error_type": type(exc).__name__,
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_by": "codex",
@@ -335,6 +351,7 @@ def build_status_read_model(*, generated_at: str | None = None) -> dict[str, Any
             "raw_chat_ids_exposed": False,
             "runtime_process_probe_required": True,
         },
+        "operator_telegram_delivery": operator_telegram_delivery,
         "services": {
             "watcher": build_watcher_status(generated_at=ts),
             "briefing_scheduler": build_briefing_scheduler_status(generated_at=ts),
@@ -349,6 +366,7 @@ def render_operator_markdown(payload: dict[str, Any]) -> str:
     future = watcher.get("future_actions") or {}
     scheduler = (payload.get("services") or {}).get("briefing_scheduler") or {}
     briefing = scheduler.get("briefing_schedule") or {}
+    operator_telegram = payload.get("operator_telegram_delivery") or {}
     lines = [
         "# Cassandra Send-Capable Status Dry-Run",
         "",
@@ -377,6 +395,12 @@ def render_operator_markdown(payload: dict[str, Any]) -> str:
         "- Telegram briefing delivery: blocked",
         "- Voice briefing delivery: blocked",
         "- Would-fire proof: due slots and pending briefing delivery are classified in the JSON read-model before any delivery path runs.",
+        "",
+        "## Operator Telegram Delivery",
+        f"- Toggle: `{operator_telegram.get('toggle_env_var', 'CASSANDRA_TELEGRAM_DELIVERY_ENABLED')}` or `{operator_telegram.get('toggle_path', '')}`",
+        f"- Current state: `{operator_telegram.get('telegram_delivery_state', 'unknown')}`",
+        f"- Dry-run log: `{operator_telegram.get('dry_run_log_path', '')}`",
+        "- Target: Winship authorized Telegram user id only; no external client send.",
         "",
         "## Next Safe Move",
         payload.get("next_safe_move", "Review dry-run receipts before any send-capable resume."),
