@@ -1,7 +1,0 @@
-{
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Minimal core capability for the OpenClaw Legal console spike; opener access stays behind the custom Rust command.",
-  "windows": ["main"],
-  "permissions": ["core:default"]
-}
