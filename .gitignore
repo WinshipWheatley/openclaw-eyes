@@ -1109,6 +1109,9 @@ generated/read_models/watch_desk_feed.json
 !generated/read_models/first_class_operator_envelope_status.json
 !generated/read_models/helm_action_lifecycle_status.json
 !generated/read_models/helm_composer_status.json
+!generated/read_models/mac_controller_real_use_smoke_status.json
+!generated/read_models/mac_dynamic_card_renderer_status.json
+!generated/read_models/operator_controller_event_router_status.json
 !generated/read_models/proof_bundle_builder_redaction_status.json
 !generated/read_models/proof_bundle_freshness_trace_status.json
 !generated/read_models/proof_to_response_runtime_status.json
