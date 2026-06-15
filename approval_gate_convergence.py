@@ -79,11 +79,12 @@ SURFACE_CONVERGENCE: dict[str, dict[str, Any]] = {
         "legacy_gate_runtime_role": "compatibility_only_after_g3_decision",
         "legacy_direct_send_allowed": False,
         "double_gate_allowed": False,
-        "executor_registered": False,
+        "executor_registered": True,
         "approval_required": True,
         "execution_allowed": False,
         "external_send_allowed": False,
         "send_hold_ref": SEND_HOLD_REF,
+        "executor_mode": "gated_gmail_broker",
     },
     "sms_send": {
         "surface": "sms_send",

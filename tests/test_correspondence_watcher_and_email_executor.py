@@ -127,7 +127,7 @@ def test_reynolds_sally_fixture_creates_gated_niles_voice_reply(tmp_path):
     assert plan.gmail_api_called is False
 
 
-def test_email_send_executor_scaffold_is_not_registered_and_send_hold_blocks(tmp_path):
+def test_email_send_executor_is_registered_and_send_hold_blocks(tmp_path):
     db_path = _db(tmp_path)
     plan = plan_reynolds_correspondence_reply(
         thread_id="thread_reynolds_003",
@@ -136,7 +136,7 @@ def test_email_send_executor_scaffold_is_not_registered_and_send_hold_blocks(tmp
         db_path=db_path,
     )
 
-    assert email_send_executor_registered() is False
+    assert email_send_executor_registered() is True
     descriptor = email_send_executor_descriptor()
     assert descriptor["surface"] == EMAIL_SEND_SURFACE
     assert descriptor["registry_owner"] == "codex-pc-1"

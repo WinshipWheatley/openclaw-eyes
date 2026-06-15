@@ -610,7 +610,13 @@ def _category_for_text(phrase_text: str, explicit_agent_id: str | None) -> tuple
         return "coupa_submit", "Coupa action wording matched"
     if contains("ledger") or has("mark paid", "mark as paid", "post to ledger", "touch the ledger"):
         return "ledger_mutation", "ledger/payment mutation wording matched"
-    if contains("gmail", "email") and (has("send", "write", "draft", "create") or actionish):
+    if (
+        contains("gmail", "email")
+        and (has("send", "write", "draft", "create") or actionish)
+    ) or (
+        has("send", "send out", "deliver")
+        and contains("intro", "reply", "message", "note", "outreach", "follow up", "followup")
+    ):
         return "email_send", "email/Gmail action wording matched"
     if contains("invoice", "bill") and has("send", "issue", "deliver", "email", "send out", "bill"):
         return "invoice_send", "invoice send wording matched"

@@ -103,10 +103,19 @@ def test_compose_preview_embeds_gate_convergence_for_email_and_sms(text, surface
     assert result.pending_approval.preview["execution_allowed"] is False
 
 
-@pytest.mark.parametrize("surface", ["email_send", "sms_send"])
+@pytest.mark.parametrize("surface", ["sms_send"])
 def test_send_surfaces_remain_unwired_under_send_hold(surface):
     receipt = execute_packet("packet_fixture", surface=surface, db_path=str(TEMP_DB))
 
     assert receipt.ok is False
     assert receipt.gate_state is GateState.FAILED
     assert "No executor wired" in receipt.detail
+
+
+def test_email_send_surface_is_registered_but_send_hold_still_blocks_execution():
+    receipt = execute_packet("packet_fixture", surface="email_send", db_path=str(TEMP_DB))
+
+    assert receipt.ok is False
+    assert receipt.gate_state is GateState.FAILED
+    assert "agent work packet not found" in receipt.detail
+    assert "No executor wired" not in receipt.detail

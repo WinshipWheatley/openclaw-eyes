@@ -267,8 +267,10 @@ def execute_packet_with_state(
 
 
 def _register_default_executors() -> None:
+    from email_send_executor import execute_email_send_packet
     from invoice_send_executor import execute_invoice_send_packet
 
+    register_executor("email_send", execute_email_send_packet)
     register_executor("invoice_send", execute_invoice_send_packet)
 
 
