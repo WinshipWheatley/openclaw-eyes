@@ -22,6 +22,18 @@ def test_scanner_required_terms_checked():
     for term in REQUIRED_TERMS:
         assert term in found_terms
 
+def test_scanner_uses_supplied_repo_root(tmp_path):
+    """Scanner should scan the supplied root, not the live checkout."""
+    source = tmp_path / "sample.md"
+    source.write_text("dashboard_gen.py references /mnt/c/OpenClaw", encoding="utf-8")
+
+    report = scan_repo(root=tmp_path)
+
+    assert report["metadata"]["repo_root"] == str(tmp_path)
+    assert report["metadata"]["scanned_file_count"] == 1
+    sensitive = report["dependency_sensitive_files"]
+    assert sensitive == {"sample.md": ["/mnt/c/OpenClaw", "dashboard_gen.py"]}
+
 def test_scanner_risk_classes_present():
     """Scanner must categorize findings into risk classes."""
     report = scan_repo()
