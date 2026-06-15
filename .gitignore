@@ -546,6 +546,7 @@
 !tests/test_known_answer_fixtures.py
 !tests/test_legal_synthetic_stress_pack.py
 !tests/test_audit_openclaw_services_static.py
+!tests/test_green_gate_script.py
 !systemd/
 !systemd/user/
 !systemd/user/*.in

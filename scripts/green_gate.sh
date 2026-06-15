@@ -13,6 +13,8 @@ set -uo pipefail
 REF="${1:-HEAD}"
 REPO="${OPENCLAW_REPO:-/home/openclaw}"
 VENV="${OPENCLAW_VENV:-/home/openclaw/.venv/bin/python}"
+PYTEST_TIMEOUT_SECONDS="${OPENCLAW_PYTEST_TIMEOUT_SECONDS:-90}"
+PYTEST_TIMEOUT_METHOD="${OPENCLAW_PYTEST_TIMEOUT_METHOD:-thread}"
 TS="$(date +%s)-$$"
 WT="$REPO/worktrees/greengate-$TS"
 LOG="/tmp/greengate-$TS.log"
@@ -27,14 +29,29 @@ done
 cleanup(){ git -C "$REPO" worktree remove --force "$WT" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
+if [ ! -x "$VENV" ]; then
+  echo "[green-gate] FAIL: pytest venv is not executable: $VENV"
+  exit 2
+fi
+
+PYTEST_ARGS=(-q -rA)
+if [ "$PYTEST_TIMEOUT_SECONDS" != "0" ]; then
+  if ! "$VENV" -c "import pytest_timeout" >/dev/null 2>&1; then
+    echo "[green-gate] FAIL: pytest-timeout is required for per-test timeout guard."
+    echo "[green-gate] install with: $VENV -m pip install pytest-timeout"
+    exit 2
+  fi
+  PYTEST_ARGS+=(--timeout="$PYTEST_TIMEOUT_SECONDS" --timeout-method="$PYTEST_TIMEOUT_METHOD")
+fi
+
 echo "[green-gate] clean-room checkout of $REF ..."
 if ! git -C "$REPO" worktree add --detach "$WT" "$REF" >/dev/null 2>&1; then
   echo "[green-gate] FAIL: could not create clean worktree for $REF"; exit 2
 fi
 cd "$WT" || { echo "[green-gate] FAIL: cwd"; exit 2; }
 SHA="$(git rev-parse --short HEAD)"
-echo "[green-gate] running FULL suite on clean checkout $SHA (this takes ~25 min) ..."
-OPENCLAW_TEST_MODE=1 OPENCLAW_SEND_HOLD=1 "$VENV" -m pytest -q > "$LOG" 2>&1
+echo "[green-gate] running FULL suite on clean checkout $SHA (this takes ~25 min; per-test timeout ${PYTEST_TIMEOUT_SECONDS}s) ..."
+OPENCLAW_TEST_MODE=1 OPENCLAW_SEND_HOLD=1 "$VENV" -m pytest "${PYTEST_ARGS[@]}" > "$LOG" 2>&1
 code=$?
 echo "[green-gate] --- result ---"; tail -3 "$LOG"
 if [ "$code" -eq 0 ]; then
