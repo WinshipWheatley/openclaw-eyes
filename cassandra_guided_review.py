@@ -651,6 +651,61 @@ def classify_guided_review_non_answer(text: str) -> dict[str, Any]:
             "answer_record_allowed": False,
             "medical_advice_allowed": False,
         }
+    chatter_exact = {
+        "ah",
+        "ah ok",
+        "alright",
+        "all right",
+        "cool",
+        "got it",
+        "gotcha",
+        "hang on",
+        "hello",
+        "hey",
+        "hi",
+        "hm",
+        "hmm",
+        "k",
+        "kk",
+        "lol",
+        "ok",
+        "okay",
+        "one sec",
+        "one second",
+        "perfect",
+        "sure",
+        "thanks",
+        "thank you",
+        "thx",
+        "wait",
+        "yep",
+        "yeah",
+    }
+    chatter_phrases = (
+        "be right back",
+        "can you repeat",
+        "give me a minute",
+        "give me a second",
+        "hold on",
+        "i am thinking",
+        "i m thinking",
+        "ill think",
+        "i ll think",
+        "let me think",
+        "one minute",
+        "one sec",
+        "one second",
+        "say that again",
+        "thinking about it",
+        "what was the question",
+    )
+    if normalized in chatter_exact or _contains_any(normalized, chatter_phrases):
+        return {
+            "classification": "conversation_chatter",
+            "reason": "acknowledgement_or_aside_not_form_answer",
+            "answer_record_allowed": False,
+            "medical_advice_allowed": False,
+        }
     return {}
 
 
