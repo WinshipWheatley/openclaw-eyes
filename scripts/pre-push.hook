@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# OpenClaw GREEN-GATE pre-push hook.
+# Blocks any push to main unless a CLEAN-CHECKOUT full suite passes on the pushed commit.
+# Install: copy to .git/hooks/pre-push (chmod +x). Bypass in a true emergency: git push --no-verify.
+#
+# Why a hook + clean-room (not just `pytest`): the 2026-06-14 incident pushed main from a
+# stateful worktree where the suite passed but a clean checkout failed 33 tests. Running
+# pytest in the working tree would have the SAME blind spot. green_gate.sh clean-rooms.
+set -uo pipefail
+GATE="${OPENCLAW_GREEN_GATE:-/home/openclaw/scripts/green_gate.sh}"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    *refs/heads/main)
+      if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then continue; fi  # branch delete
+      echo "[green-gate] push to main detected — clean-checkout full suite on $local_sha required."
+      if ! "$GATE" "$local_sha"; then
+        echo "[green-gate] ❌ BLOCKED: clean-checkout suite is NOT green. Push to main refused."
+        echo "[green-gate] Fix to clean-checkout green first, or override with --no-verify (logged, discouraged)."
+        exit 1
+      fi
+      echo "[green-gate] ✅ clean-checkout green — allowing push to main."
+      ;;
+  esac
+done
+exit 0

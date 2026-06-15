@@ -17,6 +17,13 @@ TS="$(date +%s)-$$"
 WT="$REPO/worktrees/greengate-$TS"
 LOG="/tmp/greengate-$TS.log"
 
+# Git hooks export repo-local environment such as GIT_DIR and GIT_WORK_TREE.
+# If those leak into pytest, tests that create temporary git repositories can
+# accidentally operate on the caller repo instead of their tmp checkout.
+for var in GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES; do
+  unset "$var" || true
+done
+
 cleanup(){ git -C "$REPO" worktree remove --force "$WT" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
