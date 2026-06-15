@@ -1,6 +1,7 @@
 import json
 import sqlite3
 from pathlib import Path
+from types import SimpleNamespace
 
 from correspondence_watcher import (
     WINSHIP_REPLY_AUTHOR,
@@ -104,6 +105,45 @@ def test_correspondence_watcher_creates_draft_only_email_packet_from_safe_summar
         assert "raw_body_stored" in receipt[1]
         assert WINSHIP_REPLY_VOICE_PROFILE_REF in receipt[1]
         assert WINSHIP_REPLY_AUTHOR in receipt[1]
+    finally:
+        conn.close()
+
+
+def test_correspondence_watcher_safe_summary_invokes_compose(monkeypatch, tmp_path):
+    db_path = _db(tmp_path)
+    calls = []
+
+    def fake_compose(text, **kwargs):
+        calls.append({"text": text, "kwargs": kwargs})
+        return SimpleNamespace(packet_id="compose_packet_0030")
+
+    monkeypatch.setattr("chief_compose.compose", fake_compose)
+
+    plan = plan_reynolds_correspondence_reply(
+        thread_id="thread_reynolds_compose_trigger",
+        sender_name="Sally",
+        body_summary="Sally confirmed the June 27 Reynolds gig sounds good.",
+        db_path=db_path,
+    )
+
+    assert plan.status == "draft_ready_pending_approval"
+    assert plan.packet_id == "compose_packet_0030"
+    assert plan.side_effect_id
+    assert len(calls) == 1
+    assert "Draft an email reply to Sally" in calls[0]["text"]
+    assert calls[0]["kwargs"] == {
+        "source_channel": "correspondence_watcher_fixture",
+        "requested_by": "winship",
+        "source_message_id": "thread_reynolds_compose_trigger",
+        "db_path": db_path,
+    }
+
+    conn = sqlite3.connect(db_path)
+    try:
+        side_effect = conn.execute(
+            "SELECT effect_type, status, approval_required FROM side_effects WHERE effect_type = 'email_draft_candidate'"
+        ).fetchone()
+        assert side_effect == ("email_draft_candidate", "pending_approval", 1)
     finally:
         conn.close()
 
