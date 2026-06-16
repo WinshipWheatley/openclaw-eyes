@@ -29,6 +29,13 @@ def test_morning_orchestration_trigger(monkeypatch, tmp_path):
     
     # CASE 2: Fresh Synthesis (mtime > today 5am) -> No Refresh
     # Synthesis was just written (fresh).
+    # CASE 2 fix: pin the synthesis mtime to 6am today so 'fresh synthesis' holds regardless of the
+    # wall-clock time the test runs at. The clean-room gate flaked pre-5am because a 'now'-written
+    # synthesis had mtime < today's 5am and the morning-window staleness check then forced a refresh.
+    # Test-only; the briefing logic is unchanged.
+    import os
+    _today_6am = datetime.combine(datetime.now().date(), time(6, 0)).timestamp()
+    os.utime(synthesis, (_today_6am, _today_6am))
     monkeypatch.setattr("cassandra_briefing_morning_policy.is_within_morning_window", lambda: True)
     
     # Reset count
