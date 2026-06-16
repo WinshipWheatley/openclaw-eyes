@@ -1157,6 +1157,13 @@ def build_responder_targets(selected_family: str) -> tuple[RequestProcessorRespo
             selected_family == "CHAT",
         ),
         target(
+            "MAESTRO_CASSANDRA_RESPONDER",
+            "Maestro front-door Cassandra specialist responder",
+            ("CHAT",),
+            True,
+            selected_family == "CHAT",
+        ),
+        target(
             "CODEX_RESPONDER_FUTURE",
             "Codex responder future adapter",
             ("CHAT", "CONTEXT_ATTACHMENT_FUTURE", "WORKER_DISPATCH_FUTURE"),
@@ -4724,10 +4731,17 @@ def _process_operator_controller_event_request(
     )
     headline = str(
         primary_response.get("headline")
+        or receipt.get("one_line_answer")
         or card.get("headline")
         or ("Controller event routed" if internal_status == "RESPONSE_READY" else "Controller event blocked")
     )
-    message = str(primary_response.get("body") or card.get("plain_summary") or card.get("summary") or "OpenClaw handled the controller event locally.")
+    message = str(
+        primary_response.get("body")
+        or receipt.get("plain_summary")
+        or card.get("plain_summary")
+        or card.get("summary")
+        or "OpenClaw handled the controller event locally."
+    )
     blockers = tuple(str(item) for item in receipt.get("blockers") or () if item)
     rejected = tuple(str(item) for item in receipt.get("rejected_reasons") or () if item)
     proof_refs = tuple(str(ref) for ref in receipt.get("proof_refs") or () if ref)
@@ -4746,7 +4760,8 @@ def _process_operator_controller_event_request(
         "audience_mode": "ELIWINSHIP",
         "display_mode": "COMPACT_CHAT",
         "headline": headline,
-        "one_line_answer": message,
+        "one_line_answer": str(receipt.get("one_line_answer") or message),
+        "plain_summary": message,
         "eliwinship": message,
         "primary_status": str(card.get("status_label") or route_status or internal_status),
         "primary_blocker": "; ".join(blockers or rejected) or "None",
@@ -4762,7 +4777,7 @@ def _process_operator_controller_event_request(
         "proof_to_response_status": proof_to_response_status,
         "debug_refs": readback_files,
         "raw_internal_status": internal_status,
-        "mac_render_hint": "DYNAMIC_CARD_WITH_DISCLOSURE",
+        "mac_render_hint": str(receipt.get("mac_render_hint") or card.get("mac_render_hint") or "DYNAMIC_CARD_WITH_DISCLOSURE"),
         "request_ref": request_id,
         "controller_event_type": event_type,
         "route_status": route_status,

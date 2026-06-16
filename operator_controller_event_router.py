@@ -20,6 +20,7 @@ from typing import Any, Mapping, Sequence
 import evidence_intake
 import first_class_operator_envelope as operator_authority
 import global_run_mode_context
+import maestro_cassandra_responder
 import objective_advancement_protocol
 import operator_conversation_router
 import proof_to_response_runtime
@@ -1739,6 +1740,76 @@ def _route_operator_conversation(
     return receipt
 
 
+def _route_maestro_cassandra_conversation(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    operator_text = maestro_cassandra_responder.operator_text_from_request(request)
+    result = maestro_cassandra_responder.answer_frontdoor_chat(
+        operator_text,
+        session=maestro_cassandra_responder.session_from_request(request),
+    )
+    if result.status != "ANSWER_READY":
+        return None
+
+    card = _card_response(
+        receipt_id=receipt_id,
+        event_type="chat_goal",
+        headline=result.one_line_answer or "Maestro response",
+        summary=result.plain_summary,
+        status_label="Maestro",
+        route_status="ROUTED",
+        current_world_ref=str(request.get("current_world_ref") or ""),
+        current_thread_ref=str(request.get("current_thread_ref") or ""),
+        actions=[],
+        proof_refs=["generated/read_models/operator_controller_event_router_status.json"],
+        tone="calm",
+    )
+    card["mac_render_hint"] = result.mac_render_hint
+    card["maestro_cassandra_responder"] = result.to_dict()
+    _attach_card_run_mode(
+        card,
+        _request_run_mode_context(request, generated_at),
+    )
+    machine_proof = _machine_proof(
+        maestro_cassandra_responder_performed=True,
+        text_first_response=True,
+        operator_conversation_router_performed=False,
+        package_staged=False,
+        workflow_package_staged=False,
+        workflow_package_request_v0_emitted=False,
+        model_invoked=False,
+        external_llm_invoked=False,
+        local_model_runtime_connected=False,
+        worker_spawn_performed=False,
+        business_action_performed=False,
+    )
+    machine_proof.update(dict(result.machine_proof or {}))
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    receipt.update(
+        {
+            "route_status": "TEXT_RESPONSE_READY",
+            "raw_internal_status": RESPONSE_READY,
+            "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
+            "route_ref": f"maestro_cassandra_{_short_hash(receipt_id, operator_text, length=12)}",
+            "route_receipt_ref": receipt_id,
+            "route_result": result.to_dict(),
+            "primary_response_kind": "maestro_cassandra_chat_answer",
+            "one_line_answer": result.one_line_answer,
+            "plain_summary": result.plain_summary,
+            "mac_render_hint": result.mac_render_hint,
+            "dynamic_card_response": card,
+            "proof_refs": list(card["proof"]["proof_refs"]),
+            "machine_proof": machine_proof,
+        }
+    )
+    return receipt
+
+
 def _route_run_mode_set(
     request: Mapping[str, Any],
     *,
@@ -1835,6 +1906,15 @@ def _route_event(
             validation=validation,
         )
     if event_type == "chat_goal":
+        maestro_receipt = _route_maestro_cassandra_conversation(
+            request,
+            read_model_root=read_model_root,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
+        if maestro_receipt is not None:
+            return maestro_receipt
         return _route_operator_conversation(
             request,
             read_model_root=read_model_root,
