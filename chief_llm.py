@@ -12,6 +12,7 @@ import inspect as _inspect
 # -- External call logger --------------------------------------------------
 _EXTERNAL_LOG = Path("/mnt/c/OpenClaw/logs/external_llm_log.csv")
 _OLLAMA_DIAGNOSTICS_LOG = Path("/mnt/c/OpenClaw/logs/ollama_diagnostics.jsonl")
+_GREP_GUARD_KNOWN_DEBT = {"nemotron_call"}
 
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
@@ -74,6 +75,7 @@ def _log_external_call(model: str, prompt_words: int, response_words: int,
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 _INSTALLED_MODEL_CACHE: tuple[float, set[str]] | None = None
+_AUTH_OBS_CACHE: tuple[float, dict] | None = None
 
 _LANE_CANDIDATES = {
     "fast": (
@@ -807,6 +809,90 @@ def claude_json(prompt: str, timeout: int = 20, retries: int = 3) -> dict | list
     """Claude CLI JSON helper is blocked for OpenClaw agent-side use."""
     print("[chief_llm] claude_json blocked by policy: Claude CLI is human-only", flush=True)
     return {}
+
+
+def _candidate_auth_observations(force_refresh: bool = False) -> dict:
+    global _AUTH_OBS_CACHE
+    if not force_refresh and _AUTH_OBS_CACHE is not None:
+        cached_at, cached = _AUTH_OBS_CACHE
+        if (_time.time() - cached_at) < 60:
+            return dict(cached)
+    try:
+        import provider_access_auth_status
+
+        observations = provider_access_auth_status.collect_candidate_auth_observations()
+    except Exception:
+        observations = {}
+    _AUTH_OBS_CACHE = (_time.time(), dict(observations))
+    return dict(observations)
+
+
+def codex_exec_call(prompt: str, *, timeout: int = 360) -> str:
+    """Headless codex CLI transport; dispatch-dark in P0 and fail-closed."""
+    try:
+        import provider_lanes
+
+        return provider_lanes.run_candidate("codex_exec", prompt, timeout_seconds=timeout)
+    except Exception:
+        return ""
+
+
+def claude_cli_call(prompt: str, *, timeout: int = 360, allow_claude_cli: bool = False) -> str:
+    """Headless Claude CLI transport; refused unless explicitly allowed."""
+    try:
+        import provider_lanes
+
+        return provider_lanes.run_candidate(
+            "claude_cli",
+            prompt,
+            timeout_seconds=timeout,
+            allow_claude_cli=allow_claude_cli,
+        )
+    except Exception:
+        return ""
+
+
+def dispatch_lane(
+    prompt: str,
+    *,
+    lane_id: str,
+    metadata: dict | None = None,
+    task_class: str | None = None,
+    timeout: int = 360,
+    allow_claude_cli: bool = False,
+) -> str:
+    """Execute a decided lane by walking its first available candidate list."""
+    try:
+        import provider_access_auth_status
+        import provider_lanes
+    except Exception:
+        return ollama_call(prompt, timeout=timeout, task_class=task_class)
+
+    candidate_ids = provider_lanes.lane_candidates(lane_id)
+    if not candidate_ids:
+        return ollama_call(prompt, timeout=timeout, task_class=task_class)
+
+    observations = _candidate_auth_observations()
+    for candidate_id in candidate_ids:
+        try:
+            availability = provider_access_auth_status.candidate_available(candidate_id, observations=observations)
+        except Exception:
+            availability = {"available": False}
+        if not availability.get("available"):
+            continue
+        result = provider_lanes.run_candidate(
+            candidate_id,
+            prompt,
+            metadata=metadata,
+            task_class=task_class,
+            timeout_seconds=timeout,
+            allow_claude_cli=allow_claude_cli,
+            observations=observations,
+        )
+        if result:
+            return result
+
+    return ollama_call(prompt, timeout=timeout, task_class=task_class)
 
 
 def ollama_json(prompt: str, timeout: int = 15, task_class: str | None = None) -> dict:

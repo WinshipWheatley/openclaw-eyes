@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 from datetime import datetime, timezone
@@ -232,11 +233,31 @@ def run_safe_auth_probe_command(
     )
 
 
-def collect_safe_auth_observations() -> dict[str, dict[str, Any]]:
+def collect_safe_auth_observations(command_ids: Sequence[str] | None = None) -> dict[str, dict[str, Any]]:
+    selected = tuple(command_ids) if command_ids is not None else tuple(SAFE_AUTH_PROBE_COMMANDS)
     return {
-        command_id: run_safe_auth_probe_command(command_id, command)
-        for command_id, command in SAFE_AUTH_PROBE_COMMANDS.items()
+        command_id: run_safe_auth_probe_command(command_id, SAFE_AUTH_PROBE_COMMANDS[command_id])
+        for command_id in selected
+        if command_id in SAFE_AUTH_PROBE_COMMANDS
     }
+
+
+def _candidate_probe_command_ids() -> tuple[str, ...]:
+    import provider_lanes
+
+    transports = {candidate.transport for candidate in provider_lanes.CANDIDATES}
+    command_ids: list[str] = []
+    if "codex" in transports:
+        command_ids.extend(("codex_which", "codex_version", "codex_help", "codex_exec_help", "codex_login_status"))
+    if "claude" in transports:
+        command_ids.extend(("claude_which", "claude_version", "claude_help", "claude_auth_status"))
+    if "ollama" in transports:
+        command_ids.extend(("ollama_which", "ollama_list"))
+    return tuple(dict.fromkeys(command_ids))
+
+
+def collect_candidate_auth_observations() -> dict[str, dict[str, Any]]:
+    return collect_safe_auth_observations(command_ids=_candidate_probe_command_ids())
 
 
 def _raw_output(observations: Mapping[str, Mapping[str, Any]], command_id: str) -> str:
@@ -537,6 +558,105 @@ def build_auth_status_records(observations: Mapping[str, Mapping[str, Any]]) -> 
             local_models=ollama_models,
         ),
     ]
+
+
+def _auth_record_by_provider(
+    observations: Mapping[str, Mapping[str, Any]],
+    provider: str,
+) -> dict[str, Any]:
+    for record in build_auth_status_records(observations):
+        if record.get("provider") == provider:
+            return record
+    return {}
+
+
+def candidate_available(candidate_id: str, *, observations: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Return a fail-closed availability verdict for a shipped provider lane candidate."""
+    import provider_lanes
+
+    cand = provider_lanes.get_candidate(candidate_id)
+    if cand is None:
+        return {"candidate_id": str(candidate_id or ""), "available": False, "reason": "unknown_candidate", "transport": ""}
+
+    typed_observations: Mapping[str, Mapping[str, Any]]
+    typed_observations = observations if observations is not None else collect_candidate_auth_observations()
+
+    if cand.transport == "ollama":
+        models = (
+            access_catalog.parse_ollama_models(_raw_output(typed_observations, "ollama_list"))
+            if _command_ok(typed_observations, "ollama_list")
+            else []
+        )
+        available = bool(_installed(typed_observations, "ollama_which") and models)
+        return {
+            "candidate_id": cand.candidate_id,
+            "available": available,
+            "reason": "local_runtime_ready" if available else "not_available",
+            "transport": cand.transport,
+        }
+
+    if cand.transport == "openrouter":
+        if not os.environ.get(cand.auth_env_var or ""):
+            return {
+                "candidate_id": cand.candidate_id,
+                "available": False,
+                "reason": "not_available",
+                "transport": cand.transport,
+            }
+        try:
+            provider_lanes.cost_guard_check(cand)
+        except provider_lanes.CostGuardRefusal as exc:
+            return {
+                "candidate_id": cand.candidate_id,
+                "available": False,
+                "reason": exc.reason,
+                "transport": cand.transport,
+            }
+        return {
+            "candidate_id": cand.candidate_id,
+            "available": True,
+            "reason": "prepaid_gate_ready",
+            "transport": cand.transport,
+        }
+
+    if cand.transport in {"codex", "claude"}:
+        if cand.transport == "codex" and not cand.dispatch_enabled:
+            return {
+                "candidate_id": cand.candidate_id,
+                "available": False,
+                "reason": "dispatch_disabled_p0",
+                "transport": cand.transport,
+            }
+        record = _auth_record_by_provider(typed_observations, cand.auth_probe_provider)
+        if not record or not record.get("installed"):
+            return {
+                "candidate_id": cand.candidate_id,
+                "available": False,
+                "reason": "not_available",
+                "transport": cand.transport,
+            }
+        if record.get("subscription_backing_proven") is True:
+            return {
+                "candidate_id": cand.candidate_id,
+                "available": True,
+                "reason": "authenticated_subscription",
+                "transport": cand.transport,
+            }
+        if record.get("auth_status") == "authenticated_unknown_billing" and os.environ.get("OPENCLAW_ALLOW_UNPROVEN_BILLING") == "1":
+            return {
+                "candidate_id": cand.candidate_id,
+                "available": True,
+                "reason": "unproven_billing_operator_override",
+                "transport": cand.transport,
+            }
+        return {
+            "candidate_id": cand.candidate_id,
+            "available": False,
+            "reason": "billing_mode_unproven",
+            "transport": cand.transport,
+        }
+
+    return {"candidate_id": cand.candidate_id, "available": False, "reason": "not_available", "transport": cand.transport}
 
 
 def _public_observations(observations: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:

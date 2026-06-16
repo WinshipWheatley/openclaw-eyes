@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import provider_lanes
+
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
@@ -34,6 +36,22 @@ LOCAL_ONLY_MODEL = "LOCAL_ONLY_MODEL"
 FAST_STRUCTURED_INTENT_SMALL = "FAST_STRUCTURED_INTENT_SMALL"
 STRONG_STRUCTURED_ROLE_REASONER = "STRONG_STRUCTURED_ROLE_REASONER"
 CONSERVATIVE_SENSITIVE_STRUCTURED = "CONSERVATIVE_SENSITIVE_STRUCTURED"
+
+PROVIDER_CLASS_FAST_INTENT = "provider_class:external_privacy_safe_fast_intent"
+PROVIDER_CLASS_ROLE_REASONER = "provider_class:external_privacy_safe_role_reasoner"
+PROVIDER_CLASS_LOCAL = "provider_class:local_or_private_fallback_model"
+PROVIDER_CLASS_NONE = ""
+
+SENSITIVE_REQUIRE_LOCAL = frozenset(
+    {
+        "RAW_PRIVATE_BODY",
+        "RAW_SECRET",
+        "CREDENTIAL_MATERIAL",
+        "STRICT_PRIVATE_CLIENT_METADATA",
+        "LEGAL_PRIVILEGED_RAW",
+        "HEALTH_RAW",
+    }
+)
 
 AUTHORITY_BOUNDARY = {
     "live_model_call_allowed": False,
@@ -97,6 +115,9 @@ class ProviderPolicySelection:
     selected_model_ref: str
     selected_model_class: str
     fallback_policy_id: str
+    selected_lane_id: str
+    fallback_lane_id: str
+    selected_candidate_id: str
     rejected_candidates: tuple[dict[str, Any], ...]
     selection_reason: str
     risk_notes: tuple[str, ...]
@@ -430,86 +451,207 @@ def _evaluate_record(record: ProviderPolicyRecord, request: Mapping[str, Any]) -
 
 def select_provider_candidate(request: Mapping[str, Any]) -> dict[str, Any]:
     request_id = str(request.get("request_id") or "provider_policy_request")
-    evaluations = tuple(_evaluate_record(record, request) for record in provider_policy_records())
-    usable = tuple(item for item in evaluations if item.usable)
     lane = str(request.get("chain_lane") or "").upper()
     desired_class = str(request.get("desired_model_class") or request.get("selected_model_class") or "").upper()
+    privacy_level = str(request.get("privacy_level") or request.get("sensitivity_level") or "LOW_METADATA").upper()
+    context_classes = _normalize_context_classes({**request, "privacy_level": privacy_level})
+    tokenization_applied = bool(request.get("tokenization_applied", False))
+    raw_values_included = bool(request.get("raw_values_included", False))
+    local_only_required = bool(request.get("local_only_required", False))
+    private_mode_active = bool(request.get("private_mode_active", False))
+    strict_private_mode_active = bool(request.get("strict_private_mode_active", False))
+    requires_structured_output = bool(request.get("requires_structured_output", True))
 
-    def rank(item: ProviderCandidateEvaluation) -> tuple[int, str]:
-        if desired_class and item.model_class_ref == desired_class:
-            return (0, item.policy_id)
-        if lane == "LM1_INTENT_PROPOSAL" and item.model_class_ref == FAST_EXTERNAL_INTENT_MODEL:
-            return (1, item.policy_id)
-        if lane == "LM2_ROLE_RESPONSE" and item.model_class_ref == STRONG_EXTERNAL_ROLE_MODEL:
-            return (1, item.policy_id)
-        if item.model_class_ref == LOCAL_FALLBACK_MODEL:
-            return (2, item.policy_id)
-        if item.model_class_ref == LOCAL_ONLY_MODEL:
-            return (3, item.policy_id)
-        if item.model_class_ref in {FAST_STRUCTURED_INTENT_SMALL, STRONG_STRUCTURED_ROLE_REASONER}:
-            return (4, item.policy_id)
-        if item.model_class_ref == CONSERVATIVE_SENSITIVE_STRUCTURED:
-            return (5, item.policy_id)
-        return (6, item.policy_id)
-
-    selected = sorted(usable, key=rank)[0] if usable else None
-    fallback = sorted((item for item in usable if item != selected), key=rank)[0] if selected and len(usable) > 1 else None
-    if selected and fallback is None:
-        fallback_candidates = tuple(
-            item
-            for item in evaluations
-            if item != selected and item.reject_reasons == ("MODEL_CLASS_NOT_REQUESTED",)
-        )
-        fallback = sorted(fallback_candidates, key=rank)[0] if fallback_candidates else None
-    rejected = tuple(asdict(item) for item in evaluations if not item.usable)
     risk_notes: list[str] = []
-    if bool(request.get("raw_values_included", False)):
+    if raw_values_included:
         risk_notes.append("RAW_VALUES_INCLUDED")
-    if bool(request.get("private_mode_active", False)):
+    if private_mode_active:
         risk_notes.append("PRIVATE_MODE_ACTIVE")
-    if bool(request.get("strict_private_mode_active", False)):
+    if strict_private_mode_active:
         risk_notes.append("STRICT_PRIVATE_MODE_ACTIVE")
-    if str(request.get("privacy_level") or "").upper() in {"CLIENT_FINANCE_FILE_METADATA", "STRICT_PRIVATE_CLIENT_METADATA"}:
+    if privacy_level in {"CLIENT_FINANCE_FILE_METADATA", "STRICT_PRIVATE_CLIENT_METADATA"}:
         risk_notes.append("CLIENT_PRIVACY_POLICY")
 
-    if selected:
-        selection = ProviderPolicySelection(
-            selection_id=f"provider_policy_selection:{_short_hash(request_id, selected.policy_id)}",
-            request_id=request_id,
-            selected_policy_id=selected.policy_id,
-            selected_provider_ref=selected.provider_ref,
-            selected_model_ref=selected.model_ref,
-            selected_model_class=selected.model_class_ref,
-            fallback_policy_id=fallback.policy_id if fallback else "",
+    def _base_selection(
+        *,
+        selected_provider_ref: str,
+        selected_model_ref: str,
+        selected_model_class: str,
+        selected_lane_id: str,
+        selected_candidate_id: str,
+        fallback_lane_id: str = "",
+        fallback_candidate_id: str = "",
+        rejected_candidates: tuple[dict[str, Any], ...] = (),
+        selection_reason: str,
+        expected_failure_modes: tuple[str, ...],
+        no_safe_model: bool = False,
+    ) -> dict[str, Any]:
+        selected_policy_id = f"provider_policy:{selected_lane_id}:{privacy_level}" if not no_safe_model else ""
+        fallback_policy_id = f"provider_policy:{fallback_lane_id}:{privacy_level}" if fallback_lane_id else ""
+        return {
+            "selection_id": f"provider_policy_selection:{_short_hash(request_id, selected_policy_id or selected_model_class)}",
+            "request_id": request_id,
+            "selected_policy_id": selected_policy_id,
+            "selected_provider_ref": selected_provider_ref,
+            "selected_model_ref": selected_model_ref,
+            "selected_model_class": selected_model_class,
+            "fallback_policy_id": fallback_policy_id,
+            "selected_lane_id": selected_lane_id,
+            "fallback_lane_id": fallback_lane_id,
+            "selected_candidate_id": selected_candidate_id,
+            "fallback_candidate_id": fallback_candidate_id,
+            "rejected_candidates": rejected_candidates,
+            "selection_reason": selection_reason,
+            "risk_notes": tuple(dict.fromkeys(risk_notes)),
+            "expected_failure_modes": expected_failure_modes,
+            "no_safe_model": no_safe_model,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            "next_safe_move": (
+                "Do not call a model; resolve provider/privacy policy first."
+                if no_safe_model
+                else "Expose this as candidate policy only; no live model call is allowed."
+            ),
+        }
+
+    def _local_selection(reason: str, rejected: tuple[dict[str, Any], ...] = ()) -> dict[str, Any]:
+        return _base_selection(
+            selected_provider_ref=PROVIDER_CLASS_LOCAL,
+            selected_model_ref="",
+            selected_model_class=LOCAL_FALLBACK_MODEL,
+            selected_lane_id="local_only",
+            selected_candidate_id=provider_lanes.LOCAL_FLOOR_CANDIDATE,
+            selection_reason=reason,
             rejected_candidates=rejected,
-            selection_reason="Selected first usable provider policy candidate for the requested lane/model class.",
-            risk_notes=tuple(dict.fromkeys(risk_notes)),
-            expected_failure_modes=selected.expected_failure_modes,
-            no_safe_model=False,
-            authority_boundary=dict(AUTHORITY_BOUNDARY),
-            next_safe_move="Expose this as candidate policy only; no live model call is allowed.",
+            expected_failure_modes=("lower-quality local reasoning", "malformed structured output"),
         )
-    else:
-        failure_modes: list[str] = []
-        for item in evaluations:
-            failure_modes.extend(item.expected_failure_modes)
-        selection = ProviderPolicySelection(
-            selection_id=f"provider_policy_selection:{_short_hash(request_id, 'no_safe_model')}",
-            request_id=request_id,
-            selected_policy_id="",
-            selected_provider_ref="",
+
+    def _no_safe(reason: str, rejected: tuple[dict[str, Any], ...] = ()) -> dict[str, Any]:
+        return _base_selection(
+            selected_provider_ref=PROVIDER_CLASS_NONE,
             selected_model_ref="",
             selected_model_class=NO_SAFE_MODEL,
-            fallback_policy_id="",
-            rejected_candidates=tuple(asdict(item) for item in evaluations),
-            selection_reason="No provider policy candidate satisfied lane/privacy constraints.",
-            risk_notes=tuple(dict.fromkeys(risk_notes)),
-            expected_failure_modes=tuple(dict.fromkeys(failure_modes or ["provider policy block"])),
+            selected_lane_id="",
+            selected_candidate_id="",
+            selection_reason=reason,
+            rejected_candidates=rejected,
+            expected_failure_modes=("privacy gate blocks live provider route", "provider policy block"),
             no_safe_model=True,
-            authority_boundary=dict(AUTHORITY_BOUNDARY),
-            next_safe_move="Do not call a model; resolve provider/privacy policy first.",
         )
-    return asdict(selection)
+
+    external_desired = desired_class in {FAST_EXTERNAL_INTENT_MODEL, STRONG_EXTERNAL_ROLE_MODEL}
+    if desired_class == NO_SAFE_MODEL:
+        return _no_safe(
+            "Requested model class is NO_SAFE_MODEL.",
+            rejected=({"candidate_id": "all", "reason": "NO_SAFE_MODEL_REQUESTED"},),
+        )
+
+    force_local = (
+        privacy_level in SENSITIVE_REQUIRE_LOCAL
+        or privacy_level not in provider_lanes.KNOWN_EXTERNAL_OK_LEVELS
+        or local_only_required
+        or strict_private_mode_active
+        or desired_class in {LOCAL_FALLBACK_MODEL, LOCAL_ONLY_MODEL}
+    )
+    if force_local:
+        reason = (
+            "FORCED_LOCAL_LABEL_NOT_ALLOWLISTED"
+            if privacy_level not in provider_lanes.KNOWN_EXTERNAL_OK_LEVELS and desired_class not in {LOCAL_FALLBACK_MODEL, LOCAL_ONLY_MODEL}
+            else "FORCED_LOCAL_SENSITIVE_OR_PRIVATE"
+        )
+        rejected: list[dict[str, Any]] = []
+        if external_desired:
+            lane_id = "fast" if desired_class == FAST_EXTERNAL_INTENT_MODEL else "balanced"
+            for candidate_id in provider_lanes.lane_candidates(lane_id):
+                cand = provider_lanes.get_candidate(candidate_id)
+                if cand and cand.is_cloud:
+                    rejected.append({"candidate_id": candidate_id, "reason": "PRIVACY_CEILING_EXCEEDED"})
+        return _local_selection(reason, tuple(rejected))
+
+    if external_desired and not tokenization_applied and privacy_level != "LOW_METADATA":
+        return _no_safe(
+            "TOKENIZATION_REQUIRED_BEFORE_PROVIDER",
+            rejected=({"candidate_id": "external_provider_class", "reason": "TOKENIZATION_REQUIRED_BEFORE_PROVIDER"},),
+        )
+
+    if desired_class in {LOCAL_FALLBACK_MODEL, LOCAL_ONLY_MODEL}:
+        return _local_selection("FORCED_LOCAL_MODEL_CLASS_REQUESTED")
+
+    if desired_class == FAST_EXTERNAL_INTENT_MODEL:
+        selected_provider_ref = PROVIDER_CLASS_FAST_INTENT
+        selected_model_class = FAST_EXTERNAL_INTENT_MODEL
+        lane_id = "fast"
+        ordered = (
+            provider_lanes.DEFAULT_FAST_EXTERNAL_CANDIDATE,
+            "codex_exec",
+            "local_qwen_fast",
+        )
+    elif desired_class == STRONG_EXTERNAL_ROLE_MODEL:
+        selected_provider_ref = PROVIDER_CLASS_ROLE_REASONER
+        selected_model_class = STRONG_EXTERNAL_ROLE_MODEL
+        code_hint = requires_structured_output and any("CODE" in value.upper() for value in context_classes)
+        lane_id = "code" if code_hint else "balanced"
+        ordered = (
+            provider_lanes.DEFAULT_CODE_CANDIDATE,
+            "claude_cli",
+            "local_deep",
+        ) if code_hint else (
+            provider_lanes.DEFAULT_STRONG_EXTERNAL_CANDIDATE,
+            "kimi_openrouter",
+            "local_qwen_strong",
+        )
+    else:
+        return _local_selection("UNRECOGNIZED_CLASS_FALLS_BACK_LOCAL")
+
+    selected_candidate_id = ""
+    for candidate_id in ordered:
+        cand = provider_lanes.get_candidate(candidate_id)
+        if cand and provider_lanes.rank(privacy_level) <= provider_lanes.rank(cand.max_privacy_level):
+            selected_candidate_id = candidate_id
+            break
+    if not selected_candidate_id:
+        return _local_selection(
+            "CLOUD_CEILING_REJECTED_ALL_CANDIDATES",
+            tuple({"candidate_id": candidate_id, "reason": "PRIVACY_CEILING_EXCEEDED"} for candidate_id in ordered),
+        )
+
+    selected_candidate = provider_lanes.get_candidate(selected_candidate_id)
+    assert selected_candidate is not None
+    if not selected_candidate.is_cloud:
+        selected_provider_ref = PROVIDER_CLASS_LOCAL
+        selected_model_class = LOCAL_FALLBACK_MODEL
+
+    rejected: list[dict[str, Any]] = []
+    for candidate_id in ordered:
+        cand = provider_lanes.get_candidate(candidate_id)
+        if cand is None:
+            continue
+        if provider_lanes.rank(privacy_level) > provider_lanes.rank(cand.max_privacy_level):
+            rejected.append({"candidate_id": candidate_id, "reason": "PRIVACY_CEILING_EXCEEDED"})
+            continue
+        if candidate_id == selected_candidate_id:
+            if cand.is_cloud and not cand.dispatch_enabled:
+                rejected.append({"candidate_id": candidate_id, "reason": "DISPATCH_DISABLED_P0"})
+            continue
+        rejected.append({"candidate_id": candidate_id, "reason": "NOT_PRIMARY_PICK"})
+
+    fallback_candidate_id = ""
+    for candidate_id in ordered:
+        if candidate_id != selected_candidate_id:
+            fallback_candidate_id = candidate_id
+            break
+
+    return _base_selection(
+        selected_provider_ref=selected_provider_ref,
+        selected_model_ref=selected_candidate.model_ref if selected_candidate.is_cloud else "",
+        selected_model_class=selected_model_class,
+        selected_lane_id=lane_id,
+        selected_candidate_id=selected_candidate_id,
+        fallback_lane_id=lane_id if fallback_candidate_id else "",
+        fallback_candidate_id=fallback_candidate_id,
+        rejected_candidates=tuple(rejected),
+        selection_reason="Selected model-agnostic lane candidate by privacy ceiling and policy class.",
+        expected_failure_modes=("malformed structured output", "provider refusal", "local fallback lower quality"),
+    )
 
 
 def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
@@ -574,10 +716,22 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "request_id": "provider_policy_fixture_raw_block",
                 "chain_lane": "LM2_ROLE_RESPONSE",
                 "desired_model_class": STRONG_EXTERNAL_ROLE_MODEL,
-                "privacy_level": "RAW_PRIVATE_BODY",
-                "context_classes": ("RAW_PRIVATE_BODY",),
+                "privacy_level": "TOKENIZED_CLIENT_FINANCE_METADATA",
+                "context_classes": ("TOKENIZED_CLIENT_FINANCE_METADATA",),
                 "tokenization_applied": False,
                 "raw_values_included": True,
+                "requires_structured_output": True,
+            }
+        ),
+        "unknown_label_force_local": select_provider_candidate(
+            {
+                "request_id": "provider_policy_fixture_unknown_label",
+                "chain_lane": "LM1_INTENT_PROPOSAL",
+                "desired_model_class": FAST_EXTERNAL_INTENT_MODEL,
+                "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+                "context_classes": ("CLIENT_FINANCE_FILE_METADATA",),
+                "tokenization_applied": True,
+                "raw_values_included": False,
                 "requires_structured_output": True,
             }
         ),
@@ -589,6 +743,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "generated_at": generated_at,
         "provider_policy_records": tuple(asdict(record) for record in provider_policy_records()),
         "examples": examples,
+        "lanes_snapshot": provider_lanes.public_lane_table(),
         "connects_to_chain": {
             "model_router": "Router asks this registry for a policy-compatible provider/model-class candidate.",
             "lm1": "LM1 may only receive a candidate after provider/privacy policy passes.",
@@ -602,12 +757,14 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "provider_key_material_access_performed": False,
             "lm1_policy_selects_fast_candidate": examples["lm1_intent_policy"]["selected_model_class"] == FAST_EXTERNAL_INTENT_MODEL,
             "lm2_policy_selects_strong_candidate": examples["lm2_role_policy"]["selected_model_class"] == STRONG_EXTERNAL_ROLE_MODEL,
-            "local_fallback_selects_local_candidate": examples["local_fallback_policy"]["selected_model_class"] == LOCAL_FALLBACK_MODEL,
+            "local_fallback_selects_local_candidate": examples["local_fallback_policy"]["selected_candidate_id"] == provider_lanes.LOCAL_FLOOR_CANDIDATE,
             "private_cloud_candidate_rejected": any(
-                "STRICT_PRIVATE_REQUIRES_LOCAL_ONLY" in item["reject_reasons"] or "PRIVATE_MODE_BLOCKS_CLOUD" in item["reject_reasons"]
+                item.get("reason") in {"PRIVACY_CEILING_EXCEEDED", "FORCED_LOCAL_SENSITIVE_OR_PRIVATE"}
                 for item in examples["private_cloud_block"]["rejected_candidates"]
             ),
             "raw_values_block_no_safe_model": examples["raw_values_block"]["selected_model_class"] == NO_SAFE_MODEL,
+            "unknown_label_forces_local": examples["unknown_label_force_local"]["selected_candidate_id"] == provider_lanes.LOCAL_FLOOR_CANDIDATE,
+            "lane_table_contains_no_live_authority": True,
             "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "content_hash": "",
         },
