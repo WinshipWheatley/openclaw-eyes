@@ -74,12 +74,26 @@ def session_from_request(request: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def operator_text_from_request(request: Mapping[str, Any]) -> str:
-    for key in ("operator_text", "chat_goal", "goal_text", "source_text", "text", "message"):
+    text_keys = (
+        "operator_text",
+        "operatorText",
+        "operator_message",
+        "operatorMessage",
+        "chat_goal",
+        "chatGoal",
+        "goal_text",
+        "goalText",
+        "source_text",
+        "sourceText",
+        "text",
+        "message",
+    )
+    for key in text_keys:
         value = request.get(key)
         if isinstance(value, str) and value.strip():
             return value.strip()
     event = request.get("event") if isinstance(request.get("event"), Mapping) else {}
-    for key in ("operator_text", "chat_goal", "goal_text", "source_text", "text", "message"):
+    for key in text_keys:
         value = event.get(key)
         if isinstance(value, str) and value.strip():
             return value.strip()

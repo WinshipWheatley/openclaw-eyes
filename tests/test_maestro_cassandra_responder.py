@@ -83,6 +83,34 @@ def _verified_chat_request(text: str, *, world: str = "general", thread: str = "
     )
 
 
+def _maestro_operator_instruction_request(text: str, *, request_id: str = "general_operator_instruction_test") -> dict:
+    request = {
+        "active_surface_ref": "operator_maestro_chat",
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+        "created_at": FIXED_NOW,
+        "current_world_ref": "general",
+        "idempotency_key": f"mission_control_operator_instruction:general:no_thread:{request_id}",
+        "kind": "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+        "mac_wrote_request_only": True,
+        "operator_message": text,
+        "origin_surface": "mission_control_mac",
+        "request_id": request_id,
+        "request_type": "WORKFLOW_PACKAGE_REQUEST_V0",
+        "requested_mode": "operator",
+        "result_receipt_required": True,
+        "schema_version": "operator_instruction_writer_v0",
+        "source_channel": "mission_control_chat",
+        "source_request_id": request_id,
+        "source_surface": "mission_control",
+        "source_text": text,
+        "thread_title": "Maestro",
+        "world": "general",
+        "world_ref": "general",
+    }
+    request["payload_hash"] = processor._content_hash(request)
+    return request
+
+
 def _route(tmp_path: Path, request: dict) -> dict:
     read_model_root = _seed_read_models(tmp_path)
     return router.route_controller_event(
@@ -323,6 +351,100 @@ def test_processor_answer_path_keeps_existing_controller_event_envelope(monkeypa
             "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
         },
     )
+
+
+def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_answer(text: str, *, session=None):
+        calls.append((text, session))
+        return maestro.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="date_awareness",
+            allowed_to_call_handle=True,
+            one_line_answer="Today is 2026-06-16 (Tuesday).",
+            plain_summary="Today is 2026-06-16 (Tuesday).",
+            session_forwarded=maestro.filtered_session(session),
+            machine_proof={
+                "intent_gate_before_handle": True,
+                "cassandra_handle_called": True,
+                "email_send_performed": False,
+                "gmail_metadata_read_performed": False,
+                "telegram_send_triggered": False,
+                "text_response_only": True,
+            },
+        )
+
+    monkeypatch.setattr(maestro, "answer_frontdoor_chat", fake_answer)
+    read_model_root = _seed_read_models(tmp_path)
+    request_path = tmp_path / "mission_control_operator_instruction_request_general_operator_instruction_20260616T171609Z.json"
+    request_path.write_text(
+        json.dumps(_maestro_operator_instruction_request("what's today's date"), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=read_model_root,
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+
+    assert response.request_type == "CHAT"
+    assert response.internal_status == "RESPONSE_READY"
+    assert response.operator_headline == "Today is 2026-06-16 (Tuesday)."
+    assert response.operator_message == "Today is 2026-06-16 (Tuesday)."
+    assert "Workflow package staged" not in response.operator_headline + response.operator_message
+    assert response.detail_disclosure["maestro_frontdoor_routing"]["workflow_package_staged"] is False
+    assert response.detail_disclosure["maestro_cassandra_responder"]["allowed_to_call_handle"] is True
+    assert response.detail_disclosure["workflow_package_staged"] is False
+    assert response.visible_cards[0]["actions"] == []
+    assert response.worker_route_refs == (
+        {
+            "selected_worker_target": "PC_CODEX",
+            "selected_machine": "PC_WSL",
+            "routing_status": "PROCESSING_ON_PC",
+            "selected_rail": "MAESTRO_CASSANDRA_RESPONDER",
+            "controller_event_type": "chat_goal",
+            "route_status": "TEXT_RESPONSE_READY",
+            "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
+        },
+    )
+    assert calls == [("what's today's date", {})]
+
+
+def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, tmp_path):
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("cassandra_brain.handle must not be called for action intent")
+
+    monkeypatch.setattr(maestro, "_default_handle", forbidden_handle)
+    read_model_root = _seed_read_models(tmp_path)
+    request_path = tmp_path / "mission_control_operator_instruction_request_general_operator_instruction_send.json"
+    request_path.write_text(
+        json.dumps(
+            _maestro_operator_instruction_request(
+                "send email to Glenn subject: hi body: hello",
+                request_id="general_operator_instruction_send_test",
+            ),
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=read_model_root,
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+
+    assert response.request_type == "WORKFLOW_PACKAGE_REQUEST"
+    assert response.internal_status == "RESPONSE_READY"
+    assert response.operator_headline == "Workflow package staged"
+    assert "Workflow Package Queue" in response.why_it_happened
+    assert response.detail_disclosure.get("maestro_frontdoor_routing") is None
 
 
 def test_adapter_structural_imports_only_cassandra_handle_from_forbidden_family():
