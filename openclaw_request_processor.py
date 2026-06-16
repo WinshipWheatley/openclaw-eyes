@@ -36,6 +36,7 @@ import invoice_review_action_request_handler
 import local_surface_request_contract
 import operator_file_metadata_intake
 import global_run_mode_context
+import maestro_cassandra_responder
 import operator_controller_event_router
 import openclaw_request_router
 import proof_to_response_runtime
@@ -2591,6 +2592,25 @@ def _classification_from_router_decision(
     )
 
 
+def _maestro_frontdoor_classification(
+    classification: RequestClassification,
+    *,
+    request_path: Path,
+) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'maestro_frontdoor_chat')}",
+        source_request_filename=classification.source_request_filename,
+        request_family="CHAT",
+        selected_rail="MAESTRO_CASSANDRA_RESPONDER",
+        classification_reason=(
+            "Payload is a general Maestro front-door operator instruction; selecting the gated Maestro "
+            "Cassandra responder before workflow-package staging."
+        ),
+        future_supported=False,
+        next_safe_move="Return the gated Maestro answer when available; otherwise keep default staging.",
+    )
+
+
 def _workflow_package_request_classification(classification: RequestClassification) -> RequestClassification:
     return RequestClassification(
         classification_id=f"request_classification_{_short_hash(classification.source_request_filename, 'workflow_package_request')}",
@@ -4847,6 +4867,149 @@ def _process_operator_controller_event_request(
     )
 
 
+def _normalized_request_kind(raw_request: Mapping[str, Any]) -> str:
+    return str(
+        raw_request.get("kind")
+        or raw_request.get("type")
+        or raw_request.get("request_type")
+        or raw_request.get("requestType")
+        or ""
+    ).strip().upper()
+
+
+def _maestro_frontdoor_surface(raw_request: Mapping[str, Any]) -> str:
+    return str(raw_request.get("active_surface_ref") or raw_request.get("activeSurfaceRef") or "").strip()
+
+
+def _is_maestro_frontdoor_operator_instruction(raw_request: Mapping[str, Any]) -> bool:
+    if _maestro_frontdoor_surface(raw_request) != "operator_maestro_chat":
+        return False
+    if str(raw_request.get("controller_event_type") or raw_request.get("controller_action_type") or "").strip():
+        return False
+    if _normalized_request_kind(raw_request) not in {"OPERATOR_INSTRUCTION_PACKAGE_REQUEST", "WORKFLOW_PACKAGE_REQUEST_V0"}:
+        return False
+    if not maestro_cassandra_responder.operator_text_from_request(raw_request):
+        return False
+    authority = raw_request.get("authority_boundary")
+    return isinstance(authority, Mapping) and not any(value is True for value in authority.values())
+
+
+def _process_maestro_frontdoor_operator_instruction(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any],
+) -> OpenClawResponseForMac | None:
+    if not _is_maestro_frontdoor_operator_instruction(raw_request):
+        return None
+
+    operator_text = maestro_cassandra_responder.operator_text_from_request(raw_request)
+    result = maestro_cassandra_responder.answer_frontdoor_chat(
+        operator_text,
+        session=maestro_cassandra_responder.session_from_request(raw_request),
+    )
+    if result.status != "ANSWER_READY":
+        return None
+
+    request_id = str(raw_request.get("request_id") or raw_request.get("source_request_id") or f"missing_request_id_{request_path.stem}")
+    current_world = str(
+        raw_request.get("current_world_ref")
+        or raw_request.get("currentWorldRef")
+        or raw_request.get("world_ref")
+        or raw_request.get("worldRef")
+        or raw_request.get("world")
+        or "general"
+    )
+    current_thread = str(
+        raw_request.get("current_thread_ref")
+        or raw_request.get("currentThreadRef")
+        or raw_request.get("thread_ref")
+        or raw_request.get("threadRef")
+        or _maestro_frontdoor_surface(raw_request)
+        or "operator_maestro_chat"
+    )
+    response_classification = _maestro_frontdoor_classification(classification, request_path=request_path)
+    card = {
+        "schema_version": "maestro_frontdoor_answer_card_v0",
+        "card_id": f"maestro_frontdoor_answer_{_short_hash(request_id, result.one_line_answer)}",
+        "card_type": "MAESTRO_CASSANDRA_ANSWER",
+        "title": result.one_line_answer or "Maestro response",
+        "summary": result.plain_summary,
+        "status_label": "Maestro",
+        "route_status": "TEXT_RESPONSE_READY",
+        "mac_render_hint": result.mac_render_hint,
+        "actions": [],
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "proof": {
+            "proof_refs": ["generated/read_models/openclaw_request_processor_status.json"],
+            "machine_proof": dict(result.machine_proof or {}),
+        },
+    }
+    detail = {
+        "request_classification": asdict(response_classification),
+        "original_request_classification": asdict(classification),
+        "request_router_decision": dict(route_decision),
+        "maestro_frontdoor_routing": {
+            "source_surface": _maestro_frontdoor_surface(raw_request),
+            "workflow_package_staged": False,
+            "default_deny_preserved": True,
+            "route_to_staging_when_not_answer_ready": True,
+        },
+        "maestro_cassandra_responder": result.to_dict(),
+        "dynamic_card_response": card,
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+        "workflow_package_staged": False,
+        "workflow_package_request_v0_emitted": False,
+        "email_send_performed": False,
+        "gmail_access_performed": False,
+        "business_action_performed": False,
+        "ledger_mutation_performed": False,
+        "workbook_mutation_performed": False,
+        "paid_marking_performed": False,
+        "external_llm_invoked": False,
+        "local_model_runtime_connected": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=f"{current_world}/{current_thread}",
+        request_type="CHAT",
+        internal_status="RESPONSE_READY",
+        operator_headline=result.one_line_answer or "Maestro response",
+        operator_message=result.plain_summary,
+        what_happened=(
+            "OpenClaw recognized the general Maestro front-door chat surface.",
+            "The gated Maestro Cassandra responder answered before workflow-package staging.",
+            "No workflow package was staged for this allowed answer.",
+            "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, external LLM, local model runtime, worker, or business execution occurred.",
+        ),
+        why_it_happened=f"The Maestro intent gate allowed {result.intent_class} before Cassandra handle ran.",
+        how_to_fix="No fix is needed. Review the Maestro answer and ask a follow-up if needed.",
+        visible_cards=(card,),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": "PC_CODEX",
+                "selected_machine": "PC_WSL",
+                "routing_status": "PROCESSING_ON_PC",
+                "selected_rail": "MAESTRO_CASSANDRA_RESPONDER",
+                "controller_event_type": "chat_goal",
+                "route_status": "TEXT_RESPONSE_READY",
+                "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=None,
+        detail_disclosure=detail,
+        readback_files=(),
+        next_safe_move="Render the Maestro answer in Mission Control.",
+    )
+
+
 def _process_parked_router_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -6574,6 +6737,14 @@ def process_request_path(
             classification=effective_classification,
             route_decision=route_decision,
         )
+    maestro_frontdoor_response = _process_maestro_frontdoor_operator_instruction(
+        request_path,
+        raw_request,
+        classification=effective_classification,
+        route_decision=route_decision,
+    )
+    if maestro_frontdoor_response is not None:
+        return maestro_frontdoor_response
     if effective_classification.request_family == "WORKFLOW_PACKAGE_REQUEST":
         return _process_workflow_package_request(
             request_path,
