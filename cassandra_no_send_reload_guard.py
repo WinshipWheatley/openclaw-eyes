@@ -10,6 +10,8 @@ ALT_ENV_VAR = "OPENCLAW_CASSANDRA_NO_SEND_RELOAD_GUARD"
 MODE_ENV_VAR = "CASSANDRA_SEND_CAPABLE_MODE"
 ALT_MODE_ENV_VAR = "OPENCLAW_CASSANDRA_SEND_CAPABLE_MODE"
 STATUS_DRY_RUN_MODE = "status_dry_run"
+BRIEF_CARVEOUT_ENV_VAR = "CASSANDRA_INTERNAL_BRIEF_CARVEOUT"
+ALT_BRIEF_CARVEOUT_ENV_VAR = "OPENCLAW_CASSANDRA_INTERNAL_BRIEF_CARVEOUT"
 _TRUTHY = {"1", "true", "yes", "on", "enabled"}
 
 
@@ -44,3 +46,26 @@ def should_quiesce_send_capable_service() -> bool:
 def outbound_delivery_blocked() -> bool:
     """Return true when any local no-send mode blocks outbound delivery."""
     return is_no_send_reload_guard_enabled() or is_status_dry_run_enabled()
+
+
+def is_internal_brief_carveout_enabled() -> bool:
+    """Return true only when the internal operator-brief carve-out is enabled.
+
+    Default OFF. This permits only the scheduled operator brief to Winship's
+    verified Telegram chat id. Status dry-run mode never carves out.
+    """
+    if is_status_dry_run_enabled():
+        return False
+    return any(
+        (os.environ.get(name) or "").strip().lower() in _TRUTHY
+        for name in (BRIEF_CARVEOUT_ENV_VAR, ALT_BRIEF_CARVEOUT_ENV_VAR)
+    )
+
+
+def briefing_delivery_blocked() -> bool:
+    """Return true when the internal operator brief must not deliver."""
+    if is_status_dry_run_enabled():
+        return True
+    if not should_quiesce_send_capable_service():
+        return False
+    return not is_internal_brief_carveout_enabled()

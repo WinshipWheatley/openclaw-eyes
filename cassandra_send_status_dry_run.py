@@ -16,6 +16,8 @@ from typing import Any
 
 from cassandra_no_send_reload_guard import (
     STATUS_DRY_RUN_MODE,
+    briefing_delivery_blocked,
+    is_internal_brief_carveout_enabled,
     outbound_delivery_blocked,
 )
 
@@ -259,6 +261,14 @@ def build_briefing_scheduler_status(*, generated_at: str | None = None) -> dict[
         "advanced_beyond_startup_guard": True,
         "outbound_delivery_blocked": outbound_delivery_blocked(),
         "briefing_schedule": briefing,
+        "internal_brief_carveout": {
+            "enabled": is_internal_brief_carveout_enabled(),
+            "delivery_blocked": briefing_delivery_blocked(),
+            "target": "winship_operator_telegram_chat_id_only",
+            "external_client_send_allowed": False,
+            "send_hold_touched": False,
+            "external_paths_still_blocked": True,
+        },
         "blocked_outbound_paths": [
             "briefing_generation_to_delivery",
             "pending_briefing_delivery",

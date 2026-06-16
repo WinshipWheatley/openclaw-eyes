@@ -5,7 +5,7 @@ Daemon: polls every 5 minutes.  On each tick:
   1. Check for briefing slots whose generation window is now open.
   2. Generate any due slots that haven't been generated today.
   3. If the window is protected → mark briefing pending, log reason, skip delivery.
-  4. If the window is clear → deliver immediately via Telegram + batch voice.
+  4. If the window is clear → deliver immediately to operator Telegram + batch voice.
   5. On every tick, also check for stale pending briefings and deliver them
      if the protected window has since cleared.
 
@@ -36,9 +36,11 @@ from cassandra_briefing_brain import (
     split_briefing_messages,
     briefing_voice_text,
 )
-from cassandra_sender import send_message
-from cassandra_voice import speak_and_send_voice_note
+from cassandra_sender import send_operator_brief
+from cassandra_voice import speak_and_send_operator_brief_voice
 from cassandra_no_send_reload_guard import (
+    briefing_delivery_blocked,
+    is_internal_brief_carveout_enabled,
     is_status_dry_run_enabled,
     should_quiesce_send_capable_service,
 )
@@ -76,6 +78,10 @@ def _restart_if_sources_changed() -> None:
 
 def _deliver(entry: dict) -> None:
     """Send a briefing to Telegram then trigger batch voice render."""
+    if briefing_delivery_blocked():
+        print("[briefing_scheduler] briefing delivery blocked by no-send guard", flush=True)
+        return
+
     slot  = entry["slot"]
     date  = entry["date"]
     text  = entry["text"]
@@ -93,9 +99,9 @@ def _deliver(entry: dict) -> None:
                         continue
                     message = f"[{header}]\n\n{body}"
                     try:
-                        send_message(message)
+                        send_operator_brief(message)
                         voice_text = normalize_speech_text(body)
-                        speak_and_send_voice_note(voice_text)
+                        speak_and_send_operator_brief_voice(voice_text)
                     except Exception as e:
                         print(f"[briefing_scheduler] chunk delivery error: {e}", flush=True)
                 mark_delivered(date, slot)
@@ -106,7 +112,7 @@ def _deliver(entry: dict) -> None:
 
     try:
         for message in split_briefing_messages(entry):
-            send_message(message)
+            send_operator_brief(message)
         mark_delivered(date, slot)
         print(
             f"[briefing_scheduler] delivered {date}_{slot} ({len(text)} chars)",
@@ -119,7 +125,7 @@ def _deliver(entry: dict) -> None:
     # Voice note/local playback — non-blocking, optional; failures are swallowed inside voice path.
     # Morning slot handled voice note per-chunk above.
     if slot != "morning":
-        speak_and_send_voice_note(briefing_voice_text(entry))
+        speak_and_send_operator_brief_voice(briefing_voice_text(entry))
 
 
 # ── Main tick ─────────────────────────────────────────────────────────────────
@@ -130,7 +136,7 @@ def _tick() -> None:
         print(format_service_status_marker("briefing_scheduler", status), flush=True)
         return
 
-    if should_quiesce_send_capable_service():
+    if should_quiesce_send_capable_service() and not is_internal_brief_carveout_enabled():
         print(
             "[briefing_scheduler] no-send reload guard active; skipping scheduler tick",
             flush=True,
