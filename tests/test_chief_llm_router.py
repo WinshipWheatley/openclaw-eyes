@@ -395,6 +395,37 @@ def test_openrouter_call_empty_content_returns_empty(monkeypatch):
     assert logs[-1][4] is False
 
 
+def test_claude_external_call_uses_openrouter_transport_and_policy_metadata(monkeypatch):
+    calls = []
+
+    def fake_openrouter_call(prompt, *, model, metadata, timeout=0):
+        calls.append({
+            "prompt": prompt,
+            "model": model,
+            "metadata": metadata,
+            "timeout": timeout,
+        })
+        return "claude answer"
+
+    monkeypatch.setattr(chief_llm, "openrouter_call", fake_openrouter_call)
+
+    out = chief_llm.claude_external_call(
+        "Synthetic public fixture prompt.",
+        metadata=_openrouter_metadata(),
+        timeout=11,
+    )
+
+    assert out == "claude answer"
+    assert calls == [
+        {
+            "prompt": "Synthetic public fixture prompt.",
+            "model": chief_llm.CLAUDE_MODEL,
+            "metadata": _openrouter_metadata(),
+            "timeout": 11,
+        }
+    ]
+
+
 def test_resolve_local_model_routes_cassandra_user_reply_to_gemma_26b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,

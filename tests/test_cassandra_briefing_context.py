@@ -327,6 +327,84 @@ def test_non_morning_brief_uses_deterministic_fallback_after_llm_failures(monkey
     assert "LLM did not respond" not in text
 
 
+def test_briefing_stage_uses_policy_gated_claude_when_explicitly_allowed(monkeypatch):
+    calls: list[dict] = []
+
+    monkeypatch.setenv("OPENCLAW_BRIEFING_EXTERNAL_DATA_CLASSIFICATION", "synthetic_public")
+    monkeypatch.setenv("OPENCLAW_BRIEFING_EXTERNAL_CLOUD_ALLOWED", "true")
+    monkeypatch.setattr(bb, "resolve_local_model", lambda prompt, lane=None: ("gemma4:e4b", "fast"))
+    monkeypatch.setattr(
+        bb,
+        "ollama_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("local fallback should not run")),
+    )
+
+    def fake_claude_external_call(prompt, *, model, metadata, timeout=0):
+        calls.append({
+            "model": model,
+            "metadata": metadata,
+            "timeout": timeout,
+        })
+        return "Guardian gate clear."
+
+    monkeypatch.setattr(bb, "claude_external_call", fake_claude_external_call)
+
+    stage = bb._run_briefing_stage(
+        name="guardian",
+        role="guardian",
+        prompt="Synthetic public fixture prompt for a morning briefing stage.",
+        lane="fast",
+        timeout=90,
+    )
+
+    assert stage["text"] == "Guardian gate clear."
+    assert stage["provider"] == "openrouter_claude"
+    assert stage["model"] == bb.CLAUDE_MODEL
+    assert stage["model_tier"] == "sonnet"
+    assert stage["external_model_used"] is True
+    assert stage["local_fallback_used"] is False
+    assert stage["external_model_policy"]["external_model_safe"] is True
+    assert calls[0]["timeout"] == 45
+    assert calls[0]["metadata"]["cloud_allowed"] == "true"
+
+
+def test_briefing_stage_falls_back_locally_when_external_policy_blocks(monkeypatch):
+    external_calls: list[str] = []
+    local_calls: list[dict] = []
+
+    monkeypatch.delenv("OPENCLAW_BRIEFING_EXTERNAL_DATA_CLASSIFICATION", raising=False)
+    monkeypatch.delenv("OPENCLAW_BRIEFING_EXTERNAL_CLOUD_ALLOWED", raising=False)
+    monkeypatch.setattr(bb, "resolve_local_model", lambda prompt, lane=None: ("gemma4:e4b", "fast"))
+    monkeypatch.setattr(
+        bb,
+        "claude_external_call",
+        lambda *args, **kwargs: external_calls.append("called") or "should not be used",
+    )
+
+    def fake_ollama_call(prompt, timeout=0, model=None, task_class=None, **kwargs):
+        local_calls.append({"model": model, "timeout": timeout, "task_class": task_class})
+        return "Local fallback briefing."
+
+    monkeypatch.setattr(bb, "ollama_call", fake_ollama_call)
+
+    stage = bb._run_briefing_stage(
+        name="chief",
+        role="chief_morning",
+        prompt="Private morning briefing prompt should stay local by default.",
+        lane="strong",
+        timeout=90,
+    )
+
+    assert stage["text"] == "Local fallback briefing."
+    assert stage["provider"] == "local_ollama"
+    assert stage["model"] == "gemma4:e4b"
+    assert stage["external_model_used"] is False
+    assert stage["local_fallback_used"] is True
+    assert stage["external_model_policy"]["external_model_safe"] is False
+    assert external_calls == []
+    assert local_calls == [{"model": "gemma4:e4b", "timeout": 90, "task_class": "cassandra_morning_brief"}]
+
+
 def test_generate_morning_brief_uses_generous_delivery_timeout(monkeypatch, tmp_path):
     synthesis = tmp_path / "Chief Morning Synthesis.md"
     cache = tmp_path / "morning_reference_cache.json"

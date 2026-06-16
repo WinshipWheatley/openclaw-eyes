@@ -339,6 +339,7 @@ OLLAMA_MODEL      = "qwen2.5-coder:7b"   # default: fast hot-path model
 OLLAMA_MODEL_DEEP = "qwen2.5-coder:14b"  # escalation: synthesis / deep analysis
 
 CLAUDE_MODEL = "claude-sonnet-4-6"
+CLAUDE_OPUS_MODEL = os.environ.get("OPENCLAW_CLAUDE_OPUS_MODEL", "claude-opus-4-6")
 CLAUDE_CLI   = "/home/openclaw/.local/bin/claude"
 
 # External model packet policy -------------------------------------------------
@@ -807,6 +808,27 @@ def claude_json(prompt: str, timeout: int = 20, retries: int = 3) -> dict | list
     """Claude CLI JSON helper is blocked for OpenClaw agent-side use."""
     print("[chief_llm] claude_json blocked by policy: Claude CLI is human-only", flush=True)
     return {}
+
+
+def claude_external_call(
+    prompt: str,
+    *,
+    model: str | None = None,
+    metadata: dict | None = None,
+    timeout: int = 30,
+) -> str:
+    """Call Claude through the existing gated external-model transport.
+
+    This is intentionally separate from ``claude_call`` because the Claude CLI
+    remains human-only. The transport is OpenRouter and it fails closed unless
+    ``external_model_packet_policy`` allows the packet and an API key exists.
+    """
+    return openrouter_call(
+        prompt,
+        model=model or CLAUDE_MODEL,
+        metadata=metadata,
+        timeout=timeout,
+    )
 
 
 def ollama_json(prompt: str, timeout: int = 15, task_class: str | None = None) -> dict:

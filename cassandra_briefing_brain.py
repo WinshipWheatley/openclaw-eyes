@@ -44,7 +44,15 @@ from pathlib import Path
 from cassandra_brain import build_context_snapshot
 from cassandra_mode import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
-from chief_llm import ollama_call, resolve_local_model, ollama_json
+from chief_llm import (
+    CLAUDE_MODEL,
+    CLAUDE_OPUS_MODEL,
+    claude_external_call,
+    external_model_packet_policy,
+    ollama_call,
+    resolve_local_model,
+    ollama_json,
+)
 from chief_file_io import save_json, load_json, append_md_tagged
 
 import harness_context
@@ -76,6 +84,8 @@ _MORNING_DELIVERY_TIMEOUT_SECONDS = _env_int("OPENCLAW_CASSANDRA_MORNING_BRIEF_T
 _MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS", 90, minimum=30)
 _MORNING_STACK_CHIEF_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_CHIEF_TIMEOUT_SECONDS", 420, minimum=60)
 _MORNING_STACK_CASSANDRA_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_CASSANDRA_TIMEOUT_SECONDS", 300, minimum=60)
+_BRIEFING_EXTERNAL_FAST_TIMEOUT_SECONDS = _env_int("OPENCLAW_BRIEFING_EXTERNAL_FAST_TIMEOUT_SECONDS", 45, minimum=10)
+_BRIEFING_EXTERNAL_OPUS_TIMEOUT_SECONDS = _env_int("OPENCLAW_BRIEFING_EXTERNAL_OPUS_TIMEOUT_SECONDS", 90, minimum=10)
 
 # Read-only peeks at external state (no circular imports)
 _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
@@ -333,6 +343,147 @@ def _morning_task_config() -> tuple[str, str]:
     if morning_brief_test_mode_enabled():
         return "cassandra_morning_brief_test", "llm"
     return resolve_morning_model_lane()
+
+
+def _briefing_external_metadata(
+    *,
+    stage_name: str,
+    role: str,
+    tier: str,
+    task_class: str | None,
+) -> dict[str, str]:
+    return {
+        "data_classification": os.environ.get("OPENCLAW_BRIEFING_EXTERNAL_DATA_CLASSIFICATION", ""),
+        "cloud_allowed": os.environ.get("OPENCLAW_BRIEFING_EXTERNAL_CLOUD_ALLOWED", ""),
+        "task_class": str(task_class or ""),
+        "stage_name": stage_name,
+        "role": role,
+        "model_tier": tier,
+        "bounded_use": "morning_briefing_synthesis",
+    }
+
+
+def _briefing_model_tier(stage_name: str, role: str) -> str:
+    if stage_name == "cassandra" or role == "cassandra_brief":
+        return "opus"
+    return "sonnet"
+
+
+def _briefing_external_model(tier: str) -> str:
+    return CLAUDE_OPUS_MODEL if tier == "opus" else CLAUDE_MODEL
+
+
+def _briefing_external_timeout(tier: str, local_timeout: int) -> int:
+    cap = _BRIEFING_EXTERNAL_OPUS_TIMEOUT_SECONDS if tier == "opus" else _BRIEFING_EXTERNAL_FAST_TIMEOUT_SECONDS
+    return max(1, min(local_timeout, cap))
+
+
+def _call_capable_briefing_text(
+    prompt: str,
+    *,
+    timeout: int,
+    local_model: str,
+    task_class: str | None,
+    stage_name: str,
+    role: str,
+) -> tuple[str, dict]:
+    tier = _briefing_model_tier(stage_name, role)
+    metadata = _briefing_external_metadata(
+        stage_name=stage_name,
+        role=role,
+        tier=tier,
+        task_class=task_class,
+    )
+    policy = external_model_packet_policy(prompt, metadata=metadata)
+    external_model = _briefing_external_model(tier)
+    if policy.get("external_model_safe"):
+        external_text = claude_external_call(
+            prompt,
+            model=external_model,
+            metadata=metadata,
+            timeout=_briefing_external_timeout(tier, timeout),
+        )
+        if external_text:
+            return external_text, {
+                "provider": "openrouter_claude",
+                "model": external_model,
+                "tier": tier,
+                "external_model_used": True,
+                "external_model_policy": policy,
+                "local_fallback_used": False,
+            }
+
+    local_text = ollama_call(prompt, timeout=timeout, model=local_model, task_class=task_class)
+    return local_text, {
+        "provider": "local_ollama",
+        "model": local_model,
+        "tier": tier,
+        "external_model_used": False,
+        "external_model_policy": policy,
+        "local_fallback_used": True,
+    }
+
+
+def _parse_briefing_json(text: str) -> dict | list:
+    cleaned = str(text or "").strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.splitlines()
+        cleaned = "\n".join(lines[1:-1] if lines and lines[-1].strip() == "```" else lines[1:])
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        match = re.search(r"(\[.*\]|\{.*\})", cleaned, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except Exception:
+                return {}
+    return {}
+
+
+def _call_capable_briefing_json(
+    prompt: str,
+    *,
+    timeout: int,
+    task_class: str | None,
+    stage_name: str,
+    role: str,
+) -> tuple[dict | list, dict]:
+    tier = _briefing_model_tier(stage_name, role)
+    metadata = _briefing_external_metadata(
+        stage_name=stage_name,
+        role=role,
+        tier=tier,
+        task_class=task_class,
+    )
+    policy = external_model_packet_policy(prompt, metadata=metadata)
+    external_model = _briefing_external_model(tier)
+    if policy.get("external_model_safe"):
+        external_text = claude_external_call(
+            prompt,
+            model=external_model,
+            metadata=metadata,
+            timeout=_briefing_external_timeout(tier, timeout),
+        )
+        parsed = _parse_briefing_json(external_text)
+        if parsed:
+            return parsed, {
+                "provider": "openrouter_claude",
+                "model": external_model,
+                "tier": tier,
+                "external_model_used": True,
+                "external_model_policy": policy,
+                "local_fallback_used": False,
+            }
+
+    return ollama_json(prompt, timeout=timeout, task_class=task_class), {
+        "provider": "local_ollama_json",
+        "model": "local_resolved_by_ollama_json",
+        "tier": tier,
+        "external_model_used": False,
+        "external_model_policy": policy,
+        "local_fallback_used": True,
+    }
 
 
 def _file_freshness_note(path: Path, stale_after_seconds: int = 12 * 60 * 60) -> str:
@@ -895,7 +1046,14 @@ def _run_briefing_stage(
         f"[cassandra_briefing] stage={name} role={role} lane={resolved_lane} model={model} started",
         flush=True,
     )
-    result = ollama_call(prompt, timeout=timeout, model=model)
+    result, model_route = _call_capable_briefing_text(
+        prompt,
+        timeout=timeout,
+        local_model=model,
+        task_class="cassandra_morning_brief" if name in {"guardian", "chief", "cassandra"} else None,
+        stage_name=name,
+        role=role,
+    )
     cleaned = _clean_briefing_stage_text(name, result)
     attempt_count = 1
     retry_used = False
@@ -907,7 +1065,14 @@ def _run_briefing_stage(
             f"retry=compact-fallback",
             flush=True,
         )
-        result = ollama_call(fallback_prompt, timeout=timeout, model=model)
+        result, model_route = _call_capable_briefing_text(
+            fallback_prompt,
+            timeout=timeout,
+            local_model=model,
+            task_class="cassandra_morning_brief" if name in {"guardian", "chief", "cassandra"} else None,
+            stage_name=f"{name}_fallback",
+            role=role,
+        )
         cleaned = _clean_briefing_stage_text(name, result)
     finished = harness_context.now()
     duration_ms = int((time.monotonic() - t0) * 1000)
@@ -920,8 +1085,14 @@ def _run_briefing_stage(
         "name": name,
         "role": role,
         "lane": resolved_lane,
-        "model": model,
-        "inference_mode": "live",
+        "model": model_route.get("model") or model,
+        "local_model": model,
+        "provider": model_route.get("provider", "local_ollama"),
+        "model_tier": model_route.get("tier", _briefing_model_tier(name, role)),
+        "external_model_used": bool(model_route.get("external_model_used")),
+        "external_model_policy": dict(model_route.get("external_model_policy") or {}),
+        "local_fallback_used": bool(model_route.get("local_fallback_used")),
+        "inference_mode": "external_gated" if model_route.get("external_model_used") else "local_fallback",
         "timing_basis": "per_stage_wall_clock_including_internal_ollama_retries",
         "prompt_words": len(prompt.split()),
         "prompt_preview": prompt[:240],
@@ -1238,7 +1409,13 @@ def generate_briefing(slot: str) -> str:
 
     if slot == "morning":
         import json
-        data = ollama_json(prompt, timeout=_MORNING_DELIVERY_TIMEOUT_SECONDS, task_class=task_class)
+        data, _model_route = _call_capable_briefing_json(
+            prompt,
+            timeout=_MORNING_DELIVERY_TIMEOUT_SECONDS,
+            task_class=task_class,
+            stage_name="morning_delivery",
+            role="cassandra_brief",
+        )
         if data and isinstance(data, list):
             # Sort the chunks here according to policy order
             from cassandra_briefing_morning_policy import sort_morning_chunks
@@ -1255,11 +1432,13 @@ def generate_briefing(slot: str) -> str:
             _NON_MORNING_BRIEF_PRIMARY_TIMEOUT_SECONDS,
             _remaining_non_morning_brief_timeout(started),
         )
-        result = ollama_call(
+        result, _model_route = _call_capable_briefing_text(
             prompt,
             timeout=primary_timeout,
-            model=model,
+            local_model=model,
             task_class=task_class,
+            stage_name=slot,
+            role="cassandra_brief",
         )
         if not result:
             result = ollama_call(
