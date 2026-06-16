@@ -364,8 +364,9 @@ def test_scheduler_delivery_uses_chunks_and_compressed_voice(monkeypatch):
 
     monkeypatch.setattr(scheduler, "split_briefing_messages", lambda entry: ["chunk one", "chunk two"])
     monkeypatch.setattr(scheduler, "briefing_voice_text", lambda entry: "compressed spoken summary")
-    monkeypatch.setattr(scheduler, "send_message", lambda text: sent.append(text))
-    monkeypatch.setattr(scheduler, "speak_and_send_voice_note", lambda text: spoken.append(text))
+    monkeypatch.setattr(scheduler, "briefing_delivery_blocked", lambda: False)
+    monkeypatch.setattr(scheduler, "send_operator_brief", lambda text: sent.append(text))
+    monkeypatch.setattr(scheduler, "speak_and_send_operator_brief_voice", lambda text: spoken.append(text))
     monkeypatch.setattr(scheduler, "mark_delivered", lambda date, slot: marked.append((date, slot)))
 
     scheduler._deliver({"slot": "afternoon", "date": "2026-04-19", "text": "full text"})

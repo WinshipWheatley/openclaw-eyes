@@ -594,6 +594,58 @@ def _deliver_dual_voice_reply_sync(text: str, chat_id: str | int | None = None) 
         _log_voice_side_effect("dual_voice_error", str(e), key="dual_voice_error")
 
 
+def _deliver_operator_brief_voice_sync(text: str) -> None:
+    if not VOICE_ENABLED:
+        return
+    if is_focus_mode() or is_social_mode():
+        print("[cassandra_voice] operator brief voice silenced by gate", flush=True)
+        return
+
+    clean = _prepare_tts_text(text, MAX_CHARS_BATCH)
+    if not clean:
+        return
+
+    try:
+        from cassandra_sender import send_operator_brief_voice
+
+        with _reply_delivery_lock:
+            _cleanup_unused_reply_wavs()
+            _synthesize_live_lane(clean, _WAV_REPLY)
+            _mirror_reply_wav_to_live_path()
+            played, reason = _play_wav(_WIN_WAV_LIVE, _WAV_LIVE)
+            if played:
+                print(f"[cassandra_voice] local playback ok ({len(clean)} chars)", flush=True)
+            else:
+                _log_voice_side_effect(
+                    "playback_degraded",
+                    f"local playback failed; operator brief voice path continues: {reason}",
+                    key="playback_degraded",
+                )
+            send_operator_brief_voice(str(_WAV_REPLY))
+        print(f"[cassandra_voice] operator brief voice delivered ({len(clean)} chars)", flush=True)
+    except Exception as e:
+        _log_voice_side_effect("operator_brief_voice_error", str(e), key="operator_brief_voice_error")
+
+
+def speak_and_send_operator_brief_voice(text: str, suppress: bool = False) -> None:
+    """Render and send an operator brief voice note with no destination input."""
+    import harness_context
+    if harness_context.is_harness_mode():
+        print(f"[harness] no-voice Operator Brief: {str(text)[:50]}...", flush=True)
+        return
+    if not VOICE_ENABLED or suppress:
+        return
+    if is_focus_mode() or is_social_mode():
+        print("[cassandra_voice] operator brief voice silenced by gate", flush=True)
+        return
+
+    threading.Thread(
+        target=_deliver_operator_brief_voice_sync,
+        args=(text,),
+        daemon=True,
+    ).start()
+
+
 def speak_and_send_voice_note(text: str, chat_id: str | int | None = None, suppress: bool = False) -> None:
     """
     Render one reply WAV and fan it out to both local playback and Telegram voice note.

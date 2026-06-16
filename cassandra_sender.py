@@ -35,6 +35,30 @@ def send_message(text: str, chat_id: str | int | None = None) -> None:
     response.raise_for_status()
 
 
+def _assert_operator_chat(resolved: str | int) -> None:
+    """Defense in depth: refuse any non-operator destination."""
+    operator = str(_chat_id())
+    if str(resolved) != operator:
+        raise RuntimeError(
+            "send_operator_brief refused: resolved chat id is not the verified "
+            "operator id; internal carve-out must never address any other recipient"
+        )
+
+
+def send_operator_brief(text: str) -> None:
+    """Internal-only operator brief delivery. Takes no destination argument."""
+    operator = _chat_id()
+    _assert_operator_chat(operator)
+    send_message(text, chat_id=operator)
+
+
+def send_operator_brief_voice(audio_path: str) -> None:
+    """Internal-only operator brief voice note. Takes no destination argument."""
+    operator = _chat_id()
+    _assert_operator_chat(operator)
+    send_voice_note(audio_path, chat_id=operator)
+
+
 def send_document(document_path: str, chat_id: str | int | None = None, caption: str = "") -> None:
     import harness_context
     if harness_context.is_harness_mode():
