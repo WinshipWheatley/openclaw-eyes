@@ -335,8 +335,8 @@ def openrouter_call(
         return ""
 
 
-OLLAMA_MODEL      = "qwen2.5-coder:7b"   # default: fast hot-path model
-OLLAMA_MODEL_DEEP = "qwen2.5-coder:14b"  # escalation: synthesis / deep analysis
+OLLAMA_MODEL      = os.environ.get("OPENCLAW_OLLAMA_MODEL", "qwen3:8b-q4_K_M")   # installed qwen, env-overridable
+OLLAMA_MODEL_DEEP = os.environ.get("OPENCLAW_OLLAMA_MODEL_DEEP", "qwen3:8b-q4_K_M")  # env-overridable; bump to qwen3.6:latest if VRAM allows
 
 CLAUDE_MODEL = "claude-sonnet-4-6"
 CLAUDE_CLI   = "/home/openclaw/.local/bin/claude"
