@@ -135,6 +135,23 @@ def answer_frontdoor_chat(
             machine_proof=_adapter_machine_proof(handle_called=False),
         )
 
+    # Date queries are answered deterministically: the current date is a known
+    # fact, not something to ask a language model to guess (it hallucinates it).
+    if intent_class == "date_awareness":
+        from datetime import datetime
+        _now = datetime.now()
+        _answer = f"Today is {_now.strftime('%Y-%m-%d')} ({_now.strftime('%A')})."
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=_answer,
+            plain_summary=_answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof=_adapter_machine_proof(handle_called=False),
+        )
+
     replies = list((handle_fn or _default_handle)(text, forwarded_session or None))
     plain_summary = _plain_summary(replies)
     return MaestroCassandraResult(
@@ -201,6 +218,9 @@ def _is_date_awareness_intent(text: str) -> bool:
         "current date",
         "today's date",
         "todays date",
+        "what's the date",
+        "whats the date",
+        "the date today",
     )
     return any(phrase in text for phrase in date_phrases)
 
