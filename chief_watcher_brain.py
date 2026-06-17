@@ -142,9 +142,9 @@ def find_billing_alerts(rows):
                     payment_status,
                 ]),
                 "invoice_number": invoice_number,
-                "client_name": row.get("client_name", "").strip(),
+                "client_name": (row.get("client_name") or "").strip(),
                 "balance_amount": f"{balance_amount:.2f}",
-                "next_follow_up_date": row.get("next_follow_up_date", "").strip(),
+                "next_follow_up_date": (row.get("next_follow_up_date") or "").strip(),
                 "payment_status": payment_status or "unpaid",
             })
 
@@ -152,13 +152,13 @@ def find_billing_alerts(rows):
 
 
 def summarize_album_row(row):
-    item_name = row.get("item_name", "").strip()
-    stage = row.get("derived_stage", "").strip()
-    bottleneck = row.get("derived_bottleneck", "").strip()
-    next_action = row.get("next_action", "").strip()
-    backup_status = row.get("backup_status", "").strip()
-    next_specialist = row.get("next_specialist", "").strip()
-    version_state = row.get("version_state", "").strip()
+    item_name = (row.get("item_name") or "").strip()
+    stage = (row.get("derived_stage") or "").strip()
+    bottleneck = (row.get("derived_bottleneck") or "").strip()
+    next_action = (row.get("next_action") or "").strip()
+    backup_status = (row.get("backup_status") or "").strip()
+    next_specialist = (row.get("next_specialist") or "").strip()
+    version_state = (row.get("version_state") or "").strip()
 
     alerts = []
 
@@ -209,7 +209,7 @@ def find_album_alerts(rows):
     per_song = {}
 
     for row in rows:
-        item_name = row.get("item_name", "").strip()
+        item_name = (row.get("item_name") or "").strip()
         if not item_name:
             continue
 
