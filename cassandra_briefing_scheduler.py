@@ -37,7 +37,7 @@ from cassandra_briefing_brain import (
     briefing_voice_text,
 )
 from cassandra_sender import send_operator_brief
-from cassandra_voice import speak_and_send_operator_brief_voice
+from maestro_voice import speak_and_send_operator_brief_voice  # Maestro voices the operator brief
 from cassandra_no_send_reload_guard import (
     briefing_delivery_blocked,
     is_internal_brief_carveout_enabled,
@@ -130,7 +130,18 @@ def _deliver(entry: dict) -> None:
 
 # ── Main tick ─────────────────────────────────────────────────────────────────
 
+def _refresh_presence_read_model() -> None:
+    """Keep agent_presence.json fresh on every tick (no new service; folds into this daemon)."""
+    try:
+        import subprocess
+        subprocess.run([sys.executable, "scripts/export_agent_presence_read_model.py"],
+                       cwd="/home/openclaw", capture_output=True, timeout=60)
+    except Exception as e:
+        print(f"[briefing_scheduler] presence export skipped: {e}", flush=True)
+
+
 def _tick() -> None:
+    _refresh_presence_read_model()
     if is_status_dry_run_enabled():
         status = build_briefing_scheduler_status()
         print(format_service_status_marker("briefing_scheduler", status), flush=True)
