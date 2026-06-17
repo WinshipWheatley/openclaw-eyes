@@ -153,7 +153,7 @@ def test_adapter_maps_handle_result_and_filters_session():
         ]
 
     result = maestro.answer_frontdoor_chat(
-        "what's today's date?",
+        "what is in orbit",
         session={
             "system_knowledge_repo_root": "/tmp/openclaw",
             "raw_body": "must not forward",
@@ -163,12 +163,12 @@ def test_adapter_maps_handle_result_and_filters_session():
     )
 
     assert result.status == "ANSWER_READY"
-    assert result.intent_class == "date_awareness"
+    assert result.intent_class == "system_knowledge"
     assert result.allowed_to_call_handle is True
     assert result.mac_render_hint == "COMPACT_WITH_DISCLOSURE"
     assert len(result.one_line_answer.split()) <= 30
     assert "second line" in result.plain_summary
-    assert calls == [("what's today's date?", {"system_knowledge_repo_root": "/tmp/openclaw"})]
+    assert calls == [("what is in orbit", {"system_knowledge_repo_root": "/tmp/openclaw"})]
     assert result.machine_proof["gmail_metadata_read_performed"] is False
     assert result.machine_proof["email_send_performed"] is False
     assert result.machine_proof["text_response_only"] is True
@@ -178,7 +178,7 @@ def test_adapter_distills_one_line_without_losing_plain_summary():
     long_line = " ".join(f"word{i}" for i in range(45))
 
     result = maestro.answer_frontdoor_chat(
-        "what is the date?",
+        "what is in orbit",
         handle_fn=lambda _text, _session=None: [long_line, "Full detail remains here."],
     )
 
@@ -186,6 +186,24 @@ def test_adapter_distills_one_line_without_losing_plain_summary():
     assert result.one_line_answer.endswith("...")
     assert long_line in result.plain_summary
     assert "Full detail remains here." in result.plain_summary
+
+
+def test_date_query_answered_deterministically_without_handle():
+    import re as _re
+    calls = []
+
+    def spy_handle(text, session=None):
+        calls.append(text)
+        return ["SHOULD NOT BE USED"]
+
+    for q in ("what is todays date?", "what's today's date", "what day is it"):
+        result = maestro.answer_frontdoor_chat(q, handle_fn=spy_handle)
+        assert result.status == "ANSWER_READY"
+        assert result.intent_class == "date_awareness"
+        assert result.allowed_to_call_handle is False
+        assert _re.match(r"Today is \d{4}-\d{2}-\d{2} \(\w+\)\.$", result.one_line_answer), result.one_line_answer
+        assert result.machine_proof["cassandra_handle_called"] is False
+    assert calls == []
 
 
 def test_send_reply_intent_never_reaches_handle_or_send_spies(monkeypatch):
