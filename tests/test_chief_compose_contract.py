@@ -62,6 +62,7 @@ def _raising_chief_router(monkeypatch):
         ("pdf_export", "export the invoice PDF", "unknown_review", None),
         ("daw_action", "open Logic and bounce the song", "file_context_request", None),
         ("obs_launch", "start OBS and go live", "obs_launch", "obs_launch"),
+        ("livestream_setup", "set up the livestream for tonight", "livestream_setup", "livestream_setup"),
     ],
 )
 def test_route_operator_intent_gates_action_surfaces(surface, text, expected_category, expected_candidate):
@@ -79,6 +80,36 @@ def test_route_operator_intent_gates_action_surfaces(surface, text, expected_cat
     assert result.approval_required is True
     assert result.execution_allowed is False
     assert result.action_request_created is False
+
+
+def test_route_operator_intent_declared_action_categories_all_require_approval():
+    examples = {
+        "invoice_send": "send invoice to Sally at Reynolds Tavern for 250 dollars",
+        "email_send": "send Annette an email with the invoice",
+        "sms_send": "text Annette that the invoice is ready",
+        "phone_log": "call Annette about the overdue payment",
+        "calendar_create": "create a calendar event for the gig tomorrow",
+        "ledger_mutation": "mark the invoice paid in the ledger",
+        "coupa_submit": "submit this invoice in Coupa",
+        "obs_launch": "launch OBS for the stream",
+        "livestream_setup": "set up the livestream for tonight",
+    }
+    assert set(examples) == intent_router.ACTION_INTENT_CATEGORIES
+
+    for category, text in examples.items():
+        result = route_operator_intent(
+            text=text,
+            source_kind="mission_control",
+            source_channel=f"compose_contract_{category}",
+            requested_by="winship",
+            db_path=TEMP_DB,
+        )
+
+        assert result.intent_category == category
+        assert result.candidate_action_type == category
+        assert result.approval_required is True
+        assert result.execution_allowed is False
+        assert result.action_request_created is False
 
 
 @pytest.mark.parametrize(
