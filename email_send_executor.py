@@ -256,9 +256,17 @@ def send_email_via_google_broker(
     attachment_path: str | None = None,
     approval_state: Mapping[str, Any] | None = None,
     packet_id: str = "",
+    send_hold_verified: bool = False,
+    send_hold_ref: str = "",
 ) -> dict[str, Any]:
     """Invoke the central Google broker for a plain-text Gmail send."""
 
+    if not send_hold_verified:
+        return {
+            "ok": False,
+            "data": None,
+            "error": "SEND_HOLD must be checked before minting broker capability token",
+        }
     if attachment_path:
         return {
             "ok": False,
@@ -279,7 +287,22 @@ def send_email_via_google_broker(
         ],
         "credential_lease_refs": ["google_access_broker_configured_runtime"],
     }
-    from google_access_broker import call
+    from google_access_broker import call, mint_send_hold_gated_broker_capability_token
+
+    broker_capability_token = mint_send_hold_gated_broker_capability_token(
+        agent="cassandra",
+        capability="google.gmail.send",
+        issuer="email_send_executor",
+        request_id=request_id,
+        idempotency_key=request_id,
+        payload_hash=approval_context["payload_hash"],
+        authority_refs=approval_context["authority_refs"],
+        credential_lease_refs=approval_context["credential_lease_refs"],
+        send_hold_checked=True,
+        send_hold_active=False,
+        send_hold_ref=send_hold_ref,
+    )
+    approval_context["broker_capability_token_fingerprint"] = broker_capability_token["token_fingerprint"]
 
     return call(
         "cassandra",
@@ -291,6 +314,7 @@ def send_email_via_google_broker(
             "exact_send_request_id": request_id,
             "idempotency_key": request_id,
             "approval_context": approval_context,
+            "broker_capability_token": broker_capability_token,
         },
     )
 
@@ -424,12 +448,20 @@ def execute_email_send_packet(
             meta={"approval_state": state, "send_hold_active": False},
         )
 
-    sender = email_sender or send_email_via_google_broker
-    provider_result = sender(
-        **payload,
-        approval_state=state,
-        packet_id=packet_id,
-    )
+    if email_sender is None:
+        provider_result = send_email_via_google_broker(
+            **payload,
+            approval_state=state,
+            packet_id=packet_id,
+            send_hold_verified=True,
+            send_hold_ref=str(send_hold_path),
+        )
+    else:
+        provider_result = email_sender(
+            **payload,
+            approval_state=state,
+            packet_id=packet_id,
+        )
     if not _provider_result_ok(provider_result):
         return _blocked_receipt(
             packet_id=packet_id,
