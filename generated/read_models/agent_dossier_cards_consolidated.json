@@ -1,6 +1,3132 @@
 {
   "agent_activation_allowed": false,
   "agent_count": 16,
+  "agent_map": {
+    "agentic_loop": {
+      "agent_id": "agentic_loop",
+      "capability_domains": [],
+      "display_name": "Agentic Loop",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "agentic_loop",
+        "lane_label": "",
+        "quiet_condition": "The agentic loop is quiet when each component is classified as blocked, parked, obsolete, or future-gated with proof refs.",
+        "readiness_state": "",
+        "role_summary": "A future system loop concept that may organize parsed work, receipts, requeue, and fix paths after security gates."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": false,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": false
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 2,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "cassandra": {
+      "agent_id": "cassandra",
+      "capability_domains": [
+        "automation",
+        "briefing",
+        "calendar",
+        "contacts",
+        "email",
+        "email_send",
+        "file",
+        "logging",
+        "notes",
+        "payment",
+        "payment_log",
+        "voice"
+      ],
+      "display_name": "Cassandra",
+      "doc_links": [
+        ".claude/commands/cassandra.md",
+        "agent_lane_registry.py#cassandra",
+        "cassandra_brain.py",
+        "cassandra_guided_review.py",
+        "cassandra_listener.py",
+        "cassandra_review_coach.py",
+        "hitl_action_service.py",
+        "operator_universal_intake.py",
+        "watch_desk_feed.py"
+      ],
+      "overview": {
+        "actual_state": "offline",
+        "desired_state": "online",
+        "lane_id": "operator_comms",
+        "lane_label": "Operator Communications",
+        "quiet_condition": "Cassandra is quiet when each finance/comms workflow has proof refs, memory gaps, or explicit blockers.",
+        "readiness_state": "",
+        "role_summary": "Business ops, AR, client follow-up, operator communications, Universal Intake, and Data Room guided review."
+      },
+      "registry_coverage": {
+        "capability_registry": true,
+        "lane_registry": true,
+        "presence_read_model": true,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": true
+      },
+      "relationship_edges": [
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:automation"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:briefing"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:calendar"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:contacts"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:email"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:email_send"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:file"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:logging"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:notes"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:payment"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:payment_log"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "cassandra",
+          "target_ref": "capability_domain:voice"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "cassandra",
+          "target_ref": "Chief implementation or runtime triage packages"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "cassandra",
+          "target_ref": "Guardian exact-send or high-risk approval review"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "cassandra",
+          "target_ref": "Hermes adapter/boundary review"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "cassandra",
+          "target_ref": "Niles creative-lane handoff"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "cassandra",
+          "target_ref": "Chief for code/runtime implementation work"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "cassandra",
+          "target_ref": "Guardian/HITL for sends, approvals, paid marking, and protected actions"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "cassandra",
+          "target_ref": "confirmed reference/hydration rails for Data Room promotion"
+        }
+      ],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "capability_registry.py",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 7,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 8,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 6,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "chief": {
+      "agent_id": "chief",
+      "capability_domains": [
+        "album",
+        "approval",
+        "billing",
+        "calendar",
+        "email_send",
+        "file",
+        "llm",
+        "obsidian",
+        "payment",
+        "routing"
+      ],
+      "display_name": "Chief",
+      "doc_links": [
+        ".claude/commands/chief.md",
+        "agent_lane_registry.py#chief",
+        "assignment_loop_contract.py",
+        "chief_listener.py",
+        "chief_worker.py",
+        "codex_work_package_lifecycle.py",
+        "model_work_package_router.py",
+        "watch_desk_feed.py"
+      ],
+      "overview": {
+        "actual_state": "degraded",
+        "desired_state": "online",
+        "lane_id": "system_orchestration",
+        "lane_label": "System Orchestration",
+        "quiet_condition": "Chief is quiet when character, package, harness, and blocked execution boundaries are classified and receipted.",
+        "readiness_state": "",
+        "role_summary": "System orchestration, runtime triage, model/package routing, validation posture, and bounded work packet preparation."
+      },
+      "registry_coverage": {
+        "capability_registry": true,
+        "lane_registry": true,
+        "presence_read_model": true,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": true
+      },
+      "relationship_edges": [
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:album"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:approval"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:billing"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:calendar"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:email_send"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:file"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:llm"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:obsidian"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:payment"
+        },
+        {
+          "authority": "catalog_only",
+          "edge_type": "capability_domain",
+          "source_agent_id": "chief",
+          "target_ref": "capability_domain:routing"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "chief",
+          "target_ref": "Cassandra business-context review"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "chief",
+          "target_ref": "Guardian safety or approval review"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "chief",
+          "target_ref": "Hermes adapter/boundary review"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "chief",
+          "target_ref": "Niles creative metadata review"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "chief",
+          "target_ref": "Guardian/HITL for approvals and risky actions"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "chief",
+          "target_ref": "Watch Desk for operator-facing projection"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "chief",
+          "target_ref": "existing Worker Run Manager for worker dispatch/ingest"
+        }
+      ],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "capability_registry.py",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 7,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 8,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 6,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "clara": {
+      "agent_id": "clara",
+      "capability_domains": [],
+      "display_name": "Clara",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "",
+        "lane_label": "",
+        "quiet_condition": "",
+        "readiness_state": "",
+        "role_summary": ""
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": false,
+        "presence_read_model": false,
+        "role_registry": false,
+        "terrain_readback": false,
+        "voice_profiles": true
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "",
+        "voice": "agent_voice_profiles.py"
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "cue_parser_brain_dump_parser": {
+      "agent_id": "cue_parser_brain_dump_parser",
+      "capability_domains": [],
+      "display_name": "Cue Parser / Brain Dump Parser",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "cue_parser_brain_dump_parser",
+        "lane_label": "",
+        "quiet_condition": "The cue parser is quiet when accepted inputs, blocked inputs, output receipts, and future-gated status are explicit.",
+        "readiness_state": "",
+        "role_summary": "A future parser concept for operator/Chief ideas; currently only classification/readback."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": false,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": false
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 2,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "guardian": {
+      "agent_id": "guardian",
+      "capability_domains": [],
+      "display_name": "Guardian",
+      "doc_links": [
+        ".claude/commands/guardian.md",
+        "agent_lane_registry.py#guardian",
+        "chief_guardian_listener.py",
+        "chief_guardian_sender.py",
+        "hitl_action_service.py",
+        "hitl_pending_store.py"
+      ],
+      "overview": {
+        "actual_state": "online",
+        "desired_state": "online",
+        "lane_id": "safety_security",
+        "lane_label": "Safety and Security",
+        "quiet_condition": "Guardian is quiet unless a lane tries to cross an authority boundary or needs clearance classification.",
+        "readiness_state": "",
+        "role_summary": "Human-in-the-loop authorization boundary, risk review, exact-action approval capture, and denial/approval state."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": true,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": true
+      },
+      "relationship_edges": [
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "guardian",
+          "target_ref": "Cassandra readback when a business send needs exact text"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "guardian",
+          "target_ref": "Chief implementation follow-up for safety defects"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "guardian",
+          "target_ref": "hitl_action_service.py and hitl_pending_store.py for approval state"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "guardian",
+          "target_ref": "operator confirmation for high-risk actions"
+        }
+      ],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 7,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 3,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 8,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 6,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "hermes": {
+      "agent_id": "hermes",
+      "capability_domains": [],
+      "display_name": "Hermes",
+      "doc_links": [
+        ".claude/commands/hermes.md",
+        "agent_lane_registry.py#hermes",
+        "openclaw_event_bridge_adapter.py",
+        "openclaw_hermes_sidecar.py",
+        "tool_adapter_receipt_contract.py",
+        "tool_protocol_adapter_registry_contract.py"
+      ],
+      "overview": {
+        "actual_state": "online",
+        "desired_state": "online",
+        "lane_id": "advisory_synthesis",
+        "lane_label": "Advisory Synthesis",
+        "quiet_condition": "Hermes is quiet when classified as tracked, parked, obsolete, blocked, or backed by source proof.",
+        "readiness_state": "",
+        "role_summary": "Adapter/protocol boundary review, connector posture, sidecar contracts, and advisory synthesis."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": true,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": true
+      },
+      "relationship_edges": [
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "hermes",
+          "target_ref": "Chief implementation/package work"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "hermes",
+          "target_ref": "Guardian review for sensitive connector boundaries"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "hermes",
+          "target_ref": "Chief for runtime changes"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "hermes",
+          "target_ref": "Guardian for sensitive capability enablement"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "hermes",
+          "target_ref": "existing adapter contracts for tool execution proposals"
+        }
+      ],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 7,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 8,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 6,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "model_router": {
+      "agent_id": "model_router",
+      "capability_domains": [],
+      "display_name": "Model Router",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "model_router",
+        "lane_label": "",
+        "quiet_condition": "Model router is quiet when packages can show selected/blocked/deferred posture without implying live routing.",
+        "readiness_state": "",
+        "role_summary": "Defines model class posture and proves why model selection is blocked, deferred, or future-eligible."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": false,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": false
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 2,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "niles": {
+      "agent_id": "niles",
+      "capability_domains": [],
+      "display_name": "Niles",
+      "doc_links": [
+        ".claude/commands/niles.md",
+        "agent_lane_registry.py",
+        "agent_lane_registry.py#niles",
+        "chief_fundo_identity.py",
+        "chief_fundo_release.py",
+        "chief_fundo_session.py",
+        "operator_universal_intake.py"
+      ],
+      "overview": {
+        "actual_state": "offline",
+        "desired_state": "online",
+        "lane_id": "music_art_production",
+        "lane_label": "Music and Art Production",
+        "quiet_condition": "Niles is quiet when current creative metadata is captured, marked stale/private, or explicitly blocked.",
+        "readiness_state": "",
+        "role_summary": "Music, audio, creative, session, and production planning lane."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": true,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": true
+      },
+      "relationship_edges": [
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "niles",
+          "target_ref": "Cassandra business-context handoff when creative work touches clients or payments"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "niles",
+          "target_ref": "Chief runtime/package support"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "niles",
+          "target_ref": "Guardian review for publishing, file mutation, or public release risk"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "niles",
+          "target_ref": "Cassandra or Guardian for business/public-facing action"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "niles",
+          "target_ref": "operator approval for DAW/media/session writes"
+        }
+      ],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 7,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 8,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 6,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "openclaw": {
+      "agent_id": "openclaw",
+      "capability_domains": [],
+      "display_name": "Openclaw",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "",
+        "lane_label": "",
+        "quiet_condition": "",
+        "readiness_state": "",
+        "role_summary": ""
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": false,
+        "presence_read_model": false,
+        "role_registry": false,
+        "terrain_readback": false,
+        "voice_profiles": true
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "",
+        "voice": "agent_voice_profiles.py"
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": true,
+          "populated_field_count": 5,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "package_compiler": {
+      "agent_id": "package_compiler",
+      "capability_domains": [],
+      "display_name": "Package Compiler",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "package_compiler",
+        "lane_label": "",
+        "quiet_condition": "Package compiler is quiet when package previews have receipts and blocked execution is visible in proof/detail.",
+        "readiness_state": "",
+        "role_summary": "Compiles context, roles, tool metadata, gates, proof, stop conditions, and receipts into preview packages."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": false,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": false
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 2,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "repo_b_planner_builder_orchestrator": {
+      "agent_id": "repo_b_planner_builder_orchestrator",
+      "capability_domains": [],
+      "display_name": "Repo B Planner / Builder / Orchestrator",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "repo_b_planner_builder_orchestrator",
+        "lane_label": "",
+        "quiet_condition": "This loop is quiet when each component has a non-live contract, is parked, or is explicitly blocked.",
+        "readiness_state": "",
+        "role_summary": "A suspected Repo B loop that must be classified from approved metadata before it is trusted."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": false,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": false
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 2,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "report_bridge": {
+      "agent_id": "report_bridge",
+      "capability_domains": [],
+      "display_name": "Report Bridge",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "metadata_available",
+        "desired_state": "unknown_review",
+        "lane_id": "node_report_intake",
+        "lane_label": "Node Report Intake",
+        "quiet_condition": "",
+        "readiness_state": "",
+        "role_summary": "Handle sanitized local report package intake metadata and rejection summaries."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": true,
+        "role_registry": true,
+        "terrain_readback": false,
+        "voice_profiles": false
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 8,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "struna": {
+      "agent_id": "struna",
+      "capability_domains": [],
+      "display_name": "Struna",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "struna",
+        "lane_label": "",
+        "quiet_condition": "Struna is quiet when current project context is captured as metadata or intentionally parked.",
+        "readiness_state": "",
+        "role_summary": "Struna is a project/lane entity whose metadata can move to Music/Art World when source-backed."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": false,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": false
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 2,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "tool_plugin_registry": {
+      "agent_id": "tool_plugin_registry",
+      "capability_domains": [],
+      "display_name": "Tool / Plugin Registry",
+      "doc_links": [],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "tool_plugin_registry",
+        "lane_label": "",
+        "quiet_condition": "Tool registry is quiet when package previews can explain included/excluded adapters and all high-risk adapters stay gated.",
+        "readiness_state": "",
+        "role_summary": "Shows which adapters are read-only, preview-only, future-gated, blocked, or quarantined."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": true,
+        "presence_read_model": false,
+        "role_registry": true,
+        "terrain_readback": true,
+        "voice_profiles": false
+      },
+      "relationship_edges": [],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": true,
+          "populated_field_count": 4,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": true,
+          "populated_field_count": 2,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": true,
+          "populated_field_count": 1,
+          "section_id": "safety"
+        }
+      ]
+    },
+    "watch_desk": {
+      "agent_id": "watch_desk",
+      "capability_domains": [],
+      "display_name": "Watch Desk",
+      "doc_links": [
+        "agent_lane_registry.py#watch_desk",
+        "watch_desk_feed.py"
+      ],
+      "overview": {
+        "actual_state": "",
+        "desired_state": "",
+        "lane_id": "",
+        "lane_label": "",
+        "quiet_condition": "",
+        "readiness_state": "",
+        "role_summary": "Read-only operator attention projection sourced from receipts and read models."
+      },
+      "registry_coverage": {
+        "capability_registry": false,
+        "lane_registry": false,
+        "presence_read_model": false,
+        "role_registry": true,
+        "terrain_readback": false,
+        "voice_profiles": false
+      },
+      "relationship_edges": [
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "watch_desk",
+          "target_ref": "Cassandra summary when a business item needs human-facing wording"
+        },
+        {
+          "authority": "request_hint_only",
+          "edge_type": "may_request",
+          "source_agent_id": "watch_desk",
+          "target_ref": "Chief review when projection source state is inconsistent"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "watch_desk",
+          "target_ref": "existing approval rails for any action suggested by a watch item"
+        },
+        {
+          "authority": "routing_hint_only",
+          "edge_type": "must_route_through",
+          "source_agent_id": "watch_desk",
+          "target_ref": "source read model or receipt for every item"
+        }
+      ],
+      "safe_operator_view": {
+        "allowed": [
+          "inspect_status",
+          "inspect_docs",
+          "inspect_boundaries"
+        ],
+        "blocked": [
+          "activate_agent",
+          "call_model",
+          "execute_tool",
+          "restart_service",
+          "send_external_message",
+          "bypass_approval"
+        ],
+        "display_only": true
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "",
+        "voice": ""
+      },
+      "view_sections": [
+        {
+          "field_count": 7,
+          "fields": [
+            "may_request",
+            "must_not",
+            "must_route_through",
+            "owns",
+            "package_context_summary",
+            "role_summary",
+            "safety_boundaries"
+          ],
+          "label": "Behavior",
+          "populated": true,
+          "populated_field_count": 7,
+          "section_id": "behavior"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "known",
+            "known_unknowns",
+            "not_discovered",
+            "partly_known",
+            "registry"
+          ],
+          "label": "Capabilities",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "capabilities"
+        },
+        {
+          "field_count": 5,
+          "fields": [
+            "default_voice_modes",
+            "must_not_speak_when",
+            "speaks_when",
+            "tts_profile",
+            "voice_profile_ref"
+          ],
+          "label": "Voice",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "voice"
+        },
+        {
+          "field_count": 8,
+          "fields": [
+            "allowed_worlds",
+            "approval_required_for",
+            "authority_level",
+            "lane_id",
+            "lane_label",
+            "receipt_required_for",
+            "routing_hints",
+            "status"
+          ],
+          "label": "Lane",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "lane"
+        },
+        {
+          "field_count": 9,
+          "fields": [
+            "actual_state",
+            "confidence_state",
+            "current_status",
+            "desired_state",
+            "lane_destiny",
+            "presence_source",
+            "quiet_condition",
+            "readiness_state",
+            "recovery_status"
+          ],
+          "label": "Status",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "status"
+        },
+        {
+          "field_count": 12,
+          "fields": [
+            "agent_activation_allowed",
+            "approval_bypass_allowed",
+            "client_deployment_allowed",
+            "external_send_allowed",
+            "model_call_allowed",
+            "role",
+            "runtime_mutation_allowed",
+            "secret_access_allowed",
+            "service_restart_allowed",
+            "terrain",
+            "tool_execution_allowed",
+            "voice"
+          ],
+          "label": "Safety Boundaries",
+          "populated": false,
+          "populated_field_count": 0,
+          "section_id": "safety"
+        }
+      ]
+    }
+  },
+  "agent_relationship_edges": [
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:automation"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:briefing"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:calendar"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:contacts"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:email"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:email_send"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:file"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:logging"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:notes"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:payment"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:payment_log"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "cassandra",
+      "target_ref": "capability_domain:voice"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "cassandra",
+      "target_ref": "Chief implementation or runtime triage packages"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "cassandra",
+      "target_ref": "Guardian exact-send or high-risk approval review"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "cassandra",
+      "target_ref": "Hermes adapter/boundary review"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "cassandra",
+      "target_ref": "Niles creative-lane handoff"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "cassandra",
+      "target_ref": "Chief for code/runtime implementation work"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "cassandra",
+      "target_ref": "Guardian/HITL for sends, approvals, paid marking, and protected actions"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "cassandra",
+      "target_ref": "confirmed reference/hydration rails for Data Room promotion"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:album"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:approval"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:billing"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:calendar"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:email_send"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:file"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:llm"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:obsidian"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:payment"
+    },
+    {
+      "authority": "catalog_only",
+      "edge_type": "capability_domain",
+      "source_agent_id": "chief",
+      "target_ref": "capability_domain:routing"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "chief",
+      "target_ref": "Cassandra business-context review"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "chief",
+      "target_ref": "Guardian safety or approval review"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "chief",
+      "target_ref": "Hermes adapter/boundary review"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "chief",
+      "target_ref": "Niles creative metadata review"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "chief",
+      "target_ref": "Guardian/HITL for approvals and risky actions"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "chief",
+      "target_ref": "Watch Desk for operator-facing projection"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "chief",
+      "target_ref": "existing Worker Run Manager for worker dispatch/ingest"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "guardian",
+      "target_ref": "Cassandra readback when a business send needs exact text"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "guardian",
+      "target_ref": "Chief implementation follow-up for safety defects"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "guardian",
+      "target_ref": "hitl_action_service.py and hitl_pending_store.py for approval state"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "guardian",
+      "target_ref": "operator confirmation for high-risk actions"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "hermes",
+      "target_ref": "Chief implementation/package work"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "hermes",
+      "target_ref": "Guardian review for sensitive connector boundaries"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "hermes",
+      "target_ref": "Chief for runtime changes"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "hermes",
+      "target_ref": "Guardian for sensitive capability enablement"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "hermes",
+      "target_ref": "existing adapter contracts for tool execution proposals"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "niles",
+      "target_ref": "Cassandra business-context handoff when creative work touches clients or payments"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "niles",
+      "target_ref": "Chief runtime/package support"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "niles",
+      "target_ref": "Guardian review for publishing, file mutation, or public release risk"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "niles",
+      "target_ref": "Cassandra or Guardian for business/public-facing action"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "niles",
+      "target_ref": "operator approval for DAW/media/session writes"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "watch_desk",
+      "target_ref": "Cassandra summary when a business item needs human-facing wording"
+    },
+    {
+      "authority": "request_hint_only",
+      "edge_type": "may_request",
+      "source_agent_id": "watch_desk",
+      "target_ref": "Chief review when projection source state is inconsistent"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "watch_desk",
+      "target_ref": "existing approval rails for any action suggested by a watch item"
+    },
+    {
+      "authority": "routing_hint_only",
+      "edge_type": "must_route_through",
+      "source_agent_id": "watch_desk",
+      "target_ref": "source read model or receipt for every item"
+    }
+  ],
   "agents": [
     {
       "agent_id": "agentic_loop",
@@ -2189,7 +5315,7 @@
   "approval_bypass_allowed": false,
   "client_deployment_allowed": false,
   "external_send_allowed": false,
-  "generated_at": "2026-06-18T18:11:59+00:00",
+  "generated_at": "2026-06-18T23:36:37+00:00",
   "machine_proof": {
     "agent_ids": [
       "agentic_loop",
@@ -2209,10 +5335,29 @@
       "tool_plugin_registry",
       "watch_desk"
     ],
+    "agent_map_ids": [
+      "agentic_loop",
+      "cassandra",
+      "chief",
+      "clara",
+      "cue_parser_brain_dump_parser",
+      "guardian",
+      "hermes",
+      "model_router",
+      "niles",
+      "openclaw",
+      "package_compiler",
+      "repo_b_planner_builder_orchestrator",
+      "report_bridge",
+      "struna",
+      "tool_plugin_registry",
+      "watch_desk"
+    ],
     "builder": "build_consolidated_agent_manifest",
-    "content_hash": "sha256:74474161197a8fa87938483f4c758e629a5a2b366429a95b5abba9be90233f0e",
+    "content_hash": "sha256:074e69056e30055b5e3889968ab73b2392e62e35ce5b534e61ac3091970c8496",
     "external_send_performed": false,
     "model_calls_performed": false,
+    "relationship_edge_count": 54,
     "secret_files_read": false,
     "services_started_or_restarted": false,
     "source_count": 5,

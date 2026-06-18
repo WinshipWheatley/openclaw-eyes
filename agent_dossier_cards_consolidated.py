@@ -238,6 +238,149 @@ def _card(
     }
 
 
+def _field_populated(value: Any) -> bool:
+    if isinstance(value, dict):
+        return any(_field_populated(child) for child in value.values())
+    if isinstance(value, list):
+        return any(_field_populated(item) for item in value)
+    return bool(value)
+
+
+def _view_section(section_id: str, label: str, fields: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "section_id": section_id,
+        "label": label,
+        "populated": any(_field_populated(value) for value in fields.values()),
+        "field_count": len(fields),
+        "populated_field_count": sum(1 for value in fields.values() if _field_populated(value)),
+        "fields": sorted(fields),
+    }
+
+
+def _registry_coverage(card: Mapping[str, Any]) -> dict[str, bool]:
+    behavior = card.get("behavior") if isinstance(card.get("behavior"), Mapping) else {}
+    capabilities = card.get("capabilities") if isinstance(card.get("capabilities"), Mapping) else {}
+    voice = card.get("voice") if isinstance(card.get("voice"), Mapping) else {}
+    lane = card.get("lane") if isinstance(card.get("lane"), Mapping) else {}
+    status = card.get("status") if isinstance(card.get("status"), Mapping) else {}
+    return {
+        "role_registry": _field_populated(behavior),
+        "capability_registry": _field_populated(capabilities.get("registry")),
+        "voice_profiles": bool(voice.get("voice_profile_ref")),
+        "lane_registry": bool(lane.get("lane_id")),
+        "presence_read_model": _field_populated(
+            {
+                "desired_state": status.get("desired_state"),
+                "actual_state": status.get("actual_state"),
+                "presence_source": status.get("presence_source"),
+            }
+        ),
+        "terrain_readback": _field_populated(
+            {
+                "readiness_state": status.get("readiness_state"),
+                "confidence_state": status.get("confidence_state"),
+                "current_status": status.get("current_status"),
+                "known_unknowns": capabilities.get("known_unknowns"),
+            }
+        ),
+    }
+
+
+def _capability_domains(card: Mapping[str, Any]) -> list[str]:
+    capabilities = card.get("capabilities") if isinstance(card.get("capabilities"), Mapping) else {}
+    registry_items = capabilities.get("registry") if isinstance(capabilities.get("registry"), list) else []
+    return sorted({str(item.get("domain")) for item in registry_items if isinstance(item, Mapping) and item.get("domain")})
+
+
+def _agent_relationship_edges(cards: list[dict[str, Any]]) -> list[dict[str, str]]:
+    edges: list[dict[str, str]] = []
+    for card in cards:
+        agent_id = str(card["agent_id"])
+        behavior = card["behavior"]
+        for target in behavior.get("must_route_through", []):
+            edges.append(
+                {
+                    "source_agent_id": agent_id,
+                    "edge_type": "must_route_through",
+                    "target_ref": str(target),
+                    "authority": "routing_hint_only",
+                }
+            )
+        for target in behavior.get("may_request", []):
+            edges.append(
+                {
+                    "source_agent_id": agent_id,
+                    "edge_type": "may_request",
+                    "target_ref": str(target),
+                    "authority": "request_hint_only",
+                }
+            )
+        for domain in _capability_domains(card):
+            edges.append(
+                {
+                    "source_agent_id": agent_id,
+                    "edge_type": "capability_domain",
+                    "target_ref": f"capability_domain:{domain}",
+                    "authority": "catalog_only",
+                }
+            )
+    return sorted(edges, key=lambda edge: (edge["source_agent_id"], edge["edge_type"], edge["target_ref"]))
+
+
+def _agent_map(cards: list[dict[str, Any]], edges: list[dict[str, str]]) -> dict[str, dict[str, Any]]:
+    edges_by_agent: dict[str, list[dict[str, str]]] = {}
+    for edge in edges:
+        edges_by_agent.setdefault(edge["source_agent_id"], []).append(edge)
+    mapped: dict[str, dict[str, Any]] = {}
+    for card in cards:
+        agent_id = str(card["agent_id"])
+        behavior = card["behavior"]
+        capabilities = card["capabilities"]
+        voice = card["voice"]
+        lane = card["lane"]
+        status = card["status"]
+        safety = card["authority_boundary"]
+        mapped[agent_id] = {
+            "agent_id": agent_id,
+            "display_name": card["display_name"],
+            "overview": {
+                "role_summary": behavior.get("role_summary", ""),
+                "lane_id": lane.get("lane_id", ""),
+                "lane_label": lane.get("lane_label", ""),
+                "actual_state": status.get("actual_state", ""),
+                "desired_state": status.get("desired_state", ""),
+                "readiness_state": status.get("readiness_state", ""),
+                "quiet_condition": status.get("quiet_condition", ""),
+            },
+            "view_sections": [
+                _view_section("behavior", "Behavior", behavior),
+                _view_section("capabilities", "Capabilities", capabilities),
+                _view_section("voice", "Voice", voice),
+                _view_section("lane", "Lane", lane),
+                _view_section("status", "Status", status),
+                _view_section("safety", "Safety Boundaries", safety),
+            ],
+            "relationship_edges": edges_by_agent.get(agent_id, []),
+            "capability_domains": _capability_domains(card),
+            "registry_coverage": _registry_coverage(card),
+            "doc_links": list(card["doc_links"]),
+            "source_refs": dict(card["source_refs"]),
+            "safe_operator_view": {
+                "display_only": True,
+                "allowed": ["inspect_status", "inspect_docs", "inspect_boundaries"],
+                "blocked": [
+                    "activate_agent",
+                    "call_model",
+                    "execute_tool",
+                    "restart_service",
+                    "send_external_message",
+                    "bypass_approval",
+                ],
+            },
+        }
+    return mapped
+
+
 def build_consolidated_agent_manifest(
     *,
     repo_root: str | Path = ROOT,
@@ -275,6 +418,8 @@ def build_consolidated_agent_manifest(
         )
         for agent_id in ids
     ]
+    relationship_edges = _agent_relationship_edges(cards)
+    agent_map = _agent_map(cards, relationship_edges)
 
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -284,6 +429,8 @@ def build_consolidated_agent_manifest(
         "purpose": "One local read-model for rich per-agent cards: behavior, capabilities, voice, lane, status, and doc links.",
         "agent_count": len(cards),
         "agents": cards,
+        "agent_map": agent_map,
+        "agent_relationship_edges": relationship_edges,
         "source_read_models": _source_presence(repo, read_root),
         "source_modules": [
             "agent_lane_registry.py",
@@ -298,6 +445,8 @@ def build_consolidated_agent_manifest(
         "machine_proof": {
             "builder": "build_consolidated_agent_manifest",
             "agent_ids": [card["agent_id"] for card in cards],
+            "agent_map_ids": sorted(agent_map),
+            "relationship_edge_count": len(relationship_edges),
             "source_count": len(SOURCE_READ_MODELS),
             "model_calls_performed": False,
             "tool_execution_performed": False,
