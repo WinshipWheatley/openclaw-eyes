@@ -1,9 +1,8 @@
 import argparse
 import hashlib
-import sys
-import os
+import sqlite3
 from scripts.ingest_canonical_docs import SOURCE_REGISTRY
-from business_ops_ledger import record_truth_registry_entry, init_business_ops_ledger
+from business_ops_ledger import init_business_ops_ledger
 
 def map_truth_status(doc_category, temporal_or_doctrine):
     if temporal_or_doctrine == "temporal_checkpoint":
@@ -33,7 +32,6 @@ def record_truth_registry_entry_idempotent(
     verified_at: str | None = None,
     db_path: str | None = None,
 ) -> str:
-    import sqlite3
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT source_id FROM truth_registry_entries WHERE source_id = ?", (source_id,))
