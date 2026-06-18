@@ -57,6 +57,24 @@ CONVERSATION_SOURCE_CANDIDATES = (
     (Path("generated/read_models/guided_review_sessions.json"), "guided_review_sessions_read_model", "safe_summary_read_model"),
 )
 
+DATA_ROOM_PROMOTION_REVIEW_FIXTURE: dict[str, Any] = {
+    "schema_version": "openclaw_data_room_promotion_review_v0",
+    "source_artifacts": [],
+    "review_records": [
+        {
+            "record_id": "human_edge_lab_payment_privacy_trust_tier",
+            "review_category": "policy_decision",
+            "provisional_fact": "Winship wants payment details to stay trust-tiered.",
+            "proposed_promoted_value": (
+                "Trusted clients may receive easy payment options, but strangers should not "
+                "see bank details or Winship's private address."
+            ),
+            "recommended_action": "confirm",
+            "risk_if_wrong": "Payment or address details could be exposed to the wrong recipient class.",
+        }
+    ],
+}
+
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
@@ -117,7 +135,6 @@ def _write_data_room_promotion_fixture(lab_root: Path, *, generated_at: str) -> 
         },
     )
 
-
 def _reset_owned_lab_path(path: Path) -> None:
     allowed_names = {"data_room", "data_room_read_models", "router"}
     resolved = path.resolve()
@@ -129,22 +146,53 @@ def _reset_owned_lab_path(path: Path) -> None:
         path.unlink()
 
 
-def _load_latest_guided_review_session(review_root: Path) -> tuple[Path, dict[str, Any]]:
-    active_index = review_root / "data_room_guided_review_active_session.json"
-    if active_index.is_file():
-        active = json.loads(active_index.read_text(encoding="utf-8"))
-        session_path = Path(str(active.get("session_path") or ""))
-        if session_path.is_file():
-            return session_path, json.loads(session_path.read_text(encoding="utf-8"))
-    session_paths = [
+def _load_latest_guided_review_session(
+    review_root: Path,
+    active_index: Mapping[str, Any] | None = None,
+) -> tuple[Path | None, dict[str, Any]]:
+    candidate_refs: list[Path] = []
+    if active_index is None:
+        active_index_path = review_root / "data_room_guided_review_active_session.json"
+        if active_index_path.is_file():
+            try:
+                active_index = json.loads(active_index_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                active_index = {}
+
+    if isinstance(active_index, Mapping):
+        raw_session_path = str(active_index.get("session_path") or "").strip()
+        if raw_session_path:
+            session_path = Path(raw_session_path)
+            if session_path.is_absolute():
+                candidate_refs.append(session_path)
+            else:
+                candidate_refs.append(review_root / session_path)
+                candidate_refs.append(_rooted(session_path))
+
+    candidate_refs.extend(
         path
-        for path in review_root.glob("data_room_guided_review_session_*.json")
+        for path in sorted(
+            review_root.glob("data_room_guided_review_session_*.json"),
+            key=lambda item: item.stat().st_mtime_ns if item.exists() else 0,
+            reverse=True,
+        )
         if path.is_file() and not path.name.endswith("_OPERATOR.md")
-    ]
-    if not session_paths:
-        return Path(""), {}
-    session_path = max(session_paths, key=lambda path: path.stat().st_mtime_ns)
-    return session_path, json.loads(session_path.read_text(encoding="utf-8"))
+    )
+
+    seen: set[Path] = set()
+    for candidate in candidate_refs:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if not candidate.is_file():
+            continue
+        try:
+            payload = json.loads(candidate.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(payload, dict) and payload.get("schema_version") == guided_review.SESSION_SCHEMA_VERSION:
+            return candidate, payload
+    return None, {}
 
 
 def _line_count(path: Path) -> int:
@@ -246,9 +294,9 @@ def run_data_room_human_edge_scenario(
     lab_base = _rooted(lab_root)
     root = lab_base / "data_room"
     read_root = lab_base / "data_room_read_models"
-    promotion_review_path = _write_data_room_promotion_fixture(lab_base, generated_at=generated_at)
     _reset_owned_lab_path(root)
     _reset_owned_lab_path(read_root)
+    promotion_review_path = _write_data_room_promotion_fixture(lab_base, generated_at=generated_at)
     turns = [
         ("Cassandra, go over the Data Room.", "2026-06-13T15:00:00+00:00"),
         ("I don't know what that means. Explain it like I'm five.", "2026-06-13T15:01:00+00:00"),
@@ -287,7 +335,9 @@ def run_data_room_human_edge_scenario(
                 "detoured_out_of_guided_review": response is None,
             }
         )
-    session_path, session = _load_latest_guided_review_session(root)
+    active_index = root / "data_room_guided_review_active_session.json"
+    active = json.loads(active_index.read_text(encoding="utf-8")) if active_index.exists() else {}
+    session_path, session = _load_latest_guided_review_session(root, active)
     read_model_path = read_root / guided_review.READ_MODEL_NAME
     summary = {
         "schema_version": "CASSANDRA_HUMAN_EDGE_DATA_ROOM_SCENARIO_V0",
