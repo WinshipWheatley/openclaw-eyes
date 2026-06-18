@@ -16,6 +16,7 @@ VENV="${OPENCLAW_VENV:-/home/openclaw/.venv/bin/python}"
 TS="$(date +%s)-$$"
 WT="$REPO/worktrees/greengate-$TS"
 LOG="/tmp/greengate-$TS.log"
+LOCK_FILE="${OPENCLAW_GREEN_GATE_LOCK:-${TMPDIR:-/tmp}/openclaw-green-gate.lock}"
 
 # Git hooks export repo-local environment such as GIT_DIR and GIT_WORK_TREE.
 # If those leak into pytest, tests that create temporary git repositories can
@@ -23,6 +24,20 @@ LOG="/tmp/greengate-$TS.log"
 for var in GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES; do
   unset "$var" || true
 done
+
+if ! command -v flock >/dev/null 2>&1; then
+  echo "[green-gate] FAIL: flock is required to serialize full green-gate runs"; exit 2
+fi
+LOCK_DIR="$(dirname "$LOCK_FILE")"
+if ! mkdir -p "$LOCK_DIR"; then
+  echo "[green-gate] FAIL: could not create lock directory $LOCK_DIR"; exit 2
+fi
+exec 9>"$LOCK_FILE" || { echo "[green-gate] FAIL: could not open lock $LOCK_FILE"; exit 2; }
+if ! flock -n 9; then
+  echo "[green-gate] another full gate is running; waiting for lock $LOCK_FILE ..."
+  flock 9 || { echo "[green-gate] FAIL: could not acquire lock $LOCK_FILE"; exit 2; }
+fi
+echo "[green-gate] acquired full-suite lock $LOCK_FILE"
 
 cleanup(){ git -C "$REPO" worktree remove --force "$WT" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
