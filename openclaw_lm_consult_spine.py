@@ -1439,7 +1439,6 @@ __all__ = [
     "LocalStubProviderAdapter",
     "ManualHandoffProviderAdapter",
     "OpenAIProviderAdapter",
-    "build_codex_finalizer_package",
     "build_data_room_form_fill_consult_request",
     "build_lm_consult_request",
     "build_lm_consult_result",

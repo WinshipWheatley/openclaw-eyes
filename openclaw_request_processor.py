@@ -1523,10 +1523,10 @@ def _field_limit_errors(fields: Mapping[str, Any], spoken_packet: Mapping[str, A
         "eliwinship": 40,
         "next_action": 16,
     }
-    for field, max_words in limits.items():
-        value = str(fields.get(field) or "")
+    for field_name, max_words in limits.items():
+        value = str(fields.get(field_name) or "")
         if len(value.split()) > max_words:
-            errors.append(f"FIELD_TOO_LONG:{field}")
+            errors.append(f"FIELD_TOO_LONG:{field_name}")
     next_action = str(fields.get("next_action") or "")
     if next_action and not next_action.startswith("Next:"):
         errors.append("NEXT_ACTION_MISSING_PREFIX")
@@ -1549,15 +1549,15 @@ def _field_limit_errors(fields: Mapping[str, Any], spoken_packet: Mapping[str, A
 
 def _machine_sludge_hits(fields: Mapping[str, Any]) -> tuple[str, ...]:
     hits: list[str] = []
-    for field in COMPACT_RESPONSE_FIELDS:
-        text = str(fields.get(field) or "")
+    for field_name in COMPACT_RESPONSE_FIELDS:
+        text = str(fields.get(field_name) or "")
         lowered = text.lower()
         if any(term in lowered for term in MACHINE_SLUDGE_TERMS):
-            hits.append(f"MACHINE_SLUDGE:{field}")
+            hits.append(f"MACHINE_SLUDGE:{field_name}")
         if "generated/read_models" in lowered or "mission_control_" in lowered or "request_id" in lowered:
-            hits.append(f"MACHINE_REF:{field}")
+            hits.append(f"MACHINE_REF:{field_name}")
         if any(status in text for status in INTERNAL_STATUSES):
-            hits.append(f"INTERNAL_STATUS:{field}")
+            hits.append(f"INTERNAL_STATUS:{field_name}")
         for token in text.split():
             stripped = token.strip(".,;:()[]{}").lower()
             if stripped.startswith("/") or "\\" in stripped:
@@ -1607,12 +1607,12 @@ def _duplicate_sentence_hits(payload: Mapping[str, Any]) -> tuple[str, ...]:
         "eliwinship": payload.get("eliwinship"),
         "spoken_script": spoken.get("spoken_script") if isinstance(spoken, Mapping) else "",
     }
-    for field, value in fields.items():
+    for field_name, value in fields.items():
         for fingerprint in _sentence_fingerprints(str(value or "")):
             if fingerprint in seen:
-                duplicates.append(f"DUPLICATE_SENTENCE:{seen[fingerprint]}:{field}")
+                duplicates.append(f"DUPLICATE_SENTENCE:{seen[fingerprint]}:{field_name}")
             else:
-                seen[fingerprint] = field
+                seen[fingerprint] = field_name
     return tuple(duplicates)
 
 
@@ -3742,8 +3742,6 @@ def _process_invoice_record_selection_result_request(
     body = str(payload["body"])
     next_action = str(payload["next_action"])
     receipt = payload["action_start_receipt"]
-    operator_event = payload.get("operator_action_event") if isinstance(payload.get("operator_action_event"), Mapping) else None
-    operator_event_journal = payload.get("operator_action_event_journal") if isinstance(payload.get("operator_action_event_journal"), Mapping) else {}
     state_progress = payload.get("state_machine_progress") if isinstance(payload.get("state_machine_progress"), Mapping) else {}
     local_surface_result = payload.get("local_surface_result") if isinstance(payload.get("local_surface_result"), Mapping) else {}
     detail = {
@@ -3964,15 +3962,6 @@ def _process_selected_invoice_pdf_export_completed_result_request(
     classification: RequestClassification,
     route_decision: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac:
-    action_classification = RequestClassification(
-        classification_id=f"request_classification_{_short_hash(request_path.name, 'selected_invoice_pdf_export_completed')}",
-        source_request_filename=classification.source_request_filename,
-        request_family=str((route_decision or {}).get("request_kind") or classification.request_family),
-        selected_rail=str((route_decision or {}).get("selected_handler_id") or "selected_invoice_pdf_export_completed_candidate.live_arts_md"),
-        classification_reason="Request is PDF export completed candidate.",
-        future_supported=False,
-        next_safe_move="Record candidate receipt.",
-    )
     payload = invoice_review_action_request_handler.process_selected_invoice_pdf_export_completed_candidate_result_request(
         raw_request,
         generated_at=generated_at,
