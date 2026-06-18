@@ -65,6 +65,7 @@
 !backend_knowledge_packet.py
 !backend_storage_intelligence.py
 !corpus_atlas.py
+!md_corpus_ingest.py
 !evidence_kettle.py
 !context_selection.py
 !mac_mirror_atlas.py
@@ -833,6 +834,7 @@
 !scripts/import_operator_action_request.py
 !scripts/query_operator_action_inbox.py
 !tests/test_corpus_atlas.py
+!tests/test_md_corpus_ingest.py
 !tests/test_evidence_kettle.py
 !tests/test_tool_inventory.py
 !tests/test_tool_inventory_read_model.py
