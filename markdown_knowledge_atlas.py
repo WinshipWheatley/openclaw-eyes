@@ -1,14 +1,18 @@
 """Corpus-linked Markdown Knowledge Atlas v0 for OpenClaw.
 
 This module adds a document-role overlay on top of existing Corpus Atlas rows.
-It does not scan filesystems, read Markdown bodies, move files, activate tools,
-or promote prose into truth.
+It does not scan filesystems independently. It reads and stores Markdown bodies
+only for Corpus Atlas rows that are already classified as safe/retrievable, then
+persists section-level candidate facts with verification still required. It
+does not read no-go/private Markdown, move files, activate tools, or promote
+prose into runtime truth.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 from collections import Counter
 from dataclasses import dataclass
@@ -16,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from business_ops_ledger import DEFAULT_DB_PATH
+from business_ops_ledger import DEFAULT_DB_PATH, record_file_inventory_entry
 from corpus_atlas import init_corpus_atlas_schema, stable_json
 
 
@@ -98,6 +102,36 @@ NO_AUTHORITY_FLAGS = {
     "file_delete_allowed": False,
     "truth_promotion_allowed": False,
 }
+
+BODY_READ_RETRIEVAL_POLICIES = {"agent_retrievable", "generated_surface_only"}
+BODY_READ_BLOCKED_PARTS = {
+    ".google-secrets",
+    ".ssh",
+    ".gnupg",
+    ".private",
+    "private",
+    "secrets",
+    "vaults",
+    "finance",
+    "legal",
+    "tax",
+    "cpa",
+}
+BODY_READ_BLOCKED_HINTS = (
+    "credential",
+    "credentials",
+    "token",
+    "secret",
+    ".env",
+    "pii_vault",
+    "legal_discovery",
+)
+
+_PII_PATTERNS = (
+    re.compile(r"\d{3}-\d{2}-\d{4}"),
+    re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"),
+    re.compile(r"\d{3}-\d{3}-\d{4}"),
+)
 
 
 @dataclass(frozen=True)
@@ -181,6 +215,43 @@ CREATE TABLE IF NOT EXISTS markdown_documents (
 )
 """.strip(),
         """
+CREATE TABLE IF NOT EXISTS markdown_document_bodies (
+  body_id TEXT PRIMARY KEY,
+  markdown_document_id TEXT NOT NULL,
+  run_id TEXT NOT NULL,
+  corpus_path_id TEXT NOT NULL,
+  source_content_hash TEXT,
+  hash_algorithm TEXT,
+  body_text TEXT NOT NULL,
+  body_char_count INTEGER NOT NULL,
+  body_line_count INTEGER NOT NULL,
+  read_status TEXT NOT NULL,
+  read_error TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (markdown_document_id) REFERENCES markdown_documents(markdown_document_id) ON DELETE CASCADE,
+  UNIQUE(markdown_document_id)
+)
+""".strip(),
+        """
+CREATE TABLE IF NOT EXISTS markdown_document_sections (
+  section_id TEXT PRIMARY KEY,
+  markdown_document_id TEXT NOT NULL,
+  run_id TEXT NOT NULL,
+  section_ordinal INTEGER NOT NULL,
+  level INTEGER NOT NULL,
+  heading TEXT NOT NULL,
+  heading_path_json TEXT NOT NULL,
+  start_line INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  section_text TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  canonical_fact_id TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (markdown_document_id) REFERENCES markdown_documents(markdown_document_id) ON DELETE CASCADE,
+  UNIQUE(markdown_document_id, section_ordinal)
+)
+""".strip(),
+        """
 CREATE TABLE IF NOT EXISTS markdown_document_classifications (
   classification_id TEXT PRIMARY KEY,
   markdown_document_id TEXT NOT NULL,
@@ -253,6 +324,10 @@ CREATE TABLE IF NOT EXISTS markdown_document_query_receipts (
         "CREATE INDEX IF NOT EXISTS idx_markdown_documents_freshness ON markdown_documents(freshness_status)",
         "CREATE INDEX IF NOT EXISTS idx_markdown_documents_retrieval ON markdown_documents(retrieval_policy)",
         "CREATE INDEX IF NOT EXISTS idx_markdown_documents_root ON markdown_documents(root_id)",
+        "CREATE INDEX IF NOT EXISTS idx_markdown_bodies_run ON markdown_document_bodies(run_id)",
+        "CREATE INDEX IF NOT EXISTS idx_markdown_sections_run ON markdown_document_sections(run_id)",
+        "CREATE INDEX IF NOT EXISTS idx_markdown_sections_heading ON markdown_document_sections(heading)",
+        "CREATE INDEX IF NOT EXISTS idx_markdown_sections_fact ON markdown_document_sections(canonical_fact_id)",
         "CREATE INDEX IF NOT EXISTS idx_markdown_classifications_axis ON markdown_document_classifications(axis, value)",
     )
 
@@ -573,6 +648,7 @@ SELECT
   p.path_id AS corpus_path_id,
   p.run_id AS corpus_run_id,
   p.root_id,
+  r.absolute_root,
   r.root_kind,
   r.host_kind,
   r.owner_scope,
@@ -582,8 +658,14 @@ SELECT
   r.import_status,
   r.mirror_of_root_id,
   r.lineage_source,
+  p.absolute_path,
   p.relative_path,
   p.path_name AS filename,
+  p.git_head,
+  p.size_bytes,
+  p.mtime,
+  p.content_hash,
+  p.hash_algorithm,
   p.source_role,
   p.freshness_label,
   p.sensitivity_label,
@@ -638,7 +720,10 @@ ON CONFLICT(run_id, corpus_path_id) DO UPDATE SET
   classification_rule = excluded.classification_rule,
   confidence = excluded.confidence,
   reason = excluded.reason,
-  observed_at = excluded.observed_at
+  observed_at = excluded.observed_at,
+  body_read = 0,
+  raw_body_stored = 0,
+  truth_claimed = 0
 """.strip(),
         (
             document_id,
@@ -807,6 +892,360 @@ ON CONFLICT(relation_id) DO UPDATE SET
     )
 
 
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _path_has_body_read_blocker(relative_path: str) -> bool:
+    lower_path = relative_path.lower()
+    parts = {part.lower() for part in Path(relative_path).parts}
+    if parts & BODY_READ_BLOCKED_PARTS:
+        return True
+    return any(hint in lower_path for hint in BODY_READ_BLOCKED_HINTS)
+
+
+def _path_within_root(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _body_read_allowed(row: sqlite3.Row, classification: dict[str, Any]) -> tuple[bool, str]:
+    relative_path = row["relative_path"]
+    if _path_has_body_read_blocker(relative_path):
+        return False, "path contains a body-read blocker"
+    if row["raw_content_eligibility"] != "eligible":
+        return False, f"raw_content_eligibility is {row['raw_content_eligibility']}"
+    if classification["sensitivity_status"] != "normal_internal":
+        return False, f"sensitivity_status is {classification['sensitivity_status']}"
+    if classification["retrieval_policy"] not in BODY_READ_RETRIEVAL_POLICIES:
+        return False, f"retrieval_policy is {classification['retrieval_policy']}"
+    absolute_path = str(row["absolute_path"] or "")
+    absolute_root = str(row["absolute_root"] or "")
+    if not absolute_path or "\x00" in absolute_path:
+        return False, "missing or invalid absolute path"
+    if absolute_root.startswith("unknown_") or not absolute_root.startswith("/"):
+        return False, "root has no concrete local absolute path"
+    source_path = Path(absolute_path)
+    root_path = Path(absolute_root)
+    if not source_path.is_file():
+        return False, "source path is not a local file"
+    if not _path_within_root(source_path, root_path):
+        return False, "source path is outside the corpus root"
+    return True, "eligible Corpus Atlas Markdown row"
+
+
+def _read_markdown_body(row: sqlite3.Row, classification: dict[str, Any]) -> tuple[str | None, str]:
+    allowed, reason = _body_read_allowed(row, classification)
+    if not allowed:
+        return None, reason
+    return Path(row["absolute_path"]).read_text(encoding="utf-8", errors="replace"), reason
+
+
+def _heading_from_line(line: str) -> tuple[int, str] | None:
+    stripped = line.strip()
+    if not stripped.startswith("#"):
+        return None
+    level = len(stripped) - len(stripped.lstrip("#"))
+    if level < 1 or level > 6:
+        return None
+    if len(stripped) <= level or stripped[level] not in {" ", "\t"}:
+        return None
+    heading = stripped[level:].strip().strip("#").strip()
+    if not heading:
+        return None
+    return level, heading
+
+
+def _markdown_sections(body_text: str) -> list[dict[str, Any]]:
+    lines = body_text.splitlines()
+    headings: list[dict[str, Any]] = []
+    stack: list[dict[str, Any]] = []
+    in_fence = False
+    for index, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        match = _heading_from_line(line)
+        if match is None:
+            continue
+        level, heading = match
+        while stack and int(stack[-1]["level"]) >= level:
+            stack.pop()
+        stack.append({"level": level, "heading": heading})
+        headings.append(
+            {
+                "line": index,
+                "level": level,
+                "heading": heading,
+                "heading_path": [item["heading"] for item in stack],
+            }
+        )
+
+    if not headings:
+        text = body_text.strip()
+        if not text:
+            return []
+        return [
+            {
+                "section_ordinal": 1,
+                "level": 0,
+                "heading": "Document",
+                "heading_path": ["Document"],
+                "start_line": 1,
+                "end_line": max(len(lines), 1),
+                "section_text": text,
+                "content_hash": _sha256_text(text),
+            }
+        ]
+
+    sections: list[dict[str, Any]] = []
+    for ordinal, heading in enumerate(headings, start=1):
+        next_line = headings[ordinal]["line"] if ordinal < len(headings) else len(lines) + 1
+        start_line = int(heading["line"])
+        end_line = max(start_line, next_line - 1)
+        text = "\n".join(lines[start_line - 1 : end_line]).strip()
+        if not text:
+            continue
+        sections.append(
+            {
+                "section_ordinal": ordinal,
+                "level": heading["level"],
+                "heading": heading["heading"],
+                "heading_path": heading["heading_path"],
+                "start_line": start_line,
+                "end_line": end_line,
+                "section_text": text,
+                "content_hash": _sha256_text(text),
+            }
+        )
+    return sections
+
+
+def _canonical_fact_allowed(text: str) -> bool:
+    if not text.strip():
+        return False
+    return not any(pattern.search(text) for pattern in _PII_PATTERNS)
+
+
+def _canonical_fact_sensitivity(classification: dict[str, Any]) -> str:
+    if classification["document_role"] in {"canonical_doctrine", "operation_doc", "implementation_spec"}:
+        return "operational_canonical"
+    return "non_sensitive"
+
+
+def _insert_markdown_canonical_fact(
+    conn: sqlite3.Connection,
+    *,
+    fact_id: str,
+    row: sqlite3.Row,
+    document_id: str,
+    classification: dict[str, Any],
+    section: dict[str, Any],
+) -> None:
+    fact_text = section["section_text"]
+    content_hash = _sha256_text(fact_text)
+    conn.execute(
+        """
+INSERT INTO canonical_facts (
+  fact_id, source_file, section_heading, source_commit, content_hash,
+  fact_text, sensitivity_class, allowed_actors, doc_category,
+  temporal_or_doctrine, source_description, truth_source_id, truth_status,
+  verification_required, verification_evidence_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL)
+ON CONFLICT(fact_id) DO UPDATE SET
+  source_file = excluded.source_file,
+  section_heading = excluded.section_heading,
+  source_commit = excluded.source_commit,
+  content_hash = excluded.content_hash,
+  fact_text = excluded.fact_text,
+  sensitivity_class = excluded.sensitivity_class,
+  allowed_actors = excluded.allowed_actors,
+  doc_category = excluded.doc_category,
+  temporal_or_doctrine = excluded.temporal_or_doctrine,
+  source_description = excluded.source_description,
+  ingested_at = CURRENT_TIMESTAMP,
+  truth_source_id = excluded.truth_source_id,
+  truth_status = excluded.truth_status,
+  verification_required = 1,
+  verification_evidence_id = NULL
+""".strip(),
+        (
+            fact_id,
+            row["relative_path"],
+            section["heading"],
+            row["git_head"] or "unknown",
+            content_hash,
+            fact_text,
+            _canonical_fact_sensitivity(classification),
+            json.dumps(["agent", "operator"], sort_keys=True),
+            "markdown_knowledge_atlas",
+            classification["freshness_status"],
+            (
+                "Markdown Knowledge Atlas safe section ingest from Corpus Atlas "
+                f"path {row['corpus_path_id']}; candidate fact, verification required."
+            ),
+            document_id,
+            "candidate_from_markdown_section",
+        ),
+    )
+
+
+def _clear_markdown_body_and_sections(conn: sqlite3.Connection, document_id: str) -> None:
+    conn.execute(
+        "DELETE FROM markdown_document_bodies WHERE markdown_document_id = ?",
+        (document_id,),
+    )
+    conn.execute(
+        "DELETE FROM markdown_document_sections WHERE markdown_document_id = ?",
+        (document_id,),
+    )
+
+
+def _store_markdown_body_and_sections(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    row: sqlite3.Row,
+    document_id: str,
+    classification: dict[str, Any],
+    now: str,
+) -> tuple[bool, int, int]:
+    body_text, _reason = _read_markdown_body(row, classification)
+    if body_text is None:
+        _clear_markdown_body_and_sections(conn, document_id)
+        return False, 0, 0
+
+    body_id = _row_id("mdbody", document_id)
+    conn.execute(
+        """
+INSERT INTO markdown_document_bodies (
+  body_id, markdown_document_id, run_id, corpus_path_id, source_content_hash,
+  hash_algorithm, body_text, body_char_count, body_line_count, read_status,
+  read_error, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'stored', NULL, ?)
+ON CONFLICT(markdown_document_id) DO UPDATE SET
+  source_content_hash = excluded.source_content_hash,
+  hash_algorithm = excluded.hash_algorithm,
+  body_text = excluded.body_text,
+  body_char_count = excluded.body_char_count,
+  body_line_count = excluded.body_line_count,
+  read_status = 'stored',
+  read_error = NULL,
+  created_at = excluded.created_at
+""".strip(),
+        (
+            body_id,
+            document_id,
+            run_id,
+            row["corpus_path_id"],
+            row["content_hash"],
+            row["hash_algorithm"],
+            body_text,
+            len(body_text),
+            len(body_text.splitlines()),
+            now,
+        ),
+    )
+    conn.execute(
+        """
+UPDATE markdown_documents
+SET body_read = 1, raw_body_stored = 1, truth_claimed = 0
+WHERE markdown_document_id = ?
+""".strip(),
+        (document_id,),
+    )
+    conn.execute("DELETE FROM markdown_document_sections WHERE markdown_document_id = ?", (document_id,))
+
+    fact_count = 0
+    sections = _markdown_sections(body_text)
+    for section in sections:
+        section_id = _row_id("mdsec", document_id, section["section_ordinal"], section["content_hash"])
+        canonical_fact_id = None
+        if _canonical_fact_allowed(section["section_text"]):
+            canonical_fact_id = _row_id("mdfact", document_id, section["section_ordinal"], section["content_hash"])
+            _insert_markdown_canonical_fact(
+                conn,
+                fact_id=canonical_fact_id,
+                row=row,
+                document_id=document_id,
+                classification=classification,
+                section=section,
+            )
+            fact_count += 1
+        conn.execute(
+            """
+INSERT INTO markdown_document_sections (
+  section_id, markdown_document_id, run_id, section_ordinal, level,
+  heading, heading_path_json, start_line, end_line, section_text,
+  content_hash, canonical_fact_id, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(markdown_document_id, section_ordinal) DO UPDATE SET
+  level = excluded.level,
+  heading = excluded.heading,
+  heading_path_json = excluded.heading_path_json,
+  start_line = excluded.start_line,
+  end_line = excluded.end_line,
+  section_text = excluded.section_text,
+  content_hash = excluded.content_hash,
+  canonical_fact_id = excluded.canonical_fact_id,
+  created_at = excluded.created_at
+""".strip(),
+            (
+                section_id,
+                document_id,
+                run_id,
+                section["section_ordinal"],
+                section["level"],
+                section["heading"],
+                stable_json(section["heading_path"]),
+                section["start_line"],
+                section["end_line"],
+                section["section_text"],
+                section["content_hash"],
+                canonical_fact_id,
+                now,
+            ),
+        )
+    return True, len(sections), fact_count
+
+
+def _file_inventory_payload(
+    row: sqlite3.Row,
+    classification: dict[str, Any],
+    now: str,
+) -> dict[str, Any]:
+    ingest_eligibility = "unknown"
+    exclusion_reason = "retrieval requires operator review"
+    if classification["sensitivity_status"] == "no_go" or classification["retrieval_policy"] == "blocked_no_go":
+        ingest_eligibility = "excluded"
+        exclusion_reason = classification["reason"]
+    elif classification["sensitivity_status"] in {"normal_internal", "sensitive_metadata_only"}:
+        ingest_eligibility = "eligible_metadata_only"
+        exclusion_reason = None
+    return {
+        "file_id": _row_id("finv", row["root_id"], row["relative_path"]),
+        "root_id": row["root_id"],
+        "drive_label": row["host_kind"],
+        "absolute_path": row["absolute_path"],
+        "relative_path": row["relative_path"],
+        "file_name": row["filename"],
+        "extension": Path(row["relative_path"]).suffix.lower() or None,
+        "file_type_guess": "markdown",
+        "size_bytes": int(row["size_bytes"] or 0),
+        "modified_at": row["mtime"] or row["observed_at"] or now,
+        "content_hash": row["content_hash"],
+        "sensitivity_guess": classification["sensitivity_status"],
+        "ingest_eligibility": ingest_eligibility,
+        "exclusion_reason": exclusion_reason,
+    }
+
+
 def _count_documents(rows: Iterable[dict[str, Any]]) -> dict[str, dict[str, int]]:
     materialized = list(rows)
     fields = (
@@ -877,11 +1316,16 @@ ON CONFLICT(run_id) DO UPDATE SET
                 now,
                 stable_json({"corpus_runs": source_runs}),
                 len(source_runs),
-                "Corpus-linked Markdown role overlay; metadata-only, no body reads, no file moves.",
+                "Corpus-linked Markdown role overlay with safe body/section ingest for retrievable Markdown; no no-go reads or file moves.",
             ),
         )
         source_rows = _markdown_source_rows(conn, corpus_run_ids)
         classified_for_counts: list[dict[str, Any]] = []
+        inventory_payloads: list[dict[str, Any]] = []
+        body_read_count = 0
+        raw_body_stored_count = 0
+        section_count = 0
+        canonical_fact_count = 0
         for source_row in source_rows:
             classification = classify_markdown_document(source_row)
             document_id = _insert_document(
@@ -895,6 +1339,20 @@ ON CONFLICT(run_id) DO UPDATE SET
             _insert_links(conn, document_id=document_id, row=source_row, now=now)
             _insert_reorg_candidate(conn, document_id=document_id, classification=classification, now=now)
             _insert_supersession(conn, document_id=document_id, classification=classification, now=now)
+            body_stored, document_section_count, document_fact_count = _store_markdown_body_and_sections(
+                conn,
+                run_id=resolved_run_id,
+                row=source_row,
+                document_id=document_id,
+                classification=classification,
+                now=now,
+            )
+            if body_stored:
+                body_read_count += 1
+                raw_body_stored_count += 1
+            section_count += document_section_count
+            canonical_fact_count += document_fact_count
+            inventory_payloads.append(_file_inventory_payload(source_row, classification, now))
             classified_for_counts.append(
                 {
                     **classification,
@@ -906,12 +1364,32 @@ ON CONFLICT(run_id) DO UPDATE SET
         conn.execute(
             """
 UPDATE markdown_atlas_runs
-SET completed_at = ?, document_count = ?
+SET completed_at = ?,
+    document_count = ?,
+    body_read = ?,
+    raw_body_stored = ?,
+    notes = ?
 WHERE run_id = ?
 """.strip(),
-            (now, len(source_rows), resolved_run_id),
+            (
+                now,
+                len(source_rows),
+                1 if body_read_count else 0,
+                1 if raw_body_stored_count else 0,
+                (
+                    "Corpus-linked Markdown role overlay; "
+                    f"stored {body_read_count} safe bodies, {section_count} sections, "
+                    f"and {canonical_fact_count} candidate canonical facts; "
+                    "no no-go reads or file moves."
+                ),
+                resolved_run_id,
+            ),
         )
         conn.commit()
+        for payload in inventory_payloads:
+            ok = record_file_inventory_entry(db_path=path, **payload)
+            if not ok:
+                raise RuntimeError(f"failed to record Markdown file inventory row for {payload['relative_path']}")
         counts = _count_documents(classified_for_counts)
         return MarkdownAtlasResult(
             run_id=resolved_run_id,
@@ -1104,8 +1582,9 @@ WHERE run_id = ?
                 limit=20,
             ),
             "boundary": {
-                "body_read": False,
-                "raw_body_stored": False,
+                "body_read": bool(run[7]),
+                "raw_body_stored": bool(run[8]),
+                "body_read_scope": "eligible Corpus Atlas Markdown only; no no-go/private/metadata-only body reads",
                 "filesystem_moves": False,
                 "filesystem_deletes": False,
                 "truth_claimed": False,
@@ -1210,7 +1689,7 @@ def format_markdown_report(payload: dict[str, Any]) -> str:
             *_item_lines(payload["items"], max_items=20),
             "",
             "Boundary:",
-            "- Metadata/document-role overlay only; no Markdown bodies are stored.",
+            "- Safe eligible Markdown bodies may be stored as section-level candidate facts; no no-go/private bodies are read.",
             "- Reorg/archive rows are advisory only; no moves, deletes, or renames are authorized.",
             "- No runtime, agent, tool, Docker/Ollama, or network authority is introduced.",
         ]
@@ -1249,7 +1728,8 @@ def format_markdown_report(payload: dict[str, Any]) -> str:
         *_item_lines(samples["agent_retrievable"]),
         "",
         "Boundary:",
-        "- Markdown Atlas rows are corpus-linked document-role classifications only.",
+        "- Markdown Atlas rows are corpus-linked document-role classifications plus safe section ingestion.",
+        "- Only eligible Corpus Atlas Markdown bodies are read; no-go/private/metadata-only bodies are not read.",
         "- Unknown or needs-review documents are not agent-retrievable.",
         "- Generated Markdown is exposed as generated_surface_only.",
         "- No filesystem reorganization, broad raw Markdown ingestion, no-go reads, runtime activation, or truth promotion is authorized.",

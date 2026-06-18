@@ -353,6 +353,22 @@ def record_canonical_fact(
             doc_category, temporal_or_doctrine, source_description,
             truth_source_id, truth_status, verification_required, verification_evidence_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(fact_id) DO UPDATE SET
+            source_file = excluded.source_file,
+            section_heading = excluded.section_heading,
+            source_commit = excluded.source_commit,
+            content_hash = excluded.content_hash,
+            fact_text = excluded.fact_text,
+            sensitivity_class = excluded.sensitivity_class,
+            allowed_actors = excluded.allowed_actors,
+            doc_category = excluded.doc_category,
+            temporal_or_doctrine = excluded.temporal_or_doctrine,
+            source_description = excluded.source_description,
+            ingested_at = CURRENT_TIMESTAMP,
+            truth_source_id = excluded.truth_source_id,
+            truth_status = excluded.truth_status,
+            verification_required = excluded.verification_required,
+            verification_evidence_id = excluded.verification_evidence_id
     """
     params = (
         fact_id,
