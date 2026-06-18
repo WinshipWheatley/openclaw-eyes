@@ -55,6 +55,7 @@ def _ready_units() -> list[dict]:
         _unit("openclaw-change-sentinel.service", active_state="inactive", sub_state="dead", enabled=False),
         _unit("openclaw-service-keeper.timer", sub_state="waiting"),
         _unit("openclaw-service-keeper.service", active_state="inactive", sub_state="dead", enabled=False),
+        _unit("openclaw-sleep-resilience.service"),
     ]
 
 
@@ -90,6 +91,20 @@ def test_supervision_reports_service_keeper_timer_state(tmp_path):
         row["unit_name"]: row for row in payload["supervised_units"]
     }["openclaw-service-keeper.timer"]
     assert keeper_unit["startup_readiness"] == "READY"
+
+
+def test_supervision_reports_sleep_resilience_service_state(tmp_path):
+    payload = supervision.build_openclaw_service_supervision(
+        read_model_root=tmp_path,
+        generated_at=FIXED_NOW,
+        unit_rows=_ready_units(),
+        linger_status=_linger(),
+    )
+
+    sleep_unit = {
+        row["unit_name"]: row for row in payload["supervised_units"]
+    }["openclaw-sleep-resilience.service"]
+    assert sleep_unit["startup_readiness"] == "READY"
 
 
 def test_linger_disabled_marks_boot_persistence_risk(tmp_path):
