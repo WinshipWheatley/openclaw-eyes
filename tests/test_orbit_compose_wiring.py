@@ -14,7 +14,8 @@ TEMP_DB = Path("/tmp/orbit_compose_wiring.sqlite")
 
 
 @pytest.fixture(autouse=True)
-def clean_temp_db():
+def clean_temp_db(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "TEMP_DB", tmp_path / "orbit_compose_wiring.sqlite")
     try:
         TEMP_DB.unlink()
     except FileNotFoundError:
