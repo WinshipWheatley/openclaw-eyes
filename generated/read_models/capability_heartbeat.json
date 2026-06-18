@@ -1,0 +1,1281 @@
+{
+  "capability_count": 54,
+  "drift_capabilities": [
+    "cassandra_voice_synthesis",
+    "cassandra_messaging",
+    "chief_email_brain",
+    "guardian_output_validation",
+    "niles_notification_service",
+    "maestro_correspondence_watching",
+    "capability_registry",
+    "sms"
+  ],
+  "drift_count": 8,
+  "generated_at": "2026-06-18T04:20:56.686703+00:00",
+  "live_root": "/home/openclaw",
+  "live_status_counts": {
+    "broken": 1,
+    "dark": 16,
+    "dormant": 11,
+    "lit": 24,
+    "unknown": 2
+  },
+  "read_only": true,
+  "records": [
+    {
+      "capability_id": "gmail_send",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "found _exec_gmail_send",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found gmail.compose",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found ACTION_TYPE_EXACT_GMAIL_SEND",
+          "name": "source:hitl_action_service.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "SEND_HOLD active",
+          "name": "hold:/mnt/e/openclaw/orchestration/SEND_HOLD.md",
+          "status": "block"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "Gmail Send",
+      "drift": false,
+      "flags": [
+        "blocked_by_hold"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "gmail_draft_create",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "found _exec_gmail_draft_create",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found gmail.compose",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "Gmail Draft Create",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "gmail_read_metadata",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "found gmail.readonly",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found _exec_gmail_read_metadata",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "Gmail Read Metadata",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "gmail_read_body",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "found gmail.readonly",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found _exec_gmail_read_body",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found redact_text",
+          "name": "source:pii_vault.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "Gmail Read Body",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "gmail_unread_count",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "found gmail.readonly",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found _exec_gmail_unread_count",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "Gmail Unread Count",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "google_contacts_read",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "found contacts.readonly",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found _exec_contacts_read",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "Google Contacts Read",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "telegram_message_send",
+      "checks": [
+        {
+          "evidence": "CASSANDRA_BOT_TOKEN present",
+          "name": "env_any:CASSANDRA_BOT_TOKEN,TELEGRAM_BOT_TOKEN",
+          "status": "pass"
+        },
+        {
+          "evidence": "found send_message",
+          "name": "source:cassandra_sender.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "missing TELEGRAM_SEND",
+          "name": "source:operator_action.py",
+          "status": "fail"
+        },
+        {
+          "evidence": "SEND_HOLD active",
+          "name": "hold:/mnt/e/openclaw/orchestration/SEND_HOLD.md",
+          "status": "block"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "Telegram Message Send",
+      "drift": false,
+      "flags": [
+        "blocked_by_hold"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "telegram_voice_note_send",
+      "checks": [
+        {
+          "evidence": "CASSANDRA_BOT_TOKEN present",
+          "name": "env_any:CASSANDRA_BOT_TOKEN,TELEGRAM_BOT_TOKEN",
+          "status": "pass"
+        },
+        {
+          "evidence": "found send_voice_note",
+          "name": "source:cassandra_sender.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "missing TELEGRAM_SEND",
+          "name": "source:operator_action.py",
+          "status": "fail"
+        },
+        {
+          "evidence": "SEND_HOLD active",
+          "name": "hold:/mnt/e/openclaw/orchestration/SEND_HOLD.md",
+          "status": "block"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "Telegram Voice Note Send",
+      "drift": false,
+      "flags": [
+        "blocked_by_hold"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "telegram_document_send",
+      "checks": [
+        {
+          "evidence": "CASSANDRA_BOT_TOKEN present",
+          "name": "env_any:CASSANDRA_BOT_TOKEN,TELEGRAM_BOT_TOKEN",
+          "status": "pass"
+        },
+        {
+          "evidence": "found send_document",
+          "name": "source:cassandra_sender.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "missing TELEGRAM_SEND",
+          "name": "source:operator_action.py",
+          "status": "fail"
+        },
+        {
+          "evidence": "SEND_HOLD active",
+          "name": "hold:/mnt/e/openclaw/orchestration/SEND_HOLD.md",
+          "status": "block"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "Telegram Document Send",
+      "drift": false,
+      "flags": [
+        "blocked_by_hold"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "operator_brief_send",
+      "checks": [
+        {
+          "evidence": "CASSANDRA_BOT_TOKEN present",
+          "name": "env_any:CASSANDRA_BOT_TOKEN,TELEGRAM_BOT_TOKEN",
+          "status": "pass"
+        },
+        {
+          "evidence": "found send_operator_brief",
+          "name": "source:cassandra_sender.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found send_operator_brief",
+          "name": "source:cassandra_briefing_scheduler.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "SEND_HOLD active",
+          "name": "hold:/mnt/e/openclaw/orchestration/SEND_HOLD.md",
+          "status": "block"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "Operator Brief Send (Text)",
+      "drift": false,
+      "flags": [
+        "blocked_by_hold"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "email_reply_bridge",
+      "checks": [
+        {
+          "evidence": "missing correspondence",
+          "name": "source:maestro_correspondence_watcher.py",
+          "status": "fail"
+        },
+        {
+          "evidence": "found ACTION_TYPE_EXACT_GMAIL_SEND",
+          "name": "source:hitl_action_service.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "Email Reply Bridge",
+      "drift": false,
+      "flags": [
+        "partial_live_evidence"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "cassandra_briefing_scheduler",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:cassandra-briefing-scheduler.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "cassandra-briefing-scheduler",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "cassandra_listener",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:cassandra-listener.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "cassandra-listener",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "cassandra_watcher",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:cassandra-watcher.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "cassandra-watcher",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "cassandra_voice_synthesis",
+      "checks": [
+        {
+          "evidence": "inactive",
+          "name": "systemd:cassandra-voice-synthesis.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "cassandra-voice-synthesis (piper)",
+      "drift": true,
+      "flags": [
+        "no_live_evidence",
+        "DRIFT"
+      ],
+      "live_status": "dark",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "cassandra_messaging",
+      "checks": [
+        {
+          "evidence": "inactive",
+          "name": "systemd:cassandra-messaging.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "cassandra-messaging",
+      "drift": true,
+      "flags": [
+        "no_live_evidence",
+        "DRIFT"
+      ],
+      "live_status": "dark",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "chief_email_brain",
+      "checks": [
+        {
+          "evidence": "inactive",
+          "name": "systemd:chief-email-brain.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "chief-email-brain",
+      "drift": true,
+      "flags": [
+        "no_live_evidence",
+        "DRIFT"
+      ],
+      "live_status": "dark",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "chief_memory_worker",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:chief-memory-worker.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "chief-memory-worker",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "chief_state_worker",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:chief-state-worker.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "chief-state-worker",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "chief_watcher_brain",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:chief-watcher-brain.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "chief-watcher-brain",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "chief_worker",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:chief-worker.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "chief-worker",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "chief_guardian_listener",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:chief-guardian-listener.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "chief-guardian-listener",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "guardian_output_validation",
+      "checks": [
+        {
+          "evidence": "inactive",
+          "name": "systemd:guardian-output-validation.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "guardian-output-validation",
+      "drift": true,
+      "flags": [
+        "no_live_evidence",
+        "DRIFT"
+      ],
+      "live_status": "dark",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "hermes_gateway",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:hermes-gateway.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "hermes-gateway",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "niles_notification_service",
+      "checks": [
+        {
+          "evidence": "inactive",
+          "name": "systemd:niles-notification-service.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "niles-notification-service (HITL tokens/callbacks)",
+      "drift": true,
+      "flags": [
+        "no_live_evidence",
+        "DRIFT"
+      ],
+      "live_status": "dark",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "maestro_correspondence_watching",
+      "checks": [
+        {
+          "evidence": "inactive",
+          "name": "systemd:maestro-correspondence-watching.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "maestro-correspondence-watching",
+      "drift": true,
+      "flags": [
+        "no_live_evidence",
+        "DRIFT"
+      ],
+      "live_status": "dark",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "openclaw_request_response",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:openclaw-request-response.service",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "openclaw-request-response",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "capability_registry",
+      "checks": [
+        {
+          "evidence": "inactive",
+          "name": "systemd:capability-registry.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "capability-registry",
+      "drift": true,
+      "flags": [
+        "no_live_evidence",
+        "DRIFT"
+      ],
+      "live_status": "dark",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "hitl_action_dispatcher",
+      "checks": [
+        {
+          "evidence": "found create_pending_action",
+          "name": "source:hitl_action_service.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found risk_tier_for_action_type",
+          "name": "source:hitl_action_service.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "hitl-action-dispatcher",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "google_calendar_read",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "found calendar.read",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "google-calendar-read",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "google_calendar_write",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "missing \"https://www.googleapis.com/auth/calendar\"",
+          "name": "source:google_access_broker.py",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "google-calendar-write",
+      "drift": false,
+      "flags": [
+        "expected_breakage_still_observed"
+      ],
+      "live_status": "broken",
+      "registry_status": "broken"
+    },
+    {
+      "capability_id": "google_calendar_delete",
+      "checks": [
+        {
+          "evidence": "present and non-empty (413 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/credentials.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (898 bytes)",
+          "name": "file:/home/openclaw/.google-secrets/token.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "found calendar.events",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found _exec_calendar_delete",
+          "name": "source:google_access_broker.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "google-calendar-delete",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "email_send",
+      "checks": [
+        {
+          "evidence": "declares \"email_send\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        },
+        {
+          "evidence": "SEND_HOLD active",
+          "name": "hold:/mnt/e/openclaw/orchestration/SEND_HOLD.md",
+          "status": "block"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "email_send (general)",
+      "drift": false,
+      "flags": [
+        "blocked_by_hold"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "sms",
+      "checks": [
+        {
+          "evidence": "not present in configured env sources",
+          "name": "env:TWILIO_ACCOUNT_SID",
+          "status": "fail"
+        },
+        {
+          "evidence": "not present in configured env sources",
+          "name": "env:TWILIO_AUTH_TOKEN",
+          "status": "fail"
+        },
+        {
+          "evidence": "declares \"sms\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "sms",
+      "drift": true,
+      "flags": [
+        "no_live_evidence",
+        "DRIFT"
+      ],
+      "live_status": "dark",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "social_post",
+      "checks": [
+        {
+          "evidence": "declares \"social_post\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        }
+      ],
+      "confidence": "low",
+      "display_name": "social_post",
+      "drift": false,
+      "flags": [
+        "declaration_only"
+      ],
+      "live_status": "unknown",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "file_open",
+      "checks": [
+        {
+          "evidence": "declares \"file_open\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        }
+      ],
+      "confidence": "low",
+      "display_name": "file_open",
+      "drift": false,
+      "flags": [
+        "declaration_only"
+      ],
+      "live_status": "unknown",
+      "registry_status": "unknown"
+    },
+    {
+      "capability_id": "financial_transfer",
+      "checks": [
+        {
+          "evidence": "declares \"financial_transfer\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        },
+        {
+          "evidence": "missing financial_transfer",
+          "name": "source:financial_broker.py",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "financial_transfer",
+      "drift": false,
+      "flags": [
+        "no_live_evidence"
+      ],
+      "live_status": "dark",
+      "registry_status": "dark"
+    },
+    {
+      "capability_id": "payment",
+      "checks": [
+        {
+          "evidence": "declares \"payment\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        },
+        {
+          "evidence": "missing payment",
+          "name": "source:financial_broker.py",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "payment",
+      "drift": false,
+      "flags": [
+        "no_live_evidence"
+      ],
+      "live_status": "dark",
+      "registry_status": "dark"
+    },
+    {
+      "capability_id": "bill_pay",
+      "checks": [
+        {
+          "evidence": "declares \"bill_pay\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        },
+        {
+          "evidence": "missing bill_pay",
+          "name": "source:financial_broker.py",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "bill_pay",
+      "drift": false,
+      "flags": [
+        "no_live_evidence"
+      ],
+      "live_status": "dark",
+      "registry_status": "dark"
+    },
+    {
+      "capability_id": "wire_transfer",
+      "checks": [
+        {
+          "evidence": "declares \"wire_transfer\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        },
+        {
+          "evidence": "missing wire_transfer",
+          "name": "source:financial_broker.py",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "wire_transfer",
+      "drift": false,
+      "flags": [
+        "no_live_evidence"
+      ],
+      "live_status": "dark",
+      "registry_status": "dark"
+    },
+    {
+      "capability_id": "invoice_send",
+      "checks": [
+        {
+          "evidence": "declares \"invoice_send\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        },
+        {
+          "evidence": "missing invoice_send",
+          "name": "source:financial_broker.py",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "invoice_send",
+      "drift": false,
+      "flags": [
+        "no_live_evidence"
+      ],
+      "live_status": "dark",
+      "registry_status": "dark"
+    },
+    {
+      "capability_id": "refund",
+      "checks": [
+        {
+          "evidence": "declares \"refund\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        },
+        {
+          "evidence": "missing refund",
+          "name": "source:financial_broker.py",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "refund",
+      "drift": false,
+      "flags": [
+        "no_live_evidence"
+      ],
+      "live_status": "dark",
+      "registry_status": "dark"
+    },
+    {
+      "capability_id": "charge",
+      "checks": [
+        {
+          "evidence": "declares \"charge\"",
+          "name": "declared:hitl_action_service.py",
+          "status": "info"
+        },
+        {
+          "evidence": "missing charge",
+          "name": "source:financial_broker.py",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "charge",
+      "drift": false,
+      "flags": [
+        "no_live_evidence"
+      ],
+      "live_status": "dark",
+      "registry_status": "dark"
+    },
+    {
+      "capability_id": "morning_brief",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:cassandra-briefing-scheduler.service",
+          "status": "pass"
+        },
+        {
+          "evidence": "found protected",
+          "name": "source:cassandra_briefing_brain.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "morning_brief",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "pii_tokenization_redaction",
+      "checks": [
+        {
+          "evidence": "found redact_text",
+          "name": "source:pii_vault.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "found rehydrate_text",
+          "name": "source:pii_vault.py",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "pii_tokenization_redaction",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "privacy_request_readiness_gate1",
+      "checks": [
+        {
+          "evidence": "found STRICT_PRIVATE",
+          "name": "source:generated/read_models/gate1_privacy_request_readiness_OPERATOR.md",
+          "status": "pass"
+        },
+        {
+          "evidence": "found CONFIDENTIAL",
+          "name": "source:generated/read_models/gate1_privacy_request_readiness_OPERATOR.md",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "privacy_request_readiness_gate1",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "steel_thread_radar",
+      "checks": [
+        {
+          "evidence": "found steel_thread_seed_signals",
+          "name": "source:steel_thread_radar.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "inactive",
+          "name": "systemd:steel-thread-radar.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "steel_thread_radar",
+      "drift": false,
+      "flags": [
+        "partial_live_evidence"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "pii_vault_encrypted_store",
+      "checks": [
+        {
+          "evidence": "present in 1 env file(s)",
+          "name": "env:PII_VAULT_KEY",
+          "status": "pass"
+        },
+        {
+          "evidence": "present and non-empty (460 bytes)",
+          "name": "file:/home/openclaw/.pii_vault.enc",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "pii_vault_encrypted_store",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "lit"
+    },
+    {
+      "capability_id": "polish_loop",
+      "checks": [
+        {
+          "evidence": "present",
+          "name": "file:/home/openclaw/polish_loop/orchestrator.py",
+          "status": "pass"
+        },
+        {
+          "evidence": "present",
+          "name": "file:/home/openclaw/polish_loop/status.json",
+          "status": "pass"
+        },
+        {
+          "evidence": "inactive",
+          "name": "systemd:polish-loop.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "polish_loop (autonomous build pipeline)",
+      "drift": false,
+      "flags": [
+        "partial_live_evidence"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "hermes_agent",
+      "checks": [
+        {
+          "evidence": "active",
+          "name": "systemd:hermes-gateway.service",
+          "status": "pass"
+        },
+        {
+          "evidence": "present",
+          "name": "file:/home/openclaw/sidecars/hermes",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "Hermes Agent (Nous Research)",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "partly_lit"
+    },
+    {
+      "capability_id": "gbrain",
+      "checks": [
+        {
+          "evidence": "present",
+          "name": "file:/home/openclaw/sidecars/gbrain_upstream",
+          "status": "pass"
+        },
+        {
+          "evidence": "inactive",
+          "name": "systemd:gbrain.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "GBrain (self-wiring knowledge graph)",
+      "drift": false,
+      "flags": [
+        "partial_live_evidence"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    },
+    {
+      "capability_id": "nemoclaw",
+      "checks": [
+        {
+          "evidence": "present",
+          "name": "declared_file:/home/openclaw/.nemoclaw/source",
+          "status": "info"
+        },
+        {
+          "evidence": "inactive",
+          "name": "systemd:nemoclaw.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": "NemoClaw (NVIDIA reference stack)",
+      "drift": false,
+      "flags": [
+        "no_live_evidence"
+      ],
+      "live_status": "dark",
+      "registry_status": "dark"
+    },
+    {
+      "capability_id": "openclaw_builder",
+      "checks": [
+        {
+          "evidence": "present",
+          "name": "file:/home/openclaw/openclaw-builder/builder-task.sh",
+          "status": "pass"
+        }
+      ],
+      "confidence": "high",
+      "display_name": "openclaw-builder",
+      "drift": false,
+      "flags": [],
+      "live_status": "lit",
+      "registry_status": "unknown"
+    },
+    {
+      "capability_id": "openclaw_workspace",
+      "checks": [
+        {
+          "evidence": "present",
+          "name": "file:/home/openclaw/.openclaw/workspace",
+          "status": "pass"
+        },
+        {
+          "evidence": "inactive",
+          "name": "systemd:openclaw-workspace.service",
+          "status": "fail"
+        }
+      ],
+      "confidence": "medium",
+      "display_name": ".openclaw/workspace",
+      "drift": false,
+      "flags": [
+        "partial_live_evidence"
+      ],
+      "live_status": "dormant",
+      "registry_status": "dormant"
+    }
+  ],
+  "registry_path": "/mnt/e/openclaw/orchestration/artifacts/CAPABILITY_HEALTH_REGISTRY.md",
+  "safety": {
+    "external_writes": false,
+    "probe_boundary": "systemctl is-active, local file/env presence, and static source checks only",
+    "send_or_dispatch_calls": false,
+    "service_mutations": false
+  },
+  "schema_version": "capability_heartbeat_v0"
+}

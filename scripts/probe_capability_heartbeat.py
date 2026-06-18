@@ -562,6 +562,7 @@ def build_report(
     runner: Runner = default_runner,
     env_files: tuple[Path, ...] = DEFAULT_ENV_FILES,
     live_root: Path = DEFAULT_LIVE_ROOT,
+    generated_at: str | None = None,
 ) -> dict[str, Any]:
     records = parse_capability_registry(registry_path.read_text(encoding="utf-8"))
     outcomes = [
@@ -574,7 +575,7 @@ def build_report(
     drift = [outcome for outcome in outcomes if outcome.drift]
     return {
         "schema_version": "capability_heartbeat_v0",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": generated_at or datetime.now(timezone.utc).isoformat(),
         "registry_path": registry_path.as_posix(),
         "live_root": live_root.as_posix(),
         "read_only": True,

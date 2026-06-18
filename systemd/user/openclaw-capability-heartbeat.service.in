@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenClaw capability heartbeat read-model export
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+ConditionPathExists=/mnt/e/openclaw/orchestration/artifacts/CAPABILITY_HEALTH_REGISTRY.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/env python3 @REPO_ROOT@/scripts/export_capability_heartbeat_read_model.py --registry /mnt/e/openclaw/orchestration/artifacts/CAPABILITY_HEALTH_REGISTRY.md --live-root @REPO_ROOT@ --export-root generated/read_models --format summary
+NoNewPrivileges=true

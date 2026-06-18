@@ -651,8 +651,10 @@
 !scripts/green_gate.sh
 !scripts/pre-push.hook
 !scripts/probe_capability_heartbeat.py
+!scripts/export_capability_heartbeat_read_model.py
 !tests/test_green_gate_script.py
 !tests/test_capability_heartbeat_probe.py
+!tests/test_capability_heartbeat_export.py
 !scripts/generate_agent_context.py
 !scripts/record_test_proof_receipt.py
 !scripts/audit_proof_coverage.py

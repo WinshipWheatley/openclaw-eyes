@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenClaw capability heartbeat read-model export every 20 minutes
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=20min
+AccuracySec=1min
+Persistent=true
+Unit=openclaw-capability-heartbeat.service
+
+[Install]
+WantedBy=timers.target
