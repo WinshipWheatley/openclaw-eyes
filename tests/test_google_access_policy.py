@@ -1,7 +1,9 @@
 import sys
+from pathlib import Path
 
 
-sys.path.insert(0, "/home/openclaw")
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 
 GMAIL_CAPABILITIES = (
@@ -57,8 +59,17 @@ def test_broker_gates_class_b_gmail_body_and_draft_before_credentials(monkeypatc
 
     monkeypatch.setattr(broker, "_request_approval", fake_request_approval)
     monkeypatch.setattr(broker, "_is_configured", fail_if_credentials_checked)
+    monkeypatch.setattr(broker, "check_gmail_broker_runtime_dependencies", lambda: {"ok": True, "missing": []})
 
     for capability in ("google.gmail.read.body", "google.gmail.draft.create"):
+        token = broker.mint_send_hold_gated_broker_capability_token(
+            agent="cassandra",
+            capability=capability,
+            issuer="test_google_access_policy",
+            send_hold_checked=True,
+            send_hold_active=False,
+            send_hold_ref="pytest",
+        )
         result = broker.call(
             "cassandra",
             capability,
@@ -68,6 +79,7 @@ def test_broker_gates_class_b_gmail_body_and_draft_before_credentials(monkeypatc
                 "to": "review@example.com",
                 "subject": "Synthetic subject",
                 "body": "Synthetic body",
+                "broker_capability_token": token,
             },
         )
         assert result == {"ok": False, "data": None, "error": "denied at L1 approval gate"}
@@ -83,6 +95,13 @@ def test_broker_gates_class_c_gmail_send_before_credentials(monkeypatch):
     import google_access_broker as broker
 
     approval_calls = []
+    request_id = "policy-gate-fixture"
+    payload_hash = "sha256:" + ("c" * 64)
+    approval_context = {
+        "request_id": request_id,
+        "idempotency_key": request_id,
+        "payload_hash": payload_hash,
+    }
 
     def fake_request_approval(action, tier, approval_context=None):
         approval_calls.append(
@@ -99,6 +118,19 @@ def test_broker_gates_class_c_gmail_send_before_credentials(monkeypatch):
 
     monkeypatch.setattr(broker, "_request_approval", fake_request_approval)
     monkeypatch.setattr(broker, "_is_configured", fail_if_credentials_checked)
+    monkeypatch.setattr(broker, "check_gmail_broker_runtime_dependencies", lambda: {"ok": True, "missing": []})
+
+    token = broker.mint_send_hold_gated_broker_capability_token(
+        agent="cassandra",
+        capability="google.gmail.send",
+        issuer="test_google_access_policy",
+        request_id=request_id,
+        idempotency_key=request_id,
+        payload_hash=payload_hash,
+        send_hold_checked=True,
+        send_hold_active=False,
+        send_hold_ref="pytest",
+    )
 
     result = broker.call(
         "cassandra",
@@ -107,6 +139,10 @@ def test_broker_gates_class_c_gmail_send_before_credentials(monkeypatch):
             "to": "review@example.com",
             "subject": "Synthetic subject",
             "body": "Synthetic body",
+            "exact_send_request_id": request_id,
+            "idempotency_key": request_id,
+            "approval_context": approval_context,
+            "broker_capability_token": token,
         },
     )
 
@@ -115,7 +151,7 @@ def test_broker_gates_class_c_gmail_send_before_credentials(monkeypatch):
         {
             "action": "Google broker: cassandra \u2192 google.gmail.send",
             "tier": 2,
-            "approval_context": None,
+            "approval_context": approval_context,
         }
     ]
 
@@ -131,6 +167,7 @@ def test_broker_does_not_gate_class_a_gmail_unread_or_metadata_before_credential
 
     monkeypatch.setattr(broker, "_request_approval", fail_if_approval_requested)
     monkeypatch.setattr(broker, "_is_configured", lambda: False)
+    monkeypatch.setattr(broker, "check_gmail_broker_runtime_dependencies", lambda: {"ok": True, "missing": []})
 
     for capability in ("google.gmail.unread_count", "google.gmail.read.metadata"):
         result = broker.call("cassandra", capability, {})
