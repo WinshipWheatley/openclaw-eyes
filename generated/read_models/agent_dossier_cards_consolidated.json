@@ -1,0 +1,2281 @@
+{
+  "agent_activation_allowed": false,
+  "agent_count": 16,
+  "agents": [
+    {
+      "agent_id": "agentic_loop",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Operator-reported architecture candidate only; no current execution, queue, parser, or agent authority.",
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "A future system loop concept that may organize parsed work, receipts, requeue, and fix paths after security gates.",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [
+          "Chief test harness relationship candidate",
+          "operator-reported parser/queue/planner/builder/orchestrator idea",
+          "post-security future-gated posture"
+        ],
+        "known_unknowns": [
+          "Repo A does not currently have machine proof that this loop is safe, current, or executable.",
+          "The system does not know which parts live in Repo B, Repo A, or memory."
+        ],
+        "not_discovered": [
+          "Approved metadata proving loop components, boundaries, and current status.",
+          "Queue lifecycle receipts and failure routing rules."
+        ],
+        "partly_known": [
+          "failed work may later requeue to loop component",
+          "some parsed work may later move to holding cell",
+          "some parsed work may later queue"
+        ],
+        "registry": []
+      },
+      "display_name": "Agentic Loop",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "agentic_loop",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {
+          "helm_after_resolution": "Hold as future-gated autonomy/cue terrain; no run controls before security.",
+          "resolution_route": "POST_SECURITY_AUTONOMY_CANDIDATE",
+          "target_world": null
+        },
+        "presence_source": "",
+        "quiet_condition": "The agentic loop is quiet when each component is classified as blocked, parked, obsolete, or future-gated with proof refs.",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    },
+    {
+      "agent_id": "cassandra",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {
+          "daw_media_mutation_allowed": false,
+          "direct_send_allowed": false,
+          "external_action_allowed": false,
+          "guardian_approval_created": false,
+          "ledger_mutation_allowed": false,
+          "model_output_grants_business_authority": false,
+          "model_output_grants_runtime_authority": false,
+          "paid_marking_allowed": false,
+          "runtime_mutation_allowed": false,
+          "tool_authority_granted": false
+        },
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Cassandra is package-preview/proof-reference only; live finance/comms/account authority is blocked.",
+        "tool_execution_allowed": false,
+        "voice": {
+          "can_execute": false,
+          "can_export_pdf": false,
+          "can_mark_paid": false,
+          "can_mutate_calendar": false,
+          "can_mutate_ledger": false,
+          "can_mutate_repo": false,
+          "can_mutate_workbooks": false,
+          "can_send": false,
+          "can_submit_portal": false
+        }
+      },
+      "behavior": {
+        "may_request": [
+          "Chief implementation or runtime triage packages",
+          "Guardian exact-send or high-risk approval review",
+          "Hermes adapter/boundary review",
+          "Niles creative-lane handoff"
+        ],
+        "must_not": [
+          "mutate invoices, ledgers, Coupa, bank records, workbooks, PDFs, or paid status",
+          "promote provisional review answers into runtime policy",
+          "read secrets or credential material",
+          "send email or create Gmail drafts without explicit current authority"
+        ],
+        "must_route_through": [
+          "Chief for code/runtime implementation work",
+          "Guardian/HITL for sends, approvals, paid marking, and protected actions",
+          "confirmed reference/hydration rails for Data Room promotion"
+        ],
+        "owns": [
+          "Data Room guided review and review coach sessions",
+          "Universal Operator Intake",
+          "business ops and AR summaries",
+          "client follow-up drafts and exact-send requests",
+          "local business receipts/read models"
+        ],
+        "package_context_summary": "Act for Cassandra as an advisory business-ops worker. Produce bounded text, drafts, or review output only; do not execute sends, paid marking, ledger work, or external actions.",
+        "role_summary": "Business ops, AR, client follow-up, operator communications, Universal Intake, and Data Room guided review.",
+        "safety_boundaries": [
+          "authoritative=false for guided review until promotion",
+          "exact-send and protected action authority stay behind Guardian",
+          "runtime_policy_changed=false unless a separate explicit gate does it"
+        ]
+      },
+      "capabilities": {
+        "known": [
+          "Capital Hilton relates to Cassandra as protected finance/AP workflow context.",
+          "Cassandra can receive package previews but no live account or send authority.",
+          "Cassandra is represented as communications, finance/AP, email/calendar review character."
+        ],
+        "known_unknowns": [
+          "The system does not know live Coupa, Gmail, calendar, or Excel facts.",
+          "Which exact source of truth matters for Capital Hilton remains proof-gated."
+        ],
+        "not_discovered": [
+          "Protected proof metadata for Coupa/Excel/invoice source.",
+          "Safe source cards for finance/comms context."
+        ],
+        "partly_known": [
+          "Cassandra can reason over governed metadata/proof references later.",
+          "Email/calendar/draft identity and finance proof rails are partly represented."
+        ],
+        "registry": [
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Log items to Ops Actions vault file",
+            "domain": "logging",
+            "name": "ops_log_write",
+            "scope": [
+              "read",
+              "write"
+            ]
+          },
+          {
+            "caveats": "Log read only \u2014 cannot verify external payment status",
+            "connected": true,
+            "description": "Read the Payment Follow-ups log",
+            "domain": "payment_log",
+            "name": "ops_payment_read",
+            "scope": [
+              "read"
+            ]
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Read Ops Notes vault file",
+            "domain": "notes",
+            "name": "ops_notes_read",
+            "scope": [
+              "read"
+            ]
+          },
+          {
+            "caveats": "Read-only via google_access_broker.py \u2014 next 7 days, metadata and event titles only",
+            "connected": true,
+            "description": "Read live calendar events from Google Calendar",
+            "domain": "calendar",
+            "name": "calendar_read",
+            "scope": [
+              "read"
+            ]
+          },
+          {
+            "caveats": "Grounded against recent Gmail payment notifications and income logs only; not a direct bank, Stripe, or payment processor connection",
+            "connected": true,
+            "description": "Verify external deposit or payment clearance status",
+            "domain": "payment",
+            "name": "payment_verify",
+            "scope": [
+              "read"
+            ]
+          },
+          {
+            "caveats": "Bounded file/path existence checks only \u2014 not file content review",
+            "connected": true,
+            "description": "Verify file or path existence on the filesystem",
+            "domain": "file",
+            "name": "file_verify",
+            "scope": [
+              "read"
+            ]
+          },
+          {
+            "caveats": "Brokered Gmail Draft object creation is Class B / Tier 1; drafts are prepared for review in the configured review inbox and CC that mailbox",
+            "connected": true,
+            "description": "Draft email text",
+            "domain": "email",
+            "name": "email_draft",
+            "scope": [
+              "write"
+            ]
+          },
+          {
+            "caveats": "Metadata only via google_access_broker.py \u2014 no body content access",
+            "connected": true,
+            "description": "Read Gmail inbox metadata (sender, subject, date)",
+            "domain": "email",
+            "name": "gmail_metadata",
+            "scope": [
+              "read"
+            ]
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Read Google Contacts",
+            "domain": "contacts",
+            "name": "contacts_read",
+            "scope": [
+              "read"
+            ]
+          },
+          {
+            "caveats": "No direct or autonomous send; Gmail send is only brokered Class C / Tier 2 if requested after draft review",
+            "connected": false,
+            "description": "Send email via SMTP or API",
+            "domain": "email_send",
+            "name": "email_send",
+            "scope": []
+          },
+          {
+            "caveats": "No cron, scheduler, or autonomous execution wired in",
+            "connected": false,
+            "description": "Autonomously check, send, or follow up at a scheduled future time",
+            "domain": "automation",
+            "name": "future_exec",
+            "scope": []
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Speak replies aloud via TTS (Kokoro / Piper)",
+            "domain": "voice",
+            "name": "tts_voice",
+            "scope": [
+              "execute"
+            ]
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Recall logged morning, afternoon, and evening briefings",
+            "domain": "briefing",
+            "name": "briefing_recall",
+            "scope": [
+              "read"
+            ]
+          }
+        ]
+      },
+      "display_name": "Cassandra",
+      "doc_links": [
+        ".claude/commands/cassandra.md",
+        "agent_lane_registry.py#cassandra",
+        "cassandra_brain.py",
+        "cassandra_guided_review.py",
+        "cassandra_listener.py",
+        "cassandra_review_coach.py",
+        "hitl_action_service.py",
+        "operator_universal_intake.py",
+        "watch_desk_feed.py"
+      ],
+      "lane": {
+        "allowed_worlds": [
+          "communications",
+          "cross_world",
+          "operations"
+        ],
+        "approval_required_for": [
+          "action_requests",
+          "external_comms",
+          "sending_messages"
+        ],
+        "authority_level": "advisory_only",
+        "lane_id": "operator_comms",
+        "lane_label": "Operator Communications",
+        "receipt_required_for": [
+          "draft_message",
+          "operator_briefing"
+        ],
+        "routing_hints": [
+          "message drafting",
+          "operator summaries",
+          "status explanation"
+        ],
+        "status": "active_registry"
+      },
+      "source_refs": {
+        "capability": "capability_registry.py",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "status": {
+        "actual_state": "offline",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "online",
+        "lane_destiny": {
+          "helm_after_resolution": "Show as audit-ready or proof/detail, not as executable.",
+          "resolution_route": "SECURITY_AUDIT_REQUIRED",
+          "target_world": "Finance"
+        },
+        "presence_source": "runtime_surface",
+        "quiet_condition": "Cassandra is quiet when each finance/comms workflow has proof refs, memory gaps, or explicit blockers.",
+        "readiness_state": "",
+        "recovery_status": "blocked"
+      },
+      "voice": {
+        "default_voice_modes": [
+          "operator_calm",
+          "operator_intake"
+        ],
+        "must_not_speak_when": [
+          "A diagnostic provider gate or check-engine posture is the main issue.",
+          "A protected authority gate is the main issue.",
+          "External client-facing copy is being drafted.",
+          "Repo, calendar, send, ledger, or portal mutation would be implied."
+        ],
+        "speaks_when": [
+          "Correspondence is being prepared for review.",
+          "Human-layer finance or AP reminders need calm visibility.",
+          "St. Anne's work-log events need operator review.",
+          "Telegram or Cassandra intake is being captured."
+        ],
+        "tts_profile": {
+          "cadence_description": "Calm, precise, discreet, with quiet executive-assistant pacing.",
+          "do_not_use_markers": [
+            "backticks",
+            "asterisks",
+            "hash headings",
+            "bullet symbols",
+            "raw JSON",
+            "markdown links"
+          ],
+          "emotional_temperature": "warm_calm_low_pressure",
+          "enabled": true,
+          "markdown_policy": "strip_before_tts",
+          "punctuation_rules": [
+            "Use commas for breath.",
+            "Use periods for clean stops.",
+            "Ellipses are allowed sparingly for gentle pacing.",
+            "Avoid bullets, markdown, and code-like punctuation in TTS text."
+          ],
+          "sentence_shape": "Short sentences. Natural contractions. One thought at a time.",
+          "voice_target": "kokoro_primary_piper_fallback"
+        },
+        "voice_profile_ref": "agent_voice_profile:cassandra"
+      }
+    },
+    {
+      "agent_id": "chief",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {
+          "daw_media_mutation_allowed": false,
+          "direct_send_allowed": false,
+          "external_action_allowed": false,
+          "guardian_approval_created": false,
+          "ledger_mutation_allowed": false,
+          "model_output_grants_business_authority": false,
+          "model_output_grants_runtime_authority": false,
+          "paid_marking_allowed": false,
+          "runtime_mutation_allowed": false,
+          "tool_authority_granted": false
+        },
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Chief can be a package character/persona and readback lane only; no live backend/app authority.",
+        "tool_execution_allowed": false,
+        "voice": {
+          "can_execute": false,
+          "can_export_pdf": false,
+          "can_mark_paid": false,
+          "can_mutate_calendar": false,
+          "can_mutate_ledger": false,
+          "can_mutate_repo": false,
+          "can_mutate_workbooks": false,
+          "can_send": false,
+          "can_submit_portal": false
+        }
+      },
+      "behavior": {
+        "may_request": [
+          "Cassandra business-context review",
+          "Guardian safety or approval review",
+          "Hermes adapter/boundary review",
+          "Niles creative metadata review"
+        ],
+        "must_not": [
+          "bypass Guardian",
+          "execute another agent lane directly",
+          "inspect secrets or credential material",
+          "mutate runtime policy or external systems without explicit current scope"
+        ],
+        "must_route_through": [
+          "Guardian/HITL for approvals and risky actions",
+          "Watch Desk for operator-facing projection",
+          "existing Worker Run Manager for worker dispatch/ingest"
+        ],
+        "owns": [
+          "assignment loop packaging",
+          "model work package routing",
+          "runtime coordination",
+          "service and sync health summaries",
+          "worker run lifecycle verification"
+        ],
+        "package_context_summary": "Act for Chief as a bounded implementation or runtime-review worker. Follow the package sources, proof, stop condition, and validation plan; do not push, approve, or mutate runtime.",
+        "role_summary": "System orchestration, runtime triage, model/package routing, validation posture, and bounded work packet preparation.",
+        "safety_boundaries": [
+          "coordinate and validate, do not self-grant execution",
+          "model output never mutates runtime directly",
+          "worker packages are bounded and receipt-backed"
+        ]
+      },
+      "capabilities": {
+        "known": [
+          "Chief can be routed in package previews as a character/persona, not as a live backend authority.",
+          "Chief is represented as a coordinator/diagnostic/work-board/check-engine character in current contracts.",
+          "Chief-related read-models exist for check-engine diagnostic and environment posture."
+        ],
+        "known_unknowns": [
+          "Whether any remembered Chief system-wide fix/run rail exists outside current read-model visibility.",
+          "Which Chief outputs should be test-harness evidence versus operator-facing briefing."
+        ],
+        "not_discovered": [
+          "Complete inventory of Chief-owned artifacts and exact harness inputs/outputs.",
+          "Executable Chief runtime authority proof, which is intentionally absent now."
+        ],
+        "partly_known": [
+          "Chief can organize diagnostic posture and work-board metadata.",
+          "Chief package shape is implied by package compiler and actor router contracts."
+        ],
+        "registry": [
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Route and handle operational requests via Telegram",
+            "domain": "routing",
+            "name": "ops_intake",
+            "scope": [
+              "read",
+              "execute"
+            ]
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Manage album session intake and tracking workflows",
+            "domain": "album",
+            "name": "album_workflow",
+            "scope": [
+              "read",
+              "write",
+              "execute"
+            ]
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Handle billing, invoice, and payment intake workflows",
+            "domain": "billing",
+            "name": "billing_workflow",
+            "scope": [
+              "read",
+              "write",
+              "execute"
+            ]
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Gate irreversible actions (file delete, force push, etc.)",
+            "domain": "approval",
+            "name": "approval_gate",
+            "scope": [
+              "read",
+              "execute"
+            ]
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Sync notes and logs to the Obsidian vault",
+            "domain": "obsidian",
+            "name": "vault_sync",
+            "scope": [
+              "read",
+              "write"
+            ]
+          },
+          {
+            "caveats": "",
+            "connected": true,
+            "description": "Route queries to local Ollama models (7b / 14b)",
+            "domain": "llm",
+            "name": "llm_routing",
+            "scope": [
+              "execute"
+            ]
+          },
+          {
+            "caveats": "OAuth credentials not yet set up (gcal_credentials.json missing)",
+            "connected": false,
+            "description": "Read live calendar events from Google Calendar",
+            "domain": "calendar",
+            "name": "calendar_read",
+            "scope": []
+          },
+          {
+            "caveats": "MCP filesystem server is available as a tool but is not wired into Chief's response routing",
+            "connected": false,
+            "description": "Verify file or path existence on the filesystem",
+            "domain": "file",
+            "name": "file_verify",
+            "scope": []
+          },
+          {
+            "caveats": "No email send integration wired in",
+            "connected": false,
+            "description": "Send email via SMTP or API",
+            "domain": "email_send",
+            "name": "email_send",
+            "scope": []
+          },
+          {
+            "caveats": "Grounded against recent Gmail payment notifications and income logs only; not a direct bank, Stripe, or payment processor connection",
+            "connected": true,
+            "description": "Verify payment receipts via Gmail metadata and income logs",
+            "domain": "payment",
+            "name": "payment_verify",
+            "scope": [
+              "read"
+            ]
+          }
+        ]
+      },
+      "display_name": "Chief",
+      "doc_links": [
+        ".claude/commands/chief.md",
+        "agent_lane_registry.py#chief",
+        "assignment_loop_contract.py",
+        "chief_listener.py",
+        "chief_worker.py",
+        "codex_work_package_lifecycle.py",
+        "model_work_package_router.py",
+        "watch_desk_feed.py"
+      ],
+      "lane": {
+        "allowed_worlds": [
+          "build",
+          "business_development",
+          "communications",
+          "cross_world",
+          "operations",
+          "security"
+        ],
+        "approval_required_for": [
+          "client_changes",
+          "execution",
+          "external_changes",
+          "file_changes",
+          "reorg",
+          "writes"
+        ],
+        "authority_level": "request_only",
+        "lane_id": "system_orchestration",
+        "lane_label": "System Orchestration",
+        "receipt_required_for": [
+          "action_request",
+          "routing_decision",
+          "status_summary"
+        ],
+        "routing_hints": [
+          "escalate risky work to Guardian/operator review",
+          "prepare bounded implementation lanes",
+          "route cross-world operator intents"
+        ],
+        "status": "active_registry"
+      },
+      "source_refs": {
+        "capability": "capability_registry.py",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "status": {
+        "actual_state": "degraded",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "online",
+        "lane_destiny": {
+          "helm_after_resolution": "Show as audit-ready or proof/detail, not as executable.",
+          "resolution_route": "SECURITY_AUDIT_REQUIRED",
+          "target_world": null
+        },
+        "presence_source": "process_check",
+        "quiet_condition": "Chief is quiet when character, package, harness, and blocked execution boundaries are classified and receipted.",
+        "readiness_state": "",
+        "recovery_status": "blocked"
+      },
+      "voice": {
+        "default_voice_modes": [
+          "diagnostic",
+          "operator_calm"
+        ],
+        "must_not_speak_when": [
+          "Architecture recommendation is the primary purpose.",
+          "External client-facing draft copy is needed.",
+          "Protected credentials or authority approval is the main gate.",
+          "Repair authority has not been separately granted."
+        ],
+        "speaks_when": [
+          "Check-engine warnings need operator attention.",
+          "Package queue posture or provider gate status is being reported.",
+          "Workbench, build, runbook, or route status needs a grounded readback."
+        ],
+        "tts_profile": {
+          "cadence_description": "Direct, grounded, receipt-focused, and practical.",
+          "do_not_use_markers": [
+            "backticks",
+            "asterisks",
+            "hash headings",
+            "bullet symbols",
+            "raw JSON",
+            "markdown links"
+          ],
+          "emotional_temperature": "steady_operational",
+          "enabled": true,
+          "markdown_policy": "strip_before_tts",
+          "punctuation_rules": [
+            "Use heavy periods.",
+            "Use colons for diagnostic labels.",
+            "No ellipses.",
+            "Avoid decorative punctuation."
+          ],
+          "sentence_shape": "Short diagnostic statements with firm stops.",
+          "voice_target": "chief_operational_local_tts"
+        },
+        "voice_profile_ref": "agent_voice_profile:chief"
+      }
+    },
+    {
+      "agent_id": "clara",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": {},
+        "tool_execution_allowed": false,
+        "voice": {
+          "can_execute": false,
+          "can_export_pdf": false,
+          "can_mark_paid": false,
+          "can_mutate_calendar": false,
+          "can_mutate_ledger": false,
+          "can_mutate_repo": false,
+          "can_mutate_workbooks": false,
+          "can_send": false,
+          "can_submit_portal": false
+        }
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [],
+        "known_unknowns": [],
+        "not_discovered": [],
+        "partly_known": [],
+        "registry": []
+      },
+      "display_name": "Clara",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "",
+        "voice": "agent_voice_profiles.py"
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {},
+        "presence_source": "",
+        "quiet_condition": "",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [
+          "client_facing"
+        ],
+        "must_not_speak_when": [
+          "Any internal agent name would be exposed to a client.",
+          "Internal system status or proof/debug detail is being shown.",
+          "Protected authority, send, submit, or ledger gates are the main issue."
+        ],
+        "speaks_when": [
+          "A client-facing summary is being drafted for operator review.",
+          "Outreach or client-visible correspondence needs polished wording.",
+          "Proposal email draft copy is being prepared."
+        ],
+        "tts_profile": {
+          "cadence_description": "Polished, concise, warm-minimal, and business-safe.",
+          "do_not_use_markers": [
+            "backticks",
+            "asterisks",
+            "hash headings",
+            "bullet symbols",
+            "raw JSON",
+            "markdown links"
+          ],
+          "emotional_temperature": "warm_minimal",
+          "enabled": true,
+          "markdown_policy": "strip_before_tts",
+          "punctuation_rules": [
+            "Use polished punctuation.",
+            "Avoid internal labels.",
+            "Avoid markdown and raw proof markers.",
+            "No dramatic emphasis."
+          ],
+          "sentence_shape": "Client-safe sentences with no backend detail.",
+          "voice_target": "clara_client_facing_local_tts"
+        },
+        "voice_profile_ref": "agent_voice_profile:clara"
+      }
+    },
+    {
+      "agent_id": "cue_parser_brain_dump_parser",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Cue parser remains capture/preview contract terrain only; no parsing runtime or queue authority.",
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "A future parser concept for operator/Chief ideas; currently only classification/readback.",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [
+          "Awareness surfaces name brain-dump/cue parser as a classification gap.",
+          "Operator reports a parser that may turn operator/Chief ideas into queued work or holding-cell candidates."
+        ],
+        "known_unknowns": [
+          "The system does not know allowed cue inputs, output grammar, or where the parser lived.",
+          "The system does not know how parser output should become memory candidates without becoming proof."
+        ],
+        "not_discovered": [
+          "Cue parser contract, accepted input classes, output receipt shape, and holding-cell trigger rules."
+        ],
+        "partly_known": [
+          "The parser likely relates to memory candidate receipts, package previews, holding cell, and queue posture."
+        ],
+        "registry": []
+      },
+      "display_name": "Cue Parser / Brain Dump Parser",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "cue_parser_brain_dump_parser",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {
+          "helm_after_resolution": "Hold as future-gated autonomy/cue terrain; no run controls before security.",
+          "resolution_route": "POST_SECURITY_AUTONOMY_CANDIDATE",
+          "target_world": null
+        },
+        "presence_source": "",
+        "quiet_condition": "The cue parser is quiet when accepted inputs, blocked inputs, output receipts, and future-gated status are explicit.",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    },
+    {
+      "agent_id": "guardian",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {
+          "daw_media_mutation_allowed": false,
+          "direct_send_allowed": false,
+          "external_action_allowed": false,
+          "guardian_approval_created": false,
+          "ledger_mutation_allowed": false,
+          "model_output_grants_business_authority": false,
+          "model_output_grants_runtime_authority": false,
+          "paid_marking_allowed": false,
+          "runtime_mutation_allowed": false,
+          "tool_authority_granted": false
+        },
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Guardian is a gate/review character only; no execution or self-grant authority.",
+        "tool_execution_allowed": false,
+        "voice": {
+          "can_execute": false,
+          "can_export_pdf": false,
+          "can_mark_paid": false,
+          "can_mutate_calendar": false,
+          "can_mutate_ledger": false,
+          "can_mutate_repo": false,
+          "can_mutate_workbooks": false,
+          "can_send": false,
+          "can_submit_portal": false
+        }
+      },
+      "behavior": {
+        "may_request": [
+          "Cassandra readback when a business send needs exact text",
+          "Chief implementation follow-up for safety defects"
+        ],
+        "must_not": [
+          "create a second approval system",
+          "disclose secrets or credential material",
+          "execute business logic after approval",
+          "send email"
+        ],
+        "must_route_through": [
+          "hitl_action_service.py and hitl_pending_store.py for approval state",
+          "operator confirmation for high-risk actions"
+        ],
+        "owns": [
+          "HITL approval boundary",
+          "approval/denial receipts",
+          "exact-send approval capture",
+          "risk and protected-action review"
+        ],
+        "package_context_summary": "Act for Guardian as a safety review worker. Return risk findings, approval cautions, or rejection reasons only; do not execute the approved action.",
+        "role_summary": "Human-in-the-loop authorization boundary, risk review, exact-action approval capture, and denial/approval state.",
+        "safety_boundaries": [
+          "approval capture is separate from action execution",
+          "duplicates and expired approvals must not execute twice",
+          "exact action text and scope are required where runtime demands it"
+        ]
+      },
+      "capabilities": {
+        "known": [
+          "Guardian cannot self-authorize or bypass the Operator.",
+          "Guardian is represented as safety/security/protected-access boundary character.",
+          "Guardian may recommend block/redact/quarantine/revoke in contracts."
+        ],
+        "known_unknowns": [
+          "No generic approval, credential, account, or protected access authority exists."
+        ],
+        "not_discovered": [],
+        "partly_known": [
+          "Exact per-lane future receipt requirements still need refinement."
+        ],
+        "registry": []
+      },
+      "display_name": "Guardian",
+      "doc_links": [
+        ".claude/commands/guardian.md",
+        "agent_lane_registry.py#guardian",
+        "chief_guardian_listener.py",
+        "chief_guardian_sender.py",
+        "hitl_action_service.py",
+        "hitl_pending_store.py"
+      ],
+      "lane": {
+        "allowed_worlds": [
+          "cross_world",
+          "operations",
+          "security"
+        ],
+        "approval_required_for": [
+          "file_touching_behavior",
+          "policy_changes",
+          "sensitive_boundary_changes"
+        ],
+        "authority_level": "advisory_only",
+        "lane_id": "safety_security",
+        "lane_label": "Safety and Security",
+        "receipt_required_for": [
+          "boundary_review",
+          "rejection_reason",
+          "risk_verdict"
+        ],
+        "routing_hints": [
+          "no-go review",
+          "risk caution",
+          "sensitive boundary review"
+        ],
+        "status": "active_registry"
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "status": {
+        "actual_state": "online",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "online",
+        "lane_destiny": {
+          "helm_after_resolution": "Hide from front door unless trigger condition changes or briefing surface asks for it.",
+          "resolution_route": "PARK_WITH_PROOF",
+          "target_world": null
+        },
+        "presence_source": "process_check",
+        "quiet_condition": "Guardian is quiet unless a lane tries to cross an authority boundary or needs clearance classification.",
+        "readiness_state": "",
+        "recovery_status": "not_needed"
+      },
+      "voice": {
+        "default_voice_modes": [
+          "safety_gate"
+        ],
+        "must_not_speak_when": [
+          "A normal work-log intake can be calmly staged.",
+          "Creative direction is the primary context and no protected action is present.",
+          "External client-facing draft copy is needed."
+        ],
+        "speaks_when": [
+          "A safety gate needs a firm operator approval request.",
+          "Ambiguous access or private data handling needs a fail-closed readback.",
+          "Send, Coupa submit, portal, ledger, paid, browser, Gmail, credential, PII, or protected access authority is requested."
+        ],
+        "tts_profile": {
+          "cadence_description": "Firm, brief, non-alarmist, and protective.",
+          "do_not_use_markers": [
+            "backticks",
+            "asterisks",
+            "hash headings",
+            "bullet symbols",
+            "raw JSON",
+            "markdown links"
+          ],
+          "emotional_temperature": "quiet_firm",
+          "enabled": true,
+          "markdown_policy": "strip_before_tts",
+          "punctuation_rules": [
+            "Use heavy periods.",
+            "No maybe.",
+            "No panic language.",
+            "No dramatic or caricatured phrasing."
+          ],
+          "sentence_shape": "Short declarative sentences.",
+          "voice_target": "guardian_protective_local_tts"
+        },
+        "voice_profile_ref": "agent_voice_profile:guardian"
+      }
+    },
+    {
+      "agent_id": "hermes",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {
+          "daw_media_mutation_allowed": false,
+          "direct_send_allowed": false,
+          "external_action_allowed": false,
+          "guardian_approval_created": false,
+          "ledger_mutation_allowed": false,
+          "model_output_grants_business_authority": false,
+          "model_output_grants_runtime_authority": false,
+          "paid_marking_allowed": false,
+          "runtime_mutation_allowed": false,
+          "tool_authority_granted": false
+        },
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Hermes can appear in package previews and terrain readback only; no live agent/model/tool authority.",
+        "tool_execution_allowed": false,
+        "voice": {
+          "can_execute": false,
+          "can_export_pdf": false,
+          "can_mark_paid": false,
+          "can_mutate_calendar": false,
+          "can_mutate_ledger": false,
+          "can_mutate_repo": false,
+          "can_mutate_workbooks": false,
+          "can_send": false,
+          "can_submit_portal": false
+        }
+      },
+      "behavior": {
+        "may_request": [
+          "Chief implementation/package work",
+          "Guardian review for sensitive connector boundaries"
+        ],
+        "must_not": [
+          "approve actions",
+          "launch generic sidecars or gateways without explicit bounded authorization",
+          "own or execute business logic",
+          "read connector secrets or credential material"
+        ],
+        "must_route_through": [
+          "Chief for runtime changes",
+          "Guardian for sensitive capability enablement",
+          "existing adapter contracts for tool execution proposals"
+        ],
+        "owns": [
+          "adapter and protocol boundary review",
+          "connector/tool wrapper readiness posture",
+          "non-canonical advisory synthesis",
+          "sidecar contract inventory"
+        ],
+        "package_context_summary": "Act for Hermes as an adapter/boundary reviewer. Return advisory analysis or contract findings only; do not launch sidecars, tools, connectors, or business actions.",
+        "role_summary": "Adapter/protocol boundary review, connector posture, sidecar contracts, and advisory synthesis.",
+        "safety_boundaries": [
+          "adapter readiness does not grant execution authority",
+          "business logic remains in owning lanes",
+          "sidecar launch is explicitly gated"
+        ]
+      },
+      "capabilities": {
+        "known": [
+          "Hermes has no current live agent or model authority.",
+          "Hermes is represented in actor-router and package-preview contracts as architecture/doctrine/system-coherence advisory character."
+        ],
+        "known_unknowns": [
+          "Current Hermes source set and responsibility boundary are not fully proven.",
+          "Whether Hermes owns horizon checks, doctrine review, or another concrete workflow needs comparison."
+        ],
+        "not_discovered": [
+          "Hermes-specific status rail, receipts, or source inventory."
+        ],
+        "partly_known": [
+          "Hermes can be paired with Chief for big-picture doctrine and system coherence.",
+          "Hermes package preview exists as a non-executing architecture review example."
+        ],
+        "registry": []
+      },
+      "display_name": "Hermes",
+      "doc_links": [
+        ".claude/commands/hermes.md",
+        "agent_lane_registry.py#hermes",
+        "openclaw_event_bridge_adapter.py",
+        "openclaw_hermes_sidecar.py",
+        "tool_adapter_receipt_contract.py",
+        "tool_protocol_adapter_registry_contract.py"
+      ],
+      "lane": {
+        "allowed_worlds": [
+          "build",
+          "cross_world",
+          "operations",
+          "research"
+        ],
+        "approval_required_for": [
+          "action_request",
+          "external_model_use",
+          "promotion"
+        ],
+        "authority_level": "advisory_only",
+        "lane_id": "advisory_synthesis",
+        "lane_label": "Advisory Synthesis",
+        "receipt_required_for": [
+          "advisory_memo",
+          "synthesis_packet"
+        ],
+        "routing_hints": [
+          "architecture comparison",
+          "non-canonical analysis",
+          "research synthesis"
+        ],
+        "status": "active_registry"
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "status": {
+        "actual_state": "online",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "online",
+        "lane_destiny": {
+          "helm_after_resolution": "Hide from front door unless trigger condition changes or briefing surface asks for it.",
+          "resolution_route": "PARK_WITH_PROOF",
+          "target_world": null
+        },
+        "presence_source": "process_check",
+        "quiet_condition": "Hermes is quiet when classified as tracked, parked, obsolete, blocked, or backed by source proof.",
+        "readiness_state": "",
+        "recovery_status": "not_needed"
+      },
+      "voice": {
+        "default_voice_modes": [
+          "recommendation"
+        ],
+        "must_not_speak_when": [
+          "A terse safety block is required.",
+          "Execution, send, submit, or ledger authority is requested.",
+          "External client-facing draft copy is needed."
+        ],
+        "speaks_when": [
+          "Architecture or doctrine is being evaluated.",
+          "Lane sequencing or systems coherence needs reflection.",
+          "Reusable pattern recommendations are needed."
+        ],
+        "tts_profile": {
+          "cadence_description": "Serene, measured, reflective, and advisory.",
+          "do_not_use_markers": [
+            "backticks",
+            "asterisks",
+            "hash headings",
+            "bullet symbols",
+            "raw JSON",
+            "markdown links"
+          ],
+          "emotional_temperature": "serene_reflective",
+          "enabled": true,
+          "markdown_policy": "strip_before_tts",
+          "punctuation_rules": [
+            "Use periods and commas for measured cadence.",
+            "Use semicolons sparingly.",
+            "Avoid command phrasing.",
+            "Avoid execution claims."
+          ],
+          "sentence_shape": "Measured sentences with clean transitions.",
+          "voice_target": "hermes_measured_local_tts"
+        },
+        "voice_profile_ref": "agent_voice_profile:hermes"
+      }
+    },
+    {
+      "agent_id": "model_router",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Model router is deterministic policy/receipt metadata only; live dispatch is blocked.",
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "Defines model class posture and proves why model selection is blocked, deferred, or future-eligible.",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [
+          "Current live default is blocked_no_model for all actors except Operator as human_operator.",
+          "Model Selection Policy and Model Selection Receipt define model classes and decision receipts.",
+          "Model choices are recommendations/readiness results, not execution commands."
+        ],
+        "known_unknowns": [
+          "No runtime router proof exists because no runtime router is allowed here."
+        ],
+        "not_discovered": [
+          "Model router implementation plan, still preview-only.",
+          "Model selection execution receipts if ever authorized later."
+        ],
+        "partly_known": [
+          "Future router implementation plan could use these contracts after security and receipt lanes."
+        ],
+        "registry": []
+      },
+      "display_name": "Model Router",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "model_router",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {
+          "helm_after_resolution": "Show as audit-ready or proof/detail, not as executable.",
+          "resolution_route": "SECURITY_AUDIT_REQUIRED",
+          "target_world": null
+        },
+        "presence_source": "",
+        "quiet_condition": "Model router is quiet when packages can show selected/blocked/deferred posture without implying live routing.",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    },
+    {
+      "agent_id": "niles",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {
+          "daw_media_mutation_allowed": false,
+          "direct_send_allowed": false,
+          "external_action_allowed": false,
+          "guardian_approval_created": false,
+          "ledger_mutation_allowed": false,
+          "model_output_grants_business_authority": false,
+          "model_output_grants_runtime_authority": false,
+          "paid_marking_allowed": false,
+          "runtime_mutation_allowed": false,
+          "tool_authority_granted": false
+        },
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Niles can receive scoped creative/package refs only; no broad archive ingestion or release authority.",
+        "tool_execution_allowed": false,
+        "voice": {
+          "can_execute": false,
+          "can_export_pdf": false,
+          "can_mark_paid": false,
+          "can_mutate_calendar": false,
+          "can_mutate_ledger": false,
+          "can_mutate_repo": false,
+          "can_mutate_workbooks": false,
+          "can_send": false,
+          "can_submit_portal": false
+        }
+      },
+      "behavior": {
+        "may_request": [
+          "Cassandra business-context handoff when creative work touches clients or payments",
+          "Chief runtime/package support",
+          "Guardian review for publishing, file mutation, or public release risk"
+        ],
+        "must_not": [
+          "mutate session, media, stems, bounces, artwork, or release files",
+          "read secrets or credential material",
+          "scan private media/session folders broadly",
+          "start DAW, Logic, Ableton, OBS, or audio engines"
+        ],
+        "must_route_through": [
+          "Cassandra or Guardian for business/public-facing action",
+          "operator approval for DAW/media/session writes"
+        ],
+        "owns": [
+          "album/session/setlist notes",
+          "creative metadata review packets",
+          "live-set prep as metadata",
+          "music and creative planning"
+        ],
+        "package_context_summary": "Act for Niles as a creative planning worker. Produce notes, options, or metadata review only; do not touch DAW, media, release, or private session files.",
+        "role_summary": "Music, audio, creative, session, and production planning lane.",
+        "safety_boundaries": [
+          "creative notes are not business authorization",
+          "metadata and planning first",
+          "no DAW/media mutation by default"
+        ]
+      },
+      "capabilities": {
+        "known": [
+          "Niles is represented as music/art/producer/creative operator character.",
+          "Niles/Struna context can be package-previewed through scoped project capsules/metadata refs."
+        ],
+        "known_unknowns": [
+          "Canonical current Struna/album/release/personnel/artifact status is not fully proven here."
+        ],
+        "not_discovered": [
+          "Current music/art metadata set and source references.",
+          "Rights/release/platform action boundaries for future work."
+        ],
+        "partly_known": [
+          "Operator creative preference can guide work but is context, not proof.",
+          "The system can hold creative metadata, but real current album/project metadata is not fully verified."
+        ],
+        "registry": []
+      },
+      "display_name": "Niles",
+      "doc_links": [
+        ".claude/commands/niles.md",
+        "agent_lane_registry.py",
+        "agent_lane_registry.py#niles",
+        "chief_fundo_identity.py",
+        "chief_fundo_release.py",
+        "chief_fundo_session.py",
+        "operator_universal_intake.py"
+      ],
+      "lane": {
+        "allowed_worlds": [
+          "music_art"
+        ],
+        "approval_required_for": [
+          "audio_file_changes",
+          "daw_session_edits",
+          "file_movement",
+          "writes"
+        ],
+        "authority_level": "advisory_only",
+        "lane_id": "music_art_production",
+        "lane_label": "Music and Art Production",
+        "receipt_required_for": [
+          "metadata_organization_proposal",
+          "production_checklist"
+        ],
+        "routing_hints": [
+          "Logic project metadata",
+          "audio session organization",
+          "music files",
+          "production plans"
+        ],
+        "status": "active_registry"
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": "agent_voice_profiles.py"
+      },
+      "status": {
+        "actual_state": "offline",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "online",
+        "lane_destiny": {
+          "helm_after_resolution": "Move to Music / Art world for domain work; helm keeps only a quiet global marker if needed.",
+          "resolution_route": "MOVE_TO_WORLD_ACTION",
+          "target_world": "Music / Art"
+        },
+        "presence_source": "runtime_surface",
+        "quiet_condition": "Niles is quiet when current creative metadata is captured, marked stale/private, or explicitly blocked.",
+        "readiness_state": "",
+        "recovery_status": "blocked"
+      },
+      "voice": {
+        "default_voice_modes": [
+          "operator_calm",
+          "recommendation"
+        ],
+        "must_not_speak_when": [
+          "A portal, email, or ledger action is requested.",
+          "External client-facing business copy is needed.",
+          "Finance, backend, security, credentials, ledger, or protected access is the main context."
+        ],
+        "speaks_when": [
+          "A low-risk creative recommendation is needed.",
+          "Music, art, setlist, studio, Logic Pro, session, album, metadata, or creative direction work is being discussed."
+        ],
+        "tts_profile": {
+          "cadence_description": "Tasteful, relaxed, musically literate, and low pressure.",
+          "do_not_use_markers": [
+            "backticks",
+            "asterisks",
+            "hash headings",
+            "bullet symbols",
+            "raw JSON",
+            "markdown links"
+          ],
+          "emotional_temperature": "relaxed_creative",
+          "enabled": true,
+          "markdown_policy": "strip_before_tts",
+          "punctuation_rules": [
+            "Use commas for musical pacing.",
+            "Use periods for clean stops.",
+            "Avoid slang excess.",
+            "Avoid backend or security jargon."
+          ],
+          "sentence_shape": "Conversational but precise creative direction.",
+          "voice_target": "niles_creative_local_tts"
+        },
+        "voice_profile_ref": "agent_voice_profile:niles"
+      }
+    },
+    {
+      "agent_id": "openclaw",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": {},
+        "tool_execution_allowed": false,
+        "voice": {
+          "can_execute": false,
+          "can_export_pdf": false,
+          "can_mark_paid": false,
+          "can_mutate_calendar": false,
+          "can_mutate_ledger": false,
+          "can_mutate_repo": false,
+          "can_mutate_workbooks": false,
+          "can_send": false,
+          "can_submit_portal": false
+        }
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [],
+        "known_unknowns": [],
+        "not_discovered": [],
+        "partly_known": [],
+        "registry": []
+      },
+      "display_name": "Openclaw",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "",
+        "voice": "agent_voice_profiles.py"
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {},
+        "presence_source": "",
+        "quiet_condition": "",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [
+          "developer_proof",
+          "operator_calm"
+        ],
+        "must_not_speak_when": [
+          "A named speaker has clear deterministic routing.",
+          "A protected safety gate should be handled by Guardian.",
+          "External client-facing draft copy is needed."
+        ],
+        "speaks_when": [
+          "A neutral system overview is needed.",
+          "Generic state, proof summary, or cockpit orientation is being shown.",
+          "No specific speaker should own the response."
+        ],
+        "tts_profile": {
+          "cadence_description": "Minimal, factual, objective, and low personality.",
+          "do_not_use_markers": [
+            "backticks",
+            "asterisks",
+            "hash headings",
+            "bullet symbols",
+            "raw JSON",
+            "markdown links"
+          ],
+          "emotional_temperature": "neutral_objective",
+          "enabled": true,
+          "markdown_policy": "strip_before_tts",
+          "punctuation_rules": [
+            "Use simple periods.",
+            "Avoid flourish.",
+            "Avoid markdown and raw JSON.",
+            "Keep proof collapsed unless requested."
+          ],
+          "sentence_shape": "Compact status sentences.",
+          "voice_target": "openclaw_neutral_local_tts"
+        },
+        "voice_profile_ref": "agent_voice_profile:openclaw"
+      }
+    },
+    {
+      "agent_id": "package_compiler",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Package compiler is schema/preview/proof only; no send, launch, or execution.",
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "Compiles context, roles, tool metadata, gates, proof, stop conditions, and receipts into preview packages.",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [
+          "Package compiler and package preview contracts define package schema, context, authority, gates, stop conditions, and receipts.",
+          "Package compiler relates actor, model, tool, memory, sensitivity, and proof contracts.",
+          "Packages are preview/contract artifacts only now."
+        ],
+        "known_unknowns": [
+          "No live package dispatch or workbench launch authority exists."
+        ],
+        "not_discovered": [
+          "Package Preview Receipt v0.",
+          "Package compilation examples tied to live Mission Control surfaces."
+        ],
+        "partly_known": [
+          "Future package export/copy or dispatch is not active.",
+          "Package Preview Receipt remains the next missing receipt layer."
+        ],
+        "registry": []
+      },
+      "display_name": "Package Compiler",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "package_compiler",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {
+          "helm_after_resolution": "Disappear from helm or remain only as quiet proof/detail.",
+          "resolution_route": "QUIET_BACKEND_RESOLVED",
+          "target_world": null
+        },
+        "presence_source": "",
+        "quiet_condition": "Package compiler is quiet when package previews have receipts and blocked execution is visible in proof/detail.",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    },
+    {
+      "agent_id": "repo_b_planner_builder_orchestrator",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Future-gated candidate capability only; no planner/builder/orchestrator runtime.",
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "A suspected Repo B loop that must be classified from approved metadata before it is trusted.",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [
+          "Current tool adapter registry lists planner/builder/orchestrator/queue adapters as candidate/future-gated or blocked.",
+          "Operator reports planner, builder, and orchestrator roles may exist as part of a future agentic loop."
+        ],
+        "known_unknowns": [
+          "No current machine proof establishes the loop as safe, current, or executable.",
+          "No lifecycle receipts exist for planner-builder handoff."
+        ],
+        "not_discovered": [
+          "Builder input/output schema.",
+          "Orchestrator failure/return rules.",
+          "Planner input/output schema.",
+          "Queue lifecycle receipts."
+        ],
+        "partly_known": [
+          "Failed work may later return to queue/orchestrator/planner/builder, but no route is active.",
+          "Planner/builder may later consume cue parser output and package compiler artifacts."
+        ],
+        "registry": []
+      },
+      "display_name": "Repo B Planner / Builder / Orchestrator",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "repo_b_planner_builder_orchestrator",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {
+          "helm_after_resolution": "Hold as future-gated autonomy/cue terrain; no run controls before security.",
+          "resolution_route": "POST_SECURITY_AUTONOMY_CANDIDATE",
+          "target_world": null
+        },
+        "presence_source": "",
+        "quiet_condition": "This loop is quiet when each component has a non-live contract, is parked, or is explicitly blocked.",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    },
+    {
+      "agent_id": "report_bridge",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": {},
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "Handle sanitized local report package intake metadata and rejection summaries.",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [],
+        "known_unknowns": [],
+        "not_discovered": [],
+        "partly_known": [],
+        "registry": []
+      },
+      "display_name": "Report Bridge",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [
+          "business_development",
+          "cross_world",
+          "operations"
+        ],
+        "approval_required_for": [
+          "client_data_package_handling",
+          "new_package_classes",
+          "truth_promotion"
+        ],
+        "authority_level": "request_only",
+        "lane_id": "node_report_intake",
+        "lane_label": "Node Report Intake",
+        "receipt_required_for": [
+          "import_receipt",
+          "rejection_reason"
+        ],
+        "routing_hints": [
+          "node package rejection",
+          "project/client sanitized package posture",
+          "report package import"
+        ],
+        "status": "active_registry"
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "agent_presence.py",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "metadata_available",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "unknown_review",
+        "lane_destiny": {},
+        "presence_source": "read_model",
+        "quiet_condition": "",
+        "readiness_state": "",
+        "recovery_status": "not_needed"
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    },
+    {
+      "agent_id": "struna",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Struna is creative metadata/context only until scoped sources and package boundaries exist.",
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "Struna is a project/lane entity whose metadata can move to Music/Art World when source-backed.",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [
+          "Struna appears as a music/art project capsule/source reference in current awareness surfaces.",
+          "Struna belongs under Niles/Music-Art world posture, not generic helm clutter."
+        ],
+        "known_unknowns": [
+          "Current canonical Struna metadata, artifact state, and next work target are not fully proven."
+        ],
+        "not_discovered": [
+          "Current project capsule completeness.",
+          "Which source refs are current versus stale."
+        ],
+        "partly_known": [
+          "Struna can be represented as project metadata, capsule refs, and creative preference candidates."
+        ],
+        "registry": []
+      },
+      "display_name": "Struna",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "struna",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {
+          "helm_after_resolution": "Move to Music / Art world for domain work; helm keeps only a quiet global marker if needed.",
+          "resolution_route": "MOVE_TO_WORLD_ACTION",
+          "target_world": "Music / Art"
+        },
+        "presence_source": "",
+        "quiet_condition": "Struna is quiet when current project context is captured as metadata or intentionally parked.",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    },
+    {
+      "agent_id": "tool_plugin_registry",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {},
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": "Tool/plugin registry is capability metadata only; adapters cannot self-authorize or run.",
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [],
+        "must_not": [],
+        "must_route_through": [],
+        "owns": [],
+        "package_context_summary": "",
+        "role_summary": "Shows which adapters are read-only, preview-only, future-gated, blocked, or quarantined.",
+        "safety_boundaries": []
+      },
+      "capabilities": {
+        "known": [
+          "Active/read-only and preview-only adapters are distinct from future-gated or blocked adapters.",
+          "High-risk adapters such as browser/OAuth/Gmail/calendar/Coupa/Telegram remain blocked/future-gated.",
+          "Tool Protocol Adapter Registry defines adapter states, capability classes, package binding, receipts, and quarantine."
+        ],
+        "known_unknowns": [
+          "No live adapter runtime or account integration exists."
+        ],
+        "not_discovered": [
+          "Per-adapter proof and gate decisions.",
+          "Tool Adapter Receipt v0."
+        ],
+        "partly_known": [
+          "Some adapter proof and future receipt shapes need deeper per-adapter lanes."
+        ],
+        "registry": []
+      },
+      "display_name": "Tool / Plugin Registry",
+      "doc_links": [],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "tool_plugin_registry",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "agent_terrain_awareness_readback_contract.py",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {
+          "helm_after_resolution": "Show as audit-ready or proof/detail, not as executable.",
+          "resolution_route": "SECURITY_AUDIT_REQUIRED",
+          "target_world": null
+        },
+        "presence_source": "",
+        "quiet_condition": "Tool registry is quiet when package previews can explain included/excluded adapters and all high-risk adapters stay gated.",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    },
+    {
+      "agent_id": "watch_desk",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_bypass_allowed": false,
+        "client_deployment_allowed": false,
+        "external_send_allowed": false,
+        "model_call_allowed": false,
+        "role": {
+          "daw_media_mutation_allowed": false,
+          "direct_send_allowed": false,
+          "external_action_allowed": false,
+          "guardian_approval_created": false,
+          "ledger_mutation_allowed": false,
+          "model_output_grants_business_authority": false,
+          "model_output_grants_runtime_authority": false,
+          "paid_marking_allowed": false,
+          "runtime_mutation_allowed": false,
+          "tool_authority_granted": false
+        },
+        "runtime_mutation_allowed": false,
+        "secret_access_allowed": false,
+        "service_restart_allowed": false,
+        "terrain": {},
+        "tool_execution_allowed": false,
+        "voice": {}
+      },
+      "behavior": {
+        "may_request": [
+          "Cassandra summary when a business item needs human-facing wording",
+          "Chief review when projection source state is inconsistent"
+        ],
+        "must_not": [
+          "create approvals",
+          "execute actions",
+          "invent source truth without receipts",
+          "mutate source state"
+        ],
+        "must_route_through": [
+          "existing approval rails for any action suggested by a watch item",
+          "source read model or receipt for every item"
+        ],
+        "owns": [
+          "next-safe-action summaries",
+          "operator attention feed projection",
+          "watch items from existing receipts/read models"
+        ],
+        "package_context_summary": "Act for Watch Desk as a projection/summarization worker. Return attention items or next-safe-action text only; do not mutate source state or create approvals.",
+        "role_summary": "Read-only operator attention projection sourced from receipts and read models.",
+        "safety_boundaries": [
+          "projection is not approval",
+          "push_allowed remains false by default",
+          "source receipts/read models remain canonical"
+        ]
+      },
+      "capabilities": {
+        "known": [],
+        "known_unknowns": [],
+        "not_discovered": [],
+        "partly_known": [],
+        "registry": []
+      },
+      "display_name": "Watch Desk",
+      "doc_links": [
+        "agent_lane_registry.py#watch_desk",
+        "watch_desk_feed.py"
+      ],
+      "lane": {
+        "allowed_worlds": [],
+        "approval_required_for": [],
+        "authority_level": "",
+        "lane_id": "",
+        "lane_label": "",
+        "receipt_required_for": [],
+        "routing_hints": [],
+        "status": ""
+      },
+      "source_refs": {
+        "capability": "",
+        "lane": "agent_lane_registry.py",
+        "presence": "",
+        "role_card": "openclaw_agent_role_registry.py",
+        "terrain": "",
+        "voice": ""
+      },
+      "status": {
+        "actual_state": "",
+        "confidence_state": "",
+        "current_status": "",
+        "desired_state": "",
+        "lane_destiny": {},
+        "presence_source": "",
+        "quiet_condition": "",
+        "readiness_state": "",
+        "recovery_status": ""
+      },
+      "voice": {
+        "default_voice_modes": [],
+        "must_not_speak_when": [],
+        "speaks_when": [],
+        "tts_profile": {},
+        "voice_profile_ref": ""
+      }
+    }
+  ],
+  "approval_bypass_allowed": false,
+  "client_deployment_allowed": false,
+  "external_send_allowed": false,
+  "generated_at": "2026-06-18T18:11:59+00:00",
+  "machine_proof": {
+    "agent_ids": [
+      "agentic_loop",
+      "cassandra",
+      "chief",
+      "clara",
+      "cue_parser_brain_dump_parser",
+      "guardian",
+      "hermes",
+      "model_router",
+      "niles",
+      "openclaw",
+      "package_compiler",
+      "repo_b_planner_builder_orchestrator",
+      "report_bridge",
+      "struna",
+      "tool_plugin_registry",
+      "watch_desk"
+    ],
+    "builder": "build_consolidated_agent_manifest",
+    "content_hash": "sha256:74474161197a8fa87938483f4c758e629a5a2b366429a95b5abba9be90233f0e",
+    "external_send_performed": false,
+    "model_calls_performed": false,
+    "secret_files_read": false,
+    "services_started_or_restarted": false,
+    "source_count": 5,
+    "tool_execution_performed": false
+  },
+  "model_call_allowed": false,
+  "no_authority_flags": {
+    "agent_activation_allowed": false,
+    "approval_bypass_allowed": false,
+    "client_deployment_allowed": false,
+    "external_send_allowed": false,
+    "model_call_allowed": false,
+    "runtime_mutation_allowed": false,
+    "secret_access_allowed": false,
+    "service_restart_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "purpose": "One local read-model for rich per-agent cards: behavior, capabilities, voice, lane, status, and doc links.",
+  "read_model_id": "agent_dossier_cards_consolidated",
+  "runtime_mutation_allowed": false,
+  "schema_version": "agent_dossier_cards_consolidated_v0",
+  "secret_access_allowed": false,
+  "service_restart_allowed": false,
+  "source_modules": [
+    "agent_lane_registry.py",
+    "openclaw_agent_role_registry.py",
+    "capability_registry.py",
+    "agent_presence.py",
+    "agent_terrain_awareness_readback_contract.py",
+    "agent_voice_profiles.py"
+  ],
+  "source_read_models": {
+    "agent_lanes": {
+      "path": "generated/read_models/agent_lanes.json",
+      "present": true,
+      "read_model_id": null,
+      "schema_version": "agent_lanes_read_model_v0"
+    },
+    "agent_presence": {
+      "path": "generated/read_models/agent_presence.json",
+      "present": true,
+      "read_model_id": null,
+      "schema_version": "agent_presence_read_model_v0"
+    },
+    "agent_role_registry": {
+      "path": "generated/read_models/openclaw_agent_role_registry.json",
+      "present": true,
+      "read_model_id": "openclaw_agent_role_registry",
+      "schema_version": "OPENCLAW_AGENT_ROLE_REGISTRY_V0"
+    },
+    "agent_terrain_awareness": {
+      "path": "generated/read_models/agent_terrain_awareness_readback_contract.json",
+      "present": true,
+      "read_model_id": "agent_terrain_awareness_readback_contract",
+      "schema_version": "agent_terrain_awareness_readback_contract_v0"
+    },
+    "agent_voice_profiles": {
+      "path": "generated/read_models/agent_voice_profiles.json",
+      "present": true,
+      "read_model_id": "agent_voice_profiles",
+      "schema_version": "agent_voice_profiles_v0"
+    }
+  },
+  "status": "AGENT_DOSSIER_CARDS_CONSOLIDATED_READY",
+  "tool_execution_allowed": false
+}
