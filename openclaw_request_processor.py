@@ -199,6 +199,7 @@ INTERRUPTION_POLICIES = (
 )
 
 VOICE_PROFILE_REFS = {
+    "MAESTRO": "voice:maestro:conductor",
     "CHIEF": "voice:chief:operational",
     "CASSANDRA": "voice:cassandra:communications",
     "CLARA": "voice:clara:client_safe_draft",
@@ -210,6 +211,7 @@ VOICE_PROFILE_REFS = {
 }
 
 VIBE_PROFILE_REFS = {
+    "MAESTRO": "vibe:maestro:conductor",
     "CHIEF": "vibe:chief:command_center",
     "CASSANDRA": "vibe:cassandra:executive_calm",
     "CLARA": "vibe:clara:client_safe_calm",
@@ -341,6 +343,7 @@ SPOKEN_SENSITIVE_TERMS = (
 )
 
 VOICE_DIRECTIONS = {
+    "MAESTRO": "composed_authoritative",
     "CHIEF": "operational_crisp",
     "CASSANDRA": "polished_calm",
     "CLARA": "client_safe_polished_calm",
@@ -1719,6 +1722,7 @@ def _voice_context_text(response: OpenClawResponseForMac, layered_fields: Mappin
 def _initial_response_author(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str]:
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     speaker_map = {
+        "maestro": "MAESTRO",
         "chief": "CHIEF",
         "cassandra": "CASSANDRA",
         "clara": "CLARA",
@@ -4947,6 +4951,7 @@ def _process_maestro_frontdoor_operator_instruction(
         },
     }
     detail = {
+        "operator_display": {"speaker_ref": "maestro"},
         "request_classification": asdict(response_classification),
         "original_request_classification": asdict(classification),
         "request_router_decision": dict(route_decision),
@@ -5006,7 +5011,7 @@ def _process_maestro_frontdoor_operator_instruction(
         blocked_reason=None,
         detail_disclosure=detail,
         readback_files=(),
-        next_safe_move="Render the Maestro answer in Mission Control.",
+        next_safe_move="Ask Maestro a follow-up if you need more.",
     )
 
 
