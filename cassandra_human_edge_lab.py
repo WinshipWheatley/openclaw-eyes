@@ -57,6 +57,24 @@ CONVERSATION_SOURCE_CANDIDATES = (
     (Path("generated/read_models/guided_review_sessions.json"), "guided_review_sessions_read_model", "safe_summary_read_model"),
 )
 
+DATA_ROOM_PROMOTION_REVIEW_FIXTURE: dict[str, Any] = {
+    "schema_version": "openclaw_data_room_promotion_review_v0",
+    "source_artifacts": [],
+    "review_records": [
+        {
+            "record_id": "human_edge_lab_payment_privacy_trust_tier",
+            "review_category": "policy_decision",
+            "provisional_fact": "Winship wants payment details to stay trust-tiered.",
+            "proposed_promoted_value": (
+                "Trusted clients may receive easy payment options, but strangers should not "
+                "see bank details or Winship's private address."
+            ),
+            "recommended_action": "confirm",
+            "risk_if_wrong": "Payment or address details could be exposed to the wrong recipient class.",
+        }
+    ],
+}
+
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
@@ -80,6 +98,39 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(stable_json(payload), encoding="utf-8")
     return path
+
+
+def _write_data_room_fixture(path: Path) -> Path:
+    return _write_json(path, DATA_ROOM_PROMOTION_REVIEW_FIXTURE)
+
+
+def _load_latest_guided_review_session(review_root: Path, active_index: Mapping[str, Any] | None = None) -> tuple[Path | None, dict[str, Any]]:
+    candidate_refs: list[Path] = []
+    if isinstance(active_index, Mapping):
+        raw_session_path = str(active_index.get("session_path") or "").strip()
+        if raw_session_path:
+            candidate_refs.append(_rooted(raw_session_path))
+
+    candidate_refs.extend(
+        path
+        for path in sorted(
+            review_root.glob("data_room_guided_review_session_*.json"),
+            key=lambda item: item.stat().st_mtime if item.exists() else 0,
+            reverse=True,
+        )
+        if path.is_file() and not path.name.endswith("_OPERATOR.md")
+    )
+
+    for candidate in candidate_refs:
+        if not candidate.is_file():
+            continue
+        try:
+            payload = json.loads(candidate.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(payload, dict) and payload.get("schema_version") == guided_review.SESSION_SCHEMA_VERSION:
+            return candidate, payload
+    return None, {}
 
 
 def _reset_owned_lab_path(path: Path) -> None:
@@ -193,6 +244,7 @@ def run_data_room_human_edge_scenario(
     read_root = _rooted(lab_root) / "data_room_read_models"
     _reset_owned_lab_path(root)
     _reset_owned_lab_path(read_root)
+    promotion_review_path = _write_data_room_fixture(root / "openclaw_data_room_promotion_review_v0.json")
     turns = [
         ("Cassandra, let's go over the Data Room.", "2026-06-13T15:00:00+00:00"),
         ("I don't know what that means. Explain it like I'm five.", "2026-06-13T15:01:00+00:00"),
@@ -216,6 +268,7 @@ def run_data_room_human_edge_scenario(
             surface="telegram_dryrun",
             review_root=root,
             read_model_root=read_root,
+            promotion_review_path=promotion_review_path,
             generated_at_utc=timestamp,
         )
         responses.append(
@@ -232,8 +285,7 @@ def run_data_room_human_edge_scenario(
         )
     active_index = root / "data_room_guided_review_active_session.json"
     active = json.loads(active_index.read_text(encoding="utf-8")) if active_index.exists() else {}
-    session_path = Path(str(active.get("session_path") or "")) if active else Path("")
-    session = json.loads(session_path.read_text(encoding="utf-8")) if session_path.exists() else {}
+    session_path, session = _load_latest_guided_review_session(root, active)
     read_model_path = read_root / guided_review.READ_MODEL_NAME
     summary = {
         "schema_version": "CASSANDRA_HUMAN_EDGE_DATA_ROOM_SCENARIO_V0",

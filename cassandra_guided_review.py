@@ -2421,7 +2421,7 @@ def _handle_pending_interaction(
                 answer_recorded=True,
             )
             if not session.get("current_question_id"):
-                completed = complete_session(session, review_root=review_root, now=now)
+                completed = dict(complete_session(session, review_root=review_root, now=now))
                 session.clear()
                 session.update(completed)
                 return (
@@ -2609,7 +2609,7 @@ def _handle_pending_interaction(
                 answer_recorded=True,
             )
             if not session.get("current_question_id"):
-                completed = complete_session(session, review_root=review_root, now=now)
+                completed = dict(complete_session(session, review_root=review_root, now=now))
                 session.clear()
                 session.update(completed)
                 return (
@@ -2682,7 +2682,7 @@ def _handle_pending_interaction(
             answer_recorded=True,
         )
         if not session.get("current_question_id"):
-            completed = complete_session(session, review_root=review_root, now=now)
+            completed = dict(complete_session(session, review_root=review_root, now=now))
             session.clear()
             session.update(completed)
             return (
