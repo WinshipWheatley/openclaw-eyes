@@ -477,6 +477,10 @@ def test_processor_text_response_ready_uses_lean_status_fast_path(monkeypatch, t
     assert proof["external_action_performed"] is False
     assert proof["guardian_output_gate_passed"] is True
     assert proof["role_output_blocked"] is False
+    assert proof["spoken_response_packet_present"] is bool(response_payload.get("spoken_response_packet"))
+    assert proof["guardian_output_gate_present"] is bool(response_payload.get("guardian_output_gate"))
+    assert proof["response_taste_guardrails_present"] is bool(response_payload.get("taste_guardrails"))
+    assert proof["local_surface_request_present"] is bool(response_payload.get("local_surface_request"))
     assert len(proof) < 60
     assert "internal_statuses" not in status_payload
     assert status_payload["processor_status"]["route_status"] == "TEXT_RESPONSE_READY"
@@ -484,6 +488,24 @@ def test_processor_text_response_ready_uses_lean_status_fast_path(monkeypatch, t
     assert response_payload["guardian_output_gate"]["validation_result"]["output_publish_allowed"] is True
     assert response_payload["machine_proof"]["text_response_ready_fast_path_used"] is True
     assert response_payload["machine_proof"]["workflow_package_staged"] is False
+
+    absent_payload_status = processor._text_response_ready_fast_path_status_payload(
+        response,
+        generated_at=FIXED_NOW,
+        blockers=(),
+        route_ref=response.worker_route_refs[0],
+        spoken_packet={},
+        guardian_gate_payload={},
+        guardian_gate_result={},
+        taste_guardrails={},
+        local_surface_request={},
+    )
+    absent_proof = absent_payload_status["machine_proof"]
+    assert absent_proof["spoken_response_packet_present"] is False
+    assert absent_proof["spoken_script_truth_bound"] is False
+    assert absent_proof["guardian_output_gate_present"] is False
+    assert absent_proof["response_taste_guardrails_present"] is False
+    assert absent_proof["local_surface_request_present"] is False
 
 
 def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, tmp_path):
