@@ -47,6 +47,7 @@ Public API:
 import json
 import sys
 import importlib
+import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Mapping
@@ -133,7 +134,22 @@ _AUDIT_APPROVAL_CONTEXT_KEEP_KEYS = {
     "credential_lease_ref",
     "credential_lease_id",
     "exact_send_gate",
+    "broker_capability_token_fingerprint",
 }
+_AUDIT_BROKER_CAPABILITY_TOKEN_PARAM = "broker_capability_token"
+
+BROKER_CAPABILITY_TOKEN_SCHEMA = "GOOGLE_BROKER_CAPABILITY_TOKEN_V0"
+_BROKER_CAPABILITY_TOKEN_REQUIRED = frozenset(
+    {
+        "google.calendar.write",
+        "google.calendar.delete",
+        "google.contacts.read",
+        "google.gmail.read.body",
+        "google.gmail.draft.create",
+        "google.gmail.send",
+    }
+)
+_BROKER_CAPABILITY_TOKEN_REGISTRY: dict[str, dict[str, Any]] = {}
 
 _GMAIL_BROKER_RUNTIME_IMPORTS = (
     "googleapiclient.discovery",
@@ -164,11 +180,29 @@ def _redact_approval_context(value: Any) -> dict:
     }
 
 
+def _redact_broker_capability_token(value: Any) -> dict:
+    if not isinstance(value, Mapping):
+        return {"redacted": True}
+    return {
+        "schema_version": value.get("schema_version"),
+        "token_fingerprint": value.get("token_fingerprint"),
+        "agent": value.get("agent"),
+        "capability": value.get("capability"),
+        "issuer": value.get("issuer"),
+        "send_hold_checked": value.get("send_hold_checked"),
+        "send_hold_active": value.get("send_hold_active"),
+        "redacted": True,
+    }
+
+
 def _redact_audit_params(params: Mapping[str, Any]) -> dict:
     redacted = {}
     for key, value in params.items():
         key_str = str(key)
         if key_str in _AUDIT_BODY_PARAM_KEYS:
+            continue
+        if key_str == _AUDIT_BROKER_CAPABILITY_TOKEN_PARAM:
+            redacted[key_str] = _redact_broker_capability_token(value)
             continue
         if key_str == "approval_context":
             redacted[key_str] = _redact_approval_context(value)
@@ -220,6 +254,152 @@ def _request_approval(action: str, tier: int, approval_context: dict | None = No
 
 def _import_runtime_dependency(module_name: str):
     return importlib.import_module(module_name)
+
+
+def _stable_token_json(value: Mapping[str, Any]) -> str:
+    return json.dumps(dict(value), sort_keys=True, separators=(",", ":"), default=str)
+
+
+def _token_fingerprint(record: Mapping[str, Any]) -> str:
+    import hashlib
+
+    public_record = {
+        key: record.get(key)
+        for key in (
+            "schema_version",
+            "token_id",
+            "agent",
+            "capability",
+            "issuer",
+            "request_id",
+            "idempotency_key",
+            "payload_hash",
+            "authority_refs",
+            "credential_lease_refs",
+            "send_hold_checked",
+            "send_hold_active",
+            "send_hold_ref",
+        )
+    }
+    return "sha256:" + hashlib.sha256(_stable_token_json(public_record).encode("utf-8")).hexdigest()
+
+
+def broker_capability_token_required(capability: str) -> bool:
+    """Return whether the broker refuses this capability without a minted token."""
+
+    return capability in _BROKER_CAPABILITY_TOKEN_REQUIRED
+
+
+def mint_send_hold_gated_broker_capability_token(
+    *,
+    agent: str,
+    capability: str,
+    issuer: str,
+    request_id: str = "",
+    idempotency_key: str = "",
+    payload_hash: str = "",
+    authority_refs: list[str] | tuple[str, ...] = (),
+    credential_lease_refs: list[str] | tuple[str, ...] = (),
+    send_hold_checked: bool,
+    send_hold_active: bool = False,
+    send_hold_ref: str = "",
+) -> dict[str, Any]:
+    """Mint a one-use broker token after an executor-level SEND_HOLD check."""
+
+    agent = str(agent or "").strip().lower()
+    capability = str(capability or "").strip()
+    issuer = str(issuer or "").strip()
+    request_id = str(request_id or "").strip()
+    idempotency_key = str(idempotency_key or "").strip()
+    payload_hash = str(payload_hash or "").strip()
+    if not agent or not capability or not issuer:
+        raise ValueError("agent, capability, and issuer are required")
+    if not broker_capability_token_required(capability):
+        raise ValueError(f"capability does not require a broker capability token: {capability}")
+    if not send_hold_checked:
+        raise ValueError("SEND_HOLD check is required before minting broker capability token")
+    if send_hold_active:
+        raise ValueError("SEND_HOLD is active; broker capability token not minted")
+    if capability == "google.gmail.send" and (not request_id or idempotency_key != request_id or not payload_hash):
+        raise ValueError("gmail send token requires request_id, matching idempotency_key, and payload_hash")
+
+    record = {
+        "schema_version": BROKER_CAPABILITY_TOKEN_SCHEMA,
+        "token_id": "google_broker_capability:" + secrets.token_urlsafe(24),
+        "agent": agent,
+        "capability": capability,
+        "issuer": issuer,
+        "request_id": request_id,
+        "idempotency_key": idempotency_key,
+        "payload_hash": payload_hash,
+        "authority_refs": [str(ref) for ref in authority_refs if str(ref).strip()],
+        "credential_lease_refs": [str(ref) for ref in credential_lease_refs if str(ref).strip()],
+        "send_hold_checked": True,
+        "send_hold_active": False,
+        "send_hold_ref": str(send_hold_ref or ""),
+        "consumed": False,
+        "issued_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    record["token_fingerprint"] = _token_fingerprint(record)
+    _BROKER_CAPABILITY_TOKEN_REGISTRY[record["token_id"]] = dict(record)
+    return {
+        "schema_version": BROKER_CAPABILITY_TOKEN_SCHEMA,
+        "token_id": record["token_id"],
+        "token_fingerprint": record["token_fingerprint"],
+        "agent": agent,
+        "capability": capability,
+        "issuer": issuer,
+        "send_hold_checked": True,
+        "send_hold_active": False,
+    }
+
+
+def _broker_capability_token_verdict(agent: str, capability: str, params: Mapping[str, Any]) -> tuple[bool, str]:
+    if not broker_capability_token_required(capability):
+        return True, ""
+    token = params.get(_AUDIT_BROKER_CAPABILITY_TOKEN_PARAM)
+    if not isinstance(token, Mapping):
+        return False, f"broker capability token required for {capability}"
+    if token.get("schema_version") != BROKER_CAPABILITY_TOKEN_SCHEMA:
+        return False, "broker capability token schema mismatch"
+    token_id = str(token.get("token_id") or "")
+    fingerprint = str(token.get("token_fingerprint") or "")
+    record = _BROKER_CAPABILITY_TOKEN_REGISTRY.get(token_id)
+    if not record:
+        return False, "broker capability token not minted by this broker process"
+    if record.get("consumed"):
+        return False, "broker capability token already consumed"
+    if fingerprint != record.get("token_fingerprint"):
+        return False, "broker capability token fingerprint mismatch"
+    if str(record.get("agent") or "") != agent.lower():
+        return False, "broker capability token agent mismatch"
+    if str(record.get("capability") or "") != capability:
+        return False, "broker capability token capability mismatch"
+    if record.get("send_hold_checked") is not True or record.get("send_hold_active") is True:
+        return False, "broker capability token missing successful SEND_HOLD check"
+
+    context = params.get("approval_context") if isinstance(params.get("approval_context"), Mapping) else {}
+    expected_request_id = str(record.get("request_id") or "")
+    if expected_request_id:
+        observed_request_id = str(params.get("exact_send_request_id") or context.get("request_id") or "")
+        observed_idempotency_key = str(params.get("idempotency_key") or context.get("idempotency_key") or "")
+        if observed_request_id != expected_request_id or observed_idempotency_key != expected_request_id:
+            return False, "broker capability token request/idempotency mismatch"
+    expected_payload_hash = str(record.get("payload_hash") or "")
+    if expected_payload_hash:
+        observed_payload_hash = str(context.get("payload_hash") or params.get("payload_hash") or "")
+        if observed_payload_hash != expected_payload_hash:
+            return False, "broker capability token payload hash mismatch"
+    expected_authority_refs = list(record.get("authority_refs") or [])
+    expected_lease_refs = list(record.get("credential_lease_refs") or [])
+    if expected_authority_refs and list(context.get("authority_refs") or []) != expected_authority_refs:
+        return False, "broker capability token authority refs mismatch"
+    if expected_lease_refs and list(context.get("credential_lease_refs") or []) != expected_lease_refs:
+        return False, "broker capability token credential lease refs mismatch"
+
+    record["consumed"] = True
+    _BROKER_CAPABILITY_TOKEN_REGISTRY[token_id] = record
+    return True, ""
 
 
 def check_gmail_broker_runtime_dependencies() -> dict:
@@ -891,6 +1071,11 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         msg = f"{agent} is not permitted to call {capability}"
         _audit(agent, capability, params, False, msg)
         return {"ok": False, "data": None, "error": msg}
+
+    token_ok, token_error = _broker_capability_token_verdict(agent, capability, params)
+    if not token_ok:
+        _audit(agent, capability, params, False, token_error)
+        return {"ok": False, "data": None, "error": token_error}
 
     if capability.startswith("google.gmail."):
         readiness = check_gmail_broker_runtime_dependencies()

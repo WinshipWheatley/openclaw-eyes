@@ -1244,6 +1244,8 @@ def test_governed_broker_transport_passes_request_id_as_idempotency_metadata():
     transport = objective_loop.GovernedGmailBrokerSendTransport(
         live_transport_enabled=True,
         broker_call=fake_broker,
+        send_hold_verified=True,
+        send_hold_ref="/tmp/missing_SEND_HOLD.md",
     )
     result = transport.send_exact_payload(
         {
@@ -1265,6 +1267,8 @@ def test_governed_broker_transport_passes_request_id_as_idempotency_metadata():
     assert calls[0][2]["idempotency_key"] == request_id
     assert calls[0][2]["exact_send_request_id"] == request_id
     assert calls[0][2]["approval_context"]["idempotency_key"] == request_id
+    assert calls[0][2]["broker_capability_token"]["schema_version"] == "GOOGLE_BROKER_CAPABILITY_TOKEN_V0"
+    assert calls[0][2]["approval_context"]["broker_capability_token_fingerprint"] == calls[0][2]["broker_capability_token"]["token_fingerprint"]
 
 
 def test_live_gate_refuses_unallowlisted_transport_before_body_handoff(tmp_path):

@@ -2430,7 +2430,11 @@ def run_exact_send_operator_action_routeback(
         generated_at=generated_at,
     )
     if transport is None:
-        transport = GovernedGmailBrokerSendTransport(live_transport_enabled=live_transport_enabled)
+        transport = GovernedGmailBrokerSendTransport(
+            live_transport_enabled=live_transport_enabled,
+            send_hold_verified=True,
+            send_hold_ref=str(send_hold_path),
+        )
     result = run_exact_send_live_transport_gate(
         sqlite_path=sqlite_path,
         objective_id=objective_id,
@@ -2995,9 +2999,18 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
 
     allowlisted_exact_send_transport = True
 
-    def __init__(self, *, live_transport_enabled: bool = False, broker_call: Any = None) -> None:
+    def __init__(
+        self,
+        *,
+        live_transport_enabled: bool = False,
+        broker_call: Any = None,
+        send_hold_verified: bool = False,
+        send_hold_ref: str = "",
+    ) -> None:
         super().__init__(live_transport_enabled=live_transport_enabled)
         self._broker_call = broker_call
+        self.send_hold_verified = send_hold_verified
+        self.send_hold_ref = send_hold_ref
 
     def send_exact_payload(
         self,
@@ -3030,22 +3043,61 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
                 "live_transport_enabled": False,
                 "payload_hash": str(payload.get("payload_hash") or ""),
             }
+        broker_capability_token: Mapping[str, Any] | None = None
+        if self.live_transport_enabled:
+            broker_module = __import__("google_access_broker")
+            mint_token = getattr(broker_module, "mint_send_hold_gated_broker_capability_token")
+            try:
+                broker_capability_token = mint_token(
+                    agent=self.broker_agent,
+                    capability=self.broker_capability,
+                    issuer="cassandra_exact_send_executor",
+                    request_id=str(payload.get("request_id") or ""),
+                    idempotency_key=str(payload.get("request_id") or ""),
+                    payload_hash=str(payload.get("payload_hash") or ""),
+                    authority_refs=list(authority_refs),
+                    credential_lease_refs=list(credential_lease_refs),
+                    send_hold_checked=bool(self.send_hold_verified),
+                    send_hold_active=False,
+                    send_hold_ref=self.send_hold_ref,
+                )
+            except ValueError as exc:
+                return {
+                    "ok": False,
+                    "reason": f"broker_capability_token_refused: {exc}",
+                    "broker_agent": self.broker_agent,
+                    "broker_capability": self.broker_capability,
+                    "credential_handle_id": self.credential_handle_id,
+                    "authority_refs": list(authority_refs),
+                    "credential_lease_refs": list(credential_lease_refs),
+                    "broker_called": False,
+                    "fake_broker_called": False,
+                    "gmail_api_called": False,
+                    "email_send_performed": False,
+                    "live_transport_enabled": True,
+                    "payload_hash": str(payload.get("payload_hash") or ""),
+                }
+        approval_context = {
+            "request_id": str(payload.get("request_id") or ""),
+            "objective_id": str(payload.get("objective_id") or ""),
+            "payload_hash": str(payload.get("payload_hash") or ""),
+            "idempotency_key": str(payload.get("request_id") or ""),
+            "authority_refs": list(authority_refs),
+            "credential_lease_refs": list(credential_lease_refs),
+            "exact_send_gate": True,
+        }
+        if broker_capability_token:
+            approval_context["broker_capability_token_fingerprint"] = broker_capability_token["token_fingerprint"]
         broker_params = {
             "to": str(payload.get("recipient") or ""),
             "subject": str(payload.get("subject") or ""),
             "body": str(payload.get("body") or ""),
             "idempotency_key": str(payload.get("request_id") or ""),
             "exact_send_request_id": str(payload.get("request_id") or ""),
-            "approval_context": {
-                "request_id": str(payload.get("request_id") or ""),
-                "objective_id": str(payload.get("objective_id") or ""),
-                "payload_hash": str(payload.get("payload_hash") or ""),
-                "idempotency_key": str(payload.get("request_id") or ""),
-                "authority_refs": list(authority_refs),
-                "credential_lease_refs": list(credential_lease_refs),
-                "exact_send_gate": True,
-            },
+            "approval_context": approval_context,
         }
+        if broker_capability_token:
+            broker_params["broker_capability_token"] = broker_capability_token
         broker_call = self._broker_call
         if broker_call is None:
             broker_module = __import__("google_access_broker")
