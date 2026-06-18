@@ -12,8 +12,10 @@ from steel_thread_radar import (
     RECOMMENDATIONS,
     build_steel_thread_radar,
     build_steel_thread_read_model,
+    build_steel_thread_surface_read_model,
     build_steel_thread_report,
     export_steel_thread_radar_read_model,
+    format_operator_steel_thread_read_model,
     fetch_steel_thread_sources,
     seed_steel_thread_source_registry,
     steel_thread_table_names,
@@ -436,6 +438,37 @@ def test_read_model_export_exists_and_contains_no_authority_flags(tmp_path):
     assert "Agent work board / orchestration board pattern" in operator_text
     assert all(value is False for value in payload["no_authority_flags"].values())
     assert "Mission Control Work Board Read-Only Surface v0" in payload["recommended_next_lanes"][0]
+
+
+def test_surface_read_model_projects_seed_signals_without_ledger_mutation(tmp_path):
+    db_path = tmp_path / "missing" / "ledger.sqlite"
+    root = _fixture_root(tmp_path)
+
+    payload = build_steel_thread_surface_read_model(
+        db_path=db_path,
+        repo_root=root,
+        generated_at="test_generated_at",
+    )
+    operator_text = format_operator_steel_thread_read_model(payload)
+
+    assert not db_path.exists()
+    assert payload["surface_mode"] == "manual_seed_projection"
+    assert payload["projection_basis"] == "steel_thread_seed_signals"
+    assert payload["source_state_read_only"] is True
+    assert payload["generated_at"] == "test_generated_at"
+    assert payload["signal_count"] == 3
+    assert payload["high_relevance_count"] == 3
+    assert any(
+        "Mission Control Work Board Read-Only Surface v0" in lane
+        for lane in payload["recommended_next_lanes"]
+    )
+    assert {signal["signal_id"] for signal in payload["signals"]} == {
+        "steel_signal_agent_work_board_orchestration",
+        "steel_signal_external_ai_context_packs",
+        "steel_signal_helm_control_path_maturity",
+    }
+    assert "Agent work board / orchestration board pattern" in operator_text
+    assert all(value is False for value in payload["no_authority_flags"].values())
 
 
 def test_scripts_work(tmp_path, capsys):

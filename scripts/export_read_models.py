@@ -87,9 +87,13 @@ EXPECTED_EXPORT_PATHS = (
     "runtime_activation_gate.operator.txt",
     "evidence_freshness.json",
     "evidence_freshness.operator.txt",
+    "steel_thread_radar.json",
+    "steel_thread_radar_OPERATOR.md",
     "generated_current_state.md",
     "generated_next_actions.md",
 )
+
+STANDARD_EXPORT_GENERATED_AT = "omitted_for_standardized_export_stability"
 
 SELF_REFERENTIAL_EXPORT_IDS = {
     "evidence_freshness",
@@ -177,7 +181,25 @@ def _format_operator_evidence_freshness(read_model: dict[str, Any]) -> str:
     return format_operator_evidence_freshness(read_model)
 
 
-def _export_specs() -> tuple[ExportSpec, ...]:
+def _steel_thread_radar(db_path: str | Path | None = None) -> dict[str, Any]:
+    from steel_thread_radar import build_steel_thread_surface_read_model
+
+    return build_steel_thread_surface_read_model(
+        db_path=db_path,
+        generated_at=STANDARD_EXPORT_GENERATED_AT,
+    )
+
+
+def _format_operator_steel_thread_radar(read_model: dict[str, Any]) -> str:
+    from steel_thread_radar import format_operator_steel_thread_read_model
+
+    return format_operator_steel_thread_read_model(read_model)
+
+
+def _export_specs(
+    *,
+    steel_thread_db_path: str | Path | None = None,
+) -> tuple[ExportSpec, ...]:
     return (
         ExportSpec(
             artifact_id="source_inventory",
@@ -334,6 +356,30 @@ def _export_specs() -> tuple[ExportSpec, ...]:
             render=lambda: _format_operator_evidence_freshness(_evidence_freshness()) + "\n",
         ),
         ExportSpec(
+            artifact_id="steel_thread_radar",
+            relative_path="steel_thread_radar.json",
+            output_format="json",
+            producer="steel_thread_radar.build_steel_thread_surface_read_model",
+            safe_for_mac_app=True,
+            safe_for_codex_context=True,
+            safe_for_nohup_workers=True,
+            safe_for_agent_context=True,
+            render=lambda: _json_text(_steel_thread_radar(steel_thread_db_path)),
+        ),
+        ExportSpec(
+            artifact_id="steel_thread_radar_operator",
+            relative_path="steel_thread_radar_OPERATOR.md",
+            output_format="markdown",
+            producer="steel_thread_radar.format_operator_steel_thread_read_model",
+            safe_for_mac_app=True,
+            safe_for_codex_context=True,
+            safe_for_nohup_workers=True,
+            safe_for_agent_context=True,
+            render=lambda: _format_operator_steel_thread_radar(
+                _steel_thread_radar(steel_thread_db_path)
+            ),
+        ),
+        ExportSpec(
             artifact_id="generated_current_state",
             relative_path="generated_current_state.md",
             output_format="markdown",
@@ -380,11 +426,12 @@ def build_expected_exports(
     *,
     export_root: str | Path = DEFAULT_EXPORT_ROOT,
     exclude_artifact_ids: set[str] | None = None,
+    steel_thread_db_path: str | Path | None = None,
 ) -> list[dict[str, Any]]:
     root = _export_root_path(export_root)
     excluded = exclude_artifact_ids or set()
     expected: list[dict[str, Any]] = []
-    for spec in _export_specs():
+    for spec in _export_specs(steel_thread_db_path=steel_thread_db_path):
         if spec.artifact_id in excluded:
             continue
         path = root / spec.relative_path
@@ -430,20 +477,25 @@ def export_read_models(
     export_root: str | Path = DEFAULT_EXPORT_ROOT,
     check: bool = False,
     exclude_artifact_ids: set[str] | None = None,
+    steel_thread_db_path: str | Path | None = None,
 ) -> dict[str, Any]:
     root = _export_root_path(export_root)
     excluded = exclude_artifact_ids or set()
     stale_exports: list[str] = []
 
     if check:
-        expected = build_expected_exports(export_root=root, exclude_artifact_ids=excluded)
+        expected = build_expected_exports(
+            export_root=root,
+            exclude_artifact_ids=excluded,
+            steel_thread_db_path=steel_thread_db_path,
+        )
         for item in expected:
             path = item["path"]
             if not path.is_file() or path.read_text(encoding="utf-8") != item["content"]:
                 stale_exports.append(_display_path(path))
     else:
         root.mkdir(parents=True, exist_ok=True)
-        for spec in _export_specs():
+        for spec in _export_specs(steel_thread_db_path=steel_thread_db_path):
             if spec.artifact_id in excluded:
                 continue
             path = root / spec.relative_path
@@ -454,11 +506,16 @@ def export_read_models(
         non_self_expected = build_expected_exports(
             export_root=root,
             exclude_artifact_ids=non_self_excluded,
+            steel_thread_db_path=steel_thread_db_path,
         )
         for item in non_self_expected:
             item["path"].write_text(item["content"], encoding="utf-8")
 
-        expected = build_expected_exports(export_root=root, exclude_artifact_ids=excluded)
+        expected = build_expected_exports(
+            export_root=root,
+            exclude_artifact_ids=excluded,
+            steel_thread_db_path=steel_thread_db_path,
+        )
         for item in expected:
             item["path"].write_text(item["content"], encoding="utf-8")
 
@@ -524,12 +581,21 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=DEFAULT_EXPORT_ROOT.as_posix(),
         help="Export root. Defaults to generated/read_models.",
     )
+    parser.add_argument(
+        "--steel-thread-db",
+        default=None,
+        help="Optional Steel Thread ledger path for read-only surface export.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
-    summary = export_read_models(export_root=args.export_root, check=args.check)
+    summary = export_read_models(
+        export_root=args.export_root,
+        check=args.check,
+        steel_thread_db_path=args.steel_thread_db,
+    )
 
     if args.check:
         if summary["check_status"] == "current":

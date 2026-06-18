@@ -44,6 +44,8 @@ def test_expected_exports_exist(tmp_path):
     assert (_export_root(tmp_path) / "world_status.operator.txt").is_file()
     assert (_export_root(tmp_path) / "evidence_freshness.json").is_file()
     assert (_export_root(tmp_path) / "evidence_freshness.operator.txt").is_file()
+    assert (_export_root(tmp_path) / "steel_thread_radar.json").is_file()
+    assert (_export_root(tmp_path) / "steel_thread_radar_OPERATOR.md").is_file()
 
 
 def test_expected_json_exports_parse(tmp_path):
@@ -112,6 +114,30 @@ def test_check_passes_when_exports_are_current(tmp_path):
     assert summary["stale_exports"] == []
 
 
+def test_standard_exports_surface_steel_thread_seed_signals_without_ledger_write(tmp_path):
+    export_root = _export_root(tmp_path)
+    db_path = tmp_path / "missing" / "ledger.sqlite"
+
+    summary = export_read_models(
+        export_root=export_root,
+        steel_thread_db_path=db_path,
+    )
+    payload = json.loads((export_root / "steel_thread_radar.json").read_text(encoding="utf-8"))
+    operator_text = (export_root / "steel_thread_radar_OPERATOR.md").read_text(encoding="utf-8")
+    by_artifact = {export["artifact_id"]: export for export in summary["exports"]}
+
+    assert not db_path.exists()
+    assert payload["surface_mode"] == "manual_seed_projection"
+    assert payload["projection_basis"] == "steel_thread_seed_signals"
+    assert payload["generated_at"] == "omitted_for_standardized_export_stability"
+    assert payload["signal_count"] == 3
+    assert payload["high_relevance_count"] == 3
+    assert "Agent work board / orchestration board pattern" in operator_text
+    assert all(value is False for value in payload["no_authority_flags"].values())
+    assert by_artifact["steel_thread_radar"]["runtime_authority"] is False
+    assert by_artifact["steel_thread_radar_operator"]["backend_execution_authorized"] is False
+
+
 def test_check_reports_stale_when_export_differs(tmp_path):
     export_root = _export_root(tmp_path)
     export_read_models(export_root=export_root)
@@ -160,10 +186,15 @@ def test_operator_output_does_not_claim_runtime_behavior(tmp_path):
 
 def test_build_expected_exports_does_not_write_files(tmp_path):
     export_root = _export_root(tmp_path)
-    exports = build_expected_exports(export_root=export_root)
+    db_path = tmp_path / "missing" / "ledger.sqlite"
+    exports = build_expected_exports(
+        export_root=export_root,
+        steel_thread_db_path=db_path,
+    )
 
     assert exports
     assert not export_root.exists()
+    assert not db_path.exists()
 
 
 def test_cli_json_output_writes_exports_and_is_machine_readable(tmp_path, capsys):

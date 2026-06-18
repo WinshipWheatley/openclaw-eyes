@@ -1659,14 +1659,15 @@ LIMIT 1
     return dict(row) if row else None
 
 
-def build_steel_thread_read_model(db_path: str | Path | None = None) -> dict[str, Any]:
-    path = init_steel_thread_schema(db_path)
-    conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    try:
-        signals = _dict_rows(
-            conn,
-            """
+def _build_steel_thread_read_model_from_connection(
+    conn: sqlite3.Connection,
+    *,
+    source_ledger_path: str | Path,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    signals = _dict_rows(
+        conn,
+        """
 SELECT signal_id, title, short_summary, source_kind, source_ref,
        evidence_basis, pattern_category, relevance_score, confidence,
        openclaw_alignment, recommendation, recommended_lane, routed_agent,
@@ -1675,10 +1676,10 @@ FROM steel_thread_signals
 ORDER BY CASE relevance_score WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END,
          title
 """.strip(),
-        )
-        recommendations = _dict_rows(
-            conn,
-            """
+    )
+    recommendations = _dict_rows(
+        conn,
+        """
 SELECT r.recommendation, r.recommended_lane, r.next_safe_move, r.routed_agent,
        s.title, s.relevance_score, s.confidence
 FROM steel_thread_recommendations r
@@ -1686,18 +1687,18 @@ JOIN steel_thread_signals s ON s.signal_id = r.signal_id
 ORDER BY CASE s.relevance_score WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END,
          s.title
 """.strip(),
-        )
-        watchlist_items = _dict_rows(
-            conn,
-            """
+    )
+    watchlist_items = _dict_rows(
+        conn,
+        """
 SELECT w.title, w.watch_reason, w.next_review_trigger
 FROM steel_thread_watchlist_items w
 ORDER BY w.title
 """.strip(),
-        )
-        sources = _dict_rows(
-            conn,
-            """
+    )
+    sources = _dict_rows(
+        conn,
+        """
 SELECT source_id, source_name, source_kind, url, local_path, owner_scope,
        trust_level, enabled, fetch_policy, max_items_per_run,
        broad_web_crawl_allowed, recursive_crawl_allowed,
@@ -1705,10 +1706,10 @@ SELECT source_id, source_name, source_kind, url, local_path, owner_scope,
 FROM steel_thread_source_registry
 ORDER BY source_id
 """.strip(),
-        )
-        feed_items = _dict_rows(
-            conn,
-            """
+    )
+    feed_items = _dict_rows(
+        conn,
+        """
 SELECT i.item_id, i.source_id, i.item_title, i.item_summary, i.item_url,
        i.source_kind, i.verification_status, i.raw_body_stored,
        c.signal_id, c.pattern_category, c.relevance_score,
@@ -1719,38 +1720,214 @@ LEFT JOIN steel_thread_feed_item_classifications c ON c.item_id = i.item_id
 ORDER BY i.created_at DESC, i.item_id DESC
 LIMIT 20
 """.strip(),
+    )
+    total_feed_item_count = conn.execute(
+        "SELECT COUNT(*) AS count FROM steel_thread_feed_items"
+    ).fetchone()["count"]
+    recommendation_counts = Counter(signal["recommendation"] for signal in signals)
+    category_counts = Counter(signal["pattern_category"] for signal in signals)
+    enabled_sources = [source for source in sources if source["enabled"]]
+    url_sources_enabled = [
+        source for source in enabled_sources if source["source_kind"] in URL_SOURCE_KINDS and source["url"]
+    ]
+    return {
+        "schema_version": READ_MODEL_VERSION,
+        "generated_at": generated_at or utc_now(),
+        "source_ledger_path": str(source_ledger_path),
+        "signal_count": len(signals),
+        "high_relevance_count": sum(1 for signal in signals if signal["relevance_score"] == "high"),
+        "source_registry_count": len(sources),
+        "enabled_source_count": len(enabled_sources),
+        "url_source_enabled_count": len(url_sources_enabled),
+        "feed_item_count": total_feed_item_count,
+        "latest_feed_run": _latest_feed_run(conn),
+        "recommendations_by_status": dict(sorted(recommendation_counts.items())),
+        "pattern_categories": dict(sorted(category_counts.items())),
+        "top_recommendations": recommendations[:8],
+        "watchlist_items": watchlist_items,
+        "recommended_next_lanes": [row["recommended_lane"] for row in recommendations[:8]],
+        "latest_signal": _latest_signal(conn),
+        "signals": signals,
+        "sources": sources,
+        "latest_feed_items": feed_items,
+        "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
+    }
+
+
+def _source_seed_row(seed: SteelThreadSourceSeed) -> dict[str, Any]:
+    return {
+        "source_id": seed.source_id,
+        "source_name": seed.source_name,
+        "source_kind": seed.source_kind,
+        "url": seed.url,
+        "local_path": seed.local_path,
+        "owner_scope": seed.owner_scope,
+        "trust_level": seed.trust_level,
+        "enabled": 1 if seed.enabled else 0,
+        "fetch_policy": seed.fetch_policy,
+        "max_items_per_run": seed.max_items_per_run,
+        "broad_web_crawl_allowed": 0,
+        "recursive_crawl_allowed": 0,
+        "browser_automation_allowed": 0,
+    }
+
+
+def _signal_seed_row(seed: SteelThreadSeed) -> dict[str, Any]:
+    return {
+        "signal_id": seed.signal_id,
+        "title": seed.title,
+        "short_summary": seed.short_summary,
+        "source_kind": seed.source_kind,
+        "source_ref": seed.source_ref,
+        "evidence_basis": seed.evidence_basis,
+        "pattern_category": seed.pattern_category,
+        "relevance_score": seed.relevance_score,
+        "confidence": seed.confidence,
+        "openclaw_alignment": seed.openclaw_alignment,
+        "recommendation": seed.recommendation,
+        "recommended_lane": seed.recommended_lane,
+        "routed_agent": seed.routed_agent,
+        "risk_notes": seed.risk_notes,
+    }
+
+
+def _recommendation_seed_row(seed: SteelThreadSeed) -> dict[str, Any]:
+    return {
+        "recommendation": seed.recommendation,
+        "recommended_lane": seed.recommended_lane,
+        "next_safe_move": seed.next_safe_move,
+        "routed_agent": seed.routed_agent,
+        "title": seed.title,
+        "relevance_score": seed.relevance_score,
+        "confidence": seed.confidence,
+    }
+
+
+def _watchlist_seed_row(seed: SteelThreadSeed) -> dict[str, Any] | None:
+    if not seed.watchlist_note and seed.recommendation not in {"watch", "defer", "needs_review"}:
+        return None
+    return {
+        "title": seed.title,
+        "watch_reason": seed.watchlist_note or seed.risk_notes,
+        "next_review_trigger": "Review when Chief proposes the related lane or new operator evidence arrives.",
+    }
+
+
+def build_steel_thread_seed_surface_read_model(
+    *,
+    db_path: str | Path | None = None,
+    repo_root: str | Path = ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Project manual seed signals into an operator read-model without DB writes."""
+    seeds = tuple(sorted(steel_thread_seed_signals(repo_root), key=lambda seed: seed.title))
+    for seed in seeds:
+        _validate_seed(seed)
+    sources = [_source_seed_row(seed) for seed in steel_thread_source_seeds()]
+    enabled_sources = [source for source in sources if source["enabled"]]
+    url_sources_enabled = [
+        source for source in enabled_sources if source["source_kind"] in URL_SOURCE_KINDS and source["url"]
+    ]
+    signals = sorted(
+        (_signal_seed_row(seed) for seed in seeds),
+        key=lambda row: ({"high": 0, "medium": 1}.get(row["relevance_score"], 2), row["title"]),
+    )
+    recommendations = sorted(
+        (_recommendation_seed_row(seed) for seed in seeds),
+        key=lambda row: ({"high": 0, "medium": 1}.get(row["relevance_score"], 2), row["title"]),
+    )
+    watchlist_items = [
+        row
+        for row in (_watchlist_seed_row(seed) for seed in seeds)
+        if row is not None
+    ]
+    recommendation_counts = Counter(signal["recommendation"] for signal in signals)
+    category_counts = Counter(signal["pattern_category"] for signal in signals)
+    latest_signal = signals[-1] if signals else None
+    return {
+        "schema_version": READ_MODEL_VERSION,
+        "generated_at": generated_at or utc_now(),
+        "source_ledger_path": str(db_path or DEFAULT_DB_PATH),
+        "surface_mode": "manual_seed_projection",
+        "projection_basis": "steel_thread_seed_signals",
+        "source_state_read_only": True,
+        "signal_count": len(signals),
+        "high_relevance_count": sum(1 for signal in signals if signal["relevance_score"] == "high"),
+        "source_registry_count": len(sources),
+        "enabled_source_count": len(enabled_sources),
+        "url_source_enabled_count": len(url_sources_enabled),
+        "feed_item_count": 0,
+        "latest_feed_run": None,
+        "recommendations_by_status": dict(sorted(recommendation_counts.items())),
+        "pattern_categories": dict(sorted(category_counts.items())),
+        "top_recommendations": recommendations[:8],
+        "watchlist_items": watchlist_items,
+        "recommended_next_lanes": [row["recommended_lane"] for row in recommendations[:8]],
+        "latest_signal": latest_signal,
+        "signals": signals,
+        "sources": sources,
+        "latest_feed_items": [],
+        "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
+    }
+
+
+def _has_steel_thread_signal_rows(conn: sqlite3.Connection) -> bool:
+    try:
+        row = conn.execute("SELECT COUNT(*) AS count FROM steel_thread_signals").fetchone()
+    except sqlite3.Error:
+        return False
+    return bool(row and row["count"] > 0)
+
+
+def build_steel_thread_surface_read_model(
+    *,
+    db_path: str | Path | None = None,
+    repo_root: str | Path = ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Build an operator surface without mutating the source ledger.
+
+    Existing steel-thread ledger rows win. If no ledger rows are available, the
+    manual seed signals are projected directly so the radar is visible in cheap
+    read-model export loops.
+    """
+    path = Path(db_path or DEFAULT_DB_PATH)
+    if path.exists():
+        try:
+            conn = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)
+            conn.row_factory = sqlite3.Row
+            try:
+                if _has_steel_thread_signal_rows(conn):
+                    return _build_steel_thread_read_model_from_connection(
+                        conn,
+                        source_ledger_path=path,
+                        generated_at=generated_at,
+                    )
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            pass
+    return build_steel_thread_seed_surface_read_model(
+        db_path=path,
+        repo_root=repo_root,
+        generated_at=generated_at,
+    )
+
+
+def build_steel_thread_read_model(
+    db_path: str | Path | None = None,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    path = init_steel_thread_schema(db_path)
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        return _build_steel_thread_read_model_from_connection(
+            conn,
+            source_ledger_path=path,
+            generated_at=generated_at,
         )
-        total_feed_item_count = conn.execute(
-            "SELECT COUNT(*) AS count FROM steel_thread_feed_items"
-        ).fetchone()["count"]
-        recommendation_counts = Counter(signal["recommendation"] for signal in signals)
-        category_counts = Counter(signal["pattern_category"] for signal in signals)
-        enabled_sources = [source for source in sources if source["enabled"]]
-        url_sources_enabled = [
-            source for source in enabled_sources if source["source_kind"] in URL_SOURCE_KINDS and source["url"]
-        ]
-        return {
-            "schema_version": READ_MODEL_VERSION,
-            "generated_at": utc_now(),
-            "source_ledger_path": str(path),
-            "signal_count": len(signals),
-            "high_relevance_count": sum(1 for signal in signals if signal["relevance_score"] == "high"),
-            "source_registry_count": len(sources),
-            "enabled_source_count": len(enabled_sources),
-            "url_source_enabled_count": len(url_sources_enabled),
-            "feed_item_count": total_feed_item_count,
-            "latest_feed_run": _latest_feed_run(conn),
-            "recommendations_by_status": dict(sorted(recommendation_counts.items())),
-            "pattern_categories": dict(sorted(category_counts.items())),
-            "top_recommendations": recommendations[:8],
-            "watchlist_items": watchlist_items,
-            "recommended_next_lanes": [row["recommended_lane"] for row in recommendations[:8]],
-            "latest_signal": _latest_signal(conn),
-            "signals": signals,
-            "sources": sources,
-            "latest_feed_items": feed_items,
-            "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
-        }
     finally:
         conn.close()
 
@@ -1811,6 +1988,10 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
     for key, value in payload["no_authority_flags"].items():
         lines.append(f"- {key}={str(value).lower()}")
     return "\n".join(lines) + "\n"
+
+
+def format_operator_steel_thread_read_model(payload: dict[str, Any]) -> str:
+    return _operator_markdown(payload)
 
 
 def export_steel_thread_radar_read_model(
