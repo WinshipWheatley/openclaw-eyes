@@ -19,6 +19,28 @@ EMAIL_BODY = (
 )
 
 
+def _gmail_send_token(
+    *,
+    request_id: str,
+    payload_hash: str,
+    authority_refs: list[str] | None = None,
+    credential_lease_refs: list[str] | None = None,
+) -> dict:
+    return broker.mint_send_hold_gated_broker_capability_token(
+        agent="cassandra",
+        capability="google.gmail.send",
+        issuer="test_google_access_broker_audit_redaction",
+        request_id=request_id,
+        idempotency_key=request_id,
+        payload_hash=payload_hash,
+        authority_refs=authority_refs or [],
+        credential_lease_refs=credential_lease_refs or [],
+        send_hold_checked=True,
+        send_hold_active=False,
+        send_hold_ref="pytest",
+    )
+
+
 def _audit_entry(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8").splitlines()[-1])
 
@@ -99,6 +121,19 @@ def test_broker_audit_redacts_body_text_and_message_body(tmp_path, monkeypatch):
 
 def test_exact_send_gate_context_skips_second_broker_approval_prompt(monkeypatch):
     calls = []
+    request_id = "exact_send_authority_request:fixture"
+    payload_hash = "sha256:" + ("a" * 64)
+    authority_refs = ["authority_envelope:fixture"]
+    credential_lease_refs = ["credential_lease:fixture"]
+    approval_context = {
+        "exact_send_gate": True,
+        "request_id": request_id,
+        "idempotency_key": request_id,
+        "objective_id": "cassandra_operator_objective:fixture",
+        "payload_hash": payload_hash,
+        "authority_refs": authority_refs,
+        "credential_lease_refs": credential_lease_refs,
+    }
 
     def approval_prompt(*args, **kwargs):
         calls.append((args, kwargs))
@@ -106,6 +141,7 @@ def test_exact_send_gate_context_skips_second_broker_approval_prompt(monkeypatch
 
     monkeypatch.setattr(broker, "_request_approval", approval_prompt)
     monkeypatch.setattr(broker, "_is_configured", lambda: False)
+    monkeypatch.setattr(broker, "check_gmail_broker_runtime_dependencies", lambda: {"ok": True, "missing": []})
 
     result = broker.call(
         "cassandra",
@@ -114,17 +150,15 @@ def test_exact_send_gate_context_skips_second_broker_approval_prompt(monkeypatch
             "to": "annette@example.com",
             "subject": "Fixture",
             "body": "Fixture body",
-            "idempotency_key": "exact_send_authority_request:fixture",
-            "exact_send_request_id": "exact_send_authority_request:fixture",
-            "approval_context": {
-                "exact_send_gate": True,
-                "request_id": "exact_send_authority_request:fixture",
-                "idempotency_key": "exact_send_authority_request:fixture",
-                "objective_id": "cassandra_operator_objective:fixture",
-                "payload_hash": "sha256:" + ("a" * 64),
-                "authority_refs": ["authority_envelope:fixture"],
-                "credential_lease_refs": ["credential_lease:fixture"],
-            },
+            "idempotency_key": request_id,
+            "exact_send_request_id": request_id,
+            "approval_context": approval_context,
+            "broker_capability_token": _gmail_send_token(
+                request_id=request_id,
+                payload_hash=payload_hash,
+                authority_refs=authority_refs,
+                credential_lease_refs=credential_lease_refs,
+            ),
         },
     )
 
@@ -133,11 +167,20 @@ def test_exact_send_gate_context_skips_second_broker_approval_prompt(monkeypatch
     assert "credentials not configured" in result["error"].lower()
 
 
-def test_gmail_broker_runtime_dependency_preflight_imports_without_credentials():
+def test_gmail_broker_runtime_dependency_preflight_imports_without_credentials(monkeypatch):
+    imported_modules = []
+
+    def fake_import(module_name):
+        imported_modules.append(module_name)
+        return object()
+
+    monkeypatch.setattr(broker, "_import_runtime_dependency", fake_import)
+
     readiness = broker.check_gmail_broker_runtime_dependencies()
 
     assert readiness["ok"] is True
     assert "googleapiclient.discovery" in readiness["checked_modules"]
+    assert imported_modules == readiness["checked_modules"]
     assert readiness["credentials_read"] is False
     assert readiness["google_api_called"] is False
 
@@ -145,6 +188,19 @@ def test_gmail_broker_runtime_dependency_preflight_imports_without_credentials()
 def test_gmail_broker_readiness_reports_missing_dependency_before_approval_or_credentials(monkeypatch):
     approval_calls = []
     configured_calls = []
+    request_id = "exact_send_authority_request:fixture"
+    payload_hash = "sha256:" + ("a" * 64)
+    authority_refs = ["authority_envelope:fixture"]
+    credential_lease_refs = ["credential_lease:fixture"]
+    approval_context = {
+        "exact_send_gate": True,
+        "request_id": request_id,
+        "idempotency_key": request_id,
+        "objective_id": "cassandra_operator_objective:fixture",
+        "payload_hash": payload_hash,
+        "authority_refs": authority_refs,
+        "credential_lease_refs": credential_lease_refs,
+    }
 
     def fake_import(module_name):
         if module_name == "googleapiclient.discovery":
@@ -170,17 +226,15 @@ def test_gmail_broker_readiness_reports_missing_dependency_before_approval_or_cr
             "to": "annette@example.com",
             "subject": "Fixture",
             "body": "Fixture body",
-            "idempotency_key": "exact_send_authority_request:fixture",
-            "exact_send_request_id": "exact_send_authority_request:fixture",
-            "approval_context": {
-                "exact_send_gate": True,
-                "request_id": "exact_send_authority_request:fixture",
-                "idempotency_key": "exact_send_authority_request:fixture",
-                "objective_id": "cassandra_operator_objective:fixture",
-                "payload_hash": "sha256:" + ("a" * 64),
-                "authority_refs": ["authority_envelope:fixture"],
-                "credential_lease_refs": ["credential_lease:fixture"],
-            },
+            "idempotency_key": request_id,
+            "exact_send_request_id": request_id,
+            "approval_context": approval_context,
+            "broker_capability_token": _gmail_send_token(
+                request_id=request_id,
+                payload_hash=payload_hash,
+                authority_refs=authority_refs,
+                credential_lease_refs=credential_lease_refs,
+            ),
         },
     )
 
