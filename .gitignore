@@ -459,7 +459,6 @@
 !settings_suite_registry.json
 !settings_suite_registry.py
 !compliance_verdicts/
-!send_demo_dashboard.py
 !chief_ceo_briefing.py
 !ceo_briefing_worker.py
 !runners.d/
@@ -497,6 +496,7 @@
 !tests/test_send_truth.py
 !tests/test_chief_approval_brain.py
 !tests/test_chief_claude_cleanup.py
+!tests/test_deadcode_retired_send_demo_surfaces.py
 !tests/test_chief_llm_router.py
 !tests/test_openclaw_pytest_sandbox.py
 !tests/test_chief_musiclaw_safety.py
@@ -561,7 +561,6 @@
 !hitl_pending_action.py
 !loop_dashboard_watchdog.sh
 !loop_supervisor.sh
-!retry_send_demo_dashboard.sh
 
 # Harness and snapshot lane
 !chief_end_of_day_review.py

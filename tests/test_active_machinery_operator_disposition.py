@@ -96,6 +96,61 @@ def test_high_risk_items_get_allowed_dispositions_and_tests_stay_test_only(tmp_p
     assert set(payload["counts"]["by_high_risk_disposition"]) <= disposition.ALLOWED_DISPOSITIONS
 
 
+def test_retired_demo_send_surfaces_are_reference_only_if_seen_in_stale_scan(tmp_path):
+    verification_path = _write_json(
+        tmp_path / "verification.json",
+        {
+            "schema_version": "active_machinery_gemini_verification_v0",
+            "groups": {
+                "verified_high_risk_active_machinery": {
+                    "count": 2,
+                    "items": [
+                        {
+                            "relative_path": "send_demo_dashboard.py",
+                            "repo_root": tmp_path.as_posix(),
+                            "repo_role": "canonical_repo_a",
+                            "machinery_type": "send_external_api",
+                            "verification_status": "deterministically_verified_from_safe_header",
+                            "authority_risk": "high",
+                            "sends_external": "network_api",
+                            "signal_groups": ["path_send_api_hint", "send_external_api"],
+                        },
+                        {
+                            "relative_path": "retry_send_demo_dashboard.sh",
+                            "repo_root": tmp_path.as_posix(),
+                            "repo_role": "canonical_repo_a",
+                            "machinery_type": "send_external_api",
+                            "verification_status": "deterministically_verified_from_safe_header",
+                            "authority_risk": "high",
+                            "sends_external": "network_api",
+                            "signal_groups": ["path_send_api_hint"],
+                        },
+                    ],
+                },
+                "likely_active_machinery_needing_operator_review": {"count": 0, "items": []},
+                "false_positives_safe_docs_generated_files": {"count": 0, "items": []},
+                "repo_b_reference_only_machinery": {"count": 0, "items": []},
+                "send_api_surfaces": {"count": 0, "items": []},
+                "sync_bridge_surfaces": {"count": 0, "items": []},
+                "approval_hitl_surfaces": {"count": 0, "items": []},
+                "unknown_needs_deeper_review": {"count": 0, "items": []},
+            },
+        },
+    )
+    payload = disposition.build_disposition_payload(
+        verification_path=verification_path,
+        generated_at=FIXED_NOW,
+    )
+    by_path = _by_path(payload)
+
+    assert by_path["send_demo_dashboard.py"]["recommended_disposition"] == "keep_reference_only"
+    assert by_path["retry_send_demo_dashboard.sh"]["recommended_disposition"] == "keep_reference_only"
+    assert by_path["send_demo_dashboard.py"]["operator_decision_required"] is False
+    assert by_path["retry_send_demo_dashboard.sh"]["operator_decision_required"] is False
+    assert "Do not run" in by_path["send_demo_dashboard.py"]["what_must_happen_before_it_can_run"]
+    assert "Do not run" in by_path["retry_send_demo_dashboard.sh"]["what_must_happen_before_it_can_run"]
+
+
 def test_static_capabilities_are_derived_from_signal_groups_only(tmp_path):
     verification_path = _verification_fixture(tmp_path)
     payload = disposition.build_disposition_payload(

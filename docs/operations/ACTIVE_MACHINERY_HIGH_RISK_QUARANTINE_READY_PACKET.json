@@ -24,9 +24,7 @@
     "chief_sender.py",
     "chief_watcher_brain.py",
     "producer_listener.py",
-    "retry_send_demo_dashboard.sh",
-    "scripts/run_producer_listener.sh",
-    "send_demo_dashboard.py"
+    "scripts/run_producer_listener.sh"
   ],
   "test_only_items_excluded_from_runtime_quarantine": [
     "tests/test_cassandra_email_thread_analysis.py",
@@ -43,7 +41,6 @@
     "start_chief_logged.sh starts chief_listener.py",
     "loop_supervisor.sh restarts builder_watcher.sh",
     "scripts/run_producer_listener.sh starts producer_listener.py",
-    "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py",
     "Chief brain files reference chief_sender.py",
     "Guardian/HITL surfaces reference chief_guardian_sender.py"
   ],

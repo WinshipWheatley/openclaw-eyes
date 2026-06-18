@@ -91,9 +91,9 @@ HIGH_RISK_OVERRIDES = {
         "before_run": "Define Producer/Niles module boundary and route actions through Guardian/HITL before activation.",
     },
     "retry_send_demo_dashboard.sh": {
-        "disposition": "block_no_go",
-        "why": "Verified send-path signal on a shell demo/retry surface; demos must not become live send machinery.",
-        "before_run": "Keep as blocked unless replaced by a no-send proof fixture or explicitly approved bounded demo.",
+        "disposition": "keep_reference_only",
+        "why": "Retired from the runtime root after the demo sender was replaced by review-only proof artifacts; stale scan rows are historical evidence only.",
+        "before_run": "Do not run. Restore only through a new no-send review fixture or an explicitly approved bounded demo packet.",
     },
     "scripts/run_producer_listener.sh": {
         "disposition": "block_no_go",
@@ -101,9 +101,9 @@ HIGH_RISK_OVERRIDES = {
         "before_run": "Do not run until Producer listener has a governed contract and operator-approved activation lane.",
     },
     "send_demo_dashboard.py": {
-        "disposition": "block_no_go",
-        "why": "Verified send/API signal on a demo dashboard sender; demo send paths should remain blocked.",
-        "before_run": "Replace with read-only dashboard proof or approved no-send review artifact.",
+        "disposition": "keep_reference_only",
+        "why": "Retired from the runtime root because it was a one-off external-send demo surface; stale scan rows are historical evidence only.",
+        "before_run": "Do not run. Restore only through a new no-send review fixture or an explicitly approved bounded demo packet.",
     },
 }
 

@@ -26,9 +26,9 @@ This is a review-only disposition packet for verified active-machinery findings.
 | `chief_sender.py` | `wrap_with_guardian` | Chief, send paths | Require approved immutable packet, recipient binding, no raw command text, and receipt proof. |
 | `chief_watcher_brain.py` | `block_no_go` | Chief, Guardian/HITL | Replace with bounded Work Board / Operator Action workflow; do not run watcher/process behavior directly. |
 | `producer_listener.py` | `replace_with_governed_path` | Producer/Niles, send paths, sync | Define Producer/Niles module boundary and route actions through Guardian/HITL before activation. |
-| `retry_send_demo_dashboard.sh` | `block_no_go` | send paths | Keep as blocked unless replaced by a no-send proof fixture or explicitly approved bounded demo. |
+| `retry_send_demo_dashboard.sh` | `keep_reference_only` | send paths | Retired from the runtime root; stale scan rows are historical evidence only. Restore only through a new no-send review fixture or approved bounded demo packet. |
 | `scripts/run_producer_listener.sh` | `block_no_go` | Producer/Niles | Do not run until Producer listener has a governed contract and operator-approved activation lane. |
-| `send_demo_dashboard.py` | `block_no_go` | send paths | Replace with read-only dashboard proof or approved no-send review artifact. |
+| `send_demo_dashboard.py` | `keep_reference_only` | send paths | Retired from the runtime root; stale scan rows are historical evidence only. Restore only through a new no-send review fixture or approved bounded demo packet. |
 | `tests/test_cassandra_email_thread_analysis.py` | `keep_test_only` | Cassandra, send paths | Run only as a focused test under normal test validation; never treat it as runtime machinery. |
 | `tests/test_chief_listener_lifecycle.py` | `keep_test_only` | Chief, send paths, sync | Run only as a focused test under normal test validation; never treat it as runtime machinery. |
 | `tests/test_send_truth.py` | `keep_test_only` | send paths | Run only as a focused test under normal test validation; never treat it as runtime machinery. |
