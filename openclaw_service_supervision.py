@@ -149,6 +149,19 @@ DEFAULT_SUPERVISED_UNITS = (
         expected_behavior="Oneshot allowlisted service keeper triggered by timer.",
         allowed_supervision_action="OBSERVE_ONLY_TIMER_OWNED",
     ),
+    SupervisedUnitSpec(
+        unit_name="openclaw-sleep-resilience.service",
+        unit_kind="SERVICE",
+        expected_active_states=("active",),
+        expected_sub_states=("running",),
+        enabled_required=True,
+        missing_allowed=True,
+        expected_behavior=(
+            "Keeps the host awake while recent fleet work is visible and records "
+            "resume-gap recovery receipts."
+        ),
+        allowed_supervision_action="INSTALL_ENABLE_IF_APPROVED",
+    ),
 )
 
 

@@ -10,6 +10,7 @@ Wants=cassandra-watcher.service
 Wants=cassandra-briefing-scheduler.service
 Wants=chief-guardian-listener.service
 Wants=hermes-gateway.service
+Wants=openclaw-sleep-resilience.service
 
 [Install]
 WantedBy=default.target
