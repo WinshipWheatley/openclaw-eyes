@@ -16,6 +16,20 @@ def _reload_voice():
     return importlib.reload(cassandra_voice)
 
 
+def test_default_voice_config_restores_kokoro_live_and_qwen3_batch(monkeypatch):
+    monkeypatch.delenv("CASSANDRA_VOICE_LOCAL_ONLY", raising=False)
+    monkeypatch.delenv("CASSANDRA_LIVE_BACKEND", raising=False)
+    monkeypatch.delenv("CASSANDRA_BATCH_BACKEND", raising=False)
+    monkeypatch.delenv("CASSANDRA_PREMIUM_BACKEND", raising=False)
+
+    voice = _reload_voice()
+
+    assert voice.VOICE_LOCAL_ONLY is False
+    assert voice.LIVE_BACKEND == "kokoro"
+    assert voice.BATCH_BACKEND == "qwen3"
+    assert voice.PREMIUM_BACKEND == "kokoro"
+
+
 def test_voice_failure_does_not_raise_from_speak(monkeypatch):
     voice = _reload_voice()
     voice._reset_voice_side_effect_state_for_tests()
@@ -73,7 +87,7 @@ def test_voice_side_effect_log_cooldown_suppresses_spam(capsys):
     assert "second" not in out
 
 
-def test_local_only_mode_falls_back_to_piper_when_configured_for_plugin_backend(monkeypatch, tmp_path):
+def test_local_only_mode_allows_local_kokoro(monkeypatch, tmp_path):
     voice = _reload_voice()
     voice._reset_voice_side_effect_state_for_tests()
     monkeypatch.setattr(voice, "VOICE_LOCAL_ONLY", True)
@@ -82,9 +96,10 @@ def test_local_only_mode_falls_back_to_piper_when_configured_for_plugin_backend(
 
     calls = {"plugin": 0, "piper": 0}
 
-    def plugin_called(*_args, **_kwargs):
+    def plugin_called(_text, _backend, out_path):
         calls["plugin"] += 1
-        return False
+        out_path.write_bytes(b"RIFF")
+        return True
 
     def piper_called(_text, out_path):
         calls["piper"] += 1
@@ -93,12 +108,12 @@ def test_local_only_mode_falls_back_to_piper_when_configured_for_plugin_backend(
     monkeypatch.setattr(voice, "_synth_plugin", plugin_called)
     monkeypatch.setattr(voice, "_synth_piper", piper_called)
 
-    assert voice._synthesize_live_lane("hello", tmp_path / "reply.wav") is True
-    assert calls["plugin"] == 2
-    assert calls["piper"] == 1
+    assert voice._synthesize_live_lane("hello", tmp_path / "reply.wav") == "kokoro"
+    assert calls["plugin"] == 1
+    assert calls["piper"] == 0
 
 
-def test_synth_plugin_returns_false_in_local_only_without_importing_backend(monkeypatch, tmp_path):
+def test_synth_plugin_rejects_nonlocal_backend_in_local_only_without_importing_backend(monkeypatch, tmp_path):
     voice = _reload_voice()
     voice._reset_voice_side_effect_state_for_tests()
     monkeypatch.setattr(voice, "VOICE_LOCAL_ONLY", True)
@@ -112,9 +127,21 @@ def test_synth_plugin_returns_false_in_local_only_without_importing_backend(monk
 
     builtins.__import__ = guarded_import
     try:
-        assert voice._synth_plugin("hello", "kokoro", tmp_path / "reply.wav") is False
+        assert voice._synth_plugin("hello", "qwen3", tmp_path / "reply.wav") is False
     finally:
         builtins.__import__ = original_import
+
+
+def test_live_sync_logs_backend_on_success(monkeypatch, capsys, tmp_path):
+    voice = _reload_voice()
+    voice._reset_voice_side_effect_state_for_tests()
+    monkeypatch.setattr(voice, "_WAV_LIVE", tmp_path / "live.wav")
+    monkeypatch.setattr(voice, "_synthesize_live_lane", lambda *_args, **_kwargs: "kokoro")
+    monkeypatch.setattr(voice, "_play_wav", lambda *_args, **_kwargs: (True, None))
+
+    voice._live_sync("hello")
+
+    assert "live spoke via kokoro" in capsys.readouterr().out
 
 
 def test_voice_disabled_mode_returns_cleanly(monkeypatch):

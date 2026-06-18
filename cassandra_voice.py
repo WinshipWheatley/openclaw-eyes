@@ -19,10 +19,10 @@ Content/social replies
 Environment variables
 ---------------------
   CASSANDRA_VOICE=1               enable speech (default: 0 = off)
-  CASSANDRA_LIVE_BACKEND          live lane backend: piper (default) or kokoro
-  CASSANDRA_BATCH_BACKEND         batch lane backend: piper (default), kokoro, or qwen3
-  CASSANDRA_VOICE_LOCAL_ONLY      1 keeps Cassandra on local Piper unless explicitly set to 0
-  CASSANDRA_PREMIUM_BACKEND       optional premium backend, disabled by default
+  CASSANDRA_LIVE_BACKEND          live lane backend: kokoro (default) or piper
+  CASSANDRA_BATCH_BACKEND         batch lane backend: qwen3 (default), kokoro, or piper
+  CASSANDRA_VOICE_LOCAL_ONLY      1 allows local engines only; Kokoro is local
+  CASSANDRA_PREMIUM_BACKEND       optional premium backend, kokoro by default
   CASSANDRA_VOICE_MODEL           Piper .onnx path
                                   default: /home/openclaw/piper_voices/en_GB-jenny_dioco-medium.onnx
   CASSANDRA_VOICE_LENGTH_SCALE    Piper: default 1.15
@@ -60,11 +60,12 @@ import chief_env
 # ── Config ────────────────────────────────────────────────────────────────────
 
 VOICE_ENABLED  = os.environ.get("CASSANDRA_VOICE", "0") == "1"
-VOICE_LOCAL_ONLY = os.environ.get("CASSANDRA_VOICE_LOCAL_ONLY", "1") != "0"
-LIVE_BACKEND   = os.environ.get("CASSANDRA_LIVE_BACKEND",  "piper").lower()
-BATCH_BACKEND  = os.environ.get("CASSANDRA_BATCH_BACKEND", "piper").lower()
-PREMIUM_BACKEND = os.environ.get("CASSANDRA_PREMIUM_BACKEND", "").lower()
+VOICE_LOCAL_ONLY = os.environ.get("CASSANDRA_VOICE_LOCAL_ONLY", "0") == "1"
+LIVE_BACKEND   = os.environ.get("CASSANDRA_LIVE_BACKEND",  "kokoro").lower()
+BATCH_BACKEND  = os.environ.get("CASSANDRA_BATCH_BACKEND", "qwen3").lower()
+PREMIUM_BACKEND = os.environ.get("CASSANDRA_PREMIUM_BACKEND", "kokoro").lower()
 ALLOW_WINDOWS_POWERSHELL_PLAYBACK = os.environ.get("CASSANDRA_ALLOW_WINDOWS_POWERSHELL_PLAYBACK", "0") == "1"
+_LOCAL_TTS_BACKENDS = {"piper", "kokoro"}
 
 _KOKORO_VOICE = os.environ.get("CASSANDRA_KOKORO_VOICE", "af_heart")
 _KOKORO_SPEED = os.environ.get("CASSANDRA_KOKORO_SPEED", "0.9")
@@ -299,11 +300,12 @@ def _speak_piper(text: str, wav_path: Path, win_path: str) -> None:
 
 def _synth_plugin(text: str, backend_name: str, wav_path: Path) -> bool:
     """Attempt synthesis via a cassandra_tts_backends backend. Returns True on success."""
-    if VOICE_LOCAL_ONLY and backend_name.lower() != "piper":
+    backend_key = backend_name.lower()
+    if VOICE_LOCAL_ONLY and backend_key not in _LOCAL_TTS_BACKENDS:
         _log_voice_side_effect(
             "tts_backend_disabled",
             f"{backend_name} skipped in local-only mode",
-            key=f"tts_backend_disabled:{backend_name.lower()}",
+            key=f"tts_backend_disabled:{backend_key}",
         )
         return False
     try:
@@ -411,28 +413,31 @@ def _mirror_reply_wav_to_live_path() -> None:
         print(f"[cassandra_voice] live mirror failed: {e}", flush=True)
 
 
-def _synthesize_live_lane(text: str, wav_path: Path) -> bool:
+def _synthesize_live_lane(text: str, wav_path: Path) -> str:
+    attempted: set[str] = set()
     if PREMIUM_BACKEND:
         print(
             f"[cassandra_voice] live premium lane={PREMIUM_BACKEND} voice={_KOKORO_VOICE} speed={_KOKORO_SPEED}",
             flush=True,
         )
+        attempted.add(PREMIUM_BACKEND)
         ok = _synth_plugin(text, PREMIUM_BACKEND, wav_path)
         if ok:
-            return True
+            return PREMIUM_BACKEND
 
     backend = LIVE_BACKEND if LIVE_BACKEND != "qwen3" else "kokoro"
     if backend == "piper":
         _synth_piper(text, wav_path)
-        return True
+        return "piper"
 
-    ok = _synth_plugin(text, backend, wav_path)
-    if ok:
-        return True
+    if backend not in attempted:
+        ok = _synth_plugin(text, backend, wav_path)
+        if ok:
+            return backend
 
     print("[cassandra_voice] live fallback -> Piper", flush=True)
     _synth_piper(text, wav_path)
-    return True
+    return "piper"
 
 
 # ── Lane runners (called inside daemon threads) ───────────────────────────────
@@ -443,10 +448,10 @@ def _live_sync(text: str) -> None:
     Qwen3 is never used here regardless of LIVE_BACKEND value.
     """
     try:
-        _synthesize_live_lane(text, _WAV_LIVE)
+        backend = _synthesize_live_lane(text, _WAV_LIVE)
         played, reason = _play_wav(_WIN_WAV_LIVE, _WAV_LIVE)
         if played:
-            print(f"[cassandra_voice] live spoke ({len(text)} chars)", flush=True)
+            print(f"[cassandra_voice] live spoke via {backend} ({len(text)} chars)", flush=True)
         else:
             _log_voice_side_effect("playback_degraded", str(reason or "local playback failed"), key="playback_degraded")
     except Exception as e:
