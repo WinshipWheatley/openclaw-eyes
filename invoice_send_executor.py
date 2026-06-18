@@ -116,6 +116,7 @@ def _receipt(
             "square_environment": "sandbox",
             "square_api_called": False,
             "square_production_used": False,
+            "production_used": False,
             "external_send_performed": False,
             "email_send_performed": False,
             "workbook_written": False,
