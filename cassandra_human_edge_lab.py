@@ -93,6 +93,29 @@ def _reset_owned_lab_path(path: Path) -> None:
         path.unlink()
 
 
+def _load_active_guided_review_session(root: Path) -> tuple[Path | None, dict[str, Any]]:
+    active_index = root / "data_room_guided_review_active_session.json"
+    if active_index.is_file():
+        active = json.loads(active_index.read_text(encoding="utf-8"))
+        raw_session_path = str(active.get("session_path") or "").strip()
+        if raw_session_path:
+            session_path = Path(raw_session_path)
+            if not session_path.is_absolute():
+                session_path = root / session_path
+            if session_path.is_file():
+                return session_path, json.loads(session_path.read_text(encoding="utf-8"))
+            return session_path, {}
+    session_files = [
+        path
+        for path in root.glob("data_room_guided_review_session_*.json")
+        if path.is_file() and not path.name.endswith("_OPERATOR.md")
+    ]
+    if not session_files:
+        return None, {}
+    session_path = max(session_files, key=lambda path: path.stat().st_mtime)
+    return session_path, json.loads(session_path.read_text(encoding="utf-8"))
+
+
 def _line_count(path: Path) -> int:
     if not path.exists() or not path.is_file():
         return 0
@@ -230,10 +253,7 @@ def run_data_room_human_edge_scenario(
                 "detoured_out_of_guided_review": response is None,
             }
         )
-    active_index = root / "data_room_guided_review_active_session.json"
-    active = json.loads(active_index.read_text(encoding="utf-8")) if active_index.exists() else {}
-    session_path = Path(str(active.get("session_path") or "")) if active else Path("")
-    session = json.loads(session_path.read_text(encoding="utf-8")) if session_path.exists() else {}
+    session_path, session = _load_active_guided_review_session(root)
     read_model_path = read_root / guided_review.READ_MODEL_NAME
     summary = {
         "schema_version": "CASSANDRA_HUMAN_EDGE_DATA_ROOM_SCENARIO_V0",

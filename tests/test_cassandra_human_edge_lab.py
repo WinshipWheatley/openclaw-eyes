@@ -2,15 +2,55 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import cassandra_human_edge_lab as lab
+import cassandra_guided_review as guided_review
 import global_run_mode_context
 
 
 FIXED_NOW = "2026-06-13T21:30:00+00:00"
+
+
+@pytest.fixture(autouse=True)
+def promotion_review_fixture(tmp_path, monkeypatch):
+    review_root = tmp_path / "promotion_review_fixture"
+    review_root.mkdir()
+    promotion_review_path = review_root / guided_review.DEFAULT_PROMOTION_REVIEW_FILENAME
+    promotion_review_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "openclaw_data_room_promotion_review_v0",
+                "authoritative": False,
+                "source_artifacts": ["test_fixture"],
+                "review_records": [
+                    {
+                        "record_id": "fixture:payment_privacy",
+                        "review_category": "policy_decision",
+                        "provisional_fact": "Trusted clients may receive easy payment options; strangers must not see bank details or private address.",
+                        "proposed_promoted_value": "Should trusted clients receive easy payment options while strangers are blocked from private payment details?",
+                        "recommended_action": "confirm",
+                        "risk_if_wrong": "Private payment details could be exposed to the wrong audience.",
+                    },
+                    {
+                        "record_id": "fixture:invoice_numbering",
+                        "review_category": "needs_source",
+                        "provisional_fact": "Invoice numbering policy still needs an exact operator source.",
+                        "proposed_promoted_value": "",
+                        "recommended_action": "source_needed",
+                        "risk_if_wrong": "OpenClaw could draft invoices with the wrong numbering convention.",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guided_review, "DEFAULT_DURABLE_PROMOTION_REVIEW_PATH", promotion_review_path)
+    monkeypatch.setattr(guided_review, "DEFAULT_LEGACY_DURABLE_PROMOTION_REVIEW_PATH", promotion_review_path)
 
 
 def _unsafe_true_paths(value, path="$"):
@@ -82,6 +122,27 @@ def test_data_room_human_edge_lab_is_repeatable_without_accumulating_answers(tmp
     assert second["answer_count"] == 1
     assert second["pending_interaction_empty"] is True
     assert second["unsafe_true_paths"] == []
+
+
+def test_blank_active_session_path_does_not_read_cwd_directory(tmp_path, monkeypatch):
+    root = tmp_path / "lab" / "data_room"
+    root.mkdir(parents=True)
+    (root / "data_room_guided_review_active_session.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "guided_review_active_session_index_v0",
+                "review_session_id": "fixture",
+                "session_path": "",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    session_path, session = lab._load_active_guided_review_session(root)
+
+    assert session_path is None
+    assert session == {}
 
 
 def test_router_human_edge_lab_uses_test_effects_and_blocks_calendar_mutation(tmp_path):
