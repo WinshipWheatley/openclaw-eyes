@@ -431,6 +431,61 @@ def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeyp
     assert calls == [("what's today's date", {})]
 
 
+def test_processor_text_response_ready_uses_lean_status_fast_path(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        maestro,
+        "answer_frontdoor_chat",
+        lambda text, *, session=None: maestro.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="date_awareness",
+            allowed_to_call_handle=False,
+            one_line_answer="Today is 2026-06-16 (Tuesday).",
+            plain_summary="Today is 2026-06-16 (Tuesday).",
+            session_forwarded=maestro.filtered_session(session),
+            machine_proof={
+                "intent_gate_before_handle": True,
+                "cassandra_handle_called": False,
+                "email_send_performed": False,
+                "gmail_metadata_read_performed": False,
+                "telegram_send_triggered": False,
+                "text_response_only": True,
+            },
+        ),
+    )
+    read_model_root = _seed_read_models(tmp_path)
+    request_path = tmp_path / "mission_control_operator_instruction_request_general_operator_instruction_date.json"
+    request_path.write_text(
+        json.dumps(_maestro_operator_instruction_request("what's today's date"), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=read_model_root,
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+    response_payload, status_payload = processor.build_payloads(response, generated_at=FIXED_NOW)
+
+    proof = status_payload["machine_proof"]
+    assert proof["text_response_ready_fast_path_used"] is True
+    assert proof["generic_status_envelope_skipped"] is True
+    assert proof["workflow_package_staged"] is False
+    assert proof["workflow_package_request_v0_emitted"] is False
+    assert proof["intent_gate_before_handle"] is True
+    assert proof["cassandra_handle_called"] is False
+    assert proof["external_action_performed"] is False
+    assert proof["guardian_output_gate_passed"] is True
+    assert proof["role_output_blocked"] is False
+    assert len(proof) < 60
+    assert "internal_statuses" not in status_payload
+    assert status_payload["processor_status"]["route_status"] == "TEXT_RESPONSE_READY"
+    assert status_payload["processor_status"]["selected_rail"] == "MAESTRO_CASSANDRA_RESPONDER"
+    assert response_payload["guardian_output_gate"]["validation_result"]["output_publish_allowed"] is True
+    assert response_payload["machine_proof"]["text_response_ready_fast_path_used"] is True
+    assert response_payload["machine_proof"]["workflow_package_staged"] is False
+
+
 def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, tmp_path):
     def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
         raise AssertionError("cassandra_brain.handle must not be called for action intent")
@@ -463,6 +518,9 @@ def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, 
     assert response.operator_headline == "Workflow package staged"
     assert "Workflow Package Queue" in response.why_it_happened
     assert response.detail_disclosure.get("maestro_frontdoor_routing") is None
+    _response_payload, status_payload = processor.build_payloads(response, generated_at=FIXED_NOW)
+    assert status_payload["machine_proof"].get("text_response_ready_fast_path_used") is not True
+    assert "internal_statuses" in status_payload
 
 
 def test_adapter_structural_imports_only_cassandra_handle_from_forbidden_family():

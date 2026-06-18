@@ -7142,6 +7142,170 @@ def _machine_proof(
     }
 
 
+def _text_response_ready_fast_path_receipt(response: OpenClawResponseForMac) -> Mapping[str, Any] | None:
+    if response.internal_status != "RESPONSE_READY" or response.request_type != "CHAT":
+        return None
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    routing = detail.get("maestro_frontdoor_routing") if isinstance(detail.get("maestro_frontdoor_routing"), Mapping) else {}
+    if not routing or routing.get("workflow_package_staged") is not False:
+        return None
+    if routing.get("route_to_staging_when_not_answer_ready") is not True:
+        return None
+    responder = detail.get("maestro_cassandra_responder") if isinstance(detail.get("maestro_cassandra_responder"), Mapping) else {}
+    responder_proof = responder.get("machine_proof") if isinstance(responder.get("machine_proof"), Mapping) else {}
+    if responder.get("status") != "ANSWER_READY":
+        return None
+    if responder.get("allowed_to_call_handle") not in {True, False}:
+        return None
+    if responder_proof.get("intent_gate_before_handle") is not True or responder_proof.get("text_response_only") is not True:
+        return None
+    unsafe_true_keys = (
+        "email_send_performed",
+        "telegram_send_triggered",
+        "gmail_reply_sent",
+        "gmail_metadata_read_performed",
+        "browser_access_performed",
+        "coupa_access_performed",
+        "portal_submitted",
+        "ledger_mutation_performed",
+        "workbook_mutation_performed",
+        "pdf_export_performed",
+        "paid_marking_performed",
+        "runtime_execution_triggered",
+        "send_authority_added",
+    )
+    if any(responder_proof.get(key) is True for key in unsafe_true_keys):
+        return None
+    for route_ref in response.worker_route_refs:
+        if not isinstance(route_ref, Mapping):
+            continue
+        if (
+            route_ref.get("route_status") == "TEXT_RESPONSE_READY"
+            and route_ref.get("selected_rail") == "MAESTRO_CASSANDRA_RESPONDER"
+            and route_ref.get("backend_route") == "maestro_cassandra_responder.cassandra_brain.handle"
+        ):
+            return route_ref
+    return None
+
+
+def _text_response_ready_fast_path_status_payload(
+    response: OpenClawResponseForMac,
+    *,
+    generated_at: str,
+    blockers: tuple[str, ...],
+    route_ref: Mapping[str, Any],
+    guardian_gate_payload: Mapping[str, Any],
+    guardian_gate_result: Mapping[str, Any],
+    taste_guardrails: Mapping[str, Any],
+    local_surface_request: Mapping[str, Any],
+) -> dict[str, Any]:
+    classification = _classification_from_response(response)
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    routing = detail.get("maestro_frontdoor_routing") if isinstance(detail.get("maestro_frontdoor_routing"), Mapping) else {}
+    responder = detail.get("maestro_cassandra_responder") if isinstance(detail.get("maestro_cassandra_responder"), Mapping) else {}
+    responder_proof = responder.get("machine_proof") if isinstance(responder.get("machine_proof"), Mapping) else {}
+    quality_errors = _terminal_quality_errors(response)
+    guardian_proof = guardian_gate_payload.get("machine_proof") if isinstance(guardian_gate_payload.get("machine_proof"), Mapping) else {}
+    machine_proof: dict[str, Any] = {
+        "processor_bounded_once": True,
+        "request_classifier_present": classification.request_family in REQUEST_FAMILIES,
+        "request_router_used": True,
+        "request_router_matched": True,
+        "source_request_id_propagated": bool(response.source_request_id),
+        "human_operator_message_present": bool(response.operator_headline and response.operator_message),
+        "response_ready_has_real_readback": bool(response.visible_cards or response.readback_files),
+        "terminal_quality_passed": not quality_errors,
+        "terminal_quality_errors": quality_errors,
+        "operator_text_hides_internal_status": not any(
+            status_value in (response.operator_headline + response.operator_message) for status_value in INTERNAL_STATUSES
+        ),
+        "approved_inbox_only_scanned": True,
+        "broad_scan_performed": False,
+        "request_deleted_or_mutated": False,
+        "daemon_started": False,
+        "watcher_started": False,
+        "text_response_ready_fast_path_used": True,
+        "generic_status_envelope_skipped": True,
+        "full_responder_target_matrix_skipped": True,
+        "route_status": str(route_ref.get("route_status") or ""),
+        "backend_route": str(route_ref.get("backend_route") or ""),
+        "selected_rail": str(route_ref.get("selected_rail") or classification.selected_rail),
+        "workflow_package_staged": bool(routing.get("workflow_package_staged")),
+        "workflow_package_request_v0_emitted": bool(detail.get("workflow_package_request_v0_emitted")),
+        "staging_fallback_preserved": routing.get("route_to_staging_when_not_answer_ready") is True,
+        "intent_gate_before_handle": responder_proof.get("intent_gate_before_handle") is True,
+        "cassandra_handle_called": responder_proof.get("cassandra_handle_called") is True,
+        "maestro_cassandra_responder_performed": True,
+        "text_response_only": responder_proof.get("text_response_only") is True,
+        "email_send_performed": False,
+        "gmail_metadata_read_performed": False,
+        "telegram_send_triggered": False,
+        "external_action_performed": False,
+        "all_live_authority_flags_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
+        "future_lm_targets_not_called": True,
+        "model_call_performed": False,
+        "tool_execution_performed": False,
+        "worker_dispatch_performed": False,
+        "workflow_execution_performed": False,
+        "network_used": False,
+        "send_submit_performed": False,
+        "role_output_blocked": not bool(guardian_gate_result.get("output_publish_allowed")),
+        "guardian_output_gate_present": True,
+        "guardian_output_gate_used": guardian_proof.get("guardian_output_gate_used") is True,
+        "role_output_validator_used": guardian_proof.get("role_output_validator_used") is True,
+        "guardian_output_gate_verdict": guardian_gate_result.get("verdict"),
+        "guardian_output_gate_passed": bool(guardian_gate_result.get("output_publish_allowed")),
+        "guardian_output_external_action_allowed": bool(guardian_gate_result.get("external_action_allowed")),
+        "local_surface_request_present": True,
+        "local_surface_request_local_only": local_surface_request.get("local_only"),
+        "response_taste_guardrails_present": True,
+        "response_taste_passed": bool(taste_guardrails.get("taste_passed")),
+        "response_field_limits_passed": bool(taste_guardrails.get("field_limits_passed")),
+        "compact_fields_machine_sludge_free": bool(taste_guardrails.get("machine_sludge_filtered")),
+        "bad_phrase_blockers_passed": bool(taste_guardrails.get("bad_phrase_blockers_passed")),
+        "agent_voice_taste_rules_passed": bool(taste_guardrails.get("agent_voice_rules_passed")),
+        "duplicate_sentence_reduction_passed": bool(taste_guardrails.get("duplicate_sentence_reduction_passed")),
+        "content_hash": None,
+    }
+    processor_status = {
+        "processor_id": "openclaw_request_processor_v0",
+        "bounded_mode": "process one request and exit",
+        "approved_inbox_policy": f"default inbox is {APPROVED_INBOX.as_posix()}; scans immediate supported request files only",
+        "latest_processed_request": {
+            "source_request_id": response.source_request_id,
+            "source_request_filename": response.source_request_filename,
+            "workflow_ref": response.workflow_ref,
+            "request_type": response.request_type,
+        },
+        "request_classification": asdict(classification),
+        "selected_rail": str(route_ref.get("selected_rail") or classification.selected_rail),
+        "route_status": str(route_ref.get("route_status") or ""),
+        "backend_route": str(route_ref.get("backend_route") or ""),
+        "terminal_result": response.internal_status,
+        "operator_headline": response.operator_headline,
+        "operator_message": response.operator_message,
+        "what_happened": response.what_happened,
+        "why_it_happened": response.why_it_happened,
+        "how_to_fix": response.how_to_fix,
+        "generated_readbacks": response.readback_files,
+        "errors_or_blockers": blockers,
+        "next_safe_move": response.next_safe_move,
+        "authority_boundary": AUTHORITY_BOUNDARY,
+        "fast_path": "TEXT_RESPONSE_READY",
+    }
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": STATUS_READ_MODEL_ID,
+        "contract_status": CONTRACT_STATUS,
+        "generated_at": generated_at,
+        "fast_path_schema_version": "text_response_ready_status_fast_path_v0",
+        "processor_status": processor_status,
+        "latest_response_ref": RESPONSE_JSON_EXPORT_NAME,
+        "authority_boundary": AUTHORITY_BOUNDARY,
+        "machine_proof": machine_proof,
+    }
+
+
 def build_payloads(
     response: OpenClawResponseForMac,
     *,
@@ -7149,7 +7313,6 @@ def build_payloads(
     blockers: tuple[str, ...] = (),
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     generated_at = generated_at or utc_now()
-    status = _processor_status_from_response(response, blockers=blockers)
     layered_fields = _enforce_layered_response_taste(_layered_response_fields(response, created_at=generated_at))
     voice_fields = _voice_authorship_fields(response, layered_fields)
     spoken_packet = _enforce_spoken_packet_taste(_spoken_response_packet(response, layered_fields, voice_fields))
@@ -7181,74 +7344,88 @@ def build_payloads(
     response_payload["guardian_verdict"] = guardian_gate_result["verdict"]
     taste_guardrails = _response_taste_guardrails(response_payload)
     response_payload["taste_guardrails"] = taste_guardrails
-    status_payload: dict[str, Any] = {
-        "schema_version": SCHEMA_VERSION,
-        "read_model_id": STATUS_READ_MODEL_ID,
-        "contract_status": CONTRACT_STATUS,
-        "generated_at": generated_at,
-        "internal_statuses": INTERNAL_STATUSES,
-        "audience_modes": AUDIENCE_MODES,
-        "display_modes": DISPLAY_MODES,
-        "request_families": REQUEST_FAMILIES,
-        "responder_target_types": RESPONDER_TARGET_TYPES,
-        "processor_status": asdict(status),
-        "latest_response_ref": RESPONSE_JSON_EXPORT_NAME,
-        "authority_boundary": AUTHORITY_BOUNDARY,
-    }
-    status_payload["machine_proof"] = _machine_proof(response, status)
-    status_payload["machine_proof"].update(
-        {
-            "deterministic_voice_selection_present": True,
-            "agent_model_backend_separation_present": True,
-            "codex_agent_profile_created": False,
-            "model_selection_grants_authority": False,
-            "voice_applied": voice_fields["voice_applied"],
-            "vibe_applied": voice_fields["vibe_applied"],
-            "voice_model_call_performed": False,
-            "high_risk_override_applied": voice_fields["high_risk_override_applied"],
-            "cockpit_prose_limits_applied": True,
-            "spoken_response_packet_present": True,
-            "spoken_script_truth_bound": True,
-            "speech_synthesis_performed": False,
-            "microphone_capture_performed": False,
-            "cloud_audio_performed": False,
-            "spoken_cloud_synthesis_allowed": spoken_packet["cloud_synthesis_allowed"],
-            "spoken_local_playback_preferred": spoken_packet["local_playback_preferred"],
-            "visual_event_package_present": visual_package is not None,
-            "visual_package_truth_bound": True,
-            "visual_false_success_claim_blocked": (
-                visual_package is None or visual_package.get("visual_event_type") not in VISUAL_SUCCESS_EVENT_TYPES
-            )
-            or _completion_receipts_present(response),
-            "video_generation_performed": False,
-            "image_generation_performed": False,
-            "cloud_model_call_performed": False,
-            "local_model_call_performed": False,
-            "visual_playback_performed": False,
-            "visual_provider_call_performed": False,
-            "response_taste_guardrails_present": True,
-            "response_taste_passed": taste_guardrails["taste_passed"],
-            "response_field_limits_passed": taste_guardrails["field_limits_passed"],
-            "compact_fields_machine_sludge_free": taste_guardrails["machine_sludge_filtered"],
-            "bad_phrase_blockers_passed": taste_guardrails["bad_phrase_blockers_passed"],
-            "agent_voice_taste_rules_passed": taste_guardrails["agent_voice_rules_passed"],
-            "duplicate_sentence_reduction_passed": taste_guardrails["duplicate_sentence_reduction_passed"],
-            "guardian_output_gate_present": True,
-            "guardian_output_gate_used": guardian_gate_payload["machine_proof"]["guardian_output_gate_used"],
-            "role_output_validator_used": guardian_gate_payload["machine_proof"]["role_output_validator_used"],
-            "guardian_output_gate_verdict": guardian_gate_result["verdict"],
-            "guardian_output_gate_passed": guardian_gate_result["output_publish_allowed"],
-            "role_output_blocked": not guardian_gate_result["output_publish_allowed"],
-            "guardian_output_external_action_allowed": guardian_gate_result["external_action_allowed"],
-            "local_surface_request_present": True,
-            "local_surface_request_type": local_surface_request.get("surface_type"),
-            "local_surface_request_raw_body_allowed": local_surface_request.get("raw_body_allowed"),
-            "local_surface_request_external_model_share_allowed": local_surface_request.get("external_model_share_allowed"),
-            "local_surface_request_local_only": local_surface_request.get("local_only"),
-            "local_surface_request_path_translation_guess_allowed": local_surface_request.get("path_translation_guess_allowed"),
-            "local_surface_request_external_action_allowed": local_surface_request.get("external_action_allowed"),
+    fast_path_route_ref = _text_response_ready_fast_path_receipt(response)
+    if fast_path_route_ref is not None:
+        status_payload = _text_response_ready_fast_path_status_payload(
+            response,
+            generated_at=generated_at,
+            blockers=blockers,
+            route_ref=fast_path_route_ref,
+            guardian_gate_payload=guardian_gate_payload,
+            guardian_gate_result=guardian_gate_result,
+            taste_guardrails=taste_guardrails,
+            local_surface_request=local_surface_request,
+        )
+    else:
+        status = _processor_status_from_response(response, blockers=blockers)
+        status_payload = {
+            "schema_version": SCHEMA_VERSION,
+            "read_model_id": STATUS_READ_MODEL_ID,
+            "contract_status": CONTRACT_STATUS,
+            "generated_at": generated_at,
+            "internal_statuses": INTERNAL_STATUSES,
+            "audience_modes": AUDIENCE_MODES,
+            "display_modes": DISPLAY_MODES,
+            "request_families": REQUEST_FAMILIES,
+            "responder_target_types": RESPONDER_TARGET_TYPES,
+            "processor_status": asdict(status),
+            "latest_response_ref": RESPONSE_JSON_EXPORT_NAME,
+            "authority_boundary": AUTHORITY_BOUNDARY,
         }
-    )
+        status_payload["machine_proof"] = _machine_proof(response, status)
+        status_payload["machine_proof"].update(
+            {
+                "deterministic_voice_selection_present": True,
+                "agent_model_backend_separation_present": True,
+                "codex_agent_profile_created": False,
+                "model_selection_grants_authority": False,
+                "voice_applied": voice_fields["voice_applied"],
+                "vibe_applied": voice_fields["vibe_applied"],
+                "voice_model_call_performed": False,
+                "high_risk_override_applied": voice_fields["high_risk_override_applied"],
+                "cockpit_prose_limits_applied": True,
+                "spoken_response_packet_present": True,
+                "spoken_script_truth_bound": True,
+                "speech_synthesis_performed": False,
+                "microphone_capture_performed": False,
+                "cloud_audio_performed": False,
+                "spoken_cloud_synthesis_allowed": spoken_packet["cloud_synthesis_allowed"],
+                "spoken_local_playback_preferred": spoken_packet["local_playback_preferred"],
+                "visual_event_package_present": visual_package is not None,
+                "visual_package_truth_bound": True,
+                "visual_false_success_claim_blocked": (
+                    visual_package is None or visual_package.get("visual_event_type") not in VISUAL_SUCCESS_EVENT_TYPES
+                )
+                or _completion_receipts_present(response),
+                "video_generation_performed": False,
+                "image_generation_performed": False,
+                "cloud_model_call_performed": False,
+                "local_model_call_performed": False,
+                "visual_playback_performed": False,
+                "visual_provider_call_performed": False,
+                "response_taste_guardrails_present": True,
+                "response_taste_passed": taste_guardrails["taste_passed"],
+                "response_field_limits_passed": taste_guardrails["field_limits_passed"],
+                "compact_fields_machine_sludge_free": taste_guardrails["machine_sludge_filtered"],
+                "bad_phrase_blockers_passed": taste_guardrails["bad_phrase_blockers_passed"],
+                "agent_voice_taste_rules_passed": taste_guardrails["agent_voice_rules_passed"],
+                "duplicate_sentence_reduction_passed": taste_guardrails["duplicate_sentence_reduction_passed"],
+                "guardian_output_gate_present": True,
+                "guardian_output_gate_used": guardian_gate_payload["machine_proof"]["guardian_output_gate_used"],
+                "role_output_validator_used": guardian_gate_payload["machine_proof"]["role_output_validator_used"],
+                "guardian_output_gate_verdict": guardian_gate_result["verdict"],
+                "guardian_output_gate_passed": guardian_gate_result["output_publish_allowed"],
+                "role_output_blocked": not guardian_gate_result["output_publish_allowed"],
+                "guardian_output_external_action_allowed": guardian_gate_result["external_action_allowed"],
+                "local_surface_request_present": True,
+                "local_surface_request_type": local_surface_request.get("surface_type"),
+                "local_surface_request_raw_body_allowed": local_surface_request.get("raw_body_allowed"),
+                "local_surface_request_external_model_share_allowed": local_surface_request.get("external_model_share_allowed"),
+                "local_surface_request_local_only": local_surface_request.get("local_only"),
+                "local_surface_request_path_translation_guess_allowed": local_surface_request.get("path_translation_guess_allowed"),
+                "local_surface_request_external_action_allowed": local_surface_request.get("external_action_allowed"),
+            }
+        )
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))
     status_payload["machine_proof"]["content_hash"] = _content_hash(status_payload)
     response_payload["machine_proof"]["content_hash"] = _content_hash(response_payload)

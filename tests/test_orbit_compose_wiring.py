@@ -10,20 +10,8 @@ from compose_contract import GateState
 from intent_router import route_operator_intent
 
 
-TEMP_DB = Path("/tmp/orbit_compose_wiring.sqlite")
-
-
-@pytest.fixture(autouse=True)
-def clean_temp_db():
-    try:
-        TEMP_DB.unlink()
-    except FileNotFoundError:
-        pass
-    yield
-    try:
-        TEMP_DB.unlink()
-    except FileNotFoundError:
-        pass
+def _temp_db(tmp_path: Path) -> Path:
+    return tmp_path / "orbit_compose_wiring.sqlite"
 
 
 def test_chief_invoice_brain_is_retired_import_safe_tombstone():
@@ -87,13 +75,13 @@ def _stub_chief_router(monkeypatch):
         ("what should I post on Instagram?", "marketing_ideas", "music_art"),
     ],
 )
-def test_orbit_read_only_categories_route_without_approval(text, expected_category, world_hint):
+def test_orbit_read_only_categories_route_without_approval(text, expected_category, world_hint, tmp_path):
     result = route_operator_intent(
         text=text,
         source_kind="mission_control",
         source_channel="orbit_test",
         requested_by="winship",
-        db_path=TEMP_DB,
+        db_path=_temp_db(tmp_path),
     )
 
     assert result.intent_category == expected_category
@@ -115,7 +103,7 @@ def test_orbit_read_only_categories_route_without_approval(text, expected_catego
         "what's queued?",
     ],
 )
-def test_orbit_read_only_compose_uses_legacy_handler_without_packet(monkeypatch, text):
+def test_orbit_read_only_compose_uses_legacy_handler_without_packet(monkeypatch, text, tmp_path):
     _stub_chief_router(monkeypatch)
 
     result = compose(
@@ -123,7 +111,7 @@ def test_orbit_read_only_compose_uses_legacy_handler_without_packet(monkeypatch,
         source_kind="mission_control",
         source_channel="orbit_test",
         requested_by="winship",
-        db_path=str(TEMP_DB),
+        db_path=str(_temp_db(tmp_path)),
     )
 
     assert result.gate_state is GateState.READ_ONLY
@@ -146,13 +134,13 @@ def test_orbit_read_only_compose_uses_legacy_handler_without_packet(monkeypatch,
         ("approve PROP-20260614-001", "unknown_review", None),
     ],
 )
-def test_orbit_write_like_phrases_do_not_fast_path(text, expected_category, expected_candidate):
+def test_orbit_write_like_phrases_do_not_fast_path(text, expected_category, expected_candidate, tmp_path):
     result = route_operator_intent(
         text=text,
         source_kind="mission_control",
         source_channel="orbit_test",
         requested_by="winship",
-        db_path=TEMP_DB,
+        db_path=_temp_db(tmp_path),
     )
 
     assert result.intent_category == expected_category
