@@ -230,19 +230,27 @@ def _add_resolver_context_value(session: dict[str, Any], key: str, value: Any) -
         session[key] = safe_value
 
 
+def _request_needs_resolver_context(request: Mapping[str, Any]) -> bool:
+    normalized_text = _normalize(operator_text_from_request(request))
+    return bool(re.search(r"\b(ledger|inbox)\b", normalized_text))
+
+
 def session_from_request(request: Mapping[str, Any]) -> dict[str, Any]:
     session: dict[str, Any] = {}
+    include_resolver_context = _request_needs_resolver_context(request)
     for key in SESSION_PATH_KEY_ALIASES:
         _add_safe_session_value(session, key, request.get(key))
-    for key in RESOLVER_CONTEXT_KEYS:
-        _add_resolver_context_value(session, key, request.get(key))
+    if include_resolver_context:
+        for key in RESOLVER_CONTEXT_KEYS:
+            _add_resolver_context_value(session, key, request.get(key))
     context = request.get("context") if isinstance(request.get("context"), Mapping) else {}
     current_context = request.get("current_context") if isinstance(request.get("current_context"), Mapping) else {}
     for source in (context, current_context):
         for key in SESSION_PATH_KEY_ALIASES:
             _add_safe_session_value(session, key, source.get(key))
-        for key in RESOLVER_CONTEXT_KEYS:
-            _add_resolver_context_value(session, key, source.get(key))
+        if include_resolver_context:
+            for key in RESOLVER_CONTEXT_KEYS:
+                _add_resolver_context_value(session, key, source.get(key))
     return session
 
 

@@ -255,6 +255,32 @@ def test_session_from_request_drops_vault_paths_and_accepts_allowlisted_aliases(
     }
 
 
+def test_session_from_request_forwards_resolver_context_only_for_overloaded_names():
+    generic = maestro.session_from_request(
+        {
+            "operator_text": "what's today's date",
+            "active_surface_ref": "operator_maestro_chat",
+            "world_ref": "general",
+            "client_ref": "capital_hilton",
+        }
+    )
+    overloaded = maestro.session_from_request(
+        {
+            "operator_text": "check the ledger",
+            "active_surface_ref": "operator_maestro_chat",
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+        }
+    )
+
+    assert generic == {}
+    assert overloaded == {
+        "active_surface_ref": "operator_maestro_chat",
+        "world_ref": "finance",
+        "client_ref": "capital_hilton",
+    }
+
+
 def test_session_from_request_rejects_dotdot_and_symlink_escape(tmp_path, monkeypatch):
     allowed = tmp_path / "allowed"
     outside = tmp_path / "outside"
@@ -606,18 +632,7 @@ def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeyp
             "backend_route": "maestro_cassandra_responder.datetime_deterministic",
         },
     )
-    assert calls == [
-        (
-            "what's today's date",
-            {
-                "active_surface_ref": "operator_maestro_chat",
-                "current_world_ref": "general",
-                "source_surface": "mission_control",
-                "world": "general",
-                "world_ref": "general",
-            },
-        )
-    ]
+    assert calls == [("what's today's date", {})]
 
 
 def test_ledger_no_context_is_ambiguous_sensitive_and_never_calls_handle():
