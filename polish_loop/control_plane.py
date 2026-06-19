@@ -226,6 +226,20 @@ def _detector_payload_has_forbidden_action(payload: Any) -> bool:
     )
 
 
+def _default_task_id(task_type: str, payload: dict[str, Any]) -> str:
+    if task_type == "agent_heal":
+        source_surface = str(payload.get("source_surface") or "").strip().lower()
+        claim_type = str(payload.get("claim_type") or "").strip().lower()
+        if source_surface and claim_type:
+            key = json.dumps(
+                {"source_surface": source_surface, "claim_type": claim_type},
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            return "heal-" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:20]
+    return f"task-{uuid.uuid4().hex}"
+
+
 def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
     if row is None:
         return None
@@ -499,37 +513,51 @@ class ControlPlaneLedger:
                 source_norm = "agent_suggestion"
 
         now = iso_now()
-        task_id = task_id or f"task-{uuid.uuid4().hex}"
+        task_id = task_id or _default_task_id(task_type, payload)
         if isinstance(acceptance_ref, dict):
             acceptance_ref_text = _encode_json(acceptance_ref)
         else:
             acceptance_ref_text = acceptance_ref
 
         with self._tx() as conn:
-            conn.execute(
-                """
-                INSERT INTO tasks(
-                    id, type, status, source, version, attempts, max_attempts,
-                    budget_spent, budget_cap, acceptance_ref, payload,
-                    proposed_expires_at, dispatchable, created_at, updated_at
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO tasks(
+                        id, type, status, source, version, attempts, max_attempts,
+                        budget_spent, budget_cap, acceptance_ref, payload,
+                        proposed_expires_at, dispatchable, created_at, updated_at
+                    )
+                    VALUES (?, ?, ?, ?, 0, 0, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        task_id,
+                        task_type,
+                        status,
+                        source_norm,
+                        max_attempts,
+                        budget_cap,
+                        acceptance_ref_text,
+                        _encode_json(payload),
+                        proposed_expires_at,
+                        dispatchable,
+                        now,
+                        now,
+                    ),
                 )
-                VALUES (?, ?, ?, ?, 0, 0, ?, 0, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    task_id,
-                    task_type,
-                    status,
-                    source_norm,
-                    max_attempts,
-                    budget_cap,
-                    acceptance_ref_text,
-                    _encode_json(payload),
-                    proposed_expires_at,
-                    dispatchable,
-                    now,
-                    now,
-                ),
-            )
+            except sqlite3.IntegrityError:
+                existing = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+                if existing is not None and existing["status"] not in TERMINAL_STATUSES:
+                    self._event(
+                        conn,
+                        task_id=task_id,
+                        event_type="TASK_DEDUPED",
+                        actor=source_norm,
+                        to_status=existing["status"],
+                        detail={"reason": "active_agent_heal_duplicate"},
+                    )
+                    return task_id
+                raise
             self._event(
                 conn,
                 task_id=task_id,

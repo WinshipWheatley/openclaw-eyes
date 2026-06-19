@@ -2587,6 +2587,8 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
 def _should_route_finance_status_before_intake(text: str, gmail_decision: Any | None = None) -> bool:
     if not detect_finance_status_intent(text):
         return False
+    if _detect_financial_intent(text) == "income":
+        return False
     t = (text or "").lower()
     status_markers = (
         "status",

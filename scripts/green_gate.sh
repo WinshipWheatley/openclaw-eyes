@@ -15,6 +15,7 @@ REPO="${OPENCLAW_REPO:-/home/openclaw}"
 VENV="${OPENCLAW_VENV:-/home/openclaw/.venv/bin/python}"
 TIMEOUT_SECONDS="${OPENCLAW_PYTEST_TIMEOUT_SECONDS:-90}"
 TIMEOUT_METHOD="${OPENCLAW_PYTEST_TIMEOUT_METHOD:-thread}"
+TRUSTED_TEST_REF="${OPENCLAW_TRUSTED_TEST_REF:-${OPENCLAW_TRUSTED_ACCEPTANCE_REF:-origin/codex/pc4-self-healing}}"
 WT_ROOT="${OPENCLAW_GREEN_GATE_WORKTREE_ROOT:-/tmp/openclaw-green-gate}"
 TS="$(date +%s)-$$"
 WT="$WT_ROOT/greengate-$TS"
@@ -107,6 +108,16 @@ check_required_clean_fixtures(){
   echo "[green-gate] clean-room fixture parity check passed (${#REQUIRED_CLEAN_FIXTURES[@]} fixtures)."
 }
 
+restore_trusted_tests(){
+  if ! git rev-parse --verify "$TRUSTED_TEST_REF^{commit}" >/dev/null 2>&1; then
+    fail "trusted test ref is not available: $TRUSTED_TEST_REF"
+  fi
+  echo "[green-gate] restoring trusted tests from $TRUSTED_TEST_REF ..."
+  if ! git checkout "$TRUSTED_TEST_REF" -- tests/ >/dev/null 2>&1; then
+    fail "could not restore trusted tests from $TRUSTED_TEST_REF"
+  fi
+}
+
 # Git hooks export repo-local environment such as GIT_DIR and GIT_WORK_TREE.
 # If those leak into pytest, tests that create temporary git repositories can
 # accidentally operate on the caller repo instead of their tmp checkout.
@@ -134,9 +145,10 @@ fi
 WORKTREE_CREATED=1
 cd "$WT" || fail "cwd"
 SHA="$(git rev-parse --short HEAD)"
+restore_trusted_tests
 check_required_clean_fixtures
 echo "[green-gate] python: $("$VENV" -c 'import sys; print(sys.executable)')"
-echo "[green-gate] running FULL suite on clean checkout $SHA (timeout ${TIMEOUT_SECONDS}s/test, method $TIMEOUT_METHOD; this takes ~25 min) ..."
+echo "[green-gate] running FULL suite on clean checkout $SHA with trusted tests $TRUSTED_TEST_REF (timeout ${TIMEOUT_SECONDS}s/test, method $TIMEOUT_METHOD; this takes ~25 min) ..."
 OPENCLAW_TEST_MODE=1 OPENCLAW_SEND_HOLD=1 "$VENV" -m pytest -q -rA --timeout="$TIMEOUT_SECONDS" --timeout-method="$TIMEOUT_METHOD" > "$LOG" 2>&1
 code=$?
 echo "[green-gate] --- result ---"; tail -3 "$LOG"

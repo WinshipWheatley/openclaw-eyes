@@ -179,6 +179,7 @@
 !docs/operations/STAGE_2_READY_PACKET.json
 !docs/operations/ACTIVE_MACHINERY_HIGH_RISK_QUARANTINE_READY_PACKET.json
 !docs/operations/ACTIVE_MACHINERY_REPLACE_WITH_GOVERNED_PATH_READY_PACKET.json
+!docs/pc4_harden_watchdog.md
 !docs/navigation_maps/
 !docs/navigation_maps/*.md
 !docs/playbooks/
@@ -531,6 +532,7 @@
 !tests/test_guardian_packet_templates.py
 !tests/test_guardian_watchdog.py
 !tests/test_hermes_packet_templates.py
+!tests/test_pc4_hardening.py
 !tests/test_pc4_self_healing.py
 
 # tools/ — standalone utility modules

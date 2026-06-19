@@ -103,6 +103,42 @@ def _process_prompt(prompt: str, *, read_model_root: Path, work_dir: Path, index
     )
 
 
+def _mapping_answer(payload: Mapping[str, Any]) -> str:
+    detail = payload.get("detail_disclosure") if isinstance(payload.get("detail_disclosure"), Mapping) else {}
+    layered = detail.get("layered_response_fields") if isinstance(detail.get("layered_response_fields"), Mapping) else {}
+    for value in (
+        payload.get("one_line_answer"),
+        layered.get("one_line_answer"),
+        payload.get("operator_message"),
+        payload.get("operator_headline"),
+        payload.get("headline"),
+    ):
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def extract_actual_answer(result: Any) -> str:
+    """Extract the newly produced answer that must be re-audited."""
+
+    if isinstance(result, str):
+        return result.strip()
+    if isinstance(result, Mapping):
+        return _mapping_answer(result)
+    detail = getattr(result, "detail_disclosure", None)
+    layered = detail.get("layered_response_fields") if isinstance(detail, Mapping) else {}
+    for value in (
+        layered.get("one_line_answer") if isinstance(layered, Mapping) else None,
+        getattr(result, "operator_message", None),
+        getattr(result, "operator_headline", None),
+    ):
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
 def run_replay(
     *,
     task_payload_path: str | Path,
@@ -118,15 +154,35 @@ def run_replay(
         prompts = [str((payload.get("bad_exchange") or {}).get("request") or payload.get("expected_behavior") or "")]
 
     processor_results: list[str] = []
+    actual_answers: list[str] = []
     work_dir = Path(tempfile.mkdtemp(prefix="pc4-nl-stress-"))
     for index, prompt in enumerate(prompts, start=1):
         result = _process_prompt(prompt, read_model_root=truth_root, work_dir=work_dir, index=index)
         processor_results.append(type(result).__name__)
+        actual_answer = extract_actual_answer(result)
+        if actual_answer:
+            actual_answers.append(actual_answer)
+
+    if not actual_answers:
+        _write_pc_output(
+            Path(pc_output_path),
+            status="BLOCKED",
+            changes=["No heal was accepted by the NL-stress replay harness."],
+            reasoning=["The replay produced no auditable answer; no fake green is allowed."],
+            truth=[
+                "Auditor verdict: fail.",
+                "Truth source: processor result.",
+                f"Processor result types: {', '.join(processor_results)}.",
+            ],
+        )
+        print(work_dir.as_posix())
+        return 1
+    actual_claim_value = actual_answers[-1]
 
     finding = check_agent_claim(
         str(payload.get("agent_id") or payload.get("source_surface") or "unknown"),
         str(payload.get("claim_type") or "agent_presence_online_count"),
-        payload.get("claim_value", payload.get("expected_behavior")),
+        actual_claim_value,
         read_model_root=truth_root,
     )
     if finding.verdict == "pass":
@@ -138,6 +194,7 @@ def run_replay(
             truth=[
                 f"Auditor verdict: {finding.verdict}.",
                 f"Truth source: {finding.truth_source}.",
+                f"Actual answer audited: {actual_claim_value}.",
                 f"Processor result types: {', '.join(processor_results)}.",
             ],
         )
@@ -152,6 +209,7 @@ def run_replay(
         truth=[
             f"Auditor verdict: {finding.verdict}.",
             f"Truth source: {finding.truth_source or 'missing'}.",
+            f"Actual answer audited: {actual_claim_value}.",
             f"Delta: {finding.delta}.",
             f"Processor result types: {', '.join(processor_results)}.",
         ],

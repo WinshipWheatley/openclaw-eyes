@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from polish_loop.answer_auditor import AuditFinding
+
 
 DEFAULT_RESPONSE_DIR = Path(
     os.environ.get("OPENCLAW_RESPONSE_BRIDGE_ROOT", "/mnt/e/openclaw/mission_control_responses/to_mac")
@@ -122,3 +124,36 @@ def capture_finished_answers(response_dir: str | Path = DEFAULT_RESPONSE_DIR) ->
         if answer is not None and answer.source_request_id:
             answers.append(answer)
     return answers
+
+
+def detect_probe_timeout(
+    *,
+    agent_id: str,
+    request_text: str,
+    response_dir: str | Path = DEFAULT_RESPONSE_DIR,
+    before_files: Iterable[str | Path] = (),
+    timeout_seconds: int = 0,
+) -> AuditFinding | None:
+    """Return a hard fail finding when a probe produced no new bus response."""
+
+    root = Path(response_dir)
+    before = {Path(path).name for path in before_files}
+    current = iter_response_files(root)
+    new_files = [path for path in current if path.name not in before]
+    if new_files:
+        return None
+    return AuditFinding(
+        verdict="fail",
+        agent_id=agent_id,
+        claim_type="probe_response_timeout",
+        claimed_value="response_expected",
+        actual_value="no_response",
+        truth_source=root.as_posix(),
+        proof_refs=(root.as_posix(),),
+        delta={
+            "reason": "probe_timeout_zero_bus_activity",
+            "request_text": request_text,
+            "timeout_seconds": timeout_seconds,
+            "response_count": 0,
+        },
+    )

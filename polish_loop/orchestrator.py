@@ -1354,15 +1354,46 @@ def phase_c_dispatch_local_builder(
     active_ledger = ledger or ControlPlaneLedger(DEFAULT_LEDGER_PATH)
     runtime_config = config or WorkerRuntimeConfig.from_env()
     log("ACTION", f"phase-c dispatch | task={lease.task_id} | owner={lease.owner}")
-    result = run_local_builder_worker(active_ledger, lease, config=runtime_config)
-    if result.submitted_candidate:
-        log("EVIDENCE", f"phase-c worker submitted candidate | task={lease.task_id} | artifact={result.artifact_path}")
-    else:
-        log(
-            "STATE",
-            f"phase-c worker recorded failure | task={lease.task_id} | rc={result.exit_code} | "
-            f"fingerprint={result.fingerprint}",
-        )
+    directive = write_phase_c_fix_directive(active_ledger, lease, loop_dir=runtime_config.loop_dir)
+    log("EVIDENCE", f"phase-c FIX directive queued | task={lease.task_id} | directive={directive}")
+
+
+def write_phase_c_fix_directive(
+    ledger: "ControlPlaneLedger",
+    lease: "TaskLease",
+    *,
+    loop_dir: Path = LOOP_DIR,
+) -> Path:
+    row = ledger.get_task(lease.task_id)
+    payload = row.get("payload") or {}
+    to_pc = loop_dir / "to-pc"
+    to_pc.mkdir(parents=True, exist_ok=True)
+    safe_task_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", lease.task_id).strip("._") or "task"
+    directive_path = to_pc / f"FIX-{safe_task_id}-attempt-{lease.attempt_no}.md"
+    tmp = directive_path.with_suffix(directive_path.suffix + ".tmp")
+    lines = [
+        f"FIX: {lease.task_id}",
+        "",
+        f"task_id: {lease.task_id}",
+        f"task_type: {row.get('type')}",
+        f"lease_owner: {lease.owner}",
+        f"lease_nonce: {lease.lease_nonce}",
+        f"lease_expiry: {lease.lease_expiry}",
+        f"attempt: {lease.attempt_no}",
+        f"ledger_db: {ledger.path}",
+        "",
+        "Bounds:",
+        "- OPENCLAW_TEST_MODE=1",
+        "- OPENCLAW_SEND_HOLD=1",
+        "- Do not send, spend, deploy, restart production, or access Legal/Finance vault paths.",
+        "",
+        "Payload JSON:",
+        json.dumps(payload, indent=2, sort_keys=True),
+        "",
+    ]
+    tmp.write_text("\n".join(lines), encoding="utf-8")
+    tmp.replace(directive_path)
+    return directive_path
 
 
 def run_phase_c_once(
@@ -1379,11 +1410,20 @@ def run_phase_c_once(
         result = DispatchResult(dispatched=False, model_calls=0, reason="dry_run_no_dispatch")
         print(f"[dry-run] phase-c result={result} counts={before}")
         return result
+    touch_loop_heartbeat(owner)
 
     def dispatch(lease: "TaskLease") -> None:
         phase_c_dispatch_local_builder(lease, ledger=ledger)
 
     return run_control_plane_once(ledger, owner=owner, dispatch=dispatch)
+
+
+def touch_loop_heartbeat(role: str, *, loop_dir: Path = LOOP_DIR) -> Path:
+    safe_role = re.sub(r"[^A-Za-z0-9_.-]+", "_", role).strip("._") or "orchestrator"
+    path = loop_dir / f"heartbeat-{safe_role}"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch()
+    return path
 
 
 # ---------------------------------------------------------------------------
