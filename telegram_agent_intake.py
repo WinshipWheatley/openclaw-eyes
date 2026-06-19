@@ -31,7 +31,7 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 JSON_EXPORT_NAME = "telegram_agent_intake.json"
 OPERATOR_EXPORT_NAME = "telegram_agent_intake_OPERATOR.md"
 
-CORE_AGENTS = ("chief", "cassandra", "guardian", "niles", "hermes")
+CORE_AGENTS = ("chief", "cassandra", "guardian", "niles", "hermes", "maestro")
 
 AGENT_METADATA = {
     "chief": {
@@ -83,6 +83,16 @@ AGENT_METADATA = {
         "service_surface": "systemd/user/hermes-gateway.service.in",
         "listener_hook_status": "no_telegram_listener_found",
         "notes": "Hermes gateway exists, but no current repo Telegram listener file was found.",
+    },
+    "maestro": {
+        "display_name": "Maestro",
+        "outward_name": "Maestro",
+        "lane_id": "operator_orchestration",
+        "source_channel": "maestro_listener",
+        "telegram_surface": "maestro_listener.py",
+        "service_surface": "systemd/user/maestro-listener.service.in",
+        "listener_hook_status": "listener_lane_pending",
+        "notes": "Maestro is the operator front door; governed intake records receive metadata only and send remains disabled.",
     },
 }
 
@@ -361,7 +371,12 @@ ON CONFLICT(run_id) DO UPDATE SET
 def _agent_from_text_or_channel(text: str, source_channel: str, agent_target: str | None) -> str:
     if agent_target and agent_target in AGENT_METADATA:
         return agent_target
+    source_lower = source_channel.lower()
+    if "maestro" in source_lower:
+        return "maestro"
     lowered = f"{source_channel} {text}".lower()
+    if "maestro" in lowered:
+        return "maestro"
     if "clara" in lowered or "cassandra" in lowered:
         return "cassandra"
     if "guardian" in lowered:
@@ -387,7 +402,7 @@ def _agent_from_text_or_channel(text: str, source_channel: str, agent_target: st
 
 def _route_text(text: str, agent_target: str) -> str:
     lowered = text.lower()
-    explicit_tokens = ("chief", "cassandra", "clara", "guardian", "niles", "producer", "hermes", "report bridge")
+    explicit_tokens = ("chief", "cassandra", "clara", "guardian", "niles", "producer", "hermes", "maestro", "report bridge")
     if any(token in lowered for token in explicit_tokens):
         return text
     prefix = {
@@ -396,6 +411,7 @@ def _route_text(text: str, agent_target: str) -> str:
         "guardian": "Guardian",
         "niles": "Niles",
         "hermes": "Hermes",
+        "maestro": "Maestro",
     }.get(agent_target)
     if prefix:
         return f"{prefix}, {text}"
@@ -804,6 +820,29 @@ def record_cassandra_listener_text_update(
         text=text,
         source_channel=AGENT_METADATA["cassandra"]["source_channel"],
         agent_target="cassandra",
+        source_message_id=source_message_id,
+        source_user_label=source_user_label,
+        operator_message=operator_message,
+        route_intent=route_intent,
+        db_path=db_path,
+    )
+
+
+def record_maestro_listener_text_update(
+    *,
+    text: str,
+    source_message_id: str | None = None,
+    source_user_label: str | None = "operator",
+    operator_message: bool = True,
+    route_intent: bool = True,
+    db_path: str | Path | None = None,
+) -> str | None:
+    """Record Maestro live-listener text as governed intake metadata only."""
+
+    return record_telegram_listener_update_safe(
+        text=text,
+        source_channel=AGENT_METADATA["maestro"]["source_channel"],
+        agent_target="maestro",
         source_message_id=source_message_id,
         source_user_label=source_user_label,
         operator_message=operator_message,
@@ -1338,6 +1377,7 @@ __all__ = [
     "format_telegram_intake_check_result",
     "init_telegram_agent_intake_schema",
     "record_cassandra_listener_text_update",
+    "record_maestro_listener_text_update",
     "record_telegram_listener_update_safe",
     "record_telegram_update",
     "stable_json",
