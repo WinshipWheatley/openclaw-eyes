@@ -874,8 +874,58 @@ def _agent_posture_rows(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     return rows
 
 
+def _current_blocker_rows_from_agents(agent_rows: list[dict[str, Any]], *, run_id: str, now: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for row in agent_rows:
+        if row["blocker"] == "none":
+            continue
+        rows.append(
+            {
+                "blocker_id": _row_id("tgblocker", row["agent_id"], row["blocker"]),
+                "run_id": run_id,
+                "agent_id": row["agent_id"],
+                "blocker_kind": row["blocker"],
+                "blocker_reason": row["next_safe_move"],
+                "next_safe_move": row["next_safe_move"],
+                "created_at": now,
+                "resolved": 0,
+            }
+        )
+    return rows
+
+
+def _active_blocker_rows(
+    conn: sqlite3.Connection,
+    *,
+    agent_rows: list[dict[str, Any]],
+    run_id: str | None,
+    now: str,
+) -> list[dict[str, Any]]:
+    current = _current_blocker_rows_from_agents(agent_rows, run_id=run_id or "current_posture", now=now)
+    current_keys = {(row["agent_id"], row["blocker_kind"]) for row in current}
+    current_by_key = {(row["agent_id"], row["blocker_kind"]): row for row in current}
+    stored_rows = _dict_rows(conn, "SELECT * FROM telegram_agent_blockers WHERE resolved = 0 ORDER BY agent_id")
+
+    active_rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for row in stored_rows:
+        key = (row["agent_id"], row["blocker_kind"])
+        if key not in current_keys:
+            continue
+        merged = {**row, **current_by_key[key]}
+        active_rows.append(merged)
+        seen.add(key)
+
+    for key, row in sorted(current_by_key.items()):
+        if key not in seen:
+            active_rows.append(row)
+
+    return sorted(active_rows, key=lambda row: row["agent_id"])
+
+
 def _upsert_blockers_and_cards(conn: sqlite3.Connection, *, run_id: str, agent_rows: list[dict[str, Any]], now: str) -> int:
     blocker_count = 0
+    conn.execute("UPDATE telegram_agent_blockers SET resolved = 1 WHERE resolved = 0")
     _insert_or_update_work_board_card(
         conn,
         source_id="telegram_agent_intake:readiness",
@@ -1021,8 +1071,8 @@ def build_telegram_agent_intake_report(
         run_id = _latest_run_id(conn)
         update_rows = _dict_rows(conn, "SELECT * FROM telegram_agent_update_records ORDER BY created_at DESC LIMIT 100")
         route_rows = _dict_rows(conn, "SELECT * FROM telegram_agent_route_results ORDER BY created_at DESC LIMIT 100")
-        blockers = _dict_rows(conn, "SELECT * FROM telegram_agent_blockers WHERE resolved = 0 ORDER BY agent_id")
         agents = _agent_posture_rows(conn)
+        blockers = _active_blocker_rows(conn, agent_rows=agents, run_id=run_id, now=utc_now())
         counts = {
             "update_count": len(update_rows),
             "routed_count": sum(1 for row in update_rows if row["routed_to_intent_inbox"]),

@@ -173,7 +173,7 @@ def _run_verification_command(task_content: str) -> tuple[bool, str]:
 
     # Safety: only run commands that are clearly read-only or test commands
     safe_prefixes = (
-        "python3", "source", "cat ", "grep ", "diff ", "ls ", "test ",
+        "python3", "./chief_env/bin/python", "source", "cat ", "grep ", "diff ", "ls ", "test ",
         "bash /home/openclaw/polish_loop/orchestrator.py --run-tests",
     )
     if not any(cmd.startswith(p) for p in safe_prefixes):
@@ -334,7 +334,7 @@ def _verify_test_claims(pc_output_content: str) -> tuple[bool, str]:
             )
             if test_cmd_match:
                 cmd = test_cmd_match.group(1).strip()
-                safe_prefixes = ("python3", "source", "bash /home/openclaw/")
+                safe_prefixes = ("python3", "./chief_env/bin/python", "source", "bash /home/openclaw/")
                 if any(cmd.startswith(p) for p in safe_prefixes):
                     test_commands.append((cmd, "task.md verification"))
         except Exception:

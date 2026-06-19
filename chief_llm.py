@@ -335,6 +335,60 @@ def openrouter_call(
         return ""
 
 
+def _configured_openrouter_model() -> str:
+    """Return the configured OpenRouter model name, if any.
+
+    This intentionally does not provide a baked-in cloud default. Choosing an
+    external model is an operator/deployment decision, not a silent fallback.
+    """
+    for key in (
+        "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+        "CASSANDRA_EXTERNAL_MODEL",
+        "OPENCLAW_EXTERNAL_MODEL",
+        "OPENROUTER_MODEL",
+    ):
+        value = os.environ.get(key, "").strip()
+        if value:
+            return value
+    return ""
+
+
+def external_language_model_call(
+    prompt: str,
+    *,
+    metadata: dict | None,
+    timeout: int = 30,
+    model: str | None = None,
+) -> str:
+    """Use a configured external language model, then fail closed.
+
+    OpenRouter is attempted only when a model has been explicitly configured and
+    the packet passes the shared external-model policy. Nemotron remains a
+    secondary external provider for existing deployments. All providers return
+    an empty string on missing keys, blocked policy, or network failure.
+    """
+    prompt_text = str(prompt or "").strip()
+    if not prompt_text or not isinstance(metadata, dict):
+        return ""
+
+    policy = external_model_packet_policy(prompt_text, metadata=dict(metadata))
+    if not policy.get("external_model_safe"):
+        return ""
+
+    model_name = str(model or "").strip() or _configured_openrouter_model()
+    if model_name:
+        result = openrouter_call(
+            prompt_text,
+            model=model_name,
+            metadata=dict(metadata),
+            timeout=timeout,
+        ).strip()
+        if result:
+            return result
+
+    return nemotron_call(prompt_text, timeout=timeout).strip()
+
+
 OLLAMA_MODEL      = os.environ.get("OPENCLAW_OLLAMA_MODEL", "qwen3:8b-q4_K_M")   # installed qwen, env-overridable
 OLLAMA_MODEL_DEEP = os.environ.get("OPENCLAW_OLLAMA_MODEL_DEEP", "qwen3:8b-q4_K_M")  # env-overridable; bump to qwen3.6:latest if VRAM allows
 

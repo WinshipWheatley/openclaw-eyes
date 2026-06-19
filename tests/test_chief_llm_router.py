@@ -295,6 +295,79 @@ def test_openrouter_call_allowed_public_packet_builds_mocked_request_without_exp
     assert fake_key not in repr(logs)
 
 
+def test_external_language_model_call_uses_configured_openrouter_model(monkeypatch):
+    calls = []
+    monkeypatch.setenv("OPENCLAW_CASSANDRA_EXTERNAL_MODEL", "openrouter/test-model")
+
+    def fake_openrouter(prompt, *, model, metadata, timeout=0):
+        calls.append({"prompt": prompt, "model": model, "metadata": metadata, "timeout": timeout})
+        return "openrouter answer"
+
+    monkeypatch.setattr(chief_llm, "openrouter_call", fake_openrouter)
+    monkeypatch.setattr(
+        chief_llm,
+        "nemotron_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Nemotron should not run")),
+    )
+
+    out = chief_llm.external_language_model_call(
+        "Synthetic public fixture prompt.",
+        metadata=_openrouter_metadata(),
+        timeout=7,
+    )
+
+    assert out == "openrouter answer"
+    assert calls == [
+        {
+            "prompt": "Synthetic public fixture prompt.",
+            "model": "openrouter/test-model",
+            "metadata": _openrouter_metadata(),
+            "timeout": 7,
+        }
+    ]
+
+
+def test_external_language_model_call_falls_back_to_nemotron_when_openrouter_unconfigured(monkeypatch):
+    monkeypatch.delenv("OPENCLAW_CASSANDRA_EXTERNAL_MODEL", raising=False)
+    monkeypatch.delenv("CASSANDRA_EXTERNAL_MODEL", raising=False)
+    monkeypatch.delenv("OPENCLAW_EXTERNAL_MODEL", raising=False)
+    monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
+    monkeypatch.setattr(
+        chief_llm,
+        "openrouter_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("OpenRouter should not run")),
+    )
+    monkeypatch.setattr(chief_llm, "nemotron_call", lambda prompt, timeout=0: "nemotron answer")
+
+    out = chief_llm.external_language_model_call(
+        "Synthetic public fixture prompt.",
+        metadata=_openrouter_metadata(),
+    )
+
+    assert out == "nemotron answer"
+
+
+def test_external_language_model_call_blocked_policy_does_not_call_provider(monkeypatch):
+    monkeypatch.setenv("OPENCLAW_CASSANDRA_EXTERNAL_MODEL", "openrouter/test-model")
+    monkeypatch.setattr(
+        chief_llm,
+        "openrouter_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("OpenRouter should not run")),
+    )
+    monkeypatch.setattr(
+        chief_llm,
+        "nemotron_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Nemotron should not run")),
+    )
+
+    out = chief_llm.external_language_model_call(
+        "Synthetic public fixture prompt.",
+        metadata={"data_classification": "synthetic_public"},
+    )
+
+    assert out == ""
+
+
 def test_openrouter_call_non_2xx_returns_empty(monkeypatch):
     logs = []
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")

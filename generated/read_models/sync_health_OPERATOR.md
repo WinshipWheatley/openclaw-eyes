@@ -1,11 +1,11 @@
 # OpenClaw Sync Health
 
-Trust status: `trusted`
-Mirror status: `ok`
-Display status: `current`
-Lifecycle state: `trusted_current`
+Trust status: `stale_needs_pc_import`
+Mirror status: `needs_pc_import`
+Display status: `waiting_for_pc_import`
+Lifecycle state: `mac_synced_waiting_for_pc_import`
 Operator action required: `false`
-Next expected actor: `none`
+Next expected actor: `pc_import_task`
 
 Mirror counts:
 - canonical_expected=325
@@ -13,7 +13,7 @@ Mirror counts:
 - missing_expected=0
 - extra=2
 - hash_mismatch=0
-- matched_hash=318
+- matched_hash=325
 - expected_set_basis=mac_sync_latest_safe_selector
 - extra_file_handling=review_only_nonblocking
 
@@ -49,18 +49,18 @@ Check Transmission display:
 - summary: Mac map receipt or files do not match the current PC bundle hash.
 
 Recommended fix:
-- kind: `none`
-- display status: `current`
-- next expected actor: `none`
-- lifecycle state: `trusted_current`
+- kind: `wait_for_pc_import`
+- display status: `waiting_for_pc_import`
+- next expected actor: `pc_import_task`
+- lifecycle state: `mac_synced_waiting_for_pc_import`
 - operator action required: `false`
-- next: No sync repair is needed; volatile PC proof surfaces are newer than the Mac manifest but the imported mirror content is current.
+- next: Mac sync appears complete. Waiting for PC import task.
 - app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-06-12T03:28:20+00:00`
-- Mac completion: `synced` at `2026-06-12T02:08:11+00:00`
-- PC import: `skipped_unchanged` at `2026-06-12T02:09:57+00:00`
+- Mac heartbeat: `idle` at `2026-06-19T02:32:25+00:00`
+- Mac completion: `synced` at `2026-06-12T10:49:56+00:00`
+- PC import: `skipped_unchanged` at `2026-06-12T10:49:55+00:00`
 - Windows task log present: `true`
 
 Extra files:

@@ -45,6 +45,7 @@ _stub_if_missing(
     detokenize_for_dashboard=lambda text, *_args, **_kwargs: text,
 )
 from cassandra_brain import handle
+import cassandra_brain
 
 class MockPIIContext:
     def __init__(self, is_empty=True):
@@ -57,27 +58,73 @@ def mock_state():
         "last_interaction_at": "2026-05-10 10:00:00"
     }
 
-def test_ops_status_inquiry_triggers_deterministic_path():
+def test_ops_status_inquiry_builds_packet_and_routes_through_model():
     """
-    Test that 'where are we' triggers the ops_status deterministic path.
-    LLM should NOT be called.
+    Test that 'where are we' builds deterministic packet context, then routes
+    through Cassandra's model voice.
     """
     user_text = "where are we"
 
-    with patch("cassandra_brain._call", return_value="LLM response") as mock_call, \
+    with patch("cassandra_brain.external_language_model_call", return_value="Cassandra voice response") as mock_call, \
          patch("cassandra_brain.save_state"), \
          patch("cassandra_brain.load_state", return_value={"human_cues": []}), \
          patch("cassandra_brain.is_focus_mode", return_value=False), \
          patch("cassandra_brain.is_social_mode", return_value=False), \
-         patch("cassandra_brain._pii_tokenize", return_value=("safe prompt", MockPIIContext())), \
+         patch("cassandra_brain._pii_tokenize", side_effect=lambda prompt: (prompt, MockPIIContext())), \
          patch("cassandra_brain._pii_rehydrate_reply", side_effect=lambda r, c: r), \
          patch("cassandra_brain.record_cassandra_packet_event", return_value=123):
 
         replies = handle(user_text)
 
-        # LLM should NOT be called
-        assert not mock_call.called
-        assert "OpenClaw Orientation Status" in replies[0]
+        assert replies == ["Cassandra voice response"]
+        assert mock_call.called
+        prompt = mock_call.call_args.args[0]
+        assert "ORIENTATION_PACKET_JSON" in prompt
+        assert "cassandra_orientation_status_v1" in prompt
+        assert "Answer as Cassandra" in prompt
+        assert mock_call.call_args.kwargs["timeout"] == 20
+        assert mock_call.call_args.kwargs["metadata"]["data_classification"] == "sanitized_public"
+
+
+def test_ops_status_inquiry_external_unavailable_falls_back_fast():
+    """
+    Test that missing/unavailable external model does not fall through to slow
+    local generation on the Telegram path.
+    """
+    user_text = "where are we"
+
+    with patch("cassandra_brain.external_language_model_call", return_value="") as mock_external, \
+         patch("cassandra_brain._call") as mock_local_call, \
+         patch("cassandra_brain.save_state"), \
+         patch("cassandra_brain.load_state", return_value={"human_cues": []}), \
+         patch("cassandra_brain.is_focus_mode", return_value=False), \
+         patch("cassandra_brain.is_social_mode", return_value=False), \
+         patch("cassandra_brain._pii_tokenize", side_effect=lambda prompt: (prompt, MockPIIContext())), \
+         patch("cassandra_brain._pii_rehydrate_reply", side_effect=lambda r, c: r), \
+         patch("cassandra_brain.record_cassandra_packet_event", return_value=123):
+
+        replies = handle(user_text)
+
+        assert mock_external.called
+        assert not mock_local_call.called
+        assert "OpenClaw Orientation" in replies[0]
+        assert "Current documented lane" in replies[0]
+        assert "Status: Ready for snapshot wording review." in replies[0]
+
+
+def test_ops_status_deterministic_fallback_is_operator_facing():
+    reply = cassandra_brain._handle_ops_status_inquiry("where are we")
+
+    assert "OpenClaw Orientation" in reply
+    assert "Current documented lane" in reply
+    assert "Recommended next move" in reply
+    assert "Confirmed" in reply
+    assert "Not yet confirmed" in reply
+    assert "Status: Ready for snapshot wording review." in reply
+    assert "latest deterministic surfaces" not in reply
+    assert "Active Lane:" not in reply
+    assert "This handoff is the train" not in reply
+    assert "choose one bounded next lane" not in reply
 
 def test_ops_status_missing_surfaces():
     """
@@ -152,9 +199,15 @@ def test_system_knowledge_registry_query_triggers_deterministic_read_only_path(t
 ])
 def test_fuzzy_status_intents_positive(query):
     """
-    Test that fuzzy/natural language queries trigger the ops_status deterministic path.
+    Test that fuzzy/natural language queries trigger the model-mediated ops_status path.
     """
-    with patch("cassandra_brain._handle_ops_status_inquiry", return_value="Deterministic Status") as mock_handle, \
+    with patch(
+        "cassandra_brain._answer_ops_status_inquiry",
+        return_value=(
+            "Cassandra Status",
+            {"packet_type": "cassandra_orientation_status_v1", "status": "ready"},
+        ),
+    ) as mock_handle, \
          patch("cassandra_brain.save_state"), \
          patch("cassandra_brain.load_state", return_value={"human_cues": []}), \
          patch("cassandra_brain.is_focus_mode", return_value=False), \
@@ -165,7 +218,7 @@ def test_fuzzy_status_intents_positive(query):
 
         replies = handle(query)
         assert mock_handle.called
-        assert "Deterministic Status" in replies[0]
+        assert "Cassandra Status" in replies[0]
 
 @pytest.mark.parametrize("query", [
     "what's up with the weather?",
@@ -183,7 +236,7 @@ def test_fuzzy_status_intents_negative(query, mock_state):
     """
     Test that queries that SHOULD NOT be ops_status do not trigger it.
     """
-    with patch("cassandra_brain._handle_ops_status_inquiry") as mock_handle, \
+    with patch("cassandra_brain._answer_ops_status_inquiry") as mock_handle, \
          patch("cassandra_brain.save_state"), \
          patch("cassandra_brain.load_state", return_value=mock_state), \
          patch("cassandra_brain.is_focus_mode", return_value=False), \

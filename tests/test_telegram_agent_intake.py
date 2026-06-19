@@ -5,14 +5,17 @@ from pathlib import Path
 from agent_lane_registry import seed_agent_lane_registry
 from agent_presence import build_agent_presence_snapshot
 from telegram_agent_intake import (
+    AGENT_METADATA,
     NO_AUTHORITY_FLAGS,
     build_telegram_agent_intake_read_model,
     build_telegram_agent_intake_report,
     check_telegram_agent_intake,
     export_telegram_agent_intake_read_model,
+    init_telegram_agent_intake_schema,
     record_cassandra_listener_text_update,
     record_telegram_listener_update_safe,
     record_telegram_update,
+    stable_json,
     telegram_agent_intake_table_names,
 )
 from scripts.check_telegram_agent_intake import main as check_main
@@ -275,6 +278,83 @@ ORDER BY title
     assert all(row["execution_allowed"] == 0 for row in cards)
     assert all(row["auto_approval_allowed"] == 0 for row in cards)
     assert all(row["auto_execute_allowed"] == 0 for row in cards)
+
+
+def test_blocker_report_filters_stale_resolved_by_current_posture(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    init_telegram_agent_intake_schema(db_path)
+    now = "2026-06-19T00:00:00+00:00"
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """
+INSERT INTO agent_presence_runs (
+  run_id, presence_version, created_at, completed_at,
+  agent_count, expected_online_count, online_count, offline_unexpected_count
+) VALUES ('presence_current', 'test', ?, ?, 5, 5, 4, 1)
+""".strip(),
+            (now, now),
+        )
+        for agent_id, actual_state in {
+            "chief": "online",
+            "cassandra": "online",
+            "guardian": "online",
+            "niles": "offline",
+            "hermes": "online",
+        }.items():
+            metadata = AGENT_METADATA[agent_id]
+            conn.execute(
+                """
+INSERT INTO agent_presence_agents (
+  agent_id, run_id, display_name, lane_id, desired_state, actual_state,
+  presence_source, runtime_surface_found, runtime_surface_kind, last_seen_at,
+  expected_online, autorecovery_allowed, recovery_action_id, recovery_status,
+  reason, blocker, receipt_id, telegram_ready_metadata, no_authority_json, created_at
+) VALUES (?, 'presence_current', ?, ?, 'online', ?, 'test', 1, 'local_service',
+          ?, 1, 0, NULL, 'not_needed', 'test posture', NULL, NULL, 1, ?, ?)
+""".strip(),
+                (
+                    agent_id,
+                    metadata["display_name"],
+                    metadata["lane_id"],
+                    actual_state,
+                    now,
+                    stable_json(
+                        {
+                            "telegram_api_allowed": False,
+                            "message_send_allowed": False,
+                            "arbitrary_command_allowed": False,
+                        }
+                    ),
+                    now,
+                ),
+            )
+        for agent_id, blocker in {
+            "cassandra": "presence_offline",
+            "chief": "presence_degraded",
+            "niles": "presence_offline",
+            "hermes": "telegram_listener_not_found",
+        }.items():
+            conn.execute(
+                """
+INSERT INTO telegram_agent_blockers (
+  blocker_id, run_id, agent_id, blocker_kind, blocker_reason,
+  next_safe_move, created_at, resolved
+) VALUES (?, 'old_run', ?, ?, 'old blocker', 'old next move', ?, 0)
+""".strip(),
+                (f"old_{agent_id}", agent_id, blocker, now),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    report = build_telegram_agent_intake_report(db_path=db_path, report="blockers")
+    blocker_keys = {(row["agent_id"], row["blocker_kind"]) for row in report["rows"]}
+
+    assert ("cassandra", "presence_offline") not in blocker_keys
+    assert ("chief", "presence_degraded") not in blocker_keys
+    assert ("niles", "presence_offline") in blocker_keys
+    assert ("hermes", "telegram_listener_not_found") in blocker_keys
 
 
 def test_read_model_export_and_cli_work(tmp_path, capsys):

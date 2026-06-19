@@ -19,6 +19,7 @@ _CASSANDRA_CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_corresponde
 _CASSANDRA_LISTENER_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_listener.out")
 _CASSANDRA_MODEL_ROUTE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_model_routes.jsonl")
 _EXTERNAL_LLM_LOG = Path("/mnt/c/OpenClaw/logs/external_llm_log.csv")
+_OLLAMA_DIAGNOSTICS_LOG = Path("/mnt/c/OpenClaw/logs/ollama_diagnostics.jsonl")
 _POLISH_TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
 _APPROVAL_TIMEOUT_S = 86400
 
@@ -175,25 +176,138 @@ def _latest_timestamped_runtime_evidence(summary: str, within_minutes: int = 10)
     return ""
 
 
-def _queue_failure_task(summary: str) -> str | None:
+def _latest_orientation_model_timeout(within_minutes: int = 10) -> str:
+    cutoff = datetime.now() - timedelta(minutes=within_minutes)
+    route_model = ""
+    for entry in reversed(_load_recent_jsonl(_CASSANDRA_MODEL_ROUTE_LOG, limit=120)):
+        try:
+            entry_dt = datetime.fromisoformat(str(entry.get("timestamp", "")))
+        except Exception:
+            continue
+        if entry_dt < cutoff:
+            break
+        if entry.get("task_class") == "cassandra_user_reply":
+            route_model = str(entry.get("model", "") or "local model")
+            break
+
+    for entry in reversed(_load_recent_jsonl(_OLLAMA_DIAGNOSTICS_LOG, limit=120)):
+        ts = str(entry.get("timestamp", ""))
+        try:
+            entry_dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            try:
+                entry_dt = datetime.fromisoformat(ts)
+            except Exception:
+                continue
+        if entry_dt < cutoff:
+            break
+        if entry.get("event") != "ollama_call":
+            continue
+        if entry.get("exception_type") != "TimeoutError":
+            continue
+        task_class = entry.get("task_class")
+        model = str(entry.get("model") or route_model or "local model")
+        if task_class not in {None, "", "cassandra_user_reply"}:
+            continue
+        if route_model and model != route_model:
+            continue
+        timeout = entry.get("timeout", "unknown")
+        prompt_words = entry.get("prompt_words", "unknown")
+        return (
+            "Latest Cassandra evidence shows the orientation/status reply exhausted "
+            f"the listener budget after falling through to local Ollama `{model}` "
+            f"(timeout={timeout}s, prompt_words={prompt_words}). This usually means "
+            "no configured external Cassandra language model returned a response, so "
+            "the live Telegram path used a slow local fallback."
+        )
+    return ""
+
+
+def _build_repair_packet(summary: str, likely_cause: str) -> dict:
+    return {
+        "packet_type": "cassandra_failure_polish_repair_v1",
+        "generated_by": "chief_cassandra_failure",
+        "generated_at": datetime.now().isoformat(),
+        "repair_agent": "polish_loop",
+        "chief_role": "diagnose_route_and_harness_verify",
+        "request_summary": summary,
+        "diagnosis": likely_cause,
+        "evidence_to_check": [
+            "/mnt/c/OpenClaw/logs/cassandra_listener.out",
+            "/mnt/c/OpenClaw/logs/cassandra_conversations.jsonl",
+            "/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl",
+            "/mnt/c/OpenClaw/logs/cassandra_model_routes.jsonl",
+            "/mnt/c/OpenClaw/logs/ollama_diagnostics.jsonl",
+        ],
+        "candidate_code_targets": [
+            "cassandra_brain.py",
+            "chief_cassandra_failure.py",
+            "chief_llm.py",
+            "tests/test_cassandra_status_wiring.py",
+            "tests/test_cassandra_payment_verify.py",
+            "tests/test_chief_cassandra_failure.py",
+            "tests/test_chief_llm_router.py",
+        ],
+        "allowed_actions": [
+            "patch Cassandra/Chief code paths inside the repo",
+            "add or update focused regression tests",
+            "run focused pytest targets",
+            "return pc_output.md with changed files, reasoning, and verification evidence",
+        ],
+        "forbidden_actions": [
+            "deploy",
+            "merge or push",
+            "print or edit secrets",
+            "send client/external messages",
+            "touch money or ledger primitives",
+            "restart unrelated services",
+        ],
+        "success_contract": [
+            "root cause is named in operator-facing language",
+            "Cassandra no longer repeats the same failure for this request class",
+            "Chief emits a specific packet if the class fails again",
+            "focused tests pass",
+        ],
+        "chief_harness_contract": {
+            "after_polish_loop_output": [
+                "run the verification command supplied in this task",
+                "inspect polish_loop/current/pc_output.md and changed-file evidence",
+                "report WORKING when the harness passes",
+                "send back to polish loop as REWORK when the harness fails or evidence is insufficient",
+            ],
+            "existing_gate": "polish_loop orchestrator harness-backed retest plus chief_acceptance_gate when enabled",
+        },
+    }
+
+
+def _queue_failure_task(summary: str, likely_cause: str) -> str | None:
     try:
         _POLISH_TASKS_DIR.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-        task_name = f"chief-cassandra-failure-{timestamp}"
+        task_name = f"00-chief-cassandra-failure-{timestamp}"
+        repair_packet = _build_repair_packet(summary, likely_cause)
+        packet_json = json.dumps(repair_packet, indent=2, sort_keys=True)
         body = (
             f"title: {task_name}\n"
             f"profile: quick\n"
-            f"goal: Investigate why Cassandra timed out or failed for the operator\n"
+            f"goal: Use this Chief failure packet as a polish-loop repair task for the Cassandra failure class\n"
             f"scope:\n"
             f"- Request summary: {summary}\n"
-            f"- Check /mnt/c/OpenClaw/logs/cassandra_listener.out\n"
-            f"- Check /mnt/c/OpenClaw/logs/cassandra_conversations.jsonl\n"
-            f"- Check /mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl\n"
+            f"- Diagnosis: {likely_cause}\n"
+            f"- Repair agent: polish loop\n"
+            f"- Chief role: diagnose, route, harness-test, and approve or send back\n"
             f"success:\n"
-            f"- Root cause identified or bounded\n"
-            f"- Exact next step recorded\n"
+            f"- Patch the Cassandra/Chief path for this failure class\n"
+            f"- Add focused regression coverage\n"
+            f"- Chief harness can verify the result and report WORKING, or route REWORK back to polish loop\n"
+            f"verification:\n"
+            f"```bash\n"
+            f"./chief_env/bin/python -m pytest -q tests/test_chief_cassandra_failure.py tests/test_cassandra_status_wiring.py tests/test_cassandra_payment_verify.py tests/test_chief_llm_router.py\n"
+            f"```\n"
             f"generated_by: chief_cassandra_failure\n"
             f"generated_at: {datetime.now().isoformat()}\n"
+            f"repair_packet_json:\n"
+            f"```json\n{packet_json}\n```\n"
         )
         (_POLISH_TASKS_DIR / f"{task_name}.md").write_text(body, encoding="utf-8")
         return task_name
@@ -247,23 +361,26 @@ def _build_report(summary: str) -> str:
         )
 
     runtime_evidence = _latest_timestamped_runtime_evidence(summary)
+    orientation_timeout = _latest_orientation_model_timeout()
     error_line = _latest_listener_error_line()
-    task_name = _queue_failure_task(summary)
-    next_step = (
-        f"I queued {task_name} to inspect the latest Cassandra logs and failure path."
-        if task_name
-        else "Inspect the latest Cassandra listener and conversation logs."
-    )
     likely_cause = (
         runtime_evidence
         if runtime_evidence
+        else orientation_timeout
+        if orientation_timeout
         else f"Latest listener evidence: {_truncate(error_line, 180)}"
         if error_line
         else "No policy denial was active. Cassandra appears to have stalled inside her processing path or an upstream model/tool call."
     )
+    task_name = _queue_failure_task(summary, likely_cause)
+    next_step = (
+        f"I sent {task_name} to the polish loop with a repair packet. Chief should harness-test the result and report WORKING, or send it back as REWORK."
+        if task_name
+        else "Inspect the latest Cassandra listener and conversation logs, then hand the polish loop a bounded repair packet."
+    )
     return (
         f"Chief investigated Cassandra's failure for: {summary}\n\n"
-        f"Outcome: Chief can queue/autonomously fix it\n"
+        f"Outcome: Sent to polish loop for repair; Chief will verify the result\n"
         f"What failed: Cassandra did not produce a real result within 60 seconds.\n"
         f"Where it failed: Cassandra listener while waiting on cassandra_brain.handle().\n"
         f"Likely cause: {likely_cause}\n"

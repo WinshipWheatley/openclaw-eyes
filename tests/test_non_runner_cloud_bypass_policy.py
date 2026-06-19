@@ -38,13 +38,11 @@ ALLOWED_DIRECT_IMPORTS = {
 ALLOWED_DIRECT_CALLS = {
     ("chief_brainstorm_brain.py", "nemotron_call", "nemotron_call"),
     ("chief_cpa_brain.py", "nemotron_call", "nemotron_call"),
-    ("cassandra_brain.py", "nemotron_call", "nemotron_call"),
 }
 
 ALLOWED_DIRECT_NEMOTRON_GATES = {
     ("chief_brainstorm_brain.py", "_synthesize"): "_brainstorm_cloud_safe",
     ("chief_cpa_brain.py", "_parse_expense_from_text"): "_expense_cloud_safe",
-    ("cassandra_brain.py", "_call"): "external_model_packet_policy",
 }
 
 HARD_DENY_MARKERS = [
@@ -384,10 +382,10 @@ def test_cassandra_cloud_gate_delegates_clean_context_to_central_policy(monkeypa
 
 
 def test_cassandra_cloud_ok_true_still_requires_external_model_policy(monkeypatch):
-    def forbidden_nemotron(*args, **kwargs):
+    def forbidden_external_model(*args, **kwargs):
         raise AssertionError("cloud_ok=True must not bypass central external-model policy")
 
-    monkeypatch.setattr(cassandra_brain, "nemotron_call", forbidden_nemotron)
+    monkeypatch.setattr(cassandra_brain, "external_language_model_call", forbidden_external_model)
     monkeypatch.setattr(
         cassandra_brain,
         "resolve_local_model",
@@ -411,7 +409,7 @@ def test_cassandra_cloud_ok_true_still_requires_external_model_policy(monkeypatc
 def test_cassandra_cloud_ok_allows_only_explicit_public_metadata(monkeypatch):
     local_calls = []
 
-    monkeypatch.setattr(cassandra_brain, "nemotron_call", lambda *args, **kwargs: "cloud reply")
+    monkeypatch.setattr(cassandra_brain, "external_language_model_call", lambda *args, **kwargs: "cloud reply")
     monkeypatch.setattr(
         cassandra_brain,
         "ollama_call",

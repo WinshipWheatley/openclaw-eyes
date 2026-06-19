@@ -30,7 +30,13 @@ from pathlib import Path
 from typing import Any
 
 from chief_file_io import load_json, save_json
-from chief_llm import external_model_packet_policy, ollama_call, nemotron_call, resolve_local_model
+from chief_llm import (
+    external_language_model_call,
+    external_model_packet_policy,
+    ollama_call,
+    nemotron_call,
+    resolve_local_model,
+)
 from chief_output_utils import tts_clean
 from cassandra_mode import (
     is_focus_mode,
@@ -51,6 +57,14 @@ from finance_state import (
     format_finance_context,
     get_finance_payment_answer,
     get_finance_status_answer,
+)
+from capital_hilton_agency_status import (
+    format_capital_hilton_agency_answer,
+    format_capital_hilton_openclaw_status_answer,
+)
+from reynolds_gig_setup_status import (
+    format_reynolds_gig_setup_answer,
+    is_reynolds_gig_setup_query,
 )
 from capability_registry import get_actor, registry_context_for_query
 from business_ops_packet import assemble_business_ops_packet, BusinessOpsPacket
@@ -1107,8 +1121,8 @@ def _extract_fact_correction_summary(text: str) -> str:
         return ""
     normalized = " ".join(raw.split())
     patterns = (
-        r"\bcurrent truth is(?: only)?[:\s]+(.+?)(?:[.!?]|$)",
-        r"\bcurrent status is(?: only)?[:\s]+(.+?)(?:[.!?]|$)",
+        r"\bcurrent truth(?: is)?(?: only)?[:\s]+(.+?)(?:[.!?]|$)",
+        r"\bcurrent status(?: is)?(?: only)?[:\s]+(.+?)(?:[.!?]|$)",
         r"\bthe truth is(?: only)?[:\s]+(.+?)(?:[.!?]|$)",
         r"\bonly[:\s]+(.+?)(?:[.!?]|$)",
     )
@@ -1127,43 +1141,163 @@ def _extract_fact_correction_summary(text: str) -> str:
     return ""
 
 
+_FACT_CORRECTION_MARKERS = (
+    "stale",
+    "consumed",
+    "outdated",
+    "no longer true",
+    "isn't true anymore",
+    "is not true anymore",
+    "not true anymore",
+    "current truth",
+    "current status",
+    "superseded",
+)
+
+
+def _has_fact_correction_marker(text: str) -> bool:
+    lowered = str(text or "").lower()
+    return any(marker in lowered for marker in _FACT_CORRECTION_MARKERS) or (
+        "anymore" in lowered and "not " in lowered
+    )
+
+
+def _store_session_fact_override(
+    account_key: str,
+    summary: str,
+    source_text: str,
+    state: dict,
+) -> None:
+    overrides = _session_fact_overrides(state)
+    overrides[account_key] = {
+        "summary": summary,
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "source_text": str(source_text or "").strip(),
+    }
+    state["session_fact_overrides"] = overrides
+    state["pending_session_fact_correction"] = None
+
+
+def _format_session_fact_ack(label: str, summary: str) -> str:
+    clean = " ".join(str(summary or "").split()).strip()
+    suffix = "" if clean.endswith((".", "!", "?")) else "."
+    return f"Got it — for {label}, the current truth now is: {clean}{suffix}"
+
+
+def _looks_like_new_request_during_pending_correction(query: str) -> bool:
+    lowered = " ".join(str(query or "").lower().split())
+    if not lowered:
+        return False
+    if _extract_fact_correction_summary(query) or _has_fact_correction_marker(query):
+        return False
+
+    replacement_starters = (
+        "actually ",
+        "change it to ",
+        "current truth ",
+        "current truth is ",
+        "it is ",
+        "it's ",
+        "its ",
+        "make it ",
+        "no, ",
+        "now ",
+        "set it to ",
+        "they are ",
+        "they're ",
+        "update it ",
+        "we are ",
+        "we're ",
+    )
+    if lowered.startswith(replacement_starters):
+        return False
+
+    request_starters = (
+        "are ",
+        "can ",
+        "could ",
+        "did ",
+        "do ",
+        "does ",
+        "how ",
+        "is ",
+        "list ",
+        "show ",
+        "should ",
+        "summarize ",
+        "tell me ",
+        "what ",
+        "when ",
+        "where ",
+        "which ",
+        "who ",
+        "why ",
+        "would ",
+    )
+    if "?" in str(query or "") or lowered.startswith(request_starters):
+        return True
+
+    if any(term in lowered for term in ("agent", "agents", "telegram", "niles", "hermes", "guardian", "chief")):
+        return True
+
+    return False
+
+
+def _handle_pending_session_fact_correction(query: str, state: dict) -> str | None:
+    pending = state.get("pending_session_fact_correction")
+    if not isinstance(pending, dict):
+        return None
+
+    account_key = str(pending.get("account_key") or "").strip()
+    label = str(pending.get("label") or account_key).strip()
+    if not account_key:
+        state["pending_session_fact_correction"] = None
+        return None
+
+    lowered = str(query or "").lower()
+    if lowered.strip() in {"cancel", "never mind", "nevermind", "stop"}:
+        state["pending_session_fact_correction"] = None
+        return f"Got it. I left the stored note for {label} unchanged."
+
+    if _looks_like_new_request_during_pending_correction(query):
+        state["pending_session_fact_correction"] = None
+        return None
+
+    summary = _extract_fact_correction_summary(query)
+    if not summary and _has_fact_correction_marker(query):
+        return f"Right, I have {label} marked as stale. What should I change it to?"
+    if not summary:
+        summary = " ".join(str(query or "").split()).strip(" -,:;")
+    if not summary:
+        return f"Right, I have {label} marked as stale. What should I change it to?"
+
+    summary = summary[0].upper() + summary[1:]
+    _store_session_fact_override(account_key, summary, query, state)
+    return _format_session_fact_ack(label, summary)
+
+
 def _detect_session_fact_correction(query: str, state: dict) -> str | None:
     found = _session_finance_entity(query, state)
     if found is None:
         return None
     account_key, account = found
-    lowered = str(query or "").lower()
-    correction_markers = (
-        "stale",
-        "consumed",
-        "outdated",
-        "no longer true",
-        "isn't true anymore",
-        "is not true anymore",
-        "not true anymore",
-        "current truth",
-        "current status",
-        "superseded",
-    )
-    has_marker = any(marker in lowered for marker in correction_markers) or (
-        "anymore" in lowered and "not " in lowered
-    )
-    if not has_marker:
+    if not _has_fact_correction_marker(query):
         return None
 
     summary = _extract_fact_correction_summary(query)
     if not summary:
-        return None
+        label = str(account.get("label") or account_key).strip()
+        state["pending_session_fact_correction"] = {
+            "account_key": account_key,
+            "label": label,
+            "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "source_text": str(query or "").strip(),
+        }
+        return f"You're right — I may be looking at stale context for {label}. What should I change it to?"
 
-    overrides = _session_fact_overrides(state)
-    overrides[account_key] = {
-        "summary": summary,
-        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "source_text": str(query or "").strip(),
-    }
-    state["session_fact_overrides"] = overrides
+    _store_session_fact_override(account_key, summary, query, state)
     label = str(account.get("label") or account_key).strip()
-    return f"Got it — for {label}, the current truth now is: {summary}."
+    return _format_session_fact_ack(label, summary)
 
 
 def _get_session_fact_override(query: str, state: dict | None) -> tuple[str, dict] | None:
@@ -2092,51 +2226,143 @@ def _handle_file_verification_request(text: str) -> str | None:
         return "I tried to check that path but hit a problem. You may need to verify it directly."
 
 
-def _handle_ops_status_inquiry(query: str) -> str:
-    """Answers status inquiries using deterministic orientation/status surfaces."""
+def _extract_markdown_section(md: str, header: str) -> str:
+    lines = md.splitlines()
+    section = []
+    found = False
+    header_level = 0
+    for line in lines:
+        clean_line = line.strip()
+        match = re.match(r"^(#+)\s+", clean_line)
+        if match:
+            current_level = len(match.group(1))
+            if not found:
+                if header.lower() in clean_line.lower():
+                    found = True
+                    header_level = current_level
+                    continue
+            elif current_level <= header_level:
+                break
+
+        if found:
+            section.append(line)
+
+    return "\n".join(section).strip()
+
+
+def _clean_ops_bullets(section: str) -> list[str]:
+    bullets = []
+    for raw_line in section.splitlines():
+        item = raw_line.strip()
+        if not item:
+            continue
+        if item.startswith(("-", "*")):
+            item = item[1:].strip()
+        if item:
+            bullets.append(item)
+    return bullets
+
+
+def _rewrite_ops_confirmed_fact(item: str) -> list[str]:
+    if item.startswith("Active Handoff:"):
+        facts = ["Active handoff: current checkpoint for this work."]
+        match = re.search(r"roadmap authority is\s+(.+?)\.?$", item, re.IGNORECASE)
+        if match:
+            facts.append(f"Canonical roadmap source: {match.group(1).rstrip('.')}.")
+        return facts
+    return [item]
+
+
+def _build_cassandra_capability_packet() -> dict:
+    """Return a compact, bounded capability map for Cassandra orientation prompts."""
+    capabilities = {
+        "read_only_scripts": [
+            {
+                "name": "orientation_snapshot",
+                "command": "python scripts/orientation_snapshot.py",
+                "purpose": "build/read the current orientation snapshot",
+                "authority": "read_only",
+            },
+            {
+                "name": "operator_status_check",
+                "command": "python scripts/generate_operator_status.py --check",
+                "purpose": "check generated operator status surfaces",
+                "authority": "read_only",
+            },
+            {
+                "name": "tool_inventory_query",
+                "command": "python scripts/query_tool_inventory.py",
+                "purpose": "inspect local tool inventory read-models",
+                "authority": "read_only",
+            },
+            {
+                "name": "tool_intake_query",
+                "command": "python scripts/query_tool_intake.py",
+                "purpose": "inspect tool intake candidates",
+                "authority": "read_only",
+            },
+        ],
+        "available_patterns": [
+            "read local status/read-model files",
+            "stage bounded requests for approval",
+            "draft review material without sending",
+            "ask follow-up questions when context is old or ambiguous",
+        ],
+        "hard_bounds": [
+            "no external sends",
+            "no deploy, push, merge, service restart, or destructive mutation",
+            "no account or money movement",
+            "no raw restricted values in model prompts",
+        ],
+    }
+
+    reconciliation_path = Path("generated/read_models/cassandra_email_calendar_capability_reconciliation.json")
+    try:
+        if reconciliation_path.exists():
+            data = json.loads(reconciliation_path.read_text(encoding="utf-8"))
+            capabilities["connector_status"] = {
+                "live_mail_read_enabled": bool(data.get("live_gmail_read_enabled")),
+                "live_calendar_read_enabled": bool(data.get("live_calendar_read_enabled")),
+                "mail_draft_creation_enabled": bool(data.get("gmail_draft_creation_enabled")),
+                "mail_send_enabled": bool(data.get("email_send_enabled")),
+                "calendar_mutation_enabled": bool(data.get("calendar_mutation_enabled")),
+                "audit_only": bool(data.get("audit_only")),
+            }
+    except Exception:
+        capabilities["connector_status"] = {"status": "unreadable"}
+
+    return capabilities
+
+
+def _build_ops_status_packet(query: str) -> dict:
+    """Build Cassandra's deterministic orientation packet; this is context, not voice."""
     current_state_path = Path("Operator/GENERATED_CURRENT_STATE.md")
     next_actions_path = Path("Operator/GENERATED_NEXT_ACTIONS.md")
 
     if not current_state_path.exists() or not next_actions_path.exists():
-        return (
-            "Orientation status surfaces are missing. "
-            "Please run 'python scripts/generate_operator_status.py --check', "
-            "then '--write' only if stale."
-        )
+        return {
+            "packet_type": "cassandra_orientation_status_v1",
+            "query": query,
+            "status": "missing_surfaces",
+            "missing": [
+                str(current_state_path),
+                str(next_actions_path),
+            ],
+            "safe_operator_reply": (
+                "Orientation status surfaces are missing. "
+                "Please run 'python scripts/generate_operator_status.py --check', "
+                "then '--write' only if stale."
+            ),
+        }
 
     try:
         current_md = current_state_path.read_text(encoding="utf-8")
         next_md = next_actions_path.read_text(encoding="utf-8")
 
-        def extract_section(md: str, header: str) -> str:
-            lines = md.splitlines()
-            section = []
-            found = False
-            header_level = 0
-            for line in lines:
-                clean_line = line.strip()
-                # Use leading heading depth (only actual Markdown headings)
-                match = re.match(r'^(#+)\s+', clean_line)
-                if match:
-                    current_level = len(match.group(1))
-                    if not found:
-                        if header.lower() in clean_line.lower():
-                            found = True
-                            header_level = current_level
-                            continue
-                    else:
-                        if current_level <= header_level:
-                            break
-
-                if found:
-                    section.append(line)
-
-            return "\n".join(section).strip()
-
-        lane = extract_section(current_md, "Active Lane")
-        next_move = extract_section(next_md, "Next Safe Move")
-        unsafe_beyond = extract_section(next_md, "Unsafe Beyond")
-        confirmed = extract_section(current_md, "Confirmed System State")
+        lane = _extract_markdown_section(current_md, "Active Lane")
+        next_move = _extract_markdown_section(next_md, "Next Safe Move")
+        unsafe_beyond = _extract_markdown_section(next_md, "Unsafe Beyond")
+        confirmed = _extract_markdown_section(current_md, "Confirmed System State")
 
         # Fallback to get_orientation_snapshot if extraction fails to find something
         # (This is a read-only fallback, does not write files)
@@ -2149,33 +2375,130 @@ def _handle_ops_status_inquiry(query: str) -> str:
             except Exception:
                 pass
 
-        reply = [
-            "--- OpenClaw Orientation Status ---",
-            "Based on the latest deterministic surfaces:",
-            "",
-            "• Active Lane:",
-            lane or "Unknown (status surfaces may be incomplete)",
-            "",
-            "• Next Safe Move:",
-            next_move or "Unknown",
-            "",
-        ]
-        if unsafe_beyond:
-            reply.extend([
-                "• Unsafe Beyond:",
-                unsafe_beyond,
-                "",
-            ])
+        confirmed_facts = []
+        for fact in _clean_ops_bullets(confirmed):
+            confirmed_facts.extend(_rewrite_ops_confirmed_fact(fact))
 
-        reply.extend([
-            "• Confirmed Facts:",
-            confirmed or "None recorded",
-            "",
-            "NOTE: No live runtime health is claimed. This is a read-only orientation snapshot."
-        ])
-        return "\n".join(reply)
+        return {
+            "packet_type": "cassandra_orientation_status_v1",
+            "query": query,
+            "status": "ready",
+            "current_documented_lane": lane or "Unknown",
+            "raw_next_safe_move": next_move or "Unknown",
+            "recommended_next_move": (
+                "Review Orientation Snapshot v0 for five-second usefulness. "
+                "After wording is approved, wire Cassandra's read-only where-are-we response "
+                "to that verified snapshot."
+                if next_move else "Unknown"
+            ),
+            "confirmed_facts": confirmed_facts,
+            "not_yet_confirmed": [
+                "Cassandra is not yet confirmed to be reading directly from Orientation Snapshot v0.",
+                "No live runtime health is claimed.",
+                "Some personal operations read-models may be old; if the operator says stale, ask what should change.",
+                "No external model key or configured external model is assumed by this packet.",
+            ],
+            "unsafe_beyond": unsafe_beyond,
+            "capabilities": _build_cassandra_capability_packet(),
+            "voice_instructions": [
+                "Answer as Cassandra, not as the packet.",
+                "Do not expose internal jargon like deterministic surfaces.",
+                "Choose one recommended next move, then mention alternatives only if helpful.",
+                "Translate uncertainty into practical consequences.",
+                "If the operator says something is stale, ask what they want changed.",
+            ],
+        }
     except Exception:
-        return "Orientation status surfaces could not be read safely. Run the generated status check, then retry."
+        return {
+            "packet_type": "cassandra_orientation_status_v1",
+            "query": query,
+            "status": "read_error",
+            "safe_operator_reply": (
+                "Orientation status surfaces could not be read safely. "
+                "Run the generated status check, then retry."
+            ),
+        }
+
+
+def _format_ops_status_fallback(packet: dict) -> str:
+    if packet.get("safe_operator_reply"):
+        return str(packet["safe_operator_reply"])
+
+    confirmed_facts = packet.get("confirmed_facts")
+    reply = [
+        "OpenClaw Orientation",
+        "",
+        "Current documented lane",
+        str(packet.get("current_documented_lane") or "Unknown"),
+        "",
+        "Recommended next move",
+        str(packet.get("recommended_next_move") or "Unknown"),
+        "",
+        "Confirmed",
+    ]
+    if isinstance(confirmed_facts, list) and confirmed_facts:
+        reply.extend(f"- {fact}" for fact in confirmed_facts)
+    else:
+        reply.append("- None recorded")
+    reply.extend([
+        "",
+        "Not yet confirmed",
+        "- Cassandra is not yet confirmed to be reading directly from Orientation Snapshot v0.",
+        "- No claim is being made about live runtime health.",
+        "",
+        "Status: Ready for snapshot wording review.",
+    ])
+    return "\n".join(reply)
+
+
+def _build_ops_status_model_prompt(query: str, packet: dict) -> str:
+    packet_json = json.dumps(packet, indent=2, sort_keys=True)
+    return (
+        "You are Cassandra, the operator-facing OpenClaw orientation voice.\n"
+        "The JSON packet below is bounded context, not final copy.\n"
+        "Use the packet to answer the operator in plain, practical language.\n"
+        "Keep it concise. Pick one best next move. Do not claim live runtime health.\n"
+        "Do not expose internal implementation phrases unless the operator asks for backend details.\n"
+        "If any context sounds old or the operator says it is stale, ask what should change.\n"
+        "Mention available script-backed capabilities only when they help the next move.\n\n"
+        f"Operator question: {query}\n\n"
+        f"ORIENTATION_PACKET_JSON:\n{packet_json}\n\n"
+        "Cassandra:"
+    )
+
+
+def _answer_ops_status_inquiry(query: str, state: dict) -> tuple[str, dict]:
+    packet = _build_ops_status_packet(query)
+    if packet.get("status") != "ready":
+        return _format_ops_status_fallback(packet), packet
+    prompt = _build_ops_status_model_prompt(query, packet)
+    safe_prompt, pii_ctx = _pii_tokenize(prompt)
+    if safe_prompt is None:
+        return _format_ops_status_fallback(packet), packet
+
+    metadata = {
+        "workload": "cassandra_user_reply",
+        "cloud_ok": True,
+        "data_classification": "sanitized_public",
+        "cloud_allowed": "true",
+    }
+    reply = external_language_model_call(
+        safe_prompt,
+        metadata=metadata,
+        timeout=20,
+    ).strip()
+    if reply:
+        print("[cassandra] orientation reply routed to external language model", flush=True)
+        reply = _pii_rehydrate_reply(reply, pii_ctx).strip()
+    if not reply:
+        print("[cassandra] orientation external model unavailable; using verified snapshot fallback", flush=True)
+        reply = _format_ops_status_fallback(packet)
+    return reply, packet
+
+
+def _handle_ops_status_inquiry(query: str) -> str:
+    """Backward-compatible deterministic fallback for status inquiries."""
+    return _format_ops_status_fallback(_build_ops_status_packet(query))
 
 
 def _detect_payment_verify_intent(text: str) -> bool:
@@ -2254,7 +2577,47 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
     reply = get_finance_status_answer(text)
     if reply is not None and isinstance(state, dict):
         _remember_finance_entity(text, state)
+        return (
+            "Stored finance read-model says (not live-confirmed): "
+            f"{reply} If that's stale, tell me what to change."
+        )
     return reply
+
+
+def _should_route_finance_status_before_intake(text: str, gmail_decision: Any | None = None) -> bool:
+    if not detect_finance_status_intent(text):
+        return False
+    t = (text or "").lower()
+    status_markers = (
+        "status",
+        "where are we",
+        "where do we stand",
+        "what is current",
+        "what's current",
+        "current truth",
+        "current state",
+        "latest",
+        "update",
+    )
+    live_verify_markers = (
+        "come through",
+        "did it land",
+        "hit the account",
+        "cleared",
+        "posted",
+        "verify",
+        "confirm",
+        "search",
+        "find the",
+        "see the",
+    )
+    if any(marker in t for marker in live_verify_markers):
+        return False
+    if any(marker in t for marker in status_markers):
+        return True
+    if getattr(gmail_decision, "category", "") == "payment_verify":
+        return False
+    return not _looks_like_payment_verify_query(text)
 
 
 # ── Future-action enqueue pipeline ───────────────────────────────────────────
@@ -5502,9 +5865,13 @@ def _call(
             policy_metadata.update(external_model_metadata)
         policy = external_model_packet_policy(prompt, metadata=policy_metadata)
         if policy.get("external_model_safe"):
-            result = nemotron_call(prompt, timeout=30).strip()
+            result = external_language_model_call(
+                prompt,
+                metadata=policy_metadata,
+                timeout=30,
+            ).strip()
             if result:
-                print("[cassandra] reply routed to Nemotron cloud", flush=True)
+                print("[cassandra] reply routed to external language model", flush=True)
                 return result
             print("[cassandra] cloud call failed or empty, falling back to local", flush=True)
         else:
@@ -5661,6 +6028,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     # Deterministic Intent (Business Ops Spine Step 2)
     ops_intent = classify_business_ops_intent(query)
     system_knowledge_query = _is_system_knowledge_registry_query(query)
+    reynolds_setup_query = is_reynolds_gig_setup_query(query)
 
     # Formalize the Context/Capability Packet (Business Ops Spine Step 3)
     ops_packet = assemble_business_ops_packet(
@@ -5671,7 +6039,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
 
     # Record the event and packet receipt in the SQLite Ledger (Business Ops Spine Step 7)
     # Skip ledger write for deterministic status/self-knowledge inquiries to preserve pure read-only behavior.
-    if ops_intent.intent_name == "ops_status" or system_knowledge_query:
+    if ops_intent.intent_name == "ops_status" or system_knowledge_query or reynolds_setup_query:
         event_id = None
     else:
         event_id = record_cassandra_packet_event(query, ops_packet)
@@ -5711,6 +6079,65 @@ def handle(text: str, session: dict | None = None) -> list[str]:
                 "external_calls_performed": False,
                 "runtime_mutation_performed": False,
                 "business_action_performed": False,
+            },
+        )
+        return reply
+
+    capital_hilton_agency_reply = format_capital_hilton_agency_answer(query)
+    if capital_hilton_agency_reply is not None:
+        reply = [capital_hilton_agency_reply]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="capital_hilton_agency_status",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "model_called": False,
+                "external_calls_performed": False,
+                "runtime_mutation_performed": False,
+                "money_or_ledger_mutation_performed": False,
+            },
+        )
+        return reply
+
+    capital_hilton_openclaw_status_reply = format_capital_hilton_openclaw_status_answer(query)
+    if capital_hilton_openclaw_status_reply is not None:
+        reply = [capital_hilton_openclaw_status_reply]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="capital_hilton_openclaw_status",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "model_called": False,
+                "external_calls_performed": False,
+                "runtime_mutation_performed": False,
+                "money_or_ledger_mutation_performed": False,
+            },
+        )
+        return reply
+
+    reynolds_gig_setup_reply = format_reynolds_gig_setup_answer(query)
+    if reynolds_gig_setup_reply is not None:
+        reply = [reynolds_gig_setup_reply]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="reynolds_gig_setup_status",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "model_called": False,
+                "external_calls_performed": False,
+                "runtime_mutation_performed": False,
+                "calendar_or_contact_mutation_performed": False,
+                "invoice_send_performed": False,
+                "money_or_ledger_mutation_performed": False,
             },
         )
         return reply
@@ -5847,7 +6274,9 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         _log_conversation(text, [pay_cmd], route="payment_cmd", metadata={"event_id": event_id})
         return [pay_cmd]
 
-    correction_reply = _detect_session_fact_correction(text, state)
+    correction_reply = _handle_pending_session_fact_correction(text, state)
+    if correction_reply is None:
+        correction_reply = _detect_session_fact_correction(text, state)
     if correction_reply is not None:
         save_state(state)
         _log_conversation(text, [correction_reply], route="session_fact_correction", metadata={"event_id": event_id})
@@ -5864,6 +6293,13 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     except Exception as _e:
         pass  # briefing module unavailable — fall through to LLM
 
+    if _should_route_finance_status_before_intake(query, gmail_decision):
+        finance_reply = _handle_finance_status_request(query, state)
+        if finance_reply is not None:
+            save_state(state)
+            _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
+            return [finance_reply]
+
     # Deterministic Status Inquiry (Business Ops Spine Step 5)
     # Priority: Must come before fuzzy intent matching for financial/future-action
     # to ensure "remind me what's current" routes to status, not a reminder.
@@ -5874,8 +6310,19 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [finance_reply]
         save_state(state)
-        status_reply = _handle_ops_status_inquiry(query)
-        _log_conversation(text, [status_reply], route="ops_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
+        status_reply, status_packet = _answer_ops_status_inquiry(query, state)
+        _log_conversation(
+            text,
+            [status_reply],
+            route="ops_status",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "orientation_packet_type": status_packet.get("packet_type"),
+                "orientation_packet_status": status_packet.get("status"),
+                "model_called": True,
+            },
+        )
         return [status_reply]
 
     query = _strip_prefix(text)
@@ -6266,7 +6713,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             })
             return [pay_reply]
 
-    if not _looks_like_payment_verify_query(query) and detect_finance_status_intent(query):
+    if _should_route_finance_status_before_intake(query, gmail_decision):
         finance_reply = _handle_finance_status_request(query, state)
         if finance_reply is not None:
             save_state(state)

@@ -279,6 +279,30 @@ def test_llm_review_clear_pass_and_fail_behavior(monkeypatch):
     assert detail == "LLM review: FAIL: syntax error introduced"
 
 
+def test_verification_command_allows_repo_virtualenv_python(monkeypatch):
+    seen = {}
+
+    def fake_run(cmd, **kwargs):
+        seen["cmd"] = cmd
+        seen["cwd"] = kwargs.get("cwd")
+        return SimpleNamespace(returncode=0, stdout="1 passed", stderr="")
+
+    monkeypatch.setattr(fallback.subprocess, "run", fake_run, raising=False)
+    task = (
+        "verification:\n"
+        "```bash\n"
+        "./chief_env/bin/python -m pytest -q tests/test_chief_cassandra_failure.py\n"
+        "```\n"
+    )
+
+    ok, detail = fallback._run_verification_command(task)
+
+    assert ok is True
+    assert seen["cmd"].startswith("./chief_env/bin/python -m pytest")
+    assert seen["cwd"] == "/home/openclaw"
+    assert detail.startswith("verification passed")
+
+
 def test_structural_review_blocks_on_llm_review_unavailable(isolated_loop, tmp_path, monkeypatch):
     changed_file = tmp_path / "claimed_change.py"
     changed_file.write_text("print('ok')\n")

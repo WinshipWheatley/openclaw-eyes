@@ -254,8 +254,63 @@ def test_hilton_status_question_routes_directly_from_finance_state(tmp_path, mon
     replies = cassandra_brain.handle("Where are we with Capital Hilton?")
 
     assert replies == [
-        "Two Capital Hilton gigs already happened. The first gig is fully settled. The later gig still needs a new invoice uploaded through SmartSpend before payment can start. The first Capital Hilton gig was paid in full: 400 dollars via Venmo. The later-gig payment is not in motion yet because the new invoice has not been uploaded to SmartSpend. Next: Create the new invoice for the later gig and upload it into SmartSpend."
+        "Stored finance read-model says (not live-confirmed): Two Capital Hilton gigs already happened. The first gig is fully settled. The later gig still needs a new invoice uploaded through SmartSpend before payment can start. The first Capital Hilton gig was paid in full: 400 dollars via Venmo. The later-gig payment is not in motion yet because the new invoice has not been uploaded to SmartSpend. Next: Create the new invoice for the later gig and upload it into SmartSpend. If that's stale, tell me what to change."
     ]
+    assert logged[-1]["route"] == "finance_status"
+
+
+def test_prefixed_hilton_status_question_bypasses_universal_intake(tmp_path, monkeypatch):
+    import cassandra_brain
+    import finance_state
+
+    finance_path = tmp_path / "finance_state.json"
+    finance_path.write_text(
+        json.dumps(
+            {
+                "accounts": {
+                    "capital_hilton": {
+                        "label": "Capital Hilton",
+                        "aliases": ["capital hilton", "hilton", "smartspend"],
+                        "workflow_summary": "Capital Hilton status is stale unless corrected by Winship.",
+                        "payment_summary": "Waiting on Coupa verification.",
+                        "next_actions": [
+                            {
+                                "status": "open",
+                                "action": "Ask Winship what the current Capital Hilton truth should be."
+                            }
+                        ]
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    logged = []
+    monkeypatch.setattr(finance_state, "FINANCE_STATE_PATH", finance_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None, raising=False)
+    monkeypatch.setattr(cassandra_brain, "process_pending_followups", lambda: [], raising=False)
+    monkeypatch.setattr(cassandra_brain, "_handle_operator_objective", lambda *args, **kwargs: None, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_process_guided_review_message", lambda *args, **kwargs: None, raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_try_universal_operator_intake",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("universal intake should not steal finance status")),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_log_conversation",
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
+        raising=False,
+    )
+
+    replies = cassandra_brain.handle("Cassandra test, draft a text-only answer: Capital Hilton status?")
+
+    assert replies[0].startswith("Stored finance read-model says (not live-confirmed):")
+    assert "Capital Hilton status is stale unless corrected by Winship." in replies[0]
+    assert "If that's stale, tell me what to change." in replies[0]
     assert logged[-1]["route"] == "finance_status"
 
 
@@ -336,6 +391,20 @@ def test_session_fact_correction_overrides_stale_finance_status_in_followup(tmp_
     assert logged[-1]["route"] == "finance_status"
 
 
+def test_fact_correction_summary_accepts_colon_current_truth():
+    import cassandra_brain
+
+    summary = cassandra_brain._extract_fact_correction_summary(
+        "Capital Hilton current truth: everything is checked off except them sending me the actual check; "
+        "they are going to send the actual check on July 1, 2026."
+    )
+
+    assert summary == (
+        "Everything is checked off except them sending me the actual check; "
+        "they are going to send the actual check on July 1, 2026"
+    )
+
+
 def test_implicit_same_session_correction_uses_last_finance_entity(tmp_path, monkeypatch):
     import cassandra_brain
     import finance_state
@@ -410,6 +479,96 @@ def test_implicit_same_session_correction_uses_last_finance_entity(tmp_path, mon
 
     assert followup == ["Waiting for Coupa to verify me, then PO orders can come through."]
     assert logged[-1]["route"] == "finance_status"
+
+
+def test_stale_callout_without_replacement_starts_two_turn_correction(tmp_path, monkeypatch):
+    import cassandra_brain
+    import finance_state
+
+    finance_path = tmp_path / "finance_state.json"
+    finance_path.write_text(
+        json.dumps(
+            {
+                "accounts": {
+                    "capital_hilton": {
+                        "label": "Capital Hilton",
+                        "aliases": ["capital hilton", "hilton", "coupa"],
+                        "workflow_summary": "Will is talking to Chyna on Monday about Capital Hilton.",
+                        "payment_summary": "Capital Hilton status still depends on the Monday Chyna handoff.",
+                        "next_actions": [
+                            {"status": "open", "action": "Talk to Chyna on Monday."}
+                        ],
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    shared_state = copy.deepcopy(cassandra_brain._DEFAULT_STATE)
+    logged = []
+
+    monkeypatch.setattr(finance_state, "FINANCE_STATE_PATH", finance_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: shared_state, raising=False)
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: shared_state.update(state), raising=False)
+    monkeypatch.setattr(cassandra_brain, "process_pending_followups", lambda: [], raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("two-turn correction should bypass LLM")),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_log_conversation",
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
+        raising=False,
+    )
+
+    baseline = cassandra_brain.handle("Where are we with Capital Hilton?")
+    assert "Stored finance read-model says (not live-confirmed)" in baseline[0]
+    assert shared_state["last_finance_entity"]["key"] == "capital_hilton"
+
+    stale_callout = cassandra_brain.handle("hey that's old and stale")
+
+    assert stale_callout == [
+        "You're right — I may be looking at stale context for Capital Hilton. What should I change it to?"
+    ]
+    assert shared_state["pending_session_fact_correction"]["account_key"] == "capital_hilton"
+
+    replacement = cassandra_brain.handle("we are waiting for Coupa verification; Will already did his part.")
+
+    assert replacement == [
+        "Got it — for Capital Hilton, the current truth now is: We are waiting for Coupa verification; Will already did his part."
+    ]
+    assert shared_state["session_fact_overrides"]["capital_hilton"]["summary"] == (
+        "We are waiting for Coupa verification; Will already did his part"
+    )
+    assert shared_state["pending_session_fact_correction"] is None
+    assert logged[-1]["route"] == "session_fact_correction"
+
+
+def test_pending_stale_correction_does_not_consume_unrelated_question():
+    import cassandra_brain
+
+    state = {
+        "pending_session_fact_correction": {
+            "account_key": "capital_hilton",
+            "label": "Capital Hilton",
+            "at": "2026-06-19 00:00:00",
+            "source_text": "that Capital Hilton thing is stale",
+        },
+        "session_fact_overrides": {},
+    }
+
+    reply = cassandra_brain._handle_pending_session_fact_correction(
+        "which agents are telegram ready?",
+        state,
+    )
+
+    assert reply is None
+    assert state["pending_session_fact_correction"] is None
+    assert state["session_fact_overrides"] == {}
 
 
 def test_st_annes_january_23_status_stays_specific(tmp_path, monkeypatch):

@@ -1,16 +1,16 @@
 # OpenClaw Change Sentinel
 
 Summary:
-- Status: `MATERIAL_CHANGE_DETECTED`.
+- Status: `NO_MATERIAL_CHANGE`.
 - Observed targets: 30.
-- Material changes: 2.
+- Material changes: 0.
 - Chief queue candidates: 0 (not launched).
 - LM called: `False`.
 
 Hermes Summary:
-- What changed: service_status:openclaw-request-response.service changed from 'active' to 'active'. service_restart_count:openclaw-request-response.service changed from '2' to '0'.
-- Why it matters: A deterministic target moved, drifted, or became unstable.
-- Next: Review the recommended actions before assigning any build or repair work.
+- What changed: No material change since the previous sentinel snapshot.
+- Why it matters: OpenClaw can keep using the current generated state.
+- Next: No action required; rerun on the next 20-minute cadence or manually when needed.
 
 Observed Targets:
 - `input_read_model:reference_resolver` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
@@ -37,16 +37,12 @@ Observed Targets:
 - `payment_watch:live_arts_md_invoice_workflow` `PAYMENT_WATCH` -> `NO_MATERIAL_CHANGE` `READINESS_ONLY_NOT_ACTIVE`.
 - `workflow_state:capital_hilton_invoice_workflow` `WORKFLOW_STATE` -> `NO_MATERIAL_CHANGE` `sha256:40f551d76024bb78c769840ed2e7bfe8f87931d8ac8dcfe9209c0647445d989a`.
 - `payment_watch:capital_hilton_invoice_workflow` `PAYMENT_WATCH` -> `NO_MATERIAL_CHANGE` `NOT_READY`.
-- `mac_heartbeat:sync_health` `MAC_HEARTBEAT` -> `BRIDGE_STALE` `stale_needs_mac_sync`.
+- `mac_heartbeat:sync_health` `MAC_HEARTBEAT` -> `NO_MATERIAL_CHANGE` `stale_needs_pc_import`.
 - `business_object_audit:freshness` `BUSINESS_OBJECT_AUDIT` -> `BUSINESS_OBJECT_AUDIT_STALE` `STALE`.
 - `authority_semantics_registry:fingerprint` `AUTHORITY_SEMANTICS_REGISTRY` -> `NO_MATERIAL_CHANGE` `authority_semantics_v0`.
 - `lane_capability_harvest:recommendation` `LANE_CAPABILITY_HARVEST` -> `NO_MATERIAL_CHANGE` `finish_invoice_steel_thread_sequence`.
 - `service_status:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `active`.
-- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `0`.
-
-Material Changes:
-- `MATERIAL_CHANGE_DETECTED`: service_status:openclaw-request-response.service changed from 'active' to 'active'.
-- `MATERIAL_CHANGE_DETECTED`: service_restart_count:openclaw-request-response.service changed from '2' to '0'.
+- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `4`.
 
 Timer Proposal:
 - Proposed timer path: `~/.config/systemd/user/openclaw-change-sentinel.timer`.
