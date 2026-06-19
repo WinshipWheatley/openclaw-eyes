@@ -233,6 +233,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("send_reply_email_action", False, "send_reply_email_action_intent_routes_to_staging")
     if _is_inbox_metadata_intent(normalized):
         return ("inbox_gmail_metadata", False, "gmail_metadata_queries_use_existing_staging_path_for_truthful_proof")
+    if _is_calendar_or_briefing_intent(normalized):
+        return ("calendar_or_briefing", False, "calendar_or_briefing_routes_to_staging")
     if _is_workflow_or_business_action_intent(normalized):
         return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     if _is_date_awareness_intent(normalized):
@@ -280,7 +282,10 @@ def answer_frontdoor_chat(
         )
 
     if intent_class == "status_capability_readback":
-        answer = build_truthful_status_capability_answer(session=session)
+        answer = build_truthful_status_capability_answer(
+            session=session,
+            focus=_status_capability_readback_focus(_normalize(text)),
+        )
         return MaestroCassandraResult(
             status="ANSWER_READY",
             intent_class=intent_class,
@@ -415,11 +420,16 @@ def build_hermes_truthful_advisory_answer(text: str) -> dict[str, Any]:
     }
 
 
-def build_truthful_status_capability_answer(*, session: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def build_truthful_status_capability_answer(
+    *,
+    session: Mapping[str, Any] | None = None,
+    focus: str = "status",
+) -> dict[str, Any]:
     root = _read_model_root_from_session(session)
     capability_payload, capability_path = _read_json_read_model(root, CAPABILITY_INDEX_READ_MODEL)
     presence_payload, presence_path = _read_json_read_model(root, AGENT_PRESENCE_READ_MODEL)
     chief_payload, chief_path = _read_json_read_model(root, CHIEF_STATUS_READ_MODEL)
+    readback_focus = _normalize_readback_focus(focus)
 
     capabilities = [
         row
@@ -452,6 +462,8 @@ def build_truthful_status_capability_answer(*, session: Mapping[str, Any] | None
         for row in agents
         if str(row.get("actual_state") or "").lower() == "online"
     ]
+    roster_entries = _agent_roster_entries(agents, limit=8)
+    next_safe_move = _next_safe_move(presence_payload, agents)
     proof_refs = tuple(
         path.as_posix()
         for payload, path in (
@@ -477,15 +489,19 @@ def build_truthful_status_capability_answer(*, session: Mapping[str, Any] | None
             if presence_payload
             else "agent presence is unverified in this readback"
         )
-        one_line = (
-            f"OpenClaw status: {online_phrase}; "
-            f"{len(live_capabilities)} live-implemented rails and "
-            f"{len(nonexecuting_capabilities)} non-executing readback rails are listed."
-        )
         live_names = _capability_names(live_capabilities, limit=5)
         nonexec_names = _capability_names(nonexecuting_capabilities, limit=5)
         blocked_names = _capability_names(blocked_or_future, limit=4)
         chief_summary = _chief_status_summary(chief_payload)
+        one_line = _status_capability_one_line(
+            readback_focus=readback_focus,
+            online_phrase=online_phrase,
+            live_count=len(live_capabilities),
+            nonexecuting_count=len(nonexecuting_capabilities),
+            live_names=live_names,
+            roster_entries=roster_entries,
+            next_safe_move=next_safe_move,
+        )
         lines = [
             "Here is the truthful readback from current generated state.",
             "",
@@ -493,6 +509,10 @@ def build_truthful_status_capability_answer(*, session: Mapping[str, Any] | None
             f"- Proven live-implemented rails: {_join_names(live_names)}.",
             f"- Safe non-executing readback rails: {_join_names(nonexec_names)}.",
         ]
+        if roster_entries:
+            lines.append(f"- Agent roster: {_join_names(roster_entries)}.")
+        if next_safe_move:
+            lines.append(f"- Next safe move: {next_safe_move}.")
         if chief_summary:
             lines.append(f"- Chief: {chief_summary}.")
         if blocked_names:
@@ -511,8 +531,10 @@ def build_truthful_status_capability_answer(*, session: Mapping[str, Any] | None
         "plain_summary": plain,
         "machine_proof": {
             "status_capability_readback_performed": True,
+            "readback_focus": readback_focus,
             "capability_index_used": bool(capability_payload),
             "agent_presence_used": bool(presence_payload),
+            "agent_roster_summarized": bool(roster_entries),
             "chief_status_rail_used": bool(chief_payload),
             "source_truth_refs": proof_refs,
             "live_implemented_capability_count": len(live_capabilities),
@@ -564,6 +586,73 @@ def _capability_names(rows: Sequence[Mapping[str, Any]], *, limit: int) -> tuple
 
 def _join_names(names: Sequence[str]) -> str:
     return ", ".join(str(name) for name in names if str(name).strip()) or "none verified"
+
+
+def _normalize_readback_focus(focus: str) -> str:
+    normalized = _normalize(focus).replace("-", "_").replace(" ", "_")
+    if normalized in {"capability", "capabilities"}:
+        return "capability"
+    if normalized in {"agent_roster", "agents", "roster"}:
+        return "agent_roster"
+    if normalized in {"next_safe_move", "safe_move", "next_move"}:
+        return "next_safe_move"
+    return "status"
+
+
+def _agent_roster_entries(rows: Sequence[Mapping[str, Any]], *, limit: int) -> tuple[str, ...]:
+    entries: list[str] = []
+    for row in rows:
+        display = str(row.get("display_name") or row.get("agent_id") or "").strip()
+        if not display:
+            continue
+        state = str(row.get("actual_state") or "unknown").strip() or "unknown"
+        lane = str(row.get("lane_id") or "").strip()
+        role = str(row.get("role") or row.get("reason") or "").strip()
+        details = "; ".join(part for part in (state, lane, role) if part)
+        entries.append(f"{display} ({details})" if details else display)
+        if len(entries) >= limit:
+            break
+    return tuple(entries)
+
+
+def _next_safe_move(
+    presence_payload: Mapping[str, Any],
+    agents: Sequence[Mapping[str, Any]],
+) -> str:
+    top_level = str(presence_payload.get("next_safe_move") or "").strip()
+    if top_level:
+        return top_level.rstrip(".")
+    for row in agents:
+        move = str(row.get("next_safe_move") or "").strip()
+        if move and move.lower() != "no recovery needed.":
+            return move.rstrip(".")
+    return "Use the readback rails only; no runtime action is authorized from this front door"
+
+
+def _status_capability_one_line(
+    *,
+    readback_focus: str,
+    online_phrase: str,
+    live_count: int,
+    nonexecuting_count: int,
+    live_names: Sequence[str],
+    roster_entries: Sequence[str],
+    next_safe_move: str,
+) -> str:
+    if readback_focus == "agent_roster":
+        return f"Agent roster: {_join_names(roster_entries)}."
+    if readback_focus == "next_safe_move":
+        return f"Next safe move: {next_safe_move}."
+    if readback_focus == "capability":
+        return (
+            f"I can help with truthful readbacks such as {_join_names(live_names)}; "
+            "sends, Gmail, calendar, browser, deploy, and workflow actions stay gated."
+        )
+    return (
+        f"OpenClaw status: {online_phrase}; "
+        f"{live_count} live-implemented rails and "
+        f"{nonexecuting_count} non-executing readback rails are listed."
+    )
 
 
 def _chief_status_summary(payload: Mapping[str, Any]) -> str:
@@ -728,7 +817,23 @@ def _is_status_capability_intent(text: str) -> bool:
         "what are you capable of",
         "what can you do now",
         "what can you do for me",
+        "what can you help me with",
+        "what can openclaw help me with",
         "what can the agents do",
+        "who are the agents",
+        "what does each agent do",
+        "what does each do",
+        "agent roster",
+        "agent list",
+        "which agents are live",
+        "which agents are online",
+        "system-wide next safe move",
+        "system wide next safe move",
+        "next safe move",
+        "next safest move",
+        "safe next move",
+        "status readback",
+        "give me a status readback",
         "what is live",
         "what's live",
         "whats live",
@@ -741,15 +846,60 @@ def _is_status_capability_intent(text: str) -> bool:
     if any(phrase in text for phrase in direct_phrases):
         return True
     return (
-        any(term in text for term in ("status", "capability", "capabilities", "online", "blocked"))
+        any(term in text for term in ("status", "capability", "capabilities", "online", "blocked", "roster"))
         and any(term in text for term in ("openclaw", "agents", "agent", "you", "can", "do"))
     )
+
+
+def _status_capability_readback_focus(text: str) -> str:
+    if any(
+        phrase in text
+        for phrase in (
+            "who are the agents",
+            "agent roster",
+            "agent list",
+            "what does each agent do",
+            "what does each do",
+            "which agents",
+        )
+    ):
+        return "agent_roster"
+    if any(
+        phrase in text
+        for phrase in (
+            "system-wide next safe move",
+            "system wide next safe move",
+            "next safe move",
+            "next safest move",
+            "safe next move",
+        )
+    ):
+        return "next_safe_move"
+    if any(
+        phrase in text
+        for phrase in (
+            "what can you help me with",
+            "what can you do",
+            "what can openclaw do",
+            "what are you capable of",
+            "capability",
+            "capabilities",
+        )
+    ):
+        return "capability"
+    return "status"
 
 
 def _is_inbox_metadata_intent(text: str) -> bool:
     return bool(
         re.search(r"\b(gmail|inbox|unread|email metadata|new emails?|recent emails?)\b", text)
         and not _is_send_or_reply_intent(text)
+    )
+
+
+def _is_calendar_or_briefing_intent(text: str) -> bool:
+    return bool(
+        re.search(r"\b(calendar|meetings?|schedule|morning briefing|daily briefing|briefing)\b", text)
     )
 
 
