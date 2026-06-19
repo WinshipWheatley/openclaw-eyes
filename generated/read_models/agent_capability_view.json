@@ -1,0 +1,3550 @@
+{
+  "agent_count": 7,
+  "agents": [
+    {
+      "action_authority_granted": false,
+      "activation_status": "NOT_ACTIVATED_BY_VIEW",
+      "agent_id": "cassandra",
+      "aliases": [
+        "operator_briefing",
+        "comms_lane",
+        "business_ops",
+        "ar_lane"
+      ],
+      "allowed_worlds": [
+        "finance",
+        "communications",
+        "operations",
+        "business_development",
+        "cross_world"
+      ],
+      "authority_level": "advisory_only",
+      "capability_summary": {
+        "allowed_input_count": 6,
+        "allowed_output_count": 6,
+        "approval_required_count": 5,
+        "blocked_input_count": 5,
+        "blocked_output_count": 6,
+        "lane_capability_count": 36,
+        "legacy_claim_count": 13,
+        "legacy_connected_claim_count": 11,
+        "receipt_required_count": 3
+      },
+      "display_name": "Cassandra",
+      "integration_posture": {
+        "action_authority_granted": false,
+        "approval_bypass_allowed": false,
+        "legacy_claims_do_not_override_lane_authority": true,
+        "runtime_dispatch_allowed": false,
+        "view_role": "routing_context_and_capability_readback"
+      },
+      "lane_capabilities": [
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_input:action_status_summary",
+          "capability_kind": "allowed_input",
+          "capability_name": "action_status_summary",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_input:context_packet",
+          "capability_kind": "allowed_input",
+          "capability_name": "context_packet",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_input:generated_read_model",
+          "capability_kind": "allowed_input",
+          "capability_name": "generated_read_model",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_input:operator_intent",
+          "capability_kind": "allowed_input",
+          "capability_name": "operator_intent",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_input:operator_local_intake_event",
+          "capability_kind": "allowed_input",
+          "capability_name": "operator_local_intake_event",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_input:source_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "source_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_output:draft_message",
+          "capability_kind": "allowed_output",
+          "capability_name": "draft_message",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_output:follow_up_plan",
+          "capability_kind": "allowed_output",
+          "capability_name": "follow_up_plan",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_output:local_business_ops_receipt",
+          "capability_kind": "allowed_output",
+          "capability_name": "local_business_ops_receipt",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_output:operator_briefing",
+          "capability_kind": "allowed_output",
+          "capability_name": "operator_briefing",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_output:summary",
+          "capability_kind": "allowed_output",
+          "capability_name": "summary",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:allowed_output:telegram_ready_response",
+          "capability_kind": "allowed_output",
+          "capability_name": "telegram_ready_response",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:approval_required:action_requests",
+          "capability_kind": "approval_required",
+          "capability_name": "action_requests",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:approval_required:external_comms",
+          "capability_kind": "approval_required",
+          "capability_name": "external_comms",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:approval_required:ledger_or_coupa_mutation",
+          "capability_kind": "approval_required",
+          "capability_name": "ledger_or_coupa_mutation",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:approval_required:marking_paid",
+          "capability_kind": "approval_required",
+          "capability_name": "marking_paid",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:approval_required:sending_messages",
+          "capability_kind": "approval_required",
+          "capability_name": "sending_messages",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_input:arbitrary_command_string",
+          "capability_kind": "blocked_input",
+          "capability_name": "arbitrary_command_string",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_input:credential_material",
+          "capability_kind": "blocked_input",
+          "capability_name": "credential_material",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_input:no_go_raw_content",
+          "capability_kind": "blocked_input",
+          "capability_name": "no_go_raw_content",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_input:raw_private_body",
+          "capability_kind": "blocked_input",
+          "capability_name": "raw_private_body",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_input:raw_source_message_storage",
+          "capability_kind": "blocked_input",
+          "capability_name": "raw_source_message_storage",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_output:approval_decision",
+          "capability_kind": "blocked_output",
+          "capability_name": "approval_decision",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_output:direct_execution",
+          "capability_kind": "blocked_output",
+          "capability_name": "direct_execution",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_output:external_ledger_mutation",
+          "capability_kind": "blocked_output",
+          "capability_name": "external_ledger_mutation",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_output:external_send",
+          "capability_kind": "blocked_output",
+          "capability_name": "external_send",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_output:invoice_paid_mark",
+          "capability_kind": "blocked_output",
+          "capability_name": "invoice_paid_mark",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:blocked_output:truth_promotion",
+          "capability_kind": "blocked_output",
+          "capability_name": "truth_promotion",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:receipt_required:draft_message",
+          "capability_kind": "receipt_required",
+          "capability_name": "draft_message",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:receipt_required:local_business_ops_receipt",
+          "capability_kind": "receipt_required",
+          "capability_name": "local_business_ops_receipt",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:receipt_required:operator_briefing",
+          "capability_kind": "receipt_required",
+          "capability_name": "operator_briefing",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:source_posture:cli",
+          "capability_kind": "source_posture",
+          "capability_name": "cli",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:source_posture:future_client_node",
+          "capability_kind": "source_posture",
+          "capability_name": "future_client_node",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:source_posture:mission_control",
+          "capability_kind": "source_posture",
+          "capability_name": "mission_control",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:source_posture:report_bridge",
+          "capability_kind": "source_posture",
+          "capability_name": "report_bridge",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "cassandra:source_posture:telegram",
+          "capability_kind": "source_posture",
+          "capability_name": "telegram",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        }
+      ],
+      "lane_id": "operator_comms",
+      "lane_label": "Business Ops and Operator Communications",
+      "legacy_capability_claims": [
+        {
+          "action_authority_granted": false,
+          "capability_name": "future_exec",
+          "caveats": "No cron, scheduler, or autonomous execution wired in",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_NOT_CONNECTED",
+          "description": "Autonomously check, send, or follow up at a scheduled future time",
+          "domain": "automation",
+          "legacy_connected": false,
+          "legacy_scope": [],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "briefing_recall",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Recall logged morning, afternoon, and evening briefings",
+          "domain": "briefing",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "calendar_read",
+          "caveats": "Read-only via google_access_broker.py \u2014 next 7 days, metadata and event titles only",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Read live calendar events from Google Calendar",
+          "domain": "calendar",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "contacts_read",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Read Google Contacts",
+          "domain": "contacts",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "email_draft",
+          "caveats": "Brokered Gmail Draft object creation is Class B / Tier 1; drafts are prepared for review in the configured review inbox and CC that mailbox",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Draft email text",
+          "domain": "email",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "write"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "gmail_metadata",
+          "caveats": "Metadata only via google_access_broker.py \u2014 no body content access",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Read Gmail inbox metadata (sender, subject, date)",
+          "domain": "email",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "email_send",
+          "caveats": "No direct or autonomous send; Gmail send is only brokered Class C / Tier 2 if requested after draft review",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_NOT_CONNECTED",
+          "description": "Send email via SMTP or API",
+          "domain": "email_send",
+          "legacy_connected": false,
+          "legacy_scope": [],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "file_verify",
+          "caveats": "Bounded file/path existence checks only \u2014 not file content review",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Verify file or path existence on the filesystem",
+          "domain": "file",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "ops_log_write",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Log items to Ops Actions vault file",
+          "domain": "logging",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read",
+            "write"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "ops_notes_read",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Read Ops Notes vault file",
+          "domain": "notes",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "payment_verify",
+          "caveats": "Grounded against recent Gmail payment notifications and income logs only; not a direct bank, Stripe, or payment processor connection",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Verify external deposit or payment clearance status",
+          "domain": "payment",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "ops_payment_read",
+          "caveats": "Log read only \u2014 cannot verify external payment status",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Read the Payment Follow-ups log",
+          "domain": "payment_log",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "tts_voice",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Speak replies aloud via TTS (Kokoro / Piper)",
+          "domain": "voice",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "execute"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        }
+      ],
+      "role_summary": "Own business ops, AR, client follow-up, income/payment/expense/gig logs, executive continuity, operator-facing summaries, and status explanations.",
+      "routing_hints": [
+        "operator summaries",
+        "message drafting",
+        "status explanation",
+        "income/payment/expense/gig logs",
+        "AR and client follow-up"
+      ],
+      "runtime_dispatch_allowed": false,
+      "source_kind_postures": [
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "mission_control",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "telegram",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "cli",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "report_bridge",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "future_client_node",
+          "source_posture": "metadata_only"
+        }
+      ],
+      "status": "active_registry"
+    },
+    {
+      "action_authority_granted": false,
+      "activation_status": "NOT_ACTIVATED_BY_VIEW",
+      "agent_id": "chief",
+      "aliases": [
+        "operations_router",
+        "chief_operator"
+      ],
+      "allowed_worlds": [
+        "operations",
+        "build",
+        "security",
+        "communications",
+        "business_development",
+        "cross_world"
+      ],
+      "authority_level": "request_only",
+      "capability_summary": {
+        "allowed_input_count": 9,
+        "allowed_output_count": 5,
+        "approval_required_count": 6,
+        "blocked_input_count": 5,
+        "blocked_output_count": 6,
+        "lane_capability_count": 39,
+        "legacy_claim_count": 10,
+        "legacy_connected_claim_count": 7,
+        "receipt_required_count": 3
+      },
+      "display_name": "Chief",
+      "integration_posture": {
+        "action_authority_granted": false,
+        "approval_bypass_allowed": false,
+        "legacy_claims_do_not_override_lane_authority": true,
+        "runtime_dispatch_allowed": false,
+        "view_role": "routing_context_and_capability_readback"
+      },
+      "lane_capabilities": [
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:action_receipt",
+          "capability_kind": "allowed_input",
+          "capability_name": "action_receipt",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:context_packet",
+          "capability_kind": "allowed_input",
+          "capability_name": "context_packet",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:file_event_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "file_event_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:generated_read_model",
+          "capability_kind": "allowed_input",
+          "capability_name": "generated_read_model",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:markdown_document_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "markdown_document_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:operator_intent",
+          "capability_kind": "allowed_input",
+          "capability_name": "operator_intent",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:project_capsule",
+          "capability_kind": "allowed_input",
+          "capability_name": "project_capsule",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:report_bridge_summary",
+          "capability_kind": "allowed_input",
+          "capability_name": "report_bridge_summary",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_input:tool_policy",
+          "capability_kind": "allowed_input",
+          "capability_name": "tool_policy",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_output:action_request_draft",
+          "capability_kind": "allowed_output",
+          "capability_name": "action_request_draft",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_output:codex_work_packet",
+          "capability_kind": "allowed_output",
+          "capability_name": "codex_work_packet",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_output:plan_proposal",
+          "capability_kind": "allowed_output",
+          "capability_name": "plan_proposal",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_output:routing_decision",
+          "capability_kind": "allowed_output",
+          "capability_name": "routing_decision",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:allowed_output:status_summary",
+          "capability_kind": "allowed_output",
+          "capability_name": "status_summary",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:approval_required:client_changes",
+          "capability_kind": "approval_required",
+          "capability_name": "client_changes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:approval_required:execution",
+          "capability_kind": "approval_required",
+          "capability_name": "execution",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:approval_required:external_changes",
+          "capability_kind": "approval_required",
+          "capability_name": "external_changes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:approval_required:file_changes",
+          "capability_kind": "approval_required",
+          "capability_name": "file_changes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:approval_required:reorg",
+          "capability_kind": "approval_required",
+          "capability_name": "reorg",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:approval_required:writes",
+          "capability_kind": "approval_required",
+          "capability_name": "writes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_input:arbitrary_command_string",
+          "capability_kind": "blocked_input",
+          "capability_name": "arbitrary_command_string",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_input:credential_material",
+          "capability_kind": "blocked_input",
+          "capability_name": "credential_material",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_input:no_go_raw_content",
+          "capability_kind": "blocked_input",
+          "capability_name": "no_go_raw_content",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_input:raw_client_data_without_approval",
+          "capability_kind": "blocked_input",
+          "capability_name": "raw_client_data_without_approval",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_input:raw_private_body",
+          "capability_kind": "blocked_input",
+          "capability_name": "raw_private_body",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_output:approval_decision",
+          "capability_kind": "blocked_output",
+          "capability_name": "approval_decision",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_output:client_deployment",
+          "capability_kind": "blocked_output",
+          "capability_name": "client_deployment",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_output:direct_execution",
+          "capability_kind": "blocked_output",
+          "capability_name": "direct_execution",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_output:file_delete",
+          "capability_kind": "blocked_output",
+          "capability_name": "file_delete",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_output:file_move",
+          "capability_kind": "blocked_output",
+          "capability_name": "file_move",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:blocked_output:truth_promotion",
+          "capability_kind": "blocked_output",
+          "capability_name": "truth_promotion",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:receipt_required:action_request",
+          "capability_kind": "receipt_required",
+          "capability_name": "action_request",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:receipt_required:routing_decision",
+          "capability_kind": "receipt_required",
+          "capability_name": "routing_decision",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:receipt_required:status_summary",
+          "capability_kind": "receipt_required",
+          "capability_name": "status_summary",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:source_posture:cli",
+          "capability_kind": "source_posture",
+          "capability_name": "cli",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:source_posture:future_client_node",
+          "capability_kind": "source_posture",
+          "capability_name": "future_client_node",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:source_posture:mission_control",
+          "capability_kind": "source_posture",
+          "capability_name": "mission_control",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:source_posture:report_bridge",
+          "capability_kind": "source_posture",
+          "capability_name": "report_bridge",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "chief:source_posture:telegram",
+          "capability_kind": "source_posture",
+          "capability_name": "telegram",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        }
+      ],
+      "lane_id": "system_orchestration",
+      "lane_label": "System Orchestration",
+      "legacy_capability_claims": [
+        {
+          "action_authority_granted": false,
+          "capability_name": "album_workflow",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Manage album session intake and tracking workflows",
+          "domain": "album",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read",
+            "write",
+            "execute"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "approval_gate",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Gate irreversible actions (file delete, force push, etc.)",
+          "domain": "approval",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read",
+            "execute"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "billing_workflow",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Handle billing, invoice, and payment intake workflows",
+          "domain": "billing",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read",
+            "write",
+            "execute"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "calendar_read",
+          "caveats": "OAuth credentials not yet set up (gcal_credentials.json missing)",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_NOT_CONNECTED",
+          "description": "Read live calendar events from Google Calendar",
+          "domain": "calendar",
+          "legacy_connected": false,
+          "legacy_scope": [],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "email_send",
+          "caveats": "No email send integration wired in",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_NOT_CONNECTED",
+          "description": "Send email via SMTP or API",
+          "domain": "email_send",
+          "legacy_connected": false,
+          "legacy_scope": [],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "file_verify",
+          "caveats": "MCP filesystem server is available as a tool but is not wired into Chief's response routing",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_NOT_CONNECTED",
+          "description": "Verify file or path existence on the filesystem",
+          "domain": "file",
+          "legacy_connected": false,
+          "legacy_scope": [],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "llm_routing",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Route queries to local Ollama models (7b / 14b)",
+          "domain": "llm",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "execute"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "vault_sync",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Sync notes and logs to the Obsidian vault",
+          "domain": "obsidian",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read",
+            "write"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "payment_verify",
+          "caveats": "Grounded against recent Gmail payment notifications and income logs only; not a direct bank, Stripe, or payment processor connection",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Verify payment receipts via Gmail metadata and income logs",
+          "domain": "payment",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        },
+        {
+          "action_authority_granted": false,
+          "capability_name": "ops_intake",
+          "caveats": "",
+          "claim_basis": "legacy_capability_registry_context_only",
+          "claim_status": "LEGACY_CONNECTED_CLAIM_NEEDS_RECEIPT",
+          "description": "Route and handle operational requests via Telegram",
+          "domain": "routing",
+          "legacy_connected": true,
+          "legacy_scope": [
+            "read",
+            "execute"
+          ],
+          "runtime_authority_granted": false,
+          "runtime_dispatch_allowed": false
+        }
+      ],
+      "role_summary": "Coordinate work, create plans, route intents, and prepare bounded Codex work packets.",
+      "routing_hints": [
+        "route cross-world operator intents",
+        "prepare bounded implementation lanes",
+        "escalate risky work to Guardian/operator review"
+      ],
+      "runtime_dispatch_allowed": false,
+      "source_kind_postures": [
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "mission_control",
+          "source_posture": "request_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "telegram",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "cli",
+          "source_posture": "request_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "report_bridge",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "future_client_node",
+          "source_posture": "metadata_only"
+        }
+      ],
+      "status": "active_registry"
+    },
+    {
+      "action_authority_granted": false,
+      "activation_status": "NOT_ACTIVATED_BY_VIEW",
+      "agent_id": "guardian",
+      "aliases": [
+        "safety_gate",
+        "security_review"
+      ],
+      "allowed_worlds": [
+        "security",
+        "operations",
+        "cross_world"
+      ],
+      "authority_level": "advisory_only",
+      "capability_summary": {
+        "allowed_input_count": 6,
+        "allowed_output_count": 4,
+        "approval_required_count": 3,
+        "blocked_input_count": 5,
+        "blocked_output_count": 3,
+        "lane_capability_count": 29,
+        "legacy_claim_count": 0,
+        "legacy_connected_claim_count": 0,
+        "receipt_required_count": 3
+      },
+      "display_name": "Guardian",
+      "integration_posture": {
+        "action_authority_granted": false,
+        "approval_bypass_allowed": false,
+        "legacy_claims_do_not_override_lane_authority": true,
+        "runtime_dispatch_allowed": false,
+        "view_role": "routing_context_and_capability_readback"
+      },
+      "lane_capabilities": [
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_input:action_request",
+          "capability_kind": "allowed_input",
+          "capability_name": "action_request",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_input:boundary_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "boundary_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_input:corpus_sensitivity",
+          "capability_kind": "allowed_input",
+          "capability_name": "corpus_sensitivity",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_input:file_event_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "file_event_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_input:risk_package",
+          "capability_kind": "allowed_input",
+          "capability_name": "risk_package",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_input:tool_policy",
+          "capability_kind": "allowed_input",
+          "capability_name": "tool_policy",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_output:approval_caution",
+          "capability_kind": "allowed_output",
+          "capability_name": "approval_caution",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_output:boundary_review",
+          "capability_kind": "allowed_output",
+          "capability_name": "boundary_review",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_output:rejection_reason",
+          "capability_kind": "allowed_output",
+          "capability_name": "rejection_reason",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:allowed_output:risk_verdict",
+          "capability_kind": "allowed_output",
+          "capability_name": "risk_verdict",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:approval_required:file_touching_behavior",
+          "capability_kind": "approval_required",
+          "capability_name": "file_touching_behavior",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:approval_required:policy_changes",
+          "capability_kind": "approval_required",
+          "capability_name": "policy_changes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:approval_required:sensitive_boundary_changes",
+          "capability_kind": "approval_required",
+          "capability_name": "sensitive_boundary_changes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:blocked_input:arbitrary_command_string",
+          "capability_kind": "blocked_input",
+          "capability_name": "arbitrary_command_string",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:blocked_input:credential_material",
+          "capability_kind": "blocked_input",
+          "capability_name": "credential_material",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:blocked_input:no_go_raw_content",
+          "capability_kind": "blocked_input",
+          "capability_name": "no_go_raw_content",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:blocked_input:private_raw_body",
+          "capability_kind": "blocked_input",
+          "capability_name": "private_raw_body",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:blocked_input:secret_material",
+          "capability_kind": "blocked_input",
+          "capability_name": "secret_material",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:blocked_output:direct_execution",
+          "capability_kind": "blocked_output",
+          "capability_name": "direct_execution",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:blocked_output:policy_mutation_without_approval",
+          "capability_kind": "blocked_output",
+          "capability_name": "policy_mutation_without_approval",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:blocked_output:secret_disclosure",
+          "capability_kind": "blocked_output",
+          "capability_name": "secret_disclosure",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:receipt_required:boundary_review",
+          "capability_kind": "receipt_required",
+          "capability_name": "boundary_review",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:receipt_required:rejection_reason",
+          "capability_kind": "receipt_required",
+          "capability_name": "rejection_reason",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:receipt_required:risk_verdict",
+          "capability_kind": "receipt_required",
+          "capability_name": "risk_verdict",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:source_posture:cli",
+          "capability_kind": "source_posture",
+          "capability_name": "cli",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:source_posture:future_client_node",
+          "capability_kind": "source_posture",
+          "capability_name": "future_client_node",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:source_posture:mission_control",
+          "capability_kind": "source_posture",
+          "capability_name": "mission_control",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:source_posture:report_bridge",
+          "capability_kind": "source_posture",
+          "capability_name": "report_bridge",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "guardian:source_posture:telegram",
+          "capability_kind": "source_posture",
+          "capability_name": "telegram",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        }
+      ],
+      "lane_id": "safety_security",
+      "lane_label": "Safety and Security",
+      "legacy_capability_claims": [],
+      "role_summary": "Review no-go boundaries, sensitive-data posture, policy risks, and approval cautions.",
+      "routing_hints": [
+        "sensitive boundary review",
+        "risk caution",
+        "no-go review"
+      ],
+      "runtime_dispatch_allowed": false,
+      "source_kind_postures": [
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "mission_control",
+          "source_posture": "request_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "telegram",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "cli",
+          "source_posture": "request_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "report_bridge",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "future_client_node",
+          "source_posture": "metadata_only"
+        }
+      ],
+      "status": "active_registry"
+    },
+    {
+      "action_authority_granted": false,
+      "activation_status": "NOT_ACTIVATED_BY_VIEW",
+      "agent_id": "hermes",
+      "aliases": [
+        "advisory",
+        "synthesis_lane"
+      ],
+      "allowed_worlds": [
+        "research",
+        "build",
+        "operations",
+        "cross_world"
+      ],
+      "authority_level": "advisory_only",
+      "capability_summary": {
+        "allowed_input_count": 5,
+        "allowed_output_count": 4,
+        "approval_required_count": 3,
+        "blocked_input_count": 5,
+        "blocked_output_count": 4,
+        "lane_capability_count": 28,
+        "legacy_claim_count": 0,
+        "legacy_connected_claim_count": 0,
+        "receipt_required_count": 2
+      },
+      "display_name": "Hermes",
+      "integration_posture": {
+        "action_authority_granted": false,
+        "approval_bypass_allowed": false,
+        "legacy_claims_do_not_override_lane_authority": true,
+        "runtime_dispatch_allowed": false,
+        "view_role": "routing_context_and_capability_readback"
+      },
+      "lane_capabilities": [
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_input:comparison_source_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "comparison_source_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_input:context_packet",
+          "capability_kind": "allowed_input",
+          "capability_name": "context_packet",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_input:evidence_packet",
+          "capability_kind": "allowed_input",
+          "capability_name": "evidence_packet",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_input:generated_read_model",
+          "capability_kind": "allowed_input",
+          "capability_name": "generated_read_model",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_input:markdown_document_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "markdown_document_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_output:advisory_memo",
+          "capability_kind": "allowed_output",
+          "capability_name": "advisory_memo",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_output:comparison",
+          "capability_kind": "allowed_output",
+          "capability_name": "comparison",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_output:noncanonical_analysis",
+          "capability_kind": "allowed_output",
+          "capability_name": "noncanonical_analysis",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:allowed_output:synthesis_packet",
+          "capability_kind": "allowed_output",
+          "capability_name": "synthesis_packet",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:approval_required:action_request",
+          "capability_kind": "approval_required",
+          "capability_name": "action_request",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:approval_required:external_model_use",
+          "capability_kind": "approval_required",
+          "capability_name": "external_model_use",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:approval_required:promotion",
+          "capability_kind": "approval_required",
+          "capability_name": "promotion",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_input:arbitrary_command_string",
+          "capability_kind": "blocked_input",
+          "capability_name": "arbitrary_command_string",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_input:canonical_promotion_request_without_gate",
+          "capability_kind": "blocked_input",
+          "capability_name": "canonical_promotion_request_without_gate",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_input:credential_material",
+          "capability_kind": "blocked_input",
+          "capability_name": "credential_material",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_input:no_go_raw_content",
+          "capability_kind": "blocked_input",
+          "capability_name": "no_go_raw_content",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_input:private_raw_body",
+          "capability_kind": "blocked_input",
+          "capability_name": "private_raw_body",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_output:approval_decision",
+          "capability_kind": "blocked_output",
+          "capability_name": "approval_decision",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_output:canonical_promotion",
+          "capability_kind": "blocked_output",
+          "capability_name": "canonical_promotion",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_output:direct_execution",
+          "capability_kind": "blocked_output",
+          "capability_name": "direct_execution",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:blocked_output:truth_write",
+          "capability_kind": "blocked_output",
+          "capability_name": "truth_write",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:receipt_required:advisory_memo",
+          "capability_kind": "receipt_required",
+          "capability_name": "advisory_memo",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:receipt_required:synthesis_packet",
+          "capability_kind": "receipt_required",
+          "capability_name": "synthesis_packet",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:source_posture:cli",
+          "capability_kind": "source_posture",
+          "capability_name": "cli",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:source_posture:future_client_node",
+          "capability_kind": "source_posture",
+          "capability_name": "future_client_node",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:source_posture:mission_control",
+          "capability_kind": "source_posture",
+          "capability_name": "mission_control",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:source_posture:report_bridge",
+          "capability_kind": "source_posture",
+          "capability_name": "report_bridge",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "hermes:source_posture:telegram",
+          "capability_kind": "source_posture",
+          "capability_name": "telegram",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        }
+      ],
+      "lane_id": "advisory_synthesis",
+      "lane_label": "Advisory Synthesis",
+      "legacy_capability_claims": [],
+      "role_summary": "Produce non-canonical synthesis, comparisons, and advisory interpretation.",
+      "routing_hints": [
+        "research synthesis",
+        "architecture comparison",
+        "non-canonical analysis"
+      ],
+      "runtime_dispatch_allowed": false,
+      "source_kind_postures": [
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "mission_control",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "telegram",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "cli",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "report_bridge",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "future_client_node",
+          "source_posture": "metadata_only"
+        }
+      ],
+      "status": "active_registry"
+    },
+    {
+      "action_authority_granted": false,
+      "activation_status": "NOT_ACTIVATED_BY_VIEW",
+      "agent_id": "niles",
+      "aliases": [
+        "producer",
+        "creative_file_resolver"
+      ],
+      "allowed_worlds": [
+        "music_art"
+      ],
+      "authority_level": "advisory_only",
+      "capability_summary": {
+        "allowed_input_count": 5,
+        "allowed_output_count": 4,
+        "approval_required_count": 4,
+        "blocked_input_count": 5,
+        "blocked_output_count": 5,
+        "lane_capability_count": 30,
+        "legacy_claim_count": 0,
+        "legacy_connected_claim_count": 0,
+        "receipt_required_count": 2
+      },
+      "display_name": "Niles",
+      "integration_posture": {
+        "action_authority_granted": false,
+        "approval_bypass_allowed": false,
+        "legacy_claims_do_not_override_lane_authority": true,
+        "runtime_dispatch_allowed": false,
+        "view_role": "routing_context_and_capability_readback"
+      },
+      "lane_capabilities": [
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_input:audio_file_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "audio_file_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_input:context_packet",
+          "capability_kind": "allowed_input",
+          "capability_name": "context_packet",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_input:file_event_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "file_event_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_input:logic_project_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "logic_project_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_input:music_art_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "music_art_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_output:metadata_organization_proposal",
+          "capability_kind": "allowed_output",
+          "capability_name": "metadata_organization_proposal",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_output:mix_task_plan",
+          "capability_kind": "allowed_output",
+          "capability_name": "mix_task_plan",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_output:production_checklist",
+          "capability_kind": "allowed_output",
+          "capability_name": "production_checklist",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:allowed_output:session_notes",
+          "capability_kind": "allowed_output",
+          "capability_name": "session_notes",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:approval_required:audio_file_changes",
+          "capability_kind": "approval_required",
+          "capability_name": "audio_file_changes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:approval_required:daw_session_edits",
+          "capability_kind": "approval_required",
+          "capability_name": "daw_session_edits",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:approval_required:file_movement",
+          "capability_kind": "approval_required",
+          "capability_name": "file_movement",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:approval_required:writes",
+          "capability_kind": "approval_required",
+          "capability_name": "writes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_input:arbitrary_command_string",
+          "capability_kind": "blocked_input",
+          "capability_name": "arbitrary_command_string",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_input:credential_material",
+          "capability_kind": "blocked_input",
+          "capability_name": "credential_material",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_input:no_go_raw_content",
+          "capability_kind": "blocked_input",
+          "capability_name": "no_go_raw_content",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_input:private_raw_body",
+          "capability_kind": "blocked_input",
+          "capability_name": "private_raw_body",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_input:unapproved_audio_body_mutation",
+          "capability_kind": "blocked_input",
+          "capability_name": "unapproved_audio_body_mutation",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_output:audio_file_mutation",
+          "capability_kind": "blocked_output",
+          "capability_name": "audio_file_mutation",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_output:daw_session_edit",
+          "capability_kind": "blocked_output",
+          "capability_name": "daw_session_edit",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_output:direct_execution",
+          "capability_kind": "blocked_output",
+          "capability_name": "direct_execution",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_output:file_delete",
+          "capability_kind": "blocked_output",
+          "capability_name": "file_delete",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:blocked_output:file_move",
+          "capability_kind": "blocked_output",
+          "capability_name": "file_move",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:receipt_required:metadata_organization_proposal",
+          "capability_kind": "receipt_required",
+          "capability_name": "metadata_organization_proposal",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:receipt_required:production_checklist",
+          "capability_kind": "receipt_required",
+          "capability_name": "production_checklist",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:source_posture:cli",
+          "capability_kind": "source_posture",
+          "capability_name": "cli",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:source_posture:future_client_node",
+          "capability_kind": "source_posture",
+          "capability_name": "future_client_node",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:source_posture:mission_control",
+          "capability_kind": "source_posture",
+          "capability_name": "mission_control",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:source_posture:report_bridge",
+          "capability_kind": "source_posture",
+          "capability_name": "report_bridge",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "niles:source_posture:telegram",
+          "capability_kind": "source_posture",
+          "capability_name": "telegram",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        }
+      ],
+      "lane_id": "music_art_production",
+      "lane_label": "Music and Art Production",
+      "legacy_capability_claims": [],
+      "role_summary": "Support music, audio, Logic, session, and project-production planning.",
+      "routing_hints": [
+        "music files",
+        "Logic project metadata",
+        "production plans",
+        "audio session organization"
+      ],
+      "runtime_dispatch_allowed": false,
+      "source_kind_postures": [
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "mission_control",
+          "source_posture": "request_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "telegram",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "cli",
+          "source_posture": "request_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "report_bridge",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "future_client_node",
+          "source_posture": "metadata_only"
+        }
+      ],
+      "status": "active_registry"
+    },
+    {
+      "action_authority_granted": false,
+      "activation_status": "NOT_ACTIVATED_BY_VIEW",
+      "agent_id": "report_bridge",
+      "aliases": [
+        "node_report_bridge",
+        "node_uplink"
+      ],
+      "allowed_worlds": [
+        "operations",
+        "business_development",
+        "cross_world"
+      ],
+      "authority_level": "request_only",
+      "capability_summary": {
+        "allowed_input_count": 4,
+        "allowed_output_count": 3,
+        "approval_required_count": 3,
+        "blocked_input_count": 5,
+        "blocked_output_count": 3,
+        "lane_capability_count": 25,
+        "legacy_claim_count": 0,
+        "legacy_connected_claim_count": 0,
+        "receipt_required_count": 2
+      },
+      "display_name": "Report Bridge",
+      "integration_posture": {
+        "action_authority_granted": false,
+        "approval_bypass_allowed": false,
+        "legacy_claims_do_not_override_lane_authority": true,
+        "runtime_dispatch_allowed": false,
+        "view_role": "routing_context_and_capability_readback"
+      },
+      "lane_capabilities": [
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:allowed_input:read_model_package_manifest",
+          "capability_kind": "allowed_input",
+          "capability_name": "read_model_package_manifest",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:allowed_input:receipt_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "receipt_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:allowed_input:report_summary",
+          "capability_kind": "allowed_input",
+          "capability_name": "report_summary",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:allowed_input:sanitized_report_package_metadata",
+          "capability_kind": "allowed_input",
+          "capability_name": "sanitized_report_package_metadata",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:allowed_output:import_receipt",
+          "capability_kind": "allowed_output",
+          "capability_name": "import_receipt",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:allowed_output:rejection_reason",
+          "capability_kind": "allowed_output",
+          "capability_name": "rejection_reason",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:allowed_output:report_summary",
+          "capability_kind": "allowed_output",
+          "capability_name": "report_summary",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:approval_required:client_data_package_handling",
+          "capability_kind": "approval_required",
+          "capability_name": "client_data_package_handling",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:approval_required:new_package_classes",
+          "capability_kind": "approval_required",
+          "capability_name": "new_package_classes",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:approval_required:truth_promotion",
+          "capability_kind": "approval_required",
+          "capability_name": "truth_promotion",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:blocked_input:arbitrary_command_string",
+          "capability_kind": "blocked_input",
+          "capability_name": "arbitrary_command_string",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:blocked_input:credential_material",
+          "capability_kind": "blocked_input",
+          "capability_name": "credential_material",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:blocked_input:raw_client_data",
+          "capability_kind": "blocked_input",
+          "capability_name": "raw_client_data",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:blocked_input:raw_private_body",
+          "capability_kind": "blocked_input",
+          "capability_name": "raw_private_body",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:blocked_input:remote_control_instruction",
+          "capability_kind": "blocked_input",
+          "capability_name": "remote_control_instruction",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:blocked_output:client_data_acceptance_without_approval",
+          "capability_kind": "blocked_output",
+          "capability_name": "client_data_acceptance_without_approval",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:blocked_output:remote_control",
+          "capability_kind": "blocked_output",
+          "capability_name": "remote_control",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:blocked_output:truth_promotion",
+          "capability_kind": "blocked_output",
+          "capability_name": "truth_promotion",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:receipt_required:import_receipt",
+          "capability_kind": "receipt_required",
+          "capability_name": "import_receipt",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:receipt_required:rejection_reason",
+          "capability_kind": "receipt_required",
+          "capability_name": "rejection_reason",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:source_posture:cli",
+          "capability_kind": "source_posture",
+          "capability_name": "cli",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:source_posture:future_client_node",
+          "capability_kind": "source_posture",
+          "capability_name": "future_client_node",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:source_posture:mission_control",
+          "capability_kind": "source_posture",
+          "capability_name": "mission_control",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:source_posture:report_bridge",
+          "capability_kind": "source_posture",
+          "capability_name": "report_bridge",
+          "posture": "request_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "report_bridge:source_posture:telegram",
+          "capability_kind": "source_posture",
+          "capability_name": "telegram",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        }
+      ],
+      "lane_id": "node_report_intake",
+      "lane_label": "Node Report Intake",
+      "legacy_capability_claims": [],
+      "role_summary": "Handle sanitized local report package intake metadata and rejection summaries.",
+      "routing_hints": [
+        "report package import",
+        "node package rejection",
+        "project/client sanitized package posture"
+      ],
+      "runtime_dispatch_allowed": false,
+      "source_kind_postures": [
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "mission_control",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "telegram",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "cli",
+          "source_posture": "request_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "report_bridge",
+          "source_posture": "request_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "future_client_node",
+          "source_posture": "request_only"
+        }
+      ],
+      "status": "active_registry"
+    },
+    {
+      "action_authority_granted": false,
+      "activation_status": "NOT_ACTIVATED_BY_VIEW",
+      "agent_id": "watch_desk",
+      "aliases": [
+        "watchdesk",
+        "attention_feed"
+      ],
+      "allowed_worlds": [
+        "operations",
+        "finance",
+        "build",
+        "music_art",
+        "cross_world"
+      ],
+      "authority_level": "advisory_only",
+      "capability_summary": {
+        "allowed_input_count": 4,
+        "allowed_output_count": 3,
+        "approval_required_count": 3,
+        "blocked_input_count": 4,
+        "blocked_output_count": 4,
+        "lane_capability_count": 25,
+        "legacy_claim_count": 0,
+        "legacy_connected_claim_count": 0,
+        "receipt_required_count": 2
+      },
+      "display_name": "Watch Desk",
+      "integration_posture": {
+        "action_authority_granted": false,
+        "approval_bypass_allowed": false,
+        "legacy_claims_do_not_override_lane_authority": true,
+        "runtime_dispatch_allowed": false,
+        "view_role": "routing_context_and_capability_readback"
+      },
+      "lane_capabilities": [
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:allowed_input:action_receipt",
+          "capability_kind": "allowed_input",
+          "capability_name": "action_receipt",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:allowed_input:generated_read_model",
+          "capability_kind": "allowed_input",
+          "capability_name": "generated_read_model",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:allowed_input:operator_local_intake_event",
+          "capability_kind": "allowed_input",
+          "capability_name": "operator_local_intake_event",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:allowed_input:status_summary",
+          "capability_kind": "allowed_input",
+          "capability_name": "status_summary",
+          "posture": "metadata_or_evidence_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_input_kinds",
+          "status": "LANE_ALLOWED_CONTEXT_INPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:allowed_output:operator_attention_summary",
+          "capability_kind": "allowed_output",
+          "capability_name": "operator_attention_summary",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:allowed_output:source_receipt_ref",
+          "capability_kind": "allowed_output",
+          "capability_name": "source_receipt_ref",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:allowed_output:watch_item",
+          "capability_kind": "allowed_output",
+          "capability_name": "watch_item",
+          "posture": "proposal_or_read_model_surface",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.allowed_output_kinds",
+          "status": "LANE_ALLOWED_NON_EXECUTING_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:approval_required:external_action",
+          "capability_kind": "approval_required",
+          "capability_name": "external_action",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:approval_required:push_notification",
+          "capability_kind": "approval_required",
+          "capability_name": "push_notification",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:approval_required:state_mutation",
+          "capability_kind": "approval_required",
+          "capability_name": "state_mutation",
+          "posture": "approval_gate_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.approval_required_for",
+          "status": "APPROVAL_REQUIRED_BEFORE_ACTION"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:blocked_input:arbitrary_command_string",
+          "capability_kind": "blocked_input",
+          "capability_name": "arbitrary_command_string",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:blocked_input:credential_material",
+          "capability_kind": "blocked_input",
+          "capability_name": "credential_material",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:blocked_input:no_go_raw_content",
+          "capability_kind": "blocked_input",
+          "capability_name": "no_go_raw_content",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:blocked_input:raw_private_body",
+          "capability_kind": "blocked_input",
+          "capability_name": "raw_private_body",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_input_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:blocked_output:approval_decision",
+          "capability_kind": "blocked_output",
+          "capability_name": "approval_decision",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:blocked_output:direct_execution",
+          "capability_kind": "blocked_output",
+          "capability_name": "direct_execution",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:blocked_output:state_mutation",
+          "capability_kind": "blocked_output",
+          "capability_name": "state_mutation",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:blocked_output:truth_promotion",
+          "capability_kind": "blocked_output",
+          "capability_name": "truth_promotion",
+          "posture": "blocked",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.blocked_output_kinds",
+          "status": "BLOCKED_BY_LANE_BOUNDARY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:receipt_required:operator_attention_summary",
+          "capability_kind": "receipt_required",
+          "capability_name": "operator_attention_summary",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:receipt_required:watch_item",
+          "capability_kind": "receipt_required",
+          "capability_name": "watch_item",
+          "posture": "receipt_required",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.receipt_required_for",
+          "status": "RECEIPT_REQUIRED_FOR_OUTPUT"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:source_posture:cli",
+          "capability_kind": "source_posture",
+          "capability_name": "cli",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:source_posture:future_client_node",
+          "capability_kind": "source_posture",
+          "capability_name": "future_client_node",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:source_posture:mission_control",
+          "capability_kind": "source_posture",
+          "capability_name": "mission_control",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:source_posture:report_bridge",
+          "capability_kind": "source_posture",
+          "capability_name": "report_bridge",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        },
+        {
+          "action_authority_granted": false,
+          "activation_allowed": false,
+          "capability_id": "watch_desk:source_posture:telegram",
+          "capability_kind": "source_posture",
+          "capability_name": "telegram",
+          "posture": "metadata_only",
+          "runtime_dispatch_allowed": false,
+          "source_ref": "agent_lane_registry.source_kind_postures",
+          "status": "SOURCE_METADATA_ONLY_OR_REQUEST_ONLY"
+        }
+      ],
+      "lane_id": "watch_desk_projection",
+      "lane_label": "Watch Desk Projection",
+      "legacy_capability_claims": [],
+      "role_summary": "Project what needs operator attention from receipts and read models.",
+      "routing_hints": [
+        "what needs me",
+        "watch desk item",
+        "attention projection"
+      ],
+      "runtime_dispatch_allowed": false,
+      "source_kind_postures": [
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "mission_control",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "telegram",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "cli",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "report_bridge",
+          "source_posture": "metadata_only"
+        },
+        {
+          "api_wired_by_view": false,
+          "can_auto_execute": false,
+          "source_kind": "future_client_node",
+          "source_posture": "metadata_only"
+        }
+      ],
+      "status": "active_registry"
+    }
+  ],
+  "agents_by_allowed_output_kind": {
+    "action_request_draft": [
+      "chief"
+    ],
+    "advisory_memo": [
+      "hermes"
+    ],
+    "approval_caution": [
+      "guardian"
+    ],
+    "boundary_review": [
+      "guardian"
+    ],
+    "codex_work_packet": [
+      "chief"
+    ],
+    "comparison": [
+      "hermes"
+    ],
+    "draft_message": [
+      "cassandra"
+    ],
+    "follow_up_plan": [
+      "cassandra"
+    ],
+    "import_receipt": [
+      "report_bridge"
+    ],
+    "local_business_ops_receipt": [
+      "cassandra"
+    ],
+    "metadata_organization_proposal": [
+      "niles"
+    ],
+    "mix_task_plan": [
+      "niles"
+    ],
+    "noncanonical_analysis": [
+      "hermes"
+    ],
+    "operator_attention_summary": [
+      "watch_desk"
+    ],
+    "operator_briefing": [
+      "cassandra"
+    ],
+    "plan_proposal": [
+      "chief"
+    ],
+    "production_checklist": [
+      "niles"
+    ],
+    "rejection_reason": [
+      "guardian",
+      "report_bridge"
+    ],
+    "report_summary": [
+      "report_bridge"
+    ],
+    "risk_verdict": [
+      "guardian"
+    ],
+    "routing_decision": [
+      "chief"
+    ],
+    "session_notes": [
+      "niles"
+    ],
+    "source_receipt_ref": [
+      "watch_desk"
+    ],
+    "status_summary": [
+      "chief"
+    ],
+    "summary": [
+      "cassandra"
+    ],
+    "synthesis_packet": [
+      "hermes"
+    ],
+    "telegram_ready_response": [
+      "cassandra"
+    ],
+    "watch_item": [
+      "watch_desk"
+    ]
+  },
+  "agents_by_capability_domain": {
+    "album": [
+      "chief"
+    ],
+    "approval": [
+      "chief"
+    ],
+    "automation": [
+      "cassandra"
+    ],
+    "billing": [
+      "chief"
+    ],
+    "briefing": [
+      "cassandra"
+    ],
+    "calendar": [
+      "cassandra",
+      "chief"
+    ],
+    "contacts": [
+      "cassandra"
+    ],
+    "email": [
+      "cassandra"
+    ],
+    "email_send": [
+      "cassandra",
+      "chief"
+    ],
+    "file": [
+      "cassandra",
+      "chief"
+    ],
+    "llm": [
+      "chief"
+    ],
+    "logging": [
+      "cassandra"
+    ],
+    "notes": [
+      "cassandra"
+    ],
+    "obsidian": [
+      "chief"
+    ],
+    "payment": [
+      "cassandra",
+      "chief"
+    ],
+    "payment_log": [
+      "cassandra"
+    ],
+    "routing": [
+      "chief"
+    ],
+    "voice": [
+      "cassandra"
+    ]
+  },
+  "agents_by_source_kind": {
+    "cli": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "report_bridge",
+      "watch_desk"
+    ],
+    "future_client_node": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "report_bridge",
+      "watch_desk"
+    ],
+    "mission_control": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "report_bridge",
+      "watch_desk"
+    ],
+    "report_bridge": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "report_bridge",
+      "watch_desk"
+    ],
+    "telegram": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "report_bridge",
+      "watch_desk"
+    ]
+  },
+  "agents_by_world": {
+    "build": [
+      "chief",
+      "hermes",
+      "watch_desk"
+    ],
+    "business_development": [
+      "cassandra",
+      "chief",
+      "report_bridge"
+    ],
+    "communications": [
+      "cassandra",
+      "chief"
+    ],
+    "cross_world": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "report_bridge",
+      "watch_desk"
+    ],
+    "finance": [
+      "cassandra",
+      "watch_desk"
+    ],
+    "music_art": [
+      "niles",
+      "watch_desk"
+    ],
+    "operations": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "report_bridge",
+      "watch_desk"
+    ],
+    "research": [
+      "hermes"
+    ],
+    "security": [
+      "chief",
+      "guardian"
+    ]
+  },
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "all_action_authority_flags_false": true,
+    "approval_bypass_allowed": false,
+    "client_deployment_allowed": false,
+    "credential_or_secret_access_allowed": false,
+    "direct_execution_allowed": false,
+    "external_send_allowed": false,
+    "model_execution_allowed": false,
+    "network_operation_allowed": false,
+    "no_go_raw_access_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "stable_map_update_allowed": false,
+    "tool_execution_allowed": false,
+    "truth_promotion_allowed": false
+  },
+  "generated_at": "2026-06-19T03:30:04+00:00",
+  "lane_capability_count": 212,
+  "legacy_actor_ids_not_in_lane_registry": [],
+  "legacy_capability_claim_count": 23,
+  "legacy_claim_policy": {
+    "connected_legacy_claim_means": "contextual historical claim requiring receipt/lane verification",
+    "lane_registry_controls_authority_boundary": true,
+    "legacy_capability_registry_is_authority": false
+  },
+  "machine_proof": {
+    "agent_lane_registry_source_present": true,
+    "all_agents_no_action_authority": true,
+    "all_agents_no_runtime_dispatch": true,
+    "capability_view_exists": true,
+    "content_hash": "sha256:23b049d13566fb2231bc18cc642c63a29f4002c079e98b40ad656f3755d21a57",
+    "external_send_allowed": false,
+    "legacy_actor_count": 2,
+    "legacy_capability_registry_source_present": true,
+    "legacy_connected_claims_are_context_only": true,
+    "rich_agent_count": 7,
+    "runtime_dispatch_allowed": false,
+    "seed_agent_count": 7,
+    "tool_model_network_authority_granted": false,
+    "watch_desk_present": true
+  },
+  "mode": "rich_agent_capability_readback_context_only",
+  "operator_query_examples": [
+    "what can Cassandra do with email?",
+    "which agents can produce codex work packets?",
+    "which agents belong to music_art?",
+    "which source channels are metadata-only?"
+  ],
+  "read_model_id": "agent_capability_view",
+  "registry_agent_ids_without_legacy_capability_claims": [
+    "guardian",
+    "hermes",
+    "niles",
+    "report_bridge",
+    "watch_desk"
+  ],
+  "schema_version": "agent_capability_view_v0",
+  "source_refs": [
+    "agent_lane_registry.py::DEFAULT_AGENT_LANE_SEEDS",
+    "capability_registry.py::REGISTRY",
+    "generated/read_models/agent_lanes.json",
+    "generated/read_models/agent_capability_migration_map.json"
+  ]
+}
