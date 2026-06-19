@@ -522,7 +522,7 @@
   "client_deployment_allowed": false,
   "degraded_count": 0,
   "expected_online_count": 5,
-  "generated_at": "2026-06-19T02:31:46+00:00",
+  "generated_at": "2026-06-19T03:04:34+00:00",
   "hard_kill_bypass_allowed": false,
   "intentional_offline_count": 0,
   "maintenance_hard_kill_count": 0,
