@@ -4,6 +4,7 @@ from pathlib import Path
 
 from agent_lane_registry import seed_agent_lane_registry
 from agent_presence import build_agent_presence_snapshot
+import telegram_agent_intake as intake
 from telegram_agent_intake import (
     AGENT_METADATA,
     NO_AUTHORITY_FLAGS,
@@ -121,6 +122,41 @@ def test_listener_target_prefix_routes_to_expected_agent_without_full_text_stora
     assert update["message_text_excerpt"] == "summarize what changed"
     assert update["message_text_stored"] == 0
     assert update["raw_payload_stored"] == 0
+
+
+def test_maestro_source_channel_resolves_to_maestro_without_send_authority(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    assert "maestro" in intake.CORE_AGENTS
+    assert intake.AGENT_METADATA["maestro"]["source_channel"] == "maestro_listener"
+    assert intake._agent_from_text_or_channel("status check", "maestro_listener", None) == "maestro"
+    assert intake._agent_from_text_or_channel("status check", "chief_listener", "maestro") == "maestro"
+
+    result = record_telegram_update(
+        db_path=db_path,
+        text="what can you do?",
+        source_channel="maestro_listener",
+        source_message_id="maestro-msg-1",
+        run_id="telegram_maestro_run",
+        route_intent=False,
+    )
+    update = _row(
+        db_path,
+        """
+SELECT source_channel, agent_target, routed_to_intent_inbox, intent_record_id,
+       telegram_send_allowed, command_execution_allowed, action_auto_execute_allowed
+FROM telegram_agent_update_records
+WHERE update_record_id = ?
+""",
+        (result.update_record_id,),
+    )
+    read_model = build_telegram_agent_intake_read_model(db_path=db_path)
+    maestro_row = next(row for row in read_model["agents"] if row["agent_id"] == "maestro")
+
+    assert tuple(update) == ("maestro_listener", "maestro", 0, None, 0, 0, 0)
+    assert maestro_row["telegram_send_allowed"] is False
+    assert maestro_row["telegram_surface"] == "maestro_listener.py"
+    assert maestro_row["service_surface"] == "systemd/user/maestro-listener.service.in"
 
 
 def test_cassandra_listener_text_helper_accepts_you_online_yet_without_send(tmp_path):
@@ -271,9 +307,10 @@ ORDER BY title
     assert result.governed_storage_available is True
     assert result.dry_run_intent_id
     assert result.dry_run_status == "routed"
-    assert result.agent_count == 5
+    assert result.agent_count == 6
     assert report["counts"]["update_count"] >= 1
     assert any(row["agent_id"] == "cassandra" and row["outward_name"] == "Clara Reid" for row in report["rows"])
+    assert any(row["agent_id"] == "maestro" and row["telegram_send_allowed"] is False for row in report["rows"])
     assert cards
     assert all(row["execution_allowed"] == 0 for row in cards)
     assert all(row["auto_approval_allowed"] == 0 for row in cards)
