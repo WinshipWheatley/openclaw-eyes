@@ -51,6 +51,7 @@ INPUT_READ_MODELS = {
     "business_object_audit": "openclaw_business_object_layer_audit.json",
     "authority_semantics_registry": "openclaw_authority_semantics_registry.json",
     "lane_capability_harvest": "openclaw_lane_capability_harvest.json",
+    "phase_c_conductor_state": "phase_c_conductor_state.json",
 }
 
 STATUS_VALUES = (
@@ -806,6 +807,82 @@ def _lane_capability_harvest_targets(
     ]
 
 
+def _phase_c_conductor_targets(
+    payload: dict[str, Any],
+    *,
+    source_path: str,
+    observed_at: str,
+) -> list[dict[str, Any]]:
+    if not payload:
+        return []
+    task_summary = payload.get("task_summary")
+    if not isinstance(task_summary, dict):
+        task_summary = {}
+    gate_state = payload.get("gate_state")
+    if not isinstance(gate_state, dict):
+        gate_state = {}
+    writeback_state = payload.get("writeback_state")
+    if not isinstance(writeback_state, dict):
+        writeback_state = {}
+    machine_proof = payload.get("machine_proof")
+    if not isinstance(machine_proof, dict):
+        machine_proof = {}
+
+    active_gate_count = int(gate_state.get("active_gate_token_count") or 0)
+    blocked_count = int(task_summary.get("blocked_task_count") or 0)
+    problem_count = int(task_summary.get("problem_task_count") or 0)
+    writeback_count = int(writeback_state.get("completion_writeback_count") or 0)
+    action_required = active_gate_count > 1 or blocked_count > 0 or problem_count > 0
+    observed_payload = {
+        "schema_version": payload.get("schema_version", ""),
+        "status": str(payload.get("status", "UNKNOWN")),
+        "task_count": int(task_summary.get("task_count") or 0),
+        "claimed_task_count": int(task_summary.get("claimed_task_count") or 0),
+        "done_task_count": int(task_summary.get("done_task_count") or 0),
+        "blocked_task_count": blocked_count,
+        "problem_task_count": problem_count,
+        "active_gate_token_count": active_gate_count,
+        "active_gate_tokens": gate_state.get("active_gate_tokens") or [],
+        "completion_writeback_count": writeback_count,
+        "writeback_live_write_performed": bool(writeback_state.get("live_write_performed", False)),
+        "scheduler_reconcile_present": bool(machine_proof.get("scheduler_reconcile_present", False)),
+        "auto_writeback_projection_present": bool(
+            machine_proof.get("auto_writeback_projection_present", False)
+        ),
+        "external_send_performed": bool(machine_proof.get("external_send_performed", False)),
+        "runtime_mutation_performed": bool(machine_proof.get("runtime_mutation_performed", False)),
+        "recommended_command": "python3 phase_c_conductor_foundation.py --format operator",
+        "lm_called": False,
+        "chief_launched": False,
+    }
+    reason = ""
+    if active_gate_count > 1:
+        reason = "multiple active gate tokens detected"
+    elif blocked_count > 0 or problem_count > 0:
+        reason = "blocked/problem orchestration tasks present"
+    return [
+        _target_row(
+            target_ref="phase_c_conductor:gate_token_serialization",
+            target_type="PHASE_C_CONDUCTOR_STATE",
+            source_path=source_path,
+            observation_status="ACTION_REQUIRED" if action_required else "NO_MATERIAL_CHANGE",
+            observed_value=str(active_gate_count),
+            observed_payload=observed_payload,
+            observed_at=observed_at,
+            unreachable_reason=reason,
+        ),
+        _target_row(
+            target_ref="phase_c_conductor:auto_writeback_ready",
+            target_type="PHASE_C_CONDUCTOR_STATE",
+            source_path=source_path,
+            observation_status="NO_MATERIAL_CHANGE",
+            observed_value=str(writeback_count),
+            observed_payload=observed_payload,
+            observed_at=observed_at,
+        ),
+    ]
+
+
 def read_systemd_service_snapshot(
     *,
     service_name: str = SERVICE_NAME,
@@ -972,6 +1049,13 @@ def collect_observed_targets(
             observed_at=observed_at,
         )
     )
+    rows.extend(
+        _phase_c_conductor_targets(
+            payloads["phase_c_conductor_state"],
+            source_path=_display_path(read_root / INPUT_READ_MODELS["phase_c_conductor_state"]),
+            observed_at=observed_at,
+        )
+    )
     if include_systemd:
         snapshot = systemd_snapshot if systemd_snapshot is not None else read_systemd_service_snapshot()
         rows.extend(_service_targets(snapshot, observed_at=observed_at))
@@ -1030,6 +1114,10 @@ def _change_status(current: dict[str, Any], previous: dict[str, Any]) -> str:
         return "AUTHORITY_SEMANTICS_DRIFT"
     if target_type == "LANE_CAPABILITY_HARVEST":
         return "LANE_CAPABILITY_HARVEST_STALE"
+    if target_type == "PHASE_C_CONDUCTOR_STATE":
+        if current.get("observation_status") == "ACTION_REQUIRED":
+            return "ACTION_REQUIRED"
+        return "MATERIAL_CHANGE_DETECTED"
     return "MATERIAL_CHANGE_DETECTED"
 
 

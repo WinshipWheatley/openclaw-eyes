@@ -198,6 +198,7 @@ def _write_fixture_read_models(
         authority_registry.build_registry_payload(generated_at="2026-05-31T03:00:00+00:00"),
     )
     _write_json(root / "openclaw_lane_capability_harvest.json", _lane_capability_harvest_payload())
+    _write_json(root / "phase_c_conductor_state.json", _phase_c_conductor_payload())
 
 
 def _business_object_audit_payload(root: Path) -> dict:
@@ -249,6 +250,46 @@ def _lane_capability_harvest_payload(*, recommendation: str = "finish_invoice_st
         "hermes_recommendation": {
             "recommended_next_lane": recommendation,
             "reason": "Live Arts, Capital Hilton, and St. Anne's are not all proven yet.",
+        },
+    }
+
+
+def _phase_c_conductor_payload(
+    *,
+    active_gate_token_count: int = 0,
+    completion_writeback_count: int = 0,
+    blocked_task_count: int = 0,
+    problem_task_count: int = 0,
+) -> dict:
+    return {
+        "schema_version": "phase_c_conductor_state_read_model_v0",
+        "status": "ACTION_REQUIRED"
+        if active_gate_token_count > 1 or blocked_task_count or problem_task_count
+        else "READY_FOR_REVIEW",
+        "task_summary": {
+            "task_count": 3,
+            "claimed_task_count": 1,
+            "done_task_count": 1,
+            "blocked_task_count": blocked_task_count,
+            "problem_task_count": problem_task_count,
+        },
+        "gate_state": {
+            "active_gate_token_count": active_gate_token_count,
+            "active_gate_tokens": [
+                {"lane": f"LANE-{index}", "source_marker": f"token-{index}.md"}
+                for index in range(active_gate_token_count)
+            ],
+        },
+        "writeback_state": {
+            "completion_writeback_count": completion_writeback_count,
+            "completion_writebacks": [],
+            "live_write_performed": False,
+        },
+        "machine_proof": {
+            "scheduler_reconcile_present": True,
+            "auto_writeback_projection_present": True,
+            "external_send_performed": False,
+            "runtime_mutation_performed": False,
         },
     }
 
@@ -371,6 +412,26 @@ def test_missing_lane_capability_harvest_input_is_recorded(tmp_path):
 
     assert target["observed_value"] == "missing"
     assert target["unreachable_reason"] == "input read model missing or not JSON"
+
+
+def test_phase_c_conductor_gate_contention_is_action_required(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    baseline = _build(read_root)
+    _write_json(
+        read_root / "phase_c_conductor_state.json",
+        _phase_c_conductor_payload(active_gate_token_count=2, completion_writeback_count=1),
+    )
+
+    changed = _build(read_root, previous=baseline)
+    target = {
+        row["target_ref"]: row for row in changed["observed_targets"]
+    }["phase_c_conductor:gate_token_serialization"]
+
+    assert "ACTION_REQUIRED" in _status_set(changed)
+    assert target["observation_status"] == "ACTION_REQUIRED"
+    assert target["observed_value"] == "2"
+    assert target["unreachable_reason"] == "multiple active gate tokens detected"
 
 
 def test_dirty_repo_change_emits_repo_dirty(tmp_path):
