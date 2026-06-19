@@ -155,7 +155,7 @@ def test_adapter_maps_handle_result_and_filters_session():
     result = maestro.answer_frontdoor_chat(
         "what is in orbit",
         session={
-            "system_knowledge_repo_root": "/tmp/openclaw",
+            "system_knowledge_repo_root": "/home/openclaw",
             "raw_body": "must not forward",
             "system_knowledge_atlas_path": "",
         },
@@ -168,10 +168,74 @@ def test_adapter_maps_handle_result_and_filters_session():
     assert result.mac_render_hint == "COMPACT_WITH_DISCLOSURE"
     assert len(result.one_line_answer.split()) <= 30
     assert "second line" in result.plain_summary
-    assert calls == [("what is in orbit", {"system_knowledge_repo_root": "/tmp/openclaw"})]
+    assert calls == [("what is in orbit", {"system_knowledge_repo_root": "/home/openclaw"})]
     assert result.machine_proof["gmail_metadata_read_performed"] is False
     assert result.machine_proof["email_send_performed"] is False
     assert result.machine_proof["text_response_only"] is True
+
+
+def test_session_from_request_drops_vault_paths_and_accepts_allowlisted_aliases():
+    session = maestro.session_from_request(
+        {
+            "system_knowledge_atlas_path": "/mnt/c/OpenClawLegalPrivate/x.json",
+            "system_knowledge_ledger_path": "/home/openclaw/generated/system_knowledge/openclaw.sqlite",
+            "context": {
+                "repo_root": "/mnt/e/openclaw/orchestration",
+                "ledger_path": "/mnt/c/FinancePrivate/ledger.sqlite",
+            },
+            "current_context": {
+                "atlas_path": "/home/openclaw/generated/read_models/openclaw_system_knowledge_registry.json",
+            },
+        }
+    )
+
+    assert session == {
+        "system_knowledge_repo_root": "/mnt/e/openclaw/orchestration",
+        "system_knowledge_ledger_path": "/home/openclaw/generated/system_knowledge/openclaw.sqlite",
+        "system_knowledge_atlas_path": "/home/openclaw/generated/read_models/openclaw_system_knowledge_registry.json",
+    }
+
+
+def test_session_from_request_rejects_dotdot_and_symlink_escape(tmp_path, monkeypatch):
+    allowed = tmp_path / "allowed"
+    outside = tmp_path / "outside"
+    allowed.mkdir()
+    outside.mkdir()
+    outside_file = outside / "vault.json"
+    outside_file.write_text("private", encoding="utf-8")
+    monkeypatch.setattr(maestro, "PATH_PREFIX_ALLOWLIST", (allowed.resolve(),))
+
+    traversal = allowed / ".." / "outside" / "vault.json"
+    assert maestro.session_from_request({"system_knowledge_atlas_path": str(traversal)}) == {}
+
+    symlink = allowed / "vault-link.json"
+    try:
+        symlink.symlink_to(outside_file)
+    except OSError:
+        return
+    assert maestro.session_from_request({"system_knowledge_atlas_path": str(symlink)}) == {}
+
+    allowed_file = allowed / "atlas.json"
+    assert maestro.session_from_request({"system_knowledge_atlas_path": str(allowed_file)}) == {
+        "system_knowledge_atlas_path": str(allowed_file)
+    }
+
+
+def test_filtered_session_does_not_forward_direct_vault_paths_to_handle():
+    calls = []
+
+    def fake_handle(text: str, session: dict | None = None) -> list[str]:
+        calls.append(session)
+        return ["OpenClaw knows its safe shape."]
+
+    result = maestro.answer_frontdoor_chat(
+        "what does OpenClaw know?",
+        session={"system_knowledge_atlas_path": "/home/openclaw/.chief.env"},
+        handle_fn=fake_handle,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert calls == [{}]
 
 
 def test_adapter_distills_one_line_without_losing_plain_summary():
