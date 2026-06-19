@@ -1,0 +1,31 @@
+{
+  "counts_by_status": {
+    "active_with_open_tasks": 6,
+    "current_or_review": 80,
+    "current_recent": 3,
+    "done_or_superseded": 57,
+    "stale_by_mtime": 82,
+    "stale_unreferenced": 562
+  },
+  "db_path": "generated/system_knowledge/mac_md_corpus_developer.sqlite",
+  "document_count": 790,
+  "fresh_days": 7.0,
+  "no_authority_flags": {
+    "advisory_only": true,
+    "file_archive_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "finance_corpus_access_allowed": false,
+    "legal_discovery_access_allowed": false,
+    "model_call_allowed": false,
+    "musiclaw_corpus_access_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "tool_execution_allowed": false,
+    "truth_promotion_allowed": false
+  },
+  "run_id": "mac_md_staleness_developer_20260618T2321",
+  "source_corpus_run_id": "mac_md_corpus_developer_20260618T2316",
+  "stale_days": 30.0,
+  "staleness_version": "md_staleness_v0"
+}
