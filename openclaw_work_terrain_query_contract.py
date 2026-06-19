@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from agent_lane_registry import DEFAULT_AGENT_LANE_SEEDS, AgentLaneSeed
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -93,7 +95,38 @@ QUERY_MODEL_FIELDS = (
     "semantic_review_allowed",
     "authority_granted",
     "expected_result_types",
+    "agent_map_binding_ids",
+    "unresolved_target_actors",
     "next_safe_move",
+)
+
+AGENT_MAP_BINDING_FIELDS = (
+    "binding_id",
+    "query_id",
+    "target_actor",
+    "agent_id",
+    "display_name",
+    "lane_id",
+    "lane_label",
+    "status",
+    "authority_level",
+    "binding_basis",
+    "matched_terms",
+    "allowed_worlds",
+    "allowed_output_kinds",
+    "approval_required_for",
+    "receipt_required_for",
+    "routing_hints",
+    "source_refs",
+    "context_only",
+    "action_authority_granted",
+    "runtime_dispatch_allowed",
+)
+
+AGENT_MAP_SOURCE_REFS = (
+    "agent_lane_registry.py::DEFAULT_AGENT_LANE_SEEDS",
+    "generated/read_models/agent_lanes.json",
+    "generated/read_models/agent_lanes_OPERATOR.md",
 )
 
 RESULT_SHAPE_FIELDS = (
@@ -216,6 +249,30 @@ class WorkTerrainQueryPolicy:
 
 
 @dataclass(frozen=True)
+class WorkTerrainQueryAgentMapBinding:
+    binding_id: str
+    query_id: str
+    target_actor: str
+    agent_id: str
+    display_name: str
+    lane_id: str
+    lane_label: str
+    status: str
+    authority_level: str
+    binding_basis: str
+    matched_terms: tuple[str, ...]
+    allowed_worlds: tuple[str, ...]
+    allowed_output_kinds: tuple[str, ...]
+    approval_required_for: tuple[str, ...]
+    receipt_required_for: tuple[str, ...]
+    routing_hints: tuple[str, ...]
+    source_refs: tuple[str, ...]
+    context_only: bool
+    action_authority_granted: bool
+    runtime_dispatch_allowed: bool
+
+
+@dataclass(frozen=True)
 class WorkTerrainQueryExportResult:
     schema_version: str
     json_path: str
@@ -239,6 +296,19 @@ def _content_hash(payload: dict[str, Any]) -> str:
     clone = json.loads(stable_json(payload))
     clone.get("machine_proof", {}).pop("content_hash", None)
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
+
+
+def _normalize_agent_key(value: str) -> str:
+    return value.strip().lower().replace(" / ", "_").replace("/", "_").replace(" ", "_").replace("-", "_")
+
+
+def _agent_lookup(seeds: tuple[AgentLaneSeed, ...] = DEFAULT_AGENT_LANE_SEEDS) -> dict[str, AgentLaneSeed]:
+    lookup: dict[str, AgentLaneSeed] = {}
+    for seed in seeds:
+        keys = (seed.agent_id, seed.display_name, *seed.aliases)
+        for key in keys:
+            lookup.setdefault(_normalize_agent_key(key), seed)
+    return lookup
 
 
 def _query(
@@ -272,6 +342,76 @@ def _query(
         expected_result_types=EXPECTED_RESULT_TYPES,
         next_safe_move=next_safe_move,
     )
+
+
+def _agent_binding(query: WorkTerrainQuery, target_actor: str, seed: AgentLaneSeed) -> WorkTerrainQueryAgentMapBinding:
+    return WorkTerrainQueryAgentMapBinding(
+        binding_id=f"{query.query_id}::{seed.agent_id}",
+        query_id=query.query_id,
+        target_actor=target_actor,
+        agent_id=seed.agent_id,
+        display_name=seed.display_name,
+        lane_id=seed.lane_id,
+        lane_label=seed.lane_label,
+        status=seed.status,
+        authority_level=seed.authority_level,
+        binding_basis="target_actor_to_agent_lane_registry",
+        matched_terms=(target_actor,),
+        allowed_worlds=seed.allowed_worlds,
+        allowed_output_kinds=seed.allowed_output_kinds,
+        approval_required_for=seed.approval_required_for,
+        receipt_required_for=seed.receipt_required_for,
+        routing_hints=seed.routing_hints,
+        source_refs=AGENT_MAP_SOURCE_REFS,
+        context_only=True,
+        action_authority_granted=False,
+        runtime_dispatch_allowed=False,
+    )
+
+
+def build_query_agent_map_wiring(
+    queries: tuple[WorkTerrainQuery, ...],
+    *,
+    seeds: tuple[AgentLaneSeed, ...] = DEFAULT_AGENT_LANE_SEEDS,
+) -> dict[str, Any]:
+    lookup = _agent_lookup(seeds)
+    bindings: list[WorkTerrainQueryAgentMapBinding] = []
+    bindings_by_query_id: dict[str, list[str]] = {query.query_id: [] for query in queries}
+    unresolved_by_query_id: dict[str, list[str]] = {query.query_id: [] for query in queries}
+
+    for query in queries:
+        seen_agent_ids: set[str] = set()
+        for target_actor in query.target_actors:
+            seed = lookup.get(_normalize_agent_key(target_actor))
+            if seed is None:
+                unresolved_by_query_id[query.query_id].append(target_actor)
+                continue
+            if seed.agent_id in seen_agent_ids:
+                continue
+            binding = _agent_binding(query, target_actor, seed)
+            bindings.append(binding)
+            bindings_by_query_id[query.query_id].append(binding.binding_id)
+            seen_agent_ids.add(seed.agent_id)
+
+    return {
+        "mode": "query_target_actor_to_agent_lane_context_only",
+        "source_refs": list(AGENT_MAP_SOURCE_REFS),
+        "binding_model": {
+            "model_name": "WorkTerrainQueryAgentMapBinding",
+            "fields": list(AGENT_MAP_BINDING_FIELDS),
+        },
+        "bindings": [asdict(binding) for binding in bindings],
+        "bindings_by_query_id": bindings_by_query_id,
+        "unresolved_target_actors_by_query_id": unresolved_by_query_id,
+        "unknown_actor_policy": (
+            "Target actors absent from agent_lane_registry remain metadata labels only; "
+            "they do not create routing, execution, or authority."
+        ),
+        "context_only": True,
+        "unknowns_fail_closed": True,
+        "action_authority_granted": False,
+        "runtime_dispatch_allowed": False,
+    }
 
 
 def default_work_terrain_queries() -> tuple[WorkTerrainQuery, ...]:
@@ -402,6 +542,15 @@ def build_openclaw_work_terrain_query_contract(*, generated_at: str | None = Non
     queries = default_work_terrain_queries()
     policy = default_query_policy()
     result_shape = default_result_shape()
+    agent_map_wiring = build_query_agent_map_wiring(queries)
+    query_examples: list[dict[str, Any]] = []
+    for query in queries:
+        query_dict = asdict(query)
+        query_dict["agent_map_binding_ids"] = agent_map_wiring["bindings_by_query_id"][query.query_id]
+        query_dict["unresolved_target_actors"] = agent_map_wiring["unresolved_target_actors_by_query_id"][query.query_id]
+        query_examples.append(query_dict)
+    binding_agent_ids = sorted({binding["agent_id"] for binding in agent_map_wiring["bindings"]})
+    all_queries_have_bindings = all(agent_map_wiring["bindings_by_query_id"][query.query_id] for query in queries)
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -425,6 +574,7 @@ def build_openclaw_work_terrain_query_contract(*, generated_at: str | None = Non
             "blocked_sources": list(BLOCKED_SOURCES),
             "expected_result_types": list(EXPECTED_RESULT_TYPES),
         },
+        "agent_map_wiring": agent_map_wiring,
         "terrain_result_shape": {
             "model_name": "WorkTerrainQueryResultShape",
             "fields": list(RESULT_SHAPE_FIELDS),
@@ -432,7 +582,7 @@ def build_openclaw_work_terrain_query_contract(*, generated_at: str | None = Non
             "live_result": False,
         },
         "work_terrain_source_types": list(WORK_TERRAIN_SOURCE_TYPES),
-        "default_query_examples": [asdict(query) for query in queries],
+        "default_query_examples": query_examples,
         "work_terrain_query_policy": asdict(policy),
         "questions_enabled_later": [
             "Which Chief docs exist?",
@@ -456,6 +606,22 @@ def build_openclaw_work_terrain_query_contract(*, generated_at: str | None = Non
             "result_shape_exists": True,
             "policy_exists": True,
             "default_query_count": len(queries),
+            "agent_map_wiring_exists": True,
+            "agent_map_binding_model_exists": True,
+            "agent_map_binding_count": len(agent_map_wiring["bindings"]),
+            "agent_map_source_refs": list(AGENT_MAP_SOURCE_REFS),
+            "all_default_queries_have_agent_map_bindings": all_queries_have_bindings,
+            "bound_agent_ids": binding_agent_ids,
+            "known_agent_bindings_from_agent_lane_registry": all(
+                agent_id in {seed.agent_id for seed in DEFAULT_AGENT_LANE_SEEDS} for agent_id in binding_agent_ids
+            ),
+            "unknown_target_actors_fail_closed": agent_map_wiring["unknowns_fail_closed"],
+            "struna_actor_unresolved_fail_closed": "Struna" in agent_map_wiring[
+                "unresolved_target_actors_by_query_id"
+            ]["niles_struna_related_work_terrain"],
+            "operator_actor_unresolved_fail_closed": "Operator" in agent_map_wiring[
+                "unresolved_target_actors_by_query_id"
+            ]["repo_b_planner_builder_related_work_terrain"],
             "chief_example_exists": any(query.query_id == "chief_related_work_terrain" for query in queries),
             "capital_hilton_example_exists": any(
                 query.query_id == "capital_hilton_related_work_terrain" for query in queries
@@ -491,9 +657,20 @@ def format_openclaw_work_terrain_query_contract(payload: dict[str, Any]) -> str:
         "",
     ]
     for query in payload["default_query_examples"]:
-        lines.append(f"- `{query['query_id']}`: {query['query_text']}")
+        binding_ids = ", ".join(query["agent_map_binding_ids"])
+        unresolved = ", ".join(query["unresolved_target_actors"]) or "none"
+        lines.append(
+            f"- `{query['query_id']}`: {query['query_text']} "
+            f"(agent-map bindings: {binding_ids}; unresolved actors: {unresolved})"
+        )
     lines.extend(
         [
+            "",
+            "## Agent Map Wiring",
+            "",
+            "- Query target actors are bound to `agent_lane_registry.py::DEFAULT_AGENT_LANE_SEEDS` as context only.",
+            "- Unknown target actors stay unresolved/fail-closed and grant no routing, runtime dispatch, or action authority.",
+            f"- Binding count: `{payload['machine_proof']['agent_map_binding_count']}`.",
             "",
             "## Safety Policy",
             "",
@@ -581,6 +758,7 @@ def main(argv: list[str] | None = None) -> int:
 
 __all__ = [
     "ALLOWED_SOURCES",
+    "AGENT_MAP_SOURCE_REFS",
     "BLOCKED_SOURCES",
     "JSON_EXPORT_NAME",
     "OPERATOR_EXPORT_NAME",
@@ -588,8 +766,10 @@ __all__ = [
     "SCHEMA_VERSION",
     "WORK_TERRAIN_SOURCE_TYPES",
     "WorkTerrainQuery",
+    "WorkTerrainQueryAgentMapBinding",
     "WorkTerrainQueryPolicy",
     "WorkTerrainQueryResultShape",
+    "build_query_agent_map_wiring",
     "build_openclaw_work_terrain_query_contract",
     "default_query_policy",
     "default_result_shape",

@@ -8,11 +8,17 @@ It does not decide what is current, stale, superseded, or ready to promote yet. 
 
 ## What It Can Ask Later
 
-- `chief_related_work_terrain`: Show me all Chief-related OpenClaw terrain.
-- `capital_hilton_related_work_terrain`: Show me everything related to Capital Hilton.
-- `security_pass_related_work_terrain`: Show me all Security Pass and authority-boundary terrain.
-- `niles_struna_related_work_terrain`: Show me all Niles, Struna, music, art, plugin, synth, and Mac-port terrain.
-- `repo_b_planner_builder_related_work_terrain`: Show me Repo B, planner, builder, orchestrator, and legacy runtime terrain.
+- `chief_related_work_terrain`: Show me all Chief-related OpenClaw terrain. (agent-map bindings: chief_related_work_terrain::chief; unresolved actors: none)
+- `capital_hilton_related_work_terrain`: Show me everything related to Capital Hilton. (agent-map bindings: capital_hilton_related_work_terrain::cassandra, capital_hilton_related_work_terrain::guardian; unresolved actors: none)
+- `security_pass_related_work_terrain`: Show me all Security Pass and authority-boundary terrain. (agent-map bindings: security_pass_related_work_terrain::guardian, security_pass_related_work_terrain::hermes, security_pass_related_work_terrain::chief; unresolved actors: none)
+- `niles_struna_related_work_terrain`: Show me all Niles, Struna, music, art, plugin, synth, and Mac-port terrain. (agent-map bindings: niles_struna_related_work_terrain::niles; unresolved actors: Struna)
+- `repo_b_planner_builder_related_work_terrain`: Show me Repo B, planner, builder, orchestrator, and legacy runtime terrain. (agent-map bindings: repo_b_planner_builder_related_work_terrain::chief; unresolved actors: Operator)
+
+## Agent Map Wiring
+
+- Query target actors are bound to `agent_lane_registry.py::DEFAULT_AGENT_LANE_SEEDS` as context only.
+- Unknown target actors stay unresolved/fail-closed and grant no routing, runtime dispatch, or action authority.
+- Binding count: `8`.
 
 ## Safety Policy
 
