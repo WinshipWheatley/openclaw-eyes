@@ -104,6 +104,66 @@ def test_timeout_contract_escalates_after_timeout(monkeypatch):
     assert escalations[0][0] == "Please send Winship a note about tomorrow"
 
 
+def test_timeout_contract_runtime_exception_fail_closes_explicitly(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+    escalations: list[tuple[str, dict]] = []
+    monkeypatch.setattr(listener, "_WORKING_ACK_DELAY_S", 0.0, raising=False)
+
+    async def _case():
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def broken_run(text: str, session_meta: dict):
+            await asyncio.sleep(0.01)
+            raise RuntimeError("local model offline")
+
+        async def fake_escalate(text: str, session_meta: dict):
+            escalations.append((text, session_meta))
+
+        result = await listener._run_request_with_timeout_contract(
+            text="Can you summarize the Capital Hilton status?",
+            session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+            send_reply=fake_send,
+            is_authorized_user=True,
+            run_cassandra=broken_run,
+            escalate_failure=fake_escalate,
+        )
+        assert result is None
+        await asyncio.sleep(0.02)
+
+    asyncio.run(_case())
+
+    assert sent == [listener._WORKING_ON_IT, listener._HANDLER_EXCEPTION_NOTICE]
+    assert len(escalations) == 1
+    assert escalations[0][1]["runtime_error"] == "local model offline"
+
+
+def test_timeout_contract_replaces_generic_quiet_reply_with_degraded_notice(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+
+    async def _case():
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def generic_run(text: str, session_meta: dict):
+            return ["I'm here — something went quiet on my end. Try again."]
+
+        result = await listener._run_request_with_timeout_contract(
+            text="Can you summarize the Capital Hilton status?",
+            session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+            send_reply=fake_send,
+            is_authorized_user=True,
+            run_cassandra=generic_run,
+        )
+        assert result == ["I'm here — something went quiet on my end. Try again."]
+
+    asyncio.run(_case())
+
+    assert sent == [listener._DEGRADED_EMPTY_REPLY_NOTICE]
+
+
 def test_timeout_contract_delivers_late_success_once(monkeypatch):
     listener = _load_listener(monkeypatch)
     sent: list[str] = []
@@ -312,3 +372,51 @@ def test_timeout_contract_suppresses_stale_request_after_newer_one(monkeypatch):
 
     assert sent == []
     assert escalations == []
+
+
+def test_handle_message_keeps_original_prompt_delivery_after_newer_prompt(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+    captured_should_deliver = []
+
+    class FakeUser:
+        id = 123
+        full_name = "Winship"
+
+    class FakeChat:
+        id = 456
+
+    class FakeMessage:
+        text = "Can you summarize the Capital Hilton status?"
+
+        async def reply_text(self, text: str):
+            sent.append(text)
+
+    class FakeBot:
+        async def send_chat_action(self, **kwargs):
+            return None
+
+    async def fake_contract(**kwargs):
+        listener._CHAT_REQUEST_TOKENS[456] = 99
+        captured_should_deliver.append(kwargs["should_deliver"]())
+        await kwargs["send_reply"]("Correlated answer.")
+        return ["Correlated answer."]
+
+    monkeypatch.setattr(listener, "_run_request_with_timeout_contract", fake_contract, raising=False)
+    monkeypatch.setattr(listener, "record_cassandra_listener_text_update", lambda **kwargs: None, raising=False)
+    monkeypatch.setattr(listener, "_log_cassandra_route", lambda text, intent: None, raising=False)
+    monkeypatch.setattr(listener, "speak", lambda *args, **kwargs: None, raising=False)
+    monkeypatch.setattr(listener, "synthesize_for_voice_note", lambda *args, **kwargs: None, raising=False)
+
+    update = types.SimpleNamespace(
+        effective_user=FakeUser(),
+        effective_chat=FakeChat(),
+        message=FakeMessage(),
+        update_id=12345,
+    )
+    context = types.SimpleNamespace(bot=FakeBot())
+
+    asyncio.run(listener.handle_message(update, context))
+
+    assert captured_should_deliver == [True]
+    assert sent == ["Correlated answer."]

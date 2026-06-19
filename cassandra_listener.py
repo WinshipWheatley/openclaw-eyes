@@ -54,7 +54,22 @@ _LISTENER_LOCK_HANDLE = None
 _REQUEST_TIMEOUT_S = 60
 _WORKING_ACK_DELAY_S = 1.0
 _WORKING_ON_IT = "Cassandra is working on it."
-_ESCALATION_NOTICE = "Something isn't working. Chief is investigating and will send you what went wrong."
+_ESCALATION_NOTICE = (
+    "Cassandra timed out before completing that request. I did not send or change anything. "
+    "Chief is investigating and will report the exact failure."
+)
+_HANDLER_EXCEPTION_NOTICE = (
+    "Cassandra hit an internal runtime error before completing that request. "
+    "I did not send or change anything. Chief is investigating."
+)
+_DEGRADED_EMPTY_REPLY_NOTICE = (
+    "Cassandra is degraded: the model path returned no usable answer. "
+    "I did not send or change anything. I can still answer deterministic status, date, and capability questions."
+)
+_UNHANDLED_LISTENER_NOTICE = (
+    "Cassandra hit a listener error before completing that request. "
+    "I did not send or change anything. Chief is investigating."
+)
 _APPROVAL_PENDING_PATH = _Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 _APPROVAL_WAIT_STALL_S = 300
 _APPROVAL_WAIT_NOTICE = "Guardian approval is still pending. Once you approve or deny it, I'll continue."
@@ -261,9 +276,11 @@ async def _deliver_late_result(
         print(f"[cassandra_listener] late result error: {exc}", flush=True)
         return
 
-    for reply in replies or []:
-        if should_deliver():
-            await send_reply(reply)
+    await _send_reply_batch_or_degraded(
+        replies,
+        send_reply=send_reply,
+        should_deliver=should_deliver,
+    )
 
 
 async def _send_delayed_status(
@@ -278,6 +295,30 @@ async def _send_delayed_status(
         await send_reply(message)
 
 
+def _is_generic_quiet_reply(reply: str) -> bool:
+    normalized = " ".join(str(reply or "").lower().split())
+    return "something went quiet" in normalized or "quiet on my end" in normalized
+
+
+async def _send_reply_batch_or_degraded(
+    replies,
+    *,
+    send_reply,
+    should_deliver,
+) -> list[str]:
+    delivered: list[str] = []
+    for reply in replies or []:
+        text = str(reply or "").strip()
+        if not text or _is_generic_quiet_reply(text):
+            continue
+        if should_deliver():
+            await send_reply(text)
+            delivered.append(text)
+    if not delivered and should_deliver():
+        await send_reply(_DEGRADED_EMPTY_REPLY_NOTICE)
+    return delivered
+
+
 async def _run_request_with_timeout_contract(
     *,
     text: str,
@@ -290,9 +331,11 @@ async def _run_request_with_timeout_contract(
 ) -> list[str] | None:
     if not _should_use_timeout_contract(text, is_authorized_user=is_authorized_user):
         replies = await run_cassandra(text, session_meta)
-        for reply in replies:
-            if should_deliver():
-                await send_reply(reply)
+        await _send_reply_batch_or_degraded(
+            replies,
+            send_reply=send_reply,
+            should_deliver=should_deliver,
+        )
         return replies
 
     working_ack_task = asyncio.create_task(
@@ -320,11 +363,20 @@ async def _run_request_with_timeout_contract(
                 asyncio.create_task(escalate_failure(text, session_meta))
         asyncio.create_task(_deliver_late_result(task, send_reply=send_reply, should_deliver=should_deliver))
         return None
+    except Exception as exc:
+        working_ack_task.cancel()
+        print(f"[cassandra_listener] request runtime error: {exc}", flush=True)
+        if should_deliver():
+            await send_reply(_HANDLER_EXCEPTION_NOTICE)
+            asyncio.create_task(escalate_failure(text, session_meta | {"runtime_error": str(exc)}))
+        return None
 
     working_ack_task.cancel()
-    for reply in replies:
-        if should_deliver():
-            await send_reply(reply)
+    await _send_reply_batch_or_degraded(
+        replies,
+        send_reply=send_reply,
+        should_deliver=should_deliver,
+    )
     return replies
 
 
@@ -390,9 +442,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     request_token = _claim_chat_request(sender_chat_id)
 
-    async def _send_if_current(reply_text: str):
-        if _is_current_chat_request(sender_chat_id, request_token):
-            await update.message.reply_text(reply_text)
+    async def _send_to_prompt(reply_text: str):
+        await update.message.reply_text(reply_text)
 
     # Producer: Handle intake
     producer_payload = extract_producer_payload(text)
@@ -400,12 +451,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not is_authorized_user:
             return
         if not producer_payload:
-            await _send_if_current("Usage: /producer <message> or producer: <message>")
+            await _send_to_prompt("Usage: /producer <message> or producer: <message>")
         else:
             typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, sender_chat_id))
             try:
                 result = await _run_producer_intake(producer_payload)
-                await _send_if_current(result)
+                await _send_to_prompt(result)
             finally:
                 typing_task.cancel()
         return
@@ -446,14 +497,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "source_message_id": str(getattr(update, "update_id", "")) or "",
                     "source_user_label": source_user_label,
                 },
-                send_reply=_send_if_current,
+                send_reply=_send_to_prompt,
                 is_authorized_user=is_authorized_user,
-                should_deliver=lambda: _is_current_chat_request(sender_chat_id, request_token),
+                should_deliver=lambda: True,
             )
             _log_cassandra_route(text, "cassandra")
         except Exception as e:
             print(f"[cassandra_listener] error: {e}", flush=True)
-            await update.message.reply_text("Something went quiet on my end. Try again.")
+            await update.message.reply_text(_UNHANDLED_LISTENER_NOTICE)
+            asyncio.create_task(
+                _trigger_chief_investigation_async(
+                    text,
+                    {
+                        "sender_name": sender_name,
+                        "sender_chat_id": sender_chat_id,
+                        "source_message_id": str(getattr(update, "update_id", "")) or "",
+                        "source_user_label": source_user_label,
+                        "listener_error": str(e),
+                    },
+                )
+            )
             return
     finally:
         typing_task.cancel()
