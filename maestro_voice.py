@@ -1,10 +1,9 @@
 """
-maestro_voice.py — Maestro's voice (Piper en_GB-alan).
+maestro_voice.py - Maestro's voice (Kokoro am_michael).
 
-Standalone on purpose: Cassandra's voice path (cassandra_voice.py, jenny) is
-load-bearing for her Telegram replies and is left untouched. Maestro — the
-front-door conductor — gets his own distinct voice. First surface: the operator
-morning brief (the conductor orienting the operator). Synthesis only; the SEND is
+Standalone on purpose: Cassandra's voice path is load-bearing for her Telegram
+replies. Maestro - the front-door conductor - gets his own distinct voice.
+First surface: the operator morning brief. Synthesis only; the SEND is
 delegated to cassandra_sender.send_operator_brief_voice(), which keeps the exact
 operator-resolved / SEND_HOLD / carve-out posture as before.
 """
@@ -17,13 +16,17 @@ from pathlib import Path
 from cassandra_mode import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
 import chief_env  # noqa: F401  — loads .chief.env into os.environ
+from agent_kokoro_voice import synth_kokoro_wav, voice_for_agent
 
 VOICE_ENABLED = os.environ.get("CASSANDRA_VOICE", "0") == "1"
+MAESTRO_VOICE_BACKEND = os.environ.get("MAESTRO_VOICE_BACKEND", "kokoro").lower()
+MAESTRO_KOKORO_VOICE = os.environ.get("MAESTRO_KOKORO_VOICE", voice_for_agent("maestro"))
+MAESTRO_KOKORO_SPEED = float(os.environ.get("MAESTRO_KOKORO_SPEED", "1.0"))
 MAESTRO_VOICE_MODEL = os.environ.get(
     "MAESTRO_VOICE_MODEL",
     "/home/openclaw/piper_voices/en_GB-alan-medium.onnx",
 )
-# Maestro: a touch slower and steadier than Cassandra — authoritative, not stiff.
+# Piper fallback tuning only. No reverb, no pitch effects.
 LENGTH_SCALE = float(os.environ.get("MAESTRO_VOICE_LENGTH_SCALE", "1.06"))
 NOISE_SCALE = float(os.environ.get("MAESTRO_VOICE_NOISE_SCALE", "0.55"))
 NOISE_W = float(os.environ.get("MAESTRO_VOICE_NOISE_W", "0.75"))
@@ -50,8 +53,8 @@ def _load_maestro_voice():
     return _voice
 
 
-def synth_maestro_wav(text: str, wav_path: Path) -> bool:
-    """Render text to a WAV in Maestro's voice. No playback, no send."""
+def _synth_maestro_piper_wav(text: str, wav_path: Path) -> bool:
+    """Render text to a WAV through Maestro's Piper fallback."""
     from piper.config import SynthesisConfig
     voice = _load_maestro_voice()
     cfg = SynthesisConfig(
@@ -73,6 +76,18 @@ def synth_maestro_wav(text: str, wav_path: Path) -> bool:
     wav_path.parent.mkdir(parents=True, exist_ok=True)
     wav_path.write_bytes(buf.getvalue())
     return True
+
+
+def synth_maestro_wav(text: str, wav_path: Path) -> bool:
+    """Render text to a WAV in Maestro's voice. No playback, no send."""
+    if MAESTRO_VOICE_BACKEND == "kokoro":
+        try:
+            if synth_kokoro_wav(text, MAESTRO_KOKORO_VOICE, wav_path, speed=MAESTRO_KOKORO_SPEED):
+                return True
+            print("[maestro_voice] Kokoro returned no audio; fallback -> Piper", flush=True)
+        except Exception as e:
+            print(f"[maestro_voice] Kokoro failed; fallback -> Piper: {e}", flush=True)
+    return _synth_maestro_piper_wav(text, wav_path)
 
 
 def _clean(text: str) -> str:
