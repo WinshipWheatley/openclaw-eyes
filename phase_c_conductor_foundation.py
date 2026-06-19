@@ -31,7 +31,10 @@ JSON_EXPORT_NAME = "phase_c_conductor_state.json"
 OPERATOR_EXPORT_NAME = "phase_c_conductor_state_OPERATOR.md"
 
 MARKER_KINDS = ("CLAIM", "DONE", "BLOCKED", "PROBLEM", "IDLE")
+WRITEBACK_RECEIPT_KIND = "WRITEBACK_RECEIPT"
+WRITEBACK_RECEIPT_PREFIX = "PHASE-C-WRITEBACK-"
 TIMESTAMP_SUFFIX_RE = re.compile(r"-(20\d{6}T\d{6}(?:Z|[-+]\d{4})?)$")
+BODY_FIELD_RE = re.compile(r"^([A-Za-z0-9_ -]+):\s*(.*)$")
 
 NO_AUTHORITY_FLAGS = {
     "read_only": True,
@@ -82,6 +85,10 @@ def _sha256_text(text: str) -> str:
     return _sha256_bytes(text.encode("utf-8"))
 
 
+def _compact_json(payload: Any) -> str:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
 def _sha256_file(path: str | Path) -> str:
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
@@ -94,6 +101,14 @@ def _mtime_from_timestamp(mtime: float) -> str:
     return datetime.fromtimestamp(mtime, timezone.utc).replace(microsecond=0).isoformat()
 
 
+def _filename_timestamp(generated_at: str) -> str:
+    try:
+        parsed = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+    except ValueError:
+        parsed = datetime.now(timezone.utc)
+    return parsed.strftime("%Y%m%dT%H%M%S%z")
+
+
 def _timestamp_suffix(stem: str) -> str:
     match = TIMESTAMP_SUFFIX_RE.search(stem)
     return match.group(1) if match else ""
@@ -101,6 +116,12 @@ def _timestamp_suffix(stem: str) -> str:
 
 def _strip_timestamp_suffix(stem: str) -> str:
     return TIMESTAMP_SUFFIX_RE.sub("", stem)
+
+
+def _slug(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip())
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug or "unknown"
 
 
 def _lane_prefix(text: str) -> str:
@@ -148,6 +169,15 @@ def parse_marker_filename(filename: str) -> dict[str, str]:
                 "timestamp_token": timestamp_token,
             }
 
+    if base.startswith(WRITEBACK_RECEIPT_PREFIX):
+        task_id = base[len(WRITEBACK_RECEIPT_PREFIX) :] or "unknown-task"
+        return {
+            "kind": WRITEBACK_RECEIPT_KIND,
+            "lane": "PHASE-C",
+            "task_id": task_id,
+            "timestamp_token": timestamp_token,
+        }
+
     for kind in MARKER_KINDS:
         infix = f"-{kind}-"
         suffix = f"-{kind}"
@@ -178,6 +208,21 @@ def parse_marker_filename(filename: str) -> dict[str, str]:
     }
 
 
+def _marker_body_fields(path: Path) -> dict[str, str]:
+    try:
+        text = path.read_text(encoding="utf-8")[:8192]
+    except OSError:
+        return {}
+    fields: dict[str, str] = {}
+    for line in text.splitlines():
+        match = BODY_FIELD_RE.match(line.strip())
+        if not match:
+            continue
+        key = match.group(1).strip().lower().replace(" ", "_").replace("-", "_")
+        fields[key] = match.group(2).strip()
+    return fields
+
+
 def _marker_record(
     path: Path,
     orchestration_root: Path,
@@ -191,7 +236,10 @@ def _marker_record(
     except OSError:
         size_bytes = 0
         mtime = ""
-    if parsed["kind"] == "DONE":
+    body_fields: dict[str, str] = {}
+    if parsed["kind"] in {"GATE_RELEASE", WRITEBACK_RECEIPT_KIND}:
+        body_fields = _marker_body_fields(path)
+    if parsed["kind"] in {"DONE", "GATE_RELEASE", WRITEBACK_RECEIPT_KIND}:
         try:
             marker_sha256 = _sha256_file(path)
         except OSError:
@@ -226,6 +274,7 @@ def _marker_record(
         "mtime": mtime,
         "size_bytes": size_bytes,
         "sha256": marker_sha256,
+        "body_fields": body_fields,
     }
 
 
@@ -349,12 +398,229 @@ def _writeback_state(task_states: list[dict[str, Any]], markers: list[dict[str, 
                     "live_write_performed": False,
                 }
             )
-    return {
-        "writeback_mode": "idempotent_completion_evidence_projection",
+    scheduler_backstop = {
+        "mode": "scheduler_reconcile_backstop",
         "idempotency_key_fields": ["task_id", "completion_evidence_hash"],
         "completion_writeback_count": len(records),
         "completion_writebacks": records,
         "live_write_performed": False,
+    }
+    gate_hook_primary = _gate_hook_writeback_state(markers)
+    return {
+        "writeback_mode": "gate_hook_primary_scheduler_reconcile_backstop",
+        "idempotency_key_fields": ["task_id", "completion_evidence_hash"],
+        "completion_writeback_count": len(records),
+        "completion_writebacks": records,
+        "scheduler_reconcile_backstop": scheduler_backstop,
+        "gate_hook_primary": gate_hook_primary,
+        "gate_hook_writeback_count": gate_hook_primary["gate_hook_writeback_count"],
+        "planned_checkoff_count": gate_hook_primary["gate_hook_writeback_count"] + len(records),
+        "live_write_performed": False,
+    }
+
+
+def _green_gate_release_writeback(marker: dict[str, Any]) -> dict[str, Any] | None:
+    fields = marker.get("body_fields") if isinstance(marker.get("body_fields"), dict) else {}
+    exit_value = str(fields.get("exit") or fields.get("exit_code") or "").strip()
+    if exit_value not in {"0", "PASS", "PASSED", "pass", "passed"}:
+        return None
+    task_id = str(fields.get("item") or fields.get("task") or fields.get("ref") or marker.get("lane") or "gate-token")
+    evidence_hash = str(marker.get("sha256") or "")
+    if not evidence_hash:
+        return None
+    writeback_key = _sha256_text(task_id + "\0" + evidence_hash)
+    return {
+        "writeback_ref": "phase_c_gate_writeback:" + writeback_key.removeprefix("sha256:")[:16],
+        "task_id": task_id,
+        "completion_evidence_hash": evidence_hash,
+        "idempotency_key": {
+            "task_id": task_id,
+            "completion_evidence_hash": evidence_hash,
+        },
+        "trigger": "green_gate_release",
+        "trigger_source_marker": marker["relative_path"],
+        "trigger_lane": marker["lane"],
+        "gate_ref": str(fields.get("ref") or ""),
+        "exit": exit_value,
+        "status": "READY_FOR_GATE_HOOK_WRITEBACK",
+        "checkoff_target": "plan_checkoff:" + _slug(task_id),
+        "live_write_performed": False,
+    }
+
+
+def _gate_hook_writeback_state(markers: list[dict[str, Any]]) -> dict[str, Any]:
+    records = [
+        record
+        for marker in sorted(markers, key=_marker_sort_key)
+        if marker["kind"] == "GATE_RELEASE"
+        for record in [_green_gate_release_writeback(marker)]
+        if record is not None
+    ]
+    seen: set[tuple[str, str]] = set()
+    unique_records: list[dict[str, Any]] = []
+    for record in records:
+        key = (
+            str(record["idempotency_key"]["task_id"]),
+            str(record["idempotency_key"]["completion_evidence_hash"]),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_records.append(record)
+    return {
+        "mode": "gate_hook_primary",
+        "hook_entrypoint": "scripts/phase_c_conductor_gate_hook.py",
+        "idempotency_key_fields": ["task_id", "completion_evidence_hash"],
+        "gate_hook_writeback_count": len(unique_records),
+        "gate_hook_writebacks": unique_records,
+        "live_write_performed": False,
+    }
+
+
+def _existing_writeback_receipt(
+    inbox: Path,
+    *,
+    idempotency_key: dict[str, str],
+) -> Path | None:
+    expected = _compact_json(idempotency_key)
+    try:
+        paths = sorted(inbox.glob(f"{WRITEBACK_RECEIPT_PREFIX}*.md"))
+    except OSError:
+        return None
+    for path in paths:
+        fields = _marker_body_fields(path)
+        if fields.get("idempotency_key") == expected:
+            return path
+    return None
+
+
+def write_phase_c_gate_hook_checkoff_receipt(
+    *,
+    orchestration_root: str | Path,
+    gate_release_marker: str | Path,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Write one bounded checkoff receipt for a green gate-release marker.
+
+    This is the approved runner hook surface: tests exercise it against a temp
+    orchestration root; this worker does not invoke it against production.
+    """
+
+    root = Path(orchestration_root)
+    marker_path = Path(gate_release_marker)
+    if not marker_path.is_absolute():
+        marker_path = root / marker_path
+    parsed = parse_marker_filename(marker_path.name)
+    if parsed["kind"] != "GATE_RELEASE":
+        return {"status": "NOOP_NOT_GATE_RELEASE", "receipt_path": "", "live_write_performed": False}
+    marker = _marker_record(marker_path, root, parsed=parsed)
+    writeback = _green_gate_release_writeback(marker)
+    if writeback is None:
+        return {"status": "NOOP_GATE_NOT_GREEN", "receipt_path": "", "live_write_performed": False}
+
+    inbox = root / "inbox" / "to-claude"
+    inbox.mkdir(parents=True, exist_ok=True)
+    idempotency_key = writeback["idempotency_key"]
+    existing = _existing_writeback_receipt(inbox, idempotency_key=idempotency_key)
+    if existing is not None:
+        return {
+            "status": "ALREADY_RECORDED",
+            "receipt_path": _display_path(existing),
+            "writeback_ref": writeback["writeback_ref"],
+            "idempotency_key": idempotency_key,
+            "live_write_performed": True,
+        }
+
+    generated = generated_at or utc_now()
+    timestamp = _filename_timestamp(generated)
+    receipt_path = inbox / f"{WRITEBACK_RECEIPT_PREFIX}{_slug(str(idempotency_key['task_id']))}-{timestamp}.md"
+    receipt_text = "\n".join(
+        [
+            "PHASE-C-WRITEBACK",
+            f"Writeback Ref: {writeback['writeback_ref']}",
+            f"Task ID: {idempotency_key['task_id']}",
+            f"Completion Evidence Hash: {idempotency_key['completion_evidence_hash']}",
+            f"Idempotency Key: {_compact_json(idempotency_key)}",
+            f"Trigger Source Marker: {writeback['trigger_source_marker']}",
+            f"Gate Ref: {writeback['gate_ref']}",
+            "Status: PLAN_CHECKOFF_WRITTEN",
+            "Live Write Performed: true",
+        ]
+    )
+    receipt_path.write_text(receipt_text + "\n", encoding="utf-8")
+    return {
+        "status": "WRITEBACK_RECEIPT_CREATED",
+        "receipt_path": _display_path(receipt_path),
+        "writeback_ref": writeback["writeback_ref"],
+        "idempotency_key": idempotency_key,
+        "live_write_performed": True,
+    }
+
+
+def _conductor_feed(task_states: list[dict[str, Any]], gate_state: dict[str, Any]) -> dict[str, Any]:
+    live_plan_items = [
+        {
+            "task_id": row["task_id"],
+            "state": row["state"],
+            "latest_lane": row["latest_lane"],
+            "latest_marker": row["latest_marker"],
+        }
+        for row in task_states
+        if row["state"] in {"CLAIMED", "DONE"}
+    ]
+    dormant_broken_items = [
+        {
+            "task_id": row["task_id"],
+            "state": row["state"],
+            "latest_lane": row["latest_lane"],
+            "latest_marker": row["latest_marker"],
+        }
+        for row in task_states
+        if row["state"] in {"BLOCKED", "PROBLEM"}
+    ]
+    idle_blocked_items = [
+        {
+            "task_id": row["task_id"],
+            "state": row["state"],
+            "latest_lane": row["latest_lane"],
+            "latest_marker": row["latest_marker"],
+        }
+        for row in task_states
+        if row["state"] in {"IDLE", "BLOCKED"}
+    ]
+    gate_items = [
+        {
+            "task_id": "gate-token",
+            "state": "GATE_TOKEN_ACTIVE",
+            "latest_lane": token["lane"],
+            "latest_marker": token["source_marker"],
+        }
+        for token in gate_state.get("active_gate_tokens", [])
+    ]
+    maestro_feed_records = [
+        {
+            "feed_ref": "phase_c_feed:" + _slug(item["task_id"]) + ":" + _slug(item["state"]),
+            "task_id": item["task_id"],
+            "state": item["state"],
+            "latest_lane": item["latest_lane"],
+            "latest_marker": item["latest_marker"],
+            "target_surface": "maestro_status_capability_readback",
+            "runtime_dispatch_allowed": False,
+        }
+        for item in [*live_plan_items, *dormant_broken_items, *idle_blocked_items, *gate_items]
+    ]
+    return {
+        "mode": "maestro_read_model_feed_only",
+        "live_plan_count": len(live_plan_items),
+        "dormant_broken_count": len(dormant_broken_items),
+        "idle_blocked_count": len(idle_blocked_items),
+        "active_gate_token_count": len(gate_items),
+        "maestro_feed_count": len(maestro_feed_records),
+        "live_plan_items": live_plan_items,
+        "lit_dormant_broken_items": dormant_broken_items,
+        "idle_blocked_items": idle_blocked_items,
+        "maestro_feed_records": maestro_feed_records,
+        "runtime_dispatch_allowed": False,
     }
 
 
@@ -377,6 +643,7 @@ def build_phase_c_conductor_state(
     task_states = _task_states(recognized)
     gate = _gate_state(recognized)
     writeback = _writeback_state(task_states, recognized)
+    conductor_feed = _conductor_feed(task_states, gate)
     blocked_count = sum(1 for row in task_states if row["state"] == "BLOCKED")
     problem_count = sum(1 for row in task_states if row["state"] == "PROBLEM")
     claimed_count = sum(1 for row in task_states if row["state"] == "CLAIMED")
@@ -406,6 +673,7 @@ def build_phase_c_conductor_state(
         },
         "gate_state": gate,
         "writeback_state": writeback,
+        "conductor_feed": conductor_feed,
         "task_states": task_states,
         "recognized_marker_count": len(recognized),
         "unrecognized_marker_count": unrecognized_count,
@@ -415,8 +683,12 @@ def build_phase_c_conductor_state(
             "recognized_marker_count": len(recognized),
             "scheduler_reconcile_present": True,
             "gate_token_reconcile_present": True,
+            "gate_hook_auto_writeback_present": True,
+            "scheduler_reconcile_backstop_present": True,
             "auto_writeback_projection_present": True,
             "auto_writeback_idempotency_basis": "(task_id, completion_evidence_hash)",
+            "conductor_feed_present": True,
+            "maestro_feed_record_count": conductor_feed["maestro_feed_count"],
             "read_only_scan": True,
             "external_call_performed": False,
             "runtime_mutation_performed": False,
@@ -436,7 +708,12 @@ def build_phase_c_conductor_state(
             {
                 "component": "auto_writeback",
                 "status": "IDEMPOTENT_RECORDS_READY",
-                "basis": "DONE marker completion evidence hashes",
+                "basis": "green gate release hook primary plus DONE marker scheduler backstop",
+            },
+            {
+                "component": "conductor_feed",
+                "status": "MAESTRO_FEED_READY",
+                "basis": "live plan, dormant-broken, idle-blocked, and active gate token projections",
             },
         ],
         "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
@@ -448,6 +725,8 @@ def format_phase_c_conductor_operator(read_model: dict[str, Any]) -> str:
     summary = read_model["task_summary"]
     gate = read_model["gate_state"]
     writeback = read_model["writeback_state"]
+    conductor_feed = read_model["conductor_feed"]
+    gate_hook = writeback["gate_hook_primary"]
     lines = [
         "Phase-C Conductor Foundation",
         "",
@@ -462,18 +741,28 @@ def format_phase_c_conductor_operator(read_model: dict[str, Any]) -> str:
             f"- Gate tokens active: {gate['active_gate_token_count']}; "
             f"completion writebacks ready: {writeback['completion_writeback_count']}."
         ),
+        (
+            f"- Gate-hook checkoffs ready: {gate_hook['gate_hook_writeback_count']}; "
+            f"scheduler backstop writebacks ready: {writeback['completion_writeback_count']}."
+        ),
+        (
+            f"- Maestro conductor feed records: {conductor_feed['maestro_feed_count']} "
+            f"(live plan {conductor_feed['live_plan_count']}, dormant/broken "
+            f"{conductor_feed['dormant_broken_count']}, idle/blocked {conductor_feed['idle_blocked_count']})."
+        ),
         "",
         "Boundary:",
         "- Read-model projection only; no service, scheduler, deploy, merge, restart, or external send was performed.",
-        "- Auto-writeback is represented as idempotent records keyed by task_id and completion_evidence_hash.",
+        "- Auto-writeback uses a green-gate hook as the primary path and scheduler reconciliation as the backstop.",
+        "- Both paths are idempotent records keyed by task_id and completion_evidence_hash.",
         "- No Legal Discovery, secret values, money, or production mutation authority is claimed.",
         "",
         "Blocked:",
-        "- Live writeback execution remains blocked until MASTER review and an explicit approved runner hook.",
+        "- Production writeback execution remains blocked until MASTER installs the approved gate hook.",
         "- Gate execution remains serialized by orchestration token markers; this read model does not acquire tokens.",
         "",
         "Next safe move:",
-        "- Let the sentinel consume this read model so MASTER can see gate contention, blocked work, and writeback-ready completions.",
+        "- Let the sentinel consume this read model so MASTER can see gate contention, blocked work, writeback-ready completions, and Maestro feed records.",
     ]
     return "\n".join(lines)
 
