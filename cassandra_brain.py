@@ -57,7 +57,10 @@ from business_ops_packet import assemble_business_ops_packet, BusinessOpsPacket
 from business_ops_intent import classify_business_ops_intent
 from hitl_pending_store import propose_action as _hitl_propose
 from cassandra_custom_tools import handle_operator_objective as _handle_operator_objective
-from operator_universal_intake import try_process_surface_operator_intake as _try_universal_operator_intake
+from operator_universal_intake import (
+    is_universal_operator_intake_candidate as _is_universal_operator_intake_candidate,
+    try_process_surface_operator_intake as _try_universal_operator_intake,
+)
 from cassandra_guided_review import process_guided_review_message as _process_guided_review_message
 from operator_context_switchboard import process_operator_context_switchboard_message as _process_operator_context_switchboard_message
 from openclaw_system_knowledge_registry import (
@@ -2255,6 +2258,14 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
     if reply is not None and isinstance(state, dict):
         _remember_finance_entity(text, state)
     return reply
+
+
+def _should_route_finance_status_before_intake(text: str, gmail_decision: Any | None = None) -> bool:
+    if not detect_finance_status_intent(text):
+        return False
+    if getattr(gmail_decision, "category", "") == "payment_verify":
+        return False
+    return not _looks_like_payment_verify_query(text)
 
 
 # ── Future-action enqueue pipeline ───────────────────────────────────────────
@@ -5681,6 +5692,10 @@ def handle(text: str, session: dict | None = None) -> list[str]:
 
     # Always initialize state for logging and saving
     state = load_state()
+    operator_intake_candidate = (
+        str(session_meta.get("source_user_label") or "operator") == "operator"
+        and _is_universal_operator_intake_candidate(query)
+    )
 
     date_awareness_reply = answer_date_awareness_query(query)
     if date_awareness_reply is not None:
@@ -5711,6 +5726,66 @@ def handle(text: str, session: dict | None = None) -> list[str]:
                 "external_calls_performed": False,
                 "runtime_mutation_performed": False,
                 "business_action_performed": False,
+            },
+        )
+        return reply
+
+    if not operator_intake_candidate:
+        capital_hilton_agency_reply = format_capital_hilton_agency_answer(query)
+        if capital_hilton_agency_reply is not None:
+            reply = [capital_hilton_agency_reply]
+            save_state(state)
+            _log_conversation(
+                text,
+                reply,
+                route="capital_hilton_agency_status",
+                metadata={
+                    "event_id": event_id,
+                    "ops_packet": ops_packet.to_dict(),
+                    "model_called": False,
+                    "external_calls_performed": False,
+                    "runtime_mutation_performed": False,
+                    "money_or_ledger_mutation_performed": False,
+                },
+            )
+            return reply
+
+        capital_hilton_openclaw_status_reply = format_capital_hilton_openclaw_status_answer(query)
+        if capital_hilton_openclaw_status_reply is not None:
+            reply = [capital_hilton_openclaw_status_reply]
+            save_state(state)
+            _log_conversation(
+                text,
+                reply,
+                route="capital_hilton_openclaw_status",
+                metadata={
+                    "event_id": event_id,
+                    "ops_packet": ops_packet.to_dict(),
+                    "model_called": False,
+                    "external_calls_performed": False,
+                    "runtime_mutation_performed": False,
+                    "money_or_ledger_mutation_performed": False,
+                },
+            )
+            return reply
+
+    reynolds_gig_setup_reply = format_reynolds_gig_setup_answer(query)
+    if reynolds_gig_setup_reply is not None:
+        reply = [reynolds_gig_setup_reply]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="reynolds_gig_setup_status",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "model_called": False,
+                "external_calls_performed": False,
+                "runtime_mutation_performed": False,
+                "calendar_or_contact_mutation_performed": False,
+                "invoice_send_performed": False,
+                "money_or_ledger_mutation_performed": False,
             },
         )
         return reply
@@ -5863,6 +5938,13 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [recall_reply]
     except Exception as _e:
         pass  # briefing module unavailable — fall through to LLM
+
+    if not operator_intake_candidate and _should_route_finance_status_before_intake(query, gmail_decision):
+        finance_reply = _handle_finance_status_request(query, state)
+        if finance_reply is not None:
+            save_state(state)
+            _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
+            return [finance_reply]
 
     # Deterministic Status Inquiry (Business Ops Spine Step 5)
     # Priority: Must come before fuzzy intent matching for financial/future-action
@@ -6266,7 +6348,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             })
             return [pay_reply]
 
-    if not _looks_like_payment_verify_query(query) and detect_finance_status_intent(query):
+    if not operator_intake_candidate and _should_route_finance_status_before_intake(query, gmail_decision):
         finance_reply = _handle_finance_status_request(query, state)
         if finance_reply is not None:
             save_state(state)
