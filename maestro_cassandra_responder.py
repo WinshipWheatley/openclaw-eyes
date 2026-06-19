@@ -9,6 +9,7 @@ handler through this front-door path.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from pathlib import Path
 import re
 from typing import Any, Callable, Mapping, Sequence
 
@@ -18,6 +19,24 @@ ALLOWED_SESSION_KEYS = (
     "system_knowledge_repo_root",
     "system_knowledge_ledger_path",
     "system_knowledge_atlas_path",
+)
+SESSION_PATH_KEY_ALIASES = {
+    "repo_root": "system_knowledge_repo_root",
+    "system_knowledge_repo_root": "system_knowledge_repo_root",
+    "ledger_path": "system_knowledge_ledger_path",
+    "system_knowledge_ledger_path": "system_knowledge_ledger_path",
+    "atlas_path": "system_knowledge_atlas_path",
+    "system_knowledge_atlas_path": "system_knowledge_atlas_path",
+}
+PATH_PREFIX_ALLOWLIST = (
+    Path("/home/openclaw").resolve(),
+    Path("/mnt/e/openclaw").resolve(),
+)
+FORBIDDEN_PATH_NAMES = frozenset({".chief.env", ".google-secrets"})
+FORBIDDEN_PRIVATE_SUFFIXES = (
+    "LegalPrivate",
+    "FinancePrivate",
+    "MusicLawPrivate",
 )
 
 
@@ -92,29 +111,74 @@ def result_dict_for_receipt(result: MaestroCassandraResult) -> dict[str, Any]:
     payload = result.to_dict()
     payload["machine_proof"] = machine_proof_for_result(result)
     return payload
+def _path_is_under(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _has_forbidden_path_marker(raw_path: str) -> bool:
+    normalized = raw_path.replace("\\", "/")
+    parts = [part for part in normalized.split("/") if part and part != "."]
+    for part in parts:
+        if part in FORBIDDEN_PATH_NAMES:
+            return True
+        if part == "OpenClawLegalPrivate":
+            return True
+        if any(part.endswith(suffix) for suffix in FORBIDDEN_PRIVATE_SUFFIXES):
+            return True
+    return False
+
+
+def _sanitize_session_path(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    raw = value.strip()
+    if not raw or _has_forbidden_path_marker(raw):
+        return None
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        return None
+    try:
+        resolved = candidate.resolve(strict=False)
+    except OSError:
+        return None
+    if _has_forbidden_path_marker(str(resolved)):
+        return None
+    if not any(resolved == root or _path_is_under(resolved, root) for root in PATH_PREFIX_ALLOWLIST):
+        return None
+    return str(resolved)
+
+
+def _add_safe_session_value(session: dict[str, Any], key: str, value: Any) -> None:
+    canonical_key = SESSION_PATH_KEY_ALIASES.get(key)
+    if canonical_key is None or value in ("", None):
+        return
+    safe_value = _sanitize_session_path(value)
+    if safe_value is not None:
+        session[canonical_key] = safe_value
 
 
 def filtered_session(session: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    return {
-        key: session[key]
-        for key in ALLOWED_SESSION_KEYS
-        if session and key in session and session[key] not in ("", None)
-    }
+    filtered: dict[str, Any] = {}
+    if not session:
+        return filtered
+    for key in ALLOWED_SESSION_KEYS:
+        _add_safe_session_value(filtered, key, session.get(key))
+    return filtered
 
 
 def session_from_request(request: Mapping[str, Any]) -> dict[str, Any]:
     session: dict[str, Any] = {}
-    for key in ALLOWED_SESSION_KEYS:
-        value = request.get(key)
-        if value not in ("", None):
-            session[key] = value
+    for key in SESSION_PATH_KEY_ALIASES:
+        _add_safe_session_value(session, key, request.get(key))
     context = request.get("context") if isinstance(request.get("context"), Mapping) else {}
     current_context = request.get("current_context") if isinstance(request.get("current_context"), Mapping) else {}
     for source in (context, current_context):
-        for key in ALLOWED_SESSION_KEYS:
-            value = source.get(key)
-            if value not in ("", None):
-                session[key] = value
+        for key in SESSION_PATH_KEY_ALIASES:
+            _add_safe_session_value(session, key, source.get(key))
     return session
 
 
@@ -197,7 +261,7 @@ def answer_frontdoor_chat(
             machine_proof=_adapter_machine_proof(handle_called=False),
         )
 
-    replies = list((handle_fn or _default_handle)(text, forwarded_session or None))
+    replies = list((handle_fn or _default_handle)(text, forwarded_session))
     plain_summary = _plain_summary(replies)
     return MaestroCassandraResult(
         status="ANSWER_READY",
