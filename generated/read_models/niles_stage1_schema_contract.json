@@ -1,0 +1,1111 @@
+{
+  "agent_id": "niles",
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "audio_io_routing_enabled": false,
+    "broad_private_drive_scan_allowed": false,
+    "credential_access_allowed": false,
+    "daw_automation_allowed": false,
+    "daw_launch_allowed": false,
+    "daw_session_read_allowed": false,
+    "external_send_allowed": false,
+    "hardware_control_allowed": false,
+    "hidden_memory_capture_allowed": false,
+    "legal_discovery_allowed": false,
+    "live_interview_allowed": false,
+    "logic_or_ableton_open_allowed": false,
+    "mission_control_app_changed": false,
+    "model_call_allowed": false,
+    "money_authority_allowed": false,
+    "practice_ledger_write_allowed": false,
+    "raw_audio_ingest_allowed": false,
+    "runtime_authority_added": false,
+    "schema_only": true,
+    "send_hold_bypass_allowed": false,
+    "session_media_mutation_allowed": false,
+    "studio_control_enabled": false,
+    "taste_calibration_complete": false,
+    "telegram_send_allowed": false,
+    "template_only": true,
+    "tool_execution_allowed": false
+  },
+  "contract_status": "template_ready_schema_only_no_live_authority",
+  "covered_instruments": [
+    "guitar",
+    "piano",
+    "drums",
+    "voice",
+    "tenor_sax"
+  ],
+  "generated_at": "2026-06-19T02:44:20+00:00",
+  "generated_by": "codex",
+  "machine_proof": {
+    "all_authority_flags_safe": true,
+    "all_required_schema_fields_present": true,
+    "content_hash": "sha256:bdf166c150e56e0e3cecdf4a055f82a7de70246ba8302f73eae51d6aa59c16c6",
+    "covered_instruments": [
+      "guitar",
+      "piano",
+      "drums",
+      "voice",
+      "tenor_sax"
+    ],
+    "credentials_or_secrets_included": false,
+    "logic_note_update_dry_run_only": true,
+    "niles_uses_shared_primitives": true,
+    "raw_private_bodies_included": false,
+    "schema_count": 6,
+    "send_hold_bypass_allowed": false,
+    "stage_gate_count": 5,
+    "studio_control_separate_and_blocked": true,
+    "taste_calibration_deferred": true,
+    "templates_use_placeholders_not_facts": true
+  },
+  "next_safe_operator_action": "Review the Stage 1 schemas, then let Claude/taste calibration fill interview prompts later.",
+  "non_goals": [
+    "no live interview execution",
+    "no practice ledger mutation",
+    "no Logic or Ableton launch",
+    "no DAW session read",
+    "no audio or session media mutation",
+    "no studio hardware control",
+    "no taste calibration completion"
+  ],
+  "north_star": "Niles Stage 1 defines durable music schemas before taste calibration or live studio control.",
+  "operator_input_templates": {
+    "interview_memory_template": {
+      "consent_and_scope_receipts": [],
+      "energy_constraints": [],
+      "gear_inventory_refs": [],
+      "instrument_profiles": [
+        {
+          "confidence": null,
+          "current_strengths": [],
+          "instrument": "guitar",
+          "known_weaknesses": [],
+          "operator_supplied": true,
+          "practice_constraints": [],
+          "target_voice": null
+        },
+        {
+          "confidence": null,
+          "current_strengths": [],
+          "instrument": "piano",
+          "known_weaknesses": [],
+          "operator_supplied": true,
+          "practice_constraints": [],
+          "target_voice": null
+        },
+        {
+          "confidence": null,
+          "current_strengths": [],
+          "instrument": "drums",
+          "known_weaknesses": [],
+          "operator_supplied": true,
+          "practice_constraints": [],
+          "target_voice": null
+        },
+        {
+          "confidence": null,
+          "current_strengths": [],
+          "instrument": "voice",
+          "known_weaknesses": [],
+          "operator_supplied": true,
+          "practice_constraints": [],
+          "target_voice": null
+        },
+        {
+          "confidence": null,
+          "current_strengths": [],
+          "instrument": "tenor_sax",
+          "known_weaknesses": [],
+          "operator_supplied": true,
+          "practice_constraints": [],
+          "target_voice": null
+        }
+      ],
+      "operator_ref": null,
+      "practice_preferences": [],
+      "taste_profile_refs": [
+        "config/producer/producer_rubric.yaml",
+        "config/producer/producer_reference_map.yaml"
+      ],
+      "template_label": "niles_operator_interview_memory_template_v0",
+      "template_uses_placeholders_not_facts": true,
+      "unknowns": []
+    },
+    "logic_note_update_request_template": {
+      "dry_run_only": true,
+      "no_daw_launch": true,
+      "no_session_media_mutation": true,
+      "note_payload_markdown": null,
+      "proof_refs": [],
+      "receipt_requirements": [
+        "scope receipt",
+        "operator approval receipt",
+        "before/after proof if later promoted"
+      ],
+      "request_id": null,
+      "required_operator_approval": true,
+      "target_session_ref_label": null,
+      "template_label": "niles_logic_note_update_request_template_v0",
+      "template_uses_placeholders_not_facts": true
+    },
+    "practice_ledger_event_template": {
+      "bpm": null,
+      "clean_execution_rate": null,
+      "created_at": null,
+      "event_id": null,
+      "exercise_ref": null,
+      "fatigue": null,
+      "instrument": null,
+      "next_plan_ref": null,
+      "operator_feedback": null,
+      "operator_ref": null,
+      "regression_rule_result": null,
+      "session_ref": null,
+      "template_label": "niles_practice_ledger_event_template_v0",
+      "template_uses_placeholders_not_facts": true
+    }
+  },
+  "read_model_id": "niles_stage1_schema_contract",
+  "reference_docs": [
+    {
+      "exists": true,
+      "path": "../orchestration/specs/niles-music/NILES-MUSIC-SUBSYSTEM.md",
+      "raw_body_ingested": false,
+      "ref_id": "niles_music_subsystem_spec",
+      "used_as_contract_evidence": true
+    },
+    {
+      "exists": true,
+      "path": "../orchestration/specs/niles-music/PAUL_GILBERT_PROGRESSION.md",
+      "raw_body_ingested": false,
+      "ref_id": "paul_gilbert_progression",
+      "used_as_contract_evidence": true
+    },
+    {
+      "exists": true,
+      "path": "../orchestration/lane_g_architecture/contracts/niles_music_production_request_contract.json",
+      "raw_body_ingested": false,
+      "ref_id": "lane_g_shadow_request_contract",
+      "used_as_contract_evidence": true
+    },
+    {
+      "exists": true,
+      "path": "config/producer/producer_rubric.yaml",
+      "raw_body_ingested": false,
+      "ref_id": "producer_rubric",
+      "used_as_contract_evidence": true
+    },
+    {
+      "exists": true,
+      "path": "config/producer/producer_reference_map.yaml",
+      "raw_body_ingested": false,
+      "ref_id": "producer_reference_map",
+      "used_as_contract_evidence": true
+    },
+    {
+      "exists": true,
+      "path": "generated/read_models/niles_album_metadata_intake_packet.json",
+      "raw_body_ingested": false,
+      "ref_id": "niles_album_metadata_intake_packet",
+      "used_as_contract_evidence": true
+    }
+  ],
+  "schema_contracts": [
+    {
+      "allowed_sources": [
+        "operator-supplied interview answers",
+        "config/producer/producer_rubric.yaml",
+        "config/producer/producer_reference_map.yaml",
+        "explicit future protected refs approved by Guardian"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "hidden memory",
+        "broad private media scan",
+        "raw lyrics or raw audio without a later protected path",
+        "credential or account data"
+      ],
+      "covered_instruments": [
+        "guitar",
+        "piano",
+        "drums",
+        "voice",
+        "tenor_sax"
+      ],
+      "instrument_profile_required_fields": [
+        "instrument",
+        "current_strengths",
+        "known_weaknesses",
+        "target_voice",
+        "practice_constraints",
+        "operator_supplied",
+        "confidence"
+      ],
+      "next_consumer": "future operator_interview memory writer after approval",
+      "purpose": "Capture operator-supplied music profile data later, without hidden memory or inference.",
+      "required_fields": [
+        "operator_ref",
+        "instrument_profiles",
+        "gear_inventory_refs",
+        "taste_profile_refs",
+        "energy_constraints",
+        "practice_preferences",
+        "unknowns",
+        "consent_and_scope_receipts"
+      ],
+      "schema_id": "niles_operator_interview_memory_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "unknowns must remain explicit",
+        "operator-supplied facts are evidence, not final truth",
+        "taste profile refs do not complete taste calibration",
+        "tenor_sax goal may be recorded as operator intent, not proof of skill"
+      ]
+    },
+    {
+      "allowed_sources": [
+        "operator post-practice feedback",
+        "future metronome/timer receipt",
+        "specs/niles-music/PAUL_GILBERT_PROGRESSION.md"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "automatic raw audio scoring",
+        "DAW session content",
+        "private file timestamps as practice proof"
+      ],
+      "next_consumer": "future shared progression_tracker module",
+      "purpose": "Define a future feedback event shape for short daily practice and progression adjustment.",
+      "required_fields": [
+        "event_id",
+        "operator_ref",
+        "session_ref",
+        "instrument",
+        "exercise_ref",
+        "bpm",
+        "clean_execution_rate",
+        "fatigue",
+        "operator_feedback",
+        "regression_rule_result",
+        "next_plan_ref",
+        "created_at"
+      ],
+      "schema_id": "niles_practice_ledger_event_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "instrument must be one of covered_instruments",
+        "clean_execution_rate must be null or 0..1",
+        "fatigue must be null, low, medium, or high",
+        "ledger writes require a later authority envelope"
+      ]
+    },
+    {
+      "allowed_sources": [
+        "niles_operator_interview_memory_v0",
+        "niles_practice_ledger_event_v0",
+        "config/producer/producer_rubric.yaml",
+        "specs/niles-music/PAUL_GILBERT_PROGRESSION.md"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "model-generated taste as final truth",
+        "unapproved calendar/health surveillance",
+        "unapproved audio analysis"
+      ],
+      "next_consumer": "future shared adaptive coach planner",
+      "purpose": "Define a short daily routine plan that can knit multiple instruments together.",
+      "required_fields": [
+        "plan_id",
+        "operator_ref",
+        "horizon",
+        "instrument_mix",
+        "daily_blocks",
+        "progression_refs",
+        "expected_feedback_prompts",
+        "taste_notes_ref",
+        "stop_conditions"
+      ],
+      "schema_id": "niles_adaptive_practice_plan_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "plan is advisory until approved",
+        "daily_blocks must be short and finite",
+        "stop_conditions must include fatigue or operator stop",
+        "generic progression fields must not be Niles-only"
+      ]
+    },
+    {
+      "allowed_sources": [
+        "operator-approved practice plan",
+        "existing stable session label",
+        "future file-write receipt"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "opening Logic during Stage 1",
+        "driving Logic UI",
+        "mutating session media, stems, bounces, or artwork",
+        "broad scanning Niles folders"
+      ],
+      "next_consumer": "future Mac local action bridge writeback lane after approval",
+      "purpose": "Define a future dry-run request for writing practice notes into an existing Logic session.",
+      "required_fields": [
+        "request_id",
+        "target_session_ref_label",
+        "note_payload_markdown",
+        "proof_refs",
+        "dry_run_only",
+        "required_operator_approval",
+        "no_daw_launch",
+        "no_session_media_mutation",
+        "receipt_requirements"
+      ],
+      "schema_id": "niles_logic_note_update_request_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "dry_run_only must be true in Stage 1",
+        "no_daw_launch must be true",
+        "target_session_ref_label is a label, not permission to open the file",
+        "receipt requirements must include before/after proof before any later write lane"
+      ]
+    },
+    {
+      "allowed_sources": [
+        "future explicit operator control request",
+        "future Guardian-approved hardware capability registry",
+        "future preflight receipts"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "autonomous live control",
+        "implicit authority from Niles persona",
+        "ungated X32/DAW/MIDI/OSC action",
+        "record-arm or gain changes without approval"
+      ],
+      "next_consumer": "future Guardian-approved studio control lane",
+      "purpose": "Keep DAW/MIDI/OSC/X32 control separate, gated, and disabled by default.",
+      "required_fields": [
+        "control_request_id",
+        "device_or_daw_target",
+        "action_kind",
+        "operator_approval_receipt_ref",
+        "preflight_state_ref",
+        "rollback_plan_ref",
+        "audit_log_ref",
+        "denied_when_unapproved"
+      ],
+      "schema_id": "niles_studio_control_authority_envelope_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "studio_control_enabled must remain false",
+        "hardware_control_allowed must remain false",
+        "denied_when_unapproved must be true",
+        "Niles persona never grants control authority"
+      ]
+    },
+    {
+      "allowed_sources": [
+        "operator-visible conversation summary",
+        "deterministic read-model refs",
+        "approved package preview refs"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "raw hidden conversation bodies",
+        "tool outputs without receipts",
+        "agent self-assigned authority"
+      ],
+      "next_consumer": "future Maestro routing layer",
+      "purpose": "Define how Maestro can route music/art context to Niles without activating live tools.",
+      "required_fields": [
+        "conversation_ref",
+        "route_reason",
+        "operator_visible_summary",
+        "current_task",
+        "schema_refs",
+        "blocked_authority",
+        "handoff_receipt_ref"
+      ],
+      "schema_id": "maestro_to_niles_handoff_packet_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "handoff is routing metadata only",
+        "Niles cannot activate tools from a handoff",
+        "blocked_authority must include send, DAW control, and ledger write"
+      ]
+    }
+  ],
+  "schema_contracts_by_id": {
+    "maestro_to_niles_handoff_packet_v0": {
+      "allowed_sources": [
+        "operator-visible conversation summary",
+        "deterministic read-model refs",
+        "approved package preview refs"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "raw hidden conversation bodies",
+        "tool outputs without receipts",
+        "agent self-assigned authority"
+      ],
+      "next_consumer": "future Maestro routing layer",
+      "purpose": "Define how Maestro can route music/art context to Niles without activating live tools.",
+      "required_fields": [
+        "conversation_ref",
+        "route_reason",
+        "operator_visible_summary",
+        "current_task",
+        "schema_refs",
+        "blocked_authority",
+        "handoff_receipt_ref"
+      ],
+      "schema_id": "maestro_to_niles_handoff_packet_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "handoff is routing metadata only",
+        "Niles cannot activate tools from a handoff",
+        "blocked_authority must include send, DAW control, and ledger write"
+      ]
+    },
+    "niles_adaptive_practice_plan_v0": {
+      "allowed_sources": [
+        "niles_operator_interview_memory_v0",
+        "niles_practice_ledger_event_v0",
+        "config/producer/producer_rubric.yaml",
+        "specs/niles-music/PAUL_GILBERT_PROGRESSION.md"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "model-generated taste as final truth",
+        "unapproved calendar/health surveillance",
+        "unapproved audio analysis"
+      ],
+      "next_consumer": "future shared adaptive coach planner",
+      "purpose": "Define a short daily routine plan that can knit multiple instruments together.",
+      "required_fields": [
+        "plan_id",
+        "operator_ref",
+        "horizon",
+        "instrument_mix",
+        "daily_blocks",
+        "progression_refs",
+        "expected_feedback_prompts",
+        "taste_notes_ref",
+        "stop_conditions"
+      ],
+      "schema_id": "niles_adaptive_practice_plan_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "plan is advisory until approved",
+        "daily_blocks must be short and finite",
+        "stop_conditions must include fatigue or operator stop",
+        "generic progression fields must not be Niles-only"
+      ]
+    },
+    "niles_logic_note_update_request_v0": {
+      "allowed_sources": [
+        "operator-approved practice plan",
+        "existing stable session label",
+        "future file-write receipt"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "opening Logic during Stage 1",
+        "driving Logic UI",
+        "mutating session media, stems, bounces, or artwork",
+        "broad scanning Niles folders"
+      ],
+      "next_consumer": "future Mac local action bridge writeback lane after approval",
+      "purpose": "Define a future dry-run request for writing practice notes into an existing Logic session.",
+      "required_fields": [
+        "request_id",
+        "target_session_ref_label",
+        "note_payload_markdown",
+        "proof_refs",
+        "dry_run_only",
+        "required_operator_approval",
+        "no_daw_launch",
+        "no_session_media_mutation",
+        "receipt_requirements"
+      ],
+      "schema_id": "niles_logic_note_update_request_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "dry_run_only must be true in Stage 1",
+        "no_daw_launch must be true",
+        "target_session_ref_label is a label, not permission to open the file",
+        "receipt requirements must include before/after proof before any later write lane"
+      ]
+    },
+    "niles_operator_interview_memory_v0": {
+      "allowed_sources": [
+        "operator-supplied interview answers",
+        "config/producer/producer_rubric.yaml",
+        "config/producer/producer_reference_map.yaml",
+        "explicit future protected refs approved by Guardian"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "hidden memory",
+        "broad private media scan",
+        "raw lyrics or raw audio without a later protected path",
+        "credential or account data"
+      ],
+      "covered_instruments": [
+        "guitar",
+        "piano",
+        "drums",
+        "voice",
+        "tenor_sax"
+      ],
+      "instrument_profile_required_fields": [
+        "instrument",
+        "current_strengths",
+        "known_weaknesses",
+        "target_voice",
+        "practice_constraints",
+        "operator_supplied",
+        "confidence"
+      ],
+      "next_consumer": "future operator_interview memory writer after approval",
+      "purpose": "Capture operator-supplied music profile data later, without hidden memory or inference.",
+      "required_fields": [
+        "operator_ref",
+        "instrument_profiles",
+        "gear_inventory_refs",
+        "taste_profile_refs",
+        "energy_constraints",
+        "practice_preferences",
+        "unknowns",
+        "consent_and_scope_receipts"
+      ],
+      "schema_id": "niles_operator_interview_memory_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "unknowns must remain explicit",
+        "operator-supplied facts are evidence, not final truth",
+        "taste profile refs do not complete taste calibration",
+        "tenor_sax goal may be recorded as operator intent, not proof of skill"
+      ]
+    },
+    "niles_practice_ledger_event_v0": {
+      "allowed_sources": [
+        "operator post-practice feedback",
+        "future metronome/timer receipt",
+        "specs/niles-music/PAUL_GILBERT_PROGRESSION.md"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "automatic raw audio scoring",
+        "DAW session content",
+        "private file timestamps as practice proof"
+      ],
+      "next_consumer": "future shared progression_tracker module",
+      "purpose": "Define a future feedback event shape for short daily practice and progression adjustment.",
+      "required_fields": [
+        "event_id",
+        "operator_ref",
+        "session_ref",
+        "instrument",
+        "exercise_ref",
+        "bpm",
+        "clean_execution_rate",
+        "fatigue",
+        "operator_feedback",
+        "regression_rule_result",
+        "next_plan_ref",
+        "created_at"
+      ],
+      "schema_id": "niles_practice_ledger_event_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "instrument must be one of covered_instruments",
+        "clean_execution_rate must be null or 0..1",
+        "fatigue must be null, low, medium, or high",
+        "ledger writes require a later authority envelope"
+      ]
+    },
+    "niles_studio_control_authority_envelope_v0": {
+      "allowed_sources": [
+        "future explicit operator control request",
+        "future Guardian-approved hardware capability registry",
+        "future preflight receipts"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "audio_io_routing_enabled": false,
+        "broad_private_drive_scan_allowed": false,
+        "credential_access_allowed": false,
+        "daw_automation_allowed": false,
+        "daw_launch_allowed": false,
+        "daw_session_read_allowed": false,
+        "external_send_allowed": false,
+        "hardware_control_allowed": false,
+        "hidden_memory_capture_allowed": false,
+        "legal_discovery_allowed": false,
+        "live_interview_allowed": false,
+        "logic_or_ableton_open_allowed": false,
+        "mission_control_app_changed": false,
+        "model_call_allowed": false,
+        "money_authority_allowed": false,
+        "practice_ledger_write_allowed": false,
+        "raw_audio_ingest_allowed": false,
+        "runtime_authority_added": false,
+        "schema_only": true,
+        "send_hold_bypass_allowed": false,
+        "session_media_mutation_allowed": false,
+        "studio_control_enabled": false,
+        "taste_calibration_complete": false,
+        "telegram_send_allowed": false,
+        "template_only": true,
+        "tool_execution_allowed": false
+      },
+      "blocked_sources": [
+        "autonomous live control",
+        "implicit authority from Niles persona",
+        "ungated X32/DAW/MIDI/OSC action",
+        "record-arm or gain changes without approval"
+      ],
+      "next_consumer": "future Guardian-approved studio control lane",
+      "purpose": "Keep DAW/MIDI/OSC/X32 control separate, gated, and disabled by default.",
+      "required_fields": [
+        "control_request_id",
+        "device_or_daw_target",
+        "action_kind",
+        "operator_approval_receipt_ref",
+        "preflight_state_ref",
+        "rollback_plan_ref",
+        "audit_log_ref",
+        "denied_when_unapproved"
+      ],
+      "schema_id": "niles_studio_control_authority_envelope_v0",
+      "stage": "stage1_schema",
+      "validation_rules": [
+        "studio_control_enabled must remain false",
+        "hardware_control_allowed must remain false",
+        "denied_when_unapproved must be true",
+        "Niles persona never grants control authority"
+      ]
+    }
+  },
+  "schema_required_fields": [
+    "schema_id",
+    "stage",
+    "purpose",
+    "required_fields",
+    "allowed_sources",
+    "blocked_sources",
+    "authority_boundary",
+    "validation_rules",
+    "next_consumer"
+  ],
+  "schema_version": "niles_stage1_schema_contract_v0",
+  "shared_primitives": [
+    {
+      "generic_consumers": [
+        "Cassandra",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "future agents"
+      ],
+      "niles_is_birthplace": false,
+      "niles_uses_it_for": "music profile, gear refs, taste refs, and practice constraints",
+      "primitive_id": "operator_interview_to_durable_memory"
+    },
+    {
+      "generic_consumers": [
+        "fitness",
+        "workflow learning",
+        "skill trackers"
+      ],
+      "niles_is_birthplace": false,
+      "niles_uses_it_for": "practice metrics, regression rules, and next-plan generation",
+      "primitive_id": "progression_feedback_loop"
+    },
+    {
+      "generic_consumers": [
+        "Cassandra messaging",
+        "Chief planning",
+        "Hermes advice"
+      ],
+      "niles_is_birthplace": false,
+      "niles_uses_it_for": "music coaching advice timing after Claude taste calibration",
+      "primitive_id": "taste_timed_advice_engine"
+    }
+  ],
+  "stage1_scope": [
+    "operator interview memory schema",
+    "practice ledger event schema",
+    "adaptive practice plan schema",
+    "Logic note update request schema",
+    "Maestro to Niles handoff packet",
+    "separate future studio control authority envelope"
+  ],
+  "stage_gates": [
+    {
+      "allows": [
+        "read-model publication",
+        "operator review",
+        "future implementation planning"
+      ],
+      "blocks": [
+        "live interview",
+        "ledger write",
+        "Logic mutation",
+        "studio control"
+      ],
+      "gate_id": "stage1_schema_contracts_only",
+      "status": "ready"
+    },
+    {
+      "gate_id": "stage2_interview_memory_writer",
+      "requires": [
+        "operator approval",
+        "privacy boundary",
+        "receipt logging"
+      ],
+      "status": "future_blocked"
+    },
+    {
+      "gate_id": "stage3_practice_ledger_and_adaptive_coach",
+      "requires": [
+        "ledger authority",
+        "progression tracker implementation",
+        "focused tests"
+      ],
+      "status": "future_blocked"
+    },
+    {
+      "gate_id": "stage4_logic_note_update_writeback",
+      "requires": [
+        "Mac local action approval",
+        "before/after proof",
+        "dry-run promotion"
+      ],
+      "status": "future_blocked"
+    },
+    {
+      "gate_id": "stage5_studio_control_lane",
+      "requires": [
+        "Guardian approval",
+        "hardware registry",
+        "operator live confirmation",
+        "audit log"
+      ],
+      "status": "future_blocked"
+    }
+  ],
+  "workflow_domain": "music_art"
+}
