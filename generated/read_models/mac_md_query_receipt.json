@@ -1,0 +1,53 @@
+{
+  "artifact_version": "mac_md_query_receipt_v0",
+  "db_path": "generated/system_knowledge/mac_md_corpus.sqlite",
+  "no_authority_flags": {
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "finance_corpus_access_allowed": false,
+    "legal_discovery_access_allowed": false,
+    "model_call_allowed": false,
+    "musiclaw_corpus_access_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "tool_execution_allowed": false,
+    "truth_claimed": false,
+    "truth_promotion_allowed": false,
+    "vector_search_allowed": false
+  },
+  "query_id": "mac_md_query_send_hold_bypass_20260618T2254",
+  "query_text": "send hold bypass",
+  "receipt_status": "mac_orchestration_markdown_query_completed",
+  "result_count": 5,
+  "run_command": "python3 scripts/md_query.py \"send hold bypass\" --db generated/system_knowledge/mac_md_corpus.sqlite --source-corpus-run-id mac_md_corpus_orchestration_20260618T2247 --staleness-run-id mac_md_staleness_orchestration_20260618T2251 --query-id mac_md_query_send_hold_bypass_20260618T2254 --limit 5 --format json",
+  "source_corpus_run_id": "mac_md_corpus_orchestration_20260618T2247",
+  "staleness_run_id": "mac_md_staleness_orchestration_20260618T2251",
+  "top_results": [
+    {
+      "path": "inbox/to-claude/CLAUDE-OPUS-AUDIT-CLAIM-V0-sendhold-bypass.md",
+      "score": 49,
+      "staleness_status": "done_or_superseded"
+    },
+    {
+      "path": "inbox/to-claude/GEMINI-FINDING-pc-URGENT-L2-SEND-BYPASS.md",
+      "score": 39,
+      "staleness_status": "current_recent"
+    },
+    {
+      "path": "inbox/to-claude/0025-sendhold-convergence-report.md",
+      "score": 36,
+      "staleness_status": "current_recent"
+    },
+    {
+      "path": "inbox/to-claude/CROSS-LANE-C-to-B-exact-send-routeback-sendhold.md",
+      "score": 36,
+      "staleness_status": "current_recent"
+    },
+    {
+      "path": "inbox/to-codex-B/B5-GROUNDED-unify-sendhold-filecheck.md",
+      "score": 36,
+      "staleness_status": "current_recent"
+    }
+  ],
+  "worktree": "/tmp/openclaw-md-ingest-mac"
+}
