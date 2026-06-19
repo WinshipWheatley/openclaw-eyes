@@ -793,11 +793,11 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
                         return
                 else:
                     return
-            log("EVIDENCE", "pc_output failed quality gate (missing required narrative/reporting sections)", dry_run)
-            log("TRANSITION", "pc_turn → blocked (reason: weak_pc_output_quality)", dry_run)
-            if not dry_run:
-                write_status("blocked", reason="weak_pc_output_quality")
-            return
+            log(
+                "STATE",
+                "pc_output failed quality gate after relaunch path was exhausted — falling through to timeout handling",
+                dry_run,
+            )
         # Other invalid (no_pass_line, unreadable) — fall through to timeout logic
         log("STATE", f"pc_turn | pc_output invalid ({reason}) — checking agent status", dry_run)
 
