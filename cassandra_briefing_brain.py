@@ -38,7 +38,7 @@ import json
 import os
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from cassandra_brain import build_context_snapshot
@@ -1199,16 +1199,10 @@ def generate_briefing(slot: str) -> str:
             mtime = morning_reference.get("modified_at")
             if mtime:
                 from cassandra_briefing_morning_policy import is_within_morning_window, ORCHESTRATION_START_TIME
-                now = datetime.now()
                 if is_within_morning_window():
-                    today_start = datetime.combine(now.date(), ORCHESTRATION_START_TIME)
+                    today_start = datetime.combine(datetime.now().date(), ORCHESTRATION_START_TIME)
                     if mtime < today_start:
-                        just_written_pre_start = (
-                            now.time() < ORCHESTRATION_START_TIME
-                            and abs(mtime - now) <= timedelta(seconds=5)
-                        )
-                        if not just_written_pre_start:
-                            should_refresh = True
+                        should_refresh = True
         
         if should_refresh:
             print(f"[briefing_brain] Triggering morning artifact orchestration (reason: {'stale' if not morning_reference.get('available') or 'stale' in morning_reference.get('freshness', '').lower() else 'first run of window'})", flush=True)
