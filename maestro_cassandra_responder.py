@@ -80,6 +80,8 @@ def backend_route_for_result(result: MaestroCassandraResult) -> str:
         return HANDLE_BACKEND_ROUTE
     if result.intent_class == "date_awareness":
         return DATE_BACKEND_ROUTE
+    if result.intent_class == "status_capability_readback":
+        return "maestro_cassandra_responder.truthful_status_capability_readback"
     if result.intent_class:
         return f"maestro_cassandra_responder.{result.intent_class}"
     return "maestro_cassandra_responder.intent_gate"

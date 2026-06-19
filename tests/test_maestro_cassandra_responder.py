@@ -339,7 +339,7 @@ def test_status_capability_query_answers_from_read_models_without_handle(tmp_pat
         "Hermes, what's going on? What can you do now?",
         session={
             "read_model_root": read_model_root.as_posix(),
-            "system_knowledge_repo_root": "/tmp/openclaw",
+            "system_knowledge_repo_root": "/home/openclaw",
         },
         handle_fn=forbidden_handle,
     )
@@ -351,7 +351,7 @@ def test_status_capability_query_answers_from_read_models_without_handle(tmp_pat
     assert "Bounded request processor" in result.plain_summary
     assert "Unified status readback" in result.plain_summary
     assert "I cannot claim email send" in result.plain_summary
-    assert result.session_forwarded == {"system_knowledge_repo_root": "/tmp/openclaw"}
+    assert result.session_forwarded == {"system_knowledge_repo_root": "/home/openclaw"}
     assert result.machine_proof["cassandra_handle_called"] is False
     assert result.machine_proof["capability_index_used"] is True
     assert result.machine_proof["agent_presence_used"] is True
