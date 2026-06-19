@@ -41,7 +41,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from cassandra_brain import build_context_snapshot
+from cassandra_brain import build_context_snapshot, build_current_truth_snapshot
 from cassandra_mode import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
 from chief_llm import ollama_call, resolve_local_model, ollama_json
@@ -514,7 +514,11 @@ def _build_morning_context_from_synthesis() -> dict:
         }
 
     sections = _extract_markdown_sections(markdown)
+    current_truth = build_current_truth_snapshot()
     prompt_parts = [
+        "CURRENT TRUTH PRECEDENCE",
+        current_truth or "No operator-corrected truth overrides are active.",
+        "",
         "CHIEF MORNING SYNTHESIS",
         f"Source: {_CHIEF_MORNING_SYNTHESIS}",
         f"Freshness: {freshness}",
@@ -759,13 +763,15 @@ Response discipline:
 - Separate confirmed, inferred, and unknown clearly. Never use fake certainty.
 - Status order: active lane first, verified live, code/test-only, unresolved, exact next action, backlog.
 - Name the exact context when relevant: Mac, PowerShell, WSL, tmux, Telegram, Claude prompt, or vault/repo.
-- Treat handoff and Drive docs as reflection layers. Finance state is source of truth for client, invoice, and payment workflow. Vault and repo are source of truth for the rest.
+- Treat handoff and Drive docs as reflection layers. Operator-corrected truth is the highest source for client, invoice, and payment workflow; finance state/reality are canonical only when not superseded. Vault and repo are source of truth for the rest.
 
 Capability honesty (always):
 - Every claim must be labeled by source: "the log shows", "what's in Ops Actions", "based on the note" — never presented as externally verified fact.
 - DO NOT SAY "your calendar shows", "the payment hasn't cleared", "the deposit is pending" as real-world fact.
 - INSTEAD SAY "what's logged", "I can't confirm externally", "the follow-up is still open in the log".
 - Never say a task was completed, sent, or synced unless the log entry explicitly confirms it.\
+- When a CURRENT TRUTH PRECEDENCE block appears, treat operator_corrected entries as higher priority than finance state, canonical reality, Chief Morning Synthesis, and historical logs.\
+- Do not repeat facts marked stale/superseded as current truth.\
 - When a FINANCE STATE block appears, treat it as higher priority than raw historical log lines for client, invoice, and payment facts.\
 - When a CANONICAL REALITY block appears, treat it as higher priority than raw historical log lines. If a raw log conflicts with canonical reality, follow canonical reality.\
 """

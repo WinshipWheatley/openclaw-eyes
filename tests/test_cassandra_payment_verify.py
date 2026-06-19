@@ -896,6 +896,105 @@ def test_build_context_snapshot_includes_canonical_reality_summary(tmp_path, mon
     assert "St. Anne's is a recurring Sunday-services lane." in snapshot
 
 
+def test_afternoon_briefing_uses_operator_truth_before_stale_finance(
+    tmp_path,
+    monkeypatch,
+):
+    import cassandra_brain
+    import cassandra_briefing_brain as briefing
+    import finance_state
+    import chief_cpa_brain
+
+    stale_handoff = "Will Valcovic to Chyna on Monday"
+    finance_path = tmp_path / "finance_state.json"
+    reality_path = tmp_path / "cassandra_reality_notes.json"
+    actions_path = tmp_path / "Ops Actions.md"
+    payments_path = tmp_path / "Ops Payment Follow-ups.md"
+    workstreams_path = tmp_path / "Ops Workstreams.md"
+
+    finance_path.write_text(
+        json.dumps(
+            {
+                "accounts": {
+                    "capital_hilton": {
+                        "label": "Capital Hilton",
+                        "aliases": ["capital hilton", "hilton", "smartspend"],
+                        "workflow_summary": f"{stale_handoff} for POs.",
+                        "next_actions": [{"status": "open", "action": f"{stale_handoff}."}],
+                    },
+                    "live_arts": {
+                        "label": "Live Arts Maryland",
+                        "aliases": ["live arts"],
+                        "workflow_summary": "Canonical second-entity fact still active.",
+                        "next_actions": [{"status": "open", "action": "Keep the rental invoice lane moving."}],
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    reality_path.write_text(
+        json.dumps(
+            {
+                "capital_hilton": {
+                    "label": "Capital Hilton",
+                    "status_summary": f"Reality note still says {stale_handoff}.",
+                },
+                "live_arts": {
+                    "label": "Live Arts Maryland",
+                    "status_summary": "Canonical reality for the second entity is still safe to brief.",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    actions_path.write_text("# Ops Actions\n", encoding="utf-8")
+    payments_path.write_text("# Ops Payment\n", encoding="utf-8")
+    workstreams_path.write_text("# Ops Workstreams\n", encoding="utf-8")
+
+    state = dict(cassandra_brain._DEFAULT_STATE)
+    state["session_fact_overrides"] = {
+        "capital_hilton": {
+            "summary": "everything checked off except the actual check; July 1 2026 is the actual-check date",
+            "at": "2026-06-19T09:30:00",
+            "source_text": "operator correction",
+        }
+    }
+    captured: dict[str, str] = {}
+
+    monkeypatch.setattr(finance_state, "FINANCE_STATE_PATH", finance_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_REALITY_NOTES", reality_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_OPS_ACTIONS", actions_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_OPS_PAYMENT", payments_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_OPS_WORKSTREAMS", workstreams_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: state, raising=False)
+    monkeypatch.setattr(chief_cpa_brain, "get_recent_income", lambda days=2: [], raising=False)
+    monkeypatch.setattr(
+        briefing,
+        "resolve_local_model",
+        lambda prompt, task_class: ("test-model", "test-lane"),
+        raising=False,
+    )
+
+    def fake_ollama_call(prompt, **kwargs):
+        captured["prompt"] = prompt
+        return "Capital Hilton: July 1 2026 actual-check date. Live Arts Maryland remains active."
+
+    monkeypatch.setattr(briefing, "ollama_call", fake_ollama_call, raising=False)
+
+    output = briefing.generate_briefing("afternoon")
+    prompt = captured["prompt"]
+
+    assert stale_handoff not in prompt
+    assert stale_handoff not in output
+    assert "July 1 2026" in prompt
+    assert "July 1 2026" in output
+    assert "provenance: operator_corrected" in prompt
+    assert "provenance: stale/superseded" in prompt
+    assert "Live Arts Maryland: Canonical second-entity fact still active." in prompt
+    assert "Canonical reality for the second entity is still safe to brief." in prompt
+
+
 def test_morning_financial_snapshot_includes_structured_finance_state(tmp_path, monkeypatch):
     import cassandra_briefing_morning_context
     import finance_state
