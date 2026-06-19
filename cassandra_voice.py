@@ -19,9 +19,9 @@ Content/social replies
 Environment variables
 ---------------------
   CASSANDRA_VOICE=1               enable speech (default: 0 = off)
-  CASSANDRA_LIVE_BACKEND          live lane backend: piper (default) or kokoro
-  CASSANDRA_BATCH_BACKEND         batch lane backend: piper (default), kokoro, or qwen3
-  CASSANDRA_VOICE_LOCAL_ONLY      1 keeps Cassandra on local Piper unless explicitly set to 0
+  CASSANDRA_LIVE_BACKEND          live lane backend: kokoro (default) or piper
+  CASSANDRA_BATCH_BACKEND         batch lane backend: qwen3 (default), kokoro, or piper
+  CASSANDRA_VOICE_LOCAL_ONLY      1 allows local engines only; Kokoro is local
   CASSANDRA_PREMIUM_BACKEND       optional premium backend, disabled by default
   CASSANDRA_VOICE_MODEL           Piper .onnx path
                                   default: /home/openclaw/piper_voices/en_GB-jenny_dioco-medium.onnx
@@ -56,17 +56,19 @@ from pathlib import Path
 from cassandra_mode import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
 import chief_env
+from agent_kokoro_voice import synth_kokoro_wav, voice_for_agent
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
 VOICE_ENABLED  = os.environ.get("CASSANDRA_VOICE", "0") == "1"
 VOICE_LOCAL_ONLY = os.environ.get("CASSANDRA_VOICE_LOCAL_ONLY", "1") != "0"
-LIVE_BACKEND   = os.environ.get("CASSANDRA_LIVE_BACKEND",  "piper").lower()
-BATCH_BACKEND  = os.environ.get("CASSANDRA_BATCH_BACKEND", "piper").lower()
+LIVE_BACKEND   = os.environ.get("CASSANDRA_LIVE_BACKEND",  "kokoro").lower()
+BATCH_BACKEND  = os.environ.get("CASSANDRA_BATCH_BACKEND", "qwen3").lower()
 PREMIUM_BACKEND = os.environ.get("CASSANDRA_PREMIUM_BACKEND", "").lower()
 ALLOW_WINDOWS_POWERSHELL_PLAYBACK = os.environ.get("CASSANDRA_ALLOW_WINDOWS_POWERSHELL_PLAYBACK", "0") == "1"
+_LOCAL_TTS_BACKENDS = {"piper", "kokoro"}
 
-_KOKORO_VOICE = os.environ.get("CASSANDRA_KOKORO_VOICE", "af_heart")
+_KOKORO_VOICE = os.environ.get("CASSANDRA_KOKORO_VOICE", voice_for_agent("cassandra"))
 _KOKORO_SPEED = os.environ.get("CASSANDRA_KOKORO_SPEED", "0.9")
 
 # Piper-specific (used as fallback in both lanes)
@@ -299,14 +301,17 @@ def _speak_piper(text: str, wav_path: Path, win_path: str) -> None:
 
 def _synth_plugin(text: str, backend_name: str, wav_path: Path) -> bool:
     """Attempt synthesis via a cassandra_tts_backends backend. Returns True on success."""
-    if VOICE_LOCAL_ONLY and backend_name.lower() != "piper":
+    backend_key = backend_name.lower()
+    if VOICE_LOCAL_ONLY and backend_key not in _LOCAL_TTS_BACKENDS:
         _log_voice_side_effect(
             "tts_backend_disabled",
             f"{backend_name} skipped in local-only mode",
-            key=f"tts_backend_disabled:{backend_name.lower()}",
+            key=f"tts_backend_disabled:{backend_key}",
         )
         return False
     try:
+        if backend_key == "kokoro":
+            return synth_kokoro_wav(text, _KOKORO_VOICE, wav_path, speed=float(_KOKORO_SPEED))
         from cassandra_tts_backends import get_backend
         backend = get_backend(backend_name)
         return backend.synthesize(text, wav_path)
@@ -431,6 +436,12 @@ def _synthesize_live_lane(text: str, wav_path: Path) -> bool:
         return True
 
     print("[cassandra_voice] live fallback -> Piper", flush=True)
+    _log_voice_side_effect(
+        "tts_backend_fallback",
+        f"{backend} failed; falling back to Piper",
+        key=f"tts_backend_fallback:{backend}:piper",
+        force=True,
+    )
     _synth_piper(text, wav_path)
     return True
 
