@@ -366,10 +366,10 @@ def _build_report(summary: str) -> str:
     likely_cause = (
         runtime_evidence
         if runtime_evidence
-        else orientation_timeout
-        if orientation_timeout
         else f"Latest listener evidence: {_truncate(error_line, 180)}"
         if error_line
+        else orientation_timeout
+        if orientation_timeout
         else "No policy denial was active. Cassandra appears to have stalled inside her processing path or an upstream model/tool call."
     )
     task_name = _queue_failure_task(summary, likely_cause)

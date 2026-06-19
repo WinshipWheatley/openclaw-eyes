@@ -55,6 +55,7 @@ from finance_state import (
     detect_finance_status_intent,
     finance_entity_terms,
     format_finance_context,
+    load_finance_state,
     get_finance_payment_answer,
     get_finance_status_answer,
 )
@@ -1083,6 +1084,143 @@ def _session_fact_overrides(state: dict | None) -> dict:
     return overrides if isinstance(overrides, dict) else {}
 
 
+def _normalize_truth_entity_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(value or "").lower()).strip("_")
+
+
+def _label_from_entity_key(entity_key: str) -> str:
+    parts = [part for part in _normalize_truth_entity_key(entity_key).split("_") if part]
+    return " ".join(part.capitalize() for part in parts) or str(entity_key or "Known entity")
+
+
+def _override_entity_keys(state: dict | None) -> set[str]:
+    keys: set[str] = set()
+    for key, override in _session_fact_overrides(state).items():
+        if not isinstance(override, dict):
+            continue
+        summary = str(override.get("summary") or "").strip()
+        if summary:
+            normalized = _normalize_truth_entity_key(str(key))
+            if normalized:
+                keys.add(normalized)
+    return keys
+
+
+def _finance_account_label(account_key: str, account: dict | None) -> str:
+    if isinstance(account, dict):
+        label = str(account.get("label") or "").strip()
+        if label:
+            return label
+    return _label_from_entity_key(account_key)
+
+
+def _reality_label(entity_key: str, reality_entry: dict | None) -> str:
+    if isinstance(reality_entry, dict):
+        label = str(reality_entry.get("label") or "").strip()
+        if label:
+            return label
+    return _label_from_entity_key(entity_key)
+
+
+def _override_label(entity_key: str) -> str:
+    finance_account = load_finance_state().get("accounts", {}).get(entity_key)
+    if isinstance(finance_account, dict):
+        return _finance_account_label(entity_key, finance_account)
+    reality_entry = _load_reality_notes().get(entity_key)
+    if isinstance(reality_entry, dict):
+        return _reality_label(entity_key, reality_entry)
+    return _label_from_entity_key(entity_key)
+
+
+def build_current_truth_snapshot(state: dict | None = None) -> str:
+    """Return operator-corrected facts that outrank stale finance/reality facts."""
+    if state is None:
+        state = load_state()
+    overrides = _session_fact_overrides(state)
+    if not overrides:
+        return ""
+
+    lines = [
+        "[CURRENT TRUTH PRECEDENCE]",
+        "Authority order: operator_corrected > canonical finance/reality > stale/superseded.",
+    ]
+    for entity_key, override in overrides.items():
+        if not isinstance(override, dict):
+            continue
+        summary = " ".join(str(override.get("summary") or "").split()).strip()
+        if not summary:
+            continue
+        label = _override_label(str(entity_key))
+        freshness = str(override.get("at") or "unknown").strip() or "unknown"
+        lines.append(
+            f"  {label}: {summary} "
+            f"(provenance: operator_corrected; freshness: {freshness})"
+        )
+        lines.append(
+            f"  {label}: older finance/reality entries are superseded for current briefing use. "
+            "(provenance: stale/superseded)"
+        )
+
+    return "\n".join(lines) if len(lines) > 2 else ""
+
+
+def _build_finance_snapshot_with_precedence(
+    *,
+    state: dict | None = None,
+    limit: int = 4,
+) -> str:
+    superseded = _override_entity_keys(state)
+    if not superseded:
+        return build_finance_snapshot(limit=limit)
+
+    data = load_finance_state()
+    accounts = data.get("accounts")
+    if not isinstance(accounts, dict):
+        return ""
+
+    lines: list[str] = []
+    for key, account in list(accounts.items())[:limit]:
+        if not isinstance(account, dict):
+            continue
+        label = _finance_account_label(str(key), account)
+        if not label:
+            continue
+
+        if _normalize_truth_entity_key(str(key)) in superseded:
+            lines.append(
+                f"  {label}: superseded by operator correction for current briefing use. "
+                "(provenance: stale/superseded)"
+            )
+            continue
+
+        workflow = str(account.get("workflow_summary") or "").strip()
+        next_step = _first_finance_open_action_text(account)
+        if not workflow:
+            continue
+        line = f"  {label}: {workflow}"
+        if next_step:
+            line += f" Next: {next_step}"
+        line += " (provenance: canonical; freshness: finance_state)"
+        lines.append(line)
+
+    if not lines:
+        return ""
+    return "[FINANCE STATE SNAPSHOT]\n" + "\n".join(lines)
+
+
+def _first_finance_open_action_text(account: dict) -> str:
+    actions = account.get("next_actions", [])
+    if not isinstance(actions, list):
+        return ""
+    for item in actions:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "open").strip().lower() == "done":
+            continue
+        return str(item.get("action") or "").strip()
+    return ""
+
+
 def _remember_finance_entity(query: str, state: dict) -> None:
     from finance_state import find_finance_account
 
@@ -1327,19 +1465,29 @@ def _format_session_fact_override_context(query: str, state: dict | None) -> str
     return f"[SESSION CORRECTION — {label}]\nCurrent truth: {summary}"
 
 
-def _build_reality_snapshot() -> str:
+def _build_reality_snapshot(state: dict | None = None) -> str:
     """Compact always-on canonical reality summary for prompts and briefings."""
     notes = _load_reality_notes()
+    superseded = _override_entity_keys(state)
     lines: list[str] = []
     for key, raw in notes.items():
         if not isinstance(raw, dict):
             continue
+        label = _reality_label(str(key), raw)
+        if not label:
+            continue
+        if _normalize_truth_entity_key(str(key)) in superseded:
+            lines.append(
+                f"  {label}: superseded by operator correction for current briefing use. "
+                "(provenance: stale/superseded)"
+            )
+            continue
+
         summary = str(raw.get("status_summary") or "").strip()
         if not summary:
             continue
-        label = str(raw.get("label") or key).strip()
-        if not label:
-            continue
+        if superseded:
+            summary += " (provenance: canonical; freshness: reality_notes)"
         lines.append(f"  {label}: {summary}")
     if not lines:
         return ""
@@ -1388,7 +1536,9 @@ def _build_temporal_anchor(now: datetime) -> str:
 def _build_context_invariants() -> str:
     return (
         "Context invariants: interpret relative day words against the date anchors above. "
-        "Use source priority in this order: live connector data, finance state, canonical reality, current-state ops files, then historical logs."
+        "Use source priority in this order: operator-corrected truth, live connector data, "
+        "canonical finance/reality, current-state ops files, then historical logs. "
+        "Facts marked stale/superseded are not current."
     )
 
 
@@ -1401,11 +1551,15 @@ def build_context_snapshot(state: dict | None = None) -> str:
     parts.append(_build_temporal_anchor(now))
     parts.append(_build_context_invariants())
 
-    finance_snapshot = build_finance_snapshot(limit=3)
+    current_truth = build_current_truth_snapshot(state)
+    if current_truth:
+        parts.append(current_truth)
+
+    finance_snapshot = _build_finance_snapshot_with_precedence(state=state, limit=3)
     if finance_snapshot:
         parts.append(finance_snapshot)
 
-    reality_snapshot = _build_reality_snapshot()
+    reality_snapshot = _build_reality_snapshot(state)
     if reality_snapshot:
         parts.append(reality_snapshot)
 
