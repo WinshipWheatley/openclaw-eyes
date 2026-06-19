@@ -3,28 +3,30 @@
 ## Summary
 - Intake status: `governed_storage_available`
 - Governed storage available: `true`
-- Updates: 1
-- Routed: 1
-- Receive-ready agents: 1
-- Blocked agents: 4
+- Updates: 2
+- Routed: 2
+- Receive-ready agents: 0
+- Blocked agents: 6
 - Raw payload stored: 0
 - Full message text stored: 0
 
 ## Agents
-- `chief` / Chief: desired=online, actual=degraded, receive=false, send=false, blocker=presence_degraded
-- `cassandra` / Clara Reid: desired=online, actual=offline, receive=false, send=false, blocker=presence_offline
-- `guardian` / Guardian: desired=online, actual=online, receive=true, send=false, blocker=none
-- `niles` / Niles Mercer: desired=online, actual=offline, receive=false, send=false, blocker=presence_offline
-- `hermes` / Hermes: desired=online, actual=online, receive=false, send=false, blocker=telegram_listener_not_found
+- `chief` / Chief: desired=unknown_review, actual=unknown, receive=false, send=false, blocker=presence_unknown
+- `cassandra` / Clara Reid: desired=unknown_review, actual=unknown, receive=false, send=false, blocker=presence_unknown
+- `guardian` / Guardian: desired=unknown_review, actual=unknown, receive=false, send=false, blocker=presence_unknown
+- `niles` / Niles Mercer: desired=unknown_review, actual=unknown, receive=false, send=false, blocker=presence_unknown
+- `hermes` / Hermes: desired=unknown_review, actual=unknown, receive=false, send=false, blocker=telegram_listener_not_found
+- `maestro` / Maestro: desired=unknown_review, actual=unknown, receive=false, send=false, blocker=presence_unknown
 
 ## Dry-Run Proof
-- `tgupdate_3445dc101ac24cd99910` channel=synthetic_dry_run target=chief intent=intent_f0cef86588945f7dbbdb routed=true
+- `tgupdate_ae186ebd5ed237ed226b` channel=synthetic_dry_run target=chief intent=intent_5bb1c8ca57894955ef1a routed=true
 
 ## Blockers
-- `cassandra` presence_offline: Use agent presence/recovery policy to resolve Cassandra state; do not bypass recovery gates.
-- `chief` presence_degraded: Use agent presence/recovery policy to resolve Chief state; do not bypass recovery gates.
+- `cassandra` presence_unknown: Use agent presence/recovery policy to resolve Cassandra state; do not bypass recovery gates.
+- `chief` presence_unknown: Use agent presence/recovery policy to resolve Chief state; do not bypass recovery gates.
+- `guardian` presence_unknown: Use agent presence/recovery policy to resolve Guardian state; do not bypass recovery gates.
 - `hermes` telegram_listener_not_found: Create or approve a Telegram listener surface for Hermes before expecting live receive.
-- `niles` presence_offline: Use agent presence/recovery policy to resolve Niles state; do not bypass recovery gates.
+- `niles` presence_unknown: Use agent presence/recovery policy to resolve Niles state; do not bypass recovery gates.
 
 ## Authority Boundary
 - `telegram_send_allowed`: `false`.

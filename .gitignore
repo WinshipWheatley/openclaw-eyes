@@ -21,6 +21,7 @@
 #   *_token.json                  — any token file
 
 !chief_listener.py
+!maestro_listener.py
 !chief_router.py
 !chief_session_manager.py
 !chief_sender.py
@@ -537,6 +538,7 @@
 !tests/test_backend_performance_intelligence.py
 !tests/test_backend_agent_context.py
 !tests/test_chief_listener_lifecycle.py
+!tests/test_maestro_listener.py
 !tests/test_openclaw_receipts.py
 !tests/test_operator_intent_core.py
 !tests/test_operator_action_covenant.py

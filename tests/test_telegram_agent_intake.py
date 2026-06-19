@@ -10,6 +10,7 @@ from telegram_agent_intake import (
     build_telegram_agent_intake_report,
     check_telegram_agent_intake,
     export_telegram_agent_intake_read_model,
+    record_maestro_listener_text_update,
     record_cassandra_listener_text_update,
     record_telegram_listener_update_safe,
     record_telegram_update,
@@ -161,6 +162,50 @@ WHERE update_record_id = ?
     assert tuple(intent) == ("cassandra", "operator_comms", 0)
 
 
+def test_maestro_registry_and_listener_helper_are_metadata_only(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    update_id = record_maestro_listener_text_update(
+        db_path=db_path,
+        text="Maestro, what's going on?",
+        source_message_id="maestro_live_fixture",
+    )
+    update = _row(
+        db_path,
+        """
+SELECT source_channel, agent_target, operator_message, message_text_stored,
+       raw_payload_stored, chat_id_stored, routed_to_intent_inbox,
+       intent_record_id, blocked_reason, telegram_send_allowed,
+       command_execution_allowed, external_api_send_allowed
+FROM telegram_agent_update_records
+WHERE update_record_id = ?
+""",
+        (update_id,),
+    )
+    read_model = build_telegram_agent_intake_read_model(db_path=db_path)
+    maestro = next(row for row in read_model["agents"] if row["agent_id"] == "maestro")
+
+    assert tuple(update) == (
+        "maestro_listener",
+        "maestro",
+        1,
+        0,
+        0,
+        0,
+        0,
+        None,
+        "route_intent_disabled",
+        0,
+        0,
+        0,
+    )
+    assert maestro["outward_name"] == "Maestro"
+    assert maestro["telegram_surface"] == "maestro_listener.py"
+    assert maestro["service_surface"] == "systemd/user/maestro-listener.service.in"
+    assert maestro["governed_listener_hook_available"] is True
+    assert maestro["telegram_send_allowed"] is False
+
+
 def test_cassandra_unverified_listener_text_is_metadata_only(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
 
@@ -268,9 +313,10 @@ ORDER BY title
     assert result.governed_storage_available is True
     assert result.dry_run_intent_id
     assert result.dry_run_status == "routed"
-    assert result.agent_count == 5
+    assert result.agent_count == 6
     assert report["counts"]["update_count"] >= 1
     assert any(row["agent_id"] == "cassandra" and row["outward_name"] == "Clara Reid" for row in report["rows"])
+    assert any(row["agent_id"] == "maestro" and row["telegram_surface"] == "maestro_listener.py" for row in report["rows"])
     assert cards
     assert all(row["execution_allowed"] == 0 for row in cards)
     assert all(row["auto_approval_allowed"] == 0 for row in cards)
@@ -323,10 +369,18 @@ def test_safe_listener_hook_never_raises_or_prints_message_text(tmp_path, monkey
 
 
 def test_listener_files_include_governed_hook_without_exposing_tokens():
-    for path in (Path("chief_listener.py"), Path("cassandra_listener.py"), Path("producer_listener.py"), Path("chief_guardian_listener.py")):
+    for path in (
+        Path("chief_listener.py"),
+        Path("cassandra_listener.py"),
+        Path("producer_listener.py"),
+        Path("chief_guardian_listener.py"),
+        Path("maestro_listener.py"),
+    ):
         source = path.read_text(encoding="utf-8")
         if path.name == "cassandra_listener.py":
             assert "record_cassandra_listener_text_update" in source
+        elif path.name == "maestro_listener.py":
+            assert "record_maestro_listener_text_update" in source
         else:
             assert "record_telegram_listener_update_safe" in source
         assert "BOT_TOKEN =" in source or "_token =" in source

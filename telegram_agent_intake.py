@@ -31,7 +31,7 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 JSON_EXPORT_NAME = "telegram_agent_intake.json"
 OPERATOR_EXPORT_NAME = "telegram_agent_intake_OPERATOR.md"
 
-CORE_AGENTS = ("chief", "cassandra", "guardian", "niles", "hermes")
+CORE_AGENTS = ("chief", "cassandra", "guardian", "niles", "hermes", "maestro")
 
 AGENT_METADATA = {
     "chief": {
@@ -83,6 +83,16 @@ AGENT_METADATA = {
         "service_surface": "systemd/user/hermes-gateway.service.in",
         "listener_hook_status": "no_telegram_listener_found",
         "notes": "Hermes gateway exists, but no current repo Telegram listener file was found.",
+    },
+    "maestro": {
+        "display_name": "Maestro",
+        "outward_name": "Maestro",
+        "lane_id": "frontdoor_orchestration",
+        "source_channel": "maestro_listener",
+        "telegram_surface": "maestro_listener.py",
+        "service_surface": "systemd/user/maestro-listener.service.in",
+        "listener_hook_status": "governed_hook_added",
+        "notes": "Maestro is the Telegram front-door conductor surface; PC backend owns the answer/classifier path.",
     },
 }
 
@@ -370,6 +380,8 @@ def _agent_from_text_or_channel(text: str, source_channel: str, agent_target: st
         return "niles"
     if "hermes" in lowered:
         return "hermes"
+    if "maestro" in lowered or "conductor" in lowered:
+        return "maestro"
     if "chief" in lowered:
         return "chief"
     if "cassandra" in source_channel:
@@ -380,6 +392,8 @@ def _agent_from_text_or_channel(text: str, source_channel: str, agent_target: st
         return "niles"
     if "hermes" in source_channel:
         return "hermes"
+    if "maestro" in source_channel:
+        return "maestro"
     if "chief" in source_channel:
         return "chief"
     return "unknown"
@@ -387,7 +401,7 @@ def _agent_from_text_or_channel(text: str, source_channel: str, agent_target: st
 
 def _route_text(text: str, agent_target: str) -> str:
     lowered = text.lower()
-    explicit_tokens = ("chief", "cassandra", "clara", "guardian", "niles", "producer", "hermes", "report bridge")
+    explicit_tokens = ("chief", "cassandra", "clara", "guardian", "niles", "producer", "hermes", "maestro", "conductor", "report bridge")
     if any(token in lowered for token in explicit_tokens):
         return text
     prefix = {
@@ -396,6 +410,7 @@ def _route_text(text: str, agent_target: str) -> str:
         "guardian": "Guardian",
         "niles": "Niles",
         "hermes": "Hermes",
+        "maestro": "Maestro",
     }.get(agent_target)
     if prefix:
         return f"{prefix}, {text}"
@@ -812,6 +827,34 @@ def record_cassandra_listener_text_update(
     )
 
 
+def record_maestro_listener_text_update(
+    *,
+    text: str,
+    source_message_id: str | None = None,
+    source_user_label: str | None = "operator",
+    operator_message: bool = True,
+    route_intent: bool = False,
+    db_path: str | Path | None = None,
+) -> str | None:
+    """Record Maestro live-listener text as governed intake metadata only.
+
+    The PC front-door responder owns answer/classifier routing. This wrapper
+    proves Maestro Telegram receive without granting execution or send
+    authority from the Mac surface.
+    """
+
+    return record_telegram_listener_update_safe(
+        text=text,
+        source_channel=AGENT_METADATA["maestro"]["source_channel"],
+        agent_target="maestro",
+        source_message_id=source_message_id,
+        source_user_label=source_user_label,
+        operator_message=operator_message,
+        route_intent=route_intent,
+        db_path=db_path,
+    )
+
+
 def _latest_presence_by_agent(conn: sqlite3.Connection) -> dict[str, dict[str, Any]]:
     if not _table_exists(conn, "agent_presence_agents"):
         return {}
@@ -909,7 +952,7 @@ INSERT OR REPLACE INTO telegram_agent_blockers (
                 now,
             ),
         )
-        if row["agent_id"] in {"cassandra", "chief", "niles", "hermes"}:
+        if row["agent_id"] in {"cassandra", "chief", "niles", "hermes", "maestro"}:
             _insert_or_update_work_board_card(
                 conn,
                 source_id=f"telegram_agent_intake:{row['agent_id']}:blocker",
@@ -1288,6 +1331,7 @@ __all__ = [
     "format_telegram_intake_check_result",
     "init_telegram_agent_intake_schema",
     "record_cassandra_listener_text_update",
+    "record_maestro_listener_text_update",
     "record_telegram_listener_update_safe",
     "record_telegram_update",
     "stable_json",
