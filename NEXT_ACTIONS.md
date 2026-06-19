@@ -1,6 +1,11 @@
 # NEXT_ACTIONS.md
 _Generated: 2026-03-17 | Prioritized by impact on current work. Based on real repo state._
 
+> **Historical snapshot, not current worker instructions.** This file predates
+> the current branch-only fleet, SEND_HOLD, no-restart worker rules, and Phase C
+> control-plane work. Do not execute actions here directly; use
+> `OPENCLAW_RUNTIME.md` plus current MASTER orchestration packets.
+
 Labels: `[album]` `[billing]` `[ops]` `[infra]` `[cleanup]`
 
 ---

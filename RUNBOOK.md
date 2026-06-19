@@ -1,6 +1,12 @@
 # RUNBOOK.md
 _Generated: 2026-03-17 | Exact commands only. Based on real repo state._
 
+> **Operator-only historical command reference.** Worker lanes must not restart
+> services, stop processes, source secret env files, print token values, deploy,
+> or send externally. Route those needs to MASTER/operator approval. Prefer
+> `OPENCLAW_RUNTIME.md`, `USER.md`, and current orchestration packets for live
+> authority.
+
 ---
 
 ## Operator Surface
@@ -24,6 +30,10 @@ cd /home/openclaw && codex "Read only. Inspect <exact file paths>. Do not edit a
 ```
 
 ## Stack Start / Stop / Restart
+
+> **Authority boundary:** the commands in this section are for the MASTER or a
+> human operator after approval. Codex/Gemini worker lanes must not run service
+> start/stop/restart commands.
 
 ### Service Management Freeze
 
@@ -110,15 +120,25 @@ source ~/chief_env/bin/activate
 ```
 
 ### Load env vars (for manual script runs)
+MASTER/operator shell only. Worker lanes must not source secret env files unless
+the task explicitly requires approved secret handling.
+
 ```bash
 source /home/openclaw/.chief.env
 ```
 
 ### Check env vars are set
+Do not print secret or token values. Use presence/length checks only.
+
 ```bash
-echo $ANTHROPIC_API_KEY | cut -c1-8
-echo $TELEGRAM_BOT_TOKEN | cut -c1-8
-echo $TELEGRAM_AUTHORIZED_USER_ID
+python3 - <<'PY'
+import os
+
+for name in ("ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_AUTHORIZED_USER_ID"):
+    value = os.environ.get(name)
+    status = "NOT SET" if not value else f"SET len={len(value)}"
+    print(f"{name}: {status}")
+PY
 ```
 
 ### Check Ollama is running
@@ -184,6 +204,9 @@ python3 /home/openclaw/chief_obsidian_sync.py
 ---
 
 ## Smoke Tests (Run Before Stack Restart)
+
+Worker lanes should use branch-local tests and `green_gate`; do not source
+`.chief.env` or restart services from a worker session.
 
 Run these before restarting after any code change:
 

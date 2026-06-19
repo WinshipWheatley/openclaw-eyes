@@ -1,6 +1,11 @@
 # CURRENT_STATE.md
 _Generated: 2026-03-17 | Based on actual repo audit — not aspirational architecture._
 
+> **Historical snapshot, not live truth.** This file is useful background but it
+> predates the current fleet control-plane work and may contain stale process,
+> session, model, and queue state. Verify with current read models, logs, tests,
+> and MASTER packets before acting.
+
 ---
 
 ## Quick Re-entry
