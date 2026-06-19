@@ -606,7 +606,135 @@ def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeyp
             "backend_route": "maestro_cassandra_responder.datetime_deterministic",
         },
     )
-    assert calls == [("what's today's date", {})]
+    assert calls == [
+        (
+            "what's today's date",
+            {
+                "active_surface_ref": "operator_maestro_chat",
+                "current_world_ref": "general",
+                "source_surface": "mission_control",
+                "world": "general",
+                "world_ref": "general",
+            },
+        )
+    ]
+
+
+def test_ledger_no_context_is_ambiguous_sensitive_and_never_calls_handle():
+    calls = []
+
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        calls.append("called")
+        raise AssertionError("ambiguous ledger reference must not call cassandra_brain.handle")
+
+    result = maestro.answer_frontdoor_chat(
+        "check the ledger",
+        session={"world_ref": "general"},
+        handle_fn=forbidden_handle,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "ambiguous_sensitive_reference"
+    assert result.allowed_to_call_handle is False
+    assert "sensitive-vault" in result.plain_summary
+    assert {option["referent_id"] for option in result.disambiguation_options} >= {
+        "business_ops",
+        "bank_finance_vault",
+    }
+    assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["ledger_mutation_performed"] is False
+    assert result.machine_proof["bank_ledger_read_performed"] is False
+    assert calls == []
+
+
+def test_bank_ledger_reference_asks_and_constructs_no_private_path():
+    result = maestro.answer_frontdoor_chat(
+        "post the bank ledger",
+        session={"world_ref": "general"},
+        handle_fn=lambda _text, _session=None: ["SHOULD NOT RUN"],
+    )
+    payload = json.dumps(result.to_dict(), sort_keys=True)
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "ambiguous_sensitive_reference"
+    assert result.machine_proof["vault_path_constructed"] is False
+    assert result.machine_proof["bank_ledger_read_performed"] is False
+    assert "bank_finance_vault" in payload
+    assert "FinancePrivate" not in payload
+    assert "LegalPrivate" not in payload
+    assert "MusicLawPrivate" not in payload
+
+
+def test_business_ops_ledger_explicit_qualifier_resolves_read_only_without_mutation():
+    result = maestro.answer_frontdoor_chat(
+        "check the business-ops ledger",
+        session={"world_ref": "general"},
+        handle_fn=lambda _text, _session=None: ["SHOULD NOT RUN"],
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "resolved_reference_readback"
+    assert result.disambiguation_options == (
+        {
+            "referent_id": "business_ops",
+            "display_name": "Business Ops ledger",
+            "namespace": "business_ops",
+            "sensitivity": "operational",
+            "default_surface": "business_ops",
+            "read_authority": "metadata_or_approved_read_only",
+        },
+    )
+    assert result.machine_proof["resolved_referent_id"] == "business_ops"
+    assert result.machine_proof["ledger_mutation_performed"] is False
+    assert result.machine_proof["cassandra_handle_called"] is False
+
+
+def test_inbox_general_is_ambiguous_not_silent_gmail_default():
+    result = maestro.answer_frontdoor_chat(
+        "check the inbox",
+        session={"world_ref": "general"},
+        handle_fn=lambda _text, _session=None: ["SHOULD NOT RUN"],
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "ambiguous_reference"
+    assert {option["referent_id"] for option in result.disambiguation_options} == {
+        "gmail_inbox",
+        "bus_inbox",
+        "operator_action_inbox",
+    }
+    assert result.machine_proof["cassandra_handle_called"] is False
+
+
+def test_ledger_floor_never_drops_when_resolver_disabled():
+    calls = []
+
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        calls.append("called")
+        raise AssertionError("fallback action floor must route to staging without handle")
+
+    intent = maestro.classify_frontdoor_intent(
+        "check the ledger",
+        {"world_ref": "general"},
+        resolver_enabled=False,
+    )
+    result = maestro.answer_frontdoor_chat(
+        "check the ledger",
+        session={"world_ref": "general"},
+        handle_fn=forbidden_handle,
+        resolver_enabled=False,
+    )
+
+    assert intent == (
+        "workflow_or_business_action",
+        False,
+        "workflow_or_business_action_routes_to_staging",
+    )
+    assert result.status == "ROUTE_TO_STAGING"
+    assert result.intent_class == "workflow_or_business_action"
+    assert result.machine_proof["ledger_mutation_performed"] is False
+    assert result.machine_proof.get("overloaded_name_resolver_used") is None
+    assert calls == []
 
 
 def test_processor_routes_general_status_query_to_truthful_responder(tmp_path):
@@ -643,6 +771,42 @@ def test_processor_routes_general_status_query_to_truthful_responder(tmp_path):
     assert response.worker_route_refs[0]["backend_route"] == (
         "maestro_cassandra_responder.truthful_status_capability_readback"
     )
+
+
+def test_processor_passes_finance_client_context_to_ledger_resolver(tmp_path):
+    read_model_root = _seed_read_models(tmp_path)
+    request = _maestro_operator_instruction_request(
+        "check the ledger",
+        request_id="finance_client_ledger_context_test",
+    )
+    request.update(
+        {
+            "current_world_ref": "finance",
+            "world": "finance",
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "workflow_ref": "capital_hilton_invoice_workflow_session",
+        }
+    )
+    request["payload_hash"] = processor._content_hash(request)
+    request_path = tmp_path / "mission_control_operator_instruction_request_finance_ledger.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=read_model_root,
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+    responder = response.detail_disclosure["maestro_cassandra_responder"]
+
+    assert response.request_type == "CHAT"
+    assert response.internal_status == "RESPONSE_READY"
+    assert responder["intent_class"] == "resolved_reference_readback"
+    assert responder["machine_proof"]["resolved_referent_id"] == "gig_invoice"
+    assert responder["machine_proof"]["ledger_mutation_performed"] is False
+    assert responder["machine_proof"]["cassandra_handle_called"] is False
+    assert response.detail_disclosure["workflow_package_staged"] is False
 
 
 def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, tmp_path):
