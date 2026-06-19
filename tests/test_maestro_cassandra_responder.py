@@ -362,6 +362,85 @@ def test_status_capability_query_answers_from_read_models_without_handle(tmp_pat
     )
 
 
+def test_hermes_capability_prompt_is_truthful_not_canned_and_no_send(tmp_path):
+    read_model_root = _seed_truthful_status_read_models(tmp_path)
+
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("Hermes first-touch prompts must not call cassandra_brain.handle")
+
+    result = maestro.answer_frontdoor_chat(
+        "Hermes, what's your job?",
+        session={
+            "read_model_root": read_model_root.as_posix(),
+            "system_knowledge_repo_root": "/home/openclaw",
+        },
+        handle_fn=forbidden_handle,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "hermes_truthful_advisory"
+    assert result.allowed_to_call_handle is False
+    assert "advisory boundary reviewer" in result.plain_summary
+    assert "SEND_HOLD remains in force" in result.plain_summary
+    assert "Non-canonical advisory output" not in result.plain_summary
+    assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["agent_dispatch_performed"] is False
+    assert result.machine_proof["email_send_performed"] is False
+    assert result.machine_proof["send_hold_boundary_visible"] is True
+
+
+def test_hermes_route_prompt_denies_without_guessing_skill_or_dispatching():
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("Hermes route prompts must not call cassandra_brain.handle")
+
+    result = maestro.answer_frontdoor_chat(
+        "Hermes, route this to Cassandra",
+        handle_fn=forbidden_handle,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "hermes_truthful_advisory"
+    assert "cannot route this to cassandra" in result.plain_summary.lower()
+    assert "no agent handoff ran" in result.plain_summary.lower()
+    assert "no route receipt was written" in result.plain_summary.lower()
+    assert "cassandra_email_triage" not in result.plain_summary
+    assert result.machine_proof["hermes_reply_mode"] == "route_request"
+    assert result.machine_proof["requested_route_target"] == "cassandra"
+    assert result.machine_proof["hermes_skill_guess_performed"] is False
+    assert result.machine_proof["hermes_route_receipt_written"] is False
+    assert result.machine_proof["agent_dispatch_performed"] is False
+
+
+def test_hermes_inventory_distinguishes_real_bridges_from_local_helpers():
+    result = maestro.answer_frontdoor_chat("Hermes, what can you route to?")
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "hermes_truthful_advisory"
+    assert "Real agent bridges available to Hermes here: none proven." in result.plain_summary
+    assert "Local helper tools and read-model sidecars" in result.plain_summary
+    assert "not dispatch routes" in result.plain_summary
+    assert result.machine_proof["hermes_reply_mode"] == "route_inventory"
+    assert result.machine_proof["hermes_real_agent_bridge_available"] is False
+    assert result.machine_proof["hermes_local_helpers_are_not_agent_bridges"] is True
+
+
+def test_internal_worker_state_leaks_are_suppressed_from_user_reply():
+    result = maestro.answer_frontdoor_chat(
+        "what is in orbit",
+        handle_fn=lambda _text, _session=None: [
+            "Interrupting current task (iteration 1/90) OpenClaw knows its registry shape.",
+            "Full detail remains here.",
+        ],
+    )
+
+    public_text = result.one_line_answer + "\n" + result.plain_summary
+    assert result.status == "ANSWER_READY"
+    assert "Interrupting current task" not in public_text
+    assert "iteration 1/90" not in public_text
+    assert "OpenClaw knows its registry shape." in result.plain_summary
+    assert "Full detail remains here." in result.plain_summary
+
+
 def test_status_capability_missing_index_fails_closed_without_fake_claim(tmp_path):
     read_model_root = tmp_path / "empty_read_models"
     read_model_root.mkdir()
@@ -643,6 +722,45 @@ def test_processor_routes_general_status_query_to_truthful_responder(tmp_path):
     assert response.worker_route_refs[0]["backend_route"] == (
         "maestro_cassandra_responder.truthful_status_capability_readback"
     )
+
+
+def test_processor_routes_hermes_route_prompt_to_truthful_denial(tmp_path):
+    read_model_root = _seed_read_models(tmp_path)
+    request_path = tmp_path / "mission_control_operator_instruction_request_general_operator_instruction_hermes_route.json"
+    request_path.write_text(
+        json.dumps(
+            _maestro_operator_instruction_request(
+                "Hermes, route this to Cassandra",
+                request_id="general_operator_instruction_hermes_route_test",
+            ),
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=read_model_root,
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+    responder = response.detail_disclosure["maestro_cassandra_responder"]
+    public_text = response.operator_headline + "\n" + response.operator_message
+
+    assert response.request_type == "CHAT"
+    assert response.internal_status == "RESPONSE_READY"
+    assert "cannot route this to cassandra" in public_text.lower()
+    assert "cassandra_email_triage" not in public_text
+    assert "SEND_HOLD remains in force" in public_text
+    assert responder["intent_class"] == "hermes_truthful_advisory"
+    assert responder["allowed_to_call_handle"] is False
+    assert responder["machine_proof"]["hermes_skill_guess_performed"] is False
+    assert responder["machine_proof"]["agent_dispatch_performed"] is False
+    assert responder["machine_proof"]["email_send_performed"] is False
+    assert response.detail_disclosure["workflow_package_staged"] is False
+    assert response.worker_route_refs[0]["backend_route"] == maestro.HERMES_TRUTHFUL_BACKEND_ROUTE
 
 
 def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, tmp_path):

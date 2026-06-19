@@ -67,6 +67,11 @@ class MaestroCassandraResult:
 HandleFn = Callable[[str, dict[str, Any] | None], Sequence[str]]
 HANDLE_BACKEND_ROUTE = "maestro_cassandra_responder.cassandra_brain.handle"
 DATE_BACKEND_ROUTE = "maestro_cassandra_responder.datetime_deterministic"
+HERMES_TRUTHFUL_BACKEND_ROUTE = "maestro_cassandra_responder.hermes_truthful_advisory"
+INTERNAL_STATE_LEAK_PATTERNS = (
+    re.compile(r"\bInterrupting current task\s*(?:\([^)]*\))?\s*", re.IGNORECASE),
+    re.compile(r"\(?(?:iteration|loop)\s+\d+\s*/\s*\d+\)?", re.IGNORECASE),
+)
 
 
 def _default_handle(text: str, session: dict[str, Any] | None = None) -> Sequence[str]:
@@ -82,6 +87,8 @@ def backend_route_for_result(result: MaestroCassandraResult) -> str:
         return DATE_BACKEND_ROUTE
     if result.intent_class == "status_capability_readback":
         return "maestro_cassandra_responder.truthful_status_capability_readback"
+    if result.intent_class == "hermes_truthful_advisory":
+        return HERMES_TRUTHFUL_BACKEND_ROUTE
     if result.intent_class:
         return f"maestro_cassandra_responder.{result.intent_class}"
     return "maestro_cassandra_responder.intent_gate"
@@ -220,6 +227,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
     normalized = _normalize(text)
     if not normalized:
         return ("empty", False, "empty_text")
+    if _is_hermes_truthful_intent(normalized):
+        return ("hermes_truthful_advisory", True, "")
     if _is_send_or_reply_intent(normalized):
         return ("send_reply_email_action", False, "send_reply_email_action_intent_routes_to_staging")
     if _is_inbox_metadata_intent(normalized):
@@ -283,8 +292,21 @@ def answer_frontdoor_chat(
             machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
         )
 
+    if intent_class == "hermes_truthful_advisory":
+        answer = build_hermes_truthful_advisory_answer(text)
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=answer["one_line_answer"],
+            plain_summary=answer["plain_summary"],
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
+        )
+
     replies = list((handle_fn or _default_handle)(text, forwarded_session))
-    plain_summary = _plain_summary(replies)
+    plain_summary = _strip_internal_state_leaks(_plain_summary(replies))
     return MaestroCassandraResult(
         status="ANSWER_READY",
         intent_class=intent_class,
@@ -310,6 +332,8 @@ def _adapter_machine_proof(*, handle_called: bool) -> dict[str, Any]:
         "chief_status_rail_used": False,
         "email_send_performed": False,
         "telegram_send_triggered": False,
+        "agent_dispatch_performed": False,
+        "worker_dispatch_performed": False,
         "gmail_reply_sent": False,
         "gmail_metadata_read_performed": False,
         "browser_access_performed": False,
@@ -323,6 +347,71 @@ def _adapter_machine_proof(*, handle_called: bool) -> dict[str, Any]:
         "send_authority_added": False,
         "used_ad_hoc_memory_as_authority": False,
         "text_response_only": True,
+    }
+
+
+def build_hermes_truthful_advisory_answer(text: str) -> dict[str, Any]:
+    normalized = _normalize(text)
+    mode = _hermes_truthful_mode(normalized)
+    target = _route_target(normalized)
+    base_proof = {
+        "hermes_truthful_advisory_performed": True,
+        "hermes_reply_mode": mode,
+        "hermes_real_agent_bridge_available": False,
+        "hermes_route_receipt_written": False,
+        "hermes_local_helpers_are_not_agent_bridges": True,
+        "hermes_skill_guess_performed": False,
+        "hermes_gateway_started": False,
+        "agent_dispatch_performed": False,
+        "worker_dispatch_performed": False,
+        "email_send_performed": False,
+        "external_send_performed": False,
+        "send_hold_boundary_visible": True,
+        "source_truth_refs": (
+            ".claude/commands/hermes.md",
+            "openclaw_hermes_sidecar.py",
+            "templates/agent/hermes_advisory_packet_template.json",
+        ),
+    }
+    if mode == "route_request":
+        target_label = target or "the requested agent"
+        one_line = f"Hermes cannot route this to {target_label} from this surface."
+        plain = "\n".join(
+            [
+                one_line,
+                "No agent handoff ran, no route receipt was written, and no message was sent.",
+                "Hermes is advisory here: it can describe adapter/protocol boundaries and recommend a safe review packet.",
+                "A real handoff needs a sanctioned bridge with a receipt; local helper tools are not agent bridges.",
+                "SEND_HOLD remains in force.",
+            ]
+        )
+        base_proof["requested_route_target"] = target_label
+    elif mode == "route_inventory":
+        one_line = "Hermes has no proven live agent-routing bridge from this surface."
+        plain = "\n".join(
+            [
+                one_line,
+                "Real agent bridges available to Hermes here: none proven.",
+                "Local helper tools and read-model sidecars may support advisory review, but they are not dispatch routes.",
+                "Hermes can recommend or stage an advisory packet; it cannot send, enqueue, start services, or bypass SEND_HOLD.",
+                "SEND_HOLD remains in force.",
+            ]
+        )
+    else:
+        one_line = "Hermes is an advisory boundary reviewer, not a live routing or send gateway."
+        plain = "\n".join(
+            [
+                one_line,
+                "Current scope: adapter/protocol boundary review, bridge posture, connector wrapper readiness, sidecar inventory, and authority-fit checks.",
+                "Hard no: no external send, Gmail/Coupa/browser access, ledger/workbook/PDF mutation, service start, model-provider fallback, or agent dispatch from this surface.",
+                "Hermes can describe or recommend a bounded review packet; Chief/operator-controlled promotion is required for any action.",
+                "SEND_HOLD remains in force.",
+            ]
+        )
+    return {
+        "one_line_answer": _one_line_answer(one_line),
+        "plain_summary": _strip_internal_state_leaks(plain),
+        "machine_proof": base_proof,
     }
 
 
@@ -503,6 +592,90 @@ def _one_line_answer(text: str) -> str:
 
 def _normalize(text: str) -> str:
     return " ".join(str(text or "").lower().strip().replace("’", "'").split())
+
+
+def _is_hermes_addressed(text: str) -> bool:
+    return bool(re.search(r"\bhermes\b", text))
+
+
+def _is_hermes_route_request(text: str) -> bool:
+    return bool(
+        _is_hermes_addressed(text)
+        and re.search(r"\b(?:route|send|handoff|hand off|pass|forward|dispatch)\b.{0,50}\bto\b", text)
+    )
+
+
+def _is_hermes_route_inventory_request(text: str) -> bool:
+    inventory_phrases = (
+        "what can you route to",
+        "who can you route to",
+        "what agents can you route to",
+        "which agents can you route",
+        "route inventory",
+        "routing inventory",
+        "real agent bridges",
+        "agent bridges",
+    )
+    return _is_hermes_addressed(text) and any(phrase in text for phrase in inventory_phrases)
+
+
+def _is_hermes_capability_prompt(text: str) -> bool:
+    status_readback_phrases = (
+        "what's going on",
+        "whats going on",
+        "what is going on",
+        "what's happening",
+        "whats happening",
+        "what is happening",
+    )
+    if any(phrase in text for phrase in status_readback_phrases):
+        return False
+    capability_phrases = (
+        "what's your job",
+        "whats your job",
+        "what is your job",
+        "what do you do",
+        "what can you do",
+        "what are you",
+        "what is hermes",
+        "who are you",
+    )
+    return _is_hermes_addressed(text) and any(phrase in text for phrase in capability_phrases)
+
+
+def _is_hermes_truthful_intent(text: str) -> bool:
+    return (
+        _is_hermes_route_request(text)
+        or _is_hermes_route_inventory_request(text)
+        or _is_hermes_capability_prompt(text)
+    )
+
+
+def _hermes_truthful_mode(text: str) -> str:
+    if _is_hermes_route_inventory_request(text):
+        return "route_inventory"
+    if _is_hermes_route_request(text):
+        return "route_request"
+    return "capability"
+
+
+def _route_target(text: str) -> str:
+    match = re.search(r"\bto\s+([a-z][a-z0-9_-]{1,40})\b", text)
+    if not match:
+        return ""
+    target = match.group(1).strip().lower()
+    if target in {"me", "you", "this", "that", "the"}:
+        return ""
+    return target
+
+
+def _strip_internal_state_leaks(text: str) -> str:
+    cleaned = str(text or "")
+    for pattern in INTERNAL_STATE_LEAK_PATTERNS:
+        cleaned = pattern.sub("", cleaned)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip() or "Maestro response was withheld because it contained internal worker state."
 
 
 def _is_date_awareness_intent(text: str) -> bool:
