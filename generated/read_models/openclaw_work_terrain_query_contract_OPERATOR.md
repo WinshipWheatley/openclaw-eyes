@@ -20,6 +20,11 @@ It does not decide what is current, stale, superseded, or ready to promote yet. 
 - Unknown target actors stay unresolved/fail-closed and grant no routing, runtime dispatch, or action authority.
 - Binding count: `8`.
 
+## Bounded Body-Ingest Successor
+
+- Read model: `generated/read_models/openclaw_markdown_body_ingest_query.json`
+- This contract remains metadata-only; body reads live in the separate repo-allowlisted, byte-capped, snippet-only B8 lane.
+
 ## Safety Policy
 
 - Metadata first: `true`

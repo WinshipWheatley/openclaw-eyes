@@ -129,6 +129,18 @@ AGENT_MAP_SOURCE_REFS = (
     "generated/read_models/agent_lanes_OPERATOR.md",
 )
 
+BOUNDED_BODY_INGEST_SUCCESSOR = {
+    "read_model_id": "openclaw_markdown_body_ingest_query",
+    "read_model_ref": "generated/read_models/openclaw_markdown_body_ingest_query.json",
+    "operator_ref": "generated/read_models/openclaw_markdown_body_ingest_query_OPERATOR.md",
+    "entrypoint": "scripts/export_openclaw_markdown_body_ingest_query.py",
+    "body_ingestion_allowed_in_this_contract": False,
+    "successor_policy": "separate_repo_allowlisted_byte_capped_snippet_only_body_lane",
+    "truth_status": "body_matches_are_candidates_not_proof",
+    "action_authority_granted": False,
+    "runtime_dispatch_allowed": False,
+}
+
 RESULT_SHAPE_FIELDS = (
     "result_id",
     "source_type",
@@ -575,6 +587,7 @@ def build_openclaw_work_terrain_query_contract(*, generated_at: str | None = Non
             "expected_result_types": list(EXPECTED_RESULT_TYPES),
         },
         "agent_map_wiring": agent_map_wiring,
+        "bounded_body_ingest_successor": dict(BOUNDED_BODY_INGEST_SUCCESSOR),
         "terrain_result_shape": {
             "model_name": "WorkTerrainQueryResultShape",
             "fields": list(RESULT_SHAPE_FIELDS),
@@ -615,6 +628,8 @@ def build_openclaw_work_terrain_query_contract(*, generated_at: str | None = Non
             "known_agent_bindings_from_agent_lane_registry": all(
                 agent_id in {seed.agent_id for seed in DEFAULT_AGENT_LANE_SEEDS} for agent_id in binding_agent_ids
             ),
+            "bounded_body_ingest_successor_declared": True,
+            "bounded_body_ingest_successor_grants_authority": False,
             "unknown_target_actors_fail_closed": agent_map_wiring["unknowns_fail_closed"],
             "struna_actor_unresolved_fail_closed": "Struna" in agent_map_wiring[
                 "unresolved_target_actors_by_query_id"
@@ -671,6 +686,11 @@ def format_openclaw_work_terrain_query_contract(payload: dict[str, Any]) -> str:
             "- Query target actors are bound to `agent_lane_registry.py::DEFAULT_AGENT_LANE_SEEDS` as context only.",
             "- Unknown target actors stay unresolved/fail-closed and grant no routing, runtime dispatch, or action authority.",
             f"- Binding count: `{payload['machine_proof']['agent_map_binding_count']}`.",
+            "",
+            "## Bounded Body-Ingest Successor",
+            "",
+            f"- Read model: `{payload['bounded_body_ingest_successor']['read_model_ref']}`",
+            "- This contract remains metadata-only; body reads live in the separate repo-allowlisted, byte-capped, snippet-only B8 lane.",
             "",
             "## Safety Policy",
             "",
@@ -760,6 +780,7 @@ __all__ = [
     "ALLOWED_SOURCES",
     "AGENT_MAP_SOURCE_REFS",
     "BLOCKED_SOURCES",
+    "BOUNDED_BODY_INGEST_SUCCESSOR",
     "JSON_EXPORT_NAME",
     "OPERATOR_EXPORT_NAME",
     "READ_MODEL_ID",

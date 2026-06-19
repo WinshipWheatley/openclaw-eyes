@@ -516,6 +516,17 @@
     "stable_map_refresh_allowed": false,
     "tool_execution_allowed": false
   },
+  "bounded_body_ingest_successor": {
+    "action_authority_granted": false,
+    "body_ingestion_allowed_in_this_contract": false,
+    "entrypoint": "scripts/export_openclaw_markdown_body_ingest_query.py",
+    "operator_ref": "generated/read_models/openclaw_markdown_body_ingest_query_OPERATOR.md",
+    "read_model_id": "openclaw_markdown_body_ingest_query",
+    "read_model_ref": "generated/read_models/openclaw_markdown_body_ingest_query.json",
+    "runtime_dispatch_allowed": false,
+    "successor_policy": "separate_repo_allowlisted_byte_capped_snippet_only_body_lane",
+    "truth_status": "body_matches_are_candidates_not_proof"
+  },
   "contract_status": "metadata_only_query_contract",
   "core_doctrine": {
     "bodies_selectively": true,
@@ -924,7 +935,7 @@
       ]
     }
   ],
-  "generated_at": "2026-06-19T02:53:39+00:00",
+  "generated_at": "2026-06-19T03:23:45+00:00",
   "machine_proof": {
     "agent_map_binding_count": 8,
     "agent_map_binding_model_exists": true,
@@ -943,10 +954,12 @@
       "hermes",
       "niles"
     ],
+    "bounded_body_ingest_successor_declared": true,
+    "bounded_body_ingest_successor_grants_authority": false,
     "c_drive_blocked": true,
     "capital_hilton_example_exists": true,
     "chief_example_exists": true,
-    "content_hash": "sha256:488ccb70199332483d9261267d2571e79e64e0b59c3bcb537ff8b9458cdb3e5c",
+    "content_hash": "sha256:65a629588e293cbd5296a1867006c02778e5c8ce744377dd2abea3629153c9d4",
     "credential_or_secret_included": false,
     "default_query_count": 5,
     "known_agent_bindings_from_agent_lane_registry": true,

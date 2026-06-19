@@ -21,10 +21,13 @@ def test_query_model_result_shape_and_policy_exist():
     assert payload["contract_status"] == "metadata_only_query_contract"
     assert payload["query_domain_model"]["model_name"] == "WorkTerrainQuery"
     assert payload["terrain_result_shape"]["model_name"] == "WorkTerrainQueryResultShape"
+    assert payload["bounded_body_ingest_successor"]["read_model_id"] == "openclaw_markdown_body_ingest_query"
+    assert payload["bounded_body_ingest_successor"]["body_ingestion_allowed_in_this_contract"] is False
     assert payload["work_terrain_query_policy"]["metadata_first"] is True
     assert payload["machine_proof"]["query_model_exists"] is True
     assert payload["machine_proof"]["result_shape_exists"] is True
     assert payload["machine_proof"]["policy_exists"] is True
+    assert payload["machine_proof"]["bounded_body_ingest_successor_declared"] is True
     assert "agent_map_binding_ids" in payload["query_domain_model"]["fields"]
     assert "unresolved_target_actors" in payload["query_domain_model"]["fields"]
 
