@@ -1,0 +1,53 @@
+{
+  "artifact_version": "mac_md_corpus_ingest_receipt_v0",
+  "db_path": "generated/system_knowledge/mac_md_corpus.sqlite",
+  "db_size_bytes": 8536064,
+  "excluded_path_count": 8,
+  "ingested_document_count": 2246,
+  "legal_sensitive_exclusion_enforced": true,
+  "machine": "mac",
+  "no_authority_flags": {
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "finance_corpus_access_allowed": false,
+    "legal_discovery_access_allowed": false,
+    "model_call_allowed": false,
+    "musiclaw_corpus_access_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "tool_execution_allowed": false,
+    "truth_promotion_allowed": false
+  },
+  "post_ingest_sqlite_probe": {
+    "md_corpus_documents": 2246,
+    "md_corpus_exclusions": 8,
+    "md_corpus_runs": 1,
+    "sensitive_doc_count_by_path_hint": 0
+  },
+  "receipt_status": "mac_orchestration_markdown_corpus_ingested",
+  "root_path": "/Volumes/openclaw_e/orchestration",
+  "run_command": "python3 scripts/md_corpus_ingest.py --root /Volumes/openclaw_e/orchestration --db generated/system_knowledge/mac_md_corpus.sqlite --run-id mac_md_corpus_orchestration_20260618T2247 --machine mac --format json",
+  "run_id": "mac_md_corpus_orchestration_20260618T2247",
+  "scanned_markdown_files": 2246,
+  "sample_exclusions": [
+    {
+      "path": "artifacts/finance",
+      "reason": "finance_or_tax_path_excluded"
+    },
+    {
+      "path": "inbox/to-claude/0037-lane-d-finance-inventory-readonly-report.md",
+      "reason": "finance_or_tax_path_excluded"
+    },
+    {
+      "path": "inbox/to-claude/GEMINI-MAC-1-BLOCKED-legal-offlimits.md",
+      "reason": "legal_discovery_or_legal_path_excluded"
+    },
+    {
+      "path": "inbox/to-codex-D/D4-finance-inventory-readonly.md",
+      "reason": "finance_or_tax_path_excluded"
+    }
+  ],
+  "sqlite_body_database_committed": false,
+  "sqlite_body_database_commit_reason": "The generated SQLite contains full allowed Markdown body text and is preserved as a local worktree artifact rather than committed.",
+  "worktree": "/tmp/openclaw-md-ingest-mac"
+}
