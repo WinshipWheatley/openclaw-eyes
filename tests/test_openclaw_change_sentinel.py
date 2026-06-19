@@ -258,6 +258,8 @@ def _phase_c_conductor_payload(
     *,
     active_gate_token_count: int = 0,
     completion_writeback_count: int = 0,
+    gate_hook_writeback_count: int = 0,
+    maestro_feed_count: int = 0,
     blocked_task_count: int = 0,
     problem_task_count: int = 0,
 ) -> dict:
@@ -283,11 +285,28 @@ def _phase_c_conductor_payload(
         "writeback_state": {
             "completion_writeback_count": completion_writeback_count,
             "completion_writebacks": [],
+            "gate_hook_writeback_count": gate_hook_writeback_count,
+            "planned_checkoff_count": completion_writeback_count + gate_hook_writeback_count,
+            "gate_hook_primary": {
+                "gate_hook_writeback_count": gate_hook_writeback_count,
+                "gate_hook_writebacks": [],
+            },
+            "scheduler_reconcile_backstop": {
+                "completion_writeback_count": completion_writeback_count,
+                "completion_writebacks": [],
+            },
             "live_write_performed": False,
+        },
+        "conductor_feed": {
+            "maestro_feed_count": maestro_feed_count,
+            "runtime_dispatch_allowed": False,
         },
         "machine_proof": {
             "scheduler_reconcile_present": True,
+            "gate_hook_auto_writeback_present": True,
+            "scheduler_reconcile_backstop_present": True,
             "auto_writeback_projection_present": True,
+            "conductor_feed_present": True,
             "external_send_performed": False,
             "runtime_mutation_performed": False,
         },
@@ -432,6 +451,36 @@ def test_phase_c_conductor_gate_contention_is_action_required(tmp_path):
     assert target["observation_status"] == "ACTION_REQUIRED"
     assert target["observed_value"] == "2"
     assert target["unreachable_reason"] == "multiple active gate tokens detected"
+
+
+def test_phase_c_conductor_feed_and_gate_hook_fields_are_observed(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    _write_json(
+        read_root / "phase_c_conductor_state.json",
+        _phase_c_conductor_payload(
+            active_gate_token_count=2,
+            completion_writeback_count=1,
+            gate_hook_writeback_count=1,
+            maestro_feed_count=4,
+        ),
+    )
+
+    payload = _build(read_root)
+    targets = {row["target_ref"]: row for row in payload["observed_targets"]}
+    auto_target = targets["phase_c_conductor:auto_writeback_ready"]
+    feed_target = targets["phase_c_conductor:maestro_feed"]
+    auto_payload = json.loads(auto_target["observed_json"])
+    feed_payload = json.loads(feed_target["observed_json"])
+
+    assert auto_payload["gate_hook_writeback_count"] == 1
+    assert auto_payload["planned_checkoff_count"] == 2
+    assert auto_payload["gate_hook_auto_writeback_present"] is True
+    assert auto_payload["scheduler_reconcile_backstop_present"] is True
+    assert feed_target["observed_value"] == "4"
+    assert feed_target["observation_status"] == "ACTION_REQUIRED"
+    assert feed_payload["conductor_feed_present"] is True
+    assert feed_payload["runtime_dispatch_allowed"] is False
 
 
 def test_dirty_repo_change_emits_repo_dirty(tmp_path):

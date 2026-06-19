@@ -824,6 +824,9 @@ def _phase_c_conductor_targets(
     writeback_state = payload.get("writeback_state")
     if not isinstance(writeback_state, dict):
         writeback_state = {}
+    conductor_feed = payload.get("conductor_feed")
+    if not isinstance(conductor_feed, dict):
+        conductor_feed = {}
     machine_proof = payload.get("machine_proof")
     if not isinstance(machine_proof, dict):
         machine_proof = {}
@@ -832,6 +835,11 @@ def _phase_c_conductor_targets(
     blocked_count = int(task_summary.get("blocked_task_count") or 0)
     problem_count = int(task_summary.get("problem_task_count") or 0)
     writeback_count = int(writeback_state.get("completion_writeback_count") or 0)
+    gate_hook = writeback_state.get("gate_hook_primary")
+    if not isinstance(gate_hook, dict):
+        gate_hook = {}
+    gate_hook_writeback_count = int(gate_hook.get("gate_hook_writeback_count") or 0)
+    maestro_feed_count = int(conductor_feed.get("maestro_feed_count") or 0)
     action_required = active_gate_count > 1 or blocked_count > 0 or problem_count > 0
     observed_payload = {
         "schema_version": payload.get("schema_version", ""),
@@ -844,11 +852,22 @@ def _phase_c_conductor_targets(
         "active_gate_token_count": active_gate_count,
         "active_gate_tokens": gate_state.get("active_gate_tokens") or [],
         "completion_writeback_count": writeback_count,
+        "gate_hook_writeback_count": gate_hook_writeback_count,
+        "planned_checkoff_count": int(writeback_state.get("planned_checkoff_count") or 0),
         "writeback_live_write_performed": bool(writeback_state.get("live_write_performed", False)),
         "scheduler_reconcile_present": bool(machine_proof.get("scheduler_reconcile_present", False)),
+        "gate_hook_auto_writeback_present": bool(
+            machine_proof.get("gate_hook_auto_writeback_present", False)
+        ),
+        "scheduler_reconcile_backstop_present": bool(
+            machine_proof.get("scheduler_reconcile_backstop_present", False)
+        ),
         "auto_writeback_projection_present": bool(
             machine_proof.get("auto_writeback_projection_present", False)
         ),
+        "conductor_feed_present": bool(machine_proof.get("conductor_feed_present", False)),
+        "maestro_feed_count": maestro_feed_count,
+        "runtime_dispatch_allowed": bool(conductor_feed.get("runtime_dispatch_allowed", False)),
         "external_send_performed": bool(machine_proof.get("external_send_performed", False)),
         "runtime_mutation_performed": bool(machine_proof.get("runtime_mutation_performed", False)),
         "recommended_command": "python3 phase_c_conductor_foundation.py --format operator",
@@ -879,6 +898,16 @@ def _phase_c_conductor_targets(
             observed_value=str(writeback_count),
             observed_payload=observed_payload,
             observed_at=observed_at,
+        ),
+        _target_row(
+            target_ref="phase_c_conductor:maestro_feed",
+            target_type="PHASE_C_CONDUCTOR_STATE",
+            source_path=source_path,
+            observation_status="ACTION_REQUIRED" if maestro_feed_count and action_required else "NO_MATERIAL_CHANGE",
+            observed_value=str(maestro_feed_count),
+            observed_payload=observed_payload,
+            observed_at=observed_at,
+            unreachable_reason=reason if maestro_feed_count and action_required else "",
         ),
     ]
 

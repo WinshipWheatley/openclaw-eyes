@@ -43,13 +43,93 @@ def test_builds_scheduler_gate_and_writeback_state_without_mutation(tmp_path):
     assert payload["gate_state"]["active_gate_token_count"] == 1
     assert payload["gate_state"]["active_gate_tokens"][0]["lane"] == "C"
     assert payload["writeback_state"]["completion_writeback_count"] == 1
+    assert payload["writeback_state"]["scheduler_reconcile_backstop"]["completion_writeback_count"] == 1
+    assert payload["writeback_state"]["gate_hook_primary"]["gate_hook_writeback_count"] == 0
     writeback = payload["writeback_state"]["completion_writebacks"][0]
     assert writeback["task_id"] == "B3-phase-c-conductor-foundation"
     assert writeback["status"] == "READY_FOR_AUTO_WRITEBACK"
     assert writeback["live_write_performed"] is False
     assert payload["machine_proof"]["external_send_performed"] is False
+    assert payload["machine_proof"]["scheduler_reconcile_backstop_present"] is True
+    assert payload["machine_proof"]["gate_hook_auto_writeback_present"] is True
+    assert payload["machine_proof"]["conductor_feed_present"] is True
     assert payload["production_state_mutated"] is False
     assert payload["legal_discovery_accessed"] is False
+
+
+def test_green_gate_release_hook_creates_one_idempotent_writeback_receipt(tmp_path):
+    orchestration_root = tmp_path / "orchestration"
+    inbox = orchestration_root / "inbox" / "to-claude"
+    release_marker = inbox / "RELEASE-GATE-TOKEN-E-20260618T230000-0400.md"
+    _write_marker(
+        release_marker,
+        "\n".join(
+            [
+                "RELEASE-GATE-TOKEN-E",
+                "Item: B3-phase-c-conductor-foundation",
+                "Ref: 38f4bb13",
+                "Exit: 0",
+            ]
+        )
+        + "\n",
+    )
+
+    payload = phase_c.build_phase_c_conductor_state(
+        orchestration_root=orchestration_root,
+        generated_at=FIXED_NOW,
+    )
+    gate_hook = payload["writeback_state"]["gate_hook_primary"]
+
+    assert gate_hook["gate_hook_writeback_count"] == 1
+    assert gate_hook["gate_hook_writebacks"][0]["task_id"] == "B3-phase-c-conductor-foundation"
+    assert gate_hook["gate_hook_writebacks"][0]["status"] == "READY_FOR_GATE_HOOK_WRITEBACK"
+    assert payload["writeback_state"]["planned_checkoff_count"] == 1
+
+    first = phase_c.write_phase_c_gate_hook_checkoff_receipt(
+        orchestration_root=orchestration_root,
+        gate_release_marker=release_marker.relative_to(orchestration_root),
+        generated_at=FIXED_NOW,
+    )
+    second = phase_c.write_phase_c_gate_hook_checkoff_receipt(
+        orchestration_root=orchestration_root,
+        gate_release_marker=release_marker.relative_to(orchestration_root),
+        generated_at=FIXED_NOW,
+    )
+
+    receipts = sorted(inbox.glob("PHASE-C-WRITEBACK-*.md"))
+    assert first["status"] == "WRITEBACK_RECEIPT_CREATED"
+    assert second["status"] == "ALREADY_RECORDED"
+    assert len(receipts) == 1
+    assert "Status: PLAN_CHECKOFF_WRITTEN" in receipts[0].read_text(encoding="utf-8")
+
+
+def test_conductor_feed_projects_live_plan_blocked_idle_and_gate_items(tmp_path):
+    orchestration_root = tmp_path / "orchestration"
+    inbox = orchestration_root / "inbox" / "to-claude"
+    _write_marker(inbox / "LANE-E-CLAIM-B7-phase-c-auto-writeback-20260618T230452-0400.md")
+    _write_marker(inbox / "LANE-C-BLOCKED-V4-conductor-foundation-regate-20260618T230500-0400.md")
+    _write_marker(inbox / "LANE-A-IDLE-20260618T230501-0400.md")
+    _write_marker(inbox / "CLAIM-GATE-TOKEN-CODEX-V1-RERUN-20260618T224512-0400.md")
+
+    payload = phase_c.build_phase_c_conductor_state(
+        orchestration_root=orchestration_root,
+        generated_at=FIXED_NOW,
+    )
+    feed = payload["conductor_feed"]
+
+    assert feed["mode"] == "maestro_read_model_feed_only"
+    assert feed["runtime_dispatch_allowed"] is False
+    assert feed["live_plan_count"] == 1
+    assert feed["dormant_broken_count"] == 1
+    assert feed["idle_blocked_count"] == 2
+    assert feed["active_gate_token_count"] == 1
+    assert feed["maestro_feed_count"] >= 4
+    assert {row["state"] for row in feed["maestro_feed_records"]} >= {
+        "CLAIMED",
+        "BLOCKED",
+        "IDLE",
+        "GATE_TOKEN_ACTIVE",
+    }
 
 
 def test_done_suffix_marker_keeps_lane_and_task_identity():
@@ -82,3 +162,5 @@ def test_operator_and_export_files_use_cockpit_grammar(tmp_path):
     assert "Boundary:" in operator_text
     assert "Blocked:" in operator_text
     assert "Next safe move:" in operator_text
+    assert "Gate-hook checkoffs ready" in operator_text
+    assert "Maestro conductor feed records" in operator_text
