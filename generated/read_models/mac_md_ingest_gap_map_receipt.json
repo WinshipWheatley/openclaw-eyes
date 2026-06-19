@@ -1,0 +1,75 @@
+{
+  "corpus_receipts": [
+    "generated/read_models/mac_md_corpus_ingest_receipt.json"
+  ],
+  "gap_map_version": "md_ingest_gap_map_v0",
+  "map_id": "mac_md_ingest_gap_map_20260618T2310",
+  "mapped_root_count": 0,
+  "no_authority_flags": {
+    "advisory_only": true,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "finance_corpus_access_allowed": false,
+    "legal_discovery_access_allowed": false,
+    "markdown_body_read_allowed": false,
+    "model_call_allowed": false,
+    "musiclaw_corpus_access_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "source_markdown_writeback_allowed": false,
+    "tool_execution_allowed": false,
+    "truth_claimed": false,
+    "truth_promotion_allowed": false
+  },
+  "partial_root_count": 1,
+  "remaining_markdown_count_lower_bound": 2404,
+  "root_count": 4,
+  "root_inventory_receipt": "generated/read_models/mac_md_root_inventory_receipt.json",
+  "roots": [
+    {
+      "allowed_markdown_count": 790,
+      "body_read": false,
+      "coverage_status": "unmapped",
+      "ingested_document_count": 0,
+      "matching_corpus_roots": [],
+      "remaining_markdown_count_lower_bound": 790,
+      "root_path": "/Users/hwinshipwheatley/Developer",
+      "truth_claimed": false
+    },
+    {
+      "allowed_markdown_count": 672,
+      "body_read": false,
+      "coverage_status": "unmapped",
+      "ingested_document_count": 0,
+      "matching_corpus_roots": [],
+      "remaining_markdown_count_lower_bound": 672,
+      "root_path": "/Users/hwinshipwheatley/Eyes",
+      "truth_claimed": false
+    },
+    {
+      "allowed_markdown_count": 2759,
+      "body_read": false,
+      "coverage_status": "partially_mapped_subroot",
+      "ingested_document_count": 2246,
+      "matching_corpus_roots": [
+        "/Volumes/openclaw_e/orchestration"
+      ],
+      "remaining_markdown_count_lower_bound": 513,
+      "root_path": "/Volumes/openclaw_e",
+      "truth_claimed": false
+    },
+    {
+      "allowed_markdown_count": 429,
+      "body_read": false,
+      "coverage_status": "unmapped",
+      "ingested_document_count": 0,
+      "matching_corpus_roots": [],
+      "remaining_markdown_count_lower_bound": 429,
+      "root_path": "/Users/hwinshipwheatley/OpenClaw_Watch",
+      "truth_claimed": false
+    }
+  ],
+  "total_allowed_markdown_count": 4650,
+  "total_ingested_document_count": 2246,
+  "unmapped_root_count": 3
+}
