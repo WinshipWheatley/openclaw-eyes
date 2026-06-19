@@ -22,9 +22,10 @@ Activation:
   listener handles approval responses in that case (existing behavior).
 
 Role:
-  Guardian = approval-only control surface.
-  Does not handle: operational commands, Chief queries, Cassandra queries.
-  Will reply "No pending approval." if contacted outside of a gate window.
+  Guardian = approval and safety-boundary control surface.
+  Does not execute operational commands, Chief queries, or Cassandra queries.
+  Outside a gate window, it gives deterministic safety/capability replies
+  instead of collapsing every prompt into approval status.
 
 Security:
   Accepts messages only from TELEGRAM_AUTHORIZED_USER_ID.
@@ -44,6 +45,7 @@ from telegram.ext import (
     ContextTypes,
 )
 from telegram_agent_intake import record_telegram_listener_update_safe
+from chief_nonapproval_responder import guardian_no_pending_reply
 
 # Guardian bot must be explicitly configured — this listener should not
 # start on the Chief or Cassandra token.
@@ -235,7 +237,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     if not has_pending_approval():
-        await update.message.reply_text("✅ No pending approval requests.")
+        await update.message.reply_text(guardian_no_pending_reply(text))
         return
 
     # Read pending record once: id → binding; options → correct format hint.

@@ -68,6 +68,7 @@ from chief_approval_brain import (
     get_pending_info,
     parse_reply_code,
 )
+from chief_nonapproval_responder import nonapproval_response_for_text
 from chief_reporter_brain import handle as reporter_handle
 from chief_scout_brain import handle as scout_handle
 from chief_integration_brain import handle as integration_handle
@@ -836,6 +837,11 @@ def _route_message_inner(text: str) -> dict:
             "intent": "approval_response",
             "reply": "Expired or unknown approval code. No approval was applied. Request a fresh approval.",
         }
+
+    if not has_pending_approval():
+        safe_response = nonapproval_response_for_text(text, surface="chief")
+        if safe_response is not None:
+            return safe_response.as_route_result()
 
     # ── Approval bridge — Chief workflow multi-choice (1/2/3/approve/deny/status) ──
     # Note: approval brain (Claude Code permissions) is checked ABOVE this and
