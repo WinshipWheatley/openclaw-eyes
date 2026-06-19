@@ -1,0 +1,263 @@
+{
+  "album_state_confirmed": false,
+  "approval_authority_added": false,
+  "audio_file_mutation_allowed": false,
+  "authority_boundary": {
+    "album_state_confirmed": false,
+    "approval_authority_added": false,
+    "audio_file_mutation_allowed": false,
+    "broad_private_drive_scan_allowed": false,
+    "daw_automation_allowed": false,
+    "daw_session_content_ingest_allowed": false,
+    "finder_file_operation_allowed": false,
+    "master_taste_calibration_required_later": true,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_execution_authority_added": false,
+    "money_or_payment_authority_added": false,
+    "raw_audio_ingest_allowed": false,
+    "read_model_only": true,
+    "real_album_metadata_recorded": false,
+    "release_or_publish_authority_added": false,
+    "repo_b_authority_allowed": false,
+    "runtime_authority_added": false,
+    "schema_contracts_ready": true,
+    "send_or_submit_authority_added": false,
+    "stage_1_contract_only": true,
+    "taste_calibration_included": false,
+    "tool_execution_authority_added": false
+  },
+  "blocked_boundaries": [
+    "raw_audio",
+    "daw_session_contents",
+    "stems_mixes_masters",
+    "broad_folder_scans",
+    "private_drive_crawl",
+    "audio_or_session_file_mutation",
+    "logic_or_ableton_automation",
+    "repo_b_runtime_execution",
+    "model_or_tool_runtime_execution",
+    "external_send_or_submit",
+    "release_or_publish_action",
+    "money_or_payment_action"
+  ],
+  "broad_private_drive_scan_allowed": false,
+  "canonical_generated_read_model_expected_files": [
+    "generated/read_models/niles_stage1_contract.json",
+    "generated/read_models/niles_stage1_contract_OPERATOR.md"
+  ],
+  "contract_id": "niles_stage1_contract",
+  "contract_status": "stage_1_schema_contracts_ready_metadata_only",
+  "daw_automation_allowed": false,
+  "daw_session_content_ingest_allowed": false,
+  "existing_contracts": [
+    {
+      "authority_status": "read_model_only_no_runtime_authority",
+      "module_path": "niles_album_evidence_intake_boundary.py",
+      "module_present": true,
+      "promoted_to_album_truth": false,
+      "read_model_present": true,
+      "role": "metadata-only evidence boundary and forbidden input contract",
+      "schema_version": "niles_album_evidence_intake_boundary_v0",
+      "source_id": "niles_album_evidence_intake_boundary",
+      "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+      "truth_status": "contract_evidence_not_album_truth"
+    },
+    {
+      "authority_status": "read_model_only_no_runtime_authority",
+      "module_path": "niles_album_metadata_intake_packet.py",
+      "module_present": true,
+      "promoted_to_album_truth": false,
+      "read_model_present": true,
+      "role": "operator-facing metadata placeholder packet",
+      "schema_version": "niles_album_metadata_intake_packet_v0",
+      "source_id": "niles_album_metadata_intake_packet",
+      "source_path": "generated/read_models/niles_album_metadata_intake_packet.json",
+      "truth_status": "contract_evidence_not_album_truth"
+    },
+    {
+      "authority_status": "read_model_only_no_runtime_authority",
+      "module_path": "niles_album_review_packet.py",
+      "module_present": true,
+      "promoted_to_album_truth": false,
+      "read_model_present": true,
+      "role": "review-only packet from governed evidence",
+      "schema_version": "niles_album_review_packet_v0",
+      "source_id": "niles_album_review_packet",
+      "source_path": "generated/read_models/niles_album_review_packet.json",
+      "truth_status": "contract_evidence_not_album_truth"
+    },
+    {
+      "authority_status": "read_model_only_no_runtime_authority",
+      "module_path": "niles_album_matrix_review.py",
+      "module_present": true,
+      "promoted_to_album_truth": false,
+      "read_model_present": true,
+      "role": "metadata-only album matrix review read-model",
+      "schema_version": "niles_album_matrix_review_v0",
+      "source_id": "niles_album_matrix_review",
+      "source_path": "generated/read_models/niles_album_matrix_review.json",
+      "truth_status": "contract_evidence_not_album_truth"
+    }
+  ],
+  "finder_file_operation_allowed": false,
+  "forbidden_boundaries": {
+    "audio_or_session_file_mutation": "forbidden",
+    "broad_private_drive_scan": "forbidden",
+    "daw_session_content_ingest": "forbidden",
+    "external_send_or_submit": "forbidden",
+    "logic_or_ableton_automation": "forbidden",
+    "model_or_tool_runtime_execution": "forbidden",
+    "money_or_payment_action": "forbidden",
+    "raw_audio_ingest": "forbidden",
+    "release_or_publish_action": "forbidden",
+    "repo_b_runtime_execution": "forbidden"
+  },
+  "generated_at": "2026-06-19T02:47:09+00:00",
+  "generated_by": "codex",
+  "machine_proof": {
+    "blocked_boundary_count": 12,
+    "content_hash_sha256": "a080a9fe468843191d34b0e7fe64a18f985f565837d41a6576faf4a70ba50a08",
+    "missing_source_contract_count": 0,
+    "source_contract_count": 4
+  },
+  "master_taste_calibration": {
+    "included_now": false,
+    "owner": "master",
+    "required_later": true,
+    "stage_1_claims_release_ready": false,
+    "stage_1_claims_taste_ready": false,
+    "status": "blocked_until_master_calibration"
+  },
+  "master_taste_calibration_required_later": true,
+  "metadata_only": true,
+  "mission_control_app_changed": false,
+  "model_execution_authority_added": false,
+  "money_or_payment_authority_added": false,
+  "operator_next_safe_move": "Use the existing Niles metadata intake packet to supply governed metadata labels later; do not provide raw audio, DAW/session contents, or private-drive crawl requests.",
+  "raw_audio_ingest_allowed": false,
+  "read_model_only": true,
+  "real_album_metadata_recorded": false,
+  "receipt_proof_status": {
+    "external_action_taken": false,
+    "mission_control_app_changed": false,
+    "operator_packet_written": true,
+    "read_model_written": true,
+    "release_or_publish_action_taken": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "taste_calibration_performed": false
+  },
+  "release_or_publish_authority_added": false,
+  "repo_b_authority_allowed": false,
+  "runtime_authority_added": false,
+  "schema_contracts_ready": true,
+  "schema_version": "niles_stage1_contract_v0",
+  "send_or_submit_authority_added": false,
+  "stage_1_contract_only": true,
+  "stage_1_ready": true,
+  "stage_1_scope": {
+    "allowed_now": [
+      "read existing Niles generated read-models",
+      "show Stage 1 readiness",
+      "route future operator metadata fill to governed metadata-only packet"
+    ],
+    "not_in_scope": [
+      "taste calibration",
+      "raw audio or DAW session inspection",
+      "broad private drive scans",
+      "audio/session mutation",
+      "release or publish actions",
+      "external sends or submits",
+      "runtime/tool/model authority"
+    ],
+    "summary": "schemas/contracts only"
+  },
+  "stage_decisions": {
+    "stage_1_schema_contracts": {
+      "allowed": true,
+      "authority_added": false,
+      "decision": "ready_schema_contracts_only",
+      "reason": "All existing Niles schema/contract read-models are present.",
+      "stage_id": "stage_1_schema_contracts"
+    },
+    "stage_4_taste_calibration_master_only": {
+      "allowed": false,
+      "authority_added": false,
+      "decision": "blocked_missing_master_taste_calibration",
+      "reason": "Taste calibration belongs to the master later; this Stage 1 contract only records the gate.",
+      "stage_id": "stage_4_taste_calibration_master_only"
+    },
+    "stage_5_release_publish_future_gate": {
+      "allowed": false,
+      "authority_added": false,
+      "decision": "blocked_release_or_publish_request",
+      "reason": "Release/publish is a future explicit gate, not part of Stage 1.",
+      "stage_id": "stage_5_release_publish_future_gate"
+    }
+  },
+  "stage_gates": [
+    {
+      "allowed_now": true,
+      "authority": "read_model_contract_only",
+      "owner": "codex_builder",
+      "required_evidence": [
+        "Niles evidence intake boundary",
+        "Niles metadata intake packet",
+        "Niles review packet",
+        "Niles matrix review"
+      ],
+      "stage_id": "stage_1_schema_contracts",
+      "stage_label": "Stage 1: schemas and contracts",
+      "status": "ready"
+    },
+    {
+      "allowed_now": false,
+      "authority": "operator_metadata_only_no_raw_content",
+      "owner": "operator",
+      "required_evidence": [
+        "explicit governed operator metadata labels"
+      ],
+      "stage_id": "stage_2_operator_metadata_fill",
+      "stage_label": "Stage 2: operator metadata fill",
+      "status": "future_operator_input_needed"
+    },
+    {
+      "allowed_now": false,
+      "authority": "review_only_no_truth_promotion",
+      "owner": "niles_review_lane",
+      "required_evidence": [
+        "Stage 2 governed metadata read-model"
+      ],
+      "stage_id": "stage_3_review_matrix",
+      "stage_label": "Stage 3: review matrix from governed metadata",
+      "status": "future_ready_after_stage_2"
+    },
+    {
+      "allowed_now": false,
+      "authority": "master_only_no_runtime_or_release_authority",
+      "owner": "master",
+      "required_evidence": [
+        "master taste calibration packet"
+      ],
+      "stage_id": "stage_4_taste_calibration_master_only",
+      "stage_label": "Stage 4: taste calibration",
+      "status": "blocked_until_master_calibration"
+    },
+    {
+      "allowed_now": false,
+      "authority": "no_release_or_publish_authority_added",
+      "owner": "master_and_operator",
+      "required_evidence": [
+        "future explicit release/publish authorization"
+      ],
+      "stage_id": "stage_5_release_publish_future_gate",
+      "stage_label": "Stage 5: release or publish",
+      "status": "blocked_future_gate"
+    }
+  ],
+  "taste_calibration_included": false,
+  "tool_execution_authority_added": false,
+  "workflow_domain": "music_art",
+  "workflow_name": "Niles album progress review"
+}
