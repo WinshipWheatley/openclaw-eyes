@@ -69,6 +69,8 @@
 !context_selection.py
 !mac_mirror_atlas.py
 !read_model_shuttle.py
+!pc4_answer_capture.py
+!nl_stress_replay_harness.py
 !home_fabric.json
 !fabric_peer.py
 !report_bridge.py
@@ -478,6 +480,11 @@
 !polish_loop/
 !polish_loop/orchestrator.py
 !polish_loop/pc_review_fallback.py
+!polish_loop/control_plane.py
+!polish_loop/harness_task_runner.py
+!polish_loop/worker_runtime.py
+!polish_loop/answer_auditor.py
+!polish_loop/pc4_heal_emitter.py
 !polish_loop/tasks/
 !polish_loop/tasks/*.md
 !tests/
@@ -524,6 +531,7 @@
 !tests/test_guardian_packet_templates.py
 !tests/test_guardian_watchdog.py
 !tests/test_hermes_packet_templates.py
+!tests/test_pc4_self_healing.py
 
 # tools/ — standalone utility modules
 !tools/

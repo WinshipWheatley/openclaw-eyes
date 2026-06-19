@@ -204,6 +204,35 @@ class RepairPackage:
     dynamic_response_copy: dict[str, Any]
     proof_meter_updates: tuple[dict[str, Any], ...]
 
+    def to_admit_task_kwargs(
+        self,
+        *,
+        acceptance_path: str | Path = "tests/test_pc4_self_healing.py",
+        repo_ref: str = "HEAD",
+    ) -> dict[str, Any]:
+        from polish_loop.pc4_heal_emitter import admit_task_kwargs_for_payload
+
+        payload = {
+            "source_surface": self.affected_surface,
+            "bad_exchange": {
+                "repair_ref": self.repair_ref,
+                "summary": self.blocker_summary,
+                "dynamic_response_copy": self.dynamic_response_copy,
+            },
+            "expected_behavior": self.validation_plan[0] if self.validation_plan else self.blocker_summary,
+            "truth_inputs": list(self.proof_refs),
+            "bounds": {"OPENCLAW_TEST_MODE": "1", "OPENCLAW_SEND_HOLD": "1"},
+            "allowed_tools_class": "read_only_readmodels",
+            "pii_rules": "no vault, no LegalPrivate, no FinancePrivate, no .chief.env",
+            "repro_prompts": [self.blocker_summary],
+            "acceptance_tests": [str(acceptance_path)],
+            "rollback_no_send": True,
+            "agent_id": self.affected_surface,
+            "claim_type": "repair_package_validation",
+            "claim_value": self.validation_plan[0] if self.validation_plan else self.blocker_summary,
+        }
+        return admit_task_kwargs_for_payload(payload, acceptance_path=acceptance_path, repo_ref=repo_ref)
+
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"

@@ -16,6 +16,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -6879,6 +6880,49 @@ def process_request_path(
             classification=classification,
         )
     return _future_blocked_response(request_path, raw_request, classification=classification)
+
+
+def process(
+    operator_text: str,
+    *,
+    read_model_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> OpenClawResponseForMac:
+    """Process one NL prompt through the real request-file processor path."""
+
+    request_id = f"pc4_nl_stress_{_short_hash(operator_text, generated_at or utc_now())}"
+    authority_boundary = {
+        "email_send_allowed": False,
+        "gmail_read_allowed": False,
+        "browser_allowed": False,
+        "coupa_allowed": False,
+        "submit_allowed": False,
+        "ledger_mutation_allowed": False,
+        "payment_allowed": False,
+        "merge_allowed": False,
+        "push_allowed": False,
+        "worker_execution_allowed": False,
+    }
+    payload = {
+        "schema_version": "operator_instruction_package_request_v0",
+        "kind": "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+        "request_type": "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+        "request_id": request_id,
+        "active_surface_ref": "operator_maestro_chat",
+        "operator_text": operator_text,
+        "current_world_ref": "pc4_self_heal",
+        "current_thread_ref": "nl_stress_replay",
+        "authority_boundary": authority_boundary,
+    }
+    with tempfile.TemporaryDirectory(prefix="pc4-openclaw-process-") as tmp:
+        request_path = Path(tmp) / f"mission_control_operator_instruction_request_general_operator_instruction_{request_id}.json"
+        request_path.write_text(stable_json(payload), encoding="utf-8")
+        return process_request_path(
+            request_path,
+            export_root=read_model_root,
+            generated_at=generated_at,
+            duplicate_check=False,
+        )
 
 
 def process_once(

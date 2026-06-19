@@ -50,6 +50,47 @@ except ImportError:
         _pc_review_run = None  # type: ignore[assignment]
         _pc_review_mod = None  # type: ignore[assignment]
 
+# Phase-C deterministic control plane. The legacy status.json handlers below
+# remain available as --legacy-once for existing repair tooling/tests.
+try:
+    from .control_plane import (
+        DEFAULT_LEDGER_PATH,
+        ControlPlaneLedger,
+        DispatchResult,
+        TaskLease,
+        run_control_plane_once,
+    )
+    _PHASE_C_AVAILABLE = True
+except ImportError:
+    try:
+        from control_plane import (  # type: ignore
+            DEFAULT_LEDGER_PATH,
+            ControlPlaneLedger,
+            DispatchResult,
+            TaskLease,
+            run_control_plane_once,
+        )
+        _PHASE_C_AVAILABLE = True
+    except ImportError:
+        DEFAULT_LEDGER_PATH = Path("/home/openclaw/polish_loop/control_plane.sqlite3")
+        ControlPlaneLedger = None  # type: ignore[assignment]
+        DispatchResult = None  # type: ignore[assignment]
+        TaskLease = None  # type: ignore[assignment]
+        run_control_plane_once = None  # type: ignore[assignment]
+        _PHASE_C_AVAILABLE = False
+
+try:
+    from .worker_runtime import WorkerRuntimeConfig, run_local_builder_worker
+    _PHASE_C_WORKER_RUNTIME_AVAILABLE = True
+except ImportError:
+    try:
+        from worker_runtime import WorkerRuntimeConfig, run_local_builder_worker  # type: ignore
+        _PHASE_C_WORKER_RUNTIME_AVAILABLE = True
+    except ImportError:
+        WorkerRuntimeConfig = None  # type: ignore[assignment]
+        run_local_builder_worker = None  # type: ignore[assignment]
+        _PHASE_C_WORKER_RUNTIME_AVAILABLE = False
+
 # ---------------------------------------------------------------------------
 # Constants (configurable)
 # ---------------------------------------------------------------------------
@@ -1296,6 +1337,55 @@ def run_one_cycle(dry_run: bool = False) -> dict | None:
     return read_status()
 
 
+def phase_c_dispatch_local_builder(
+    lease: "TaskLease",
+    *,
+    ledger: "ControlPlaneLedger | None" = None,
+    config: "WorkerRuntimeConfig | None" = None,
+) -> None:
+    if (
+        not _PHASE_C_AVAILABLE
+        or not _PHASE_C_WORKER_RUNTIME_AVAILABLE
+        or ControlPlaneLedger is None
+        or WorkerRuntimeConfig is None
+        or run_local_builder_worker is None
+    ):
+        raise RuntimeError("Phase-C worker runtime module is unavailable")
+    active_ledger = ledger or ControlPlaneLedger(DEFAULT_LEDGER_PATH)
+    runtime_config = config or WorkerRuntimeConfig.from_env()
+    log("ACTION", f"phase-c dispatch | task={lease.task_id} | owner={lease.owner}")
+    result = run_local_builder_worker(active_ledger, lease, config=runtime_config)
+    if result.submitted_candidate:
+        log("EVIDENCE", f"phase-c worker submitted candidate | task={lease.task_id} | artifact={result.artifact_path}")
+    else:
+        log(
+            "STATE",
+            f"phase-c worker recorded failure | task={lease.task_id} | rc={result.exit_code} | "
+            f"fingerprint={result.fingerprint}",
+        )
+
+
+def run_phase_c_once(
+    *,
+    ledger_path: Path = DEFAULT_LEDGER_PATH,
+    owner: str = "orchestrator",
+    dry_run: bool = False,
+) -> "DispatchResult":
+    if not _PHASE_C_AVAILABLE or ControlPlaneLedger is None or run_control_plane_once is None:
+        raise RuntimeError("Phase-C control plane module is unavailable")
+    ledger = ControlPlaneLedger(ledger_path)
+    if dry_run:
+        before = ledger.counts()
+        result = DispatchResult(dispatched=False, model_calls=0, reason="dry_run_no_dispatch")
+        print(f"[dry-run] phase-c result={result} counts={before}")
+        return result
+
+    def dispatch(lease: "TaskLease") -> None:
+        phase_c_dispatch_local_builder(lease, ledger=ledger)
+
+    return run_control_plane_once(ledger, owner=owner, dispatch=dispatch)
+
+
 # ---------------------------------------------------------------------------
 # CLI commands
 # ---------------------------------------------------------------------------
@@ -2044,12 +2134,17 @@ def main() -> None:
     parser.add_argument("--reason",        type=str,            help="Reason string for --reset-blocked")
     parser.add_argument("--resume",        action="store_true", help="Resume from parked state → parked_from state")
     parser.add_argument("--run-tests",     action="store_true", help="Run orchestrator test matrix")
-    parser.add_argument("--once",          action="store_true", help="Run one poll cycle then exit")
-    parser.add_argument("--loop",          action="store_true", help="Continuous poll loop (default)")
+    parser.add_argument("--once",          action="store_true", help="Run one Phase-C ledger event then exit")
+    parser.add_argument("--legacy-once",   action="store_true", help="Run one legacy status.json cycle then exit")
+    parser.add_argument("--ledger",        type=Path, default=DEFAULT_LEDGER_PATH, help="Phase-C ledger path")
+    parser.add_argument("--loop",          action="store_true", help="Deprecated; standing poll loops are disabled")
     args = parser.parse_args()
 
     if args.dry_run:
-        cmd_dry_run()
+        if args.legacy_once:
+            cmd_dry_run()
+        else:
+            run_phase_c_once(ledger_path=args.ledger, dry_run=True)
         return
 
     if args.reset_blocked:
@@ -2067,20 +2162,17 @@ def main() -> None:
         cmd_run_tests()
         return
 
-    if args.once:
+    if args.legacy_once:
         run_one_cycle()
         return
 
-    # Default / --loop: continuous poll
-    log("INIT", (
-        f"Orchestrator starting — poll={POLL_INTERVAL}s "
-        f"builder_timeout={BUILDER_TIMEOUT}s "
-        f"planner_timeout={PLANNER_TIMEOUT}s "
-        f"max_passes={MAX_PASSES}"
-    ))
-    while True:
-        run_one_cycle()
-        time.sleep(POLL_INTERVAL)
+    if args.loop:
+        print("ERROR: standing poll loops are disabled for Phase-C/PC4; use --once or an external event trigger", file=sys.stderr)
+        sys.exit(2)
+
+    result = run_phase_c_once(ledger_path=args.ledger)
+    if result.dispatched:
+        log("STATE", f"phase-c dispatched task={result.task_id}")
 
 
 if __name__ == "__main__":

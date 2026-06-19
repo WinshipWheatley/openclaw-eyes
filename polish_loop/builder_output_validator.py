@@ -76,6 +76,22 @@ def validate(path: "str | Path") -> "tuple[bool, str]":
     return True, "ok"
 
 
+def validate_candidate_evidence(path: "str | Path") -> "tuple[bool, str]":
+    """Validate the builder-owned evidence before the ledger runs acceptance.
+
+    This remains a structural check only. Phase-C DONE is decided by
+    `control_plane.ControlPlaneLedger.decide_acceptance()`, which combines this
+    evidence check with the immutable acceptance ref and `green_gate.sh`.
+    """
+    ok, reason = validate(path)
+    if not ok:
+        return ok, reason
+    content = Path(path).read_text()
+    if re.search(r"^\s*STATUS:\s*BLOCKED\s*$", content, re.IGNORECASE | re.MULTILINE):
+        return False, "candidate_blocked"
+    return True, "ok"
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: builder_output_validator.py <pc_output_path>", file=sys.stderr)
