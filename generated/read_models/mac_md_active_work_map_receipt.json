@@ -1,0 +1,128 @@
+{
+  "db_path": "generated/system_knowledge/mac_md_corpus.sqlite",
+  "map_id": "mac_md_active_work_map_orchestration_20260618T2303",
+  "map_version": "md_active_work_map_v0",
+  "no_authority_flags": {
+    "advisory_only": true,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "finance_corpus_access_allowed": false,
+    "legal_discovery_access_allowed": false,
+    "model_call_allowed": false,
+    "musiclaw_corpus_access_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "source_markdown_writeback_allowed": false,
+    "tool_execution_allowed": false,
+    "truth_claimed": false,
+    "truth_promotion_allowed": false
+  },
+  "open_document_count": 6,
+  "source_corpus_run_id": "mac_md_corpus_orchestration_20260618T2247",
+  "staleness_run_id": "mac_md_staleness_orchestration_20260618T2251",
+  "top_document_count": 6,
+  "top_documents": [
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-06-17T00:19:03+00:00",
+      "open_task_count": 44,
+      "outbound_link_count": 0,
+      "priority_score": 445,
+      "relative_path": "to-claude/HELM_ANTICARD_PLAN.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "HELM ANTI-CARD PLAN \u2014 Execution Checklist (FINAL)",
+      "todo_marker_count": 0,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-06-14T01:09:57+00:00",
+      "open_task_count": 15,
+      "outbound_link_count": 0,
+      "priority_score": 155,
+      "relative_path": "INTEGRATION_MAP.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "OpenClaw \u2014 What Needs To Come Together",
+      "todo_marker_count": 0,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-06-16T16:54:10+00:00",
+      "open_task_count": 11,
+      "outbound_link_count": 0,
+      "priority_score": 115,
+      "relative_path": "to-codex-E/BRIEF_SENDGUARD_CARVEOUT_PACKET.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "CODEX BUILD PACKET \u2014 Internal Morning-Brief Carve-Out from the No-Send Guard",
+      "todo_marker_count": 0,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-06-16T16:10:40+00:00",
+      "open_task_count": 7,
+      "outbound_link_count": 0,
+      "priority_score": 75,
+      "relative_path": "inbox/to-codex-E/BRIEF_SENDGUARD_CARVEOUT_PACKET.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "CODEX BUILD PACKET \u2014 Internal Morning-Brief Carve-Out from the No-Send Guard",
+      "todo_marker_count": 0,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-06-15T00:45:53+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 11,
+      "relative_path": "MASTER_TODO.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "OpenClaw \u2014 Master TODO / Roadmap (consolidated 2026-06-14)",
+      "todo_marker_count": 1,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-06-15T04:16:38+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 11,
+      "relative_path": "artifacts/GOLIVE_RESULT.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "GO-LIVE RESULT \u2014 2026-06-15 ~00:07 EDT",
+      "todo_marker_count": 1,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    }
+  ]
+}
