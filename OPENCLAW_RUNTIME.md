@@ -41,6 +41,17 @@ Build OpenClaw for safety, power, economy, and bounded agentic execution.
 - Prefer existing native stack capabilities over new frameworks, plugins, sync layers, or orchestration surfaces.
 - Respect the existing authority boundaries and approval policy. Do not self-expand scope.
 
+## Cross-System Communication (the Home Fabric)
+
+OpenClaw runs as ONE system across multiple machines (nodes): `pc` (WSL2 Linux, `/home/openclaw`, runs the live backend/services/listeners/control-plane, holds tokens in `.chief.env`), `mac` (`Hs-MBP-2.local`, `~/Eyes`, operator surface + actuation), and future nodes (e.g. the home server). Operational detail and the bus envelope spec live in `orchestration/CROSS_SYSTEM_FABRIC.md` on the shared drive. Never treat a peer node as a black box.
+
+- **See a peer's code via the shared git `origin`, not assumption.** Finish branch work → `git push origin <branch>` → the peer `git fetch`. An un-pushed local branch is invisible to the other machine; never claim work is visible until pushed. (No merge-to-master, no `--force`.)
+- **Reach a peer directly via the SSH mesh** (`ssh <peer>` by mDNS hostname, not IP — DHCP moves IPs). Read-only by default; mutate a peer's tree only with an explicit go.
+- **Ask a peer's backend via the BUS, never by importing its code.** Emit a governed request into `mission_control_capture_requests/inbox/` (`active_surface_ref=…`, full all-False `authority_boundary`, unique `request_id`) and read the scoped response in `mission_control_responses/to_mac/`. The owning machine's gates / PII-boundary / idempotency answer it. Cross-machine Python import is forbidden — it bypasses every gate.
+- **Tokens/secrets live on the host that runs the process that uses them.** Never paste secret values anywhere (char-counts only).
+- **THE VAULT WALL (absolute, survives the merge):** never git-commit, SSH-read, bus-transport, or sync the sensitive corpora — `*LegalPrivate/ *FinancePrivate/ *MusicLawPrivate/`, `/mnt/c/OpenClawLegalPrivate`, `.chief.env`, `.google-secrets/`, the PII vault. Any path-bearing request must be prefix-allowlisted (`/home/openclaw/`, `/mnt/e/openclaw/`) and reject vault paths. "One computer" is for code + orchestration; the locked rooms stay locked.
+- **Handshake before done:** push + drop a note in the recipient's `orchestration/inbox/to-<recipient>/`; before consuming a peer's work, `git fetch` / SSH-confirm it's there.
+
 ## Documentation Rules
 
 - Keep runtime-law docs short.
