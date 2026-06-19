@@ -87,6 +87,8 @@ EXPECTED_EXPORT_PATHS = (
     "runtime_activation_gate.operator.txt",
     "evidence_freshness.json",
     "evidence_freshness.operator.txt",
+    "phase_c_conductor_state.json",
+    "phase_c_conductor_state_OPERATOR.md",
     "generated_current_state.md",
     "generated_next_actions.md",
 )
@@ -177,7 +179,36 @@ def _format_operator_evidence_freshness(read_model: dict[str, Any]) -> str:
     return format_operator_evidence_freshness(read_model)
 
 
+def _phase_c_conductor_state() -> dict[str, Any]:
+    try:
+        from phase_c_conductor_foundation import build_phase_c_conductor_state
+    except ImportError:
+        sys.path.insert(0, ROOT.as_posix())
+        from phase_c_conductor_foundation import build_phase_c_conductor_state
+
+    return build_phase_c_conductor_state(
+        generated_at="omitted_for_standardized_export_stability"
+    )
+
+
+def _format_phase_c_conductor_state(read_model: dict[str, Any]) -> str:
+    try:
+        from phase_c_conductor_foundation import format_phase_c_conductor_operator
+    except ImportError:
+        sys.path.insert(0, ROOT.as_posix())
+        from phase_c_conductor_foundation import format_phase_c_conductor_operator
+
+    return format_phase_c_conductor_operator(read_model)
+
+
 def _export_specs() -> tuple[ExportSpec, ...]:
+    phase_c_state_cache: dict[str, Any] = {}
+
+    def phase_c_state() -> dict[str, Any]:
+        if "payload" not in phase_c_state_cache:
+            phase_c_state_cache["payload"] = _phase_c_conductor_state()
+        return phase_c_state_cache["payload"]
+
     return (
         ExportSpec(
             artifact_id="source_inventory",
@@ -332,6 +363,28 @@ def _export_specs() -> tuple[ExportSpec, ...]:
             safe_for_nohup_workers=True,
             safe_for_agent_context=True,
             render=lambda: _format_operator_evidence_freshness(_evidence_freshness()) + "\n",
+        ),
+        ExportSpec(
+            artifact_id="phase_c_conductor_state",
+            relative_path="phase_c_conductor_state.json",
+            output_format="json",
+            producer="phase_c_conductor_foundation.py --format json",
+            safe_for_mac_app=True,
+            safe_for_codex_context=True,
+            safe_for_nohup_workers=True,
+            safe_for_agent_context=True,
+            render=lambda: _json_text(phase_c_state()),
+        ),
+        ExportSpec(
+            artifact_id="phase_c_conductor_state_operator",
+            relative_path="phase_c_conductor_state_OPERATOR.md",
+            output_format="operator_text",
+            producer="phase_c_conductor_foundation.py --format operator",
+            safe_for_mac_app=True,
+            safe_for_codex_context=True,
+            safe_for_nohup_workers=True,
+            safe_for_agent_context=True,
+            render=lambda: _format_phase_c_conductor_state(phase_c_state()) + "\n",
         ),
         ExportSpec(
             artifact_id="generated_current_state",
