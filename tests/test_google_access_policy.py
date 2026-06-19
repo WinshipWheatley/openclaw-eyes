@@ -1,4 +1,5 @@
 import sys
+import types
 from pathlib import Path
 
 
@@ -176,3 +177,67 @@ def test_broker_does_not_gate_class_a_gmail_unread_or_metadata_before_credential
         assert "Google credentials not configured" in result["error"]
 
     assert approval_calls == []
+
+
+def test_cassandra_post_draft_send_path_requires_broker_token_before_legacy_approval(monkeypatch):
+    if "capital_hilton_agency_status" not in sys.modules:
+        capital_module = types.ModuleType("capital_hilton_agency_status")
+        capital_module.format_capital_hilton_agency_answer = lambda *args, **kwargs: None
+        capital_module.format_capital_hilton_openclaw_status_answer = lambda *args, **kwargs: None
+        sys.modules["capital_hilton_agency_status"] = capital_module
+    if "reynolds_gig_setup_status" not in sys.modules:
+        reynolds_module = types.ModuleType("reynolds_gig_setup_status")
+        reynolds_module.format_reynolds_gig_setup_answer = lambda *args, **kwargs: None
+        reynolds_module.is_reynolds_gig_setup_query = lambda *args, **kwargs: False
+        sys.modules["reynolds_gig_setup_status"] = reynolds_module
+
+    import cassandra_brain as brain
+    import google_access_broker as broker
+
+    events = []
+    approval_calls = []
+
+    def record_state(recipient_name, state, detail="", route="", metadata=None):
+        events.append(
+            {
+                "recipient_name": recipient_name,
+                "state": state,
+                "detail": detail,
+                "route": route,
+                "metadata": metadata or {},
+            }
+        )
+
+    def fail_if_approval_requested(action, tier, approval_context=None):
+        approval_calls.append((action, tier, approval_context))
+        raise AssertionError("legacy approval must not run without a broker capability token")
+
+    def fail_if_executor_called(*_args, **_kwargs):
+        raise AssertionError("gmail send executor must not run without a broker capability token")
+
+    monkeypatch.setattr(brain, "broker_call", broker.call)
+    monkeypatch.setattr(brain, "_log_correspondence_state", record_state)
+    monkeypatch.setattr(brain, "_notify_post_draft_send_outcome", lambda **_kwargs: None)
+    monkeypatch.setattr(broker, "_audit", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(broker, "_request_approval", fail_if_approval_requested)
+    monkeypatch.setattr(broker, "_exec_gmail_send", fail_if_executor_called)
+    monkeypatch.setattr(broker, "check_gmail_broker_runtime_dependencies", lambda: {"ok": True, "missing": []})
+    monkeypatch.setattr(broker, "_is_configured", lambda: True)
+
+    brain._run_email_send_after_draft(
+        recipient_name="Fixture Recipient",
+        recipient_email="fixture@example.invalid",
+        subject="Fixture subject",
+        body="Fixture body",
+        review_inbox="review@example.invalid",
+        approval_context={
+            "action_label": "send email",
+            "request_id": "v0-fixture",
+            "idempotency_key": "v0-fixture",
+        },
+    )
+
+    assert approval_calls == []
+    assert events[-1]["state"] == brain._SS_SEND_FAILED
+    assert events[-1]["detail"] == "broker capability token required for google.gmail.send"
+    assert events[-1]["route"] == "email_send"
