@@ -5692,23 +5692,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
 
     # Always initialize state for logging and saving
     state = load_state()
-    explicit_finance_status_query = detect_finance_status_intent(query) and any(
-        marker in query.lower()
-        for marker in (
-            "status",
-            "where are we",
-            "where do we stand",
-            "what is current",
-            "what's current",
-            "current truth",
-            "current state",
-            "latest",
-            "update",
-        )
-    )
     operator_intake_candidate = (
         str(session_meta.get("source_user_label") or "operator") == "operator"
-        and not explicit_finance_status_query
         and _is_universal_operator_intake_candidate(query)
     )
 
