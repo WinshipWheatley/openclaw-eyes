@@ -190,7 +190,7 @@ TOOLS = [
 
 # ── Tool execution ───────────────────────────────────────────────────────────
 
-# Tracks basenames of files successfully read — used to block redundant rediscovery.
+# Tracks canonical absolute paths of files successfully read to block redundant rediscovery.
 _confirmed_files: set[str] = set()
 
 # Tracks successful insert_block operations this run — prevents duplicate insertions after context trim.
@@ -212,21 +212,17 @@ def _exec_read_file(args: dict) -> str:
     p = Path(path_str)
     if not p.is_absolute():
         p = WORK_DIR / p
-    # Block re-reading any already-confirmed file (same path = redundant, different path = wandering)
-    basename = p.name
-    if str(p) in _confirmed_files:
-        return f"BLOCKED: {p.name} was already read and is in your context. Do not reread it. Use the content you already have."
-    if basename in _confirmed_files:
-        return f"BLOCKED: {basename} was already read from a confirmed path. Do not re-discover it. Execute the task."
     if not p.exists():
         return f"ERROR: file not found: {p}"
     if not p.is_file():
         return f"ERROR: not a file: {p}"
+    path_key = str(p.resolve())
+    # Block re-reading the same canonical path; same basenames elsewhere are valid.
+    if path_key in _confirmed_files:
+        return f"BLOCKED: {p.name} was already read and is in your context. Do not reread it. Use the content you already have."
     try:
         lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
-        # Track successful read by both basename and full path
-        _confirmed_files.add(basename)
-        _confirmed_files.add(str(p))
+        _confirmed_files.add(path_key)
         if len(lines) > MAX_READ_LINES:
             lines = lines[:MAX_READ_LINES]
         text = "\n".join(lines)

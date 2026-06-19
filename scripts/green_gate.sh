@@ -16,6 +16,8 @@ VENV="${OPENCLAW_VENV:-/home/openclaw/.venv/bin/python}"
 TIMEOUT_SECONDS="${OPENCLAW_PYTEST_TIMEOUT_SECONDS:-90}"
 TIMEOUT_METHOD="${OPENCLAW_PYTEST_TIMEOUT_METHOD:-thread}"
 WT_ROOT="${OPENCLAW_GREEN_GATE_WORKTREE_ROOT:-/tmp/openclaw-green-gate}"
+TRUSTED_ACCEPTANCE_REF="${OPENCLAW_TRUSTED_ACCEPTANCE_REF:-}"
+TRUSTED_ACCEPTANCE_PATHS="${OPENCLAW_TRUSTED_ACCEPTANCE_PATHS:-tests}"
 TS="$(date +%s)-$$"
 WT="$WT_ROOT/greengate-$TS"
 LOG="/tmp/greengate-$TS.log"
@@ -107,6 +109,23 @@ check_required_clean_fixtures(){
   echo "[green-gate] clean-room fixture parity check passed (${#REQUIRED_CLEAN_FIXTURES[@]} fixtures)."
 }
 
+restore_trusted_acceptance(){
+  local paths=()
+  local path
+  if [ -z "$TRUSTED_ACCEPTANCE_REF" ]; then
+    return 0
+  fi
+  for path in $TRUSTED_ACCEPTANCE_PATHS; do
+    [ -n "$path" ] && paths+=("$path")
+  done
+  if [ "${#paths[@]}" -eq 0 ]; then
+    fail "OPENCLAW_TRUSTED_ACCEPTANCE_PATHS is empty"
+  fi
+  echo "[green-gate] restoring trusted acceptance paths from $TRUSTED_ACCEPTANCE_REF: ${paths[*]}"
+  git checkout "$TRUSTED_ACCEPTANCE_REF" -- "${paths[@]}" \
+    || fail "could not restore trusted acceptance paths from $TRUSTED_ACCEPTANCE_REF"
+}
+
 # Git hooks export repo-local environment such as GIT_DIR and GIT_WORK_TREE.
 # If those leak into pytest, tests that create temporary git repositories can
 # accidentally operate on the caller repo instead of their tmp checkout.
@@ -134,6 +153,7 @@ fi
 WORKTREE_CREATED=1
 cd "$WT" || fail "cwd"
 SHA="$(git rev-parse --short HEAD)"
+restore_trusted_acceptance
 check_required_clean_fixtures
 echo "[green-gate] python: $("$VENV" -c 'import sys; print(sys.executable)')"
 echo "[green-gate] running FULL suite on clean checkout $SHA (timeout ${TIMEOUT_SECONDS}s/test, method $TIMEOUT_METHOD; this takes ~25 min) ..."

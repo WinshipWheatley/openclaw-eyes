@@ -13,6 +13,7 @@ import dataclasses
 import datetime as _dt
 import hashlib
 import json
+import os
 import sqlite3
 import subprocess
 import uuid
@@ -155,6 +156,8 @@ def make_acceptance_ref(
     green_gate_path: str | Path = DEFAULT_GREEN_GATE,
     *,
     repo_ref: str = "HEAD",
+    trusted_acceptance_ref: str | None = None,
+    trusted_acceptance_paths: tuple[str, ...] = ("tests",),
 ) -> str:
     """Create the immutable acceptance reference stored with a task."""
 
@@ -165,6 +168,8 @@ def make_acceptance_ref(
         "acceptance_sha256": sha256_file(acceptance),
         "green_gate_path": str(gate),
         "repo_ref": repo_ref,
+        "trusted_acceptance_ref": trusted_acceptance_ref,
+        "trusted_acceptance_paths": list(trusted_acceptance_paths),
     }
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
@@ -232,9 +237,20 @@ def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
 class ControlPlaneLedger:
     """SQLite-WAL ledger with strict Phase-C P0 state transitions."""
 
-    def __init__(self, path: str | Path = DEFAULT_LEDGER_PATH) -> None:
+    def __init__(
+        self,
+        path: str | Path = DEFAULT_LEDGER_PATH,
+        *,
+        status_view_path: str | Path | None = None,
+    ) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        if status_view_path is not None:
+            self.status_view_path: Path | None = Path(status_view_path)
+        elif self.path.resolve() == DEFAULT_LEDGER_PATH.resolve():
+            self.status_view_path = LOOP_DIR / "status.json"
+        else:
+            self.status_view_path = self.path.with_name("status.json")
         self._ensure_schema()
 
     def connect(self) -> sqlite3.Connection:
@@ -320,11 +336,67 @@ class ControlPlaneLedger:
             conn.execute("BEGIN IMMEDIATE")
             yield conn
             conn.commit()
+            self.render_status_view()
         except Exception:
             conn.rollback()
             raise
         finally:
             conn.close()
+
+    def render_status_view(self) -> None:
+        """Synchronously render the legacy status.json compatibility view.
+
+        The SQLite ledger is authoritative, but existing readers still consume
+        status.json. This view only uses legacy status names so current
+        dashboards and bot status readers do not crash during the substrate
+        migration.
+        """
+
+        if self.status_view_path is None:
+            return
+        with self.connect() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM tasks
+                ORDER BY updated_at DESC, created_at DESC, id DESC
+                LIMIT 1
+                """
+            ).fetchone()
+        if row is None:
+            view = {
+                "status": "idle",
+                "task_name": None,
+                "phase_c_status": "EMPTY",
+                "phase_c_ledger": str(self.path),
+                "last_updated": iso_now(),
+            }
+        else:
+            phase_status = row["status"]
+            if phase_status in {"LEASED", "VERIFYING"}:
+                legacy_status = "pc_turn"
+            elif phase_status == "DONE":
+                legacy_status = "approved"
+            elif phase_status in {"BLOCKED", "DEAD"}:
+                legacy_status = "blocked"
+            else:
+                legacy_status = "idle"
+            view = {
+                "status": legacy_status,
+                "task_name": row["id"],
+                "pass": max(1, int(row["attempts"]) or 1),
+                "approved": phase_status == "DONE",
+                "block_reason": row["terminal_reason"] if legacy_status == "blocked" else None,
+                "phase_c_status": phase_status,
+                "phase_c_task_id": row["id"],
+                "phase_c_owner": row["owner"],
+                "phase_c_dispatchable": bool(row["dispatchable"]),
+                "phase_c_ledger": str(self.path),
+                "last_updated": row["updated_at"],
+            }
+        self.status_view_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.status_view_path.with_suffix(self.status_view_path.suffix + ".tmp")
+        tmp.write_text(json.dumps(view, indent=2, sort_keys=True), encoding="utf-8")
+        tmp.replace(self.status_view_path)
 
     def _event(
         self,
@@ -590,6 +662,40 @@ class ControlPlaneLedger:
                 )
                 recovered += 1
         return recovered
+
+    def record_failed_to_start(
+        self,
+        task_id: str,
+        *,
+        actor: str,
+        detail: dict[str, Any] | None = None,
+    ) -> None:
+        """Record an explicit runner startup failure without scraping logs."""
+
+        with self._tx() as conn:
+            row = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if row is None:
+                raise KeyError(task_id)
+            if row["status"] in TERMINAL_STATUSES:
+                raise InvalidTransition(f"task is already terminal: {row['status']}")
+            self._terminalize_locked(
+                conn,
+                task_id,
+                row["status"],
+                "BLOCKED",
+                actor,
+                "failed_to_start",
+                detail=detail or {"reason": "runner_failed_to_start"},
+            )
+            self._event(
+                conn,
+                task_id=task_id,
+                event_type="FAILED_TO_START",
+                actor=actor,
+                from_status=row["status"],
+                to_status="BLOCKED",
+                detail=detail or {"reason": "runner_failed_to_start"},
+            )
 
     def claim_task(
         self,
@@ -880,6 +986,10 @@ class ControlPlaneLedger:
             acceptance_ref.get("green_gate_path") or str(DEFAULT_GREEN_GATE)
         )
         repo_ref = acceptance_ref.get("repo_ref") or "HEAD"
+        trusted_acceptance_ref = acceptance_ref.get("trusted_acceptance_ref")
+        trusted_acceptance_paths = tuple(
+            acceptance_ref.get("trusted_acceptance_paths") or ("tests",)
+        )
         if not acceptance_path.exists() or not expected_sha:
             decision = AcceptanceDecision(2, "", "acceptance ref missing trusted file")
             self._block_after_acceptance(task_id, "acceptance_ref_missing", decision)
@@ -896,6 +1006,8 @@ class ControlPlaneLedger:
             green_gate_path=green_gate_path,
             repo_ref=repo_ref,
             cwd=cwd,
+            trusted_acceptance_ref=trusted_acceptance_ref,
+            trusted_acceptance_paths=trusted_acceptance_paths,
         )
         if decision.ok:
             self._mark_done_after_acceptance(task_id, decision)
@@ -1013,13 +1125,20 @@ def _default_gate_runner(
     green_gate_path: Path,
     repo_ref: str,
     cwd: Path,
+    trusted_acceptance_ref: str | None = None,
+    trusted_acceptance_paths: tuple[str, ...] = ("tests",),
 ) -> AcceptanceDecision:
+    env = os.environ.copy()
+    if trusted_acceptance_ref:
+        env["OPENCLAW_TRUSTED_ACCEPTANCE_REF"] = trusted_acceptance_ref
+        env["OPENCLAW_TRUSTED_ACCEPTANCE_PATHS"] = " ".join(trusted_acceptance_paths)
     completed = subprocess.run(
         [str(green_gate_path), repo_ref],
         cwd=str(cwd),
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
     return AcceptanceDecision(
         exit_code=completed.returncode,

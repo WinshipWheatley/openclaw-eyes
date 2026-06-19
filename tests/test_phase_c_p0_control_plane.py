@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -93,6 +96,38 @@ def test_empty_queue_is_quiescent_without_model_calls_dispatches_or_writes(tmp_p
     assert result.model_calls == 0
     assert dispatches == []
     assert ledger.counts() == before
+
+
+def test_ledger_mutations_render_legacy_status_json_view(tmp_path):
+    status_view = tmp_path / "status.json"
+    ledger = ControlPlaneLedger(
+        tmp_path / "phase-c.sqlite3",
+        status_view_path=status_view,
+    )
+    task_id = _ready_task(ledger, tmp_path, max_attempts=1)
+
+    ready_view = json.loads(status_view.read_text(encoding="utf-8"))
+    assert ready_view["status"] == "idle"
+    assert ready_view["phase_c_status"] == "READY"
+    assert ready_view["phase_c_task_id"] == task_id
+
+    lease = ledger.claim_task(task_id, owner="builder-a", lease_seconds=60)
+    assert lease is not None
+    leased_view = json.loads(status_view.read_text(encoding="utf-8"))
+    assert leased_view["status"] == "pc_turn"
+    assert leased_view["phase_c_status"] == "LEASED"
+    assert leased_view["phase_c_owner"] == "builder-a"
+
+    ledger.record_failure(
+        task_id,
+        owner=lease.owner,
+        lease_nonce=lease.lease_nonce,
+        failure_fingerprint="boom",
+    )
+    blocked_view = json.loads(status_view.read_text(encoding="utf-8"))
+    assert blocked_view["status"] == "blocked"
+    assert blocked_view["phase_c_status"] == "BLOCKED"
+    assert blocked_view["block_reason"] == "max_attempts_exhausted"
 
 
 def test_crash_restart_recovers_and_rejects_duplicate_claims_and_invalid_transitions(tmp_path):
@@ -207,7 +242,13 @@ def test_builder_workspace_acceptance_edit_cannot_cause_done(tmp_path):
 
     calls: list[Path] = []
 
-    def gate_runner(*, green_gate_path: Path, repo_ref: str, cwd: Path) -> AcceptanceDecision:
+    def gate_runner(
+        *,
+        green_gate_path: Path,
+        repo_ref: str,
+        cwd: Path,
+        **_: object,
+    ) -> AcceptanceDecision:
         calls.append(cwd)
         assert green_gate_path == trusted_gate
         assert cwd == trusted_repo
@@ -236,3 +277,154 @@ def test_alive_only_packets_are_rejected(tmp_path):
             requested_status="READY",
             payload={"message": "alive."},
         )
+
+
+def test_blocked_pc_output_is_terminal_valid_artifact(tmp_path, monkeypatch):
+    from polish_loop import orchestrator
+
+    pc_output = tmp_path / "pc_output.md"
+    pc_output.write_text(
+        "\n".join(
+            [
+                "PASS: 1",
+                "STATUS: BLOCKED",
+                "CHANGES:",
+                "- none",
+                "REASONING:",
+                "- cannot proceed",
+                "ROLLBACK PLAN:",
+                "- no changes",
+                "COST:",
+                "- local",
+                "TRUTH:",
+                "- blocked is explicit",
+                "HEADROOM:",
+                "- none",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(orchestrator, "PC_OUTPUT", pc_output)
+
+    valid, reason = orchestrator.pc_output_valid(1)
+
+    assert valid is True
+    assert reason == "blocked"
+
+
+def test_builder_running_uses_pid_file_not_process_name_grep(tmp_path, monkeypatch):
+    from polish_loop import orchestrator
+
+    pid_file = tmp_path / "builder.pid"
+    pid_file.write_text(str(os.getpid()), encoding="utf-8")
+    monkeypatch.setattr(orchestrator, "BUILDER_PID_FILE", pid_file)
+    monkeypatch.setattr(orchestrator, "_TEST_BUILDER_OVERRIDE", None)
+
+    def forbidden_pgrep(*args, **kwargs):  # pragma: no cover - only called on regression
+        raise AssertionError("builder_running must not use broad pgrep")
+
+    monkeypatch.setattr(orchestrator.subprocess, "run", forbidden_pgrep)
+    assert orchestrator.builder_running() is True
+
+    pid_file.write_text("999999999", encoding="utf-8")
+    assert orchestrator.builder_running() is False
+
+
+def test_local_builder_read_dedup_uses_canonical_path_not_basename(tmp_path):
+    from polish_loop import local_builder
+
+    first = tmp_path / "a" / "config.json"
+    second = tmp_path / "b" / "config.json"
+    first.parent.mkdir()
+    second.parent.mkdir()
+    first.write_text('{"name":"a"}', encoding="utf-8")
+    second.write_text('{"name":"b"}', encoding="utf-8")
+
+    local_builder._confirmed_files.clear()
+    assert '"name":"a"' in local_builder._exec_read_file({"path": str(first)})
+    assert '"name":"b"' in local_builder._exec_read_file({"path": str(second)})
+    assert local_builder._exec_read_file({"path": str(first)}).startswith("BLOCKED:")
+
+
+def test_failed_to_start_is_explicit_ledger_event(tmp_path):
+    ledger = ControlPlaneLedger(tmp_path / "phase-c.sqlite3")
+    task_id = _ready_task(ledger, tmp_path)
+    lease = ledger.claim_task(task_id, owner="runner", lease_seconds=60)
+    assert lease is not None
+
+    ledger.record_failed_to_start(
+        task_id,
+        actor="runner",
+        detail={"reason": "missing executable"},
+    )
+
+    row = ledger.get_task(task_id)
+    assert row["status"] == "BLOCKED"
+    assert row["terminal_reason"] == "failed_to_start"
+    with ledger.connect() as conn:
+        events = [
+            event["event_type"]
+            for event in conn.execute(
+                "SELECT event_type FROM events WHERE task_id=? ORDER BY id",
+                (task_id,),
+            )
+        ]
+    assert "FAILED_TO_START" in events
+
+
+def test_green_gate_restores_trusted_acceptance_tests_from_ref(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "OpenClaw Test"], cwd=repo, check=True)
+
+    required = [
+        "generated/read_models/helm_composer_contract.json",
+        "generated/read_models/mac_controller_real_use_smoke_status.json",
+        "generated/read_models/mac_dynamic_card_renderer_status.json",
+        "generated/read_models/cassandra_human_edge_lab.json",
+        "generated/read_models/proof_to_response_runtime_status.json",
+        "generated/read_models/proof_to_response_schema_adapter_status.json",
+    ]
+    for rel in required:
+        path = repo / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}\n", encoding="utf-8")
+
+    test_file = repo / "tests" / "test_acceptance.py"
+    test_file.parent.mkdir()
+    test_file.write_text("def test_trusted_acceptance():\n    assert False\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "trusted acceptance"], cwd=repo, check=True)
+    subprocess.run(["git", "branch", "trusted"], cwd=repo, check=True)
+
+    test_file.write_text("def test_trusted_acceptance():\n    assert True\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "candidate weakens acceptance"], cwd=repo, check=True)
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "OPENCLAW_REPO": str(repo),
+            "OPENCLAW_VENV": "/home/openclaw/.venv/bin/python",
+            "OPENCLAW_GREEN_GATE_WORKTREE_ROOT": str(tmp_path / "worktrees"),
+            "OPENCLAW_TRUSTED_ACCEPTANCE_REF": "trusted",
+            "OPENCLAW_TRUSTED_ACCEPTANCE_PATHS": "tests",
+        }
+    )
+    script = Path(__file__).resolve().parents[1] / "scripts" / "green_gate.sh"
+    completed = subprocess.run(
+        [str(script), "HEAD"],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    combined = completed.stdout + completed.stderr
+
+    assert completed.returncode != 0
+    assert "restoring trusted acceptance paths from trusted: tests" in combined
+    assert "NOT green" in combined

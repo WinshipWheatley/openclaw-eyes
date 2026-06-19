@@ -95,6 +95,7 @@ TASK_MD      = LOOP_DIR / "task.md"
 LOG_FILE     = Path("/mnt/c/OpenClaw/logs/orchestrator.log")
 WATCHER_LOG  = Path("/home/openclaw/mac_eyes/sync/watcher.log")
 BUILDER_LOG  = Path("/mnt/c/OpenClaw/logs/builder_watcher.out")
+BUILDER_PID_FILE = LOOP_DIR / "builder.pid"
 STAGING_ROOT = Path("/home/openclaw/staging")
 
 VALID_STATES = {"idle", "pc_turn", "mac_turn", "approved", "blocked", "parked"}
@@ -217,7 +218,8 @@ def write_status(
 def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
     """
     Returns (True, "ok") or (False, reason).
-    reason values: "missing" | "empty" | "no_pass_line" | "stale" | "has_blocked" | "quality_gate"
+    reason values: "missing" | "empty" | "no_pass_line" | "stale" | "quality_gate".
+    Returns (True, "blocked") for a syntactically valid terminal BLOCKED output.
     """
     if not PC_OUTPUT.exists():
         return False, "missing"
@@ -244,9 +246,6 @@ def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
         return False, "no_pass_line"
     if found != expected_pass:
         return False, "stale"
-    if re.search(r"^\s*STATUS:\s*BLOCKED\s*$", content, re.IGNORECASE | re.MULTILINE):
-        return False, "has_blocked"
-
     required_headers = ("CHANGES:", "REASONING:", "ROLLBACK PLAN:", "COST:", "TRUTH:", "HEADROOM:")
     upper = content.upper()
     for header in required_headers:
@@ -256,6 +255,9 @@ def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
     # Log runner used for evidence
     if runner_used:
         log("EVIDENCE", f"pc_output RUNNER: {runner_used}")
+
+    if re.search(r"^\s*STATUS:\s*BLOCKED\s*$", content, re.IGNORECASE | re.MULTILINE):
+        return True, "blocked"
 
     return True, "ok"
 
@@ -493,50 +495,32 @@ _TEST_DISABLE_PC_REVIEW_FALLBACK: bool = False
 _TEST_DISABLE_SELF_HEAL_TASKS: bool = False
 
 
+def _pid_is_live(pid: int) -> bool:
+    try:
+        with open(f"/proc/{pid}/status") as f:
+            state = ""
+            for line in f:
+                if line.startswith("State:"):
+                    state = line
+                    break
+        if "T (stopped)" in state or "Z (zombie)" in state:
+            log("WARN", f"Builder PID {pid} exists but is not runnable: {state.strip()}")
+            return False
+        return bool(state)
+    except (OSError, IOError, ValueError):
+        return False
+
+
 def builder_running() -> bool:
-    """True if a builder pass process is currently executing (not stopped/frozen)."""
+    """True when the builder PID file points to a live runner process."""
     if _TEST_BUILDER_OVERRIDE is not None:
         return _TEST_BUILDER_OVERRIDE
-    patterns = [
-        "run_polish_pass.sh",
-        r"timeout [0-9]+ (codex|gemini|claude|aider)( .*)?",
-    ]
-    for pattern in patterns:
-        try:
-            result = subprocess.run(
-                ["pgrep", "-f", pattern],
-                capture_output=True,
-                text=True,
-            )
-            if result.returncode == 0:
-                # Check if any matched PID is stopped (state T).
-                # If we can't read /proc, assume running (safe fallback).
-                pids = getattr(result, "stdout", "") or ""
-                pids = pids.strip().split("\n")
-                any_stopped_all = True  # assume all stopped until proven otherwise
-                for pid in pids:
-                    pid = pid.strip()
-                    if not pid or not pid.isdigit():
-                        any_stopped_all = False
-                        break
-                    try:
-                        with open(f"/proc/{pid}/status") as f:
-                            for line in f:
-                                if line.startswith("State:"):
-                                    if "T (stopped)" in line:
-                                        log("WARN", f"Builder PID {pid} exists but is stopped (SIGSTOP) — treating as dead")
-                                    else:
-                                        return True  # at least one PID is alive and not stopped
-                                    break
-                    except (OSError, IOError):
-                        # Process vanished or /proc unreadable — skip this PID
-                        continue
-                if not any_stopped_all:
-                    return True  # couldn't verify state, assume running
-                # All matched PIDs are stopped — fall through
-        except Exception:
-            continue
-    return False
+    try:
+        raw = BUILDER_PID_FILE.read_text(encoding="utf-8").strip()
+        pid = int(raw)
+    except (OSError, ValueError):
+        return False
+    return _pid_is_live(pid)
 
 
 def _relaunch_builder() -> bool:
@@ -745,6 +729,12 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
     if PC_OUTPUT.exists():
         valid, reason = pc_output_valid(pass_num)
         if valid:
+            if reason == "blocked":
+                log("EVIDENCE", f"pc_output terminal BLOCKED — PASS:{pass_num} matches", dry_run)
+                log("TRANSITION", "pc_turn → blocked (reason: builder_reported_blocked)", dry_run)
+                if not dry_run:
+                    write_status("blocked", reason="builder_reported_blocked")
+                return
             log("EVIDENCE", f"pc_output valid — PASS:{pass_num} matches", dry_run)
             log("TRANSITION", "pc_turn → mac_turn", dry_run)
             if not dry_run:
@@ -808,25 +798,7 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
             if not dry_run:
                 write_status("blocked", reason="weak_pc_output_quality")
             return
-        # If stale BLOCKED output remains and Builder is currently dead, attempt a
-        # bounded immediate relaunch instead of waiting the full timeout window.
-        if reason == "has_blocked" and not status.get("relaunch_attempted", False):
-            if not running_now and _active_task_is_harness_backed_retest():
-                log("EVIDENCE", "harness-backed retest failed closed — no live builder fallback allowed", dry_run)
-                log("TRANSITION", "pc_turn → blocked (reason: harness_retest_fail_closed)", dry_run)
-                if not dry_run:
-                    write_status("blocked", reason="harness_retest_fail_closed")
-                return
-            if not running_now:
-                log("ACTION", "pc_output shows STATUS:BLOCKED and Builder is dead — immediate re-launch attempt", dry_run)
-                if not dry_run:
-                    launched = _relaunch_builder()
-                    if launched:
-                        log("ACTION", "Builder re-launched from stale BLOCKED output condition", dry_run)
-                        _write_status_raw({"relaunch_attempted": True})
-                        return
-
-        # Other invalid (no_pass_line, has_blocked, unreadable) — fall through to timeout logic
+        # Other invalid (no_pass_line, unreadable) — fall through to timeout logic
         log("STATE", f"pc_turn | pc_output invalid ({reason}) — checking agent status", dry_run)
 
     # Three-stage timeout check
