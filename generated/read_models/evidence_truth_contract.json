@@ -1,0 +1,184 @@
+{
+  "approval_authority_added": false,
+  "claim_types": [
+    "done_claim",
+    "green_gate_claim",
+    "finding_claim",
+    "diagnosis_claim",
+    "read_only_audit_claim",
+    "blocked_claim"
+  ],
+  "contract_only": true,
+  "contract_status": "deterministic_evidence_truth_metadata_only",
+  "credential_authority_added": false,
+  "evidence_ref_types": [
+    "commit_ref",
+    "gate_receipt",
+    "test_log",
+    "file_line_ref",
+    "orchestration_marker",
+    "generated_read_model",
+    "diff_summary",
+    "diagnostic_error_line"
+  ],
+  "evidence_sources": [
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "OPENCLAW_RUNTIME.md",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "proof-first runtime law and no-overclaiming posture",
+      "schema_version": null,
+      "source_id": "runtime_law"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "operator_action_covenant.py",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "local approval covenant; natural language alone is not authority",
+      "schema_version": null,
+      "source_id": "operator_action_covenant"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "generated/read_models/protected_evidence_reference_receipt.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "safe protected-reference receipt boundary",
+      "schema_version": "protected_evidence_reference_receipt_v0",
+      "source_id": "protected_evidence_reference_receipt"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "generated/read_models/agent_package_preview_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "package preview proof and authority boundary",
+      "schema_version": "agent_package_preview_contract_v0",
+      "source_id": "agent_package_preview_contract"
+    }
+  ],
+  "example_truth_decisions": [
+    {
+      "blocking_reasons": [],
+      "claim_type": "green_gate_claim",
+      "contradiction_count": 0,
+      "evidence_types_present": [
+        "gate_receipt"
+      ],
+      "required_evidence_types": [
+        "gate_receipt",
+        "test_log"
+      ],
+      "supported": true,
+      "truth_status": "SUPPORTED"
+    },
+    {
+      "blocking_reasons": [
+        "green_gate_claim_requires_passing_gate_receipt"
+      ],
+      "claim_type": "green_gate_claim",
+      "contradiction_count": 0,
+      "evidence_types_present": [
+        "orchestration_marker"
+      ],
+      "supported": false,
+      "truth_status": "GREEN_GATE_RECEIPT_REQUIRED"
+    },
+    {
+      "blocking_reasons": [
+        "contradictory_evidence_requires_diagnosis"
+      ],
+      "claim_type": "diagnosis_claim",
+      "contradiction_count": 1,
+      "evidence_types_present": [
+        "test_log"
+      ],
+      "supported": false,
+      "truth_status": "CONTRADICTION_REQUIRES_DIAG"
+    }
+  ],
+  "execution_authority_added": false,
+  "external_send_authority_added": false,
+  "generated_at": "2026-06-19T02:06:02+00:00",
+  "legal_discovery_authority_added": false,
+  "machine_proof": {
+    "authority_added": false,
+    "content_hash": "sha256:e0de5322792d02cbc2cb0dbd6e7c7536a0acdf977e5604e96f6fd1e3c03e581c",
+    "source_read_models_present": {
+      "agent_package_preview_contract": true,
+      "operator_action_covenant": true,
+      "protected_evidence_reference_receipt": true,
+      "runtime_law": true
+    },
+    "truth_rule_count": 4
+  },
+  "operator_summary": "OpenClaw truth claims are only as strong as their receipts. DONE, GREEN, READY, and findings must cite artifacts; contradictions trigger diagnosis before action.",
+  "raw_private_artifact_access_added": false,
+  "read_model_id": "evidence_truth_contract",
+  "runtime_authority_added": false,
+  "schema_version": "evidence_truth_contract_v0",
+  "test_execution_authority_added": false,
+  "truth_claim_authority_added": false,
+  "truth_doctrine": {
+    "contradiction_promotes_to_diagnosis": true,
+    "green_requires_current_gate_receipt": true,
+    "natural_language_done_is_not_proof": true,
+    "private_raw_sources_are_not_imported_for_truth_claims": true,
+    "red_requires_first_hard_error_or_repro": true,
+    "stale_receipts_require_recheck_before_ready": true
+  },
+  "truth_rules": [
+    {
+      "claim_type": "done_claim",
+      "fail_closed_status": "EVIDENCE_MISSING",
+      "operator_copy": "DONE must cite a commit, marker, receipt, or generated artifact.",
+      "required_evidence_types": [
+        "commit_ref",
+        "orchestration_marker"
+      ],
+      "rule_id": "done_claim_needs_artifact"
+    },
+    {
+      "claim_type": "green_gate_claim",
+      "fail_closed_status": "GREEN_GATE_RECEIPT_REQUIRED",
+      "operator_copy": "GREEN means a receipt/log with pass result, not a remembered claim.",
+      "required_evidence_types": [
+        "gate_receipt",
+        "test_log"
+      ],
+      "rule_id": "green_gate_needs_receipt"
+    },
+    {
+      "claim_type": "finding_claim",
+      "fail_closed_status": "EVIDENCE_MISSING",
+      "operator_copy": "Findings need file:line, repro, error, or equivalent falsifiable evidence.",
+      "required_evidence_types": [
+        "file_line_ref",
+        "diagnostic_error_line",
+        "test_log"
+      ],
+      "rule_id": "finding_needs_falsifiable_pointer"
+    },
+    {
+      "claim_type": "diagnosis_claim",
+      "fail_closed_status": "CONTRADICTION_REQUIRES_DIAG",
+      "operator_copy": "Contradictory green/red evidence is diagnosed before fixing or claiming DONE.",
+      "required_evidence_types": [
+        "diagnostic_error_line",
+        "test_log",
+        "orchestration_marker"
+      ],
+      "rule_id": "contradiction_forces_diag"
+    }
+  ],
+  "truth_statuses": [
+    "SUPPORTED",
+    "EVIDENCE_MISSING",
+    "GREEN_GATE_RECEIPT_REQUIRED",
+    "CONTRADICTION_REQUIRES_DIAG",
+    "STALE_REQUIRES_RECHECK",
+    "UNKNOWN_FAIL_CLOSED"
+  ]
+}

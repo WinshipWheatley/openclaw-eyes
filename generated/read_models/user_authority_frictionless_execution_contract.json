@@ -1,0 +1,259 @@
+{
+  "approval_authority_added": false,
+  "authority_rails": [
+    {
+      "action_kind": "bounded_branch_edit",
+      "default_status": "ALLOW_WITH_LOCAL_PROOF",
+      "hard_boundary": "branch/worktree only; no live runtime authority",
+      "operator_prompt_policy": "do_not_ask_when_branch_scoped_and_reversible",
+      "rail_id": "frictionless_repo_local_work",
+      "required_proof": [
+        "claim_marker",
+        "branch",
+        "focused_test_or_diff_receipt",
+        "done_evidence"
+      ]
+    },
+    {
+      "action_kind": "repo_read",
+      "default_status": "ALLOW_WITH_SOURCE_REFS",
+      "hard_boundary": "Legal Discovery and secrets remain excluded",
+      "operator_prompt_policy": "do_not_ask_for_safe_reads",
+      "rail_id": "frictionless_read_and_audit",
+      "required_proof": [
+        "file_line_or_artifact_ref",
+        "finding_or_status_marker"
+      ]
+    },
+    {
+      "action_kind": "real_external_send",
+      "default_status": "BLOCKED",
+      "hard_boundary": "SEND_HOLD is absolute; this contract cannot override it",
+      "operator_prompt_policy": "operator_final_authority_required_and_SEND_HOLD_blocks",
+      "rail_id": "external_send_hard_stop",
+      "required_proof": [
+        "explicit_operator_final_send_approval",
+        "send_safety_receipt"
+      ]
+    },
+    {
+      "action_kind": "money_movement",
+      "default_status": "BLOCKED",
+      "hard_boundary": "no money movement or billing authority",
+      "operator_prompt_policy": "operator_final_authority_required",
+      "rail_id": "money_hard_stop",
+      "required_proof": [
+        "operator_final_money_approval",
+        "money_safety_receipt"
+      ]
+    },
+    {
+      "action_kind": "production_restart_or_deploy",
+      "default_status": "BLOCKED",
+      "hard_boundary": "no prod restart, deploy, or daemon control from this contract",
+      "operator_prompt_policy": "master_or_operator_runtime_baton_required",
+      "rail_id": "production_runtime_hard_stop",
+      "required_proof": [
+        "deployment_plan",
+        "rollback_plan",
+        "operator_or_master_runtime_baton"
+      ]
+    },
+    {
+      "action_kind": "legal_discovery",
+      "default_status": "BLOCKED",
+      "hard_boundary": "Legal Discovery is off-limits for this fleet loop",
+      "operator_prompt_policy": "off_limits",
+      "rail_id": "legal_hard_stop",
+      "required_proof": [
+        "none"
+      ]
+    },
+    {
+      "action_kind": "secret_value_print_or_edit",
+      "default_status": "BLOCKED",
+      "hard_boundary": "no secret values printed, edited, or copied",
+      "operator_prompt_policy": "never_print_secret_values",
+      "rail_id": "secrets_hard_stop",
+      "required_proof": [
+        "secret_char_count_only_if_explicitly_needed"
+      ]
+    }
+  ],
+  "browser_or_oauth_authority_added": false,
+  "claim_and_gate_requirements": {
+    "claim_before_work": true,
+    "done_requires_evidence_bundle": true,
+    "natural_language_done_is_not_proof": true,
+    "one_green_gate_at_a_time_per_machine": true
+  },
+  "contract_only": true,
+  "contract_status": "deterministic_user_authority_and_frictionless_execution_metadata_only",
+  "credential_authority_added": false,
+  "evidence_sources": [
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "OPENCLAW_RUNTIME.md",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "canonical repo-local runtime law for authority and execution posture",
+      "schema_version": null,
+      "source_id": "runtime_law"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "USER.md",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "operator communication and engineering preferences",
+      "schema_version": null,
+      "source_id": "operator_preferences"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "operator_action_covenant.py",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "existing local confirmation and approval covenant boundary",
+      "schema_version": null,
+      "source_id": "operator_action_covenant"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "generated/read_models/agent_identity_actor_router_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "actor routing and self-authority boundary",
+      "schema_version": "agent_identity_actor_router_contract_v0",
+      "source_id": "agent_identity_actor_router_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "path": "generated/read_models/protected_evidence_reference_receipt.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "protected evidence reference boundary; receipts do not grant raw access",
+      "schema_version": "protected_evidence_reference_receipt_v0",
+      "source_id": "protected_evidence_reference_receipt"
+    }
+  ],
+  "example_boundary_decisions": [
+    {
+      "action_kind": "bounded_branch_edit",
+      "approval_authority_granted_by_contract": false,
+      "blocking_reasons": [],
+      "decision": "ALLOW_FRICTIONLESS_LOCAL",
+      "execution_authority_granted_by_contract": false,
+      "may_proceed_without_extra_operator_prompt": true,
+      "operator_final_authority_required": false
+    },
+    {
+      "action_kind": "focused_test",
+      "approval_authority_granted_by_contract": false,
+      "blocking_reasons": [],
+      "decision": "ALLOW_FRICTIONLESS_LOCAL",
+      "execution_authority_granted_by_contract": false,
+      "may_proceed_without_extra_operator_prompt": true,
+      "operator_final_authority_required": false
+    },
+    {
+      "action_kind": "real_external_send",
+      "approval_authority_granted_by_contract": false,
+      "blocking_reasons": [
+        "SEND_HOLD_blocks_real_external_send",
+        "operator_final_authority_required"
+      ],
+      "decision": "BLOCKED",
+      "execution_authority_granted_by_contract": false,
+      "may_proceed_without_extra_operator_prompt": false,
+      "operator_final_authority_required": true
+    },
+    {
+      "action_kind": "legal_discovery",
+      "approval_authority_granted_by_contract": false,
+      "blocking_reasons": [
+        "operator_final_authority_required",
+        "legal_discovery_off_limits"
+      ],
+      "decision": "BLOCKED",
+      "execution_authority_granted_by_contract": false,
+      "may_proceed_without_extra_operator_prompt": false,
+      "operator_final_authority_required": true
+    },
+    {
+      "action_kind": "secret_value_print_or_edit",
+      "approval_authority_granted_by_contract": false,
+      "blocking_reasons": [
+        "operator_final_authority_required",
+        "secret_values_must_not_be_printed"
+      ],
+      "decision": "BLOCKED",
+      "execution_authority_granted_by_contract": false,
+      "may_proceed_without_extra_operator_prompt": false,
+      "operator_final_authority_required": true
+    }
+  ],
+  "execution_authority_added": false,
+  "external_send_authority_added": false,
+  "force_push_authority_added": false,
+  "frictionless_action_kinds": [
+    "repo_read",
+    "bounded_branch_edit",
+    "focused_test",
+    "local_generated_read_model_export",
+    "orchestration_status_marker",
+    "markdown_audit_non_legal"
+  ],
+  "frictionless_execution_doctrine": {
+    "external_or_irreversible_work_never_becomes_frictionless": true,
+    "heartbeat_is_not_liveness": true,
+    "safe_local_work_must_still_leave_evidence": true,
+    "safe_local_work_should_not_wait_for_extra_prompt": true
+  },
+  "generated_at": "2026-06-19T02:06:02+00:00",
+  "hard_stop_action_kinds": [
+    "real_external_send",
+    "money_movement",
+    "production_restart_or_deploy",
+    "legal_discovery",
+    "secret_value_print_or_edit",
+    "merge_to_master",
+    "force_push",
+    "direct_google_access_broker_call"
+  ],
+  "hard_stop_rails_preserved": {
+    "SEND_HOLD_absolute": true,
+    "legal_discovery_off_limits": true,
+    "no_force_push": true,
+    "no_merge_to_master": true,
+    "no_money": true,
+    "no_prod_restart_or_deploy": true,
+    "no_real_external_send": true,
+    "no_secret_values_printed": true
+  },
+  "hidden_background_loop_authority_added": false,
+  "legal_discovery_authority_added": false,
+  "machine_proof": {
+    "approval_authority_added": false,
+    "authority_rail_count": 7,
+    "content_hash": "sha256:32ca2d409ff2b2012f699a634e786c1e5cf382587e3a7fab1425e742aadf432b",
+    "execution_authority_added": false,
+    "frictionless_action_count": 6,
+    "hard_stop_action_count": 8,
+    "source_read_models_present": {
+      "agent_identity_actor_router_contract": true,
+      "operator_action_covenant": true,
+      "operator_preferences": true,
+      "protected_evidence_reference_receipt": true,
+      "runtime_law": true
+    }
+  },
+  "merge_to_master_authority_added": false,
+  "money_authority_added": false,
+  "operator_authority_transferred": false,
+  "operator_final_authority_preserved": true,
+  "operator_summary": "OpenClaw may move quickly on safe, reversible, local work, but the operator keeps final authority over sends, money, production runtime, secrets, Legal Discovery, force-git, and merges.",
+  "production_restart_authority_added": false,
+  "read_model_id": "user_authority_frictionless_execution_contract",
+  "schema_version": "user_authority_frictionless_execution_contract_v0"
+}

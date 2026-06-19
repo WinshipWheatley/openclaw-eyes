@@ -77,6 +77,8 @@
 !capital_hilton_external_artifact_proof_capture.py
 !protected_access_broker_concept.py
 !protected_evidence_reference_receipt.py
+!user_authority_frictionless_execution_contract.py
+!evidence_truth_contract.py
 !guardian_protected_access_gate_spec.py
 !capability_skill_registry_metadata_delta.py
 !cassandra_email_calendar_delta_detangle.py
@@ -718,6 +720,8 @@
 !scripts/export_capital_hilton_external_artifact_proof_capture.py
 !scripts/export_protected_access_broker_concept.py
 !scripts/export_protected_evidence_reference_receipt.py
+!scripts/export_user_authority_frictionless_execution_contract.py
+!scripts/export_evidence_truth_contract.py
 !scripts/export_guardian_protected_access_gate_spec.py
 !scripts/export_capability_skill_registry_metadata_delta.py
 !scripts/export_cassandra_email_calendar_delta_detangle.py
@@ -792,6 +796,8 @@
 !tests/test_capital_hilton_external_artifact_proof_capture.py
 !tests/test_protected_access_broker_concept.py
 !tests/test_protected_evidence_reference_receipt.py
+!tests/test_user_authority_frictionless_execution_contract.py
+!tests/test_evidence_truth_contract.py
 !tests/test_guardian_protected_access_gate_spec.py
 !tests/test_capability_skill_registry_metadata_delta.py
 !tests/test_cassandra_email_calendar_delta_detangle.py
