@@ -2584,8 +2584,21 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
     return reply
 
 
+def _looks_like_local_income_intake(text: str) -> bool:
+    """True for first-person local income logs that should route to intake."""
+    return bool(
+        re.search(
+            r"\b(?:i\s+)?(?:got\s+)?(?:paid|payd|payed|paied)\s+\$?[\d,]+(?:\.\d+)?\s+(?:from|frm|frum)\s+.+$",
+            text or "",
+            flags=re.IGNORECASE,
+        )
+    )
+
+
 def _should_route_finance_status_before_intake(text: str, gmail_decision: Any | None = None) -> bool:
     if not detect_finance_status_intent(text):
+        return False
+    if _looks_like_local_income_intake(text):
         return False
     t = (text or "").lower()
     status_markers = (

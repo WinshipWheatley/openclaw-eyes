@@ -96,7 +96,9 @@
 !business_ops_ledger.py
 !client_invoice_workflow_framework.py
 !capital_hilton_business_development_proposal.py
+!capital_hilton_agency_status.py
 !capital_hilton_invoice_operator_run_status.py
+!reynolds_gig_setup_status.py
 !capital_hilton_actionable_review_packet.py
 !capital_hilton_review_packet_approval.py
 !capital_hilton_external_artifact_proof_capture.py
@@ -475,9 +477,15 @@
 # Polish loop
 !polish_loop/
 !polish_loop/orchestrator.py
+!polish_loop/control_plane.py
+!polish_loop/local_builder.py
+!polish_loop/harness_task_runner.py
 !polish_loop/pc_review_fallback.py
 !polish_loop/tasks/
 !polish_loop/tasks/*.md
+!inbox/
+!inbox/to-claude/
+!inbox/to-claude/PHASE-C-P0-RECON.md
 !tests/
 !tests/fixtures/
 !tests/fixtures/skills/
@@ -485,6 +493,7 @@
 !tests/fixtures/skills/**/*.md
 !tests/test_pc_review_fallback.py
 !tests/test_builder_fallback.py
+!tests/test_phase_c_p0_control_plane.py
 !tests/test_skill_pipeline_smoke.py
 !tests/test_launch_ladder_static_contract.py
 !tests/test_backend_sqlite_schema.py

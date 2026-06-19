@@ -34,7 +34,7 @@ def test_morning_orchestration_trigger(monkeypatch, tmp_path):
     # synthesis had mtime < today's 5am and the morning-window staleness check then forced a refresh.
     # Test-only; the briefing logic is unchanged.
     import os
-    _fresh = datetime.now().timestamp()
+    _fresh = datetime.combine(datetime.now().date(), time(6, 0)).timestamp()
     os.utime(synthesis, (_fresh, _fresh))
     monkeypatch.setattr("cassandra_briefing_morning_policy.is_within_morning_window", lambda: True)
     

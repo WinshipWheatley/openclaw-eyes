@@ -2,12 +2,13 @@
 """
 orchestrator.py — Central loop controller for the OpenClaw polish loop.
 
-Sole writer of status.json. Planner and Builder write artifacts only.
-Orchestrator reads artifacts and decides all state transitions.
+Phase-C default: one quiescent SQLite-ledger event and exit.
+Legacy status.json handlers remain explicit under --legacy-once/--run-tests.
 
 Usage:
-    python3 orchestrator.py           # continuous poll loop
-    python3 orchestrator.py --once    # one cycle and exit
+    python3 orchestrator.py           # one Phase-C ledger event and exit
+    python3 orchestrator.py --once    # same as default
+    python3 orchestrator.py --legacy-once  # one legacy status.json cycle and exit
     python3 orchestrator.py --dry-run
     python3 orchestrator.py --reset-blocked --reason "..."
     python3 orchestrator.py --run-tests
@@ -49,6 +50,26 @@ except ImportError:
         _PC_REVIEW_AVAILABLE = False
         _pc_review_run = None  # type: ignore[assignment]
         _pc_review_mod = None  # type: ignore[assignment]
+
+# Phase-C deterministic control plane. The legacy status.json handlers below
+# remain for existing repair tooling/tests; the CLI entrypoint now defaults to
+# one quiescent ledger event rather than a daemon poll.
+try:
+    from control_plane import (
+        DEFAULT_LEDGER_PATH,
+        ControlPlaneLedger,
+        DispatchResult,
+        TaskLease,
+        run_control_plane_once,
+    )
+    _PHASE_C_AVAILABLE = True
+except ImportError:
+    DEFAULT_LEDGER_PATH = Path("/home/openclaw/polish_loop/control_plane.sqlite3")
+    ControlPlaneLedger = None  # type: ignore[assignment]
+    DispatchResult = None  # type: ignore[assignment]
+    TaskLease = None  # type: ignore[assignment]
+    run_control_plane_once = None  # type: ignore[assignment]
+    _PHASE_C_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
 # Constants (configurable)
@@ -1296,6 +1317,38 @@ def run_one_cycle(dry_run: bool = False) -> dict | None:
     return read_status()
 
 
+def phase_c_dispatch_local_builder(lease: "TaskLease") -> None:
+    """Finite worker-runtime handoff for a claimed ledger lease.
+
+    P0 owns the lease and durable state. The actual worker invocation is kept
+    explicit and finite; no background poller is started here.
+    """
+    log("ACTION", f"phase-c dispatch | task={lease.task_id} | owner={lease.owner}")
+
+
+def run_phase_c_once(
+    *,
+    ledger_path: Path = DEFAULT_LEDGER_PATH,
+    owner: str = "orchestrator",
+    dry_run: bool = False,
+) -> "DispatchResult":
+    if not _PHASE_C_AVAILABLE or ControlPlaneLedger is None or run_control_plane_once is None:
+        raise RuntimeError("Phase-C control plane module is unavailable")
+    if dry_run:
+        ledger = ControlPlaneLedger(ledger_path)
+        before = ledger.counts()
+        result = run_control_plane_once(ledger, owner=owner, dispatch=None)
+        after = ledger.counts()
+        print(f"[dry-run] phase-c result={result} counts_before={before} counts_after={after}")
+        return result
+    ledger = ControlPlaneLedger(ledger_path)
+    return run_control_plane_once(
+        ledger,
+        owner=owner,
+        dispatch=phase_c_dispatch_local_builder,
+    )
+
+
 # ---------------------------------------------------------------------------
 # CLI commands
 # ---------------------------------------------------------------------------
@@ -2044,12 +2097,17 @@ def main() -> None:
     parser.add_argument("--reason",        type=str,            help="Reason string for --reset-blocked")
     parser.add_argument("--resume",        action="store_true", help="Resume from parked state → parked_from state")
     parser.add_argument("--run-tests",     action="store_true", help="Run orchestrator test matrix")
-    parser.add_argument("--once",          action="store_true", help="Run one poll cycle then exit")
-    parser.add_argument("--loop",          action="store_true", help="Continuous poll loop (default)")
+    parser.add_argument("--once",          action="store_true", help="Run one Phase-C ledger event then exit")
+    parser.add_argument("--legacy-once",   action="store_true", help="Run one legacy status.json cycle then exit")
+    parser.add_argument("--ledger",        type=Path, default=DEFAULT_LEDGER_PATH, help="Phase-C ledger path")
+    parser.add_argument("--loop",          action="store_true", help="Deprecated; standing poll loops are disabled")
     args = parser.parse_args()
 
     if args.dry_run:
-        cmd_dry_run()
+        if args.legacy_once:
+            cmd_dry_run()
+        else:
+            run_phase_c_once(ledger_path=args.ledger, dry_run=True)
         return
 
     if args.reset_blocked:
@@ -2067,20 +2125,17 @@ def main() -> None:
         cmd_run_tests()
         return
 
-    if args.once:
+    if args.legacy_once:
         run_one_cycle()
         return
 
-    # Default / --loop: continuous poll
-    log("INIT", (
-        f"Orchestrator starting — poll={POLL_INTERVAL}s "
-        f"builder_timeout={BUILDER_TIMEOUT}s "
-        f"planner_timeout={PLANNER_TIMEOUT}s "
-        f"max_passes={MAX_PASSES}"
-    ))
-    while True:
-        run_one_cycle()
-        time.sleep(POLL_INTERVAL)
+    if args.loop:
+        print("ERROR: standing poll loops are disabled in Phase-C P0; use --once or an external event trigger", file=sys.stderr)
+        sys.exit(2)
+
+    result = run_phase_c_once(ledger_path=args.ledger)
+    if result.dispatched:
+        log("STATE", f"phase-c dispatched task={result.task_id}")
 
 
 if __name__ == "__main__":
