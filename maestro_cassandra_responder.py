@@ -41,12 +41,57 @@ class MaestroCassandraResult:
 
 
 HandleFn = Callable[[str, dict[str, Any] | None], Sequence[str]]
+HANDLE_BACKEND_ROUTE = "maestro_cassandra_responder.cassandra_brain.handle"
+DATE_BACKEND_ROUTE = "maestro_cassandra_responder.datetime_deterministic"
 
 
 def _default_handle(text: str, session: dict[str, Any] | None = None) -> Sequence[str]:
     from cassandra_brain import handle as cassandra_handle
 
     return cassandra_handle(text, session)
+
+
+def backend_route_for_result(result: MaestroCassandraResult) -> str:
+    if result.allowed_to_call_handle:
+        return HANDLE_BACKEND_ROUTE
+    if result.intent_class == "date_awareness":
+        return DATE_BACKEND_ROUTE
+    if result.intent_class:
+        return f"maestro_cassandra_responder.{result.intent_class}"
+    return "maestro_cassandra_responder.intent_gate"
+
+
+def proof_refs_for_result(result: MaestroCassandraResult, *base_refs: str) -> tuple[str, ...]:
+    refs: list[str] = [str(ref) for ref in base_refs if str(ref or "").strip()]
+    if result.intent_class:
+        refs.append(f"maestro_cassandra_responder:{result.intent_class}")
+    proof = result.machine_proof or {}
+    for key in ("proof_refs", "read_model_refs", "source_truth_refs"):
+        value = proof.get(key)
+        if isinstance(value, str) and value.strip():
+            refs.append(value.strip())
+        elif isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray, str)):
+            refs.extend(str(item).strip() for item in value if str(item).strip())
+    return tuple(dict.fromkeys(refs))
+
+
+def external_llm_invoked_for_result(result: MaestroCassandraResult) -> bool:
+    proof = result.machine_proof or {}
+    if proof.get("cassandra_handle_called") is not True:
+        return False
+    return proof.get("external_llm_invoked") is True
+
+
+def machine_proof_for_result(result: MaestroCassandraResult) -> dict[str, Any]:
+    proof = dict(result.machine_proof or {})
+    proof["external_llm_invoked"] = external_llm_invoked_for_result(result)
+    return proof
+
+
+def result_dict_for_receipt(result: MaestroCassandraResult) -> dict[str, Any]:
+    payload = result.to_dict()
+    payload["machine_proof"] = machine_proof_for_result(result)
+    return payload
 
 
 def filtered_session(session: Mapping[str, Any] | None = None) -> dict[str, Any]:

@@ -1756,6 +1756,13 @@ def _route_maestro_cassandra_conversation(
     if result.status != "ANSWER_READY":
         return None
 
+    backend_route = maestro_cassandra_responder.backend_route_for_result(result)
+    proof_refs = maestro_cassandra_responder.proof_refs_for_result(
+        result,
+        "generated/read_models/operator_controller_event_router_status.json",
+    )
+    external_llm_invoked = maestro_cassandra_responder.external_llm_invoked_for_result(result)
+    result_payload = maestro_cassandra_responder.result_dict_for_receipt(result)
     card = _card_response(
         receipt_id=receipt_id,
         event_type="chat_goal",
@@ -1766,11 +1773,11 @@ def _route_maestro_cassandra_conversation(
         current_world_ref=str(request.get("current_world_ref") or ""),
         current_thread_ref=str(request.get("current_thread_ref") or ""),
         actions=[],
-        proof_refs=["generated/read_models/operator_controller_event_router_status.json"],
+        proof_refs=list(proof_refs),
         tone="calm",
     )
     card["mac_render_hint"] = result.mac_render_hint
-    card["maestro_cassandra_responder"] = result.to_dict()
+    card["maestro_cassandra_responder"] = result_payload
     _attach_card_run_mode(
         card,
         _request_run_mode_context(request, generated_at),
@@ -1783,21 +1790,21 @@ def _route_maestro_cassandra_conversation(
         workflow_package_staged=False,
         workflow_package_request_v0_emitted=False,
         model_invoked=False,
-        external_llm_invoked=False,
+        external_llm_invoked=external_llm_invoked,
         local_model_runtime_connected=False,
         worker_spawn_performed=False,
         business_action_performed=False,
     )
-    machine_proof.update(dict(result.machine_proof or {}))
+    machine_proof.update(maestro_cassandra_responder.machine_proof_for_result(result))
     receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
     receipt.update(
         {
             "route_status": "TEXT_RESPONSE_READY",
             "raw_internal_status": RESPONSE_READY,
-            "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
+            "backend_route": backend_route,
             "route_ref": f"maestro_cassandra_{_short_hash(receipt_id, operator_text, length=12)}",
             "route_receipt_ref": receipt_id,
-            "route_result": result.to_dict(),
+            "route_result": result_payload,
             "primary_response_kind": "maestro_cassandra_chat_answer",
             "one_line_answer": result.one_line_answer,
             "plain_summary": result.plain_summary,

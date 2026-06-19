@@ -561,6 +561,7 @@
 !systemd/user/*.in
 !systemd/user/openclaw-read-model-import.service.in
 !systemd/user/openclaw-read-model-import.timer.in
+!maestro_listener.py
 
 !agent_task_proposals.py
 !dashboard_gen.py

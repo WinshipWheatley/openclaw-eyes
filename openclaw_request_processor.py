@@ -4916,6 +4916,14 @@ def _process_maestro_frontdoor_operator_instruction(
     if result.status != "ANSWER_READY":
         return None
 
+    backend_route = maestro_cassandra_responder.backend_route_for_result(result)
+    proof_refs = maestro_cassandra_responder.proof_refs_for_result(
+        result,
+        "generated/read_models/openclaw_request_processor_status.json",
+    )
+    external_llm_invoked = maestro_cassandra_responder.external_llm_invoked_for_result(result)
+    result_payload = maestro_cassandra_responder.result_dict_for_receipt(result)
+    machine_proof = maestro_cassandra_responder.machine_proof_for_result(result)
     request_id = str(raw_request.get("request_id") or raw_request.get("source_request_id") or f"missing_request_id_{request_path.stem}")
     current_world = str(
         raw_request.get("current_world_ref")
@@ -4946,8 +4954,8 @@ def _process_maestro_frontdoor_operator_instruction(
         "actions": [],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "proof": {
-            "proof_refs": ["generated/read_models/openclaw_request_processor_status.json"],
-            "machine_proof": dict(result.machine_proof or {}),
+            "proof_refs": list(proof_refs),
+            "machine_proof": machine_proof,
         },
     }
     detail = {
@@ -4961,7 +4969,7 @@ def _process_maestro_frontdoor_operator_instruction(
             "default_deny_preserved": True,
             "route_to_staging_when_not_answer_ready": True,
         },
-        "maestro_cassandra_responder": result.to_dict(),
+        "maestro_cassandra_responder": result_payload,
         "dynamic_card_response": card,
         "external_actions_locked": True,
         "model_or_worker_response_adapter_called": False,
@@ -4973,7 +4981,7 @@ def _process_maestro_frontdoor_operator_instruction(
         "ledger_mutation_performed": False,
         "workbook_mutation_performed": False,
         "paid_marking_performed": False,
-        "external_llm_invoked": False,
+        "external_llm_invoked": external_llm_invoked,
         "local_model_runtime_connected": False,
     }
     return OpenClawResponseForMac(
@@ -4990,7 +4998,7 @@ def _process_maestro_frontdoor_operator_instruction(
             "No workflow package was staged for this allowed answer.",
             "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, external LLM, local model runtime, worker, or business execution occurred.",
         ),
-        why_it_happened=f"The Maestro intent gate allowed {result.intent_class} before Cassandra handle ran.",
+        why_it_happened=f"The Maestro intent gate allowed {result.intent_class} through {backend_route}.",
         how_to_fix="No fix is needed. Review the Maestro answer and ask a follow-up if needed.",
         visible_cards=(card,),
         cards_available=True,
@@ -5004,7 +5012,7 @@ def _process_maestro_frontdoor_operator_instruction(
                 "selected_rail": "MAESTRO_CASSANDRA_RESPONDER",
                 "controller_event_type": "chat_goal",
                 "route_status": "TEXT_RESPONSE_READY",
-                "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
+                "backend_route": backend_route,
             },
         ),
         context_package_refs=(),

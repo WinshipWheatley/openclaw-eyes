@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -257,13 +258,13 @@ def test_router_answer_path_uses_maestro_receipt_and_no_authority_proof(monkeypa
         lambda text, *, session=None: maestro.MaestroCassandraResult(
             status="ANSWER_READY",
             intent_class="date_awareness",
-            allowed_to_call_handle=True,
+            allowed_to_call_handle=False,
             one_line_answer="Today is Tuesday.",
             plain_summary="Today is Tuesday, June 16, 2026.",
             session_forwarded=maestro.filtered_session(session),
             machine_proof={
                 "intent_gate_before_handle": True,
-                "cassandra_handle_called": True,
+                "cassandra_handle_called": False,
                 "email_send_performed": False,
                 "gmail_metadata_read_performed": False,
                 "telegram_send_triggered": False,
@@ -275,17 +276,20 @@ def test_router_answer_path_uses_maestro_receipt_and_no_authority_proof(monkeypa
     receipt = _route(tmp_path, _verified_chat_request("what's today's date?"))
 
     assert receipt["raw_internal_status"] == router.RESPONSE_READY
-    assert receipt["backend_route"] == "maestro_cassandra_responder.cassandra_brain.handle"
+    assert receipt["backend_route"] == "maestro_cassandra_responder.datetime_deterministic"
     assert receipt["route_status"] == "TEXT_RESPONSE_READY"
-    assert receipt["route_result"]["allowed_to_call_handle"] is True
+    assert receipt["route_result"]["allowed_to_call_handle"] is False
     assert receipt["one_line_answer"] == "Today is Tuesday."
     assert receipt["plain_summary"] == "Today is Tuesday, June 16, 2026."
     assert receipt["mac_render_hint"] == "COMPACT_WITH_DISCLOSURE"
     assert receipt["machine_proof"]["maestro_cassandra_responder_performed"] is True
+    assert receipt["machine_proof"]["cassandra_handle_called"] is False
+    assert receipt["machine_proof"]["external_llm_invoked"] is False
     assert receipt["machine_proof"]["gmail_access_performed"] is False
     assert receipt["machine_proof"]["email_send_performed"] is False
     assert receipt["dynamic_card_response"]["actions"] == []
     assert receipt["dynamic_card_response"]["authority_boundary"] == dict(router.AUTHORITY_BOUNDARY)
+    assert "maestro_cassandra_responder:date_awareness" in receipt["proof_refs"]
 
 
 def test_router_fallback_still_handles_action_intent_without_adapter_handle(monkeypatch, tmp_path):
@@ -379,13 +383,13 @@ def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeyp
         return maestro.MaestroCassandraResult(
             status="ANSWER_READY",
             intent_class="date_awareness",
-            allowed_to_call_handle=True,
+            allowed_to_call_handle=False,
             one_line_answer="Today is 2026-06-16 (Tuesday).",
             plain_summary="Today is 2026-06-16 (Tuesday).",
             session_forwarded=maestro.filtered_session(session),
             machine_proof={
                 "intent_gate_before_handle": True,
-                "cassandra_handle_called": True,
+                "cassandra_handle_called": False,
                 "email_send_performed": False,
                 "gmail_metadata_read_performed": False,
                 "telegram_send_triggered": False,
@@ -414,9 +418,11 @@ def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeyp
     assert response.operator_message == "Today is 2026-06-16 (Tuesday)."
     assert "Workflow package staged" not in response.operator_headline + response.operator_message
     assert response.detail_disclosure["maestro_frontdoor_routing"]["workflow_package_staged"] is False
-    assert response.detail_disclosure["maestro_cassandra_responder"]["allowed_to_call_handle"] is True
+    assert response.detail_disclosure["maestro_cassandra_responder"]["allowed_to_call_handle"] is False
+    assert response.detail_disclosure["external_llm_invoked"] is False
     assert response.detail_disclosure["workflow_package_staged"] is False
     assert response.visible_cards[0]["actions"] == []
+    assert "maestro_cassandra_responder:date_awareness" in response.visible_cards[0]["proof"]["proof_refs"]
     assert response.worker_route_refs == (
         {
             "selected_worker_target": "PC_CODEX",
@@ -425,7 +431,7 @@ def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeyp
             "selected_rail": "MAESTRO_CASSANDRA_RESPONDER",
             "controller_event_type": "chat_goal",
             "route_status": "TEXT_RESPONSE_READY",
-            "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
+            "backend_route": "maestro_cassandra_responder.datetime_deterministic",
         },
     )
     assert calls == [("what's today's date", {})]
@@ -484,3 +490,15 @@ def test_adapter_structural_imports_only_cassandra_handle_from_forbidden_family(
         "cassandra_sender",
     }
     assert forbidden_modules.isdisjoint(set(imported_modules))
+
+
+def test_gitignore_allows_pc_maestro_listener_source():
+    result = subprocess.run(
+        ["git", "check-ignore", "maestro_listener.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1, result.stdout + result.stderr
