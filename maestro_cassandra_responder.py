@@ -620,6 +620,16 @@ def _is_hermes_route_inventory_request(text: str) -> bool:
 
 
 def _is_hermes_capability_prompt(text: str) -> bool:
+    status_readback_phrases = (
+        "what's going on",
+        "whats going on",
+        "what is going on",
+        "what's happening",
+        "whats happening",
+        "what is happening",
+    )
+    if any(phrase in text for phrase in status_readback_phrases):
+        return False
     capability_phrases = (
         "what's your job",
         "whats your job",

@@ -336,7 +336,7 @@ def test_status_capability_query_answers_from_read_models_without_handle(tmp_pat
         raise AssertionError("status/capability readback must not call cassandra_brain.handle")
 
     result = maestro.answer_frontdoor_chat(
-        "OpenClaw, what's going on? What can you do now?",
+        "Hermes, what's going on? What can you do now?",
         session={
             "read_model_root": read_model_root.as_posix(),
             "system_knowledge_repo_root": "/home/openclaw",
