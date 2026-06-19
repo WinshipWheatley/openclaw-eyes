@@ -1,0 +1,23 @@
+{
+  "corpus_version": "mac_md_corpus_ingest_v0",
+  "db_path": "generated/system_knowledge/mac_md_corpus_developer.sqlite",
+  "excluded_path_count": 38,
+  "ingested_document_count": 790,
+  "legal_sensitive_exclusion_enforced": true,
+  "machine": "mac",
+  "no_authority_flags": {
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "finance_corpus_access_allowed": false,
+    "legal_discovery_access_allowed": false,
+    "model_call_allowed": false,
+    "musiclaw_corpus_access_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "tool_execution_allowed": false,
+    "truth_promotion_allowed": false
+  },
+  "root_path": "/Users/hwinshipwheatley/Developer",
+  "run_id": "mac_md_corpus_developer_20260618T2316",
+  "scanned_markdown_files": 790
+}
