@@ -1,0 +1,60 @@
+{
+  "db_path": "generated/system_knowledge/mac_md_corpus_eyes.sqlite",
+  "map_id": "mac_md_active_work_eyes_20260618T2319",
+  "map_version": "md_active_work_map_v0",
+  "no_authority_flags": {
+    "advisory_only": true,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "finance_corpus_access_allowed": false,
+    "legal_discovery_access_allowed": false,
+    "model_call_allowed": false,
+    "musiclaw_corpus_access_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "source_markdown_writeback_allowed": false,
+    "tool_execution_allowed": false,
+    "truth_claimed": false,
+    "truth_promotion_allowed": false
+  },
+  "open_document_count": 2,
+  "source_corpus_run_id": "mac_md_corpus_eyes_20260618T2313",
+  "staleness_run_id": "mac_md_staleness_eyes_20260618T2318",
+  "top_document_count": 2,
+  "top_documents": [
+    {
+      "git_last_commit": "005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2",
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-05-31T01:29:44+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 11,
+      "relative_path": "docs/planning/launch_ladder/05_EVIDENCE_AND_FRESHNESS.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "Evidence And Freshness",
+      "todo_marker_count": 1,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": "5e10b439318cbc94d051ee5f79ee3625ed8a1fe3",
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-05-31T01:29:44+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 11,
+      "relative_path": "docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/05_EVIDENCE_AND_FRESHNESS.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "Evidence And Freshness",
+      "todo_marker_count": 1,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    }
+  ]
+}
