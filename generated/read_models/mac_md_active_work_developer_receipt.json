@@ -1,0 +1,128 @@
+{
+  "db_path": "generated/system_knowledge/mac_md_corpus_developer.sqlite",
+  "map_id": "mac_md_active_work_developer_20260618T2323",
+  "map_version": "md_active_work_map_v0",
+  "no_authority_flags": {
+    "advisory_only": true,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "finance_corpus_access_allowed": false,
+    "legal_discovery_access_allowed": false,
+    "model_call_allowed": false,
+    "musiclaw_corpus_access_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "source_markdown_writeback_allowed": false,
+    "tool_execution_allowed": false,
+    "truth_claimed": false,
+    "truth_promotion_allowed": false
+  },
+  "open_document_count": 6,
+  "source_corpus_run_id": "mac_md_corpus_developer_20260618T2316",
+  "staleness_run_id": "mac_md_staleness_developer_20260618T2321",
+  "top_document_count": 6,
+  "top_documents": [
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-05-18T19:12:49+00:00",
+      "open_task_count": 37,
+      "outbound_link_count": 0,
+      "priority_score": 375,
+      "relative_path": "Struna Obscura/Struna Obscura/DRAPER_SOURCE_AUDITION_WORKSHEET.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "Draper Source Audition Worksheet",
+      "todo_marker_count": 0,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-05-18T20:31:50+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 35,
+      "relative_path": "Struna Obscura/Struna Obscura/EGUI_TO_SWIFTUI_CONTROL_MAP.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "EGUI to SwiftUI Control Map",
+      "todo_marker_count": 5,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-05-18T20:31:56+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 29,
+      "relative_path": "Struna Obscura/Struna Obscura/EGUI_TAB_PARITY_MAP.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "EGUI Tab Parity Map",
+      "todo_marker_count": 4,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-05-18T20:31:39+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 17,
+      "relative_path": "Struna Obscura/Struna Obscura/PORTING_NOTES.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "Struna Obscura Porting Notes",
+      "todo_marker_count": 2,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-05-14T04:35:45+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 11,
+      "relative_path": "OpenClawBackend/openclaw/docs/planning/launch_ladder/05_EVIDENCE_AND_FRESHNESS.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "Evidence And Freshness",
+      "todo_marker_count": 1,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    },
+    {
+      "git_last_commit": null,
+      "inbound_link_count": 0,
+      "mtime_iso": "2026-05-14T04:35:45+00:00",
+      "open_task_count": 0,
+      "outbound_link_count": 0,
+      "priority_score": 11,
+      "relative_path": "OpenClawBackend/openclaw/docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/05_EVIDENCE_AND_FRESHNESS.md",
+      "staleness_reasons": [
+        "open_todo_or_task"
+      ],
+      "staleness_status": "active_with_open_tasks",
+      "title": "Evidence And Freshness",
+      "todo_marker_count": 1,
+      "truth_claimed": false,
+      "writeback_allowed": false
+    }
+  ]
+}
