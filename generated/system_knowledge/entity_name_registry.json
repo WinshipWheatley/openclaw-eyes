@@ -1,0 +1,244 @@
+{
+  "generated_at": "2026-06-19T17:26:11+00:00",
+  "machine_proof": {
+    "bank_finance_vault_default_surface": "NONE",
+    "bank_ledger_read_performed": false,
+    "ledger_referent_count": 6,
+    "metadata_only": true,
+    "sqlite_database_opened": false,
+    "vault_path_constructed": false
+  },
+  "names": {
+    "inbox": [
+      {
+        "aliases": [
+          "gmail inbox",
+          "email inbox",
+          "mail inbox"
+        ],
+        "default_surface": "gmail",
+        "display_name": "Gmail inbox",
+        "location": "GMAIL_CONNECTOR_METADATA_ONLY",
+        "namespace": "gmail",
+        "read_authority": "existing_gmail_metadata_staging_only",
+        "referent_id": "gmail_inbox",
+        "sensitivity": "operational",
+        "sensitivity_source": "verified_source_ref_operational_default",
+        "source_refs": [
+          "business_ops_intent.py"
+        ],
+        "sqlite_governance_registry_rows": []
+      },
+      {
+        "aliases": [
+          "bus inbox",
+          "mission control inbox",
+          "mission-control inbox"
+        ],
+        "default_surface": "mission_control",
+        "display_name": "Mission-control bus inbox",
+        "location": "mission_control_capture_requests/inbox",
+        "namespace": "mission_control_bus",
+        "read_authority": "local_metadata_only",
+        "referent_id": "bus_inbox",
+        "sensitivity": "operational",
+        "sensitivity_source": "verified_source_ref_operational_default",
+        "source_refs": [
+          "openclaw_request_processor.py:53"
+        ],
+        "sqlite_governance_registry_rows": []
+      },
+      {
+        "aliases": [
+          "operator action inbox",
+          "operator-action inbox",
+          "action inbox"
+        ],
+        "default_surface": "operator_action",
+        "display_name": "Operator action inbox",
+        "location": "operator_action_inbox",
+        "namespace": "operator_action",
+        "read_authority": "local_metadata_only",
+        "referent_id": "operator_action_inbox",
+        "sensitivity": "operational",
+        "sensitivity_source": "verified_source_ref_operational_default",
+        "source_refs": [
+          "operator_action_inbox.py"
+        ],
+        "sqlite_governance_registry_rows": []
+      }
+    ],
+    "ledger": [
+      {
+        "aliases": [
+          "business ops ledger",
+          "business-ops ledger",
+          "business_ops ledger",
+          "ops ledger"
+        ],
+        "default_surface": "business_ops",
+        "display_name": "Business Ops ledger",
+        "location": ".openclaw/business_ops/ledger.sqlite",
+        "namespace": "business_ops",
+        "read_authority": "metadata_or_approved_read_only",
+        "referent_id": "business_ops",
+        "sensitivity": "operational",
+        "sensitivity_source": "sqlite_governance_registry",
+        "source_refs": [
+          "business_ops_ledger.py:16"
+        ],
+        "sqlite_governance_registry_rows": [
+          {
+            "canonical_truth_allowed": true,
+            "classification": "protected_business_ledger",
+            "consolidation_risk": "forbidden",
+            "db_ref": "sqlite_db:sha256:4ec6ea93a82e6906",
+            "owner_lane": "business_ops",
+            "path": "/home/openclaw/.openclaw/business_ops/ledger.sqlite",
+            "purpose": "business ledger or test ledger",
+            "writable_by_automation": false
+          }
+        ]
+      },
+      {
+        "aliases": [
+          "control plane ledger",
+          "control-plane ledger",
+          "polish loop ledger",
+          "polish-loop ledger"
+        ],
+        "default_surface": "polish_loop",
+        "display_name": "Polish loop control-plane ledger",
+        "location": "polish_loop/control_plane.sqlite3",
+        "namespace": "control_plane",
+        "read_authority": "metadata_or_approved_read_only",
+        "referent_id": "control_plane",
+        "sensitivity": "operational",
+        "sensitivity_source": "verified_source_ref_operational_default",
+        "source_refs": [
+          "polish_loop/control_plane.sqlite3"
+        ],
+        "sqlite_governance_registry_rows": []
+      },
+      {
+        "aliases": [
+          "gate decision ledger",
+          "gate-decision ledger",
+          "governance ledger",
+          "gate ledger"
+        ],
+        "default_surface": "governance",
+        "display_name": "Gate decision ledger",
+        "location": "generated/system_knowledge/gate_decision_ledger.sqlite",
+        "namespace": "gate_decision",
+        "read_authority": "metadata_or_approved_read_only",
+        "referent_id": "gate_decision",
+        "sensitivity": "operational",
+        "sensitivity_source": "verified_source_ref_operational_default",
+        "source_refs": [
+          "gate_decision_ledger.py:26"
+        ],
+        "sqlite_governance_registry_rows": []
+      },
+      {
+        "aliases": [
+          "receipt ledger",
+          "receipts ledger",
+          "proof ledger",
+          "proof receipts ledger"
+        ],
+        "default_surface": "proof",
+        "display_name": "Proof and receipts ledger",
+        "location": "generated/system_knowledge/proof_to_response_runtime.sqlite; generated/system_knowledge/universal_receipts.sqlite",
+        "namespace": "receipts",
+        "read_authority": "metadata_or_approved_read_only",
+        "referent_id": "receipts",
+        "sensitivity": "operational",
+        "sensitivity_source": "verified_source_ref_operational_default",
+        "source_refs": [
+          "proof_to_response_runtime.py:29",
+          "universal_receipt_envelope.py:26"
+        ],
+        "sqlite_governance_registry_rows": []
+      },
+      {
+        "aliases": [
+          "gig ledger",
+          "invoice ledger",
+          "work log ledger",
+          "work-log ledger",
+          "capital hilton ledger",
+          "st anne ledger",
+          "st anne's ledger",
+          "st annes ledger"
+        ],
+        "default_surface": "finance",
+        "display_name": "Gig invoice and work-log ledger",
+        "location": "generated/system_knowledge/capital_hilton_invoice_operator_run_status.sqlite; generated/system_knowledge/st_annes_invoice_status.sqlite; generated/system_knowledge/st_annes_monthly_work_log.sqlite",
+        "namespace": "invoice_operations",
+        "read_authority": "metadata_or_approved_read_only",
+        "referent_id": "gig_invoice",
+        "sensitivity": "operational",
+        "sensitivity_source": "sqlite_governance_registry",
+        "source_refs": [
+          "capital_hilton_invoice_operator_run_status.py",
+          "st_annes_invoice_status.py",
+          "finance_state.py:8"
+        ],
+        "sqlite_governance_registry_rows": [
+          {
+            "canonical_truth_allowed": false,
+            "classification": "generated_evidence",
+            "consolidation_risk": "medium",
+            "db_ref": "sqlite_db:sha256:2b29a2b022a087ef",
+            "owner_lane": "invoice_operations",
+            "path": "/home/openclaw/generated/system_knowledge/capital_hilton_invoice_operator_run_status.sqlite",
+            "purpose": "invoice status or invoice review evidence",
+            "writable_by_automation": false
+          }
+        ]
+      },
+      {
+        "aliases": [
+          "bank ledger",
+          "finance ledger",
+          "financial ledger",
+          "bank finance ledger",
+          "vault ledger"
+        ],
+        "default_surface": "NONE",
+        "display_name": "Bank and finance vault ledger",
+        "location": "VAULT_WALL_REFERENT_ONLY_NO_PATH",
+        "namespace": "bank_finance_vault",
+        "read_authority": "requires_operator_proof",
+        "referent_id": "bank_finance_vault",
+        "sensitivity": "sensitive-vault",
+        "sensitivity_source": "sqlite_governance_registry",
+        "source_refs": [
+          "OPENCLAW_RUNTIME.md:52",
+          "maestro_cassandra_responder.py:41",
+          "fabric_peer.py:134"
+        ],
+        "sqlite_governance_registry_rows": [
+          {
+            "canonical_truth_allowed": true,
+            "classification": "canonical_workflow_state",
+            "consolidation_risk": "forbidden",
+            "db_ref": "sqlite_db:sha256:3dd6aed999a0be61",
+            "owner_lane": "privacy",
+            "path": "/home/openclaw/.openclaw/privacy/token_vault.sqlite",
+            "purpose": "privacy token vault",
+            "writable_by_automation": false
+          }
+        ]
+      }
+    ]
+  },
+  "read_model_id": "entity_name_registry",
+  "schema_version": "entity_name_registry_v0",
+  "source_refs": [
+    "generated/read_models/sqlite_governance_registry.json",
+    "/mnt/e/openclaw/orchestration/_LAUNCH-NAME-DISAMBIGUATION-ledger.md",
+    "OPENCLAW_RUNTIME.md:52"
+  ]
+}

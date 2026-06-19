@@ -14,6 +14,15 @@ from pathlib import Path
 import re
 from typing import Any, Callable, Mapping, Sequence
 
+from overloaded_name_resolver import (
+    AMBIGUOUS,
+    AMBIGUOUS_SENSITIVE,
+    RESOLVED,
+    Resolution,
+    disambiguation_options,
+    resolve_overloaded_name,
+)
+
 
 MAC_RENDER_HINT = "COMPACT_WITH_DISCLOSURE"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
@@ -43,6 +52,27 @@ FORBIDDEN_PRIVATE_SUFFIXES = (
     "FinancePrivate",
     "MusicLawPrivate",
 )
+RESOLVER_CONTEXT_KEYS = (
+    "active_surface_ref",
+    "activeSurfaceRef",
+    "source_surface",
+    "current_world_ref",
+    "currentWorldRef",
+    "world_ref",
+    "worldRef",
+    "world",
+    "current_thread_ref",
+    "currentThreadRef",
+    "thread_ref",
+    "threadRef",
+    "client_ref",
+    "clientRef",
+    "workflow_ref",
+    "workflowRef",
+    "explicit_qualifier",
+    "qualifier",
+)
+OVERLOADED_NAME_RESOLVER_ENABLED = True
 
 
 @dataclass(frozen=True)
@@ -56,11 +86,13 @@ class MaestroCassandraResult:
     route_to_staging_reason: str = ""
     session_forwarded: Mapping[str, Any] | None = None
     machine_proof: Mapping[str, Any] | None = None
+    disambiguation_options: Sequence[Mapping[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["session_forwarded"] = dict(self.session_forwarded or {})
         payload["machine_proof"] = dict(self.machine_proof or {})
+        payload["disambiguation_options"] = [dict(option) for option in (self.disambiguation_options or ())]
         return payload
 
 
@@ -177,15 +209,40 @@ def filtered_session(session: Mapping[str, Any] | None = None) -> dict[str, Any]
     return filtered
 
 
+def _safe_context_value(value: Any) -> str | None:
+    if value in ("", None):
+        return None
+    if not isinstance(value, (str, int, float, bool)):
+        return None
+    text = str(value).strip()
+    if not text or _has_forbidden_path_marker(text):
+        return None
+    if "/" in text or "\\" in text:
+        return None
+    return text[:160]
+
+
+def _add_resolver_context_value(session: dict[str, Any], key: str, value: Any) -> None:
+    if key not in RESOLVER_CONTEXT_KEYS:
+        return
+    safe_value = _safe_context_value(value)
+    if safe_value is not None:
+        session[key] = safe_value
+
+
 def session_from_request(request: Mapping[str, Any]) -> dict[str, Any]:
     session: dict[str, Any] = {}
     for key in SESSION_PATH_KEY_ALIASES:
         _add_safe_session_value(session, key, request.get(key))
+    for key in RESOLVER_CONTEXT_KEYS:
+        _add_resolver_context_value(session, key, request.get(key))
     context = request.get("context") if isinstance(request.get("context"), Mapping) else {}
     current_context = request.get("current_context") if isinstance(request.get("current_context"), Mapping) else {}
     for source in (context, current_context):
         for key in SESSION_PATH_KEY_ALIASES:
             _add_safe_session_value(session, key, source.get(key))
+        for key in RESOLVER_CONTEXT_KEYS:
+            _add_resolver_context_value(session, key, source.get(key))
     return session
 
 
@@ -216,7 +273,12 @@ def operator_text_from_request(request: Mapping[str, Any]) -> str:
     return ""
 
 
-def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
+def classify_frontdoor_intent(
+    text: str,
+    context: Mapping[str, Any] | None = None,
+    *,
+    resolver_enabled: bool = OVERLOADED_NAME_RESOLVER_ENABLED,
+) -> tuple[str, bool, str]:
     normalized = _normalize(text)
     if not normalized:
         return ("empty", False, "empty_text")
@@ -224,6 +286,14 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("send_reply_email_action", False, "send_reply_email_action_intent_routes_to_staging")
     if _is_inbox_metadata_intent(normalized):
         return ("inbox_gmail_metadata", False, "gmail_metadata_queries_use_existing_staging_path_for_truthful_proof")
+    resolution = _resolve_overloaded_reference(normalized, context, resolver_enabled=resolver_enabled)
+    if resolution is not None:
+        if resolution.status == AMBIGUOUS_SENSITIVE:
+            return ("ambiguous_sensitive_reference", False, resolution.reason)
+        if resolution.status == AMBIGUOUS:
+            return ("ambiguous_reference", False, resolution.reason)
+        if resolution.status == RESOLVED and _is_read_only_reference_intent(normalized):
+            return ("resolved_reference_readback", False, resolution.reason)
     if _is_workflow_or_business_action_intent(normalized):
         return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     if _is_date_awareness_intent(normalized):
@@ -240,9 +310,25 @@ def answer_frontdoor_chat(
     *,
     session: Mapping[str, Any] | None = None,
     handle_fn: HandleFn | None = None,
+    resolver_enabled: bool = OVERLOADED_NAME_RESOLVER_ENABLED,
 ) -> MaestroCassandraResult:
-    intent_class, allowed, reason = classify_frontdoor_intent(text)
+    intent_class, allowed, reason = classify_frontdoor_intent(text, context=session, resolver_enabled=resolver_enabled)
     forwarded_session = filtered_session(session)
+    overloaded_resolution = _resolve_overloaded_reference(_normalize(text), session, resolver_enabled=resolver_enabled)
+    if intent_class in {"ambiguous_sensitive_reference", "ambiguous_reference", "resolved_reference_readback"} and overloaded_resolution is not None:
+        proof = _adapter_machine_proof(handle_called=False) | _overloaded_reference_machine_proof(overloaded_resolution)
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=_overloaded_reference_one_line(overloaded_resolution),
+            plain_summary=_overloaded_reference_plain_summary(overloaded_resolution),
+            mac_render_hint=MAC_RENDER_HINT,
+            route_to_staging_reason=reason,
+            session_forwarded=forwarded_session,
+            machine_proof=proof,
+            disambiguation_options=disambiguation_options(overloaded_resolution),
+        )
     if not allowed:
         return MaestroCassandraResult(
             status="ROUTE_TO_STAGING",
@@ -323,6 +409,91 @@ def _adapter_machine_proof(*, handle_called: bool) -> dict[str, Any]:
         "send_authority_added": False,
         "used_ad_hoc_memory_as_authority": False,
         "text_response_only": True,
+    }
+
+
+def _resolve_overloaded_reference(
+    normalized_text: str,
+    context: Mapping[str, Any] | None,
+    *,
+    resolver_enabled: bool = OVERLOADED_NAME_RESOLVER_ENABLED,
+) -> Resolution | None:
+    if not resolver_enabled:
+        return None
+    if not re.search(r"\b(ledger|inbox)\b", normalized_text):
+        return None
+    resolution = resolve_overloaded_name(normalized_text, context or {})
+    if not resolution.name:
+        return None
+    return resolution
+
+
+def _is_read_only_reference_intent(text: str) -> bool:
+    read_terms = (
+        "check",
+        "show",
+        "read",
+        "look at",
+        "look up",
+        "status",
+        "summarize",
+        "tell me",
+        "what is",
+        "whats",
+        "view",
+    )
+    mutation_terms = (
+        "post",
+        "write",
+        "mutate",
+        "mark paid",
+        "pay",
+        "submit",
+        "create",
+        "make",
+        "generate",
+        "approve",
+        "deny",
+    )
+    return any(term in text for term in read_terms) and not any(term in text for term in mutation_terms)
+
+
+def _overloaded_reference_one_line(resolution: Resolution) -> str:
+    if resolution.status == RESOLVED:
+        option = disambiguation_options(resolution)[0]
+        return f"I resolved {resolution.name} to {option['display_name']}; no action ran."
+    if resolution.status == AMBIGUOUS_SENSITIVE:
+        return f"{resolution.name.title()} is ambiguous and includes a sensitive-vault option; no action ran."
+    return f"{resolution.name.title()} is ambiguous; please choose which one you mean."
+
+
+def _overloaded_reference_plain_summary(resolution: Resolution) -> str:
+    lines = [resolution.prompt]
+    lines.append("No Cassandra handler call, external send, ledger mutation, workbook mutation, or vault read ran.")
+    if resolution.candidates:
+        lines.append("")
+        lines.append("Options:")
+        for option in disambiguation_options(resolution):
+            lines.append(
+                "- {display_name} ({referent_id}; sensitivity={sensitivity}; surface={default_surface})".format(
+                    **option
+                )
+            )
+    return "\n".join(lines)
+
+
+def _overloaded_reference_machine_proof(resolution: Resolution) -> dict[str, Any]:
+    return {
+        "overloaded_name_resolver_used": True,
+        "overloaded_name_status": resolution.status,
+        "overloaded_name": resolution.name,
+        "resolved_referent_id": resolution.resolved_referent_id,
+        "sqlite_database_opened": False,
+        "vault_path_constructed": False,
+        "bank_ledger_read_performed": False,
+        "ledger_mutation_performed": False,
+        "workflow_package_staged": False,
+        "disambiguation_required": resolution.status in {AMBIGUOUS, AMBIGUOUS_SENSITIVE},
     }
 
 
@@ -575,7 +746,7 @@ def _is_status_capability_intent(text: str) -> bool:
 
 def _is_inbox_metadata_intent(text: str) -> bool:
     return bool(
-        re.search(r"\b(gmail|inbox|unread|email metadata|new emails?|recent emails?)\b", text)
+        re.search(r"\b(gmail|unread|email metadata|new emails?|recent emails?|emails?)\b", text)
         and not _is_send_or_reply_intent(text)
     )
 
