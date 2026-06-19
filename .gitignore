@@ -69,6 +69,8 @@
 !context_selection.py
 !mac_mirror_atlas.py
 !read_model_shuttle.py
+!home_fabric.json
+!fabric_peer.py
 !report_bridge.py
 !operator_action.py
 !operator_action_event_journal.py
@@ -1109,6 +1111,7 @@
 !tests/test_helm_calm_surface.py
 !tests/test_external_system_knowledge_registry_materializer.py
 !tests/test_openclaw_context_wiki_compiler.py
+!tests/test_home_fabric.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md

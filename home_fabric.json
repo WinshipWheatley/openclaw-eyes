@@ -1,0 +1,54 @@
+{
+  "schema_version": "openclaw_home_fabric_v1",
+  "source": "orchestration/CROSS_SYSTEM_FABRIC.md",
+  "nodes": {
+    "pc": {
+      "host": "pc",
+      "mdns_hostname": "pc.local",
+      "role": "Backend and compute node. Runs the live WSL2 backend, request-response services, listeners, and PHASE-C control plane.",
+      "working_tree": "/home/openclaw",
+      "vault_exclude_list": [
+        "*LegalPrivate/*",
+        "*FinancePrivate/*",
+        "*MusicLawPrivate/*",
+        "/mnt/c/OpenClawLegalPrivate/*",
+        ".chief.env",
+        "*/.chief.env",
+        ".google-secrets/*",
+        "*/.google-secrets/*"
+      ]
+    },
+    "mac": {
+      "host": "mac2",
+      "mdns_hostname": "Hs-MBP-2.local",
+      "role": "Operator surface and actuation node. Hosts Mission Control, Mac app work, Obsidian surface, and computer-use work.",
+      "working_tree": "~/Eyes",
+      "vault_exclude_list": [
+        "*LegalPrivate/*",
+        "*FinancePrivate/*",
+        "*MusicLawPrivate/*",
+        "/mnt/c/OpenClawLegalPrivate/*",
+        ".chief.env",
+        "*/.chief.env",
+        ".google-secrets/*",
+        "*/.google-secrets/*"
+      ]
+    },
+    "home-server": {
+      "host": "home-server",
+      "mdns_hostname": "home-server.local",
+      "role": "Future always-on home fabric node for heavy compute or durable local services. Not active until provisioned.",
+      "working_tree": "TBD",
+      "vault_exclude_list": [
+        "*LegalPrivate/*",
+        "*FinancePrivate/*",
+        "*MusicLawPrivate/*",
+        "/mnt/c/OpenClawLegalPrivate/*",
+        ".chief.env",
+        "*/.chief.env",
+        ".google-secrets/*",
+        "*/.google-secrets/*"
+      ]
+    }
+  }
+}
