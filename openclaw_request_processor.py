@@ -4916,6 +4916,7 @@ def _process_maestro_frontdoor_operator_instruction(
     if result.status != "ANSWER_READY":
         return None
 
+    backend_route = maestro_cassandra_responder.backend_route_for_result(result)
     request_id = str(raw_request.get("request_id") or raw_request.get("source_request_id") or f"missing_request_id_{request_path.stem}")
     current_world = str(
         raw_request.get("current_world_ref")
@@ -4946,7 +4947,10 @@ def _process_maestro_frontdoor_operator_instruction(
         "actions": [],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "proof": {
-            "proof_refs": ["generated/read_models/openclaw_request_processor_status.json"],
+            "proof_refs": [
+                "generated/read_models/openclaw_request_processor_status.json",
+                *tuple((result.machine_proof or {}).get("source_truth_refs") or ()),
+            ],
             "machine_proof": dict(result.machine_proof or {}),
         },
     }
@@ -4990,7 +4994,9 @@ def _process_maestro_frontdoor_operator_instruction(
             "No workflow package was staged for this allowed answer.",
             "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, external LLM, local model runtime, worker, or business execution occurred.",
         ),
-        why_it_happened=f"The Maestro intent gate allowed {result.intent_class} before Cassandra handle ran.",
+        why_it_happened=(
+            f"The Maestro intent gate produced {result.intent_class} through `{backend_route}` before workflow-package staging."
+        ),
         how_to_fix="No fix is needed. Review the Maestro answer and ask a follow-up if needed.",
         visible_cards=(card,),
         cards_available=True,
@@ -5004,7 +5010,7 @@ def _process_maestro_frontdoor_operator_instruction(
                 "selected_rail": "MAESTRO_CASSANDRA_RESPONDER",
                 "controller_event_type": "chat_goal",
                 "route_status": "TEXT_RESPONSE_READY",
-                "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
+                "backend_route": backend_route,
             },
         ),
         context_package_refs=(),

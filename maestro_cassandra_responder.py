@@ -9,11 +9,17 @@ handler through this front-door path.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import json
+from pathlib import Path
 import re
 from typing import Any, Callable, Mapping, Sequence
 
 
 MAC_RENDER_HINT = "COMPACT_WITH_DISCLOSURE"
+DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
+CAPABILITY_INDEX_READ_MODEL = "openclaw_capability_index.json"
+AGENT_PRESENCE_READ_MODEL = "agent_presence.json"
+CHIEF_STATUS_READ_MODEL = "chief_status_rail.json"
 ALLOWED_SESSION_KEYS = (
     "system_knowledge_repo_root",
     "system_knowledge_ledger_path",
@@ -112,6 +118,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     if _is_date_awareness_intent(normalized):
         return ("date_awareness", True, "")
+    if _is_status_capability_intent(normalized):
+        return ("status_capability_readback", True, "")
     if _is_system_knowledge_intent(normalized):
         return ("system_knowledge", True, "")
     return ("unapproved_conversation", False, "conversation_not_in_curated_safe_subset")
@@ -152,6 +160,19 @@ def answer_frontdoor_chat(
             machine_proof=_adapter_machine_proof(handle_called=False),
         )
 
+    if intent_class == "status_capability_readback":
+        answer = build_truthful_status_capability_answer(session=session)
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=answer["one_line_answer"],
+            plain_summary=answer["plain_summary"],
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
+        )
+
     replies = list((handle_fn or _default_handle)(text, forwarded_session or None))
     plain_summary = _plain_summary(replies)
     return MaestroCassandraResult(
@@ -173,6 +194,10 @@ def _adapter_machine_proof(*, handle_called: bool) -> dict[str, Any]:
         "intent_gate_before_handle": True,
         "gmail_metadata_queries_route_to_staging": True,
         "send_reply_action_intent_routes_to_staging": True,
+        "status_capability_readback_performed": False,
+        "capability_index_used": False,
+        "agent_presence_used": False,
+        "chief_status_rail_used": False,
         "email_send_performed": False,
         "telegram_send_triggered": False,
         "gmail_reply_sent": False,
@@ -189,6 +214,178 @@ def _adapter_machine_proof(*, handle_called: bool) -> dict[str, Any]:
         "used_ad_hoc_memory_as_authority": False,
         "text_response_only": True,
     }
+
+
+def backend_route_for_result(result: MaestroCassandraResult) -> str:
+    if result.allowed_to_call_handle:
+        return "maestro_cassandra_responder.cassandra_brain.handle"
+    if result.intent_class == "date_awareness":
+        return "maestro_cassandra_responder.deterministic_date_awareness"
+    if result.intent_class == "status_capability_readback":
+        return "maestro_cassandra_responder.truthful_status_capability_readback"
+    return "maestro_cassandra_responder.intent_gate"
+
+
+def build_truthful_status_capability_answer(*, session: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    root = _read_model_root_from_session(session)
+    capability_payload, capability_path = _read_json_read_model(root, CAPABILITY_INDEX_READ_MODEL)
+    presence_payload, presence_path = _read_json_read_model(root, AGENT_PRESENCE_READ_MODEL)
+    chief_payload, chief_path = _read_json_read_model(root, CHIEF_STATUS_READ_MODEL)
+
+    capabilities = [
+        row
+        for row in capability_payload.get("generic_capabilities", ())
+        if isinstance(row, Mapping)
+    ]
+    live_capabilities = [
+        row
+        for row in capabilities
+        if str(row.get("capability_status") or "") == "LIVE_IMPLEMENTED"
+    ]
+    nonexecuting_capabilities = [
+        row
+        for row in capabilities
+        if str(row.get("capability_status") or "") in {"IMPLEMENTED_NON_EXECUTING", "READ_MODEL_ONLY"}
+    ]
+    blocked_or_future = [
+        row
+        for row in capabilities
+        if str(row.get("capability_status") or "")
+        in {"CONTRACT_ONLY", "FUTURE_GATED", "BLOCKED_UNSAFE", "PROPOSED_CANDIDATE"}
+    ]
+    agents = [
+        row
+        for row in presence_payload.get("agents", ())
+        if isinstance(row, Mapping)
+    ]
+    online_agents = [
+        row
+        for row in agents
+        if str(row.get("actual_state") or "").lower() == "online"
+    ]
+    proof_refs = tuple(
+        path.as_posix()
+        for payload, path in (
+            (capability_payload, capability_path),
+            (presence_payload, presence_path),
+            (chief_payload, chief_path),
+        )
+        if payload
+    )
+
+    if not capability_payload:
+        one_line = "I cannot truthfully list capabilities yet because the capability index read model is missing."
+        plain = "\n".join(
+            [
+                one_line,
+                "",
+                "I will not invent a capability list. Ask again after `generated/read_models/openclaw_capability_index.json` is present.",
+            ]
+        )
+    else:
+        online_phrase = (
+            f"{len(online_agents)} agents are online in the presence read model"
+            if presence_payload
+            else "agent presence is unverified in this readback"
+        )
+        one_line = (
+            f"OpenClaw status: {online_phrase}; "
+            f"{len(live_capabilities)} live-implemented rails and "
+            f"{len(nonexecuting_capabilities)} non-executing readback rails are listed."
+        )
+        live_names = _capability_names(live_capabilities, limit=5)
+        nonexec_names = _capability_names(nonexecuting_capabilities, limit=5)
+        blocked_names = _capability_names(blocked_or_future, limit=4)
+        chief_summary = _chief_status_summary(chief_payload)
+        lines = [
+            "Here is the truthful readback from current generated state.",
+            "",
+            f"- Status: {online_phrase}.",
+            f"- Proven live-implemented rails: {_join_names(live_names)}.",
+            f"- Safe non-executing readback rails: {_join_names(nonexec_names)}.",
+        ]
+        if chief_summary:
+            lines.append(f"- Chief: {chief_summary}.")
+        if blocked_names:
+            lines.append(f"- Not claimed as usable here: {_join_names(blocked_names)}.")
+        lines.extend(
+            [
+                "- From this chat, I can answer status and capability questions from those read models.",
+                "- I cannot claim email send, Gmail read, browser/Coupa access, workflow execution, deploy, restart, merge, payment, or ledger mutation from this front door.",
+                f"- Proof refs: {_join_names(proof_refs)}.",
+            ]
+        )
+        plain = "\n".join(lines)
+
+    return {
+        "one_line_answer": _one_line_answer(one_line),
+        "plain_summary": plain,
+        "machine_proof": {
+            "status_capability_readback_performed": True,
+            "capability_index_used": bool(capability_payload),
+            "agent_presence_used": bool(presence_payload),
+            "chief_status_rail_used": bool(chief_payload),
+            "source_truth_refs": proof_refs,
+            "live_implemented_capability_count": len(live_capabilities),
+            "nonexecuting_capability_count": len(nonexecuting_capabilities),
+            "blocked_or_future_capability_count": len(blocked_or_future),
+            "live_implemented_capability_ids": tuple(
+                str(row.get("capability_id") or "") for row in live_capabilities
+            ),
+            "nonexecuting_capability_ids": tuple(
+                str(row.get("capability_id") or "") for row in nonexecuting_capabilities
+            ),
+            "blocked_or_future_capability_ids_not_claimed": tuple(
+                str(row.get("capability_id") or "") for row in blocked_or_future
+            ),
+            "capability_claims_derived_from_read_models": True,
+            "unverified_capability_claims_filtered": True,
+            "external_send_performed": False,
+            "runtime_execution_triggered": False,
+        },
+    }
+
+
+def _read_model_root_from_session(session: Mapping[str, Any] | None) -> Path:
+    if isinstance(session, Mapping):
+        for key in ("read_model_root", "read_model_root_path", "generated_read_model_root"):
+            value = session.get(key)
+            if isinstance(value, str) and value.strip():
+                return Path(value)
+    return DEFAULT_READ_MODEL_ROOT
+
+
+def _read_json_read_model(root: Path, filename: str) -> tuple[dict[str, Any], Path]:
+    path = root / filename
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}, path
+    return (payload if isinstance(payload, dict) else {}), path
+
+
+def _capability_names(rows: Sequence[Mapping[str, Any]], *, limit: int) -> tuple[str, ...]:
+    names = [
+        str(row.get("capability_name") or row.get("capability_id") or "").strip()
+        for row in rows
+        if str(row.get("capability_name") or row.get("capability_id") or "").strip()
+    ]
+    return tuple(names[:limit])
+
+
+def _join_names(names: Sequence[str]) -> str:
+    return ", ".join(str(name) for name in names if str(name).strip()) or "none verified"
+
+
+def _chief_status_summary(payload: Mapping[str, Any]) -> str:
+    if not payload:
+        return ""
+    status = str(payload.get("chief_current_status") or payload.get("rail_status") or "").strip()
+    role = payload.get("chief_current_proven_role")
+    role_summary = str(role.get("role_summary") or "").strip() if isinstance(role, Mapping) else ""
+    if status and role_summary:
+        return f"{status}; {role_summary}"
+    return status or role_summary
 
 
 def _plain_summary(replies: Sequence[str]) -> str:
@@ -242,6 +439,37 @@ def _is_system_knowledge_intent(text: str) -> bool:
     return (
         any(term in text for term in ("system", "openclaw", "registry"))
         and any(term in text for term in ("shape", "know", "known", "unknown", "capability", "component", "orbit", "orphan"))
+    )
+
+
+def _is_status_capability_intent(text: str) -> bool:
+    direct_phrases = (
+        "what's going on",
+        "whats going on",
+        "what is going on",
+        "what's happening",
+        "whats happening",
+        "what is happening",
+        "what can you do",
+        "what can openclaw do",
+        "what are you capable of",
+        "what can you do now",
+        "what can you do for me",
+        "what can the agents do",
+        "what is live",
+        "what's live",
+        "whats live",
+        "who is online",
+        "agent status",
+        "system status",
+        "openclaw status",
+        "capability status",
+    )
+    if any(phrase in text for phrase in direct_phrases):
+        return True
+    return (
+        any(term in text for term in ("status", "capability", "capabilities", "online", "blocked"))
+        and any(term in text for term in ("openclaw", "agents", "agent", "you", "can", "do"))
     )
 
 

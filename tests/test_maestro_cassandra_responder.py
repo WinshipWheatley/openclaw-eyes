@@ -111,6 +111,64 @@ def _maestro_operator_instruction_request(text: str, *, request_id: str = "gener
     return request
 
 
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
+    read_model_root = tmp_path / "truthful_status_read_models"
+    _write_json(
+        read_model_root / "openclaw_capability_index.json",
+        {
+            "schema_version": "openclaw_capability_index_v0",
+            "read_model_id": "openclaw_capability_index",
+            "generic_capabilities": [
+                {
+                    "capability_id": "request_processing",
+                    "capability_name": "Bounded request processor",
+                    "capability_status": "LIVE_IMPLEMENTED",
+                    "lifecycle_status": "LIVE_IMPLEMENTED",
+                },
+                {
+                    "capability_id": "status_readback",
+                    "capability_name": "Unified status readback",
+                    "capability_status": "IMPLEMENTED_NON_EXECUTING",
+                    "lifecycle_status": "VALIDATED_NON_EXECUTING",
+                },
+                {
+                    "capability_id": "protected_secret_intake",
+                    "capability_name": "Protected secret intake contract",
+                    "capability_status": "CONTRACT_ONLY",
+                    "lifecycle_status": "KNOWN_GENERIC",
+                },
+            ],
+        },
+    )
+    _write_json(
+        read_model_root / "agent_presence.json",
+        {
+            "schema_version": "agent_presence_read_model_v0",
+            "agents": [
+                {"agent_id": "chief", "display_name": "Chief", "actual_state": "online"},
+                {"agent_id": "cassandra", "display_name": "Cassandra", "actual_state": "online"},
+                {"agent_id": "niles", "display_name": "Niles", "actual_state": "offline"},
+            ],
+        },
+    )
+    _write_json(
+        read_model_root / "chief_status_rail.json",
+        {
+            "schema_version": "chief_status_rail_v0",
+            "chief_current_status": "safe_status_read_model_only",
+            "chief_current_proven_role": {
+                "role_summary": "Chief is proven for visibility and planning, not runtime execution.",
+            },
+        },
+    )
+    return read_model_root
+
+
 def _route(tmp_path: Path, request: dict) -> dict:
     read_model_root = _seed_read_models(tmp_path)
     return router.route_controller_event(
@@ -204,6 +262,56 @@ def test_date_query_answered_deterministically_without_handle():
         assert _re.match(r"Today is \d{4}-\d{2}-\d{2} \(\w+\)\.$", result.one_line_answer), result.one_line_answer
         assert result.machine_proof["cassandra_handle_called"] is False
     assert calls == []
+
+
+def test_status_capability_query_answers_from_read_models_without_handle(tmp_path):
+    read_model_root = _seed_truthful_status_read_models(tmp_path)
+
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("status/capability readback must not call cassandra_brain.handle")
+
+    result = maestro.answer_frontdoor_chat(
+        "Hermes, what's going on? What can you do now?",
+        session={
+            "read_model_root": read_model_root.as_posix(),
+            "system_knowledge_repo_root": "/tmp/openclaw",
+        },
+        handle_fn=forbidden_handle,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "status_capability_readback"
+    assert result.allowed_to_call_handle is False
+    assert "2 agents are online" in result.plain_summary
+    assert "Bounded request processor" in result.plain_summary
+    assert "Unified status readback" in result.plain_summary
+    assert "I cannot claim email send" in result.plain_summary
+    assert result.session_forwarded == {"system_knowledge_repo_root": "/tmp/openclaw"}
+    assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["capability_index_used"] is True
+    assert result.machine_proof["agent_presence_used"] is True
+    assert result.machine_proof["chief_status_rail_used"] is True
+    assert result.machine_proof["live_implemented_capability_ids"] == ("request_processing",)
+    assert result.machine_proof["blocked_or_future_capability_ids_not_claimed"] == (
+        "protected_secret_intake",
+    )
+
+
+def test_status_capability_missing_index_fails_closed_without_fake_claim(tmp_path):
+    read_model_root = tmp_path / "empty_read_models"
+    read_model_root.mkdir()
+
+    result = maestro.answer_frontdoor_chat(
+        "what can you do?",
+        session={"read_model_root": read_model_root.as_posix()},
+        handle_fn=lambda _text, _session=None: ["SHOULD NOT RUN"],
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.allowed_to_call_handle is False
+    assert "cannot truthfully list capabilities" in result.plain_summary
+    assert result.machine_proof["capability_index_used"] is False
+    assert result.machine_proof["live_implemented_capability_count"] == 0
 
 
 def test_send_reply_intent_never_reaches_handle_or_send_spies(monkeypatch):
@@ -429,6 +537,42 @@ def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeyp
         },
     )
     assert calls == [("what's today's date", {})]
+
+
+def test_processor_routes_general_status_query_to_truthful_responder(tmp_path):
+    read_model_root = _seed_read_models(tmp_path)
+    request_path = tmp_path / "mission_control_operator_instruction_request_general_operator_instruction_status.json"
+    request_path.write_text(
+        json.dumps(
+            _maestro_operator_instruction_request(
+                "what's going on? what can you do now?",
+                request_id="general_operator_instruction_status_test",
+            ),
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=read_model_root,
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+    responder = response.detail_disclosure["maestro_cassandra_responder"]
+
+    assert response.request_type == "CHAT"
+    assert response.internal_status == "RESPONSE_READY"
+    assert "Workflow package staged" not in response.operator_headline + response.operator_message
+    assert responder["intent_class"] == "status_capability_readback"
+    assert responder["allowed_to_call_handle"] is False
+    assert responder["machine_proof"]["cassandra_handle_called"] is False
+    assert responder["machine_proof"]["capability_index_used"] is True
+    assert response.worker_route_refs[0]["backend_route"] == (
+        "maestro_cassandra_responder.truthful_status_capability_readback"
+    )
 
 
 def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, tmp_path):

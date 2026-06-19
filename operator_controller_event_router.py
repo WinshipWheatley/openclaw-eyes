@@ -1756,6 +1756,7 @@ def _route_maestro_cassandra_conversation(
     if result.status != "ANSWER_READY":
         return None
 
+    backend_route = maestro_cassandra_responder.backend_route_for_result(result)
     card = _card_response(
         receipt_id=receipt_id,
         event_type="chat_goal",
@@ -1771,6 +1772,10 @@ def _route_maestro_cassandra_conversation(
     )
     card["mac_render_hint"] = result.mac_render_hint
     card["maestro_cassandra_responder"] = result.to_dict()
+    card["proof"]["proof_refs"] = [
+        *card["proof"]["proof_refs"],
+        *tuple((result.machine_proof or {}).get("source_truth_refs") or ()),
+    ]
     _attach_card_run_mode(
         card,
         _request_run_mode_context(request, generated_at),
@@ -1794,7 +1799,7 @@ def _route_maestro_cassandra_conversation(
         {
             "route_status": "TEXT_RESPONSE_READY",
             "raw_internal_status": RESPONSE_READY,
-            "backend_route": "maestro_cassandra_responder.cassandra_brain.handle",
+            "backend_route": backend_route,
             "route_ref": f"maestro_cassandra_{_short_hash(receipt_id, operator_text, length=12)}",
             "route_receipt_ref": receipt_id,
             "route_result": result.to_dict(),
