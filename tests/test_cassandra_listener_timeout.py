@@ -104,6 +104,77 @@ def test_timeout_contract_escalates_after_timeout(monkeypatch):
     assert escalations[0][0] == "Please send Winship a note about tomorrow"
 
 
+def test_timeout_contract_sheds_concurrent_heavy_request_without_model_call(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+
+    async def _case():
+        semaphore = asyncio.Semaphore(1)
+        await semaphore.acquire()
+        monkeypatch.setattr(listener, "_HEAVY_REQUEST_SEMAPHORE", semaphore, raising=False)
+
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def should_not_run(text: str, session_meta: dict):
+            raise AssertionError("busy heavy lane should not start another model call")
+
+        try:
+            result = await listener._run_request_with_timeout_contract(
+                text="Can you summarize the Capital Hilton status and check the invoice path?",
+                session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+                send_reply=fake_send,
+                is_authorized_user=True,
+                run_cassandra=should_not_run,
+            )
+        finally:
+            semaphore.release()
+
+        assert result is None
+
+    asyncio.run(_case())
+
+    assert sent == [listener._BACKPRESSURE_NOTICE]
+
+
+def test_timeout_contract_lightweight_recovery_bypasses_busy_model(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+
+    async def _case():
+        semaphore = asyncio.Semaphore(1)
+        await semaphore.acquire()
+        monkeypatch.setattr(listener, "_HEAVY_REQUEST_SEMAPHORE", semaphore, raising=False)
+
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def should_not_run(text: str, session_meta: dict):
+            raise AssertionError("recovery lane should bypass the busy model path")
+
+        try:
+            result = await listener._run_request_with_timeout_contract(
+                text="Cassandra, are you alive?",
+                session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+                send_reply=fake_send,
+                is_authorized_user=True,
+                run_cassandra=should_not_run,
+            )
+        finally:
+            semaphore.release()
+
+        assert result is not None
+        assert "ALIVE" in result[0]
+        assert "DEGRADED" in result[0]
+
+    asyncio.run(_case())
+
+    assert sent == [
+        "Cassandra is ALIVE but may be DEGRADED if a heavy model request is already running. "
+        "I did not send or change anything."
+    ]
+
+
 def test_timeout_contract_runtime_exception_fail_closes_explicitly(monkeypatch):
     listener = _load_listener(monkeypatch)
     sent: list[str] = []

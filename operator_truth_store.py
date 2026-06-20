@@ -60,6 +60,40 @@ CORRECTION_MARKERS = (
     "will cut",
 )
 
+_UNSAFE_CONTROL_PHRASES = (
+    "alive check",
+    "answer one sentence",
+    "compact recovery check",
+    "deep probe",
+    "degraded recovery",
+    "health probe",
+    "probe prompt",
+    "recovery check",
+    "stress probe",
+)
+
+_VALUE_SIGNAL_PHRASES = (
+    "all paid",
+    "checked off",
+    "completed",
+    "cut a check",
+    "did his part",
+    "did her part",
+    "invoice",
+    "is paid",
+    "owes",
+    "paid up",
+    "payment",
+    "po ",
+    "received",
+    "submitted",
+    "unpaid",
+    "verify",
+    "verification",
+    "waiting for",
+    "will cut",
+)
+
 
 def _store_path(path: str | Path | None = None) -> Path:
     if path is not None:
@@ -103,6 +137,35 @@ def _compact(text: str) -> str:
 
 def _stable_hash(text: str) -> str:
     return hashlib.sha256(str(text or "").encode("utf-8")).hexdigest()
+
+
+def validate_operator_truth_value(value: str, *, source_text: str = "") -> tuple[bool, str]:
+    """Reject probe/control prompts before they can become cross-agent truth."""
+    clean = _compact(value)
+    if not clean:
+        return False, "empty_value"
+    if len(clean) < 8:
+        return False, "value_too_short"
+    if len(clean) > 600:
+        return False, "value_too_long"
+    lowered = clean.lower()
+    combined = f"{lowered} {_compact(source_text).lower()}".strip()
+    if any(phrase in combined for phrase in _UNSAFE_CONTROL_PHRASES):
+        return False, "control_prompt"
+    if any(token in combined for token in ("cass-deep-", "probe-", "stress-", "recovery-check")):
+        return False, "probe_label"
+    if lowered.startswith(("answer ", "reply ", "respond ", "summarize ")):
+        return False, "instruction_not_value"
+    if not any(ch.isalpha() for ch in clean):
+        return False, "no_words"
+    has_value_signal = (
+        any(phrase in lowered for phrase in _VALUE_SIGNAL_PHRASES)
+        or "$" in clean
+        or any(ch.isdigit() for ch in clean)
+    )
+    if not has_value_signal:
+        return False, "no_business_value_signal"
+    return True, ""
 
 
 def _empty_store() -> dict[str, Any]:
@@ -167,6 +230,9 @@ def upsert_operator_truth(
     clean_value = _compact(value)
     if not entity_key or not clean_value:
         raise ValueError("entity_key and value are required")
+    valid, reason = validate_operator_truth_value(clean_value, source_text=source_text)
+    if not valid:
+        raise ValueError(f"unsafe operator truth value: {reason}")
 
     data = load_operator_truth_store(path, ensure_seed=True)
     definition = _entity_def(entity_key)
@@ -307,10 +373,14 @@ def extract_operator_truth_candidates(
         return []
     candidates: list[dict[str, Any]] = []
     for entity_key in _mentioned_entities(text):
+        value = _summary_from_text(text, entity_key)
+        valid, _reason = validate_operator_truth_value(value, source_text=text)
+        if not valid:
+            continue
         candidates.append(
             {
                 "entity_key": entity_key,
-                "value": _summary_from_text(text, entity_key),
+                "value": value,
                 "source_surface": source_surface,
                 "source_ref": source_ref or "",
                 "at": at,
@@ -408,4 +478,5 @@ __all__ = [
     "load_operator_truth_store",
     "save_operator_truth_store",
     "upsert_operator_truth",
+    "validate_operator_truth_value",
 ]

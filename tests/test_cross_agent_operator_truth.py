@@ -95,6 +95,20 @@ def test_telegram_listener_intake_captures_operator_truth(monkeypatch, tmp_path)
     assert "all paid up" in st_annes["value"].lower()
 
 
+def test_shared_truth_rejects_probe_label_value(monkeypatch, tmp_path):
+    _configure_truth_store(monkeypatch, tmp_path)
+
+    from operator_truth_store import capture_operator_truth_from_text, load_operator_truth_store
+
+    records = capture_operator_truth_from_text(
+        "Capital Hilton current truth: CASS-DEEP-07 compact recovery check: answer one sentence only.",
+        source_surface="operator_maestro_chat",
+    )
+
+    assert records == []
+    assert load_operator_truth_store(ensure_seed=False)["entities"] == {}
+
+
 def test_evening_seed_loads_current_truth_and_next_friday(monkeypatch, tmp_path):
     _configure_truth_store(
         monkeypatch,

@@ -571,6 +571,51 @@ def test_pending_stale_correction_does_not_consume_unrelated_question():
     assert state["session_fact_overrides"] == {}
 
 
+def test_pending_stale_correction_rejects_probe_label_as_value():
+    import cassandra_brain
+
+    state = {
+        "pending_session_fact_correction": {
+            "account_key": "capital_hilton",
+            "label": "Capital Hilton",
+            "at": "2026-06-20 05:39:00",
+            "source_text": "that Capital Hilton thing is stale",
+        },
+        "session_fact_overrides": {},
+    }
+
+    reply = cassandra_brain._handle_pending_session_fact_correction(
+        "CASS-DEEP-07 compact recovery check: answer one sentence only.",
+        state,
+    )
+
+    assert "did not look like a real replacement value" in reply
+    assert "Capital Hilton" in reply
+    assert state["pending_session_fact_correction"]["account_key"] == "capital_hilton"
+    assert state["session_fact_overrides"] == {}
+
+
+def test_direct_stale_correction_rejects_probe_label_without_writing(monkeypatch):
+    import cassandra_brain
+
+    state = {"session_fact_overrides": {}}
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_session_finance_entity",
+        lambda _query, _state: ("capital_hilton", {"label": "Capital Hilton"}),
+        raising=False,
+    )
+
+    reply = cassandra_brain._detect_session_fact_correction(
+        "Capital Hilton current truth: CASS-DEEP-07 compact recovery check: answer one sentence only.",
+        state,
+    )
+
+    assert "did not look like a real replacement value" in reply
+    assert state["session_fact_overrides"] == {}
+    assert state["pending_session_fact_correction"]["account_key"] == "capital_hilton"
+
+
 def test_st_annes_january_23_status_stays_specific(tmp_path, monkeypatch):
     import cassandra_brain
     import finance_state
