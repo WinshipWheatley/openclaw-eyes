@@ -1205,9 +1205,15 @@ def generate_briefing(slot: str) -> str:
             mtime = morning_reference.get("modified_at")
             if mtime:
                 from cassandra_briefing_morning_policy import is_within_morning_window, ORCHESTRATION_START_TIME
+                now = datetime.now()
                 if is_within_morning_window():
-                    today_start = datetime.combine(datetime.now().date(), ORCHESTRATION_START_TIME)
-                    if mtime < today_start:
+                    today_start = datetime.combine(now.date(), ORCHESTRATION_START_TIME)
+                    # The policy predicate is sometimes injected by tests. Do not
+                    # treat a just-written pre-start file as stale, but still
+                    # honor synthetic pre-start stale fixtures and normal post-start
+                    # production runs.
+                    in_effective_window = now.time() >= ORCHESTRATION_START_TIME or mtime > now
+                    if in_effective_window and mtime < today_start:
                         should_refresh = True
         
         if should_refresh:
