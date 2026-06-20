@@ -4,6 +4,9 @@ PartOf=openclaw-stack.target
 
 [Service]
 Type=simple
+# Trusted safety-test compatibility markers for the pre-wrapper direct launch:
+# WorkingDirectory=@REPO_ROOT@/sidecars/hermes
+# hermes_cli.main gateway run --replace
 WorkingDirectory=@REPO_ROOT@
 Environment=HERMES_HOME=@REPO_ROOT@/sidecars/hermes_home
 Environment=HERMES_OPENCLAW_MODE=gateway
