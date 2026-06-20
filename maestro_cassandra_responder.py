@@ -381,6 +381,20 @@ def answer_frontdoor_chat(
         )
 
     if intent_class == "maestro_brain_freeform":
+        if source_surface != "operator_maestro_chat":
+            return MaestroCassandraResult(
+                status="ROUTE_TO_STAGING",
+                intent_class=intent_class,
+                allowed_to_call_handle=False,
+                route_to_staging_reason="maestro_brain_freeform_requires_operator_maestro_chat_surface",
+                session_forwarded=forwarded_session,
+                machine_proof={
+                    **_adapter_machine_proof(handle_called=False),
+                    "protected_generate_called": False,
+                    "maestro_context_packet_used": False,
+                    "external_llm_invoked": False,
+                },
+            )
         return _answer_with_maestro_brain(
             text,
             session=session,
