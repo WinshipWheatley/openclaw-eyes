@@ -41,12 +41,32 @@ def test_safe_role_response_validates_without_live_authority():
     assert result["machine_proof"]["all_live_authority_false"] is True
 
 
-def test_completion_claim_without_policy_is_blocked():
+def test_completion_claim_with_proof_refs_validates_without_authority():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Invoice workflow completed",
+            eliwinship="I completed the local readback and updated the review packet.",
+            next_action="Next: review the proof refs.",
+            proof_refs=("generated/read_models/capital_hilton_invoice_operator_run_status.json",),
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.VALIDATED
+    assert result["validation_result"]["output_publish_allowed"] is True
+    assert set(result["validation_result"]["forbidden_claims"]) >= {"completed", "updated"}
+    assert result["validation_result"]["blocked_reasons"] == ()
+    assert result["machine_proof"]["send_submit_performed"] is False
+    assert result["machine_proof"]["all_live_authority_false"] is True
+
+
+def test_completion_claim_without_proof_refs_is_blocked():
     result = gate.validate_response_payload(
         _safe_payload(
             headline="Invoice sent",
             eliwinship="I sent the invoice and posted the ledger.",
             next_action="Next: wait for payment.",
+            readback_files=(),
         )
     )
 
@@ -56,12 +76,28 @@ def test_completion_claim_without_policy_is_blocked():
     assert "posted" in result["validation_result"]["forbidden_claims"]
 
 
+def test_completion_claim_with_readback_file_only_is_still_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Invoice sent",
+            eliwinship="I sent the invoice.",
+            next_action="Next: wait for payment.",
+        )
+    )
+
+    assert result["role_response_candidate"]["proof_refs"] == ()
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM
+    assert result["validation_result"]["output_publish_allowed"] is False
+    assert "sent" in result["validation_result"]["forbidden_claims"]
+
+
 def test_reference_mutation_claim_without_receipt_is_blocked():
     result = gate.validate_response_payload(
         _safe_payload(
             headline="Workbook updated",
             eliwinship="I removed the test workbook and replaced it with the real one.",
             next_action="Next: continue.",
+            readback_files=(),
         )
     )
 

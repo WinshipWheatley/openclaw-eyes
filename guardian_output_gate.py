@@ -319,6 +319,10 @@ def candidate_from_response_payload(payload: Mapping[str, Any], package: RoleExe
     requested_actions = tuple(_normalize_tool(action) for action in payload.get("requested_external_actions") or ())
     detail = payload.get("detail_disclosure") if isinstance(payload.get("detail_disclosure"), Mapping) else {}
     authority_requested = detail.get("authority_requested") if isinstance(detail.get("authority_requested"), Mapping) else {}
+    completion_claims = _unnegated_claims(raw_text)
+    explicit_proof_refs = tuple(str(ref) for ref in payload.get("proof_refs") or ())
+    readback_files = tuple(str(ref) for ref in payload.get("readback_files") or ())
+    proof_refs = explicit_proof_refs if completion_claims else explicit_proof_refs or readback_files
     return RoleResponseCandidate(
         candidate_id=f"role_response_candidate:{_short_hash(package.package_id, raw_text)}",
         source_package_id=package.package_id,
@@ -332,8 +336,8 @@ def candidate_from_response_payload(payload: Mapping[str, Any], package: RoleExe
         next_action=str(payload.get("next_action") or ""),
         requested_tool_calls=requested_tools,
         requested_external_actions=requested_actions,
-        completion_claims=_unnegated_claims(raw_text),
-        proof_refs=tuple(str(ref) for ref in payload.get("proof_refs") or payload.get("readback_files") or ()),
+        completion_claims=completion_claims,
+        proof_refs=proof_refs,
         authority_requested={str(key): bool(value) for key, value in dict(authority_requested or {}).items()},
         raw_output_text=raw_text,
         next_safe_move=str(payload.get("next_safe_move") or payload.get("next_action") or "Validate before publishing."),
@@ -373,14 +377,12 @@ def validate_role_output(candidate: RoleResponseCandidate, package: RoleExecutio
     forbidden_claims = candidate.completion_claims
     if forbidden_claims and not candidate.proof_refs:
         blocked.append("Role output makes completion/action claims without proof refs.")
-    elif forbidden_claims:
-        blocked.append("Role output makes action/completion claims; this v0 gate requires explicit future completion policy.")
 
     if forbidden_tools:
         verdict = BLOCKED_FORBIDDEN_TOOL
     elif forbidden_actions or authority_requested or package_authority_granted:
         verdict = BLOCKED_AUTHORITY
-    elif forbidden_claims:
+    elif forbidden_claims and not candidate.proof_refs:
         verdict = BLOCKED_FORBIDDEN_CLAIM
     elif leakage:
         verdict = BLOCKED_LEAKAGE
