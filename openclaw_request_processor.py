@@ -4912,6 +4912,7 @@ def _process_maestro_frontdoor_operator_instruction(
     result = maestro_cassandra_responder.answer_frontdoor_chat(
         operator_text,
         session=maestro_cassandra_responder.session_from_request(raw_request),
+        source_surface=_maestro_frontdoor_surface(raw_request) or "operator_maestro_chat",
     )
     if result.status != "ANSWER_READY":
         return None

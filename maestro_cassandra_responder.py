@@ -104,6 +104,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
     normalized = _normalize(text)
     if not normalized:
         return ("empty", False, "empty_text")
+    if _is_operator_truth_correction_intent(text):
+        return ("operator_truth_correction", True, "")
     if _is_send_or_reply_intent(normalized):
         return ("send_reply_email_action", False, "send_reply_email_action_intent_routes_to_staging")
     if _is_inbox_metadata_intent(normalized):
@@ -121,6 +123,7 @@ def answer_frontdoor_chat(
     text: str,
     *,
     session: Mapping[str, Any] | None = None,
+    source_surface: str = "operator_maestro_chat",
     handle_fn: HandleFn | None = None,
 ) -> MaestroCassandraResult:
     intent_class, allowed, reason = classify_frontdoor_intent(text)
@@ -133,6 +136,31 @@ def answer_frontdoor_chat(
             route_to_staging_reason=reason,
             session_forwarded=forwarded_session,
             machine_proof=_adapter_machine_proof(handle_called=False),
+        )
+
+    if intent_class == "operator_truth_correction":
+        from operator_truth_store import capture_operator_truth_from_text
+
+        records = capture_operator_truth_from_text(text, source_surface=source_surface)
+        labels = [str(record.get("label") or record.get("entity_key")) for record in records]
+        if labels:
+            label_text = ", ".join(labels)
+            answer = f"Operator truth updated for {label_text}. The shared store now outranks stale finance or reality context."
+        else:
+            answer = "I did not find a bounded entity correction to store. No action was taken."
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=answer,
+            plain_summary=answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "operator_truth_store_written": bool(records),
+                "operator_truth_entities": labels,
+            },
         )
 
     # Date queries are answered deterministically: the current date is a known
@@ -243,6 +271,15 @@ def _is_system_knowledge_intent(text: str) -> bool:
         any(term in text for term in ("system", "openclaw", "registry"))
         and any(term in text for term in ("shape", "know", "known", "unknown", "capability", "component", "orbit", "orphan"))
     )
+
+
+def _is_operator_truth_correction_intent(text: str) -> bool:
+    try:
+        from operator_truth_store import extract_operator_truth_candidates
+
+        return bool(extract_operator_truth_candidates(text, source_surface="operator_maestro_chat"))
+    except Exception:
+        return False
 
 
 def _is_inbox_metadata_intent(text: str) -> bool:
