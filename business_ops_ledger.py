@@ -58,6 +58,7 @@ UNSAFE_RECEIPT_PAYLOAD_KEYS = {
 
 def init_business_ops_ledger(db_path: str | None = None) -> str:
     path = resolve_business_ops_ledger_path(db_path)
+    conn = None
     try:
         conn = _connect_write(path)
         cursor = conn.cursor()
@@ -240,7 +241,10 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
         conn.commit()
     except Exception as e:
         logger.error(f"Failed to initialize ledger at {path}: {e}")
-        return path
+    finally:
+        if conn is not None:
+            conn.close()
+    return path
 
 
 def record_file_inventory_entry(
@@ -383,6 +387,7 @@ def get_canonical_facts_by_heading(section_heading: str, db_path: str | None = N
 def _query_canonical_facts(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
     path = resolve_business_ops_ledger_path(db_path)
     uri = f"file:{path}?mode=ro"
+    conn = None
     try:
         conn = sqlite3.connect(uri, uri=True)
         cursor = conn.cursor()
@@ -394,25 +399,30 @@ def _query_canonical_facts(query: str, params: tuple, db_path: str | None = None
             # Parse JSON back
             fact["allowed_actors"] = json.loads(fact["allowed_actors"])
             results.append(fact)
-        conn.close()
         return results
     except Exception as e:
         logger.error(f"Failed to query canonical facts: {e}")
         return []
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def _execute_write(query: str, params: tuple, db_path: str | None = None) -> bool:
     path = resolve_business_ops_ledger_path(db_path)
+    conn = None
     try:
         conn = _connect_write(path)
         cursor = conn.cursor()
         cursor.execute(query, params)
         conn.commit()
-        conn.close()
         return True
     except Exception as e:
         logger.error(f"Ledger write failure: {e}")
         return False
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def append_event(
@@ -793,32 +803,38 @@ def get_truth_registry_entry(source_id: str, db_path: str | None = None) -> dict
 def get_verification_evidence_for_source(source_id: str, db_path: str | None = None) -> list[dict[str, Any]]:
     path = resolve_business_ops_ledger_path(db_path)
     uri = f"file:{path}?mode=ro"
+    conn = None
     try:
         conn = sqlite3.connect(uri, uri=True)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM verification_evidence WHERE source_id = ?", (source_id,))
         columns = [d[0] for d in cursor.description]
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        conn.close()
         return results
     except Exception as e:
         logger.error(f"Failed to query verification evidence: {e}")
         return []
+    finally:
+        if conn is not None:
+            conn.close()
 
 def _query_truth_registry(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
     path = resolve_business_ops_ledger_path(db_path)
     uri = f"file:{path}?mode=ro"
+    conn = None
     try:
         conn = sqlite3.connect(uri, uri=True)
         cursor = conn.cursor()
         cursor.execute(query, params)
         columns = [d[0] for d in cursor.description]
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        conn.close()
         return results
     except Exception as e:
         logger.error(f"Failed to query truth registry: {e}")
         return []
+    finally:
+        if conn is not None:
+            conn.close()
 
 def get_file_inventory_by_root(root_id: str, db_path: str | None = None) -> list[dict[str, Any]]:
     return _query_file_inventory("SELECT * FROM file_inventory WHERE root_id = ?", (root_id,), db_path)
@@ -832,6 +848,7 @@ def get_file_inventory_by_name(file_name: str, db_path: str | None = None) -> li
 def _query_file_inventory(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
     path = resolve_business_ops_ledger_path(db_path)
     uri = f"file:{path}?mode=ro"
+    conn = None
     try:
         conn = sqlite3.connect(uri, uri=True)
         cursor = conn.cursor()
@@ -840,35 +857,40 @@ def _query_file_inventory(query: str, params: tuple, db_path: str | None = None)
         results = []
         for row in cursor.fetchall():
             results.append(dict(zip(columns, row)))
-        conn.close()
         return results
     except Exception as e:
         logger.error(f"Failed to query file_inventory: {e}")
         return []
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def get_last_event_summary(db_path: str | None = None) -> Optional[str]:
     path = resolve_business_ops_ledger_path(db_path)
+    conn = None
     try:
         conn = _connect_write(path)
         cursor = conn.cursor()
         cursor.execute("SELECT operator_visible_summary FROM events ORDER BY ts DESC LIMIT 1")
         row = cursor.fetchone()
-        conn.close()
         return row[0] if row else None
     except Exception as e:
         logger.error(f"Failed to get last event summary: {e}")
         return None
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def get_packet_summary(packet_id: str, db_path: str | None = None) -> Optional[dict[str, Any]]:
     path = resolve_business_ops_ledger_path(db_path)
+    conn = None
     try:
         conn = _connect_write(path)
         cursor = conn.cursor()
         cursor.execute("SELECT intent_name, action_status, approval_required FROM packets WHERE packet_id = ?", (packet_id,))
         row = cursor.fetchone()
-        conn.close()
         if row:
             return {
                 "intent_name": row[0],
@@ -879,6 +901,9 @@ def get_packet_summary(packet_id: str, db_path: str | None = None) -> Optional[d
     except Exception as e:
         logger.error(f"Failed to get packet summary: {e}")
         return None
+    finally:
+        if conn is not None:
+            conn.close()
 
 def record_action_intent_gate_receipt(
     packet_id: str,
