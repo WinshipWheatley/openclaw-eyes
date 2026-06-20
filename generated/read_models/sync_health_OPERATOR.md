@@ -58,7 +58,7 @@ Recommended fix:
 - app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-06-19T03:02:29+00:00`
+- Mac heartbeat: `idle` at `2026-06-20T22:27:40+00:00`
 - Mac completion: `synced` at `2026-06-12T10:49:56+00:00`
 - PC import: `skipped_unchanged` at `2026-06-12T10:49:55+00:00`
 - Windows task log present: `true`

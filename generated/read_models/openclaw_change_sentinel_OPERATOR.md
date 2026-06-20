@@ -42,7 +42,7 @@ Observed Targets:
 - `authority_semantics_registry:fingerprint` `AUTHORITY_SEMANTICS_REGISTRY` -> `NO_MATERIAL_CHANGE` `authority_semantics_v0`.
 - `lane_capability_harvest:recommendation` `LANE_CAPABILITY_HARVEST` -> `NO_MATERIAL_CHANGE` `finish_invoice_steel_thread_sequence`.
 - `service_status:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `active`.
-- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `4`.
+- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `0`.
 
 Timer Proposal:
 - Proposed timer path: `~/.config/systemd/user/openclaw-change-sentinel.timer`.

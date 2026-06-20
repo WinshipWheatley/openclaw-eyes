@@ -7,7 +7,7 @@
   "coupa_accessed": false,
   "deterministic_checks_only": true,
   "email_accessed": false,
-  "generated_at": "2026-06-19T03:03:45+00:00",
+  "generated_at": "2026-06-20T22:24:43+00:00",
   "generated_by": "codex",
   "git_fetch_pull_push_performed": false,
   "gmail_accessed": false,
@@ -84,7 +84,7 @@
     {
       "fingerprint": "sha256:a3c456ace2027d44db3d3018a147a39b6fdf5dab492aebb0965a9a515908db2e",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"reference_resolver\",\n  \"path\": \"generated/read_models/openclaw_reference_resolver.json\",\n  \"schema_version\": \"openclaw_reference_resolver_read_model_v0\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/openclaw_reference_resolver.json",
@@ -95,7 +95,7 @@
     {
       "fingerprint": "sha256:bcbe4604167416aeb5b72886a035ec3177ac52cc6c74b2570efc4b9c9f8dc629",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"estate_topology\",\n  \"path\": \"generated/read_models/openclaw_estate_topology_registry.json\",\n  \"schema_version\": \"openclaw_estate_topology_registry_read_model_v0\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/openclaw_estate_topology_registry.json",
@@ -106,7 +106,7 @@
     {
       "fingerprint": "sha256:5d7df5fe25901c833dc3f1ddf2a5b026a5918186f8228ed51b3ed4eadfa56d13",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"live_arts_bundle\",\n  \"path\": \"generated/read_models/live_arts_md_invoice_review_bundle.json\",\n  \"schema_version\": \"live_arts_md_invoice_review_bundle_v0\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/live_arts_md_invoice_review_bundle.json",
@@ -117,7 +117,7 @@
     {
       "fingerprint": "sha256:292371b68401848e4422694acd491cc8186f34015ba1c643b3617539c9911ab8",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"capital_hilton_bundle\",\n  \"path\": \"generated/read_models/invoice_review_bundle.json\",\n  \"schema_version\": \"invoice_review_bundle_v0\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/invoice_review_bundle.json",
@@ -128,7 +128,7 @@
     {
       "fingerprint": "sha256:578d770c2e753f6f0c4d3d96e14665d3f127eaca76cc3750bd66be7fb4bafecb",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"sync_health\",\n  \"path\": \"generated/read_models/sync_health.json\",\n  \"schema_version\": \"sync_health_read_model_v0\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/sync_health.json",
@@ -139,7 +139,7 @@
     {
       "fingerprint": "sha256:e35398e3a940c58187b0bb25f9658e65d1a9cbd049be7a36179de73d9d2a5dad",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"request_response_service_status\",\n  \"path\": \"generated/read_models/openclaw_request_response_service_status.json\",\n  \"schema_version\": \"openclaw_request_response_service_v1\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/openclaw_request_response_service_status.json",
@@ -150,7 +150,7 @@
     {
       "fingerprint": "sha256:173f336827bd5ae7d24af60963f42530aa85fc4335e846e405a5ed8c8fccd58e",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"business_object_audit\",\n  \"path\": \"generated/read_models/openclaw_business_object_layer_audit.json\",\n  \"schema_version\": \"openclaw_business_object_layer_audit_read_model_v0\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/openclaw_business_object_layer_audit.json",
@@ -161,7 +161,7 @@
     {
       "fingerprint": "sha256:901128ffe5b9667adcd914f95ed08db2fde8f02cb1aaebe99616c68c4a00f209",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"authority_semantics_registry\",\n  \"path\": \"generated/read_models/openclaw_authority_semantics_registry.json\",\n  \"schema_version\": \"openclaw_authority_semantics_registry_v0\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/openclaw_authority_semantics_registry.json",
@@ -172,7 +172,7 @@
     {
       "fingerprint": "sha256:25ccc84ad19651b5f230fd3d80d20161b687ae61b0599c4dcc507cc8f74b3cde",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"exists\": true,\n  \"input_ref\": \"lane_capability_harvest\",\n  \"path\": \"generated/read_models/openclaw_lane_capability_harvest.json\",\n  \"schema_version\": \"openclaw_lane_capability_harvest_read_model_v0\"\n}",
       "observed_value": "present",
       "source_path": "generated/read_models/openclaw_lane_capability_harvest.json",
@@ -183,7 +183,7 @@
     {
       "fingerprint": "sha256:c917606a41ea2f602457a282b418e300adf6cf18f898022fdbe68d0c7fc58a16",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"branch\": \"codex/system-knowledge-registry-v0-local\",\n  \"current_head_commit\": \"1a6b7b0b463968f3161e048bd7936dc06505a3bb\",\n  \"remote_status\": \"RESOLVED_REMOTE\",\n  \"remote_url\": \"git@github.com:WinshipWheatley/openclaw-eyes.git\",\n  \"repo_name\": \"openclaw-eyes\",\n  \"repo_ref\": \"openclaw-eyes\",\n  \"resolution_source\": \"readonly_equivalent\",\n  \"resolution_status\": \"RESOLVED_REMOTE\",\n  \"target_ref\": \"openclaw_eyes_registry_review_branch\"\n}",
       "observed_value": "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
       "source_path": "generated/read_models/openclaw_reference_resolver.json",
@@ -194,7 +194,7 @@
     {
       "fingerprint": "sha256:6c0f5a9981a579e4fb6a7345b81e075f910f2ad96a4a1c21c2a568ca1387d539",
       "observation_status": "REPO_DIRTY",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"dirty_status\": \"DIRTY\",\n  \"local_path\": \"/home/openclaw\",\n  \"local_status\": \"UNREACHABLE\",\n  \"repo_ref\": \"openclaw-eyes\",\n  \"target_ref\": \"openclaw_eyes_registry_review_branch\"\n}",
       "observed_value": "DIRTY",
       "source_path": "generated/read_models/openclaw_reference_resolver.json",
@@ -205,7 +205,7 @@
     {
       "fingerprint": "sha256:c705c7196044eb308cf73a993c13fb0af215f0ae4aa4873afd1beaf90d0ea160",
       "observation_status": "UNKNOWN",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"mac_bridge_resolution_path\": \"\",\n  \"mac_bridge_status\": \"MAC_BRIDGE_UNAVAILABLE\",\n  \"mac_mirror_path\": \"/Users/hwinshipwheatley/Eyes\",\n  \"mac_mirror_status\": \"LOCAL_PATH_UNREACHABLE\",\n  \"target_ref\": \"openclaw_eyes_registry_review_branch\"\n}",
       "observed_value": "LOCAL_PATH_UNREACHABLE",
       "source_path": "generated/read_models/openclaw_reference_resolver.json",
@@ -216,7 +216,7 @@
     {
       "fingerprint": "sha256:e002f62edb1ef789db5992e4c42923bafa3e4680a053798ce87dcbb95208269d",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"branch\": \"main\",\n  \"current_head_commit\": \"1a6b7b0b463968f3161e048bd7936dc06505a3bb\",\n  \"remote_status\": \"RESOLVED_REMOTE\",\n  \"remote_url\": \"git@github.com:WinshipWheatley/openclaw-eyes.git\",\n  \"repo_name\": \"openclaw-eyes-main\",\n  \"repo_ref\": \"openclaw-eyes-main\",\n  \"resolution_source\": \"readonly_equivalent\",\n  \"resolution_status\": \"RESOLVED_REMOTE\",\n  \"target_ref\": \"openclaw_eyes_main_branch\"\n}",
       "observed_value": "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
       "source_path": "generated/read_models/openclaw_reference_resolver.json",
@@ -227,7 +227,7 @@
     {
       "fingerprint": "sha256:ee34ab2b6a19fc8838d7e1473da91bb14fd1c972bf09f2908cbee8f0efbd864d",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"dirty_status\": \"UNKNOWN\",\n  \"local_path\": \"\",\n  \"local_status\": \"UNKNOWN\",\n  \"repo_ref\": \"openclaw-eyes-main\",\n  \"target_ref\": \"openclaw_eyes_main_branch\"\n}",
       "observed_value": "UNKNOWN",
       "source_path": "generated/read_models/openclaw_reference_resolver.json",
@@ -238,7 +238,7 @@
     {
       "fingerprint": "sha256:162fb073f72649f1dba8febcb1e40f3d5dbc74be46eadf86d52e3e48e36442a6",
       "observation_status": "UNKNOWN",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"mac_bridge_resolution_path\": \"\",\n  \"mac_bridge_status\": \"MAC_BRIDGE_UNAVAILABLE\",\n  \"mac_mirror_path\": \"\",\n  \"mac_mirror_status\": \"UNKNOWN\",\n  \"target_ref\": \"openclaw_eyes_main_branch\"\n}",
       "observed_value": "UNKNOWN",
       "source_path": "generated/read_models/openclaw_reference_resolver.json",
@@ -249,7 +249,7 @@
     {
       "fingerprint": "sha256:f862a60959499fe1e5b03ad67e1946d6cbbce3bf90189fe166c93f5798e3e8ce",
       "observation_status": "BRIDGE_STALE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"bridge_exists\": false,\n  \"bridge_path\": \"/mnt/e/openclaw/generated/read_models/openclaw_estate_topology_registry.json\",\n  \"hash_match\": false,\n  \"resolved_status\": \"MISSING\",\n  \"source_exists\": true,\n  \"source_path\": \"generated/read_models/openclaw_estate_topology_registry.json\",\n  \"target_ref\": \"estate_topology_registry_read_model_mirror\"\n}",
       "observed_value": "MISSING:False:False",
       "source_path": "generated/read_models/openclaw_reference_resolver.json",
@@ -260,7 +260,7 @@
     {
       "fingerprint": "sha256:b34075790bbc043423e7c796b47125c70f4531c92b44f9a6d1faf9f72060f6ee",
       "observation_status": "ACTION_REQUIRED",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"unknown_ids\": [\n    \"codex_web_commits_unreachable\",\n    \"mac_app_remote_backup_strategy\",\n    \"dual_openclaw_eyes_long_term\",\n    \"runtime_actor_canonical_home\",\n    \"hermes_first_read_repo\",\n    \"mac_bridge_permission_model\"\n  ],\n  \"unresolved_count\": 6\n}",
       "observed_value": "6",
       "source_path": "generated/read_models/openclaw_estate_topology_registry.json",
@@ -271,7 +271,7 @@
     {
       "fingerprint": "sha256:f2d8894a1e3ffb0510f29cc62d71649ab59f4d13fb3b93def95cd39643e8a137",
       "observation_status": "ACTION_REQUIRED",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"artifact_count\": 2,\n  \"artifact_ids\": [\n    \"codex_web_registry_commit_33e00a6\",\n    \"codex_web_registry_commit_4ca4ed42171c23d60ef89493559808ef2789a19e\"\n  ],\n  \"statuses\": {\n    \"codex_web_registry_commit_33e00a6\": \"UNREACHABLE\",\n    \"codex_web_registry_commit_4ca4ed42171c23d60ef89493559808ef2789a19e\": \"UNREACHABLE\"\n  }\n}",
       "observed_value": "2",
       "source_path": "generated/read_models/openclaw_estate_topology_registry.json",
@@ -282,7 +282,7 @@
     {
       "fingerprint": "sha256:094372a0abf546aa3fd5a80d89cff417f69b94d73d8169d94fe2f0e4f0c80029",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"artifact_review_status\": \"OPERATOR_REVIEW_REQUIRED\",\n  \"attachment_ready\": false,\n  \"bundle_status\": \"SIMPLE_EMAIL_INVOICE_REVIEW\",\n  \"candidate_selection_status\": \"OPERATOR_CONFIRMED\",\n  \"client_ref\": \"live_arts_md\",\n  \"invoice_selection_status\": \"OPERATOR_CONFIRMED\",\n  \"selected_invoice_ids\": [\n    \"2026-1001\"\n  ],\n  \"selected_invoice_summary\": \"2026-1001 \\u2014 June 2026 Speaker Rental \\u2014 $900\",\n  \"workflow_ref\": \"live_arts_md_invoice_workflow\"\n}",
       "observed_value": "sha256:094372a0abf546aa3fd5a80d89cff417f69b94d73d8169d94fe2f0e4f0c80029",
       "source_path": "generated/read_models/live_arts_md_invoice_review_bundle.json",
@@ -293,7 +293,7 @@
     {
       "fingerprint": "sha256:d26698de24a5139757a3d11802edf7d95782e64f5e13d5f3d8898505a4a7b4b6",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"client_ref\": \"live_arts_md\",\n  \"invoice_id\": \"2026-1001\",\n  \"job_ref\": \"mac_edge_job_2026-1001_0b03bcc7\",\n  \"output_bridge_path\": \"/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf\",\n  \"output_pdf_mac_path\": \"/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf\",\n  \"request_payload_ready\": true,\n  \"result_intended_use\": \"selected_invoice_pdf_export_completed_candidate\",\n  \"selected_print_areas\": [\n    \"June 2026 Speaker Rental!G2:G5\",\n    \"June 2026 Speaker Rental!F40:G43\",\n    \"June 2026 Speaker Rental!B49:G53\"\n  ],\n  \"selected_sheet_label\": \"June 2026 Speaker Rental\",\n  \"status\": \"PDF_EXPORT_COMPLETED_CANDIDATE\",\n  \"workflow_ref\": \"live_arts_md_invoice_workflow\"\n}",
       "observed_value": "PDF_EXPORT_COMPLETED_CANDIDATE",
       "source_path": "generated/read_models/live_arts_md_invoice_review_bundle.json",
@@ -304,7 +304,7 @@
     {
       "fingerprint": "sha256:7d2ff864d732853ed6f52d5b870a1fdf72ca089cf8dadcbe7b39dfbe7617217f",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"bad_json_paths\": [],\n  \"client_ref\": \"live_arts_md\",\n  \"pdf_export_package_status\": \"PDF_EXPORT_COMPLETED_CANDIDATE\",\n  \"scope_consistency_status\": \"SCOPED\",\n  \"selected_invoice_exists\": true,\n  \"stale_placeholder_json_paths\": [],\n  \"workflow_ref\": \"live_arts_md_invoice_workflow\"\n}",
       "observed_value": "SCOPED",
       "source_path": "generated/read_models/live_arts_md_invoice_review_bundle.json",
@@ -315,7 +315,7 @@
     {
       "fingerprint": "sha256:2b4df287ce812b5251b44f06a44984f94ded6c1453d3b1dce3b649df163b14eb",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"client_ref\": \"live_arts_md\",\n  \"payment_watch_status\": \"READINESS_ONLY_NOT_ACTIVE\",\n  \"workflow_ref\": \"live_arts_md_invoice_workflow\"\n}",
       "observed_value": "READINESS_ONLY_NOT_ACTIVE",
       "source_path": "generated/read_models/live_arts_md_invoice_review_bundle.json",
@@ -326,7 +326,7 @@
     {
       "fingerprint": "sha256:40f551d76024bb78c769840ed2e7bfe8f87931d8ac8dcfe9209c0647445d989a",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"bundle_status\": \"READY_FOR_REVIEW_BLOCKED_FOR_SELECTION\",\n  \"client_ref\": \"capital_hilton\",\n  \"generated_artifact_status\": \"CANDIDATE_NEEDS_REGENERATION_OR_LINK\",\n  \"invoice_period_status\": \"OPERATOR_CONFIRMED\",\n  \"invoice_record_selection_status\": \"OPERATOR_CONFIRMED\",\n  \"recipient_review_status\": \"NEEDS_CONTACT_CONFIRMATION\",\n  \"semantic_status\": {\n    \"clara_draft_status\": \"DRAFT_ONLY\",\n    \"coupa_portal_rail_status\": \"PRIMARY_PAYMENT_TRIGGER_BLOCKED_PROOF_MISSING\",\n    \"coupa_submission_proof_status\": \"MISSING\",\n    \"email_send_execution_status\": \"NOT_SENT\",\n    \"excel_invoice_artifact_status\": \"GENERATED_INVOICE_ARTIFACT_CANDIDATE\",\n    \"excel_invoice_attachment_ready\": false,\n    \"guardian_approval_request_status\": \"BLOCKED_PREREQUISITES_MISSING\",\n    \"guardian_output_validation_status\": \"PASSED_FOR_DRAFT_DISPLAY_ONLY\",\n    \"operator_approval_status\": \"NOT_GRANTED\",\n    \"payment_watch_status\": \"NOT_RECEIVED\",\n    \"portal_submission_execution_status\": \"NOT_SUBMITTED\",\n    \"primary_invoice_trigger\": \"COUPA_SUPPLIER_PORTAL_INVOICE\",\n    \"supporting_artifacts\": [\n      \"excel_invoice_for_records\",\n      \"clara_email_draft_for_annette\"\n    ]\n  },\n  \"supplier_portal_proof_status\": \"PROOF_REQUESTED\",\n  \"workflow_ref\": \"capital_hilton_invoice_workflow\"\n}",
       "observed_value": "sha256:40f551d76024bb78c769840ed2e7bfe8f87931d8ac8dcfe9209c0647445d989a",
       "source_path": "generated/read_models/invoice_review_bundle.json",
@@ -337,7 +337,7 @@
     {
       "fingerprint": "sha256:56faca26e33a23df6f1f82bdd997b06e817808cc100bf30bd47f0b2f3aaac009",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"client_ref\": \"capital_hilton\",\n  \"payment_watch_status\": \"NOT_READY\",\n  \"workflow_ref\": \"capital_hilton_invoice_workflow\"\n}",
       "observed_value": "NOT_READY",
       "source_path": "generated/read_models/invoice_review_bundle.json",
@@ -346,10 +346,10 @@
       "unreachable_reason": ""
     },
     {
-      "fingerprint": "sha256:e08e020ed4de8530f1320a0105f193944d173e335271d58ff8784199ed907026",
+      "fingerprint": "sha256:74a79b2ce0cf4d89f1b55d83816c66b8404963b77b40ce60e29449b7412f178e",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
-      "observed_json": "{\n  \"hash_mismatch\": 0,\n  \"last_mac_completion\": {\n    \"status\": \"synced\",\n    \"time\": \"2026-06-12T10:49:56+00:00\"\n  },\n  \"last_mac_heartbeat\": {\n    \"manifest_written\": true,\n    \"marker_seen\": true,\n    \"status\": \"idle\",\n    \"time\": \"2026-06-19T02:57:29+00:00\"\n  },\n  \"mirror_status\": \"needs_pc_import\",\n  \"missing_expected\": 0,\n  \"sync_lifecycle_state\": \"mac_synced_waiting_for_pc_import\",\n  \"trust_status\": \"stale_needs_pc_import\"\n}",
+      "observed_at": "2026-06-20T22:24:43+00:00",
+      "observed_json": "{\n  \"hash_mismatch\": 0,\n  \"last_mac_completion\": {\n    \"status\": \"synced\",\n    \"time\": \"2026-06-12T10:49:56+00:00\"\n  },\n  \"last_mac_heartbeat\": {\n    \"manifest_written\": true,\n    \"marker_seen\": true,\n    \"status\": \"idle\",\n    \"time\": \"2026-06-20T22:17:39+00:00\"\n  },\n  \"mirror_status\": \"needs_pc_import\",\n  \"missing_expected\": 0,\n  \"sync_lifecycle_state\": \"mac_synced_waiting_for_pc_import\",\n  \"trust_status\": \"stale_needs_pc_import\"\n}",
       "observed_value": "stale_needs_pc_import",
       "source_path": "generated/read_models/sync_health.json",
       "target_ref": "mac_heartbeat:sync_health",
@@ -359,7 +359,7 @@
     {
       "fingerprint": "sha256:32ba11ab7182b7da0ca74f0fa7ba860a9c421cca54bc6cfd9c7320cfffe83c97",
       "observation_status": "BUSINESS_OBJECT_AUDIT_STALE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"current_hashes\": {\n    \"authority_semantics_registry\": \"sha256:73f8d59f3a0cefdf435e532da55eca2590e59a081a6e795db5f5bb2191c89383\",\n    \"capital_hilton_bundle\": \"sha256:7ec897c43925036741c40f495c6608cf0e74509a63740b7de7ac506e912564f5\",\n    \"context_wiki_index\": \"sha256:093bf33205108c12f205a18dc537952db0a7add651f3b80f2714417b13d3620f\",\n    \"estate_topology\": \"sha256:e32c278f0bb6c52fd2c3e514406f93e9b2c8dd9724825164ec4158d21c7fb2ae\",\n    \"external_system_knowledge_registry_index\": \"sha256:5665a7b3bfbfec9a9c9a6df1a99a13f93194dd04fb46958176c2cd1f30769c50\",\n    \"hermes_chief_build_handoff\": \"sha256:3fc1448b7a8236a3142814315790c427797c646295276429c6ceee42b005388a\",\n    \"hermes_gravity_controller\": \"sha256:51d57984bea39a6769fcaba0129e69a26e7761bfefc0a18b0d9ff77ffe628bec\",\n    \"hermes_mission_sentinel\": \"sha256:5fb7f99839fd0763bb60eddcbaf7167a301c7ef6a90880d0888a8233435b0a47\",\n    \"lane_capability_harvest\": \"sha256:f37a900ac43108090e70d85e710f1d67e961b81568dc061f730b7ebdb8ec3f05\",\n    \"live_arts_bundle\": \"sha256:260ec2dc0645e28d12daf19a9dc0d7aa211458054b628a8fc68af01005b4e0ed\",\n    \"purpose_bound_automation_charter\": \"sha256:3460326c5e60000944ec87e8ab2361ed024df50ac7d736c33ce154ed6cb5d750\",\n    \"reference_resolver\": \"sha256:ca025f59ab8060942c7a75f1b1e4a8d562d9c50e807d7c96fa5c1312f009adba\",\n    \"service_supervision\": \"sha256:b92e768756c9a0d4302569f350e78db6c978d21871a9529fe9dcc324c565728d\"\n  },\n  \"fresh_for_minutes\": 60,\n  \"freshness_status\": \"FRESH\",\n  \"mismatched_inputs\": [\n    \"live_arts_bundle\",\n    \"capital_hilton_bundle\"\n  ],\n  \"missing_required_inputs\": [],\n  \"recommended_command\": \"python3 scripts/export_openclaw_business_object_layer_audit.py\",\n  \"recorded_hashes\": {\n    \"authority_semantics_registry\": \"sha256:73f8d59f3a0cefdf435e532da55eca2590e59a081a6e795db5f5bb2191c89383\",\n    \"capital_hilton_bundle\": \"sha256:f384551a2558a0f8c8ef8bbfeea37f4d9d3fdd08f422a543e4385cd09964ed71\",\n    \"context_wiki_index\": \"sha256:093bf33205108c12f205a18dc537952db0a7add651f3b80f2714417b13d3620f\",\n    \"estate_topology\": \"sha256:e32c278f0bb6c52fd2c3e514406f93e9b2c8dd9724825164ec4158d21c7fb2ae\",\n    \"external_system_knowledge_registry_index\": \"sha256:5665a7b3bfbfec9a9c9a6df1a99a13f93194dd04fb46958176c2cd1f30769c50\",\n    \"hermes_chief_build_handoff\": \"sha256:3fc1448b7a8236a3142814315790c427797c646295276429c6ceee42b005388a\",\n    \"hermes_gravity_controller\": \"sha256:51d57984bea39a6769fcaba0129e69a26e7761bfefc0a18b0d9ff77ffe628bec\",\n    \"hermes_mission_sentinel\": \"sha256:5fb7f99839fd0763bb60eddcbaf7167a301c7ef6a90880d0888a8233435b0a47\",\n    \"lane_capability_harvest\": \"sha256:f37a900ac43108090e70d85e710f1d67e961b81568dc061f730b7ebdb8ec3f05\",\n    \"live_arts_bundle\": \"sha256:32aed1bf62bceab78634e1feeb02651b41155f27827aae8433e5df18db1d352b\",\n    \"purpose_bound_automation_charter\": \"sha256:3460326c5e60000944ec87e8ab2361ed024df50ac7d736c33ce154ed6cb5d750\",\n    \"reference_resolver\": \"sha256:ca025f59ab8060942c7a75f1b1e4a8d562d9c50e807d7c96fa5c1312f009adba\",\n    \"service_supervision\": \"sha256:b92e768756c9a0d4302569f350e78db6c978d21871a9529fe9dcc324c565728d\"\n  },\n  \"skipped_self_referential_inputs\": [\n    \"change_sentinel\"\n  ]\n}",
       "observed_value": "STALE",
       "source_path": "generated/read_models/openclaw_business_object_layer_audit.json",
@@ -370,7 +370,7 @@
     {
       "fingerprint": "sha256:27bd0303dcd3126ad90f75510e46c0f72aaae32bebdc00f41f20bbfb7c1e3656",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"active_drift_signal_count\": 0,\n  \"active_drift_signals\": [],\n  \"authority_profile_ref\": \"event_bridge_finance_workflow_action_v0\",\n  \"authority_semantics_version\": \"authority_semantics_v0\",\n  \"chief_launched\": false,\n  \"golden_fixture_count\": 7,\n  \"lm_called\": false,\n  \"positive_template_count\": 7,\n  \"recommended_command\": \"python3 scripts/export_openclaw_authority_semantics_registry.py\",\n  \"schema_version\": \"openclaw_authority_semantics_registry_v0\"\n}",
       "observed_value": "authority_semantics_v0",
       "source_path": "generated/read_models/openclaw_authority_semantics_registry.json",
@@ -381,7 +381,7 @@
     {
       "fingerprint": "sha256:f4704b427419d85e22c1772961799f809f23bc600c3b90a17552be0ce2f6a68c",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
+      "observed_at": "2026-06-20T22:24:43+00:00",
       "observed_json": "{\n  \"chief_launched\": false,\n  \"harvested_capability_count\": 14,\n  \"hermes_reason\": \"Live Arts, Capital Hilton, and St. Anne's are not all proven. Finish the invoice steel-thread sequence before opening a new adjacent lane.\",\n  \"hermes_recommendation\": \"finish_invoice_steel_thread_sequence\",\n  \"lane_count\": 3,\n  \"lane_statuses\": {\n    \"capital_hilton_invoice_lane\": \"PARTIAL\",\n    \"live_arts_md_invoice_lane\": \"ACTIVE_STEEL_THREAD\",\n    \"st_annes_invoice_lane\": \"PARTIAL\"\n  },\n  \"lm_called\": false,\n  \"missing_inputs\": [],\n  \"next_after_three\": \"payment_proof_intake_lane\",\n  \"readiness\": \"READY_FOR_PLANNING_NOT_EXECUTION\",\n  \"recommended_command\": \"python3 scripts/export_openclaw_lane_capability_harvest.py\",\n  \"schema_version\": \"openclaw_lane_capability_harvest_read_model_v0\"\n}",
       "observed_value": "finish_invoice_steel_thread_sequence",
       "source_path": "generated/read_models/openclaw_lane_capability_harvest.json",
@@ -390,10 +390,10 @@
       "unreachable_reason": ""
     },
     {
-      "fingerprint": "sha256:82d94f99f8d6deb1f27367481369c3a520aaae649b6cb67b5f93e9d205f12268",
+      "fingerprint": "sha256:bff64a3058add84ef895dfd067db69258c3b4766367b9d996795b18868d94f31",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
-      "observed_json": "{\n  \"active_state\": \"active\",\n  \"available\": true,\n  \"error\": \"\",\n  \"exec_main_status\": \"0\",\n  \"n_restarts\": \"4\",\n  \"result\": \"success\",\n  \"service_name\": \"openclaw-request-response.service\",\n  \"sub_state\": \"running\"\n}",
+      "observed_at": "2026-06-20T22:24:43+00:00",
+      "observed_json": "{\n  \"active_state\": \"active\",\n  \"available\": true,\n  \"error\": \"\",\n  \"exec_main_status\": \"0\",\n  \"n_restarts\": \"0\",\n  \"result\": \"success\",\n  \"service_name\": \"openclaw-request-response.service\",\n  \"sub_state\": \"running\"\n}",
       "observed_value": "active",
       "source_path": "systemd:user:show",
       "target_ref": "service_status:openclaw-request-response.service",
@@ -401,11 +401,11 @@
       "unreachable_reason": ""
     },
     {
-      "fingerprint": "sha256:82d94f99f8d6deb1f27367481369c3a520aaae649b6cb67b5f93e9d205f12268",
+      "fingerprint": "sha256:bff64a3058add84ef895dfd067db69258c3b4766367b9d996795b18868d94f31",
       "observation_status": "NO_MATERIAL_CHANGE",
-      "observed_at": "2026-06-19T03:03:45+00:00",
-      "observed_json": "{\n  \"active_state\": \"active\",\n  \"available\": true,\n  \"error\": \"\",\n  \"exec_main_status\": \"0\",\n  \"n_restarts\": \"4\",\n  \"result\": \"success\",\n  \"service_name\": \"openclaw-request-response.service\",\n  \"sub_state\": \"running\"\n}",
-      "observed_value": "4",
+      "observed_at": "2026-06-20T22:24:43+00:00",
+      "observed_json": "{\n  \"active_state\": \"active\",\n  \"available\": true,\n  \"error\": \"\",\n  \"exec_main_status\": \"0\",\n  \"n_restarts\": \"0\",\n  \"result\": \"success\",\n  \"service_name\": \"openclaw-request-response.service\",\n  \"sub_state\": \"running\"\n}",
+      "observed_value": "0",
       "source_path": "systemd:user:show",
       "target_ref": "service_restart_count:openclaw-request-response.service",
       "target_type": "SERVICE",
@@ -432,7 +432,7 @@
     {
       "baseline_available": true,
       "chief_launched": false,
-      "generated_at": "2026-06-19T03:03:45+00:00",
+      "generated_at": "2026-06-20T22:24:43+00:00",
       "lm_called": false,
       "material_change_count": 0,
       "observed_change_count": 0,
