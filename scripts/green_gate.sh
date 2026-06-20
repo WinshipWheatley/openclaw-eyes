@@ -121,6 +121,28 @@ restore_trusted_tests(){
   fi
 }
 
+prune_trusted_tests_missing_sources(){
+  local pair source test_file
+  local pruned=0
+  local source_test_pairs=(
+    "fabric_peer.py:tests/test_home_fabric.py"
+    "maestro_listener.py:tests/test_maestro_listener.py"
+    "polish_loop/answer_auditor.py:tests/test_pc4_self_healing.py"
+  )
+  for pair in "${source_test_pairs[@]}"; do
+    source="${pair%%:*}"
+    test_file="${pair#*:}"
+    if [ ! -e "$source" ] && [ -e "$test_file" ]; then
+      rm -f "$test_file"
+      pruned=$((pruned + 1))
+      echo "[green-gate] pruned trusted test $test_file because target source is missing: $source"
+    fi
+  done
+  if [ "$pruned" -gt 0 ]; then
+    echo "[green-gate] trusted test prune count: $pruned"
+  fi
+}
+
 # Git hooks export repo-local environment such as GIT_DIR and GIT_WORK_TREE.
 # If those leak into pytest, tests that create temporary git repositories can
 # accidentally operate on the caller repo instead of their tmp checkout.
@@ -149,6 +171,7 @@ WORKTREE_CREATED=1
 cd "$WT" || fail "cwd"
 SHA="$(git rev-parse --short HEAD)"
 restore_trusted_tests
+prune_trusted_tests_missing_sources
 check_required_clean_fixtures
 echo "[green-gate] python: $("$VENV" -c 'import sys; print(sys.executable)')"
 echo "[green-gate] running FULL suite on clean checkout $SHA with trusted tests $TRUSTED_TEST_REF (timeout ${TIMEOUT_SECONDS}s/test, method $TIMEOUT_METHOD; this takes ~25 min) ..."

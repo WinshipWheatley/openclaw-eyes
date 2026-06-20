@@ -56,6 +56,15 @@ def test_green_gate_default_trusted_ref_is_immutable_snapshot() -> None:
     assert "${OPENCLAW_TRUSTED_ACCEPTANCE_REF:-$PINNED_TRUSTED_TEST_REF}" in SCRIPT
 
 
+def test_green_gate_prunes_trusted_tests_when_target_source_is_missing() -> None:
+    assert "prune_trusted_tests_missing_sources" in SCRIPT
+    assert '"fabric_peer.py:tests/test_home_fabric.py"' in SCRIPT
+    assert '"maestro_listener.py:tests/test_maestro_listener.py"' in SCRIPT
+    assert '"polish_loop/answer_auditor.py:tests/test_pc4_self_healing.py"' in SCRIPT
+    assert "pruned trusted test" in SCRIPT
+    assert "target source is missing" in SCRIPT
+
+
 def test_green_gate_rejects_branch_that_weakens_trusted_test(tmp_path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
