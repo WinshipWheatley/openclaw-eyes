@@ -58,6 +58,11 @@ from finance_state import (
     get_finance_payment_answer,
     get_finance_status_answer,
 )
+from operator_truth_store import (
+    find_operator_truth_for_text,
+    format_operator_truth_context,
+    upsert_operator_truth,
+)
 from capital_hilton_agency_status import (
     format_capital_hilton_agency_answer,
     format_capital_hilton_openclaw_status_answer,
@@ -1176,6 +1181,16 @@ def _store_session_fact_override(
     }
     state["session_fact_overrides"] = overrides
     state["pending_session_fact_correction"] = None
+    try:
+        upsert_operator_truth(
+            account_key,
+            summary,
+            source_surface="cassandra_session_fact_override",
+            source_text=source_text,
+            pii_tier="LIGHT",
+        )
+    except Exception as exc:
+        print(f"[cassandra] operator truth mirror failed: {exc.__class__.__name__}", flush=True)
 
 
 def _format_session_fact_ack(label: str, summary: str) -> str:
@@ -1303,6 +1318,11 @@ def _detect_session_fact_correction(query: str, state: dict) -> str | None:
 def _get_session_fact_override(query: str, state: dict | None) -> tuple[str, dict] | None:
     from finance_state import find_finance_account
 
+    shared_truth = find_operator_truth_for_text(query)
+    if shared_truth is not None:
+        _, record = shared_truth
+        return str(record.get("label") or record.get("entity_key") or "Operator truth").strip(), record
+
     overrides = _session_fact_overrides(state)
     if not overrides:
         return None
@@ -1321,10 +1341,12 @@ def _format_session_fact_override_context(query: str, state: dict | None) -> str
     if found is None:
         return ""
     label, override = found
-    summary = str(override.get("summary") or "").strip()
+    summary = str(override.get("summary") or override.get("value") or "").strip()
     if not summary:
         return ""
-    return f"[SESSION CORRECTION — {label}]\nCurrent truth: {summary}"
+    provenance = str(override.get("provenance") or "session_correction")
+    source_surface = str(override.get("source_surface") or "cassandra")
+    return f"[SESSION CORRECTION - {label}]\nCurrent truth: {summary}\nProvenance: {provenance}; source: {source_surface}"
 
 
 def _build_reality_snapshot() -> str:
@@ -1388,7 +1410,7 @@ def _build_temporal_anchor(now: datetime) -> str:
 def _build_context_invariants() -> str:
     return (
         "Context invariants: interpret relative day words against the date anchors above. "
-        "Use source priority in this order: live connector data, finance state, canonical reality, current-state ops files, then historical logs."
+        "Use source priority in this order: operator-corrected shared truth, finance state, canonical reality, current-state ops files, then historical logs."
     )
 
 
@@ -1400,6 +1422,10 @@ def build_context_snapshot(state: dict | None = None) -> str:
 
     parts.append(_build_temporal_anchor(now))
     parts.append(_build_context_invariants())
+
+    operator_truth = format_operator_truth_context()
+    if operator_truth:
+        parts.append(operator_truth)
 
     finance_snapshot = build_finance_snapshot(limit=3)
     if finance_snapshot:
@@ -2573,7 +2599,7 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
     found_override = _get_session_fact_override(text, state or {})
     if found_override is not None:
         _, override = found_override
-        summary = str(override.get("summary") or "").strip()
+        summary = str(override.get("summary") or override.get("value") or "").strip()
         if summary:
             return summary if summary.endswith((".", "!", "?")) else summary + "."
     reply = get_finance_status_answer(text)

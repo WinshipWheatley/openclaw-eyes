@@ -4909,10 +4909,18 @@ def _process_maestro_frontdoor_operator_instruction(
         return None
 
     operator_text = maestro_cassandra_responder.operator_text_from_request(raw_request)
-    result = maestro_cassandra_responder.answer_frontdoor_chat(
-        operator_text,
-        session=maestro_cassandra_responder.session_from_request(raw_request),
-    )
+    session = maestro_cassandra_responder.session_from_request(raw_request)
+    source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
+    try:
+        result = maestro_cassandra_responder.answer_frontdoor_chat(
+            operator_text,
+            session=session,
+            source_surface=source_surface,
+        )
+    except TypeError as exc:
+        if "source_surface" not in str(exc):
+            raise
+        result = maestro_cassandra_responder.answer_frontdoor_chat(operator_text, session=session)
     if result.status != "ANSWER_READY":
         return None
 
