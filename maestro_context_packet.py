@@ -139,6 +139,17 @@ def _freshness(path: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     return {"as_of": generated_at, "source_ref": _display_read_model_ref(path)}
 
 
+CALENDAR_EVENT_LIST_KEYS = (
+    "upcoming_calendar_events",
+    "calendar_events",
+    "today_events",
+    "events_today",
+    "upcoming_events",
+    "upcoming_commitments",
+    "commitments",
+)
+
+
 def _append_fact(
     facts: list[dict[str, Any]],
     *,
@@ -164,6 +175,55 @@ def _append_fact(
         "pii_tier": str(pii_tier or "PUBLIC").upper(),
     }
     facts.append(fact)
+
+
+def _calendar_event_rows(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    rows: list[Mapping[str, Any]] = []
+    for key in CALENDAR_EVENT_LIST_KEYS:
+        value = payload.get(key)
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+            rows.extend(row for row in value if isinstance(row, Mapping))
+    return rows
+
+
+def _calendar_event_when(row: Mapping[str, Any]) -> str:
+    start = str(
+        row.get("start")
+        or row.get("start_time")
+        or row.get("start_at")
+        or row.get("date_time")
+        or row.get("date")
+        or ""
+    ).strip()
+    end = str(row.get("end") or row.get("end_time") or row.get("end_at") or "").strip()
+    if start and end:
+        return f"{start}-{end}"
+    return start or end
+
+
+def _calendar_event_title(row: Mapping[str, Any]) -> str:
+    return str(
+        row.get("title")
+        or row.get("summary")
+        or row.get("name")
+        or row.get("display_name")
+        or row.get("description")
+        or "calendar commitment"
+    ).strip()
+
+
+def _calendar_event_lines(rows: Sequence[Mapping[str, Any]]) -> list[str]:
+    lines: list[str] = []
+    for row in rows:
+        when = _calendar_event_when(row)
+        title = _calendar_event_title(row)
+        location = str(row.get("location") or row.get("where") or "").strip()
+        status = str(row.get("status") or "").strip()
+        parts = [part for part in (when, title, location, status) if part]
+        line = " - ".join(parts)
+        if line:
+            lines.append(_compact(line, limit=220))
+    return lines
 
 
 def _operator_truth_facts(
@@ -354,6 +414,18 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
         if isinstance(email_calendar.get("classification_counts"), Mapping)
         else {}
     )
+    calendar_events = _calendar_event_lines(_calendar_event_rows(email_calendar))
+    if calendar_events:
+        _append_fact(
+            facts,
+            topic="calendar_day",
+            label="Upcoming calendar commitments",
+            value="; ".join(calendar_events[:8]),
+            provenance="generated_read_model",
+            source_ref=_display_read_model_ref(root / "cassandra_email_calendar_delta_detangle.json"),
+            pii_tier="MED",
+            freshness=_freshness(root / "cassandra_email_calendar_delta_detangle.json", email_calendar),
+        )
     if calendar_context or classification_counts:
         _append_fact(
             facts,
@@ -395,11 +467,14 @@ def _actionable_sections(facts: Sequence[Mapping[str, Any]]) -> dict[str, list[s
         value = str(fact.get("value") or "")
         text = f"{label}: {value}"
         lowered = text.lower()
+        topic = str(fact.get("topic") or "").lower()
         if any(term in lowered for term in ("$", "paid", "owes", "invoice", "check", "receivable")):
             money.append(_compact(text, limit=260))
         if any(term in lowered for term in ("owes", "next invoice", "needs", "must", "blocked", "review", "follow-up", "follow up")):
             attention.append(_compact(text, limit=260))
-        if any(term in lowered for term in ("next friday", "2026-06-26", "2026-07-01", "upcoming", "in progress")):
+        if topic == "calendar_day" or any(
+            term in lowered for term in ("next friday", "2026-06-26", "2026-07-01", "upcoming", "in progress")
+        ):
             upcoming.append(_compact(text, limit=260))
     return {
         "money_in_out": money[:8],

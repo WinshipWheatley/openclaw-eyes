@@ -91,6 +91,20 @@ def _read_models(tmp_path: Path) -> Path:
                     "live_calendar_access_enabled": False,
                 },
                 "classification_counts": {"DRAFT_PREVIEW_ONLY": 1, "EMAIL_SEND_BLOCKED": 1},
+                "upcoming_calendar_events": [
+                    {
+                        "title": "Call with Capital Hilton",
+                        "start": "2026-06-20T11:00:00-04:00",
+                        "end": "2026-06-20T11:30:00-04:00",
+                        "location": "phone",
+                    },
+                    {
+                        "summary": "Rehearsal",
+                        "date": "2026-06-20",
+                        "start_time": "19:00",
+                        "end_time": "21:00",
+                    },
+                ],
             }
         ),
         encoding="utf-8",
@@ -123,6 +137,30 @@ def test_maestro_context_packet_uses_operator_truth_and_read_models(monkeypatch,
     assert "generated/read_models/agent_presence.json" in packet["source_refs"]
     assert packet["machine_proof"]["operator_truth_store_used"] is True
     assert packet["machine_proof"]["read_model_count"] >= 4
+
+
+def test_maestro_context_packet_includes_calendar_events_for_day_questions(monkeypatch, tmp_path: Path) -> None:
+    store_path = _truth_store(monkeypatch, tmp_path)
+    read_model_root = _read_models(tmp_path)
+
+    from maestro_context_packet import build_maestro_context_packet, format_maestro_context_packet
+
+    packet = build_maestro_context_packet(
+        question="what does my day look like?",
+        read_model_root=read_model_root,
+        operator_truth_store_path=store_path,
+        require_real_truth=True,
+    )
+    text = format_maestro_context_packet(packet)
+    calendar_facts = [fact for fact in packet["facts"] if fact.get("topic") == "calendar_day"]
+
+    assert calendar_facts
+    assert "Call with Capital Hilton" in text
+    assert "Rehearsal" in text
+    assert "2026-06-20T11:00:00-04:00" in text
+    assert any("Call with Capital Hilton" in item for item in packet["actionable"]["upcoming_commitments"])
+    assert packet["bounds"]["outbound_send_allowed"] is False
+    assert packet["bounds"]["money_movement_allowed"] is False
 
 
 def test_stub_truth_root_is_rejected(monkeypatch, tmp_path: Path) -> None:
@@ -262,6 +300,39 @@ def test_fallback_capital_hilton_status_is_concise_and_question_targeted(tmp_pat
     assert "next Friday" not in text
     assert "SEND_HOLD" not in text
     assert text.count(".") <= 3
+    assert outcome.receipt["model_call_performed"] is False
+
+
+def test_fallback_day_question_uses_calendar_events_not_posture(tmp_path: Path) -> None:
+    from protected_generate import protected_generate_with_receipt
+
+    outcome = protected_generate_with_receipt(
+        "what does my day look like?",
+        context_packet={
+            "packet_id": "packet:test:calendar_day",
+            "facts": [
+                {
+                    "topic": "calendar_day",
+                    "label": "Upcoming calendar commitments",
+                    "value": "2026-06-20T11:00:00-04:00-2026-06-20T11:30:00-04:00 - Call with Capital Hilton - phone; 2026-06-20 - Rehearsal - 19:00-21:00.",
+                },
+                {
+                    "topic": "email_calendar",
+                    "label": "Email and calendar bounded posture",
+                    "value": "Calendar merged-context recorded: True. Live calendar access enabled: False.",
+                },
+            ],
+        },
+        audit_log_path=tmp_path / "audit.jsonl",
+        allow_live_model=False,
+    )
+
+    text = outcome.text
+    assert outcome.status == "ANSWER_READY"
+    assert "Call with Capital Hilton" in text
+    assert "Rehearsal" in text
+    assert "Calendar merged-context" not in text
+    assert "Live calendar access" not in text
     assert outcome.receipt["model_call_performed"] is False
 
 
