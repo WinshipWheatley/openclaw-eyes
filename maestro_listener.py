@@ -41,8 +41,15 @@ DEFAULT_RESPONSE_TIMEOUT_S = 45.0
 DEFAULT_RESPONSE_POLL_INTERVAL_S = 0.25
 
 BLOCKED_OR_UNKNOWN_REPLY = (
-    "Recorded, no action ran - I can answer date / system-orbit; "
-    "capability readback is live after reconcile."
+    "Recorded, no action ran. Maestro did not receive a final answer for this request. "
+    "Capability readback did not produce a final response. "
+    "The request stayed inside the local bridge; no send, workflow, model, tool, or external action ran."
+)
+INTERIM_OR_STAGING_MARKERS = (
+    "openclaw picked this up and is checking",
+    "recorded, no action ran - i can answer date / system-orbit",
+    "capability readback is live after reconcile",
+    "workflow package staged",
 )
 
 AUTHORITY_BOUNDARY = {
@@ -234,6 +241,32 @@ def build_operator_maestro_chat_request(
         "current_thread_ref": "operator_maestro_chat",
         "active_entity_ref": "operator_maestro_chat",
         "thread_title": "Maestro",
+        "speaker": "Winship",
+        "lane": "telegram_pc_maestro_listener",
+        "relay_origin": None,
+        "actor": "operator_winship",
+        "message_provenance": {
+            "speaker": "Winship",
+            "lane": "telegram_pc_maestro_listener",
+            "relay_origin": None,
+            "actor": "operator_winship",
+            "surface_ref": "operator_maestro_chat",
+            "message_role": "operator_prompt",
+        },
+        "expected_response_provenance": {
+            "speaker": "Maestro",
+            "lane": "telegram_pc_maestro_listener",
+            "relay_origin": None,
+            "actor": "maestro",
+            "surface_ref": "operator_maestro_chat",
+            "message_role": "final_agent_reply",
+            "processing_receipt_user_visible": False,
+        },
+        "correlation": {
+            "request_id": request_id,
+            "telegram_message_id": str(message_id),
+            "telegram_chat_ref": f"sha256:{_short_hash('telegram_chat', chat_id)}" if chat_id is not None else "unknown",
+        },
         "source_text": text,
         "operator_message": text,
         "source_text_ref": f"protected_text_hash:{protected_text_hash}",
@@ -299,27 +332,17 @@ def _first_text(value: Any) -> str:
     return str(value).strip()
 
 
-def _nested_text(payload: Mapping[str, Any], keys: tuple[str, ...]) -> str:
-    for key in keys:
-        text = _first_text(payload.get(key))
-        if text:
-            return text
-    for value in payload.values():
-        if isinstance(value, Mapping):
-            text = _nested_text(value, keys)
-            if text:
-                return text
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, Mapping):
-                    text = _nested_text(item, keys)
-                    if text:
-                        return text
-    return ""
+def _looks_like_interim_or_staging_text(text: str) -> bool:
+    normalized = _first_text(text).lower()
+    if not normalized:
+        return True
+    return any(marker in normalized for marker in INTERIM_OR_STAGING_MARKERS)
 
 
 def _blocked_or_unknown_response(payload: Mapping[str, Any] | None) -> bool:
     if not payload:
+        return True
+    if payload.get("terminal") is False or payload.get("processing_heartbeat_id"):
         return True
     internal_status = str(payload.get("internal_status") or "").upper()
     request_type = str(payload.get("request_type") or "").upper()
@@ -333,23 +356,96 @@ def _blocked_or_unknown_response(payload: Mapping[str, Any] | None) -> bool:
     return False
 
 
-def reply_text_from_bridge_response(payload: Mapping[str, Any] | None) -> str:
-    if _blocked_or_unknown_response(payload):
-        return BLOCKED_OR_UNKNOWN_REPLY
-    assert payload is not None
-    text = _nested_text(
-        payload,
-        (
-            "one_line_answer",
-            "plain_summary",
-            "operator_message",
-            "eliwinship",
-            "summary",
-            "operator_headline",
-            "headline",
-        ),
+def _text_candidates(payload: Mapping[str, Any]) -> tuple[str, ...]:
+    candidates: list[str] = []
+    top_level_keys = (
+        "operator_message",
+        "plain_summary",
+        "summary",
+        "eliwinship",
+        "body",
     )
-    return text or BLOCKED_OR_UNKNOWN_REPLY
+    for key in top_level_keys:
+        text = _first_text(payload.get(key))
+        if text:
+            candidates.append(text)
+
+    detail = payload.get("detail_disclosure")
+    if isinstance(detail, Mapping):
+        responder = detail.get("maestro_cassandra_responder")
+        if isinstance(responder, Mapping):
+            for key in ("plain_summary", "operator_message", "one_line_answer"):
+                text = _first_text(responder.get(key))
+                if text:
+                    candidates.append(text)
+        card = detail.get("dynamic_card_response")
+        if isinstance(card, Mapping):
+            for key in ("summary", "title"):
+                text = _first_text(card.get(key))
+                if text:
+                    candidates.append(text)
+
+    visible_cards = payload.get("visible_cards")
+    if isinstance(visible_cards, list):
+        for item in visible_cards:
+            if not isinstance(item, Mapping):
+                continue
+            for key in ("summary", "title"):
+                text = _first_text(item.get(key))
+                if text:
+                    candidates.append(text)
+
+    for key in ("one_line_answer", "operator_headline", "headline"):
+        text = _first_text(payload.get(key))
+        if text:
+            candidates.append(text)
+
+    deduped: list[str] = []
+    for candidate in candidates:
+        if candidate not in deduped:
+            deduped.append(candidate)
+    return tuple(deduped)
+
+
+def _best_final_text(payload: Mapping[str, Any]) -> str:
+    for candidate in _text_candidates(payload):
+        if not _looks_like_interim_or_staging_text(candidate):
+            return candidate
+    return ""
+
+
+def _correlation_ref(request_id: str | None) -> str:
+    raw = _first_text(request_id)
+    if not raw:
+        return "unknown"
+    parts = raw.split("_")
+    if len(parts) >= 4 and parts[0] == "maestro" and parts[1] == "telegram":
+        return f"{parts[2]}:{parts[-1][:6]}"
+    return _short_hash(raw)[:8]
+
+
+def _append_provenance(text: str, *, payload: Mapping[str, Any] | None, request_id: str | None) -> str:
+    source_request_id = ""
+    if isinstance(payload, Mapping):
+        source_request_id = _first_text(payload.get("source_request_id"))
+    ref = _correlation_ref(source_request_id)
+    label = f"Maestro-native reply - ref {ref}"
+    body = _first_text(text)
+    if not body:
+        body = BLOCKED_OR_UNKNOWN_REPLY
+    if not source_request_id:
+        return body
+    if label.lower() in body.lower():
+        return body
+    return f"{body}\n\n[{label}]"
+
+
+def reply_text_from_bridge_response(payload: Mapping[str, Any] | None, *, request_id: str | None = None) -> str:
+    if _blocked_or_unknown_response(payload):
+        return _append_provenance(BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
+    assert payload is not None
+    text = _best_final_text(payload)
+    return _append_provenance(text or BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -375,14 +471,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     chat_id = update.effective_chat.id if update.effective_chat else auth_id
     message_id = str(getattr(update.message, "message_id", "") or getattr(update, "update_id", "") or _short_hash(text))
     typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
+    request_id_for_reply: str | None = None
     try:
         request = build_operator_maestro_chat_request(text, message_id=message_id, chat_id=chat_id)
+        request_id_for_reply = str(request["request_id"])
         write_bridge_request(request)
-        response = await poll_bridge_response(str(request["request_id"]))
-        await update.message.reply_text(reply_text_from_bridge_response(response))
+        response = await poll_bridge_response(request_id_for_reply)
+        await update.message.reply_text(reply_text_from_bridge_response(response, request_id=request_id_for_reply))
     except Exception as exc:
         print(f"[maestro_listener] bridge error: {exc.__class__.__name__}", flush=True)
-        await update.message.reply_text(BLOCKED_OR_UNKNOWN_REPLY)
+        await update.message.reply_text(
+            reply_text_from_bridge_response(None, request_id=request_id_for_reply or message_id)
+        )
     finally:
         typing_task.cancel()
         try:
