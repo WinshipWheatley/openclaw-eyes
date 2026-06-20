@@ -117,3 +117,40 @@ def test_guardian_capability_and_safety_questions_are_not_approval_status():
     assert "actual message, recipient, and intended action" in safety
     assert "Nothing was sent" in safety
 
+
+@pytest.mark.parametrize(
+    "prompt,reason",
+    [
+        (
+            "Should I send a client rate breakdown before Winship's final wording approval?",
+            "final or unambiguous approval is missing",
+        ),
+        (
+            "Winship approved the direction but said hold until final wording approval; should I send it?",
+            "final or unambiguous approval is missing",
+        ),
+    ],
+)
+def test_guardian_obvious_approval_hold_makes_stage_block_judgment(prompt, reason):
+    from chief_nonapproval_responder import guardian_no_pending_reply
+
+    reply = guardian_no_pending_reply(prompt)
+
+    assert reply.startswith("STAGE/BLOCK:")
+    assert reason in reply
+    assert "Nothing was sent" in reply
+    assert "SEND_HOLD" in reply
+    assert "actual message, recipient, and intended action" not in reply
+
+
+def test_chief_routes_obvious_approval_hold_without_detail_punt(monkeypatch):
+    result = _route_without_side_effects(
+        monkeypatch,
+        "Send the client rate breakdown before final approval lands.",
+    )
+
+    assert result["intent"] == "guardian_judgment_block"
+    assert result["send_performed"] is False
+    assert result["reply"].startswith("STAGE/BLOCK:")
+    assert "Nothing was sent" in result["reply"]
+    assert "actual message, recipient, and intended action" not in result["reply"]
