@@ -106,6 +106,24 @@ def test_route_operator_intent_read_only_lookup_and_explainer_buckets_do_not_req
     assert result.execution_allowed is False
 
 
+def test_route_operator_intent_recovers_disposable_tmp_sqlite_after_readonly_stale_file(tmp_path):
+    db_path = tmp_path / "stale-compose.sqlite"
+    db_path.write_text("not a live sqlite database", encoding="utf-8")
+    db_path.chmod(0o400)
+
+    result = route_operator_intent(
+        text="email Annette the invoice now",
+        source_kind="mission_control",
+        source_channel="compose_contract_test",
+        requested_by="winship",
+        db_path=db_path,
+    )
+
+    assert result.intent_category == "email_send"
+    assert result.candidate_action_type == "email_send"
+    assert result.approval_required is True
+
+
 def test_compose_read_only_input_returns_read_only_without_packet(monkeypatch):
     _stub_chief_router(monkeypatch)
 

@@ -26,6 +26,53 @@ def _connect_write(path: str):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(path)
 
+
+TRANSIENT_SQLITE_WRITE_ERRORS = (
+    "attempt to write a readonly database",
+    "disk i/o error",
+    "file is not a database",
+    "no such table",
+    "unable to open database file",
+)
+
+
+def is_transient_sqlite_write_error(exc: BaseException) -> bool:
+    if not isinstance(exc, sqlite3.DatabaseError):
+        return False
+    message = str(exc).lower()
+    return any(fragment in message for fragment in TRANSIENT_SQLITE_WRITE_ERRORS)
+
+
+def is_disposable_sqlite_path(path: str | os.PathLike[str]) -> bool:
+    if os.environ.get("OPENCLAW_TEST_MODE") != "1" and "PYTEST_CURRENT_TEST" not in os.environ:
+        return False
+    resolved = Path(path).expanduser()
+    try:
+        resolved = resolved.resolve(strict=False)
+    except OSError:
+        return False
+    if not str(resolved).startswith("/tmp/"):
+        return False
+    return resolved.suffix in {".db", ".sqlite", ".sqlite3"}
+
+
+def reset_disposable_sqlite_path(path: str | os.PathLike[str]) -> bool:
+    if not is_disposable_sqlite_path(path):
+        return False
+    resolved = Path(path).expanduser().resolve(strict=False)
+    for candidate in (
+        resolved,
+        Path(f"{resolved}-wal"),
+        Path(f"{resolved}-shm"),
+        Path(f"{resolved}-journal"),
+    ):
+        try:
+            candidate.unlink()
+        except FileNotFoundError:
+            continue
+    return True
+
+
 GENERIC_RECEIPT_TYPES = {
     "artifact_checkpoint",
     "validation_result",
@@ -58,6 +105,7 @@ UNSAFE_RECEIPT_PAYLOAD_KEYS = {
 
 def init_business_ops_ledger(db_path: str | None = None) -> str:
     path = resolve_business_ops_ledger_path(db_path)
+    conn: sqlite3.Connection | None = None
     try:
         conn = _connect_write(path)
         cursor = conn.cursor()
@@ -240,7 +288,10 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
         conn.commit()
     except Exception as e:
         logger.error(f"Failed to initialize ledger at {path}: {e}")
-        return path
+    finally:
+        if conn is not None:
+            conn.close()
+    return path
 
 
 def record_file_inventory_entry(

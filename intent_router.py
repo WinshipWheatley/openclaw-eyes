@@ -20,7 +20,12 @@ from pathlib import Path
 from typing import Any
 
 from agent_lane_registry import init_agent_lane_registry_schema, seed_agent_lane_registry
-from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
+from business_ops_ledger import (
+    DEFAULT_DB_PATH,
+    init_business_ops_ledger,
+    is_transient_sqlite_write_error,
+    reset_disposable_sqlite_path,
+)
 from operator_action import ALLOWED_ACTIONS, ALLOWED_SOURCE_KINDS, init_operator_action_schema
 from recent_file_context import (
     init_recent_file_context_schema,
@@ -400,17 +405,23 @@ def init_intent_router_schema(db_path: str | Path | None = None) -> str:
     parent = Path(path).parent
     if parent and not parent.exists():
         parent.mkdir(parents=True, exist_ok=True)
-    init_business_ops_ledger(path)
-    _ensure_agent_registry_rows(path)
-    init_operator_action_schema(path)
-    init_recent_file_context_schema(path)
-    conn = sqlite3.connect(path)
-    try:
-        for statement in _sql_statements():
-            conn.execute(statement)
-        conn.commit()
-    finally:
-        conn.close()
+    for attempt in range(3):
+        try:
+            init_business_ops_ledger(path)
+            _ensure_agent_registry_rows(path)
+            init_operator_action_schema(path)
+            init_recent_file_context_schema(path)
+            conn = sqlite3.connect(path)
+            try:
+                for statement in _sql_statements():
+                    conn.execute(statement)
+                conn.commit()
+            finally:
+                conn.close()
+            return path
+        except sqlite3.DatabaseError as exc:
+            if attempt >= 2 or not is_transient_sqlite_write_error(exc) or not reset_disposable_sqlite_path(path):
+                raise
     return path
 
 
