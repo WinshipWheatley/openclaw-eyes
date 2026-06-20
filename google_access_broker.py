@@ -45,6 +45,7 @@ Public API:
 """
 
 import json
+import os
 import sys
 import importlib
 from datetime import datetime, timedelta
@@ -266,6 +267,63 @@ def _exact_send_gate_context_verified(
         and context.get("authority_refs")
         and context.get("credential_lease_refs")
     )
+
+
+def _practice_mode_requested() -> bool:
+    return os.environ.get("OPENCLAW_PRACTICE_MODE") == "1" or os.environ.get("OPENCLAW_PRACTICE_BENCH") == "1"
+
+
+def _maybe_apply_practice_redirect(capability: str, params: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Apply practice redirect after gates and before credentials, failing closed."""
+    try:
+        import practice_redirect
+    except Exception as exc:
+        if _practice_mode_requested():
+            raise RuntimeError(f"practice redirect unavailable — fail closed: {type(exc).__name__}") from exc
+        return dict(params), None
+
+    try:
+        if not practice_redirect.practice_mode_armed(active_token_path=_TOKEN_FILE):
+            return dict(params), None
+        redirected = practice_redirect.apply(capability, params)
+    except Exception as exc:
+        raise RuntimeError(f"practice redirect failed closed: {type(exc).__name__}: {exc}") from exc
+
+    meta = redirected.get("_practice_redirect")
+    if isinstance(meta, Mapping) and meta.get("practice_redirect_applied") is True:
+        return redirected, dict(meta)
+    return redirected, None
+
+
+def _practice_audit_params(params: Mapping[str, Any], practice_meta: Mapping[str, Any] | None) -> dict[str, Any]:
+    audit_params = dict(params)
+    if practice_meta:
+        audit_params["practice_redirect_applied"] = True
+        audit_params["target_redirected_to"] = practice_meta.get("target_redirected_to")
+        audit_params["terminal_status"] = practice_meta.get("terminal_status")
+    return audit_params
+
+
+def _attach_practice_result(result: dict, practice_meta: Mapping[str, Any] | None) -> dict:
+    if not practice_meta:
+        return result
+    data = result.get("data")
+    if not isinstance(data, dict):
+        data = {}
+    data.update(
+        {
+            "status": practice_meta.get("terminal_status"),
+            "practice_redirect_applied": True,
+            "target_redirected_to": practice_meta.get("target_redirected_to"),
+            "practice_redirect_meta": {
+                "original_recipient": practice_meta.get("original_recipient", ""),
+                "original_cc": practice_meta.get("original_cc", ""),
+                "original_bcc": practice_meta.get("original_bcc", ""),
+            },
+        }
+    )
+    result["data"] = data
+    return result
 
 
 # ── Capability executors ──────────────────────────────────────────────────────
@@ -762,6 +820,10 @@ def _exec_gmail_send(creds, params: dict) -> dict:
         if cc:
             msg["cc"] = cc
         msg["subject"] = subject
+        practice_meta = params.get("_practice_redirect")
+        if isinstance(practice_meta, Mapping) and practice_meta.get("practice_redirect_applied") is True:
+            msg["X-OpenClaw-Practice"] = "true"
+            msg["X-OpenClaw-Practice-Status"] = str(practice_meta.get("terminal_status", ""))
         if in_reply_to:
             msg["In-Reply-To"] = in_reply_to
         if references:
@@ -822,6 +884,10 @@ def _exec_gmail_draft_create(creds, params: dict) -> dict:
         if cc:
             msg["cc"] = cc
         msg["subject"] = subject
+        practice_meta = params.get("_practice_redirect")
+        if isinstance(practice_meta, Mapping) and practice_meta.get("practice_redirect_applied") is True:
+            msg["X-OpenClaw-Practice"] = "true"
+            msg["X-OpenClaw-Practice-Status"] = str(practice_meta.get("terminal_status", ""))
         if in_reply_to:
             msg["In-Reply-To"] = in_reply_to
         if references:
@@ -916,7 +982,16 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
             _audit(agent, capability, params, False, "denied at L2")
             return {"ok": False, "data": None, "error": "denied at L2 approval gate"}
 
-    # 3. Credential check
+    # 3. Practice-mode redirect hook. Approval/SEND_HOLD gates are upstream;
+    #    credentials and dispatch only see redirected params when the bench is armed.
+    try:
+        dispatch_params, practice_meta = _maybe_apply_practice_redirect(capability, params)
+    except RuntimeError as exc:
+        _audit(agent, capability, params, False, str(exc))
+        return {"ok": False, "data": None, "error": str(exc), "status": "PRACTICE_REDIRECT_FAILED_CLOSED"}
+    audit_params = _practice_audit_params(params, practice_meta)
+
+    # 4. Credential check
     if not _is_configured():
         msg = (
             f"Google credentials not configured.\n"
@@ -927,38 +1002,39 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
             f"  4. Run: python3 google_access_broker.py --auth\n"
             f"  5. Run: chmod 600 {_TOKEN_FILE}"
         )
-        _audit(agent, capability, params, False, "credentials not configured")
+        _audit(agent, capability, audit_params, False, "credentials not configured")
         return {"ok": False, "data": None, "error": msg}
 
     creds = _load_credentials()
     if creds is None:
         msg = "credentials present but could not be loaded — re-run --auth"
-        _audit(agent, capability, params, False, msg)
+        _audit(agent, capability, audit_params, False, msg)
         return {"ok": False, "data": None, "error": msg}
 
-    # 4. Dispatch
+    # 5. Dispatch
     if capability == "google.calendar.read":
-        result = _exec_calendar_read(creds, params)
+        result = _exec_calendar_read(creds, dispatch_params)
     elif capability == "google.calendar.write":
-        result = _exec_calendar_write(creds, params)
+        result = _exec_calendar_write(creds, dispatch_params)
     elif capability == "google.calendar.delete":
-        result = _exec_calendar_delete(creds, params)
+        result = _exec_calendar_delete(creds, dispatch_params)
     elif capability == "google.gmail.read.metadata":
-        result = _exec_gmail_read_metadata(creds, params)
+        result = _exec_gmail_read_metadata(creds, dispatch_params)
     elif capability == "google.gmail.read.body":
-        result = _exec_gmail_read_body(creds, params)
+        result = _exec_gmail_read_body(creds, dispatch_params)
     elif capability == "google.gmail.unread_count":
-        result = _exec_gmail_unread_count(creds, params)
+        result = _exec_gmail_unread_count(creds, dispatch_params)
     elif capability == "google.contacts.read":
-        result = _exec_contacts_read(creds, params)
+        result = _exec_contacts_read(creds, dispatch_params)
     elif capability == "google.gmail.draft.create":
-        result = _exec_gmail_draft_create(creds, params)
+        result = _exec_gmail_draft_create(creds, dispatch_params)
     elif capability == "google.gmail.send":
-        result = _exec_gmail_send(creds, params)
+        result = _exec_gmail_send(creds, dispatch_params)
     else:
         result = _exec_not_implemented(capability)
 
-    _audit(agent, capability, params, result["ok"], result.get("error", ""))
+    result = _attach_practice_result(result, practice_meta)
+    _audit(agent, capability, audit_params, result["ok"], result.get("error", ""))
     return result
 
 
