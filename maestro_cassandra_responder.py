@@ -65,6 +65,7 @@ class MaestroCassandraResult:
 
 
 HandleFn = Callable[[str, dict[str, Any] | None], Sequence[str]]
+ProtectedGenerateFn = Callable[..., Any]
 HANDLE_BACKEND_ROUTE = "maestro_cassandra_responder.cassandra_brain.handle"
 DATE_BACKEND_ROUTE = "maestro_cassandra_responder.datetime_deterministic"
 HERMES_TRUTHFUL_BACKEND_ROUTE = "maestro_cassandra_responder.hermes_truthful_advisory"
@@ -85,6 +86,8 @@ def backend_route_for_result(result: MaestroCassandraResult) -> str:
         return HANDLE_BACKEND_ROUTE
     if result.intent_class == "date_awareness":
         return DATE_BACKEND_ROUTE
+    if result.intent_class == "maestro_brain_freeform":
+        return "maestro_cassandra_responder.protected_generate"
     if result.intent_class == "status_capability_readback":
         return "maestro_cassandra_responder.truthful_status_capability_readback"
     if result.intent_class == "hermes_truthful_advisory":
@@ -110,6 +113,8 @@ def proof_refs_for_result(result: MaestroCassandraResult, *base_refs: str) -> tu
 
 def external_llm_invoked_for_result(result: MaestroCassandraResult) -> bool:
     proof = result.machine_proof or {}
+    if "external_llm_invoked" in proof:
+        return proof.get("external_llm_invoked") is True
     if proof.get("cassandra_handle_called") is not True:
         return False
     return proof.get("external_llm_invoked") is True
@@ -223,6 +228,15 @@ def operator_text_from_request(request: Mapping[str, Any]) -> str:
     return ""
 
 
+def _ledger_resolution_for_text(text: str) -> dict[str, Any]:
+    try:
+        from maestro_context_packet import resolve_ledger_reference
+
+        return resolve_ledger_reference(text)
+    except Exception:
+        return {"status": "NO_LEDGER_REFERENCE", "processing_allowed": False, "action_allowed": False}
+
+
 def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
     normalized = _normalize(text)
     if not normalized:
@@ -237,6 +251,11 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("inbox_gmail_metadata", False, "gmail_metadata_queries_use_existing_staging_path_for_truthful_proof")
     if _is_calendar_or_briefing_intent(normalized):
         return ("calendar_or_briefing", False, "calendar_or_briefing_routes_to_staging")
+    ledger_resolution = _ledger_resolution_for_text(normalized)
+    if ledger_resolution.get("status") == "NEEDS_CLARIFICATION":
+        return ("ledger_reference_clarification", True, "")
+    if ledger_resolution.get("status") == "RESOLVED" and ledger_resolution.get("blocked_action_requested") is not True:
+        return ("maestro_brain_freeform", True, "")
     if _is_workflow_or_business_action_intent(normalized):
         return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     if _is_date_awareness_intent(normalized):
@@ -245,7 +264,7 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("status_capability_readback", True, "")
     if _is_system_knowledge_intent(normalized):
         return ("system_knowledge", True, "")
-    return ("unapproved_conversation", False, "conversation_not_in_curated_safe_subset")
+    return ("maestro_brain_freeform", True, "")
 
 
 def answer_frontdoor_chat(
@@ -254,6 +273,7 @@ def answer_frontdoor_chat(
     session: Mapping[str, Any] | None = None,
     source_surface: str = "operator_maestro_chat",
     handle_fn: HandleFn | None = None,
+    protected_generate_fn: ProtectedGenerateFn | None = None,
 ) -> MaestroCassandraResult:
     intent_class, allowed, reason = classify_frontdoor_intent(text)
     forwarded_session = filtered_session(session)
@@ -338,6 +358,37 @@ def answer_frontdoor_chat(
             machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
         )
 
+    if intent_class == "ledger_reference_clarification":
+        answer = (
+            "Which ledger do you mean: the bank/finance ledger or a system/control ledger? "
+            "I can process a finance-ledger readback through the graded LIGHT gate, but I will not mutate a ledger."
+        )
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(answer),
+            plain_summary=answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "ledger_reference_clarification_performed": True,
+                "protected_generate_called": False,
+                "maestro_context_packet_used": False,
+                "external_llm_invoked": False,
+            },
+        )
+
+    if intent_class == "maestro_brain_freeform":
+        return _answer_with_maestro_brain(
+            text,
+            session=session,
+            source_surface=source_surface,
+            forwarded_session=forwarded_session,
+            protected_generate_fn=protected_generate_fn,
+        )
+
     replies = list((handle_fn or _default_handle)(text, forwarded_session))
     plain_summary = _strip_internal_state_leaks(_plain_summary(replies))
     return MaestroCassandraResult(
@@ -381,6 +432,101 @@ def _adapter_machine_proof(*, handle_called: bool) -> dict[str, Any]:
         "used_ad_hoc_memory_as_authority": False,
         "text_response_only": True,
     }
+
+
+def _answer_with_maestro_brain(
+    text: str,
+    *,
+    session: Mapping[str, Any] | None,
+    source_surface: str,
+    forwarded_session: Mapping[str, Any],
+    protected_generate_fn: ProtectedGenerateFn | None,
+) -> MaestroCassandraResult:
+    try:
+        from maestro_context_packet import build_maestro_context_packet
+
+        context_packet = build_maestro_context_packet(
+            question=text,
+            session=session,
+            source_surface=source_surface,
+            require_real_truth=True,
+        )
+    except Exception as exc:
+        answer = (
+            "I don't have a grounded Maestro packet for that yet. "
+            "I will not invent the answer; Chief can review the missing truth input."
+        )
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(answer),
+            plain_summary=answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            route_to_staging_reason=f"context_packet_unavailable:{type(exc).__name__}",
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "maestro_context_packet_used": False,
+                "protected_generate_called": False,
+                "context_packet_error": type(exc).__name__,
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+                "model_call_performed": False,
+            },
+        )
+
+    if protected_generate_fn is None:
+        from protected_generate import protected_generate_with_receipt
+
+        outcome = protected_generate_with_receipt(text, context_packet=context_packet)
+    else:
+        outcome = protected_generate_fn(text, context_packet=context_packet)
+
+    if hasattr(outcome, "text") and hasattr(outcome, "receipt"):
+        answer_text = str(outcome.text)
+        receipt = dict(outcome.receipt)
+    elif isinstance(outcome, Mapping):
+        answer_text = str(outcome.get("text") or outcome.get("answer") or "")
+        receipt = dict(outcome.get("receipt") or {})
+    else:
+        answer_text = str(outcome or "")
+        receipt = {
+            "status": "ANSWER_READY",
+            "decision": "INJECTED_PROTECTED_GENERATE",
+            "external_llm_invoked": False,
+            "local_model_invoked": True,
+            "model_call_performed": True,
+        }
+    answer_text = _strip_internal_state_leaks(answer_text) or (
+        "I don't have that in the current Maestro packet."
+    )
+    proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
+    return MaestroCassandraResult(
+        status="ANSWER_READY",
+        intent_class="maestro_brain_freeform",
+        allowed_to_call_handle=False,
+        one_line_answer=_one_line_answer(answer_text),
+        plain_summary=answer_text,
+        mac_render_hint=MAC_RENDER_HINT,
+        session_forwarded=forwarded_session,
+        machine_proof={
+            **_adapter_machine_proof(handle_called=False),
+            "protected_generate_called": True,
+            "maestro_context_packet_used": True,
+            "context_packet_id": str(context_packet.get("packet_id") or ""),
+            "proof_refs": proof_refs,
+            "source_truth_refs": proof_refs,
+            "protected_generate_receipt_id": str(receipt.get("receipt_id") or ""),
+            "protected_generate_audit_ref": str(receipt.get("audit_ref") or ""),
+            "protected_generate_decision": str(receipt.get("decision") or ""),
+            "model_call_performed": bool(receipt.get("model_call_performed", True)),
+            "external_llm_invoked": bool(receipt.get("external_llm_invoked", False)),
+            "local_model_invoked": bool(receipt.get("local_model_invoked", False)),
+            "send_hold_boundary_visible": True,
+            "claims_trace_to_packet": True,
+        },
+    )
 
 
 def build_hermes_truthful_advisory_answer(text: str) -> dict[str, Any]:
