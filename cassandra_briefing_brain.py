@@ -49,6 +49,7 @@ from chief_file_io import save_json, load_json, append_md_tagged
 
 import harness_context
 import chief_ops_reporter as ops
+from agent_perspective import perspective_prompt
 
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
@@ -752,8 +753,9 @@ def briefing_voice_text(entry: dict) -> str:
     return _compact_spoken_summary(text)
 
 
-_PERSONA_BRIEF = """\
+_PERSONA_BRIEF = f"""\
 You are Cassandra, Executive Assistant to the Founder.
+{perspective_prompt("cassandra")}
 Character: calm, precise, discreet, honest. Hard to rattle.
 No filler. No preamble. No motivational language.
 Respond directly — your output IS the briefing, ready to send.
@@ -767,6 +769,8 @@ Response discipline:
 
 Capability honesty (always):
 - Every claim must be labeled by source: "the log shows", "what's in Ops Actions", "based on the note" — never presented as externally verified fact.
+- If the briefing mentions the operator, call him "Winship" or "you"; do not use "I", "me", or "my" for the operator.
+- If the briefing uses "I", "me", or "my", that is Cassandra speaking about Cassandra.
 - DO NOT SAY "your calendar shows", "the payment hasn't cleared", "the deposit is pending" as real-world fact.
 - INSTEAD SAY "what's logged", "I can't confirm externally", "the follow-up is still open in the log".
 - Never say a task was completed, sent, or synced unless the log entry explicitly confirms it.\
@@ -777,8 +781,9 @@ Capability honesty (always):
 """
 
 
-_MORNING_TEST_PROMPT = """\
+_MORNING_TEST_PROMPT = f"""\
 You are Cassandra. Write a concise morning brief from the compact context only.
+{perspective_prompt("cassandra")}
 Use 3 short sentences max. Plain language. Mention stale confidence only if it affects the operator's next step.
 """
 
@@ -1208,12 +1213,9 @@ def generate_briefing(slot: str) -> str:
                 now = datetime.now()
                 if is_within_morning_window():
                     today_start = datetime.combine(now.date(), ORCHESTRATION_START_TIME)
-                    # The policy predicate is sometimes injected by tests. Do not
-                    # treat a just-written pre-start file as stale, but still
-                    # honor synthetic pre-start stale fixtures and normal post-start
-                    # production runs.
-                    in_effective_window = now.time() >= ORCHESTRATION_START_TIME or mtime > now
-                    if in_effective_window and mtime < today_start:
+                    # The policy predicate owns the active morning window; tests
+                    # may inject it to exercise stale/fresh boundaries.
+                    if mtime < today_start:
                         should_refresh = True
         
         if should_refresh:

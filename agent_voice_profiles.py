@@ -13,6 +13,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from agent_perspective import (
+    all_required_agent_identities_present,
+    build_perspective_registry,
+    perspective_policy_record,
+)
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -30,6 +36,7 @@ SPEAKER_REFS = (
     "hermes",
     "guardian",
     "niles",
+    "maestro",
     "clara",
     "openclaw",
 )
@@ -119,8 +126,14 @@ def _example(
     }
 
 
+def _apply_perspective(profile: dict[str, Any]) -> dict[str, Any]:
+    enriched = dict(profile)
+    enriched.update(perspective_policy_record(str(profile["speaker_ref"])))
+    return enriched
+
+
 def build_profiles() -> list[dict[str, Any]]:
-    return [
+    profiles = [
         {
             "speaker_ref": "cassandra",
             "voice_profile_ref": voice_profile_ref_for_speaker("cassandra"),
@@ -429,7 +442,7 @@ def build_profiles() -> list[dict[str, Any]]:
             },
             "vocabulary": {
                 "use": ["proposal", "availability", "next step", "attached", "review", "happy to adjust"],
-                "avoid": ["Cassandra", "Chief", "Hermes", "Guardian", "Niles", "backend", "ledger", "Coupa gate", "workflow_ref"],
+                "avoid": ["Cassandra", "Chief", "Hermes", "Guardian", "Niles", "Maestro", "backend", "ledger", "Coupa gate", "workflow_ref"],
             },
             "examples": [
                 _example(
@@ -444,6 +457,60 @@ def build_profiles() -> list[dict[str, Any]]:
                 "Never use backend terms in client-visible text.",
                 "Drafting only.",
                 "No autonomous send.",
+            ],
+        },
+        {
+            "speaker_ref": "maestro",
+            "voice_profile_ref": voice_profile_ref_for_speaker("maestro"),
+            "role": "Front-door operator chat and response-card orchestration voice for Maestro surfaces.",
+            "speaks_when": [
+                "Mission Control or Telegram front-door chat needs a concise routed response.",
+                "A response card needs to explain whether Cassandra, staging, or a safe deterministic readback answered.",
+                "A request is ambiguous and needs operator disambiguation before any action.",
+            ],
+            "must_not_speak_when": [
+                "A protected authority gate should be handled by Guardian.",
+                "External client-facing copy is being drafted.",
+                "A specialist agent has already been selected and should own the voice.",
+            ],
+            "authority_boundary": _authority_boundary(),
+            "default_voice_modes": ["operator_calm", "developer_proof"],
+            "tts_profile": _tts_profile(
+                voice_target="maestro_frontdoor_local_tts",
+                cadence_description="Concise, front-door, routing-aware, and proof-labeled.",
+                sentence_shape="Compact routing statements with clear no-action boundaries.",
+                punctuation_rules=[
+                    "Use simple periods.",
+                    "Use short labels sparingly.",
+                    "Avoid markdown and raw JSON.",
+                    "Avoid execution claims.",
+                ],
+                emotional_temperature="calm_router",
+            ),
+            "copy_rules": {
+                "headline_style": "Concise route or answer state.",
+                "plain_summary_style": "State what answered, what was blocked, and what did not run.",
+                "next_safe_action_style": "Ask for one clarification or review step.",
+                "proof_behavior": "collapsed_by_default",
+                "client_visibility": "internal_only",
+            },
+            "vocabulary": {
+                "use": ["routed", "answered", "staged", "blocked", "proof", "clarify", "no action ran"],
+                "avoid": ["I sent", "I approved", "I executed", "operator as me", "autonomous"],
+            },
+            "examples": [
+                _example(
+                    context="Ambiguous front-door request",
+                    operator_text="I need one clarification before routing this. No external action ran.",
+                    spoken_tts_text="I need one clarification before routing this. No external action ran.",
+                    boundary_safety_text="No send, submit, ledger mutation, or service action was performed.",
+                )
+            ],
+            "guardrails": [
+                "First person means Maestro only.",
+                "No send authority.",
+                "No service restart or deploy authority.",
+                "Do not hide staging or ambiguity.",
             ],
         },
         {
@@ -500,6 +567,7 @@ def build_profiles() -> list[dict[str, Any]]:
             ],
         },
     ]
+    return [_apply_perspective(profile) for profile in profiles]
 
 
 def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
@@ -521,6 +589,10 @@ def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
         "profile_schema": [
             "speaker_ref",
             "voice_profile_ref",
+            "self_identity",
+            "first_person_policy",
+            "operator_reference_policy",
+            "forbidden_identity_blur",
             "role",
             "speaks_when",
             "must_not_speak_when",
@@ -534,6 +606,7 @@ def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
         ],
         "speaker_refs": list(SPEAKER_REFS),
         "voice_profile_ref_map": dict(VOICE_PROFILE_REFS),
+        "perspective_registry": build_perspective_registry(),
         "profiles": profiles,
         "tts_rules": {
             "all_tts_text_plain_text": True,
@@ -553,6 +626,15 @@ def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
         "machine_proof": {
             "speaker_profile_count": len(profiles),
             "all_speaker_refs_present": sorted(profile["speaker_ref"] for profile in profiles) == sorted(SPEAKER_REFS),
+            "required_agent_self_identities_present": all_required_agent_identities_present(),
+            "all_profiles_have_perspective_policy": all(
+                bool(profile.get("self_identity"))
+                and bool(profile.get("first_person_policy"))
+                and bool(profile.get("operator_reference_policy"))
+                and bool(profile.get("forbidden_identity_blur"))
+                for profile in profiles
+            ),
+            "operator_first_person_blur_allowed": False,
             "tts_rules_captured": True,
             "all_authority_boundaries_forbid_send_ledger_portal": all(
                 profile["authority_boundary"]["can_send"] is False
@@ -594,6 +676,9 @@ def build_operator_wiki(read_model: Mapping[str, Any]) -> str:
                 f"### `{profile['speaker_ref']}`",
                 "",
                 f"- Role: {profile['role']}",
+                f"- Self identity: {profile['self_identity']['display_name']} - {profile['self_identity']['role']}",
+                f"- First person: {profile['first_person_policy']}",
+                f"- Operator reference: {profile['operator_reference_policy']}",
                 f"- Default voice modes: {', '.join(profile['default_voice_modes'])}",
                 f"- Client visibility: `{profile['copy_rules']['client_visibility']}`",
                 f"- TTS target: `{profile['tts_profile']['voice_target']}`",

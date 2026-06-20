@@ -17,6 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from agent_perspective import (
+    all_required_agent_identities_present,
+    build_perspective_registry,
+    perspective_policy_record,
+)
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -547,7 +553,7 @@ def _source_record(source: EvidenceSource, *, repo_root: str | Path) -> dict[str
 
 
 def _actor_record(actor: ActorIdentity) -> dict[str, Any]:
-    return {
+    record = {
         "actor_id": actor.actor_id,
         "display_name": actor.display_name,
         "class": actor.actor_class,
@@ -566,6 +572,8 @@ def _actor_record(actor: ActorIdentity) -> dict[str, Any]:
         "can_self_assign_authority": False,
         "notes_for_mission_control": actor.notes_for_mission_control,
     }
+    record.update(perspective_policy_record(actor.actor_id))
+    return record
 
 
 def _routing_rule_record(rule: RoutingRule) -> dict[str, Any]:
@@ -624,6 +632,7 @@ def build_agent_identity_actor_router_contract(
         },
         "evidence_sources": evidence_sources,
         "actors": actors,
+        "perspective_registry": build_perspective_registry(),
         "actor_roles": {
             actor["actor_id"]: {
                 "display_name": actor["display_name"],
@@ -726,6 +735,14 @@ def build_agent_identity_actor_router_contract(
         "machine_proof": {
             "source_read_models_present": {source["source_id"]: source["present"] for source in evidence_sources},
             "actor_ids": sorted(actor_by_id),
+            "required_agent_self_identities_present": all_required_agent_identities_present(),
+            "all_actors_have_operator_reference_policy": all(
+                bool(actor.get("first_person_policy"))
+                and bool(actor.get("operator_reference_policy"))
+                and bool(actor.get("forbidden_identity_blur"))
+                for actor in actors
+            ),
+            "operator_first_person_blur_allowed": False,
             "routing_rule_ids": [rule["rule_id"] for rule in routing_rules],
             "raw_private_bodies_included": False,
             "credentials_or_secrets_included": False,
@@ -749,7 +766,8 @@ def format_agent_identity_actor_router_contract(payload: dict[str, Any]) -> str:
     for actor in payload["actors"]:
         lines.append(
             f"- `{actor['actor_id']}`: {actor['display_name']} — {actor['primary_role']} "
-            f"({actor['class']}, clearance `{actor['clearance_level']}`)."
+            f"({actor['class']}, clearance `{actor['clearance_level']}`). "
+            f"First person means {actor['self_identity']['display_name']}; operator is Winship/you."
         )
     lines.extend(["", "## Routing Rules"])
     for rule in payload["routing_decision_rules"]:

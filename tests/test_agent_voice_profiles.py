@@ -7,6 +7,10 @@ import agent_voice_profiles as profiles
 REQUIRED_PROFILE_FIELDS = {
     "speaker_ref",
     "voice_profile_ref",
+    "self_identity",
+    "first_person_policy",
+    "operator_reference_policy",
+    "forbidden_identity_blur",
     "role",
     "speaks_when",
     "must_not_speak_when",
@@ -102,7 +106,21 @@ def test_clara_is_only_external_client_facing_profile_and_cassandra_internal_onl
         if client_visibility != "internal_only"
     } == {"clara"}
     clara = next(profile for profile in read_model["profiles"] if profile["speaker_ref"] == "clara")
-    assert {"Cassandra", "Chief", "Hermes", "Guardian", "Niles"}.issubset(set(clara["vocabulary"]["avoid"]))
+    assert {"Cassandra", "Chief", "Hermes", "Guardian", "Niles", "Maestro"}.issubset(set(clara["vocabulary"]["avoid"]))
+
+
+def test_agent_perspective_policy_pins_first_person_to_speaker_not_operator():
+    read_model = _read_model()
+
+    assert read_model["machine_proof"]["required_agent_self_identities_present"] is True
+    assert read_model["machine_proof"]["all_profiles_have_perspective_policy"] is True
+    assert read_model["machine_proof"]["operator_first_person_blur_allowed"] is False
+    profile_map = {profile["speaker_ref"]: profile for profile in read_model["profiles"]}
+    for speaker in ("cassandra", "chief", "guardian", "hermes", "niles", "maestro"):
+        profile = profile_map[speaker]
+        assert profile["self_identity"]["display_name"].lower() == speaker
+        assert "Winship" in profile["operator_reference_policy"]
+        assert "first-person" in profile["forbidden_identity_blur"]
 
 
 def test_guardian_and_niles_guardrails_avoid_bad_characterization():

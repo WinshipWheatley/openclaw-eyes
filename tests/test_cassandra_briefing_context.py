@@ -238,6 +238,20 @@ def test_morning_voice_text_uses_compressed_cache_summary(tmp_path, monkeypatch)
     assert voice == "Short spoken version."
 
 
+def test_briefing_prompt_pins_cassandra_self_and_operator_perspective():
+    prompt = bb._build_briefing_prompt(
+        "morning",
+        "Cassandra notes that Winship needs the short status.",
+        "Generate a morning briefing.",
+        "cassandra_morning_brief",
+    )
+
+    assert "You are Cassandra" in prompt
+    assert "refer only to Cassandra" in prompt
+    assert "The human operator is Winship" in prompt
+    assert 'do not use "I", "me", or "my" for the operator' in prompt
+
+
 def test_morning_reference_cache_preserves_sections(tmp_path, monkeypatch):
     synthesis = tmp_path / "Chief Morning Synthesis.md"
     cache = tmp_path / "morning_reference_cache.json"
