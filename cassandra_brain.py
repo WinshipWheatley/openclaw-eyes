@@ -63,6 +63,7 @@ from operator_truth_store import (
     find_operator_truth_for_text,
     format_operator_truth_context,
     upsert_operator_truth,
+    validate_operator_truth_value,
 )
 from capital_hilton_agency_status import (
     format_capital_hilton_agency_answer,
@@ -1338,6 +1339,17 @@ def _format_session_fact_ack(label: str, summary: str) -> str:
     return f"Got it — for {label}, the current truth now is: {clean}{suffix}"
 
 
+def _format_rejected_session_fact_correction(label: str, reason: str) -> str:
+    return (
+        f"Right, I have {label} marked as stale, but that did not look like a real replacement value "
+        f"({reason}). What should I change it to?"
+    )
+
+
+def _validate_session_fact_summary(summary: str, *, source_text: str) -> tuple[bool, str]:
+    return validate_operator_truth_value(summary, source_text=source_text)
+
+
 def _looks_like_new_request_during_pending_correction(query: str) -> bool:
     lowered = " ".join(str(query or "").lower().split())
     if not lowered:
@@ -1426,6 +1438,9 @@ def _handle_pending_session_fact_correction(query: str, state: dict) -> str | No
         return f"Right, I have {label} marked as stale. What should I change it to?"
 
     summary = summary[0].upper() + summary[1:]
+    valid, reason = _validate_session_fact_summary(summary, source_text=query)
+    if not valid:
+        return _format_rejected_session_fact_correction(label, reason)
     _store_session_fact_override(account_key, summary, query, state)
     return _format_session_fact_ack(label, summary)
 
@@ -1449,8 +1464,18 @@ def _detect_session_fact_correction(query: str, state: dict) -> str | None:
         }
         return f"You're right — I may be looking at stale context for {label}. What should I change it to?"
 
-    _store_session_fact_override(account_key, summary, query, state)
     label = str(account.get("label") or account_key).strip()
+    valid, reason = _validate_session_fact_summary(summary, source_text=query)
+    if not valid:
+        state["pending_session_fact_correction"] = {
+            "account_key": account_key,
+            "label": label,
+            "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "source_text": str(query or "").strip(),
+        }
+        return _format_rejected_session_fact_correction(label, reason)
+
+    _store_session_fact_override(account_key, summary, query, state)
     return _format_session_fact_ack(label, summary)
 
 

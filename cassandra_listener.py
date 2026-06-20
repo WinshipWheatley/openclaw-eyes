@@ -53,6 +53,7 @@ _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
 _LISTENER_LOCK_HANDLE = None
 _REQUEST_TIMEOUT_S = 60
 _WORKING_ACK_DELAY_S = 1.0
+_HEAVY_REQUEST_SEMAPHORE = asyncio.Semaphore(1)
 _WORKING_ON_IT = "Cassandra is working on it."
 _ESCALATION_NOTICE = (
     "Cassandra timed out before completing that request. I did not send or change anything. "
@@ -64,6 +65,10 @@ _HANDLER_EXCEPTION_NOTICE = (
 )
 _DEGRADED_EMPTY_REPLY_NOTICE = (
     "Cassandra is degraded: the model path returned no usable answer. "
+    "I did not send or change anything. I can still answer deterministic status, date, and capability questions."
+)
+_BACKPRESSURE_NOTICE = (
+    "Cassandra is degraded: a heavier request is already running, so I did not queue another model call. "
     "I did not send or change anything. I can still answer deterministic status, date, and capability questions."
 )
 _UNHANDLED_LISTENER_NOTICE = (
@@ -220,8 +225,32 @@ def _should_use_timeout_contract(text: str, *, is_authorized_user: bool) -> bool
     )
 
 
+def _lightweight_recovery_reply(text: str) -> list[str] | None:
+    normalized = _normalize_message_text(text)
+    if not normalized:
+        return None
+    if any(phrase in normalized for phrase in ("are you alive", "are you online", "are you stuck", "are you degraded")):
+        return [
+            "Cassandra is ALIVE but may be DEGRADED if a heavy model request is already running. "
+            "I did not send or change anything."
+        ]
+    if "what is today's date" in normalized or "what's today's date" in normalized or "today's date" in normalized:
+        return [f"Today is {datetime.now().strftime('%Y-%m-%d')}."]
+    if any(phrase in normalized for phrase in ("what can you do", "capability", "capabilities")):
+        return [
+            "Cassandra can answer deterministic status, date, and capability questions while the model path is degraded. "
+            "Send/money actions still require the normal guarded path."
+        ]
+    return None
+
+
 async def _run_cassandra_handle_async(text: str, session_meta: dict) -> list[str]:
     return await asyncio.to_thread(cassandra_handle, text, session_meta)
+
+
+async def _run_cassandra_with_backpressure(run_cassandra, text: str, session_meta: dict) -> list[str]:
+    async with _HEAVY_REQUEST_SEMAPHORE:
+        return await run_cassandra(text, session_meta)
 
 
 async def _trigger_chief_investigation_async(text: str, session_meta: dict) -> None:
@@ -329,6 +358,15 @@ async def _run_request_with_timeout_contract(
     escalate_failure=_trigger_chief_investigation_async,
     should_deliver=lambda: True,
 ) -> list[str] | None:
+    recovery_reply = _lightweight_recovery_reply(text)
+    if _HEAVY_REQUEST_SEMAPHORE.locked() and recovery_reply is not None:
+        await _send_reply_batch_or_degraded(
+            recovery_reply,
+            send_reply=send_reply,
+            should_deliver=should_deliver,
+        )
+        return recovery_reply
+
     if not _should_use_timeout_contract(text, is_authorized_user=is_authorized_user):
         replies = await run_cassandra(text, session_meta)
         await _send_reply_batch_or_degraded(
@@ -338,6 +376,11 @@ async def _run_request_with_timeout_contract(
         )
         return replies
 
+    if _HEAVY_REQUEST_SEMAPHORE.locked():
+        if should_deliver():
+            await send_reply(_BACKPRESSURE_NOTICE)
+        return None
+
     working_ack_task = asyncio.create_task(
         _send_delayed_status(
             message=_WORKING_ON_IT,
@@ -346,7 +389,7 @@ async def _run_request_with_timeout_contract(
             should_deliver=should_deliver,
         )
     )
-    task = asyncio.create_task(run_cassandra(text, session_meta))
+    task = asyncio.create_task(_run_cassandra_with_backpressure(run_cassandra, text, session_meta))
     try:
         replies = await asyncio.wait_for(asyncio.shield(task), timeout=_REQUEST_TIMEOUT_S)
     except asyncio.TimeoutError:
