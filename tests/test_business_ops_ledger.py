@@ -39,6 +39,22 @@ def test_ledger_initialization(clean_db):
         assert cursor.fetchone() is not None
     conn.close()
 
+
+def test_init_returns_path_and_closes_temp_database(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    for _ in range(5):
+        assert init_business_ops_ledger(str(db_path)) == str(db_path)
+        conn = sqlite3.connect(db_path)
+        try:
+            conn.execute("CREATE TABLE IF NOT EXISTS handle_probe (id INTEGER PRIMARY KEY)")
+            conn.execute("INSERT INTO handle_probe DEFAULT VALUES")
+            conn.commit()
+        finally:
+            conn.close()
+        db_path.unlink()
+
+
 def test_append_event(clean_db):
     success = append_event(
         event_id="evt_123",
