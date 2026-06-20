@@ -260,28 +260,155 @@ def _call_local_ollama(prompt: str, *, timeout: float, attempts: int) -> str:
     return str(ollama_call(prompt, **kwargs) or "")
 
 
+QUESTION_STOP_WORDS = frozenset(
+    {
+        "about",
+        "across",
+        "and",
+        "are",
+        "can",
+        "could",
+        "does",
+        "for",
+        "from",
+        "have",
+        "how",
+        "into",
+        "know",
+        "like",
+        "look",
+        "next",
+        "now",
+        "status",
+        "tell",
+        "that",
+        "the",
+        "this",
+        "today",
+        "what",
+        "whats",
+        "what's",
+        "when",
+        "where",
+        "which",
+        "with",
+        "would",
+        "you",
+        "your",
+    }
+)
+SYSTEM_POSTURE_TOPICS = frozenset({"agent_presence", "capability", "chief", "freshness", "work_board"})
+SYSTEM_POSTURE_MARKERS = (
+    "capability posture",
+    "classification counts",
+    "live calendar access",
+    "live-implemented",
+    "merged-context",
+    "online agents",
+    "readback/non-executing",
+    "role boundary",
+)
+SYSTEM_POSTURE_TERMS = frozenset(
+    {"agent", "agents", "capability", "capabilities", "chief", "openclaw", "online", "rail", "rails", "roster", "system"}
+)
+ANSWER_FILLER_MARKERS = ("next friday",)
+_WORD_RE = re.compile(r"[a-z0-9']+")
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|;\s+")
+
+
+def _question_terms(prompt: str) -> set[str]:
+    return {
+        token
+        for token in _WORD_RE.findall(str(prompt or "").lower())
+        if len(token) > 2 and token not in QUESTION_STOP_WORDS
+    }
+
+
+def _requests_system_posture(prompt: str) -> bool:
+    return bool(_question_terms(prompt) & SYSTEM_POSTURE_TERMS)
+
+
+def _is_system_posture_fact(fact: Mapping[str, Any]) -> bool:
+    topic = str(fact.get("topic") or "").strip().lower()
+    text = f"{fact.get('label') or ''} {fact.get('value') or ''}".lower()
+    return topic in SYSTEM_POSTURE_TOPICS or any(marker in text for marker in SYSTEM_POSTURE_MARKERS)
+
+
+def _fact_match_score(fact: Mapping[str, Any], terms: set[str], *, allow_system_posture: bool) -> int:
+    if not allow_system_posture and _is_system_posture_fact(fact):
+        return 0
+    text = " ".join(str(fact.get(key) or "") for key in ("topic", "label", "value")).lower()
+    if not terms:
+        return 1 if not _is_system_posture_fact(fact) else 0
+    score = sum(2 for term in terms if term in text)
+    label = str(fact.get("label") or "").lower()
+    score += sum(1 for term in terms if term in label)
+    return score
+
+
+def _clean_answer_value(value: object) -> str:
+    chunks = []
+    for chunk in _SENTENCE_SPLIT_RE.split(str(value or "")):
+        clean = chunk.strip(" \t\r\n.")
+        if not clean:
+            continue
+        lowered = clean.lower()
+        if any(marker in lowered for marker in ANSWER_FILLER_MARKERS):
+            continue
+        if any(marker in lowered for marker in SYSTEM_POSTURE_MARKERS):
+            continue
+        chunks.append(clean)
+    return "; ".join(chunks[:4])
+
+
+def _format_answer_fact(fact: Mapping[str, Any]) -> str:
+    label = str(fact.get("label") or "").strip()
+    value = _clean_answer_value(fact.get("value"))
+    if not value:
+        return ""
+    if label and label.lower() not in value.lower():
+        return f"{label}: {value}."
+    return value.rstrip(".") + "."
+
+
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
-    words = {part.strip(".,?!:;()[]{}").lower() for part in str(prompt or "").split() if len(part.strip(".,?!:;()[]{}")) > 3}
+    terms = _question_terms(prompt)
+    allow_system_posture = _requests_system_posture(prompt)
+    scored: list[tuple[int, int, Mapping[str, Any]]] = []
+    for index, fact in enumerate(facts):
+        score = _fact_match_score(fact, terms, allow_system_posture=allow_system_posture)
+        if score > 0:
+            scored.append((score, -index, fact))
+    scored.sort(reverse=True)
     matched: list[str] = []
-    for fact in facts:
-        line = f"{fact.get('label')}: {fact.get('value')}"
-        lowered = line.lower()
-        if any(word in lowered for word in words):
-            matched.append(line)
-        if len(matched) >= 4:
+    seen: set[str] = set()
+    for _score, _index, fact in scored:
+        sentence = _format_answer_fact(fact)
+        key = sentence.lower()
+        if sentence and key not in seen:
+            matched.append(sentence)
+            seen.add(key)
+        if len(matched) >= 3:
             break
+
+    if not matched and not terms:
+        for fact in facts:
+            if not allow_system_posture and _is_system_posture_fact(fact):
+                continue
+            sentence = _format_answer_fact(fact)
+            if sentence:
+                matched.append(sentence)
+            if len(matched) >= 3:
+                break
+
     if not matched:
         return (
             "I don't have that in the current Maestro packet. "
             "I can answer from the packet or ask Chief for a reviewed action plan, but I won't invent it."
         )
-    return (
-        "I can answer from the current packet. "
-        + " ".join(matched)
-        + " SEND_HOLD stays active: I can reason or draft, not send, spend, or mutate ledgers."
-    )
+    return " ".join(matched[:3])
 
 
 def _write_audit(receipt: Mapping[str, Any], audit_log_path: str | Path | None = None) -> str:

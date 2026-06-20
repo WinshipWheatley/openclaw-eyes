@@ -220,6 +220,51 @@ def test_missing_answer_in_packet_says_do_not_have_it(tmp_path: Path) -> None:
     assert outcome.receipt["model_call_performed"] is False
 
 
+def test_fallback_capital_hilton_status_is_concise_and_question_targeted(tmp_path: Path) -> None:
+    from protected_generate import protected_generate_with_receipt
+
+    outcome = protected_generate_with_receipt(
+        "what is my Capital Hilton status?",
+        context_packet={
+            "packet_id": "packet:test:capital_hilton_concise",
+            "facts": [
+                {
+                    "topic": "operator_truth",
+                    "label": "Capital Hilton",
+                    "value": "$2000 received through Coupa; July 1 check expected; $400 gigs; next Friday.",
+                },
+                {
+                    "topic": "capability",
+                    "label": "Truthful capability posture",
+                    "value": "4 live-implemented rails and 6 safe readback/non-executing rails.",
+                },
+                {
+                    "topic": "email_calendar",
+                    "label": "Email and calendar bounded posture",
+                    "value": "Calendar merged-context recorded: True. Live calendar access enabled: False.",
+                },
+                {"topic": "operator_truth", "label": "St Anne's", "value": "All paid up."},
+            ],
+        },
+        audit_log_path=tmp_path / "audit.jsonl",
+        allow_live_model=False,
+    )
+
+    text = outcome.text
+    assert outcome.status == "ANSWER_READY"
+    assert "Capital Hilton" in text
+    assert "$2000" in text
+    assert "July 1 check expected" in text
+    assert "$400 gigs" in text
+    assert "live-implemented" not in text
+    assert "Calendar merged-context" not in text
+    assert "St Anne" not in text
+    assert "next Friday" not in text
+    assert "SEND_HOLD" not in text
+    assert text.count(".") <= 3
+    assert outcome.receipt["model_call_performed"] is False
+
+
 def test_protected_generate_falls_back_after_fast_local_budget(monkeypatch, tmp_path: Path) -> None:
     from protected_generate import protected_generate_with_receipt
 
