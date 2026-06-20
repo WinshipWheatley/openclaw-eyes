@@ -198,7 +198,25 @@ def test_protected_generate_blocks_raw_legal_and_processes_light_ledger(tmp_path
     assert ledger.receipt["external_llm_invoked"] is False
     assert "123456789012" not in calls[-1]
     assert "Capital Hilton" in ledger.text
-    assert (tmp_path / "audit.jsonl").read_text(encoding="utf-8").count("\n") == 3
+    audit_text = (tmp_path / "audit.jsonl").read_text(encoding="utf-8")
+    assert audit_text.count("\n") == 3
+    assert "123456789012" not in audit_text
+    assert "OpenClawLegalPrivate" not in audit_text
+
+
+def test_missing_answer_in_packet_says_do_not_have_it(tmp_path: Path) -> None:
+    from protected_generate import protected_generate_with_receipt
+
+    outcome = protected_generate_with_receipt(
+        "What is my passport number?",
+        context_packet={"facts": [{"label": "Capital Hilton", "value": "$2000 received"}]},
+        audit_log_path=tmp_path / "audit.jsonl",
+        allow_live_model=False,
+    )
+
+    assert outcome.status == "ANSWER_READY"
+    assert "I don't have that" in outcome.text
+    assert outcome.receipt["model_call_performed"] is False
 
 
 def test_maestro_freeform_uses_protected_generate_without_touching_deterministic_paths(
