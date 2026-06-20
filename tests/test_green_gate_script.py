@@ -9,7 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts" / "green_gate.sh"
 SCRIPT = SCRIPT_PATH.read_text(encoding="utf-8")
-PINNED_TRUSTED_TEST_REF = "116d66e6f90aefa8e83d917cf3ed07993b4152c0"
+PINNED_TRUSTED_TEST_REF = "2f6f37e046ef345022bdda4de932fd35631cb756"
 
 
 def test_green_gate_uses_pytest_timeout_thread_method() -> None:

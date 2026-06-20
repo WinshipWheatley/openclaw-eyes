@@ -15,10 +15,9 @@ REPO="${OPENCLAW_REPO:-/home/openclaw}"
 VENV="${OPENCLAW_VENV:-/home/openclaw/.venv/bin/python}"
 TIMEOUT_SECONDS="${OPENCLAW_PYTEST_TIMEOUT_SECONDS:-90}"
 TIMEOUT_METHOD="${OPENCLAW_PYTEST_TIMEOUT_METHOD:-thread}"
-# Stable trusted-test snapshot pinned before orphaned Business Ops tests landed
-# without their required runtime module. Keep this immutable by default; use
+# Stable trusted-test snapshot. Keep this immutable by default; use
 # OPENCLAW_TRUSTED_TEST_REF only for explicit emergency override runs.
-PINNED_TRUSTED_TEST_REF="116d66e6f90aefa8e83d917cf3ed07993b4152c0"
+PINNED_TRUSTED_TEST_REF="2f6f37e046ef345022bdda4de932fd35631cb756"
 TRUSTED_TEST_REF="${OPENCLAW_TRUSTED_TEST_REF:-${OPENCLAW_TRUSTED_ACCEPTANCE_REF:-$PINNED_TRUSTED_TEST_REF}}"
 WT_ROOT="${OPENCLAW_GREEN_GATE_WORKTREE_ROOT:-/tmp/openclaw-green-gate}"
 TS="$(date +%s)-$$"
