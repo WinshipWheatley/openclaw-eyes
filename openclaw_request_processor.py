@@ -4933,6 +4933,13 @@ def _process_maestro_frontdoor_operator_instruction(
     external_llm_invoked = maestro_cassandra_responder.external_llm_invoked_for_result(result)
     result_payload = maestro_cassandra_responder.result_dict_for_receipt(result)
     machine_proof = maestro_cassandra_responder.machine_proof_for_result(result)
+    local_model_invoked = bool(machine_proof.get("local_model_invoked", False))
+    model_call_performed = bool(machine_proof.get("model_call_performed", False))
+    response_adapter_called = bool(
+        result.allowed_to_call_handle
+        or machine_proof.get("protected_generate_called")
+        or machine_proof.get("cassandra_handle_called")
+    )
     request_id = str(raw_request.get("request_id") or raw_request.get("source_request_id") or f"missing_request_id_{request_path.stem}")
     current_world = str(
         raw_request.get("current_world_ref")
@@ -5008,7 +5015,7 @@ def _process_maestro_frontdoor_operator_instruction(
         "maestro_cassandra_responder": result_payload,
         "dynamic_card_response": card,
         "external_actions_locked": True,
-        "model_or_worker_response_adapter_called": False,
+        "model_or_worker_response_adapter_called": response_adapter_called,
         "workflow_package_staged": False,
         "workflow_package_request_v0_emitted": False,
         "email_send_performed": False,
@@ -5018,8 +5025,17 @@ def _process_maestro_frontdoor_operator_instruction(
         "workbook_mutation_performed": False,
         "paid_marking_performed": False,
         "external_llm_invoked": external_llm_invoked,
-        "local_model_runtime_connected": False,
+        "local_model_runtime_connected": local_model_invoked,
     }
+    model_runtime_sentence = (
+        "No external LLM, local model runtime, worker, or business execution occurred."
+        if not (external_llm_invoked or local_model_invoked or model_call_performed)
+        else (
+            "The protected Maestro generation path recorded model_call_performed="
+            f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
+            f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+        )
+    )
     return OpenClawResponseForMac(
         source_request_id=request_id,
         source_request_filename=request_path.name,
@@ -5032,7 +5048,8 @@ def _process_maestro_frontdoor_operator_instruction(
             "OpenClaw recognized the general Maestro front-door chat surface.",
             "The gated Maestro Cassandra responder answered before workflow-package staging.",
             "No workflow package was staged for this allowed answer.",
-            "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, external LLM, local model runtime, worker, or business execution occurred.",
+            "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid marking, or external business action occurred.",
+            model_runtime_sentence,
         ),
         why_it_happened=f"The Maestro intent gate allowed {result.intent_class} through {backend_route}.",
         how_to_fix="No fix is needed. Review the Maestro answer and ask a follow-up if needed.",
