@@ -74,6 +74,40 @@ def _log_external_call(model: str, prompt_words: int, response_words: int,
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 _INSTALLED_MODEL_CACHE: tuple[float, set[str]] | None = None
+_OLLAMA_UNREACHABLE_MEMO = False
+
+
+def _ollama_tags_url() -> str:
+    return OLLAMA_URL.rsplit("/", 1)[0] + "/tags"
+
+
+def mark_ollama_unreachable() -> None:
+    global _OLLAMA_UNREACHABLE_MEMO
+    _OLLAMA_UNREACHABLE_MEMO = True
+
+
+def clear_ollama_unreachable_memo() -> None:
+    global _OLLAMA_UNREACHABLE_MEMO
+    _OLLAMA_UNREACHABLE_MEMO = False
+
+
+def ollama_is_unreachable(*, timeout: float = 0.2) -> bool:
+    """Return True after a cheap Ollama health probe fails, memoizing failure."""
+    if _OLLAMA_UNREACHABLE_MEMO:
+        return True
+    try:
+        req = urllib.request.Request(_ollama_tags_url(), method="GET")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            status = getattr(resp, "status", None)
+            if status is None and hasattr(resp, "getcode"):
+                status = resp.getcode()
+            if status is not None and int(status) >= 500:
+                mark_ollama_unreachable()
+                return True
+            return False
+    except Exception:
+        mark_ollama_unreachable()
+        return True
 
 _LANE_CANDIDATES = {
     "fast": (

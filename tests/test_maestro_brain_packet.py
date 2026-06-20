@@ -245,6 +245,7 @@ def test_protected_generate_falls_back_after_fast_local_budget(monkeypatch, tmp_
     monkeypatch.setenv("OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT", "0.05")
     monkeypatch.setenv("OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS", "1")
     monkeypatch.setattr(chief_llm, "ollama_call", fake_ollama)
+    monkeypatch.setattr(chief_llm, "ollama_is_unreachable", lambda **_kwargs: False)
 
     outcome = protected_generate_with_receipt(
         "What is the Capital Hilton status?",
@@ -276,6 +277,56 @@ def test_protected_generate_falls_back_after_fast_local_budget(monkeypatch, tmp_
     assert outcome.receipt["deterministic_fallback_used"] is True
     assert outcome.receipt["local_timeout_seconds"] == 0.05
     assert outcome.receipt["local_model_attempts"] == 1
+
+
+def test_protected_generate_short_circuits_when_no_external_model_and_ollama_unreachable(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from protected_generate import protected_generate_with_receipt
+
+    import chief_llm
+
+    monkeypatch.delenv("OPENCLAW_TEST_MODE", raising=False)
+    monkeypatch.delenv("OPENCLAW_CASSANDRA_EXTERNAL_MODEL", raising=False)
+    monkeypatch.delenv("CASSANDRA_EXTERNAL_MODEL", raising=False)
+    monkeypatch.delenv("OPENCLAW_EXTERNAL_MODEL", raising=False)
+    monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
+    monkeypatch.setenv("OPENCLAW_MAESTRO_BRAIN_LIVE", "1")
+    monkeypatch.setenv("OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT", "0.01")
+    monkeypatch.setattr(chief_llm, "_configured_openrouter_model", lambda: "")
+    monkeypatch.setattr(chief_llm, "ollama_is_unreachable", lambda **_kwargs: True)
+    monkeypatch.setattr(
+        chief_llm,
+        "ollama_call",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("local model must be skipped")),
+    )
+
+    outcome = protected_generate_with_receipt(
+        "What is the Capital Hilton status?",
+        context_packet={
+            "packet_id": "packet:test:capital_hilton_shortcircuit",
+            "facts": [
+                {
+                    "label": "Capital Hilton status",
+                    "value": "$2000 received through Coupa; July 1 check expected.",
+                }
+            ],
+        },
+        audit_log_path=tmp_path / "audit.jsonl",
+    )
+
+    assert outcome.status == "ANSWER_READY"
+    assert "Capital Hilton status" in outcome.text
+    assert "July 1 check expected" in outcome.text
+    assert outcome.receipt["route"] == "grounded_fallback_no_external_model_ollama_unreachable"
+    assert outcome.receipt["external_model_configured"] is False
+    assert outcome.receipt["ollama_unreachable_shortcircuit"] is True
+    assert outcome.receipt["ollama_probe_timeout_seconds"] == 0.01
+    assert outcome.receipt["model_call_performed"] is False
+    assert outcome.receipt["local_model_invoked"] is False
+    assert outcome.receipt["external_llm_invoked"] is False
+    assert outcome.receipt["deterministic_fallback_used"] is True
 
 
 def test_maestro_freeform_uses_protected_generate_without_touching_deterministic_paths(

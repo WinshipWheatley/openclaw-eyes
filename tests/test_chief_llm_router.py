@@ -130,6 +130,25 @@ def test_ollama_call_lane_uses_resolved_model(monkeypatch):
     assert calls == [("nemotron-3-nano:4b", 12)]
 
 
+def test_ollama_unreachable_probe_memoizes_failures(monkeypatch):
+    calls: list[tuple[str, float]] = []
+    chief_llm.clear_ollama_unreachable_memo()
+
+    def _raise_timeout(req, timeout=0):
+        calls.append((req.full_url, timeout))
+        raise TimeoutError("synthetic ollama down")
+
+    monkeypatch.setattr(chief_llm.urllib.request, "urlopen", _raise_timeout)
+
+    try:
+        assert chief_llm.ollama_is_unreachable(timeout=0.01) is True
+        assert chief_llm.ollama_is_unreachable(timeout=0.01) is True
+    finally:
+        chief_llm.clear_ollama_unreachable_memo()
+
+    assert calls == [("http://localhost:11434/api/tags", 0.01)]
+
+
 def test_ollama_call_tunes_cassandra_morning_test_timeout_without_retries(monkeypatch):
     calls: list[tuple[str, int]] = []
 
