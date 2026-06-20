@@ -2592,6 +2592,8 @@ def _handle_payment_verification_request(text: str) -> str | None:
 
 
 def _handle_finance_status_request(text: str, state: dict | None = None) -> str | None:
+    if _looks_like_operator_financial_event(text):
+        return None
     if not detect_finance_status_intent(text):
         return None
     found_override = _get_session_fact_override(text, state or {})
@@ -2610,7 +2612,33 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
     return reply
 
 
+def _looks_like_operator_financial_event(text: str) -> bool:
+    lowered = " ".join(str(text or "").lower().split())
+    if not lowered:
+        return False
+    event_markers = (
+        "i got paid",
+        "we got paid",
+        "got paid $",
+        "i got a check",
+        "we got a check",
+        "i received a payment",
+        "we received a payment",
+        "i received a check",
+        "we received a check",
+        "i was paid",
+        "we were paid",
+        "i deposited",
+        "we deposited",
+        "payment came in",
+        "check came in",
+    )
+    return any(marker in lowered for marker in event_markers)
+
+
 def _should_route_finance_status_before_intake(text: str, gmail_decision: Any | None = None) -> bool:
+    if _looks_like_operator_financial_event(text):
+        return False
     if not detect_finance_status_intent(text):
         return False
     t = (text or "").lower()

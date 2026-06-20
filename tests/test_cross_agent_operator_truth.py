@@ -120,3 +120,14 @@ def test_evening_seed_loads_current_truth_and_next_friday(monkeypatch, tmp_path)
     assert "Live Arts MD owes" in context
     assert store["entities"]["capital_hilton"]["source_surface"] == "operator_truth_seed"
 
+
+def test_test_mode_does_not_import_default_runtime_truth_without_explicit_seed(monkeypatch, tmp_path):
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(tmp_path / "isolated_test_truth.json"))
+    monkeypatch.delenv("OPENCLAW_OPERATOR_TRUTH_STORE", raising=False)
+    monkeypatch.delenv("OPENCLAW_OPERATOR_TRUTH_SEED", raising=False)
+
+    from operator_truth_store import format_operator_truth_context, load_operator_truth_store
+
+    assert format_operator_truth_context("Capital Hilton") == ""
+    assert load_operator_truth_store(ensure_seed=False)["entities"] == {}

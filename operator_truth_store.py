@@ -65,7 +65,16 @@ def _store_path(path: str | Path | None = None) -> Path:
     if path is not None:
         return Path(path)
     configured = os.environ.get("OPENCLAW_OPERATOR_TRUTH_STORE", "").strip()
-    return Path(configured) if configured else DEFAULT_STORE_PATH
+    if configured:
+        return Path(configured)
+    if os.environ.get("OPENCLAW_TEST_MODE") == "1":
+        test_path = os.environ.get("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", "").strip()
+        if test_path:
+            return Path(test_path)
+        current_test = os.environ.get("PYTEST_CURRENT_TEST", "").split(" ", 1)[0]
+        suffix = hashlib.sha256(current_test.encode("utf-8")).hexdigest()[:16] if current_test else str(os.getpid())
+        return Path(f"/tmp/openclaw_operator_truth_store_{suffix}.json")
+    return DEFAULT_STORE_PATH
 
 
 def _seed_path(path: str | Path | None = None) -> Path:
@@ -73,6 +82,14 @@ def _seed_path(path: str | Path | None = None) -> Path:
         return Path(path)
     configured = os.environ.get("OPENCLAW_OPERATOR_TRUTH_SEED", "").strip()
     return Path(configured) if configured else DEFAULT_SEED_PATH
+
+
+def _seed_enabled(seed_path: str | Path | None = None) -> bool:
+    if seed_path is not None:
+        return True
+    if os.environ.get("OPENCLAW_OPERATOR_TRUTH_SEED", "").strip():
+        return True
+    return os.environ.get("OPENCLAW_TEST_MODE") != "1"
 
 
 def _utc_now() -> str:
@@ -218,6 +235,8 @@ def ensure_evening_seed_loaded(
     payload = dict(data or _empty_store())
     payload.setdefault("entities", {})
     payload.setdefault("seeded_sources", {})
+    if not _seed_enabled(seed_path):
+        return payload
     seed = _seed_path(seed_path)
     try:
         seed_text = seed.read_text(encoding="utf-8")
