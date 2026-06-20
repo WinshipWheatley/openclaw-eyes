@@ -72,7 +72,8 @@ def _store_path(path: str | Path | None = None) -> Path:
         if test_path:
             return Path(test_path)
         current_test = os.environ.get("PYTEST_CURRENT_TEST", "").split(" ", 1)[0]
-        suffix = hashlib.sha256(current_test.encode("utf-8")).hexdigest()[:16] if current_test else str(os.getpid())
+        test_hash = hashlib.sha256(current_test.encode("utf-8")).hexdigest()[:16] if current_test else "session"
+        suffix = f"{os.getpid()}_{test_hash}"
         return Path(f"/tmp/openclaw_operator_truth_store_{suffix}.json")
     return DEFAULT_STORE_PATH
 
