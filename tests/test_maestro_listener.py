@@ -196,6 +196,8 @@ def test_authorized_date_question_replies_from_bridge_and_sends_typing(monkeypat
 
     assert written
     assert written[0]["request_id"].startswith("maestro_telegram_42_")
+    assert written[0]["protected_text_hash"].startswith("sha256:")
+    assert written[0]["source_text_ref"] == "protected_text_hash:" + written[0]["protected_text_hash"]
     assert update.message.replies == [f"Today is {date.today().isoformat()}."]
     assert context.bot.actions == [(456, "typing")]
     assert records[0]["operator_message"] is True

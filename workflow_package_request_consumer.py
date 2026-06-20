@@ -235,6 +235,17 @@ def _sha256_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _protected_hash_digest(value: str) -> str:
+    text = str(value or "").strip().lower()
+    if text.startswith("protected_text_hash:"):
+        text = text[len("protected_text_hash:") :]
+    if text.startswith("sha256:"):
+        text = text[len("sha256:") :]
+    if len(text) == 64 and all(char in "0123456789abcdef" for char in text):
+        return text
+    return ""
+
+
 def is_workflow_package_request(raw_request: Mapping[str, Any]) -> bool:
     return (
         str(raw_request.get("request_type") or raw_request.get("envelope_type") or "").strip().upper()
@@ -702,11 +713,12 @@ def validate_envelope(raw_request: Mapping[str, Any], *, source_request_filename
     blockers.extend(_authority_blockers(raw_request))
 
     expected_hash = workflow_package_queue.protected_text_hash(_source_text(raw_request)) if _source_text(raw_request) else ""
+    expected_digest = _protected_hash_digest(expected_hash)
     provided_hash = str(raw_request.get("protected_text_hash") or "").strip()
     source_text_ref = str(raw_request.get("source_text_ref") or "").strip()
-    if provided_hash and expected_hash and provided_hash != expected_hash:
+    if provided_hash and expected_digest and _protected_hash_digest(provided_hash) != expected_digest:
         blockers.append("protected_text_hash_mismatch")
-    if source_text_ref and expected_hash and not source_text_ref.endswith(expected_hash):
+    if source_text_ref and expected_digest and _protected_hash_digest(source_text_ref) != expected_digest:
         blockers.append("source_text_ref_hash_mismatch")
 
     return not blockers, tuple(dict.fromkeys(blockers))

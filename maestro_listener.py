@@ -130,6 +130,10 @@ def _short_hash(*parts: Any) -> str:
     return hashlib.sha256(stable_json(parts).encode("utf-8")).hexdigest()[:12]
 
 
+def _protected_text_hash(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def _parse_env_line(line: str) -> tuple[str, str] | None:
     stripped = line.strip()
     if not stripped or stripped.startswith("#") or "=" not in stripped:
@@ -221,7 +225,7 @@ def build_operator_maestro_chat_request(
 ) -> dict[str, Any]:
     created_at = created_at or utc_now()
     request_id = f"maestro_telegram_{_safe_filename_part(str(message_id))}_{_short_hash(text, message_id, created_at)}"
-    protected_text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    protected_text_hash = _protected_text_hash(text)
     request: dict[str, Any] = {
         "schema_version": "operator_instruction_writer_v0",
         "request_id": request_id,

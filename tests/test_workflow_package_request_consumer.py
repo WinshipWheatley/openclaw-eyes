@@ -9,6 +9,7 @@ if str(ROOT) not in sys.path:
 
 import openclaw_request_processor as processor
 import openclaw_request_response_service as service
+import maestro_listener
 import workflow_package_queue as queue
 import workflow_package_request_consumer as consumer
 from scripts.run_openclaw_request_response_service import main as service_main
@@ -56,6 +57,59 @@ def _write_request(path: Path, *, request_id: str, source_text: str, world_ref: 
     )
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return payload
+
+
+def test_maestro_listener_envelope_hash_validates_against_consumer() -> None:
+    request = maestro_listener.build_operator_maestro_chat_request(
+        "What should Maestro do with this operator message?",
+        message_id="223",
+        chat_id=123,
+        created_at=FIXED_NOW,
+    )
+
+    ok, blockers = consumer.validate_envelope(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_maestro_telegram_223.json",
+    )
+
+    assert request["protected_text_hash"].startswith("sha256:")
+    assert request["source_text_ref"] == "protected_text_hash:" + request["protected_text_hash"]
+    assert ok is True
+    assert blockers == ()
+
+
+def test_legacy_bare_hex_hash_still_validates_when_source_text_matches() -> None:
+    request = maestro_listener.build_operator_maestro_chat_request(
+        "What should Maestro do with this legacy operator message?",
+        message_id="legacy-223",
+        chat_id=123,
+        created_at=FIXED_NOW,
+    )
+    bare_digest = request["protected_text_hash"].removeprefix("sha256:")
+    request["protected_text_hash"] = bare_digest
+    request["source_text_ref"] = "protected_text_hash:" + bare_digest
+
+    ok, blockers = consumer.validate_envelope(request)
+
+    assert ok is True
+    assert blockers == ()
+
+
+def test_hash_validation_still_rejects_tampered_operator_text() -> None:
+    request = maestro_listener.build_operator_maestro_chat_request(
+        "What should Maestro do with this operator message?",
+        message_id="tamper-223",
+        chat_id=123,
+        created_at=FIXED_NOW,
+    )
+    request["source_text"] = request["source_text"] + " tampered"
+    request["operator_message"] = request["source_text"]
+
+    ok, blockers = consumer.validate_envelope(request)
+
+    assert ok is False
+    assert "protected_text_hash_mismatch" in blockers
+    assert "source_text_ref_hash_mismatch" in blockers
 
 
 def _safe_response_path(response_dir: Path, request_id: str) -> Path:
