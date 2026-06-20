@@ -13,6 +13,7 @@
 !polish_loop/status.json
 !polish_loop/current/mac_review.md
 !polish_loop/builder_output_validator.py
+!polish_loop/lane_launcher.py
 #
 # INTENTIONALLY EXCLUDED (never add ! entries for these):
 #   .google-secrets/              — broker secrets directory (credentials.json, token.json)
@@ -80,6 +81,7 @@
 !operator_action_event_journal.py
 !operator_action_inbox.py
 !operator_universal_intake.py
+!operator_truth_store.py
 !project_capsule.py
 !legacy_repo_intake.py
 !module_registry.py
@@ -508,6 +510,7 @@
 !tests/test_topic_sensitivity_gate.py
 !tests/test_cassandra_md_enrichment.py
 !tests/test_orchestrator_task_frontmatter.py
+!tests/test_polish_loop_self_scaling.py
 !tests/test_file_verify_brain_wire.py
 !tests/test_cassandra_payment_verify.py
 !tests/test_cassandra_briefing_context.py
@@ -741,6 +744,7 @@
 !tests/test_truth_packet_visibility.py
 !scripts/operator_truth_query.py
 !tests/test_operator_truth_query.py
+!tests/test_cross_agent_operator_truth.py
 !scripts/promote_accepted_context.py
 !tests/test_accepted_context_promotion.py
 !scripts/extract_accepted_sources.py

@@ -59,6 +59,11 @@ from finance_state import (
     get_finance_payment_answer,
     get_finance_status_answer,
 )
+from operator_truth_store import (
+    find_operator_truth_for_text,
+    format_operator_truth_context,
+    upsert_operator_truth,
+)
 from capital_hilton_agency_status import (
     format_capital_hilton_agency_answer,
     format_capital_hilton_openclaw_status_answer,
@@ -1314,6 +1319,16 @@ def _store_session_fact_override(
     }
     state["session_fact_overrides"] = overrides
     state["pending_session_fact_correction"] = None
+    try:
+        upsert_operator_truth(
+            account_key,
+            summary,
+            source_surface="cassandra_session_fact_override",
+            source_text=source_text,
+            pii_tier="LIGHT",
+        )
+    except Exception as exc:
+        print(f"[cassandra] operator truth mirror failed: {exc.__class__.__name__}", flush=True)
 
 
 def _format_session_fact_ack(label: str, summary: str) -> str:
@@ -1441,6 +1456,11 @@ def _detect_session_fact_correction(query: str, state: dict) -> str | None:
 def _get_session_fact_override(query: str, state: dict | None) -> tuple[str, dict] | None:
     from finance_state import find_finance_account
 
+    shared_truth = find_operator_truth_for_text(query)
+    if shared_truth is not None:
+        _, record = shared_truth
+        return str(record.get("label") or record.get("entity_key") or "Operator truth").strip(), record
+
     overrides = _session_fact_overrides(state)
     if not overrides:
         return None
@@ -1459,10 +1479,12 @@ def _format_session_fact_override_context(query: str, state: dict | None) -> str
     if found is None:
         return ""
     label, override = found
-    summary = str(override.get("summary") or "").strip()
+    summary = str(override.get("summary") or override.get("value") or "").strip()
     if not summary:
         return ""
-    return f"[SESSION CORRECTION — {label}]\nCurrent truth: {summary}"
+    provenance = str(override.get("provenance") or "session_correction")
+    source_surface = str(override.get("source_surface") or "cassandra")
+    return f"[SESSION CORRECTION - {label}]\nCurrent truth: {summary}\nProvenance: {provenance}; source: {source_surface}"
 
 
 def _build_reality_snapshot(state: dict | None = None) -> str:
@@ -1536,7 +1558,7 @@ def _build_temporal_anchor(now: datetime) -> str:
 def _build_context_invariants() -> str:
     return (
         "Context invariants: interpret relative day words against the date anchors above. "
-        "Use source priority in this order: operator-corrected truth, live connector data, "
+        "Use source priority in this order: operator-corrected shared truth, live connector data, "
         "canonical finance/reality, current-state ops files, then historical logs. "
         "Facts marked stale/superseded are not current."
     )
@@ -1554,6 +1576,10 @@ def build_context_snapshot(state: dict | None = None) -> str:
     current_truth = build_current_truth_snapshot(state)
     if current_truth:
         parts.append(current_truth)
+
+    operator_truth = format_operator_truth_context()
+    if operator_truth:
+        parts.append(operator_truth)
 
     finance_snapshot = _build_finance_snapshot_with_precedence(state=state, limit=3)
     if finance_snapshot:
@@ -2720,12 +2746,14 @@ def _handle_payment_verification_request(text: str) -> str | None:
 
 
 def _handle_finance_status_request(text: str, state: dict | None = None) -> str | None:
+    if _looks_like_operator_financial_event(text):
+        return None
     if not detect_finance_status_intent(text):
         return None
     found_override = _get_session_fact_override(text, state or {})
     if found_override is not None:
         _, override = found_override
-        summary = str(override.get("summary") or "").strip()
+        summary = str(override.get("summary") or override.get("value") or "").strip()
         if summary:
             return summary if summary.endswith((".", "!", "?")) else summary + "."
     reply = get_finance_status_answer(text)
@@ -2738,7 +2766,33 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
     return reply
 
 
+def _looks_like_operator_financial_event(text: str) -> bool:
+    lowered = " ".join(str(text or "").lower().split())
+    if not lowered:
+        return False
+    event_markers = (
+        "i got paid",
+        "we got paid",
+        "got paid $",
+        "i got a check",
+        "we got a check",
+        "i received a payment",
+        "we received a payment",
+        "i received a check",
+        "we received a check",
+        "i was paid",
+        "we were paid",
+        "i deposited",
+        "we deposited",
+        "payment came in",
+        "check came in",
+    )
+    return any(marker in lowered for marker in event_markers)
+
+
 def _should_route_finance_status_before_intake(text: str, gmail_decision: Any | None = None) -> bool:
+    if _looks_like_operator_financial_event(text):
+        return False
     if not detect_finance_status_intent(text):
         return False
     if _detect_financial_intent(text) == "income":

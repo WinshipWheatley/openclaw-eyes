@@ -784,6 +784,17 @@ def record_telegram_listener_update_safe(
     """
 
     try:
+        from operator_truth_store import capture_operator_truth_from_text
+
+        capture_operator_truth_from_text(
+            text,
+            source_surface=source_channel,
+            source_ref=source_message_id,
+        )
+    except Exception as exc:
+        print(f"[telegram_agent_intake] operator truth capture failed: {exc.__class__.__name__}", flush=True)
+
+    try:
         result = record_telegram_update(
             text=text,
             source_channel=source_channel,

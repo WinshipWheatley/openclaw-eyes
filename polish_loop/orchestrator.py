@@ -1478,6 +1478,39 @@ def cmd_resume() -> None:
     print(f"[resume] parked → {parked_from}")
 
 
+def cmd_submit_lanes(decision_path: str) -> None:
+    """Submit a master-approved parallel lane decision to the lane launcher."""
+    import lane_launcher
+
+    decision_file = Path(decision_path)
+    try:
+        decision = json.loads(decision_file.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"ERROR: cannot read lane decision {decision_file}: {exc}", file=sys.stderr)
+        sys.exit(2)
+
+    config = lane_launcher.LauncherConfig(repo_root=REPO_ROOT)
+    result = lane_launcher.submit_parallelization_decision(decision, config=config)
+    print(lane_launcher.stable_json(result), end="")
+    sys.exit(0 if result.get("status") == "accepted" else 2)
+
+
+def cmd_lane_status() -> None:
+    """Print lane registry plus gate-token state for the orchestrator/master."""
+    import lane_launcher
+
+    registry = lane_launcher.load_registry(lane_launcher.DEFAULT_REGISTRY_PATH)
+    payload = {
+        "registry": registry,
+        "capacity": lane_launcher.capacity_snapshot(
+            lane_launcher.LauncherConfig(repo_root=REPO_ROOT),
+            registry,
+        ),
+        "gate_token": lane_launcher.gate_token_state(lane_launcher.DEFAULT_GATE_TOKEN_DIR),
+    }
+    print(lane_launcher.stable_json(payload), end="")
+
+
 def cmd_dry_run() -> None:
     """Print state machine evaluation, exit 0, write nothing."""
     print("[dry-run] Orchestrator dry run — no writes to status.json")
@@ -2174,6 +2207,8 @@ def main() -> None:
     parser.add_argument("--reason",        type=str,            help="Reason string for --reset-blocked")
     parser.add_argument("--resume",        action="store_true", help="Resume from parked state → parked_from state")
     parser.add_argument("--run-tests",     action="store_true", help="Run orchestrator test matrix")
+    parser.add_argument("--submit-lanes",  type=str,            help="Submit orchestrator-approved parallel lane decision JSON")
+    parser.add_argument("--lane-status",   action="store_true", help="Print polish-loop parallel lane registry and gate status")
     parser.add_argument("--once",          action="store_true", help="Run one Phase-C ledger event then exit")
     parser.add_argument("--legacy-once",   action="store_true", help="Run one legacy status.json cycle then exit")
     parser.add_argument("--ledger",        type=Path, default=DEFAULT_LEDGER_PATH, help="Phase-C ledger path")
@@ -2200,6 +2235,14 @@ def main() -> None:
 
     if args.run_tests:
         cmd_run_tests()
+        return
+
+    if args.submit_lanes:
+        cmd_submit_lanes(args.submit_lanes)
+        return
+
+    if args.lane_status:
+        cmd_lane_status()
         return
 
     if args.legacy_once:
