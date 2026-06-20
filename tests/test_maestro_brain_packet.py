@@ -252,3 +252,50 @@ def test_maestro_freeform_uses_protected_generate_without_touching_deterministic
     assert result.machine_proof["ledger_mutation_performed"] is False
     assert "I would focus" in result.plain_summary
     assert calls and calls[0]["question"].startswith("What should I focus")
+
+
+def test_request_processor_disclosure_tracks_protected_model_path(monkeypatch, tmp_path: Path) -> None:
+    import openclaw_request_processor as processor
+    from maestro_cassandra_responder import MaestroCassandraResult
+
+    def fake_answer_frontdoor_chat(*_args, **_kwargs) -> MaestroCassandraResult:
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="I have a packet-grounded answer.",
+            plain_summary="I have a packet-grounded answer. SEND_HOLD remains active.",
+            machine_proof={
+                "protected_generate_called": True,
+                "maestro_context_packet_used": True,
+                "model_call_performed": True,
+                "external_llm_invoked": False,
+                "local_model_invoked": True,
+                "email_send_performed": False,
+                "ledger_mutation_performed": False,
+            },
+        )
+
+    monkeypatch.setattr(processor.maestro_cassandra_responder, "answer_frontdoor_chat", fake_answer_frontdoor_chat)
+    raw_request = {
+        "kind": "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+        "active_surface_ref": "operator_maestro_chat",
+        "operator_text": "What should I focus on?",
+        "authority_boundary": {"send": False, "spend": False, "execute": False},
+        "request_id": "req_maestro_brain_test",
+    }
+
+    response = processor._process_maestro_frontdoor_operator_instruction(
+        tmp_path / "request.json",
+        raw_request,
+        classification=processor.classify_request_filename(None),
+        route_decision={},
+    )
+
+    assert response is not None
+    detail = response.detail_disclosure
+    assert detail["model_or_worker_response_adapter_called"] is True
+    assert detail["external_llm_invoked"] is False
+    assert detail["local_model_runtime_connected"] is True
+    assert any("local_model_invoked=True" in item for item in response.what_happened)
+    assert detail["ledger_mutation_performed"] is False
