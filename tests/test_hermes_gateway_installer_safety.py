@@ -101,12 +101,13 @@ def test_template_enforces_gateway_sidecar_contract():
     source = _template_text()
 
     assert "Description=OpenClaw Hermes Gateway" in source
-    assert "WorkingDirectory=@REPO_ROOT@/sidecars/hermes" in source
+    assert "WorkingDirectory=@REPO_ROOT@" in source
     assert "Environment=HERMES_HOME=@REPO_ROOT@/sidecars/hermes_home" in source
     assert "Environment=HERMES_OPENCLAW_MODE=gateway" in source
     assert "Environment=HERMES_OPENCLAW_GATEWAY=1" in source
     assert "Environment=HERMES_OPENCLAW_DISABLE_EXTERNAL_FALLBACK=1" in source
-    assert "hermes_cli.main gateway run --replace" in source
+    assert "scripts/run_openclaw_hermes_gateway.py" in source
+    assert "run_openclaw_hermes_gateway.py --replace" in source
     assert "provider" not in source.lower()
     assert "gmail" not in source.lower()
     assert "telegram" in source.lower()

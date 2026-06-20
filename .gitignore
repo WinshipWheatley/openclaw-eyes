@@ -148,6 +148,7 @@
 !openclaw_business_object_layer_audit.py
 !openclaw_lm_child_package_gate.py
 !openclaw_hermes_sidecar.py
+!openclaw_hermes_gateway_policy.py
 !openclaw_lm_consult_spine.py
 !openclaw_api_server.py
 !openclaw_system_knowledge_registry.py
@@ -1036,6 +1037,7 @@
 !scripts/export_openclaw_business_object_layer_audit.py
 !scripts/export_openclaw_lm_child_package_gate.py
 !scripts/export_openclaw_hermes_sidecar.py
+!scripts/run_openclaw_hermes_gateway.py
 !scripts/export_openclaw_system_knowledge_registry.py
 !scripts/check_skill_metadata.py
 !scripts/import_external_system_knowledge_registry.py
@@ -1117,6 +1119,7 @@
 !tests/test_openclaw_business_object_layer_audit.py
 !tests/test_openclaw_lm_child_package_gate.py
 !tests/test_openclaw_hermes_sidecar.py
+!tests/test_openclaw_hermes_gateway_policy.py
 !tests/test_openclaw_lm_consult_spine.py
 !tests/test_openclaw_api_server.py
 !tests/test_gig_intake.py
