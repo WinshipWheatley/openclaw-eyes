@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import importlib.util
 import sys
 import types
 
@@ -29,6 +30,8 @@ def _install_capital_hilton_agency_status_test_stub() -> None:
     """
 
     if "capital_hilton_agency_status" in sys.modules:
+        return
+    if importlib.util.find_spec("capital_hilton_agency_status") is not None:
         return
     module = types.ModuleType("capital_hilton_agency_status")
 

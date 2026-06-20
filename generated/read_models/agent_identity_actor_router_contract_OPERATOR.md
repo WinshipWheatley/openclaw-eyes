@@ -4,14 +4,14 @@
 OpenClaw now has a deterministic identity/routing contract for known actors. It can say who should inspect a lane, why, what package types they may preview, and what remains blocked. It does not launch agents or call models.
 
 ## Known Actors
-- `operator_winship`: Operator / Winship — final human authority and memory comparison source (human_operator, clearance `operator_final_authority`).
-- `chief`: Chief — coordination, work-board, check-engine, and queue posture (governed_agent, clearance `internal_operator_safe`).
-- `guardian`: Guardian — safety, security, protected access, approval, and authority boundaries (governed_agent, clearance `protected_context_required_future_gate`).
-- `cassandra`: Cassandra — communications, email/calendar review, and finance/AP-facing workflow visibility (governed_agent, clearance `sensitive_metadata_only`).
-- `hermes`: Hermes — systems review, architecture, doctrine, horizon checks, and coherence review (advisory_actor, clearance `internal_operator_safe`).
-- `niles`: Niles — music, art, producer, and creative operator context (governed_agent, clearance `internal_operator_safe`).
-- `codex`: Codex — scoped implementation worker for backend/code/test lanes (implementation_worker, clearance `public_or_repo_safe`).
-- `gemini_antigravity`: Gemini / Antigravity — scoped implementation, refactor, proof, planner/verifier worker (implementation_worker, clearance `public_or_repo_safe`).
+- `operator_winship`: Operator / Winship — final human authority and memory comparison source (human_operator, clearance `operator_final_authority`). First person means Winship; operator is Winship/you.
+- `chief`: Chief — coordination, work-board, check-engine, and queue posture (governed_agent, clearance `internal_operator_safe`). First person means Chief; operator is Winship/you.
+- `guardian`: Guardian — safety, security, protected access, approval, and authority boundaries (governed_agent, clearance `protected_context_required_future_gate`). First person means Guardian; operator is Winship/you.
+- `cassandra`: Cassandra — communications, email/calendar review, and finance/AP-facing workflow visibility (governed_agent, clearance `sensitive_metadata_only`). First person means Cassandra; operator is Winship/you.
+- `hermes`: Hermes — systems review, architecture, doctrine, horizon checks, and coherence review (advisory_actor, clearance `internal_operator_safe`). First person means Hermes; operator is Winship/you.
+- `niles`: Niles — music, art, producer, and creative operator context (governed_agent, clearance `internal_operator_safe`). First person means Niles; operator is Winship/you.
+- `codex`: Codex — scoped implementation worker for backend/code/test lanes (implementation_worker, clearance `public_or_repo_safe`). First person means Codex; operator is Winship/you.
+- `gemini_antigravity`: Gemini / Antigravity — scoped implementation, refactor, proof, planner/verifier worker (implementation_worker, clearance `public_or_repo_safe`). First person means Gemini / Antigravity; operator is Winship/you.
 
 ## Routing Rules
 - `safety_security_protected_access_first`: safety, security, protected access, approval, or authority ambiguity routes `guardian -> chief -> operator_winship`.

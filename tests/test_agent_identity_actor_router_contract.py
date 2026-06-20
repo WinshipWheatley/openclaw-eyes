@@ -101,6 +101,9 @@ def test_known_actors_are_structured_for_mission_control(tmp_path):
         assert actor["display_name"]
         assert actor["class"] in contract.ACTOR_CLASSES
         assert actor["primary_role"]
+        assert actor["self_identity"]
+        assert actor["first_person_policy"]
+        assert actor["operator_reference_policy"]
         assert isinstance(actor["suitable_domains"], list)
         assert isinstance(actor["unsuitable_domains"], list)
         assert actor["can_self_assign_authority"] is False
@@ -155,6 +158,25 @@ def test_package_preview_and_receipts_are_required_before_future_execution(tmp_p
     assert "valid package compiler boundary receipt" in receipts["required_before_routing_executable"]
     assert "Guardian gate receipt for protected or approval-adjacent work" in receipts["required_before_routing_executable"]
     assert receipts["natural_language_success_claims_count_as_proof"] is False
+
+
+def test_actor_perspective_policy_keeps_agent_self_distinct_from_operator(tmp_path):
+    payload = _build(tmp_path)
+    actors = _actors(payload)
+
+    assert payload["machine_proof"]["required_agent_self_identities_present"] is True
+    assert payload["machine_proof"]["all_actors_have_operator_reference_policy"] is True
+    assert payload["machine_proof"]["operator_first_person_blur_allowed"] is False
+    assert "maestro" in payload["perspective_registry"]["agents"]
+    for actor_id in ("cassandra", "chief", "guardian", "hermes", "niles"):
+        actor = actors[actor_id]
+        assert actor["self_identity"]["display_name"] == actor["display_name"]
+        assert "Winship" in actor["operator_reference_policy"]
+        assert "never" in actor["forbidden_identity_blur"].lower()
+    maestro = payload["perspective_registry"]["agents"]["maestro"]
+    assert maestro["self_identity"]["display_name"] == "Maestro"
+    assert "Winship" in maestro["operator_reference_policy"]
+    assert "never" in maestro["forbidden_identity_blur"].lower()
 
 
 def test_confidence_policy_is_not_confidence_theater(tmp_path):
