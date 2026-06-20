@@ -132,15 +132,46 @@ NEGATION_CUES = (
     "not",
     "nothing",
     "never",
+    "neither",
+    "nor",
     "cannot",
     "cant",
     "can't",
+    "dont",
+    "don't",
+    "doesnt",
+    "doesn't",
+    "didnt",
+    "didn't",
+    "hasnt",
+    "hasn't",
+    "havent",
+    "haven't",
+    "hadnt",
+    "hadn't",
+    "isnt",
+    "isn't",
+    "arent",
+    "aren't",
+    "wasnt",
+    "wasn't",
+    "werent",
+    "weren't",
     "wont",
     "won't",
     "without",
     "blocked",
     "missing",
+    "pending",
+    "unverified",
+    "unproven",
 )
+
+_CLAUSE_BOUNDARY_RE = re.compile(
+    r"[.;!?\n]+|\b(?:but|however|though|although|nevertheless)\b|\b(?:and|or)\s+(?:i|we|he|she|they|it|the|this|that|a|an)\b",
+    re.IGNORECASE,
+)
+_NEGATION_TOKEN_RE = re.compile(r"[a-z0-9]+(?:'[a-z0-9]+)?")
 
 
 @dataclass(frozen=True)
@@ -264,14 +295,22 @@ def _public_text(payload: Mapping[str, Any]) -> str:
     return " ".join(str(payload.get(field) or "") for field in fields) + " " + str(spoken.get("spoken_script") or "")
 
 
+def _same_clause_prefix(text: str, claim_start: int) -> str:
+    prefix = text[max(0, claim_start - 96) : claim_start]
+    last_boundary_end = 0
+    for match in _CLAUSE_BOUNDARY_RE.finditer(prefix):
+        last_boundary_end = match.end()
+    return prefix[last_boundary_end:]
+
+
 def _unnegated_claims(text: str) -> tuple[str, ...]:
     lowered = str(text or "").lower()
     claims: list[str] = []
     for claim in COMPLETION_CLAIMS:
         for match in re.finditer(rf"\b{re.escape(claim)}\b", lowered):
-            window = lowered[max(0, match.start() - 42) : match.start()]
-            tokens = [token.strip(".,;:!?()[]{}") for token in window.split()]
-            if not any(token in NEGATION_CUES for token in tokens[-6:]):
+            clause_prefix = _same_clause_prefix(lowered, match.start())
+            tokens = _NEGATION_TOKEN_RE.findall(clause_prefix)
+            if not any(token in NEGATION_CUES for token in tokens[-8:]):
                 claims.append(claim)
                 break
     return tuple(dict.fromkeys(claims))

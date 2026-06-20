@@ -91,6 +91,51 @@ def test_completion_claim_with_readback_file_only_is_still_blocked():
     assert "sent" in result["validation_result"]["forbidden_claims"]
 
 
+def test_prior_sentence_negation_does_not_clear_later_completion_claim():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Blocked then sent",
+            eliwinship="Sending remains blocked. I sent the invoice.",
+            next_action="Next: wait for payment.",
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM
+    assert result["validation_result"]["output_publish_allowed"] is False
+    assert result["validation_result"]["forbidden_claims"] == ("sent",)
+
+
+def test_subject_clause_boundary_does_not_clear_later_completion_claim():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Mixed status",
+            eliwinship="I did not mark the invoice paid and I updated the readback.",
+            next_action="Next: review the readback.",
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM
+    assert result["validation_result"]["output_publish_allowed"] is False
+    assert result["validation_result"]["forbidden_claims"] == ("updated",)
+
+
+def test_negative_contractions_do_not_create_completion_claims():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Not complete",
+            eliwinship="I haven't completed the workflow and I wasn't authorized to approve it.",
+            next_action="Next: keep SEND_HOLD active.",
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.VALIDATED
+    assert result["validation_result"]["forbidden_claims"] == ()
+    assert result["validation_result"]["output_publish_allowed"] is True
+
+
 def test_reference_mutation_claim_without_receipt_is_blocked():
     result = gate.validate_response_payload(
         _safe_payload(
