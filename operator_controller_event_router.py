@@ -1749,10 +1749,23 @@ def _route_maestro_cassandra_conversation(
     validation: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     operator_text = maestro_cassandra_responder.operator_text_from_request(request)
-    result = maestro_cassandra_responder.answer_frontdoor_chat(
-        operator_text,
-        session=maestro_cassandra_responder.session_from_request(request),
+    session = maestro_cassandra_responder.session_from_request(request)
+    source_surface = str(
+        request.get("active_surface_ref")
+        or request.get("source_surface")
+        or request.get("source_channel")
+        or "operator_controller_event_router"
     )
+    try:
+        result = maestro_cassandra_responder.answer_frontdoor_chat(
+            operator_text,
+            session=session,
+            source_surface=source_surface,
+        )
+    except TypeError as exc:
+        if "source_surface" not in str(exc):
+            raise
+        result = maestro_cassandra_responder.answer_frontdoor_chat(operator_text, session=session)
     if result.status != "ANSWER_READY":
         return None
 
