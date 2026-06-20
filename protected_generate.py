@@ -496,12 +496,14 @@ def protected_generate_with_receipt(
     metadata = _metadata_for_tier(tier, token_count)
     external_safe = False
     external_policy_reason = "not_checked"
+    external_model_configured = False
     try:
-        from chief_llm import external_model_packet_policy
+        from chief_llm import _configured_openrouter_model, external_model_packet_policy
 
         policy = external_model_packet_policy(safe_prompt + "\n" + safe_packet, metadata=metadata)
         external_safe = bool(policy.get("external_model_safe"))
         external_policy_reason = str(policy.get("reason") or "")
+        external_model_configured = bool(_configured_openrouter_model())
     except Exception as exc:
         external_policy_reason = f"policy_error:{type(exc).__name__}"
 
@@ -527,6 +529,8 @@ def protected_generate_with_receipt(
     external_timeout = _float_env("OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT", DEFAULT_EXTERNAL_TIMEOUT_SECONDS)
     local_timeout = _float_env("OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT", DEFAULT_LOCAL_TIMEOUT_SECONDS)
     local_attempts = _int_env("OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS", DEFAULT_LOCAL_ATTEMPTS)
+    ollama_probe_timeout = _float_env("OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT", 0.2)
+    ollama_unreachable_shortcircuit = False
     if generator_fn is not None:
         route = "injected_generator"
         local_invoked = True
@@ -538,7 +542,11 @@ def protected_generate_with_receipt(
             receipt=dict(receipt),
         )
     elif _live_model_allowed(allow_live_model):
-        if external_safe and os.environ.get("OPENCLAW_FREEFORM_CLOUD", "").strip().lower() in {"1", "true", "yes"}:
+        if (
+            external_safe
+            and external_model_configured
+            and os.environ.get("OPENCLAW_FREEFORM_CLOUD", "").strip().lower() in {"1", "true", "yes"}
+        ):
             try:
                 from chief_llm import external_language_model_call
 
@@ -550,9 +558,20 @@ def protected_generate_with_receipt(
                 route = "external_exception_fallback"
         if not raw_output:
             try:
-                raw_output = _call_local_ollama(system_prompt, timeout=local_timeout, attempts=local_attempts)
-                local_invoked = bool(raw_output)
-                route = "local_ollama" if raw_output else route
+                if not external_model_configured:
+                    from chief_llm import ollama_is_unreachable
+
+                    if ollama_is_unreachable(timeout=ollama_probe_timeout):
+                        ollama_unreachable_shortcircuit = True
+                        route = "grounded_fallback_no_external_model_ollama_unreachable"
+                    else:
+                        raw_output = _call_local_ollama(system_prompt, timeout=local_timeout, attempts=local_attempts)
+                        local_invoked = bool(raw_output)
+                        route = "local_ollama" if raw_output else route
+                else:
+                    raw_output = _call_local_ollama(system_prompt, timeout=local_timeout, attempts=local_attempts)
+                    local_invoked = bool(raw_output)
+                    route = "local_ollama" if raw_output else route
             except Exception:
                 raw_output = ""
     if not raw_output:
@@ -572,9 +591,12 @@ def protected_generate_with_receipt(
             "route": route,
             "external_policy_safe": external_safe,
             "external_policy_reason": external_policy_reason,
+            "external_model_configured": external_model_configured,
             "external_timeout_seconds": external_timeout,
             "local_timeout_seconds": local_timeout,
             "local_model_attempts": local_attempts,
+            "ollama_probe_timeout_seconds": ollama_probe_timeout,
+            "ollama_unreachable_shortcircuit": ollama_unreachable_shortcircuit,
             "deterministic_fallback_used": not bool(local_invoked or external_invoked or generator_fn),
             "safe_prompt_hash": _sha256(system_prompt),
         }
