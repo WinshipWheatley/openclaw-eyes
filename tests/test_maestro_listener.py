@@ -1,5 +1,6 @@
 import asyncio
 import ast
+import json
 from datetime import date
 from pathlib import Path
 
@@ -171,6 +172,89 @@ def test_listener_bridge_request_delivers_capability_readback_not_generic_intro(
     assert "Recorded, no action ran" not in reply
     assert reply != "Here is the truthful readback from current generated state."
     assert "Maestro-native reply - ref capability-smoke:" in reply
+
+
+def test_listener_capital_hilton_status_probe_reaches_brain_not_system_question(monkeypatch, tmp_path):
+    import maestro_context_packet
+    import openclaw_request_processor as processor
+    import protected_generate
+
+    packet_calls: list[dict] = []
+    protected_calls: list[str] = []
+
+    def fake_packet(*, question, session=None, source_surface="operator_maestro_chat", require_real_truth=True, **_kwargs):
+        packet_calls.append(
+            {
+                "question": question,
+                "source_surface": source_surface,
+                "require_real_truth": require_real_truth,
+            }
+        )
+        return {
+            "packet_id": "maestro_context_packet:test:capital_hilton_status",
+            "source_refs": ["generated/read_models/capital_hilton_invoice_operator_run_status.json"],
+            "facts": [
+                {
+                    "label": "Capital Hilton status",
+                    "value": "$2000 received through Coupa; July 1 check expected.",
+                    "source_ref": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+                }
+            ],
+            "privacy": {"tiers_present": ["LIGHT"]},
+            "packet_text": "Capital Hilton status: $2000 received through Coupa; July 1 check expected.",
+        }
+
+    def fake_protected(question, *, context_packet, **_kwargs):
+        protected_calls.append(question)
+        return {
+            "text": "Capital Hilton packet answer: $2000 received through Coupa; July 1 check expected. SEND_HOLD remains active.",
+            "receipt": {
+                "receipt_id": "receipt:test:capital_hilton_status",
+                "decision": "INJECTED_PROTECTED_GENERATE",
+                "model_call_performed": False,
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+            },
+        }
+
+    monkeypatch.setattr(maestro_context_packet, "build_maestro_context_packet", fake_packet)
+    monkeypatch.setattr(protected_generate, "protected_generate_with_receipt", fake_protected)
+
+    request = maestro_listener.build_operator_maestro_chat_request(
+        "what's Winship's day / Capital Hilton status?",
+        message_id="238",
+        chat_id=456,
+        created_at=FIXED_NOW,
+    )
+    request_path = tmp_path / "mission_control_operator_instruction_request_maestro_telegram_238.json"
+    request_path.write_text(maestro_listener.stable_json(request), encoding="utf-8")
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+    detail = response.detail_disclosure
+
+    assert response.internal_status == "RESPONSE_READY"
+    assert response.request_type == "CHAT"
+    assert "Capital Hilton packet answer" in response.operator_message
+    assert "I do not have a deterministic local answer" not in response.operator_message
+    assert detail["workflow_package_staged"] is False
+    assert detail["maestro_frontdoor_routing"]["workflow_package_staged"] is False
+    assert detail["maestro_cassandra_responder"]["intent_class"] == "maestro_brain_freeform"
+    assert detail["maestro_cassandra_responder"]["machine_proof"]["protected_generate_called"] is True
+    assert detail["maestro_cassandra_responder"]["machine_proof"]["maestro_context_packet_used"] is True
+    assert "system_question_answer" not in json.dumps(detail, sort_keys=True)
+    assert packet_calls == [
+        {
+            "question": "what's Winship's day / Capital Hilton status?",
+            "source_surface": "operator_maestro_chat",
+            "require_real_truth": True,
+        }
+    ]
+    assert protected_calls == ["what's Winship's day / Capital Hilton status?"]
 
 
 def test_authorized_date_question_replies_from_bridge_and_sends_typing(monkeypatch, tmp_path):

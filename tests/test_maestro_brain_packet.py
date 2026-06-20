@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 
@@ -219,6 +220,64 @@ def test_missing_answer_in_packet_says_do_not_have_it(tmp_path: Path) -> None:
     assert outcome.receipt["model_call_performed"] is False
 
 
+def test_protected_generate_falls_back_after_fast_local_budget(monkeypatch, tmp_path: Path) -> None:
+    from protected_generate import protected_generate_with_receipt
+
+    calls: list[dict] = []
+
+    def fake_ollama(prompt: str, *, timeout: float, task_class: str, attempts: int | None = None, **_kwargs) -> str:
+        calls.append(
+            {
+                "timeout": timeout,
+                "task_class": task_class,
+                "attempts": attempts,
+                "prompt_has_capital_hilton": "Capital Hilton" in prompt,
+            }
+        )
+        time.sleep(0.01)
+        return ""
+
+    import chief_llm
+
+    monkeypatch.delenv("OPENCLAW_TEST_MODE", raising=False)
+    monkeypatch.delenv("OPENCLAW_FREEFORM_CLOUD", raising=False)
+    monkeypatch.setenv("OPENCLAW_MAESTRO_BRAIN_LIVE", "1")
+    monkeypatch.setenv("OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT", "0.05")
+    monkeypatch.setenv("OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS", "1")
+    monkeypatch.setattr(chief_llm, "ollama_call", fake_ollama)
+
+    outcome = protected_generate_with_receipt(
+        "What is the Capital Hilton status?",
+        context_packet={
+            "packet_id": "packet:test:capital_hilton",
+            "facts": [
+                {
+                    "label": "Capital Hilton status",
+                    "value": "$2000 received through Coupa; July 1 check expected.",
+                }
+            ],
+        },
+        audit_log_path=tmp_path / "audit.jsonl",
+    )
+
+    assert outcome.status == "ANSWER_READY"
+    assert "Capital Hilton status" in outcome.text
+    assert "July 1 check expected" in outcome.text
+    assert calls == [
+        {
+            "timeout": 0.05,
+            "task_class": "chief_user_reply",
+            "attempts": 1,
+            "prompt_has_capital_hilton": True,
+        }
+    ]
+    assert outcome.receipt["model_call_performed"] is False
+    assert outcome.receipt["local_model_invoked"] is False
+    assert outcome.receipt["deterministic_fallback_used"] is True
+    assert outcome.receipt["local_timeout_seconds"] == 0.05
+    assert outcome.receipt["local_model_attempts"] == 1
+
+
 def test_maestro_freeform_uses_protected_generate_without_touching_deterministic_paths(
     monkeypatch,
     tmp_path: Path,
@@ -252,6 +311,45 @@ def test_maestro_freeform_uses_protected_generate_without_touching_deterministic
     assert result.machine_proof["ledger_mutation_performed"] is False
     assert "I would focus" in result.plain_summary
     assert calls and calls[0]["question"].startswith("What should I focus")
+
+
+def test_business_status_question_routes_to_maestro_brain_not_status_readback(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    store_path = _truth_store(monkeypatch, tmp_path)
+    read_model_root = _read_models(tmp_path)
+    calls: list[str] = []
+
+    def fake_protected(question: str, *, context_packet: dict, **_kwargs):
+        calls.append(question)
+        return {
+            "text": "Capital Hilton packet answer: $2000 received through Coupa; July 1 check expected. SEND_HOLD remains active.",
+            "receipt": {
+                "receipt_id": "receipt:test:capital_hilton_status",
+                "decision": "INJECTED_PROTECTED_GENERATE",
+                "model_call_performed": False,
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+            },
+        }
+
+    from maestro_cassandra_responder import answer_frontdoor_chat
+
+    result = answer_frontdoor_chat(
+        "what's Winship's day / Capital Hilton status?",
+        session={"read_model_root": str(read_model_root), "operator_truth_store_path": str(store_path)},
+        protected_generate_fn=fake_protected,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "maestro_brain_freeform"
+    assert result.allowed_to_call_handle is False
+    assert result.machine_proof["protected_generate_called"] is True
+    assert result.machine_proof["maestro_context_packet_used"] is True
+    assert result.machine_proof["status_capability_readback_performed"] is False
+    assert "Capital Hilton packet answer" in result.plain_summary
+    assert calls == ["what's Winship's day / Capital Hilton status?"]
 
 
 def test_request_processor_disclosure_tracks_protected_model_path(monkeypatch, tmp_path: Path) -> None:

@@ -14,6 +14,9 @@ from typing import Any, Callable, Mapping
 
 
 DEFAULT_AUDIT_LOG = Path("/mnt/c/OpenClaw/logs/protected_generate_audit.jsonl")
+DEFAULT_EXTERNAL_TIMEOUT_SECONDS = 6.0
+DEFAULT_LOCAL_TIMEOUT_SECONDS = 6.0
+DEFAULT_LOCAL_ATTEMPTS = 1
 PUBLIC = "PUBLIC"
 LIGHT = "LIGHT"
 MED = "MED"
@@ -216,6 +219,47 @@ def _live_model_allowed(explicit: bool | None = None) -> bool:
     return os.environ.get("OPENCLAW_MAESTRO_BRAIN_LIVE", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 
+def _float_env(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _call_local_ollama(prompt: str, *, timeout: float, attempts: int) -> str:
+    from chief_llm import ollama_call
+
+    try:
+        signature = inspect.signature(ollama_call)
+    except (TypeError, ValueError):
+        signature = None
+    kwargs: dict[str, Any] = {
+        "timeout": timeout,
+        "task_class": "chief_user_reply",
+    }
+    if signature is not None and (
+        "attempts" in signature.parameters
+        or any(param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values())
+    ):
+        kwargs["attempts"] = attempts
+    return str(ollama_call(prompt, **kwargs) or "")
+
+
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
@@ -353,6 +397,9 @@ def protected_generate_with_receipt(
     local_invoked = False
     external_invoked = False
     raw_output = ""
+    external_timeout = _float_env("OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT", DEFAULT_EXTERNAL_TIMEOUT_SECONDS)
+    local_timeout = _float_env("OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT", DEFAULT_LOCAL_TIMEOUT_SECONDS)
+    local_attempts = _int_env("OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS", DEFAULT_LOCAL_ATTEMPTS)
     if generator_fn is not None:
         route = "injected_generator"
         local_invoked = True
@@ -368,7 +415,7 @@ def protected_generate_with_receipt(
             try:
                 from chief_llm import external_language_model_call
 
-                raw_output = external_language_model_call(system_prompt, metadata=metadata, timeout=30)
+                raw_output = external_language_model_call(system_prompt, metadata=metadata, timeout=external_timeout)
                 external_invoked = bool(raw_output)
                 route = "external_language_model_call" if raw_output else "external_empty_fallback"
             except Exception:
@@ -376,9 +423,7 @@ def protected_generate_with_receipt(
                 route = "external_exception_fallback"
         if not raw_output:
             try:
-                from chief_llm import ollama_call
-
-                raw_output = ollama_call(system_prompt, timeout=30, task_class="chief_user_reply")
+                raw_output = _call_local_ollama(system_prompt, timeout=local_timeout, attempts=local_attempts)
                 local_invoked = bool(raw_output)
                 route = "local_ollama" if raw_output else route
             except Exception:
@@ -400,6 +445,10 @@ def protected_generate_with_receipt(
             "route": route,
             "external_policy_safe": external_safe,
             "external_policy_reason": external_policy_reason,
+            "external_timeout_seconds": external_timeout,
+            "local_timeout_seconds": local_timeout,
+            "local_model_attempts": local_attempts,
+            "deterministic_fallback_used": not bool(local_invoked or external_invoked or generator_fn),
             "safe_prompt_hash": _sha256(system_prompt),
         }
     )

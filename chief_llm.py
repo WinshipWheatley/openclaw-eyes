@@ -757,6 +757,7 @@ def ollama_call(
     lane: str | None = None,
     *,
     task_class: str | None = None,
+    attempts: int | None = None,
 ) -> str:
     """Call Ollama and return raw text response. Returns '' on any error. Retries up to 3 times with backoff.
 
@@ -764,6 +765,7 @@ def ollama_call(
     model=<explicit>:     bypasses auto-escalation — used by Cassandra and tests
                           that have already made the routing decision.
     When using 14b (either path), timeout is raised to _DEEP_TIMEOUT_FLOOR.
+    attempts=<n>:          optional caller budget override for latency-sensitive front-door paths.
     """
     selected_lane = lane
     models_to_try: tuple[str, ...]
@@ -786,13 +788,13 @@ def ollama_call(
                 models_to_try = (model,)
         else:
             models_to_try = (model,)
-    attempts = 3
-    if task_class == "cassandra_morning_brief":
+    attempt_count = max(1, int(attempts)) if attempts is not None else 3
+    if task_class == "cassandra_morning_brief" and attempts is None:
         timeout = max(timeout, _CASSANDRA_MORNING_BRIEF_TIMEOUT)
-        attempts = max(1, _CASSANDRA_MORNING_BRIEF_ATTEMPTS)
-    elif task_class == "cassandra_morning_brief_test":
+        attempt_count = max(1, _CASSANDRA_MORNING_BRIEF_ATTEMPTS)
+    elif task_class == "cassandra_morning_brief_test" and attempts is None:
         timeout = max(timeout, _CASSANDRA_MORNING_TEST_TIMEOUT)
-        attempts = _CASSANDRA_MORNING_TEST_ATTEMPTS
+        attempt_count = _CASSANDRA_MORNING_TEST_ATTEMPTS
     prompt_words = len(prompt.split())
     for candidate_model in models_to_try:
         payload = json.dumps({
@@ -806,7 +808,7 @@ def ollama_call(
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        for attempt in range(attempts):
+        for attempt in range(attempt_count):
             started = _time.monotonic()
             try:
                 with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -845,7 +847,7 @@ def ollama_call(
                     "exception_type": type(e).__name__,
                     "exception": str(e),
                 })
-                if attempt < attempts - 1:
+                if attempt < attempt_count - 1:
                     _time.sleep(2 ** attempt)
                     continue
     return ""
