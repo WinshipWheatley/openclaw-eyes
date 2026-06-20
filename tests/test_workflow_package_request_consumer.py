@@ -78,6 +78,33 @@ def test_maestro_listener_envelope_hash_validates_against_consumer() -> None:
     assert blockers == ()
 
 
+def test_maestro_listener_envelope_reaches_freeform_brain(tmp_path: Path) -> None:
+    request = maestro_listener.build_operator_maestro_chat_request(
+        "What should I focus on next across my business life?",
+        message_id="231",
+        chat_id=123,
+        created_at=FIXED_NOW,
+    )
+    ok, blockers = consumer.validate_envelope(request)
+    request_path = tmp_path / "mission_control_operator_instruction_request_maestro_telegram_231.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+
+    assert ok is True
+    assert blockers == ()
+    assert response.internal_status == "RESPONSE_READY"
+    assert response.request_type == "CHAT"
+    assert response.detail_disclosure["workflow_package_staged"] is False
+    assert response.detail_disclosure["maestro_cassandra_responder"]["intent_class"] == "maestro_brain_freeform"
+    assert "protected_text_hash_mismatch" not in json.dumps(response.detail_disclosure, sort_keys=True)
+
+
 def test_legacy_bare_hex_hash_still_validates_when_source_text_matches() -> None:
     request = maestro_listener.build_operator_maestro_chat_request(
         "What should Maestro do with this legacy operator message?",
