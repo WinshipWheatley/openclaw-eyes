@@ -9,6 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts" / "green_gate.sh"
 SCRIPT = SCRIPT_PATH.read_text(encoding="utf-8")
+PINNED_TRUSTED_TEST_REF = "116d66e6f90aefa8e83d917cf3ed07993b4152c0"
 
 
 def test_green_gate_uses_pytest_timeout_thread_method() -> None:
@@ -43,8 +44,16 @@ def test_green_gate_checks_venv_and_clean_checkout_fixture_parity() -> None:
 
 def test_green_gate_restores_trusted_tests_before_pytest() -> None:
     assert "OPENCLAW_TRUSTED_TEST_REF" in SCRIPT
-    assert "origin/codex/pc4-self-healing" in SCRIPT
+    assert f'PINNED_TRUSTED_TEST_REF="{PINNED_TRUSTED_TEST_REF}"' in SCRIPT
+    assert "origin/codex/pc4-self-healing" not in SCRIPT
     assert 'git checkout "$TRUSTED_TEST_REF" -- tests/' in SCRIPT
+
+
+def test_green_gate_default_trusted_ref_is_immutable_snapshot() -> None:
+    assert PINNED_TRUSTED_TEST_REF in SCRIPT
+    assert "OPENCLAW_TRUSTED_ACCEPTANCE_REF" in SCRIPT
+    assert "OPENCLAW_TRUSTED_TEST_REF" in SCRIPT
+    assert "${OPENCLAW_TRUSTED_ACCEPTANCE_REF:-$PINNED_TRUSTED_TEST_REF}" in SCRIPT
 
 
 def test_green_gate_rejects_branch_that_weakens_trusted_test(tmp_path) -> None:
