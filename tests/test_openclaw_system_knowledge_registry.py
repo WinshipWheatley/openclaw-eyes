@@ -33,6 +33,15 @@ REQUIRED_COMPONENTS = {
     "gig_intake_flow",
     "correspondence_agent_plan",
     "approval_gate_convergence",
+    "the_spine",
+    "maestro_protected_brain",
+    "self_healing_polish_loop",
+    "cross_agent_truth_propagation",
+    "polish_loop_self_scaling",
+    "sqlite_ledger_core",
+    "backend_package_request_schema",
+    "conversational_workflow_router_contract",
+    "map_room_markdown_atlas",
     "system_knowledge_query",
 }
 
@@ -55,6 +64,39 @@ def test_registry_includes_required_current_components() -> None:
     assert "logical/spawned" in components["niles"]["summary"]
     assert "does not execute business logic" in components["guardian"]["authority_boundary"]
     assert "read-only" in components["system_knowledge_query"]["authority_boundary"]
+    assert "seven-step deterministic front door" in components["the_spine"]["summary"]
+    assert "cannot set send/money/action authority" in components["maestro_protected_brain"]["authority_boundary"]
+    assert "only acceptance gates may mark work DONE" in components["self_healing_polish_loop"]["authority_boundary"]
+
+
+def test_spine_steps_and_router_registry_are_queryable_contracts() -> None:
+    payload = registry.build_registry(Path.cwd())
+    steps = payload["spine_steps"]
+    routers = {item["family_name"]: item for item in payload["router_registry"]}
+
+    assert payload["spine"]["canonical_name"] == "The Spine"
+    assert payload["coverage_assessment"]["spine_step_count"] == 7
+    assert [step["step_number"] for step in steps] == [1, 2, 3, 4, 5, 6, 7]
+    assert [step["step_name"] for step in steps] == [
+        "Intake Front Door",
+        "PII Gate",
+        "Intent LM Gate",
+        "SQLite Packet Maker",
+        "Approval / Guardian Gate",
+        "LM2 Responder / Executor",
+        "Final Output Gate / Receipt",
+    ]
+    assert set(routers) == {
+        "Chat",
+        "FileMetadata",
+        "EvidenceIntake",
+        "WorkflowPackages",
+        "LocalSurface",
+        "OperatorEvents",
+    }
+    assert "Approval / Guardian Gate" in routers["Chat"]["next_safe_move"]
+    assert routers["FileMetadata"]["authority_boundary"] == "Map Room lookup is read-only and cannot perform cleanup."
+    assert "green-gate proof" in routers["LocalSurface"]["authority_boundary"]
 
 
 def test_authority_boundary_blocks_live_and_sensitive_actions() -> None:
@@ -129,10 +171,16 @@ def test_exporter_writes_artifacts_and_sqlite_tables(tmp_path: Path) -> None:
     assert payload["schema_version"] == registry.SCHEMA_VERSION
     assert payload["live_projection"]["source_mode"] == "read_only_ledger_and_atlas_metadata"
     assert "## Components" in operator_markdown
+    assert "## The Spine" in operator_markdown
+    assert "## Router Registry" in operator_markdown
     assert "## Known Unknowns" in operator_markdown
     assert "## Authority Boundaries" in operator_markdown
     assert "CREATE TABLE IF NOT EXISTS system_component" in schema_sql
+    assert "CREATE TABLE IF NOT EXISTS spine_step" in schema_sql
+    assert "CREATE TABLE IF NOT EXISTS router_family" in schema_sql
     assert "INSERT INTO system_component" in seed_sql
+    assert "INSERT INTO spine_step" in seed_sql
+    assert "INSERT INTO router_family" in seed_sql
 
     with sqlite3.connect(paths["sqlite"]) as conn:
         integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
@@ -141,11 +189,17 @@ def test_exporter_writes_artifacts_and_sqlite_tables(tmp_path: Path) -> None:
             for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         }
         component_count = conn.execute("SELECT COUNT(*) FROM system_component").fetchone()[0]
+        spine_steps = conn.execute(
+            "SELECT step_number, step_name FROM spine_step ORDER BY step_number"
+        ).fetchall()
+        router_count = conn.execute("SELECT COUNT(*) FROM router_family").fetchone()[0]
 
     assert integrity == "ok"
     assert set(registry.REQUIRED_TABLES) <= tables
     assert not any(table.startswith("sqlite_") for table in tables if table in registry.REQUIRED_TABLES)
     assert component_count == len(payload["component_inventory"])
+    assert [row[1] for row in spine_steps] == [step["step_name"] for step in registry.SPINE_STEPS]
+    assert router_count == len(registry.ROUTER_FAMILIES)
 
 
 def test_source_has_no_live_action_imports_or_calls() -> None:
@@ -246,6 +300,34 @@ def test_query_system_knowledge_registry_answers_shape_unknowns_and_orbit(tmp_pa
     assert any(item["unknown_id"] == "unknown_correspondence_gmail_scope" for item in unknowns["items"])
     assert orbit["answer_type"] == "orbit_and_atlas"
     assert orbit["items"]["atlas_summary"]["root_count"] == 1
+
+
+def test_query_system_knowledge_registry_answers_spine_and_router_questions(tmp_path: Path) -> None:
+    spine = registry.query_system_knowledge_registry(
+        "what is The Spine seven step front door?",
+        repo_root=tmp_path,
+    )
+    routers = registry.query_system_knowledge_registry(
+        "show the router registry routing options and next safe move",
+        repo_root=tmp_path,
+    )
+    combined = registry.query_system_knowledge_registry(
+        "how does the Spine route through the router registry?",
+        repo_root=tmp_path,
+    )
+
+    assert spine["answer_type"] == "spine_flow"
+    assert [step["step_number"] for step in spine["items"]["spine_steps"]] == [1, 2, 3, 4, 5, 6, 7]
+    assert spine["source_refs"]["spine_lock_ref"].endswith("SYSTEM-SPINE-7-STEP-FLOW.md")
+    assert routers["answer_type"] == "router_registry"
+    assert {item["family_name"] for item in routers["items"]} >= {"Chat", "WorkflowPackages", "LocalSurface"}
+    assert combined["answer_type"] == "spine_and_router_registry"
+
+    rendered = registry.format_system_knowledge_answer(combined)
+    assert "OpenClaw The Spine" in rendered
+    assert "1. Intake Front Door" in rendered
+    assert "Router families:" in rendered
+    assert "no model call" in rendered
 
 
 def test_combined_system_self_knowledge_query_answers_all_sections(tmp_path: Path) -> None:

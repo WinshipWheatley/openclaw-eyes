@@ -3,9 +3,11 @@
 ## Summary
 - Registry ID: `openclaw_system_knowledge_registry`
 - Schema version: `openclaw_system_knowledge_registry_v0`
-- Component count: 24
+- Component count: 33
+- Spine steps: 7
+- Router families: 6
 - Brain route records: 10
-- Orchestration decisions: 5
+- Orchestration decisions: 8
 - Known unknown count: 12
 - Build task count: 10
 - Boundary: documentation/read-model/SQLite only.
@@ -50,7 +52,34 @@
 - `gig_intake_flow`: CONFIRMED_LOCAL - Cassandra can collect gig facts, persist session state, and stage approval packets for intro email and invoice.
 - `correspondence_agent_plan`: PLANNED_SEND_HOLD - Design for watch, understand, calendar-aware draft, and gate loop for inbound correspondence.
 - `approval_gate_convergence`: CONFIRMED_LOCAL - Legacy email/SMS/approval surfaces converge onto the G3 packet gate in compose preview metadata.
+- `the_spine`: CONFIRMED_ORCHESTRATION_SOURCE - The canonical seven-step deterministic front door for intake, PII gating, intent routing, SQLite packet recording, approval, execution, and receipt closure.
+- `maestro_protected_brain`: CONFIRMED_PARALLEL_BRANCH - Maestro's protected_generate path composes assistant text behind deterministic provenance and protected-action flags.
+- `self_healing_polish_loop`: CONFIRMED_LOCAL - PC4 captures completed answers, audits claims against truth inputs, emits deterministic heal tasks, replays prompts, and routes proof/fail notifications.
+- `cross_agent_truth_propagation`: CONFIRMED_LOCAL - Truth substrate records and reconciles operator facts so agents read shared proof instead of restating stale claims.
+- `polish_loop_self_scaling`: CONFIRMED_LOCAL - Launcher metadata supports bounded worker lane scaling for the deterministic polish-loop/control-plane work.
+- `sqlite_ledger_core`: CONFIRMED_LOCAL - SQLite runtime schema provides durable packet, evidence, validation, and handoff records for the backend control surface.
+- `backend_package_request_schema`: CONFIRMED_LOCAL - BackendPackageRequest is the structured packet that carries sanitized workflow intent, target, readback, permissions, and validation metadata toward the ledger.
+- `conversational_workflow_router_contract`: CONFIRMED_LOCAL - Router contract maps sanitized chat/workflow input to RoutedWorkflowIntent and BackendPackageRequest records.
+- `map_room_markdown_atlas`: CONFIRMED_LOCAL - Read-only Map Room and Markdown Atlas references help agents discover system territory, file ownership posture, and registry truth sources.
 - `system_knowledge_query`: CONFIRMED_LOCAL - Deterministic helper for agents to answer system-shape, known-unknown, orbit, and task questions from registry/ledger/atlas data.
+
+## The Spine
+- Canonical name: `The Spine`; operator lock: `/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md`
+1. `spine_step_01_intake_front_door` / Intake Front Door - Intake records the signal shape only; it does not execute, send, or mutate protected state.
+2. `spine_step_02_pii_gate` / PII Gate - Raw PII is blocked from normal read-models; graded tokenization still requires the owning privacy/legal boundary.
+3. `spine_step_03_intent_lm_gate` / Intent LM Gate - Deterministic routing or bounded draft-LM classification only; no execution authority.
+4. `spine_step_04_sqlite_packet_maker` / SQLite Packet Maker - SQLite is an immutable receipt ledger and packet store, not runtime execution authority.
+5. `spine_step_05_approval_guardian_gate` / Approval / Guardian Gate - SEND_HOLD, money gates, and operator/Guardian approval are absolute for protected actions.
+6. `spine_step_06_lm2_responder_executor` / LM2 Responder / Executor - Responder output is candidate/proof-bearing text unless an approved executor and final gate accept it.
+7. `spine_step_07_final_output_gate_receipt` / Final Output Gate / Receipt - Code and gates decide DONE; model claims alone never close the loop.
+
+## Router Registry
+- `router_chat` (Chat): Sanitized operator/chat text into read-only answer, workflow intent, or approval packet paths. Next: Classify through the Intent LM Gate, then packetize only if the Approval / Guardian Gate can own the protected boundary.
+- `router_file_metadata` (FileMetadata): File/path territory terms into dependency, generated-output, unsafe-to-move, or manual-review postures. Next: Treat unknown or private-root terms as manual review; never auto-clean or move files from a lookup.
+- `router_evidence_intake` (EvidenceIntake): Proof/evidence events into receipts, packet validation metadata, and read-only response posture. Next: Record sanitized proof posture and require owner approval before finance/legal/business mutation.
+- `router_workflow_packages` (WorkflowPackages): RoutedWorkflowIntent records into BackendPackageRequest, model/role targets, and worker package lifecycle records. Next: Persist the packet to SQLite and wait for the declared gate before worker dispatch.
+- `router_local_surface` (LocalSurface): Local worker, acceptance, and self-heal surfaces into deterministic ledger tasks and proof receipts. Next: Emit detector-origin heal tasks only when payload validation passes and acceptance tests remain immutable.
+- `router_operator_events` (OperatorEvents): Operator event text into local receipts, active context, or approval-gated business packets. Next: Write local receipts/read-models and escalate protected operations through Approval / Guardian Gate.
 
 ## Brain Route Inventory
 - `chief_musiclaw_brain`: WIRE / read_only_category_added - read-only Q&A; no legal advice authority
@@ -70,6 +99,9 @@
 - `decision_square_payment_rail`: approved_direction_not_executor - Square is approved as a payment rail, while branded invoice artifacts remain what the client sees. Next: Use Square sandbox/spec work only until hold is lifted and executor is approved.
 - `decision_first_real_send_reynolds`: accepted_planning_target - First real send target is Reynolds Tavern, not Capital Hilton. Next: Stage Reynolds packets; do not send under SEND_HOLD.
 - `decision_send_hold_active`: active_boundary - No external sends of any kind until the hold is explicitly lifted. Next: Continue drafting, designing, contract tests, and safetied wiring only.
+- `decision_the_spine_canonical_front_door`: operator_locked - The Spine is the canonical deterministic seven-step intake-to-receipt front door. Next: Keep new router/ledger work mapped to one of the seven Spine steps.
+- `decision_sqlite_ledger_not_execution_authority`: active_boundary - SQLite stores immutable packet, evidence, validation, handoff, and receipt rows. Next: Route protected packets through Approval / Guardian Gate before responder or executor use.
+- `decision_maestro_protected_brain_requires_gates`: parallel_branch_recorded - Maestro protected_generate output remains candidate/advisory until deterministic gates accept it. Next: On deploy, reconcile the protected brain code into the canonical branch and refresh this registry evidence status.
 
 ## Known Unknowns
 - `unknown_missing_prior_commit`: Reported local registry commit - UNKNOWN_UNREACHABLE. Next: Use this rebuilt branch/patch as the review source unless the original commit is later restored.

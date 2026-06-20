@@ -33,6 +33,33 @@ CREATE TABLE IF NOT EXISTS workflow_rail (
   PRIMARY KEY (workflow_id)
 );
 
+CREATE TABLE IF NOT EXISTS spine_step (
+  step_id TEXT NOT NULL,
+  step_number INTEGER NOT NULL,
+  canonical_subsystem TEXT NOT NULL,
+  step_name TEXT NOT NULL,
+  component_id TEXT NOT NULL,
+  handler_locations_json TEXT NOT NULL,
+  receives TEXT NOT NULL,
+  emits TEXT NOT NULL,
+  authority_boundary TEXT NOT NULL,
+  evidence_ref TEXT NOT NULL,
+  PRIMARY KEY (step_id)
+);
+
+CREATE TABLE IF NOT EXISTS router_family (
+  router_id TEXT NOT NULL,
+  family_name TEXT NOT NULL,
+  owner_component_id TEXT NOT NULL,
+  locations_json TEXT NOT NULL,
+  routes TEXT NOT NULL,
+  routing_options_json TEXT NOT NULL,
+  next_safe_move TEXT NOT NULL,
+  authority_boundary TEXT NOT NULL,
+  evidence_ref TEXT NOT NULL,
+  PRIMARY KEY (router_id)
+);
+
 CREATE TABLE IF NOT EXISTS brain_route_inventory (
   brain_id TEXT NOT NULL,
   legacy_router_wired TEXT NOT NULL,

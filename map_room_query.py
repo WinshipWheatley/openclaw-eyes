@@ -16,6 +16,11 @@ class FileTerritoryLookup:
     manual_review_required: bool
 
 REVIEW_JSON_PATH = Path("reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json")
+SYSTEM_REGISTRY_JSON_PATH = Path("generated/read_models/openclaw_system_knowledge_registry.json")
+SYSTEM_REGISTRY_OPERATOR_PATH = Path("generated/read_models/openclaw_system_knowledge_registry_OPERATOR.md")
+SYSTEM_REGISTRY_SQLITE_PATH = Path("generated/system_knowledge/openclaw_system_knowledge_registry.sqlite")
+SPINE_FLOW_PATH = Path("/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md")
+MARKDOWN_ATLAS_PATH = Path("generated/read_models/markdown_atlas_scope_expansion.json")
 
 def _load_review_data() -> dict:
     if REVIEW_JSON_PATH.exists():
@@ -111,6 +116,14 @@ def lookup_file_territory(query: str) -> FileTerritoryLookup:
     )
 
 def map_room_query_status() -> dict[str, object]:
+    durable_truth_sources = [
+        str(REVIEW_JSON_PATH),
+        str(SYSTEM_REGISTRY_JSON_PATH),
+        str(SYSTEM_REGISTRY_OPERATOR_PATH),
+        str(SYSTEM_REGISTRY_SQLITE_PATH),
+        str(SPINE_FLOW_PATH),
+        str(MARKDOWN_ATLAS_PATH),
+    ]
     return {
         "status": "active",
         "passed": True,
@@ -119,5 +132,24 @@ def map_room_query_status() -> dict[str, object]:
         "cassandra_integration": False,
         "system_walk_enabled": False,
         "mcp_enabled": False,
-        "durable_truth_sources": [str(REVIEW_JSON_PATH)]
+        "durable_truth_sources": durable_truth_sources,
+        "known_lookup_surfaces": [
+            "file_territory",
+            "openclaw_system_knowledge_registry",
+            "the_spine",
+            "router_registry",
+            "markdown_atlas",
+        ],
+        "spine_discoverability": {
+            "canonical_name": "The Spine",
+            "flow_ref": str(SPINE_FLOW_PATH),
+            "registry_json": str(SYSTEM_REGISTRY_JSON_PATH),
+            "registry_sqlite": str(SYSTEM_REGISTRY_SQLITE_PATH),
+        },
+        "authority_boundary": {
+            "read_only": True,
+            "cleanup_allowed": False,
+            "runtime_mutation": False,
+            "external_call": False,
+        },
     }

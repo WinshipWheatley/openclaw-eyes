@@ -10,6 +10,13 @@ def test_status_report_read_only():
     assert status["system_walk_enabled"] is False
     assert status["mcp_enabled"] is False
     assert len(status["durable_truth_sources"]) > 0
+    assert "generated/read_models/openclaw_system_knowledge_registry.json" in status["durable_truth_sources"]
+    assert "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md" in status["durable_truth_sources"]
+    assert "the_spine" in status["known_lookup_surfaces"]
+    assert "router_registry" in status["known_lookup_surfaces"]
+    assert status["spine_discoverability"]["canonical_name"] == "The Spine"
+    assert status["authority_boundary"]["cleanup_allowed"] is False
+    assert status["authority_boundary"]["runtime_mutation"] is False
 
 def test_known_unsafe_surfaces():
     res1 = lookup_file_territory("mac_eyes")

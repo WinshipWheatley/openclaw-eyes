@@ -36,6 +36,8 @@ REQUIRED_TABLES = (
     "system_component",
     "capability",
     "workflow_rail",
+    "spine_step",
+    "router_family",
     "brain_route_inventory",
     "orchestration_decision",
     "knowledge_claim",
@@ -72,6 +74,29 @@ TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "evidence_status",
         "evidence_basis",
         "boundary",
+    ),
+    "spine_step": (
+        "step_id",
+        "step_number",
+        "canonical_subsystem",
+        "step_name",
+        "component_id",
+        "handler_locations_json",
+        "receives",
+        "emits",
+        "authority_boundary",
+        "evidence_ref",
+    ),
+    "router_family": (
+        "router_id",
+        "family_name",
+        "owner_component_id",
+        "locations_json",
+        "routes",
+        "routing_options_json",
+        "next_safe_move",
+        "authority_boundary",
+        "evidence_ref",
     ),
     "brain_route_inventory": (
         "brain_id",
@@ -412,6 +437,125 @@ COMPONENTS: tuple[dict[str, Any], ...] = (
         "No legacy direct send, double gate, executor registration, or external send authority is granted.",
     ),
     _component(
+        "the_spine",
+        "The Spine",
+        "deterministic_front_door",
+        "CONFIRMED_ORCHESTRATION_SOURCE",
+        [
+            "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+            "openclaw_request_processor.py",
+            "openclaw_sensitive_policy.py",
+            "conversational_workflow_router_contract.py",
+            "backend_sqlite_runtime.py",
+            "approval_gate_convergence.py",
+            "guardian_output_gate.py",
+        ],
+        "The canonical seven-step deterministic front door for intake, PII gating, intent routing, SQLite packet recording, approval, execution, and receipt closure.",
+        "The Spine records and gates; it does not grant send, money, model, runtime, or protected-action authority without the declared operator/Guardian gates.",
+    ),
+    _component(
+        "maestro_protected_brain",
+        "012 Maestro Protected Brain",
+        "operator_front_door_brain",
+        "CONFIRMED_PARALLEL_BRANCH",
+        [
+            "openclaw_request_processor.py",
+            "tests/test_maestro_cassandra_responder.py",
+            "/home/openclaw/worktrees/maestro-brain-on-batch/openclaw_request_processor.py",
+        ],
+        "Maestro's protected_generate path composes assistant text behind deterministic provenance and protected-action flags.",
+        "Protected brain output is advisory text unless the Spine and approval gates prove a safe packet; it cannot set send/money/action authority.",
+    ),
+    _component(
+        "self_healing_polish_loop",
+        "Self-Healing Polish Loop",
+        "deterministic_healing_harness",
+        "CONFIRMED_LOCAL",
+        [
+            "pc4_answer_capture.py",
+            "polish_loop/answer_auditor.py",
+            "polish_loop/pc4_heal_emitter.py",
+            "nl_stress_replay_harness.py",
+            "tests/test_pc4_self_healing.py",
+            "tests/test_pc4_hardening.py",
+        ],
+        "PC4 captures completed answers, audits claims against truth inputs, emits deterministic heal tasks, replays prompts, and routes proof/fail notifications.",
+        "Detector/heal paths never emit send or money actions; only acceptance gates may mark work DONE.",
+    ),
+    _component(
+        "cross_agent_truth_propagation",
+        "Cross-Agent Truth Propagation",
+        "truth_substrate",
+        "CONFIRMED_LOCAL",
+        [
+            "bridge_trust_sync_truth.py",
+            "operator_truth_store.py",
+            "scripts/truth_reconciliation_gateway.py",
+            "tests/test_cross_agent_operator_truth.py",
+        ],
+        "Truth substrate records and reconciles operator facts so agents read shared proof instead of restating stale claims.",
+        "Truth propagation is read/receipt oriented here; it does not import private data, publish externally, or override operator confirmation.",
+    ),
+    _component(
+        "polish_loop_self_scaling",
+        "Polish Loop Self-Scaling Launcher",
+        "worker_lane_launcher",
+        "CONFIRMED_LOCAL",
+        [
+            "polish_loop/lane_launcher.py",
+            "tests/test_polish_loop_self_scaling.py",
+            "polish_loop/control_plane.py",
+        ],
+        "Launcher metadata supports bounded worker lane scaling for the deterministic polish-loop/control-plane work.",
+        "Launcher records and dispatches only inside the approved local worker boundary; no production restart or unbounded loop authority is granted by the registry.",
+    ),
+    _component(
+        "sqlite_ledger_core",
+        "SQLite Ledger Core",
+        "durable_receipt_ledger",
+        "CONFIRMED_LOCAL",
+        ["backend_sqlite_runtime.py", "tests/test_backend_sqlite_runtime.py"],
+        "SQLite runtime schema provides durable packet, evidence, validation, and handoff records for the backend control surface.",
+        "SQLite is a receipt ledger and packet store, not execution authority; writes require the owning runtime gate.",
+    ),
+    _component(
+        "backend_package_request_schema",
+        "BackendPackageRequest Schema",
+        "workflow_packet_schema",
+        "CONFIRMED_LOCAL",
+        ["conversational_workflow_router_contract.py", "tests/test_conversational_workflow_router_contract.py"],
+        "BackendPackageRequest is the structured packet that carries sanitized workflow intent, target, readback, permissions, and validation metadata toward the ledger.",
+        "Packet creation does not execute the request; protected steps still require operator/Guardian approval and final output validation.",
+    ),
+    _component(
+        "conversational_workflow_router_contract",
+        "Conversational Workflow Router Contract",
+        "intent_contract",
+        "CONFIRMED_LOCAL",
+        [
+            "conversational_workflow_router_contract.py",
+            "conversational_workflow_router_intake.py",
+            "tests/test_conversational_workflow_router_contract.py",
+        ],
+        "Router contract maps sanitized chat/workflow input to RoutedWorkflowIntent and BackendPackageRequest records.",
+        "Routing is classification and packaging only; bounded draft-LM help has no execution authority.",
+    ),
+    _component(
+        "map_room_markdown_atlas",
+        "Map Room / Markdown Atlas",
+        "system_discovery_surface",
+        "CONFIRMED_LOCAL",
+        [
+            "map_room_query.py",
+            "markdown_atlas_scope_expansion.py",
+            "scripts/export_markdown_atlas_scope_expansion.py",
+            "generated/read_models/markdown_atlas_scope_expansion.json",
+            "reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json",
+        ],
+        "Read-only Map Room and Markdown Atlas references help agents discover system territory, file ownership posture, and registry truth sources.",
+        "Discovery surfaces do not clean up, move, import, or authorize source changes without explicit operator approval.",
+    ),
+    _component(
         "system_knowledge_query",
         "System Knowledge Registry Query",
         "agent_query_surface",
@@ -566,6 +710,30 @@ ORCHESTRATION_DECISIONS: tuple[dict[str, str], ...] = (
         "boundary": "No email, SMS, Square publish/send, outbound third-party Telegram, calendar invites, or posting.",
         "next_safe_action": "Continue drafting, designing, contract tests, and safetied wiring only.",
     },
+    {
+        "decision_id": "decision_the_spine_canonical_front_door",
+        "source_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+        "decision": "The Spine is the canonical deterministic seven-step intake-to-receipt front door.",
+        "status": "operator_locked",
+        "boundary": "The sequence is queryable system knowledge, not a grant to execute protected work.",
+        "next_safe_action": "Keep new router/ledger work mapped to one of the seven Spine steps.",
+    },
+    {
+        "decision_id": "decision_sqlite_ledger_not_execution_authority",
+        "source_ref": "backend_sqlite_runtime.py; SYSTEM-SPINE-7-STEP-FLOW.md",
+        "decision": "SQLite stores immutable packet, evidence, validation, handoff, and receipt rows.",
+        "status": "active_boundary",
+        "boundary": "Ledger persistence is not approval, dispatch, send, or money authority.",
+        "next_safe_action": "Route protected packets through Approval / Guardian Gate before responder or executor use.",
+    },
+    {
+        "decision_id": "decision_maestro_protected_brain_requires_gates",
+        "source_ref": "/home/openclaw/worktrees/maestro-brain-on-batch/openclaw_request_processor.py",
+        "decision": "Maestro protected_generate output remains candidate/advisory until deterministic gates accept it.",
+        "status": "parallel_branch_recorded",
+        "boundary": "Model text cannot set DONE, send, money, or runtime mutation flags by itself.",
+        "next_safe_action": "On deploy, reconcile the protected brain code into the canonical branch and refresh this registry evidence status.",
+    },
 )
 
 CAPABILITIES: tuple[dict[str, str], ...] = (
@@ -641,6 +809,46 @@ CAPABILITIES: tuple[dict[str, str], ...] = (
         "evidence_basis": "query_system_knowledge_registry",
         "boundary": "answers from registry/ledger/atlas metadata only; no LLM guess or live authority",
     },
+    {
+        "capability_id": "capability_spine_query",
+        "component_id": "the_spine",
+        "capability_name": "Queryable seven-step deterministic front door",
+        "evidence_status": "CONFIRMED_ORCHESTRATION_SOURCE",
+        "evidence_basis": "SYSTEM-SPINE-7-STEP-FLOW.md and spine_step SQLite rows",
+        "boundary": "documents order and gates only; does not dispatch or approve protected work",
+    },
+    {
+        "capability_id": "capability_router_family_registry",
+        "component_id": "conversational_workflow_router_contract",
+        "capability_name": "Queryable router-family map with next safe moves",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "router_family SQLite rows and conversational_workflow_router_contract.py",
+        "boundary": "classification/package routing only; no action execution",
+    },
+    {
+        "capability_id": "capability_sqlite_packet_ledger",
+        "component_id": "sqlite_ledger_core",
+        "capability_name": "SQLite packet and receipt persistence",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "backend_sqlite_runtime.py and BackendPackageRequest schema",
+        "boundary": "receipt ledger only; packet rows are not approval by themselves",
+    },
+    {
+        "capability_id": "capability_protected_maestro_brain",
+        "component_id": "maestro_protected_brain",
+        "capability_name": "Protected assistant answer generation with provenance",
+        "evidence_status": "CONFIRMED_PARALLEL_BRANCH",
+        "evidence_basis": "maestro-brain-on-batch branch protected_generate path",
+        "boundary": "advisory text under protected flags; cannot set send/money/action authority",
+    },
+    {
+        "capability_id": "capability_self_heal_emission",
+        "component_id": "self_healing_polish_loop",
+        "capability_name": "Truth-fail finding to deterministic heal task",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "pc4_answer_capture.py, answer_auditor.py, pc4_heal_emitter.py",
+        "boundary": "emits detector heal tasks only; acceptance remains gate-driven",
+    },
 )
 
 WORKFLOW_RAILS: tuple[dict[str, str], ...] = (
@@ -700,6 +908,190 @@ WORKFLOW_RAILS: tuple[dict[str, str], ...] = (
         "evidence_basis": "correspondence_agent_spec.md",
         "boundary": "no Gmail body assumption, no send, no executor registration",
     },
+    {
+        "workflow_id": "rail_the_spine_front_door",
+        "component_id": "the_spine",
+        "rail_name": "The Spine deterministic ingest-gate-route-ledger flow",
+        "evidence_status": "CONFIRMED_ORCHESTRATION_SOURCE",
+        "evidence_basis": "SYSTEM-SPINE-7-STEP-FLOW.md and openclaw_system_knowledge_registry.py",
+        "boundary": "all protected outputs still require Approval / Guardian Gate and Final Output Gate receipts",
+    },
+    {
+        "workflow_id": "rail_backend_package_request",
+        "component_id": "backend_package_request_schema",
+        "rail_name": "Sanitized workflow intent to BackendPackageRequest",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "conversational_workflow_router_contract.py",
+        "boundary": "packet construction is not execution; it must hit the SQLite ledger and approval gates",
+    },
+    {
+        "workflow_id": "rail_pc4_self_healing",
+        "component_id": "self_healing_polish_loop",
+        "rail_name": "Claim audit to heal-task replay and post-acceptance notification",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "tests/test_pc4_self_healing.py and tests/test_pc4_hardening.py",
+        "boundary": "no fake green; failing acceptance blocks DONE",
+    },
+)
+
+SPINE_STEPS: tuple[dict[str, Any], ...] = (
+    {
+        "step_id": "spine_step_01_intake_front_door",
+        "step_number": 1,
+        "canonical_subsystem": "The Spine",
+        "step_name": "Intake Front Door",
+        "component_id": "the_spine",
+        "handler_locations": ["openclaw_request_processor.py"],
+        "receives": "Incoming chat, files, operator-controller events, and local-surface results.",
+        "emits": "Normalized inbound signal for privacy screening.",
+        "authority_boundary": "Intake records the signal shape only; it does not execute, send, or mutate protected state.",
+        "evidence_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+    },
+    {
+        "step_id": "spine_step_02_pii_gate",
+        "step_number": 2,
+        "canonical_subsystem": "The Spine",
+        "step_name": "PII Gate",
+        "component_id": "the_spine",
+        "handler_locations": ["openclaw_sensitive_policy.py", "openclaw_request_processor.py"],
+        "receives": "Raw inbound signal from Intake Front Door.",
+        "emits": "Sanitized/tokenized input for normal read-model and router use.",
+        "authority_boundary": "Raw PII is blocked from normal read-models; graded tokenization still requires the owning privacy/legal boundary.",
+        "evidence_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+    },
+    {
+        "step_id": "spine_step_03_intent_lm_gate",
+        "step_number": 3,
+        "canonical_subsystem": "The Spine",
+        "step_name": "Intent LM Gate",
+        "component_id": "conversational_workflow_router_contract",
+        "handler_locations": ["conversational_workflow_router_contract.py", "intent_router.py"],
+        "receives": "Sanitized input.",
+        "emits": "RoutedWorkflowIntent classification with bounded routing metadata.",
+        "authority_boundary": "Deterministic routing or bounded draft-LM classification only; no execution authority.",
+        "evidence_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+    },
+    {
+        "step_id": "spine_step_04_sqlite_packet_maker",
+        "step_number": 4,
+        "canonical_subsystem": "The Spine",
+        "step_name": "SQLite Packet Maker",
+        "component_id": "backend_package_request_schema",
+        "handler_locations": ["conversational_workflow_router_contract.py", "backend_sqlite_runtime.py"],
+        "receives": "RoutedWorkflowIntent plus target/readback/permission metadata.",
+        "emits": "BackendPackageRequest persisted into the SQLite ledger.",
+        "authority_boundary": "SQLite is an immutable receipt ledger and packet store, not runtime execution authority.",
+        "evidence_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+    },
+    {
+        "step_id": "spine_step_05_approval_guardian_gate",
+        "step_number": 5,
+        "canonical_subsystem": "The Spine",
+        "step_name": "Approval / Guardian Gate",
+        "component_id": "approval_gate_convergence",
+        "handler_locations": ["approval_gate_convergence.py", "guardian_output_gate.py"],
+        "receives": "BackendPackageRequest and approval packet metadata.",
+        "emits": "Approved, blocked, or awaiting-human gate state.",
+        "authority_boundary": "SEND_HOLD, money gates, and operator/Guardian approval are absolute for protected actions.",
+        "evidence_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+    },
+    {
+        "step_id": "spine_step_06_lm2_responder_executor",
+        "step_number": 6,
+        "canonical_subsystem": "The Spine",
+        "step_name": "LM2 Responder / Executor",
+        "component_id": "maestro_protected_brain",
+        "handler_locations": [
+            "openclaw_request_processor.py",
+            "polish_loop/worker_runtime.py",
+            "/home/openclaw/worktrees/maestro-brain-on-batch/openclaw_request_processor.py",
+        ],
+        "receives": "Approved packet or read-only response request.",
+        "emits": "Worker/model answer candidate plus proof metadata.",
+        "authority_boundary": "Responder output is candidate/proof-bearing text unless an approved executor and final gate accept it.",
+        "evidence_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+    },
+    {
+        "step_id": "spine_step_07_final_output_gate_receipt",
+        "step_number": 7,
+        "canonical_subsystem": "The Spine",
+        "step_name": "Final Output Gate / Receipt",
+        "component_id": "sqlite_ledger_core",
+        "handler_locations": ["guardian_output_gate.py", "backend_sqlite_runtime.py", "chief_notify.py"],
+        "receives": "Worker/model answer candidate, acceptance evidence, and validation result.",
+        "emits": "Validated receipt back into the SQLite ledger.",
+        "authority_boundary": "Code and gates decide DONE; model claims alone never close the loop.",
+        "evidence_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+    },
+)
+
+ROUTER_FAMILIES: tuple[dict[str, Any], ...] = (
+    {
+        "router_id": "router_chat",
+        "family_name": "Chat",
+        "owner_component_id": "conversational_workflow_router_contract",
+        "locations": ["openclaw_request_processor.py", "chief_compose.py", "conversational_workflow_router_contract.py"],
+        "routes": "Sanitized operator/chat text into read-only answer, workflow intent, or approval packet paths.",
+        "routing_options": ["read_only_answer", "routed_workflow_intent", "backend_package_request", "blocked_or_awaiting_human"],
+        "next_safe_move": "Classify through the Intent LM Gate, then packetize only if the Approval / Guardian Gate can own the protected boundary.",
+        "authority_boundary": "Chat routing cannot send, spend, mutate ledgers, or bypass Guardian.",
+        "evidence_ref": "openclaw_request_processor.py; conversational_workflow_router_contract.py",
+    },
+    {
+        "router_id": "router_file_metadata",
+        "family_name": "FileMetadata",
+        "owner_component_id": "map_room_markdown_atlas",
+        "locations": ["map_room_query.py", "reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json"],
+        "routes": "File/path territory terms into dependency, generated-output, unsafe-to-move, or manual-review postures.",
+        "routing_options": ["active_dependency_owner", "generated_output_reference", "unsafe_to_move", "unknown_manual_review"],
+        "next_safe_move": "Treat unknown or private-root terms as manual review; never auto-clean or move files from a lookup.",
+        "authority_boundary": "Map Room lookup is read-only and cannot perform cleanup.",
+        "evidence_ref": "map_room_query.py; tests/test_map_room_query.py",
+    },
+    {
+        "router_id": "router_evidence_intake",
+        "family_name": "EvidenceIntake",
+        "owner_component_id": "sqlite_ledger_core",
+        "locations": ["operator_controller_event_router.py", "proof_to_response_runtime.py", "backend_sqlite_runtime.py"],
+        "routes": "Proof/evidence events into receipts, packet validation metadata, and read-only response posture.",
+        "routing_options": ["proof_receipt", "candidate_evidence", "blocked_private_truth", "awaiting_confirmation"],
+        "next_safe_move": "Record sanitized proof posture and require owner approval before finance/legal/business mutation.",
+        "authority_boundary": "Evidence intake does not inspect private roots or mark paid/complete by itself.",
+        "evidence_ref": "proof_to_response_runtime.py; backend_sqlite_runtime.py",
+    },
+    {
+        "router_id": "router_workflow_packages",
+        "family_name": "WorkflowPackages",
+        "owner_component_id": "backend_package_request_schema",
+        "locations": ["conversational_workflow_router_contract.py", "model_work_package_router.py", "worker_run_manager.py"],
+        "routes": "RoutedWorkflowIntent records into BackendPackageRequest, model/role targets, and worker package lifecycle records.",
+        "routing_options": ["model_package", "role_package", "human_card_readback", "approval_packet"],
+        "next_safe_move": "Persist the packet to SQLite and wait for the declared gate before worker dispatch.",
+        "authority_boundary": "Package routing is metadata and lifecycle bookkeeping until a separate executor is approved.",
+        "evidence_ref": "conversational_workflow_router_contract.py; model_work_package_router.py",
+    },
+    {
+        "router_id": "router_local_surface",
+        "family_name": "LocalSurface",
+        "owner_component_id": "self_healing_polish_loop",
+        "locations": ["polish_loop/control_plane.py", "polish_loop/harness_task_runner.py", "pc4_answer_capture.py"],
+        "routes": "Local worker, acceptance, and self-heal surfaces into deterministic ledger tasks and proof receipts.",
+        "routing_options": ["ready_heal_task", "blocked_heal_task", "acceptance_replay", "post_acceptance_notify"],
+        "next_safe_move": "Emit detector-origin heal tasks only when payload validation passes and acceptance tests remain immutable.",
+        "authority_boundary": "Local surfaces cannot mark DONE without acceptance and green-gate proof.",
+        "evidence_ref": "polish_loop/control_plane.py; tests/test_pc4_self_healing.py",
+    },
+    {
+        "router_id": "router_operator_events",
+        "family_name": "OperatorEvents",
+        "owner_component_id": "universal_intake",
+        "locations": ["operator_universal_intake.py", "operator_intake_events.py", "approval_gate_convergence.py"],
+        "routes": "Operator event text into local receipts, active context, or approval-gated business packets.",
+        "routing_options": ["income_event", "expense_event", "gig_event", "identity_event", "approval_required"],
+        "next_safe_move": "Write local receipts/read-models and escalate protected operations through Approval / Guardian Gate.",
+        "authority_boundary": "Operator-event routing cannot make external sends or money moves while SEND_HOLD is active.",
+        "evidence_ref": "operator_universal_intake.py; tests/test_operator_universal_intake.py",
+    },
 )
 
 KNOWLEDGE_CLAIMS: tuple[dict[str, Any], ...] = (
@@ -750,6 +1142,38 @@ KNOWLEDGE_CLAIMS: tuple[dict[str, Any], ...] = (
         "evidence_status": "CONFIRMED_ORCHESTRATION_SOURCE",
         "evidence_paths": ["/mnt/e/openclaw/orchestration/artifacts/orbit_brain_map.md"],
         "confidence": "medium",
+    },
+    {
+        "claim_id": "claim_the_spine_is_canonical",
+        "subject": "The Spine",
+        "claim": "The Spine is the operator-locked seven-step deterministic intake, privacy, intent, packet, approval, response, and receipt flow.",
+        "evidence_status": "CONFIRMED_OPERATOR_DIRECTION",
+        "evidence_paths": ["/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md"],
+        "confidence": "high",
+    },
+    {
+        "claim_id": "claim_backend_package_request_packetizes_intent",
+        "subject": "BackendPackageRequest",
+        "claim": "BackendPackageRequest carries sanitized workflow intent and validation metadata toward SQLite without executing the request.",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_paths": ["conversational_workflow_router_contract.py", "backend_sqlite_runtime.py"],
+        "confidence": "high",
+    },
+    {
+        "claim_id": "claim_router_registry_is_discovery_only",
+        "subject": "Router registry",
+        "claim": "Router-family rows make routing options discoverable but do not authorize sends, money, cleanup, private inspection, or runtime mutation.",
+        "evidence_status": "CONFIRMED_LOCAL_BOUNDARY",
+        "evidence_paths": ["openclaw_system_knowledge_registry.py", "map_room_query.py"],
+        "confidence": "high",
+    },
+    {
+        "claim_id": "claim_pc4_self_healing_acceptance_gate_decides_done",
+        "subject": "Self-healing harness",
+        "claim": "Self-healing can emit and replay heal work, but immutable acceptance and gate evidence decide DONE.",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_paths": ["polish_loop/control_plane.py", "tests/test_pc4_self_healing.py", "tests/test_pc4_hardening.py"],
+        "confidence": "high",
     },
     {
         "claim_id": "claim_send_hold_active",
@@ -1061,6 +1485,14 @@ def is_system_knowledge_registry_query(question: str) -> bool:
         "self-knowledge registry",
         "system self knowledge",
         "system self-knowledge",
+        "the spine",
+        "spine flow",
+        "spine steps",
+        "front door pipeline",
+        "front-door pipeline",
+        "router registry",
+        "routing options",
+        "next safe move",
         "what is in orbit",
         "what's in orbit",
         "whats in orbit",
@@ -1081,6 +1513,9 @@ def is_system_knowledge_registry_query(question: str) -> bool:
         "component",
         "orbit",
         "orphan",
+        "spine",
+        "router",
+        "routing",
     )
     return any(term in text for term in system_terms) and any(term in text for term in knowledge_terms)
 
@@ -1094,6 +1529,10 @@ def _question_topics(question: str) -> set[str]:
         topics.add("orbit")
     if any(term in text for term in ("task", "next", "build", "work")):
         topics.add("tasks")
+    if any(term in text for term in ("spine", "front door", "front-door", "intake gate route ledger", "seven step", "7 step")):
+        topics.add("spine")
+    if any(term in text for term in ("router", "routing", "next safe move")):
+        topics.add("routers")
     if any(term in text for term in ("shape", "system", "component", "capability", "registry")):
         topics.add("shape")
     return topics
@@ -1138,6 +1577,8 @@ def build_registry(repo_root: Path | str | None = None, generated_at: str = DEFA
     coverage = {
         "component_count": len(COMPONENTS),
         "seeded_component_ids": [component["component_id"] for component in COMPONENTS],
+        "spine_step_count": len(SPINE_STEPS),
+        "router_family_count": len(ROUTER_FAMILIES),
         "brain_route_record_count": len(ORBIT_BRAIN_ROUTE_RECORDS),
         "orchestration_decision_count": len(ORCHESTRATION_DECISIONS),
         "known_unknown_count": len(KNOWN_UNKNOWNS),
@@ -1166,6 +1607,15 @@ def build_registry(repo_root: Path | str | None = None, generated_at: str = DEFA
             "Gig Intake Flow",
             "Correspondence Agent Plan",
             "Approval Gate Convergence",
+            "The Spine",
+            "012 Maestro Protected Brain",
+            "Self-Healing Polish Loop",
+            "Cross-Agent Truth Propagation",
+            "Polish Loop Self-Scaling Launcher",
+            "SQLite Ledger Core",
+            "BackendPackageRequest Schema",
+            "Conversational Workflow Router Contract",
+            "Map Room / Markdown Atlas",
             "System Knowledge Registry Query",
         ],
     }
@@ -1193,6 +1643,14 @@ def build_registry(repo_root: Path | str | None = None, generated_at: str = DEFA
         "component_inventory": list(COMPONENTS),
         "capabilities": list(CAPABILITIES),
         "workflow_rails": list(WORKFLOW_RAILS),
+        "spine": {
+            "canonical_name": "The Spine",
+            "operator_lock_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
+            "step_count": len(SPINE_STEPS),
+            "authority_summary": "deterministic front door; approval and final gates decide protected action outcomes",
+        },
+        "spine_steps": list(SPINE_STEPS),
+        "router_registry": list(ROUTER_FAMILIES),
         "brain_route_inventory": list(ORBIT_BRAIN_ROUTE_RECORDS),
         "orchestration_decisions": list(ORCHESTRATION_DECISIONS),
         "knowledge_claims": list(KNOWLEDGE_CLAIMS),
@@ -1410,13 +1868,40 @@ def query_system_knowledge_registry(
     static_unknowns = list(payload["known_unknowns"])
     live_unknowns = list(live_projection.get("live_known_unknowns") or [])
     all_unknowns = static_unknowns + live_unknowns
-    if len(topics & {"shape", "unknowns", "orbit"}) >= 2:
+    if "spine" in topics and "routers" in topics:
+        answer_type = "spine_and_router_registry"
+        items = {
+            "spine": payload["spine"],
+            "spine_steps": payload["spine_steps"],
+            "router_registry": payload["router_registry"],
+        }
+        summary = (
+            f"{payload['spine']['canonical_name']} has {len(payload['spine_steps'])} ordered steps "
+            f"and {len(payload['router_registry'])} router-family records."
+        )
+    elif "spine" in topics:
+        answer_type = "spine_flow"
+        items = {
+            "spine": payload["spine"],
+            "spine_steps": payload["spine_steps"],
+        }
+        summary = (
+            f"{payload['spine']['canonical_name']} is the canonical deterministic front door with "
+            f"{len(payload['spine_steps'])} ordered steps."
+        )
+    elif "routers" in topics:
+        answer_type = "router_registry"
+        items = payload["router_registry"]
+        summary = f"{len(items)} router families are recorded with locations, routing options, and next safe moves."
+    elif len(topics & {"shape", "unknowns", "orbit"}) >= 2:
         answer_type = "system_self_knowledge"
         items = {
             "system_shape": {
                 "components": payload["component_inventory"],
                 "capabilities": payload["capabilities"],
                 "knowledge_claims": payload["knowledge_claims"],
+                "spine": payload["spine"],
+                "router_registry": payload["router_registry"],
             },
             "known_unknowns": all_unknowns,
             "orbit_and_atlas": {
@@ -1457,6 +1942,8 @@ def query_system_knowledge_registry(
             "components": payload["component_inventory"],
             "capabilities": payload["capabilities"],
             "knowledge_claims": payload["knowledge_claims"],
+            "spine": payload["spine"],
+            "router_registry": payload["router_registry"],
             "live_projection": live_projection,
         }
         summary = (
@@ -1484,6 +1971,7 @@ def query_system_knowledge_registry(
             "ledger_path": live_projection["ledger_path"],
             "atlas_path": live_projection["atlas_path"],
             "graphiffy_path": live_projection["graphiffy_path"],
+            "spine_lock_ref": "/mnt/e/openclaw/orchestration/SYSTEM-SPINE-7-STEP-FLOW.md",
         },
         "authority_boundary": {
             "read_only": True,
@@ -1556,6 +2044,35 @@ def format_system_knowledge_answer(answer: dict[str, Any]) -> str:
                 boundary,
             ]
         )
+    if answer_type in {"spine_flow", "spine_and_router_registry"}:
+        spine_items = answer.get("items") if isinstance(answer.get("items"), dict) else {}
+        steps = list((spine_items or {}).get("spine_steps") or [])
+        routers = list((spine_items or {}).get("router_registry") or [])
+        step_summary = "; ".join(
+            f"{step.get('step_number')}. {step.get('step_name')}" for step in steps
+        )
+        lines = [
+            "OpenClaw The Spine (read-only)",
+            f"Steps: {len(steps)} ordered records.",
+            step_summary,
+        ]
+        if routers:
+            lines.append(f"Router families: {', '.join(str(router.get('family_name')) for router in routers)}.")
+        lines.append(boundary)
+        return "\n".join(lines)
+    if answer_type == "router_registry":
+        routers = list(answer.get("items") or [])
+        router_summary = "; ".join(
+            f"{router.get('family_name')}: {router.get('next_safe_move')}" for router in routers[:4]
+        )
+        return "\n".join(
+            [
+                "OpenClaw Router Registry (read-only)",
+                f"Router families: {len(routers)}.",
+                router_summary,
+                boundary,
+            ]
+        )
     if answer_type == "known_unknowns":
         unknowns = list(answer.get("items") or [])
         return "\n".join(
@@ -1619,6 +2136,35 @@ def sqlite_rows(payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         ],
         "capability": list(payload["capabilities"]),
         "workflow_rail": list(payload["workflow_rails"]),
+        "spine_step": [
+            {
+                "step_id": row["step_id"],
+                "step_number": row["step_number"],
+                "canonical_subsystem": row["canonical_subsystem"],
+                "step_name": row["step_name"],
+                "component_id": row["component_id"],
+                "handler_locations_json": compact_json(row["handler_locations"]),
+                "receives": row["receives"],
+                "emits": row["emits"],
+                "authority_boundary": row["authority_boundary"],
+                "evidence_ref": row["evidence_ref"],
+            }
+            for row in payload["spine_steps"]
+        ],
+        "router_family": [
+            {
+                "router_id": row["router_id"],
+                "family_name": row["family_name"],
+                "owner_component_id": row["owner_component_id"],
+                "locations_json": compact_json(row["locations"]),
+                "routes": row["routes"],
+                "routing_options_json": compact_json(row["routing_options"]),
+                "next_safe_move": row["next_safe_move"],
+                "authority_boundary": row["authority_boundary"],
+                "evidence_ref": row["evidence_ref"],
+            }
+            for row in payload["router_registry"]
+        ],
         "brain_route_inventory": list(payload["brain_route_inventory"]),
         "orchestration_decision": list(payload["orchestration_decisions"]),
         "knowledge_claim": [
@@ -1660,8 +2206,10 @@ def schema_sql() -> str:
         columns = TABLE_COLUMNS[table]
         lines = []
         for column in columns:
-            if table == "build_task" and column == "task_rank":
-                lines.append("  task_rank INTEGER NOT NULL")
+            if (table == "build_task" and column == "task_rank") or (
+                table == "spine_step" and column == "step_number"
+            ):
+                lines.append(f"  {column} INTEGER NOT NULL")
             else:
                 lines.append(f"  {column} TEXT NOT NULL")
         lines.append(f"  PRIMARY KEY ({columns[0]})")
@@ -1701,6 +2249,8 @@ def render_operator_markdown(payload: dict[str, Any]) -> str:
         f"- Registry ID: `{payload['registry_id']}`",
         f"- Schema version: `{payload['schema_version']}`",
         f"- Component count: {coverage['component_count']}",
+        f"- Spine steps: {coverage['spine_step_count']}",
+        f"- Router families: {coverage['router_family_count']}",
         f"- Brain route records: {coverage['brain_route_record_count']}",
         f"- Orchestration decisions: {coverage['orchestration_decision_count']}",
         f"- Known unknown count: {coverage['known_unknown_count']}",
@@ -1715,6 +2265,22 @@ def render_operator_markdown(payload: dict[str, Any]) -> str:
     lines.extend(["", "## Components"])
     for component in payload["component_inventory"]:
         lines.append(f"- `{component['component_id']}`: {component['evidence_status']} - {component['summary']}")
+    lines.extend(["", "## The Spine"])
+    lines.append(
+        f"- Canonical name: `{payload['spine']['canonical_name']}`; "
+        f"operator lock: `{payload['spine']['operator_lock_ref']}`"
+    )
+    for step in payload["spine_steps"]:
+        lines.append(
+            f"{step['step_number']}. `{step['step_id']}` / {step['step_name']} - "
+            f"{step['authority_boundary']}"
+        )
+    lines.extend(["", "## Router Registry"])
+    for router in payload["router_registry"]:
+        lines.append(
+            f"- `{router['router_id']}` ({router['family_name']}): {router['routes']} "
+            f"Next: {router['next_safe_move']}"
+        )
     lines.extend(["", "## Brain Route Inventory"])
     for brain in payload["brain_route_inventory"]:
         lines.append(
