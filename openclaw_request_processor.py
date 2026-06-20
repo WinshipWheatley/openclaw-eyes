@@ -4951,6 +4951,15 @@ def _process_maestro_frontdoor_operator_instruction(
         or "operator_maestro_chat"
     )
     response_classification = _maestro_frontdoor_classification(classification, request_path=request_path)
+    response_provenance = {
+        "speaker": "Maestro",
+        "lane": "telegram_pc_maestro_listener",
+        "relay_origin": None,
+        "actor": "maestro",
+        "surface_ref": source_surface,
+        "message_role": "final_agent_reply",
+        "source_request_id": request_id,
+    }
     card = {
         "schema_version": "maestro_frontdoor_answer_card_v0",
         "card_id": f"maestro_frontdoor_answer_{_short_hash(request_id, result.one_line_answer)}",
@@ -4961,6 +4970,7 @@ def _process_maestro_frontdoor_operator_instruction(
         "route_status": "TEXT_RESPONSE_READY",
         "mac_render_hint": result.mac_render_hint,
         "actions": [],
+        "provenance": response_provenance,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "proof": {
             "proof_refs": list(proof_refs),
@@ -4968,6 +4978,23 @@ def _process_maestro_frontdoor_operator_instruction(
         },
     }
     detail = {
+        "message_provenance": response_provenance,
+        "request_message_provenance": raw_request.get("message_provenance")
+        if isinstance(raw_request.get("message_provenance"), Mapping)
+        else {
+            "speaker": "Winship",
+            "lane": "telegram_pc_maestro_listener",
+            "relay_origin": None,
+            "actor": "operator_winship",
+            "surface_ref": source_surface,
+            "message_role": "operator_prompt",
+        },
+        "correlation": {
+            "source_request_id": request_id,
+            "request_filename": request_path.name,
+            "thread_ref": current_thread,
+            "world_ref": current_world,
+        },
         "operator_display": {"speaker_ref": "maestro"},
         "request_classification": asdict(response_classification),
         "original_request_classification": asdict(classification),

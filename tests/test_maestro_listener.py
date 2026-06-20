@@ -83,6 +83,23 @@ def test_bridge_request_has_unique_id_and_full_false_authority_boundary(tmp_path
     assert first["request_type"] == "WORKFLOW_PACKAGE_REQUEST_V0"
     assert first["source_surface"] == "mission_control"
     assert first["source_channel"] == "maestro_listener"
+    assert first["speaker"] == "Winship"
+    assert first["lane"] == "telegram_pc_maestro_listener"
+    assert first["relay_origin"] is None
+    assert first["actor"] == "operator_winship"
+    assert first["message_provenance"] == {
+        "speaker": "Winship",
+        "lane": "telegram_pc_maestro_listener",
+        "relay_origin": None,
+        "actor": "operator_winship",
+        "surface_ref": "operator_maestro_chat",
+        "message_role": "operator_prompt",
+    }
+    assert first["expected_response_provenance"]["speaker"] == "Maestro"
+    assert first["expected_response_provenance"]["actor"] == "maestro"
+    assert first["expected_response_provenance"]["processing_receipt_user_visible"] is False
+    assert first["correlation"]["request_id"] == first["request_id"]
+    assert first["correlation"]["telegram_message_id"] == "42"
     assert first["source_text"] == "what day is it"
     assert first["operator_message"] == "what day is it"
     assert first["payload_hash"]
@@ -115,9 +132,45 @@ def test_listener_bridge_request_routes_through_pc_processor_for_date_answer(tmp
     assert response.internal_status == "RESPONSE_READY"
     assert response.request_type == "CHAT"
     assert response.operator_message == f"Today is {date.today().isoformat()} ({date.today().strftime('%A')})."
+    assert response.detail_disclosure["message_provenance"]["speaker"] == "Maestro"
+    assert response.detail_disclosure["message_provenance"]["actor"] == "maestro"
+    assert response.detail_disclosure["message_provenance"]["relay_origin"] is None
+    assert response.detail_disclosure["request_message_provenance"]["speaker"] == "Winship"
+    assert response.detail_disclosure["correlation"]["source_request_id"] == request["request_id"]
     assert response.detail_disclosure["maestro_frontdoor_routing"]["workflow_package_staged"] is False
     assert response.detail_disclosure["workflow_package_staged"] is False
     assert response.detail_disclosure["email_send_performed"] is False
+
+
+def test_listener_bridge_request_delivers_capability_readback_not_generic_intro(tmp_path):
+    import openclaw_request_processor as processor
+
+    request = maestro_listener.build_operator_maestro_chat_request(
+        "what can you help me with?",
+        message_id="capability-smoke",
+        chat_id=456,
+        created_at=FIXED_NOW,
+    )
+    request_path = tmp_path / "mission_control_operator_instruction_request_maestro_listener_capability_smoke.json"
+    request_path.write_text(maestro_listener.stable_json(request), encoding="utf-8")
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+    payload, _ = processor.build_payloads(response, generated_at=FIXED_NOW)
+    reply = maestro_listener.reply_text_from_bridge_response(payload)
+
+    assert response.internal_status == "RESPONSE_READY"
+    assert response.request_type == "CHAT"
+    assert "Here is the truthful readback from current generated state." in response.operator_message
+    assert "Proven live-implemented rails:" in response.operator_message
+    assert "Proven live-implemented rails:" in reply
+    assert "Recorded, no action ran" not in reply
+    assert reply != "Here is the truthful readback from current generated state."
+    assert "Maestro-native reply - ref capability-smoke:" in reply
 
 
 def test_authorized_date_question_replies_from_bridge_and_sends_typing(monkeypatch, tmp_path):
@@ -188,6 +241,44 @@ def test_blocked_or_unknown_bridge_response_is_explicit_not_silent(monkeypatch):
     reply = update.message.replies[0].lower()
     assert "recorded, no action ran" in reply
     assert "capability readback" in reply
+    assert "capability readback is live after reconcile" not in reply
+
+
+def test_reply_prefers_full_final_operator_message_over_generic_one_line():
+    payload = {
+        "source_request_id": "maestro_telegram_42_abcdef123456",
+        "internal_status": "RESPONSE_READY",
+        "request_type": "CHAT",
+        "one_line_answer": "Here is the truthful readback from current generated state.",
+        "operator_message": (
+            "Here is the truthful readback from current generated state.\n\n"
+            "- Agent roster: Cassandra and Chief are online.\n"
+            "- Proven live-implemented rails: Bounded request processor.\n"
+            "- I cannot claim send, browser, deploy, or workflow execution from this front door."
+        ),
+    }
+
+    reply = maestro_listener.reply_text_from_bridge_response(payload)
+
+    assert "- Agent roster: Cassandra and Chief are online." in reply
+    assert "Proven live-implemented rails" in reply
+    assert reply != "Here is the truthful readback from current generated state."
+    assert "Maestro-native reply - ref 42:abcdef" in reply
+
+
+def test_reply_suppresses_processing_heartbeat_as_final_answer():
+    payload = {
+        "source_request_id": "maestro_telegram_42_abcdef123456",
+        "terminal": False,
+        "processing_heartbeat_id": "processing_heartbeat_maestro_telegram_42_abcdef123456",
+        "operator_message": "OpenClaw picked this up and is checking the local rails.",
+    }
+
+    reply = maestro_listener.reply_text_from_bridge_response(payload)
+
+    assert "OpenClaw picked this up" not in reply
+    assert "Recorded, no action ran" in reply
+    assert "Maestro-native reply - ref 42:abcdef" in reply
 
 
 def test_listener_has_no_outbound_send_imports_and_send_hold_boundary_false():
