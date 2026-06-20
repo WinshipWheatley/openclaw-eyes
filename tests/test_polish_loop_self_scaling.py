@@ -137,6 +137,27 @@ def test_detached_worker_inherits_bounds_and_lane_environment(tmp_path, monkeypa
     assert env["OPENCLAW_TEST_MODE"] == "1"
     assert env["OPENCLAW_LANE_ID"] == "detached"
     assert env["OPENCLAW_GATE_SERIALIZED"] == "1"
+    assert env["OPENCLAW_FLEET_PROTOCOL_PATH"].endswith(".openclaw_lane/FLEET-PROTOCOL.md")
+
+
+def test_detached_worker_gets_fleet_protocol_stamp(tmp_path, monkeypatch):
+    config = _config(tmp_path, max_parallel_lanes=1)
+    _, popen_calls = _patch_launch(monkeypatch)
+
+    lane_launcher.submit_parallelization_decision(
+        _authorized_decision({"lane_id": "protocol", "task": "Build with protocol"}),
+        config=config,
+    )
+
+    worktree = config.lanes_root / "protocol"
+    stamp = worktree / ".openclaw_lane" / "FLEET-PROTOCOL.md"
+    assert stamp.exists()
+    stamp_text = stamp.read_text(encoding="utf-8")
+    assert "two-tier gate" in stamp_text.lower()
+    assert "FAST pre-gate" in stamp_text
+    assert "FULL gate" in stamp_text
+    assert "atomic" in stamp_text.lower()
+    assert popen_calls[0]["kwargs"]["env"]["OPENCLAW_FLEET_PROTOCOL_PATH"] == str(stamp)
 
 
 def test_reap_marks_dead_running_lane_without_removing_history(tmp_path):

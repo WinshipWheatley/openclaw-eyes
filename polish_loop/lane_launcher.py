@@ -28,10 +28,20 @@ SCHEMA_VERSION = "polish_loop_lane_registry_v0"
 EVENT_SCHEMA_VERSION = "polish_loop_lane_event_v0"
 DEFAULT_BASE_REF = "origin/codex/maestro-author"
 DEFAULT_GATE_TOKEN_DIR = Path("/mnt/e/openclaw/orchestration/inbox/to-claude")
+DEFAULT_FLEET_PROTOCOL_PATH = Path("/mnt/e/openclaw/orchestration/FLEET-PROTOCOL.md")
 DEFAULT_REGISTRY_PATH = Path("/home/openclaw/polish_loop/lane_registry.json")
 DEFAULT_LANES_ROOT = Path("/home/openclaw/worktrees/polish-loop-lanes")
 DEFAULT_LOG_PATH = Path("/mnt/c/OpenClaw/logs/polish_loop_lane_launcher.jsonl")
 DEFAULT_MAX_PARALLEL_LANES = 2
+FALLBACK_FLEET_PROTOCOL = """# OpenClaw Fleet Protocol
+
+Workers use a two-tier gate:
+- FAST pre-gate: focused tests only, parallel-safe, no full-gate token.
+- FULL gate: `scripts/green_gate.sh <branch>` only after the atomic full-gate lock is available.
+
+The FULL gate lock is atomic and lives outside lane-local worktrees. Do not merge,
+deploy, restart production, force-push, send external messages, or bypass SEND_HOLD.
+"""
 
 TERMINAL_STATUSES = {"dead", "finished", "launch_failed", "cancelled"}
 ACTIVE_STATUSES = {"starting", "running"}
@@ -45,6 +55,7 @@ class LauncherConfig:
     lanes_root: Path = DEFAULT_LANES_ROOT
     log_path: Path = DEFAULT_LOG_PATH
     gate_token_dir: Path = DEFAULT_GATE_TOKEN_DIR
+    fleet_protocol_path: Path = DEFAULT_FLEET_PROTOCOL_PATH
     base_ref: str = DEFAULT_BASE_REF
     max_parallel_lanes: int = DEFAULT_MAX_PARALLEL_LANES
     create_worktrees: bool = True
@@ -67,7 +78,8 @@ def _empty_registry() -> dict[str, Any]:
         "updated_at": utc_now(),
         "gate_policy": {
             "full_green_gate_serialized": True,
-            "token_protocol": "CLAIM-GATE-TOKEN before scripts/green_gate.sh; RELEASE-GATE-TOKEN after",
+            "token_protocol": "scripts/green_gate.sh uses an atomic FULL gate lock; use --fast for focused pre-gate",
+            "fast_pre_gate_parallel_safe": True,
         },
     }
 
@@ -237,13 +249,15 @@ def _command_for_lane(config: LauncherConfig, raw_lane: Mapping[str, Any], lane_
     return _default_worker_command(config, lane_id, task_text, worktree)
 
 
-def _safe_env(lane_id: str, decision_id: str) -> dict[str, str]:
+def _safe_env(lane_id: str, decision_id: str, fleet_protocol_path: Path | None = None) -> dict[str, str]:
     env = dict(os.environ)
     env["OPENCLAW_SEND_HOLD"] = "1"
     env["OPENCLAW_TEST_MODE"] = env.get("OPENCLAW_TEST_MODE", "1")
     env["OPENCLAW_LANE_ID"] = lane_id
     env["OPENCLAW_PARALLEL_DECISION_ID"] = decision_id
     env["OPENCLAW_GATE_SERIALIZED"] = "1"
+    if fleet_protocol_path is not None:
+        env["OPENCLAW_FLEET_PROTOCOL_PATH"] = str(fleet_protocol_path)
     return env
 
 
@@ -259,6 +273,18 @@ def _prepare_worktree(config: LauncherConfig, branch: str, worktree: Path) -> No
         capture_output=True,
         text=True,
     )
+
+
+def _stamp_fleet_protocol(config: LauncherConfig, worktree: Path) -> Path:
+    stamp = worktree / ".openclaw_lane" / "FLEET-PROTOCOL.md"
+    stamp.parent.mkdir(parents=True, exist_ok=True)
+    source = config.fleet_protocol_path
+    if source.exists():
+        protocol_text = source.read_text(encoding="utf-8")
+    else:
+        protocol_text = FALLBACK_FLEET_PROTOCOL
+    stamp.write_text(protocol_text, encoding="utf-8")
+    return stamp
 
 
 def _launch_lane(config: LauncherConfig, decision_id: str, raw_lane: Mapping[str, Any], index: int) -> dict[str, Any]:
@@ -291,19 +317,22 @@ def _launch_lane(config: LauncherConfig, decision_id: str, raw_lane: Mapping[str
             "full_green_gate_serialized": True,
             "gate_token_dir": str(config.gate_token_dir),
             "worker_may_run_full_gate_without_token": False,
+            "fast_pre_gate_parallel_safe": True,
+            "atomic_full_gate_lock": True,
         },
     }
     try:
         _prepare_worktree(config, branch, worktree)
         log_dir = worktree / ".openclaw_lane"
         log_dir.mkdir(parents=True, exist_ok=True)
+        protocol_stamp = _stamp_fleet_protocol(config, worktree)
         output_log = log_dir / "worker.out"
         stdout_handle = output_log.open("a", encoding="utf-8")
         try:
             process = subprocess.Popen(
                 command,
                 cwd=str(worktree),
-                env=_safe_env(lane_id, decision_id),
+                env=_safe_env(lane_id, decision_id, protocol_stamp),
                 stdin=subprocess.DEVNULL,
                 stdout=stdout_handle,
                 stderr=subprocess.STDOUT,
@@ -318,6 +347,7 @@ def _launch_lane(config: LauncherConfig, decision_id: str, raw_lane: Mapping[str
                 "started_at": utc_now(),
                 "heartbeat_at": utc_now(),
                 "output_log": str(output_log),
+                "protocol_stamp": str(protocol_stamp),
             }
         )
         append_event(config, "lane_launched", {"lane_id": lane_id, "pid": int(process.pid), "branch": branch})
@@ -343,6 +373,8 @@ def _queue_lane(config: LauncherConfig, decision_id: str, raw_lane: Mapping[str,
         "gate_policy": {
             "full_green_gate_serialized": True,
             "gate_token_dir": str(config.gate_token_dir),
+            "fast_pre_gate_parallel_safe": True,
+            "atomic_full_gate_lock": True,
         },
     }
     append_event(config, "lane_queued", {"lane_id": lane_id, "reason": reason})
@@ -512,6 +544,7 @@ def _config_from_args(args: argparse.Namespace) -> LauncherConfig:
         lanes_root=Path(args.lanes_root),
         log_path=Path(args.log_path),
         gate_token_dir=Path(args.gate_token_dir),
+        fleet_protocol_path=DEFAULT_FLEET_PROTOCOL_PATH,
         base_ref=args.base_ref,
         max_parallel_lanes=args.max_parallel_lanes,
         create_worktrees=not args.no_worktrees,

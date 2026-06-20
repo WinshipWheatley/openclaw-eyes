@@ -88,6 +88,22 @@ def test_live_business_ledger_redirects_to_isolated_sqlite():
     assert Path(db_path).resolve(strict=False) == PYTEST_SANDBOX.isolated_ledger.resolve(strict=False)
 
 
+def test_tmp_sqlite_redirects_to_gate_run_root_when_enabled(tmp_path, monkeypatch):
+    sqlite_root = tmp_path / "gate-sqlite"
+    monkeypatch.setenv("OPENCLAW_PYTEST_REDIRECT_TMP_SQLITE", "1")
+    monkeypatch.setenv("OPENCLAW_PYTEST_TMP_SQLITE_ROOT", str(sqlite_root))
+    live_tmp_db = Path(f"/tmp/openclaw_pytest_gate_collision_{os.getpid()}.sqlite")
+
+    connection = sqlite3.connect(live_tmp_db)
+    try:
+        db_path = connection.execute("PRAGMA database_list").fetchone()[2]
+    finally:
+        connection.close()
+
+    assert Path(db_path).resolve(strict=False) == (sqlite_root / live_tmp_db.name).resolve(strict=False)
+    assert not live_tmp_db.exists()
+
+
 def test_send_hold_is_visible_from_sandbox_not_live_bridge():
     live_path = Path("/mnt/e/openclaw/orchestration/SEND_HOLD.md")
 
