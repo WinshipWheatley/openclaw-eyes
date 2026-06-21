@@ -76,6 +76,14 @@ def test_proof_refs_do_not_authorize_send_submit_or_money_claims():
     assert {"sent", "submitted", "paid"}.issubset(set(result["validation_result"]["forbidden_claims"]))
 
 
+def test_proof_refs_filter_only_local_completion_claims():
+    proof_refs = ("generated/read_models/capital_hilton_invoice_operator_run_status.json",)
+
+    assert gate._blocked_completion_claims(("completed", "updated"), proof_refs) == ()
+    assert gate._blocked_completion_claims(("completed", "sent", "paid"), proof_refs) == ("sent", "paid")
+    assert gate._blocked_completion_claims(("completed",), ()) == ("completed",)
+
+
 def test_completion_claim_without_proof_refs_is_blocked():
     result = gate.validate_response_payload(
         _safe_payload(
