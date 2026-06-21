@@ -52,6 +52,11 @@ def test_non_agent_route_target_with_money_falls_to_money_denial() -> None:
     assert "agent dispatch" in lowered
 
 
+def test_route_target_resolves_only_canonical_agents() -> None:
+    assert policy._route_target("forward this to accounting and pay the vendor") == ""
+    assert policy._route_target("route this to Cassandra") == "cassandra"
+
+
 def test_non_agent_route_target_is_not_treated_as_agent_route() -> None:
     reply = policy.truthful_reply_for_text("route this to accounting")
 
