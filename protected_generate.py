@@ -371,9 +371,64 @@ def _format_answer_fact(fact: Mapping[str, Any]) -> str:
     return value.rstrip(".") + "."
 
 
+# 000h: gig/day/schedule questions must answer from the calendar, never from a
+# finance fact whose vocabulary collides with the terms. "$400 gigs" contains "gig"
+# and "next Friday" contains "day" (fri-DAY), so a Capital Hilton finance fact would
+# out-score the real calendar_day fact and "how many gigs"/"what's my day" wrongly
+# returned Capital Hilton. Named-entity and domain routing are unaffected (they carry
+# no schedule marker and keep the generic term-scoring path below).
+_SCHEDULE_INTENT_MARKERS = (
+    "gig",
+    "gigs",
+    "my day",
+    "day look",
+    "the day ahead",
+    "my schedule",
+    "today",
+    "agenda",
+    "calendar",
+    "upcoming",
+    "coming up",
+    "this week",
+    "next week",
+    "rehearsal",
+)
+_SCHEDULE_ANSWER_TOPICS = frozenset({"calendar_day"})
+_NO_PACKET_ANSWER = (
+    "I don't have that in the current Maestro packet. "
+    "I can answer from the packet or ask Chief for a reviewed action plan, but I won't invent it."
+)
+
+
+def _is_schedule_intent(prompt: str) -> bool:
+    lowered = str(prompt or "").lower()
+    return any(marker in lowered for marker in _SCHEDULE_INTENT_MARKERS)
+
+
+def _schedule_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
+    matched: list[str] = []
+    seen: set[str] = set()
+    for fact in facts:
+        if str(fact.get("topic") or "").strip().lower() not in _SCHEDULE_ANSWER_TOPICS:
+            continue
+        sentence = _format_answer_fact(fact)
+        key = sentence.lower()
+        if sentence and key not in seen:
+            matched.append(sentence)
+            seen.add(key)
+        if len(matched) >= 3:
+            break
+    return " ".join(matched[:3]) if matched else None
+
+
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
+
+    if _is_schedule_intent(prompt):
+        scheduled = _schedule_grounded_answer(facts)
+        return scheduled if scheduled is not None else _NO_PACKET_ANSWER
+
     terms = _question_terms(prompt)
     allow_system_posture = _requests_system_posture(prompt)
     scored: list[tuple[int, int, Mapping[str, Any]]] = []
@@ -404,10 +459,7 @@ def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | s
                 break
 
     if not matched:
-        return (
-            "I don't have that in the current Maestro packet. "
-            "I can answer from the packet or ask Chief for a reviewed action plan, but I won't invent it."
-        )
+        return _NO_PACKET_ANSWER
     return " ".join(matched[:3])
 
 

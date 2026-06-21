@@ -564,3 +564,101 @@ def test_request_processor_disclosure_tracks_protected_model_path(monkeypatch, t
     assert detail["local_model_runtime_connected"] is True
     assert any("local_model_invoked=True" in item for item in response.what_happened)
     assert detail["ledger_mutation_performed"] is False
+
+
+def test_fallback_gig_day_intent_routes_to_calendar_not_finance_collision(tmp_path: Path) -> None:
+    # 000h: "$400 gigs" contains "gig" and "next Friday" contains "day" (fri-DAY), so a
+    # finance fact otherwise out-scores the real calendar. gig/day questions must route
+    # to the calendar_day fact, never to Capital Hilton finance vocabulary.
+    from protected_generate import protected_generate_with_receipt
+
+    packet = {
+        "packet_id": "packet:test:gig_day_collision",
+        "facts": [
+            {
+                "topic": "operator_truth",
+                "label": "Capital Hilton",
+                "value": "$2000 received through Coupa; July 1 check expected; $400 gigs; next Friday.",
+            },
+            {
+                "topic": "calendar_day",
+                "label": "Upcoming calendar commitments",
+                "value": "2026-06-26 - Rehearsal at St Anne's - 19:00; 2026-06-27 - Wedding reception set - 20:00.",
+            },
+        ],
+    }
+
+    for question in ("how many gigs do I have?", "when is my next gig?", "what does my day look like?"):
+        outcome = protected_generate_with_receipt(
+            question,
+            context_packet=packet,
+            audit_log_path=tmp_path / "audit.jsonl",
+            allow_live_model=False,
+        )
+        assert outcome.status == "ANSWER_READY"
+        assert "Rehearsal" in outcome.text or "Wedding reception" in outcome.text, f"{question} -> {outcome.text}"
+        assert "Coupa" not in outcome.text, f"{question} leaked finance -> {outcome.text}"
+        assert "July 1 check" not in outcome.text, f"{question} leaked finance -> {outcome.text}"
+        assert outcome.receipt["model_call_performed"] is False
+
+
+def test_fallback_gig_day_intent_is_honest_when_no_calendar_fact(tmp_path: Path) -> None:
+    # 000h: schedule intent with no calendar fact answers honestly instead of falling
+    # back to the finance vocabulary collision.
+    from protected_generate import protected_generate_with_receipt
+
+    outcome = protected_generate_with_receipt(
+        "how many gigs do I have?",
+        context_packet={
+            "packet_id": "packet:test:gig_no_calendar",
+            "facts": [
+                {
+                    "topic": "operator_truth",
+                    "label": "Capital Hilton",
+                    "value": "$2000 received through Coupa; July 1 check expected; $400 gigs; next Friday.",
+                }
+            ],
+        },
+        audit_log_path=tmp_path / "audit.jsonl",
+        allow_live_model=False,
+    )
+
+    assert outcome.status == "ANSWER_READY"
+    assert "I don't have that" in outcome.text
+    assert "Coupa" not in outcome.text
+    assert "Capital Hilton" not in outcome.text
+    assert outcome.receipt["model_call_performed"] is False
+
+
+def test_fallback_named_entity_and_domain_routing_unchanged_by_000h(tmp_path: Path) -> None:
+    # 000h must not touch non-schedule routing: named entities + domain queries still work.
+    from protected_generate import protected_generate_with_receipt
+
+    packet = {
+        "packet_id": "packet:test:routing_regression",
+        "facts": [
+            {
+                "topic": "operator_truth",
+                "label": "Capital Hilton",
+                "value": "$2000 received through Coupa; July 1 check expected.",
+            },
+            {"topic": "operator_truth", "label": "St Anne's", "value": "All paid up."},
+            {
+                "topic": "invoice_status",
+                "label": "Open invoices",
+                "value": "3 finance candidates; 1 high risk; sending blocked.",
+            },
+        ],
+    }
+
+    def answer(question: str) -> str:
+        return protected_generate_with_receipt(
+            question,
+            context_packet=packet,
+            audit_log_path=tmp_path / "audit.jsonl",
+            allow_live_model=False,
+        ).text
+
+    assert "Capital Hilton" in answer("what is my Capital Hilton status?")
+    assert "All paid up" in answer("what's the status of St Anne's?")
+    assert "finance candidates" in answer("what invoices are open?")
