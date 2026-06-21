@@ -706,6 +706,23 @@ _SCHEDULE_INTENT_MARKERS = (
     "rehearsal",
 )
 _SCHEDULE_ANSWER_TOPICS = frozenset({"calendar_day"})
+_FINANCE_INTENT_MARKERS = (
+    "bill",
+    "bills",
+    "how much do i owe",
+    "invoice",
+    "invoices",
+    "money owed",
+    "owe",
+    "owed",
+    "payable",
+    "payables",
+    "payment",
+    "payments",
+    "receivable",
+    "receivables",
+)
+_FINANCE_ANSWER_TOPICS = frozenset({"finance_invoice_reconciliation", "invoice_status"})
 _NO_PACKET_ANSWER = (
     "I don't have that in the current Maestro packet. "
     "I can answer from the packet or ask Chief for a reviewed action plan, but I won't invent it."
@@ -747,6 +764,11 @@ _OVERVIEW_INTENT_MARKERS = (
 def _requests_overview(prompt: str) -> bool:
     lowered = str(prompt or "").lower()
     return any(marker in lowered for marker in _OVERVIEW_INTENT_MARKERS)
+
+
+def _is_finance_intent(prompt: str) -> bool:
+    lowered = str(prompt or "").lower()
+    return any(marker in lowered for marker in _FINANCE_INTENT_MARKERS)
 
 
 def _schedule_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
@@ -803,6 +825,22 @@ def _social_backstop(prompt: str) -> str:
     return _social_backstop_line()
 
 
+def _finance_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
+    matched: list[str] = []
+    seen: set[str] = set()
+    for fact in facts:
+        if str(fact.get("topic") or "").strip().lower() not in _FINANCE_ANSWER_TOPICS:
+            continue
+        sentence = _format_answer_fact(fact)
+        key = sentence.lower()
+        if sentence and key not in seen:
+            matched.append(sentence)
+            seen.add(key)
+        if len(matched) >= 3:
+            break
+    return " ".join(matched[:3]) if matched else None
+
+
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
     # Pure-social message with no factual/schedule intent: never deflect with "won't invent
     # it" — there's no fact at stake. The conversational lane has the MODEL write these; this
@@ -815,6 +853,9 @@ def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | s
     if _is_schedule_intent(prompt):
         scheduled = _schedule_grounded_answer(facts)
         return scheduled if scheduled is not None else _NO_PACKET_ANSWER
+    if _is_finance_intent(prompt):
+        finance = _finance_grounded_answer(facts)
+        return finance if finance is not None else _NO_PACKET_ANSWER
 
     terms = _question_terms(prompt)
     allow_system_posture = _requests_system_posture(prompt)
