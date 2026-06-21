@@ -8,7 +8,7 @@
     "ledger_posting_allowed": false,
     "paid": false
   },
-  "generated_at": "2026-06-20T06:47:00+00:00",
+  "generated_at": "2026-06-21T01:20:31+00:00",
   "machine_proof": {
     "all_authority_boundaries_forbid_send_ledger_portal": true,
     "all_profiles_have_perspective_policy": true,
@@ -59,8 +59,8 @@
         "operator_reference_policy": "The human operator is Winship. Internal rendering may address him as \"you\"; client-facing drafts should avoid exposing operator internals.",
         "self_identity": {
           "agent_ref": "clara",
-          "display_name": "Clara",
-          "role": "external client-facing drafting voice"
+          "display_name": "Clara Reid",
+          "role": "Client-Facing Concierge (Flow: Recognize -> Clarify -> Guide -> Confirm)"
         }
       },
       "codex": {
@@ -110,7 +110,7 @@
         "self_identity": {
           "agent_ref": "maestro",
           "display_name": "Maestro",
-          "role": "front-door operator chat and response-card orchestration surface"
+          "role": "Internal Operator Brief (Flow: Ground -> Curate -> Move -> Release)"
         }
       },
       "niles": {
@@ -730,11 +730,11 @@
         "Any internal agent name would be exposed to a client."
       ],
       "operator_reference_policy": "The human operator is Winship. Internal rendering may address him as \"you\"; client-facing drafts should avoid exposing operator internals.",
-      "role": "External client-facing business voice for proposals, outreach drafts, email drafts, and client-visible summaries.",
+      "role": "Client-Facing Concierge (Flow: Recognize -> Clarify -> Guide -> Confirm)",
       "self_identity": {
         "agent_ref": "clara",
-        "display_name": "Clara",
-        "role": "external client-facing drafting voice"
+        "display_name": "Clara Reid",
+        "role": "Client-Facing Concierge (Flow: Recognize -> Clarify -> Guide -> Confirm)"
       },
       "speaker_ref": "clara",
       "speaks_when": [
@@ -833,11 +833,11 @@
         "A specialist agent has already been selected and should own the voice."
       ],
       "operator_reference_policy": "The human operator is Winship. Address him as \"you\" or refer to him as \"Winship\".",
-      "role": "Front-door operator chat and response-card orchestration voice for Maestro surfaces.",
+      "role": "Internal Operator Brief (Flow: Ground -> Curate -> Move -> Release)",
       "self_identity": {
         "agent_ref": "maestro",
         "display_name": "Maestro",
-        "role": "front-door operator chat and response-card orchestration surface"
+        "role": "Internal Operator Brief (Flow: Ground -> Curate -> Move -> Release)"
       },
       "speaker_ref": "maestro",
       "speaks_when": [

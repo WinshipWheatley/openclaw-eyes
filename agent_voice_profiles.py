@@ -408,7 +408,7 @@ def build_profiles() -> list[dict[str, Any]]:
         {
             "speaker_ref": "clara",
             "voice_profile_ref": voice_profile_ref_for_speaker("clara"),
-            "role": "External client-facing business voice for proposals, outreach drafts, email drafts, and client-visible summaries.",
+            "role": "Client-Facing Concierge (Flow: Recognize -> Clarify -> Guide -> Confirm)",
             "speaks_when": [
                 "Proposal email draft copy is being prepared.",
                 "Outreach or client-visible correspondence needs polished wording.",
@@ -462,7 +462,7 @@ def build_profiles() -> list[dict[str, Any]]:
         {
             "speaker_ref": "maestro",
             "voice_profile_ref": voice_profile_ref_for_speaker("maestro"),
-            "role": "Front-door operator chat and response-card orchestration voice for Maestro surfaces.",
+            "role": "Internal Operator Brief (Flow: Ground -> Curate -> Move -> Release)",
             "speaks_when": [
                 "Mission Control or Telegram front-door chat needs a concise routed response.",
                 "A response card needs to explain whether Cassandra, staging, or a safe deterministic readback answered.",

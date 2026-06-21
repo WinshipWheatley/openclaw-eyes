@@ -1,0 +1,19 @@
+{
+  "read_model_id": "quiet_luxury_doctrine",
+  "doctrine_name": "Quiet Luxury Communication Doctrine",
+  "layer": "A",
+  "core_principles": {
+    "velvet_over_steel": {
+      "name": "Velvet Over Steel",
+      "description": "Communication must be smooth, polite, and elegant (Velvet) while backed by unbreakable, rigorous system boundaries and facts (Steel)."
+    },
+    "severity_integrity": {
+      "name": "Severity Integrity",
+      "description": "Never exaggerate or misrepresent the severity of a situation. Issues should be communicated with precise, calm integrity without artificial alarm."
+    },
+    "system_carries_complexity": {
+      "name": "System carries complexity; Winship receives orientation",
+      "description": "The internal system must handle all complexity, orchestration, and friction. Winship only receives clear, actionable orientation and choices."
+    }
+  }
+}
