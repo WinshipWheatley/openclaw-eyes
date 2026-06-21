@@ -8,14 +8,15 @@ import maestro_voice
 
 def test_all_agent_kokoro_voice_assignments_are_distinct_and_non_piper():
     assert agent_kokoro_voice.AGENT_KOKORO_VOICES == {
-        "maestro": "am_michael",
-        "cassandra": "af_heart",
-        "chief": "bm_george",
-        "guardian": "am_onyx",
-        "niles": "am_puck",
-        "hermes": "am_echo",
+        "maestro": "am_michael",   # keep — conductor / front-door orchestrator
+        "cassandra": "af_heart",   # keep — female executive assistant (operator-confirmed)
+        "chief": "am_onyx",        # operational foreman
+        "guardian": "am_echo",     # quiet authoritative gatekeeper
+        "hermes": "am_eric",       # systems architect / advisor
+        "niles": "am_fenrir",      # creative studio operator
+        "fin": "af_aoife",         # Fin — distinct female voice
     }
-    assert len(set(agent_kokoro_voice.AGENT_KOKORO_VOICES.values())) == 6
+    assert len(set(agent_kokoro_voice.AGENT_KOKORO_VOICES.values())) == 7
     assert all("piper" not in voice for voice in agent_kokoro_voice.AGENT_KOKORO_VOICES.values())
 
 
@@ -45,7 +46,7 @@ def test_shared_kokoro_synth_uses_each_agent_voice_and_24khz(monkeypatch, tmp_pa
     assert [call["voice"] for call in calls] == list(agent_kokoro_voice.AGENT_KOKORO_VOICES.values())
     assert all(call["text"] == "hello there" for call in calls)
     assert all(call["speed"] == 1.05 for call in calls)
-    assert [write["sample_rate"] for write in writes] == [24000] * 6
+    assert [write["sample_rate"] for write in writes] == [24000] * 7
 
 
 def test_cassandra_defaults_to_kokoro_af_heart(monkeypatch):

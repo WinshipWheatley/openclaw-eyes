@@ -16,12 +16,13 @@ KOKORO_SAMPLE_RATE = 24000
 DEFAULT_KOKORO_LANG = "a"
 
 AGENT_KOKORO_VOICES = {
-    "maestro": "am_michael",
-    "cassandra": "af_heart",
-    "chief": "bm_george",
-    "guardian": "am_onyx",
-    "niles": "am_puck",
-    "hermes": "am_echo",
+    "maestro": "am_michael",   # keep — conductor / front-door orchestrator
+    "cassandra": "af_heart",   # keep — female executive assistant (operator-confirmed)
+    "chief": "am_onyx",        # operational foreman
+    "guardian": "am_echo",     # quiet authoritative gatekeeper
+    "hermes": "am_eric",       # systems architect / advisor
+    "niles": "am_fenrir",      # creative studio operator
+    "fin": "af_aoife",         # Fin — distinct female voice
 }
 
 _PIPELINES: dict[str, Any] = {}
