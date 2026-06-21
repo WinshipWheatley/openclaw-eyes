@@ -31,7 +31,7 @@ JSON_EXPORT_NAME = "agent_presence.json"
 OPERATOR_EXPORT_NAME = "agent_presence_OPERATOR.md"
 
 DESIRED_STATES = {"online", "offline_intentional", "maintenance", "hard_kill", "unknown_review"}
-ACTUAL_STATES = {"online", "offline", "degraded", "unknown", "metadata_available", "not_configured"}
+ACTUAL_STATES = {"online", "offline", "degraded", "unknown", "metadata_available", "not_configured", "self_reporting"}
 RECOVERY_STATUSES = {"not_needed", "available", "blocked", "attempted", "succeeded", "failed"}
 RECOVERY_CLEARANCE_STATUSES = {"requested", "approved", "rejected", "used", "expired"}
 RECOVERY_KINDS = {
@@ -303,6 +303,31 @@ DEFAULT_RECOVERY_ACTIONS: tuple[RecoveryActionSeed, ...] = (
         classification="safe_status_check",
         notes="Report Bridge is metadata/package intake in v0; no live daemon recovery is needed.",
     ),
+    RecoveryActionSeed(
+        recovery_action_id="maestro_self_reporting_status",
+        agent_id="maestro",
+        action_kind="status_only",
+        command_label="Maestro self-reporting presence (module existence check)",
+        command_argv=(),
+        working_directory=str(ROOT),
+        status_check_kind="self_reporting",
+        status_check_argv=None,
+        log_path=None,
+        heartbeat_path="maestro_cassandra_responder.py",
+        safe_to_attempt=True,
+        requires_operator_approval=False,
+        cooldown_seconds=0,
+        max_attempts_per_hour=0,
+        receipt_required=True,
+        discovered_from="maestro_cassandra_responder.py",
+        confidence="high",
+        classification="self_reporting",
+        notes=(
+            "Maestro is the inline LLM front-door responder. It has no systemd daemon. "
+            "Presence is asserted by the existence of its core module. "
+            "It is always online when answering."
+        ),
+    ),
 )
 
 
@@ -374,6 +399,29 @@ AGENT_CONFIGS: tuple[PresenceAgentConfig, ...] = (
         surfaces=(),
         metadata_available_paths=("report_bridge.py", "generated/read_models/report_bridge.json"),
         notes="Report Bridge is sanitized metadata/package intake, not a live daemon in v0.",
+    ),
+    PresenceAgentConfig(
+        agent_id="maestro",
+        display_name="Maestro",
+        lane_id="front_door_responder",
+        desired_state="online",
+        surfaces=(
+            RuntimeSurface(
+                "maestro_self_reporting_surface",
+                "self_reporting",
+                "maestro_cassandra_responder.py",
+                None,
+                None,
+                "self_reporting",
+                "none",
+                "Maestro is the inline LLM front-door responder; it has no systemd daemon or process to probe.",
+            ),
+        ),
+        notes=(
+            "Maestro is the active inline LLM responder. It is always online when it answers. "
+            "Presence is asserted by the existence of maestro_cassandra_responder.py. "
+            "It counts itself in the fleet roster; omitting it under-reports online agents by 1."
+        ),
     ),
 )
 
@@ -916,6 +964,32 @@ def _actual_state_for_agent(
     surface_states: list[dict[str, Any]],
     repo_root: str | Path,
 ) -> dict[str, Any]:
+    # Self-reporting agents (e.g. Maestro) assert presence by module existence, not daemon.
+    self_reporting_surfaces = [
+        item for item in surface_states if item.get("surface_kind") == "self_reporting"
+    ]
+    if self_reporting_surfaces:
+        found = any(item["surface_found"] for item in self_reporting_surfaces)
+        if found:
+            return {
+                "actual_state": "online",
+                "presence_source": "self_reporting",
+                "runtime_surface_found": True,
+                "runtime_surface_kind": "self_reporting",
+                "last_seen_at": utc_now(),
+                "reason": "Self-reporting agent: core module exists and this agent is always online when it answers.",
+                "blocker": None,
+            }
+        return {
+            "actual_state": "offline",
+            "presence_source": "self_reporting",
+            "runtime_surface_found": False,
+            "runtime_surface_kind": "self_reporting",
+            "last_seen_at": None,
+            "reason": "Self-reporting agent: core module not found at expected path.",
+            "blocker": "self_reporting module not found",
+        }
+
     runtime_surface_found = any(item["surface_found"] for item in surface_states)
     active_surfaces = [
         item
@@ -1140,6 +1214,10 @@ ON CONFLICT(run_id) DO NOTHING
                 policy_overrides=effective_policy_overrides,
             )
             expected_online = bool(desired_row["expected_online"])
+            # Self-reporting agents (e.g. Maestro) report online via module existence;
+            # their actual_state is "online" so no override is needed here.
+            # Only suppress expected_online for agents with metadata_available actual_state
+            # that are NOT self-reporting (self-reporting surfaces already yield "online").
             if actual["actual_state"] == "metadata_available":
                 expected_online = False
             receipt_id = _row_id("agentpresencereceipt", resolved_run_id, config.agent_id, policy["recovery_status"])

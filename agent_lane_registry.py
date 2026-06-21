@@ -340,6 +340,54 @@ DEFAULT_AGENT_LANE_SEEDS: tuple[AgentLaneSeed, ...] = (
         notes="Hermes owns adapter/protocol/bridge boundary advice only; it must not own business logic or promote truth.",
     ),
     AgentLaneSeed(
+        agent_id="maestro",
+        display_name="Maestro",
+        lane_id="front_door_responder",
+        lane_label="Front-Door Responder",
+        status="active_registry",
+        authority_level="advisory_only",
+        role_summary=(
+            "Answer operator questions, route intents to the right agent, and report "
+            "truthful system status. Maestro is the active inline responder; it is "
+            "always online when it answers and counts itself in the fleet roster."
+        ),
+        allowed_worlds=("operations", "communications", "finance", "build", "cross_world"),
+        allowed_input_kinds=(
+            "operator_intent",
+            "generated_read_model",
+            "context_packet",
+            "status_summary",
+        ),
+        blocked_input_kinds=(
+            "no_go_raw_content",
+            "credential_material",
+            "raw_private_body",
+            "arbitrary_command_string",
+        ),
+        allowed_output_kinds=(
+            "status_readback",
+            "routing_decision",
+            "agent_roster_summary",
+            "operator_answer",
+        ),
+        blocked_output_kinds=(
+            "direct_execution",
+            "approval_decision",
+            "truth_promotion",
+            "external_send",
+        ),
+        approval_required_for=("action_requests", "external_changes", "state_mutation"),
+        receipt_required_for=("routing_decision", "status_readback"),
+        source_kind_postures=_default_sources(primary_posture="request_only"),
+        aliases=("front_door", "responder"),
+        routing_hints=("who are the agents", "what can you do", "system status", "online count"),
+        notes=(
+            "Maestro is the self-reporting inline LLM responder. It has no systemd daemon; "
+            "its presence is asserted by the existence of its core module. It is always "
+            "online when answering and must count itself in the fleet roster."
+        ),
+    ),
+    AgentLaneSeed(
         agent_id="watch_desk",
         display_name="Watch Desk",
         lane_id="watch_desk_projection",
