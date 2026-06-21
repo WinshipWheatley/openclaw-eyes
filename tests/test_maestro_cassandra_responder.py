@@ -17,6 +17,7 @@ import cassandra_sender
 import first_class_operator_envelope as operator_authority
 import maestro_cassandra_responder as maestro
 import openclaw_request_processor as processor
+import operator_truth_store
 import operator_controller_event_router as router
 
 
@@ -479,6 +480,69 @@ def test_status_capability_missing_index_fails_closed_without_fake_claim(tmp_pat
     assert "cannot truthfully list capabilities" in result.plain_summary
     assert result.machine_proof["capability_index_used"] is False
     assert result.machine_proof["live_implemented_capability_count"] == 0
+
+
+def test_operator_truth_query_reads_store_without_llm_or_handle(monkeypatch, tmp_path):
+    store_path = tmp_path / "operator_truth_store.json"
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(store_path))
+    operator_truth_store.upsert_operator_truth(
+        "capital_hilton",
+        "Capital Hilton invoice was submitted and payment received for $2000.",
+        source_surface="test",
+        path=store_path,
+    )
+
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("cassandra_brain.handle must not run for operator truth query")
+
+    def forbidden_protected_generate(*_args, **_kwargs):
+        raise AssertionError("protected_generate must not run for operator truth query")
+
+    result = maestro.answer_frontdoor_chat(
+        "Did you store Capital Hilton as truth?",
+        handle_fn=forbidden_handle,
+        protected_generate_fn=forbidden_protected_generate,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "operator_truth_query"
+    assert result.allowed_to_call_handle is False
+    assert "Capital Hilton invoice was submitted" in result.plain_summary
+    assert result.machine_proof["operator_truth_query_performed"] is True
+    assert result.machine_proof["operator_truth_store_read"] is True
+    assert result.machine_proof["operator_truth_record_found"] is True
+    assert result.machine_proof["operator_truth_entity_key"] == "capital_hilton"
+    assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["protected_generate_called"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
+
+
+def test_operator_truth_query_no_match_still_short_circuits_models(monkeypatch, tmp_path):
+    store_path = tmp_path / "operator_truth_store.json"
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(store_path))
+
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("cassandra_brain.handle must not run for operator truth query")
+
+    def forbidden_protected_generate(*_args, **_kwargs):
+        raise AssertionError("protected_generate must not run for operator truth query")
+
+    result = maestro.answer_frontdoor_chat(
+        "Did you store Live Arts MD as truth?",
+        handle_fn=forbidden_handle,
+        protected_generate_fn=forbidden_protected_generate,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "operator_truth_query"
+    assert result.allowed_to_call_handle is False
+    assert "do not have a matching operator-truth record" in result.plain_summary
+    assert result.machine_proof["operator_truth_record_found"] is False
+    assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["protected_generate_called"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
 
 
 def test_send_reply_intent_never_reaches_handle_or_send_spies(monkeypatch):
