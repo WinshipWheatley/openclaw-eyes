@@ -25,8 +25,8 @@ Environment variables
   CASSANDRA_PREMIUM_BACKEND       optional premium backend, disabled by default
   CASSANDRA_VOICE_MODEL           Piper .onnx path
                                   default: /home/openclaw/piper_voices/en_GB-jenny_dioco-medium.onnx
-  CASSANDRA_VOICE_LENGTH_SCALE    Piper: default 1.15
-  CASSANDRA_VOICE_NOISE_SCALE     Piper: default 0.6
+  CASSANDRA_VOICE_LENGTH_SCALE    Piper: default 1.12
+  CASSANDRA_VOICE_NOISE_SCALE     Piper: default 0.55
   CASSANDRA_VOICE_NOISE_W         Piper: default 0.8
   CASSANDRA_KOKORO_VOICE          default: af_heart
   CASSANDRA_KOKORO_SPEED          default: 0.9
@@ -76,8 +76,8 @@ VOICE_MODEL    = os.environ.get(
     "CASSANDRA_VOICE_MODEL",
     "/home/openclaw/piper_voices/en_GB-jenny_dioco-medium.onnx",
 )
-LENGTH_SCALE   = float(os.environ.get("CASSANDRA_VOICE_LENGTH_SCALE", "1.15"))
-NOISE_SCALE    = float(os.environ.get("CASSANDRA_VOICE_NOISE_SCALE",  "0.6"))
+LENGTH_SCALE   = float(os.environ.get("CASSANDRA_VOICE_LENGTH_SCALE", "1.12"))
+NOISE_SCALE    = float(os.environ.get("CASSANDRA_VOICE_NOISE_SCALE",  "0.55"))
 NOISE_W        = float(os.environ.get("CASSANDRA_VOICE_NOISE_W",      "0.8"))
 
 MAX_CHARS_LIVE  = 400
