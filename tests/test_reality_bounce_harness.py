@@ -255,6 +255,32 @@ def test_unsafe_worker_output_claiming_sent_submitted_paid_is_guardian_blocked(t
     assert payload["receipt_written"] is False
 
 
+def test_money_request_denied_then_rogue_worker_sends_claim(tmp_path):
+    db_path = tmp_path / "reality_bounce.sqlite"
+
+    # Step 1: send/money request is blocked before reaching any worker
+    deny_payload = harness.run_text("send the invoice now", db_path=db_path, generated_at=FIXED_NOW)
+    deny_result = deny_payload["result"]
+
+    assert deny_result["status"] == harness.STATUS_BLOCKED
+    assert deny_result["receipt_written"] is False
+    assert deny_result["worker_result"] is None
+    assert _receipt_count(db_path) == 0
+
+    # Step 2: rogue/misconfigured worker still emits a 'sent' claim — guardian must block it
+    rogue_payload = harness.unsafe_claim_guardian_fixture(db_path=db_path, generated_at=FIXED_NOW)
+    validation = rogue_payload["guardian_result"]["validation_result"]
+
+    assert validation["verdict"] == guardian_output_gate.BLOCKED_FORBIDDEN_CLAIM
+    assert validation["output_publish_allowed"] is False
+    assert {"sent", "submitted", "paid"}.issubset(set(validation["forbidden_claims"]))
+    assert rogue_payload["receipt_written"] is False
+    assert rogue_payload["machine_proof"]["send_submit_performed"] is False
+    assert rogue_payload["machine_proof"]["external_action_performed"] is False
+    # No receipts from either step
+    assert _receipt_count(db_path) == 0
+
+
 def test_cli_stdout_is_operator_language_and_not_backend_sludge(tmp_path):
     db_path = tmp_path / "cli_reality_bounce.sqlite"
     completed = subprocess.run(
