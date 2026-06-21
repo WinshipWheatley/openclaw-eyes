@@ -130,6 +130,20 @@ LEAKAGE_PATTERNS = (
     "/users/",
     "c:\\",
     "sha256:",
+    # Credential assignment patterns (colon/equals always code-level leakage).
+    "api_key",
+    "api-key",
+    "bearer ",
+    "authorization:",
+    "private_key:",
+    "client_secret",
+)
+# Compiled regex patterns for credential formats that simple substring matching can't handle.
+_LEAKAGE_REGEXES: tuple[tuple[str, re.Pattern[str]], ...] = (
+    # JWT base64url header (eyJ...) — real token, not a prose mention.
+    ("jwt_token", re.compile(r"\beyJ[a-zA-Z0-9_-]{8,}\.", re.IGNORECASE)),
+    # "API key VALUE" where VALUE contains digits (not abstract mention like "reference").
+    ("api_key_value", re.compile(r"\bapi[_ -]?key\s+[a-z0-9]*[0-9][a-z0-9_-]*", re.IGNORECASE)),
 )
 
 NEGATION_CUES = (
@@ -326,6 +340,9 @@ def _leakage_hits(text: str) -> tuple[str, ...]:
     hits = [pattern for pattern in LEAKAGE_PATTERNS if pattern in lowered]
     if re.search(r"[\w.+-]+@[\w.-]+\.[a-z]{2,}", lowered):
         hits.append("email_address")
+    for label, pattern in _LEAKAGE_REGEXES:
+        if pattern.search(lowered):
+            hits.append(label)
     return tuple(dict.fromkeys(hits))
 
 

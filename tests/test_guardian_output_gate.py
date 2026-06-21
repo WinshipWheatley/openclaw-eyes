@@ -214,6 +214,66 @@ def test_abstract_credential_ref_wording_is_not_treated_as_secret_leakage():
     assert safe_result["validation_result"]["verdict"] == gate.VALIDATED
 
 
+def test_bearer_jwt_token_in_output_is_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            response_author="CHIEF",
+            eliwinship="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.sig",
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_LEAKAGE
+    hits = result["validation_result"]["leakage_hits"]
+    assert "bearer " in hits or "jwt_token" in hits
+
+
+def test_api_key_with_value_in_output_is_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            response_author="CHIEF",
+            eliwinship="API key abc123xyz is the active credential.",
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_LEAKAGE
+    hits = result["validation_result"]["leakage_hits"]
+    assert "api_key" in hits or "api_key_value" in hits
+
+
+def test_client_secret_assignment_is_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            response_author="CHIEF",
+            eliwinship="client_secret={secret} was included in the config.",
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_LEAKAGE
+    assert "client_secret" in result["validation_result"]["leakage_hits"]
+
+
+def test_abstract_api_key_reference_is_not_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            response_author="CHIEF",
+            eliwinship="The API key reference in our docs explains the format.",
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.VALIDATED
+
+
+def test_jwt_prose_mention_is_not_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            response_author="CHIEF",
+            eliwinship="JWT is used for authentication across the system.",
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.VALIDATED
+
+
 def test_exported_readmodel_parses(tmp_path):
     payload = gate.build_payload(generated_at="2026-05-26T00:00:00+00:00")
     json_path, operator_path = gate.write_exports(payload, tmp_path)
