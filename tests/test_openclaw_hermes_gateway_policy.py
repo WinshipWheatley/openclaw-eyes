@@ -62,6 +62,19 @@ def test_non_agent_route_target_is_not_treated_as_agent_route() -> None:
     assert "no route receipt was written" in lowered
 
 
+def test_route_target_rejects_non_agent_stopword() -> None:
+    # 'accounting' is not in DEFAULT_AGENT_LANE_SEEDS — must return empty to prevent money denial bypass
+    result = policy._route_target("forward to accounting and pay the vendor")
+
+    assert result == ""
+
+
+def test_route_target_accepts_canonical_cassandra() -> None:
+    result = policy._route_target("route to cassandra")
+
+    assert result == "cassandra"
+
+
 def test_sanitizer_removes_runtime_leaks() -> None:
     sanitized = policy.sanitize_gateway_response(
         "Non-canonical advisory output: Interrupting current task (iteration 7/90)\n"
