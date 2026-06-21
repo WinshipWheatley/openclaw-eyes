@@ -278,6 +278,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("date_awareness", True, "")
     if _is_status_capability_intent(normalized):
         return ("status_capability_readback", True, "")
+    if _is_people_intent(normalized):
+        return ("people_reference_query", True, "")
     if _is_system_knowledge_intent(normalized):
         return ("system_knowledge", True, "")
     return ("maestro_brain_freeform", True, "")
@@ -359,6 +361,15 @@ def answer_frontdoor_chat(
             mac_render_hint=MAC_RENDER_HINT,
             session_forwarded=forwarded_session,
             machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
+        )
+
+    if intent_class == "people_reference_query":
+        return _answer_people_query(
+            text,
+            session=session,
+            source_surface=source_surface,
+            forwarded_session=forwarded_session,
+            protected_generate_fn=protected_generate_fn,
         )
 
     if intent_class == "hermes_truthful_advisory":
@@ -462,6 +473,72 @@ def _adapter_machine_proof(*, handle_called: bool) -> dict[str, Any]:
         "used_ad_hoc_memory_as_authority": False,
         "text_response_only": True,
     }
+
+
+def _answer_people_query(
+    text: str,
+    *,
+    session: Mapping[str, Any] | None,
+    source_surface: str,
+    forwarded_session: Mapping[str, Any],
+    protected_generate_fn: ProtectedGenerateFn | None,
+) -> MaestroCassandraResult:
+    from operator_truth_store import find_operator_truth_for_text
+
+    match = find_operator_truth_for_text(text)
+    if match is not None:
+        entity_key, record = match
+        label = str(record.get("label") or entity_key)
+        value = " ".join(str(record.get("value") or "").split()).strip()
+        answer = f"{label}: {value}" if value else f"I found {label}, but the truth record has no value."
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="people_reference_query",
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(answer),
+            plain_summary=answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "people_reference_query_performed": True,
+                "operator_truth_store_read": True,
+                "operator_truth_record_found": True,
+                "operator_truth_entity_key": entity_key,
+                "operator_truth_label": label,
+                "protected_generate_called": False,
+                "maestro_context_packet_used": False,
+                "external_llm_invoked": False,
+            },
+        )
+
+    fallback = _answer_with_maestro_brain(
+        text,
+        session=session,
+        source_surface=source_surface,
+        forwarded_session=forwarded_session,
+        protected_generate_fn=protected_generate_fn,
+    )
+    proof = {
+        **dict(fallback.machine_proof or {}),
+        "people_reference_query_performed": True,
+        "operator_truth_store_read": True,
+        "operator_truth_record_found": False,
+        "people_reference_fell_through_to_protected_generate": bool(
+            (fallback.machine_proof or {}).get("protected_generate_called")
+        ),
+    }
+    return MaestroCassandraResult(
+        status=fallback.status,
+        intent_class="people_reference_query",
+        allowed_to_call_handle=False,
+        one_line_answer=fallback.one_line_answer,
+        plain_summary=fallback.plain_summary,
+        mac_render_hint=fallback.mac_render_hint,
+        route_to_staging_reason=fallback.route_to_staging_reason,
+        session_forwarded=fallback.session_forwarded,
+        machine_proof=proof,
+    )
 
 
 def _answer_with_maestro_brain(
@@ -1138,6 +1215,19 @@ def _status_capability_readback_focus(text: str) -> str:
     ):
         return "capability"
     return "status"
+
+
+def _is_people_intent(text: str) -> bool:
+    return bool(
+        re.search(
+            r"\b("
+            r"who is|who's|"
+            r"contact for|point of contact|who should i contact|"
+            r"relationship|team member|person|people"
+            r")\b",
+            text,
+        )
+    )
 
 
 def _is_operator_truth_correction_intent(text: str) -> bool:
