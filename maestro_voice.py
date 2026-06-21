@@ -20,7 +20,7 @@ from agent_kokoro_voice import synth_kokoro_wav, voice_for_agent
 
 VOICE_ENABLED = os.environ.get("CASSANDRA_VOICE", "0") == "1"
 MAESTRO_VOICE_BACKEND = os.environ.get("MAESTRO_VOICE_BACKEND", "kokoro").lower()
-MAESTRO_KOKORO_VOICE = os.environ.get("MAESTRO_KOKORO_VOICE", voice_for_agent("maestro"))
+MAESTRO_KOKORO_VOICE = voice_for_agent("maestro")
 MAESTRO_KOKORO_SPEED = float(os.environ.get("MAESTRO_KOKORO_SPEED", "1.0"))
 MAESTRO_VOICE_MODEL = os.environ.get(
     "MAESTRO_VOICE_MODEL",

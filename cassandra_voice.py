@@ -68,7 +68,7 @@ PREMIUM_BACKEND = os.environ.get("CASSANDRA_PREMIUM_BACKEND", "").lower()
 ALLOW_WINDOWS_POWERSHELL_PLAYBACK = os.environ.get("CASSANDRA_ALLOW_WINDOWS_POWERSHELL_PLAYBACK", "0") == "1"
 _LOCAL_TTS_BACKENDS = {"piper", "kokoro"}
 
-_KOKORO_VOICE = os.environ.get("CASSANDRA_KOKORO_VOICE", voice_for_agent("cassandra"))
+_KOKORO_VOICE = voice_for_agent("cassandra")
 _KOKORO_SPEED = os.environ.get("CASSANDRA_KOKORO_SPEED", "0.9")
 
 # Piper-specific (used as fallback in both lanes)
