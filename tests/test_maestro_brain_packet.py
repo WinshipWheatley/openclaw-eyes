@@ -163,6 +163,30 @@ def test_maestro_context_packet_includes_calendar_events_for_day_questions(monke
     assert packet["bounds"]["money_movement_allowed"] is False
 
 
+def test_packet_trim_question_relevant(monkeypatch, tmp_path: Path) -> None:
+    store_path = _truth_store(monkeypatch, tmp_path)
+    read_model_root = _read_models(tmp_path)
+
+    from maestro_context_packet import SCHEMA_VERSION, build_maestro_context_packet
+
+    packet = build_maestro_context_packet(
+        question="what gigs do I have?",
+        read_model_root=read_model_root,
+        operator_truth_store_path=store_path,
+        require_real_truth=True,
+    )
+
+    scores = packet["machine_proof"]["fact_relevance_scores"]
+    assert packet["schema_version"] == SCHEMA_VERSION
+    assert packet["bounds"]["send_hold_absolute"] is True
+    assert packet["privacy"]["send_hold_active"] is True
+    assert packet["machine_proof"]["question_relevant_fact_trim_applied"] is True
+    assert packet["machine_proof"]["fact_count_before_question_trim"] > len(packet["facts"])
+    assert len(packet["facts"]) <= 8
+    assert all(scores[fact["fact_id"]] > 0 for fact in packet["facts"])
+    assert len(packet["packet_text"].encode("utf-8")) < 2000
+
+
 def test_stub_truth_root_is_rejected(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
     monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(tmp_path / "empty_truth.json"))

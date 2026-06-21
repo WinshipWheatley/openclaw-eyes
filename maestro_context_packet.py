@@ -28,6 +28,69 @@ KNOWN_READ_MODELS = (
     "cassandra_email_calendar_delta_detangle.json",
     "work_board.json",
 )
+QUESTION_RELEVANT_FACT_LIMIT = 8
+_WORD_RE = re.compile(r"[a-z0-9']+")
+_QUESTION_STOP_WORDS = frozenset(
+    {
+        "about",
+        "and",
+        "are",
+        "can",
+        "could",
+        "did",
+        "do",
+        "does",
+        "for",
+        "from",
+        "have",
+        "how",
+        "is",
+        "know",
+        "look",
+        "me",
+        "my",
+        "next",
+        "of",
+        "on",
+        "status",
+        "tell",
+        "that",
+        "the",
+        "this",
+        "to",
+        "today",
+        "what",
+        "what's",
+        "whats",
+        "when",
+        "where",
+        "which",
+        "with",
+        "you",
+    }
+)
+_SCHEDULE_QUERY_TERMS = frozenset(
+    {"agenda", "calendar", "day", "gig", "gigs", "load", "rehearsal", "schedule", "show"}
+)
+_FINANCE_QUERY_TERMS = frozenset(
+    {
+        "bill",
+        "bills",
+        "finance",
+        "invoice",
+        "invoices",
+        "ledger",
+        "money",
+        "owe",
+        "owed",
+        "paid",
+        "payable",
+        "payment",
+        "payments",
+        "receivable",
+        "receivables",
+    }
+)
 
 FINANCE_CONTEXT_TERMS = frozenset(
     {
@@ -86,6 +149,85 @@ def _compact(value: Any, *, limit: int = 900) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 3].rstrip() + "..."
+
+
+def _question_terms(question: str) -> set[str]:
+    return {
+        token
+        for token in _WORD_RE.findall(str(question or "").lower())
+        if len(token) > 2 and token not in _QUESTION_STOP_WORDS
+    }
+
+
+def _singular(term: str) -> str:
+    if len(term) > 3 and term.endswith("ies"):
+        return term[:-3] + "y"
+    if len(term) > 3 and term.endswith("s"):
+        return term[:-1]
+    return term
+
+
+def _fact_relevance_score(fact: Mapping[str, Any], terms: set[str]) -> int:
+    if not terms:
+        return 1
+    topic = str(fact.get("topic") or "").strip().lower()
+    label = str(fact.get("label") or "").lower()
+    value = str(fact.get("value") or "").lower()
+    source = str(fact.get("source_ref") or "").lower()
+    text = f"{topic} {label} {value} {source}"
+    score = 0
+    for term in terms:
+        variants = {term, _singular(term)}
+        score += sum(2 for variant in variants if variant and variant in text)
+        score += sum(1 for variant in variants if variant and variant in label)
+    if topic == "calendar_day" and terms & _SCHEDULE_QUERY_TERMS:
+        score += 4
+    if topic in {"finance_invoice_reconciliation", "invoice_status"} and terms & _FINANCE_QUERY_TERMS:
+        score += 4
+    if topic == "operator_truth" and terms & _FINANCE_QUERY_TERMS and any(
+        marker in value for marker in ("$", "invoice", "owe", "owed", "paid", "payment", "receivable")
+    ):
+        score += 3
+    return score
+
+
+def _select_question_relevant_facts(
+    facts: Sequence[dict[str, Any]],
+    question: str,
+    *,
+    limit: int = QUESTION_RELEVANT_FACT_LIMIT,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    terms = _question_terms(question)
+    before = len(facts)
+    if not terms or before <= limit:
+        score_map = {str(fact.get("fact_id") or ""): 1 for fact in facts}
+        return list(facts), {
+            "question_relevant_fact_trim_applied": False,
+            "question_relevant_terms": sorted(terms),
+            "fact_count_before_question_trim": before,
+            "fact_count_after_question_trim": before,
+            "fact_relevance_scores": score_map,
+        }
+
+    scored: list[tuple[int, int, dict[str, Any]]] = []
+    for index, fact in enumerate(facts):
+        score = _fact_relevance_score(fact, terms)
+        if score > 0:
+            scored.append((score, -index, fact))
+    scored.sort(reverse=True)
+    selected = [fact for _score, _index, fact in scored[:limit]]
+    if not selected:
+        selected = list(facts[:limit])
+        score_map = {str(fact.get("fact_id") or ""): 0 for fact in selected}
+    else:
+        score_map = {str(fact.get("fact_id") or ""): score for score, _index, fact in scored[:limit]}
+    return selected, {
+        "question_relevant_fact_trim_applied": len(selected) < before,
+        "question_relevant_terms": sorted(terms),
+        "fact_count_before_question_trim": before,
+        "fact_count_after_question_trim": len(selected),
+        "fact_relevance_scores": score_map,
+    }
 
 
 def _session_path(session: Mapping[str, Any] | None, *keys: str) -> str:
@@ -270,7 +412,7 @@ def _operator_truth_facts(
     return facts, bool(facts), str(path or "")
 
 
-def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
+def _read_model_facts(root: Path, *, question: str = "") -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
     proof: dict[str, Any] = {"read_model_presence": {}}
@@ -455,6 +597,14 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             freshness=_freshness(root / "work_board.json", work_board),
         )
 
+    facts, trim_proof = _select_question_relevant_facts(facts, question)
+    proof.update(
+        {
+            f"read_model_{key}": value
+            for key, value in trim_proof.items()
+            if key != "fact_relevance_scores"
+        }
+    )
     return facts, refs, proof
 
 
@@ -515,8 +665,9 @@ def build_maestro_context_packet(
     generated_at = _utc_now()
 
     truth_facts, operator_truth_used, truth_ref = _operator_truth_facts(path=truth_path, question=question)
-    read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root)
+    read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root, question=question)
     facts = [*truth_facts, *read_model_facts]
+    facts, fact_trim_proof = _select_question_relevant_facts(facts, question)
 
     if require_real_truth and (not operator_truth_used or len(read_model_refs) < 2):
         raise MaestroContextPacketError(
@@ -559,6 +710,7 @@ def build_maestro_context_packet(
             "read_model_count": len(read_model_refs),
             "fact_count": len(facts),
             "stub_truth_root_rejected_when_required": require_real_truth,
+            **fact_trim_proof,
             **read_model_proof,
         },
     }
