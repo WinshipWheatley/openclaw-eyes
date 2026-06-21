@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
@@ -87,6 +88,29 @@ def _human_label(value: object) -> str:
     return " ".join(label_words) or text
 
 
+def _quiet_luxury_render_requested(package: Mapping[str, Any]) -> bool:
+    if os.environ.get("OPENCLAW_QUIET_LUXURY_RENDER_ALL", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return True
+    rendering = package.get("rendering") if isinstance(package.get("rendering"), Mapping) else {}
+    return bool(package.get("quiet_luxury_render") or rendering.get("quiet_luxury"))
+
+
+def _maybe_render_quiet_luxury(text: str, *, package: Mapping[str, Any], target_agent: str) -> str:
+    if not _quiet_luxury_render_requested(package):
+        return text
+    from openclaw_lux_renderer import render_packet
+
+    return render_packet(
+        {
+            "text": text,
+            "client": _human_label(package.get("client_ref") or "current client"),
+            "workflow": _human_label(package.get("workflow_ref") or "current workflow"),
+        },
+        target_agent=target_agent,
+        allow_llm=False if os.environ.get("OPENCLAW_TEST_MODE") == "1" else None,
+    )
+
+
 def validate_cassandra_clara_package(package: Mapping[str, Any]) -> tuple[str, ...]:
     reasons: list[str] = []
     if str(package.get("role_family") or "").upper() != "CASSANDRA_CLARA":
@@ -143,8 +167,10 @@ def run_cassandra_clara_offline_worker(package: Mapping[str, Any]) -> dict[str, 
         headline = "Draft prepared"
         one_line_answer = "Clara prepared client-safe draft language only."
         status_summary = ""
-        draft_text = (
-            "Hi Capital Hilton team - we are preparing the invoice package and will share it after final review."
+        draft_text = _maybe_render_quiet_luxury(
+            "Hi Capital Hilton team - we are preparing the invoice package and will share it after final review.",
+            package=package,
+            target_agent="clara",
         )
         eliwinship = "Clara drafted client-safe wording only. Nothing was sent."
         next_action = "Next: review the draft before any email or delivery step."
@@ -152,7 +178,11 @@ def run_cassandra_clara_offline_worker(package: Mapping[str, Any]) -> dict[str, 
         response_kind = "status"
         headline = "Invoice status"
         one_line_answer = "Cassandra checked the bounded package and prepared an internal status readback."
-        status_summary = f"{client_label} in {workflow_label} is still in safe preparation. No send or final status happened."
+        status_summary = _maybe_render_quiet_luxury(
+            f"{client_label} in {workflow_label} is still in safe preparation. No send or final status happened.",
+            package=package,
+            target_agent="maestro",
+        )
         draft_text = ""
         eliwinship = "Cassandra prepared an internal status readback only. Nothing was sent."
         next_action = "Next: review the status and choose the next safe local step."

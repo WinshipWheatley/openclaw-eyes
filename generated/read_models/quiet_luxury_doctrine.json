@@ -1,0 +1,20 @@
+{
+  "read_model_id": "quiet_luxury_doctrine",
+  "schema_version": "quiet_luxury_doctrine_v0",
+  "doctrine_name": "Quiet Luxury Communication Doctrine",
+  "layer": "A",
+  "core_principles": {
+    "velvet_over_steel": {
+      "name": "Velvet Over Steel",
+      "description": "Communication must be smooth, polite, and elegant while backed by exact system boundaries and source facts."
+    },
+    "severity_integrity": {
+      "name": "Severity Integrity",
+      "description": "Never soften failed sends, missed deadlines, security risks, missing approvals, or unresolved truth gaps."
+    },
+    "system_carries_complexity": {
+      "name": "System carries complexity; Winship receives orientation",
+      "description": "Internal machinery absorbs orchestration and friction; the operator receives concise orientation and the next safe move."
+    }
+  }
+}

@@ -219,6 +219,14 @@ def _live_model_allowed(explicit: bool | None = None) -> bool:
     return os.environ.get("OPENCLAW_MAESTRO_BRAIN_LIVE", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 
+def _quiet_luxury_render_requested(context_packet: Mapping[str, Any] | str | None) -> bool:
+    if os.environ.get("OPENCLAW_QUIET_LUXURY_RENDER_ALL", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return True
+    packet = _packet_mapping(context_packet)
+    rendering = packet.get("rendering") if isinstance(packet.get("rendering"), Mapping) else {}
+    return bool(packet.get("quiet_luxury_render") or rendering.get("quiet_luxury"))
+
+
 def _float_env(name: str, default: float) -> float:
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
@@ -432,6 +440,22 @@ def protected_generate_with_receipt(
         raw_output = _fallback_grounded_answer(raw_prompt, context_packet)
 
     text = ledger.rehydrate(raw_output)
+    quiet_luxury_render_proof: dict[str, Any] = {
+        "quiet_luxury_renderer_available": True,
+        "quiet_luxury_render_applied": False,
+    }
+    if _quiet_luxury_render_requested(context_packet):
+        from openclaw_lux_renderer import render_packet_result
+
+        render_result = render_packet_result(
+            {"text": text, "packet": context_packet},
+            target_agent="maestro",
+            allow_llm=False if os.environ.get("OPENCLAW_TEST_MODE") == "1" else None,
+        )
+        text = render_result.text
+        quiet_luxury_render_proof.update(render_result.machine_proof())
+        quiet_luxury_render_proof["quiet_luxury_render_applied"] = True
+
     receipt.update(
         {
             "status": "ANSWER_READY",
@@ -450,6 +474,7 @@ def protected_generate_with_receipt(
             "local_model_attempts": local_attempts,
             "deterministic_fallback_used": not bool(local_invoked or external_invoked or generator_fn),
             "safe_prompt_hash": _sha256(system_prompt),
+            **quiet_luxury_render_proof,
         }
     )
     audit_ref = _write_audit(receipt, audit_log_path)

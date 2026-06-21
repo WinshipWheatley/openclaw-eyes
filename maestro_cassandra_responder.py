@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import json
+import os
 from pathlib import Path
 import re
 from typing import Any, Callable, Mapping, Sequence
@@ -130,6 +131,34 @@ def result_dict_for_receipt(result: MaestroCassandraResult) -> dict[str, Any]:
     payload = result.to_dict()
     payload["machine_proof"] = machine_proof_for_result(result)
     return payload
+
+
+def _quiet_luxury_render_enabled(session: Mapping[str, Any] | None = None) -> bool:
+    if os.environ.get("OPENCLAW_QUIET_LUXURY_RENDER_ALL", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return True
+    raw = session or {}
+    rendering = raw.get("rendering") if isinstance(raw.get("rendering"), Mapping) else {}
+    return bool(raw.get("quiet_luxury_render") or rendering.get("quiet_luxury"))
+
+
+def _quiet_luxury_render_answer(answer: Mapping[str, Any], session: Mapping[str, Any] | None = None) -> tuple[str, str, dict[str, Any]]:
+    one_line = str(answer.get("one_line_answer") or "")
+    plain = str(answer.get("plain_summary") or one_line)
+    if not _quiet_luxury_render_enabled(session):
+        return one_line, plain, {
+            "quiet_luxury_renderer_available": True,
+            "quiet_luxury_render_applied": False,
+        }
+    from openclaw_lux_renderer import render_packet_result
+
+    render_result = render_packet_result(
+        {"text": plain, "source_one_line_answer": one_line},
+        target_agent="maestro",
+        allow_llm=False if os.environ.get("OPENCLAW_TEST_MODE") == "1" else None,
+    )
+    proof = render_result.machine_proof()
+    proof["quiet_luxury_render_applied"] = True
+    return _one_line_answer(render_result.text), render_result.text, proof
 def _path_is_under(path: Path, root: Path) -> bool:
     try:
         path.relative_to(root)
@@ -334,28 +363,32 @@ def answer_frontdoor_chat(
             session=session,
             focus=_status_capability_readback_focus(_normalize(text)),
         )
+        rendered_one_line, rendered_plain, render_proof = _quiet_luxury_render_answer(answer, session)
+
         return MaestroCassandraResult(
             status="ANSWER_READY",
             intent_class=intent_class,
             allowed_to_call_handle=False,
-            one_line_answer=answer["one_line_answer"],
-            plain_summary=answer["plain_summary"],
+            one_line_answer=rendered_one_line,
+            plain_summary=rendered_plain,
             mac_render_hint=MAC_RENDER_HINT,
             session_forwarded=forwarded_session,
-            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
+            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"] | render_proof,
         )
 
     if intent_class == "hermes_truthful_advisory":
         answer = build_hermes_truthful_advisory_answer(text)
+        rendered_one_line, rendered_plain, render_proof = _quiet_luxury_render_answer(answer, session)
+
         return MaestroCassandraResult(
             status="ANSWER_READY",
             intent_class=intent_class,
             allowed_to_call_handle=False,
-            one_line_answer=answer["one_line_answer"],
-            plain_summary=answer["plain_summary"],
+            one_line_answer=rendered_one_line,
+            plain_summary=rendered_plain,
             mac_render_hint=MAC_RENDER_HINT,
             session_forwarded=forwarded_session,
-            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
+            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"] | render_proof,
         )
 
     if intent_class == "ledger_reference_clarification":

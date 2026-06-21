@@ -1,0 +1,53 @@
+{
+  "read_model_id": "quiet_luxury_terms",
+  "schema_version": "quiet_luxury_terms_v0",
+  "status": "READY",
+  "money_policy": {
+    "dual_label_template": "Project investment: {amount} / Total price: {amount}",
+    "rule": "Every client-facing or operator-facing money amount keeps both the investment framing and exact total price."
+  },
+  "terms": [
+    {
+      "machine_code": "BLOCKED_PENDING_APPROVAL",
+      "aliases": ["awaiting_approval", "approval_blocked"],
+      "maestro_layer": "Awaiting your approval before I move it",
+      "client_layer": "Pending final confirmation",
+      "severity_locked": false
+    },
+    {
+      "machine_code": "RATE_LIMIT_EXCEEDED",
+      "aliases": ["rate_limit", "quota_exceeded"],
+      "maestro_layer": "The provider is temporarily at capacity",
+      "client_layer": "Temporarily waiting on provider capacity",
+      "severity_locked": false
+    },
+    {
+      "machine_code": "SEND_HOLD",
+      "aliases": ["send_hold"],
+      "maestro_layer": "Prepared for your review before dispatch",
+      "client_layer": "Drafted and awaiting internal sign-off",
+      "severity_locked": false
+    },
+    {
+      "machine_code": "FAILED_SEND",
+      "aliases": ["send_failed", "delivery_failed"],
+      "maestro_layer": "FAILED_SEND: delivery did not complete",
+      "client_layer": "FAILED_SEND: delivery did not complete",
+      "severity_locked": true
+    },
+    {
+      "machine_code": "MISSED_DEADLINE",
+      "aliases": ["deadline_missed", "overdue_deadline"],
+      "maestro_layer": "MISSED_DEADLINE: deadline was missed",
+      "client_layer": "MISSED_DEADLINE: deadline was missed",
+      "severity_locked": true
+    },
+    {
+      "machine_code": "SECURITY_RISK",
+      "aliases": ["security_blocker", "security_issue"],
+      "maestro_layer": "SECURITY_RISK: protected boundary risk is active",
+      "client_layer": "SECURITY_RISK: protected boundary risk is active",
+      "severity_locked": true
+    }
+  ]
+}
