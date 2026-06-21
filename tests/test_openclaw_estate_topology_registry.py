@@ -180,6 +180,26 @@ def test_source_of_truth_map_includes_required_ownership_boundaries():
     )
     assert areas["mac_openclaw_eyes_context_repo"]["owner_classification"] == "EYES_CONTEXT_REPO"
     assert areas["bridge_mirror_transport"]["ownership_rule"] == "/mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth."
+    assert areas["codex_desktop_control_surface"]["owner_classification"] == "SPLIT_PC_MAC_CONTROL_SURFACE"
+    assert areas["codex_desktop_control_surface"]["primary_working_copy_id"] == "pc_openclaw_eyes_backend"
+    assert areas["codex_desktop_control_surface"]["secondary_working_copy_id"] == "mac_mission_control_app"
+    assert "Mac-only" in areas["codex_desktop_control_surface"]["ownership_rule"]
+    assert areas["niles_live_engineer_x32"]["owner_classification"] == "PC_RESIDENT_AGENT_WITH_MAC_SSH_CONTROL_PATH"
+    assert areas["niles_live_engineer_x32"]["primary_working_copy_id"] == "pc_openclaw_eyes_backend"
+    assert areas["niles_live_engineer_x32"]["secondary_working_copy_id"] == "mac_openclaw_runtime"
+    assert "SSH" in areas["niles_live_engineer_x32"]["ownership_rule"]
+    assert "specs/niles-music" in areas["niles_live_engineer_x32"]["notes"]
+
+
+def test_niles_x32_specs_are_promoted_to_permanent_specs_dir():
+    spec_root = Path("specs/niles-music")
+    architecture = spec_root / "NILES-X32-ARCHITECTURE-AND-STORAGE.md"
+    capability = spec_root / "NILES-X32-CONTROL-CAPABILITY.md"
+
+    assert architecture.exists()
+    assert capability.exists()
+    assert "Maillot" in capability.read_text(encoding="utf-8")
+    assert "resolve_headamp" in architecture.read_text(encoding="utf-8")
 
 
 def test_known_unknowns_and_recommended_actions_are_complete():
