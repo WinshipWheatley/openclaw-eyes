@@ -1,0 +1,61 @@
+{
+  "read_model_id": "recommendation_postures",
+  "schema_version": "recommendation_postures_v0",
+  "status": "READ_ONLY_DESIGN",
+  "source_ref": "/mnt/e/openclaw/orchestration/SYSTEM-TRUSTED-COUNSEL-DOCTRINE-SOURCE.md",
+  "controlled_states": [
+    {
+      "posture": "SUFFICIENT",
+      "meaning": "The current option is enough; do not add scope, cost, or complexity.",
+      "allowed_when": "The desired outcome is already met by the minimum sufficient option.",
+      "not_allowed_when": "A verified constraint or integrity test shows unresolved risk."
+    },
+    {
+      "posture": "SMALLER FIT",
+      "meaning": "Recommend a smaller or less expensive option.",
+      "allowed_when": "A smaller scope protects a currency without harming the desired outcome.",
+      "not_allowed_when": "The smaller option hides a known failure or material tradeoff."
+    },
+    {
+      "posture": "NOT YET",
+      "meaning": "Delay action until a missing condition becomes true.",
+      "allowed_when": "Timing, evidence, or readiness is the main blocker.",
+      "not_allowed_when": "Delay is being used to avoid a necessary warning."
+    },
+    {
+      "posture": "OPTIONAL ENHANCEMENT",
+      "meaning": "Offer an improvement as optional, not necessary.",
+      "allowed_when": "The upgrade is nice-to-have and the baseline remains valid.",
+      "not_allowed_when": "The language implies artificial urgency or fake scarcity."
+    },
+    {
+      "posture": "PREMIUM JUSTIFIED",
+      "meaning": "Recommend the premium option only when it earns its place.",
+      "allowed_when": "The upgrade-trigger and two-sided-quality tests both pass.",
+      "not_allowed_when": "The premium option mainly benefits OpenClaw or the seller."
+    },
+    {
+      "posture": "NO ACTION",
+      "meaning": "Recommend stopping or doing nothing.",
+      "allowed_when": "Action would spend protected currencies without improving the outcome.",
+      "not_allowed_when": "No action would conceal a safety, deadline, or delivery failure."
+    },
+    {
+      "posture": "WRONG FIT",
+      "meaning": "Recommend a different provider, tool, or path.",
+      "allowed_when": "The current offer cannot honestly satisfy the desired outcome.",
+      "not_allowed_when": "The mismatch is not grounded in verified constraints."
+    },
+    {
+      "posture": "NEEDS ONE FACT",
+      "meaning": "Ask for the single missing fact needed to advise cleanly.",
+      "allowed_when": "One fact decides between otherwise honest paths.",
+      "not_allowed_when": "Multiple unknowns remain or the question is not decision-critical."
+    }
+  ],
+  "authority_boundary": {
+    "read_only_design": true,
+    "active_prompt_mutation": false,
+    "autonomous_client_recommendation_allowed": false
+  }
+}

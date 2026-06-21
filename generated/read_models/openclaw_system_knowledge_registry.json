@@ -1,4 +1,46 @@
 {
+  "advice_integrity_receipt_schema": {
+    "authority_boundary": {
+      "autonomous_decline_or_task_drop": false,
+      "client_send_allowed": false,
+      "live_prompt_mutation": false,
+      "read_only_design": true
+    },
+    "integrity_tests": [
+      "Equal-Compensation Test",
+      "No-Audience Test",
+      "Client-Paraphrase Test",
+      "Upgrade-Trigger Test",
+      "Two-Sided Quality Test",
+      "Autonomy Test",
+      "Specificity Test"
+    ],
+    "required_fields": [
+      "desired_outcome",
+      "verified_constraints",
+      "protected_currencies_considered",
+      "minimum_sufficient_option",
+      "recommended_posture",
+      "premium_justification",
+      "restraint_rationale",
+      "integrity_tests_applied",
+      "client_agency_preserved",
+      "commercial_interest_alignment",
+      "trust_gear_state",
+      "agent_contributions",
+      "evidence_refs"
+    ],
+    "schema_id": "Advice_Integrity_Receipt",
+    "schema_version": "advice_integrity_receipt_v0",
+    "source_ref": "/mnt/e/openclaw/orchestration/SYSTEM-TRUSTED-COUNSEL-DOCTRINE-SOURCE.md",
+    "status": "READ_ONLY_DESIGN",
+    "storage_metadata_fields": [
+      "receipt_id",
+      "generated_at",
+      "status"
+    ]
+  },
+  "advice_integrity_receipts": [],
   "agent_roles": [
     {
       "agent_name": "Cassandra",
@@ -1289,7 +1331,8 @@
     "agent_role",
     "artifact_policy",
     "authority_boundary",
-    "safety_posture"
+    "safety_posture",
+    "advice_integrity_receipt"
   ],
   "required_tables": [
     "system_component",
@@ -1303,7 +1346,8 @@
     "agent_role",
     "artifact_policy",
     "authority_boundary",
-    "safety_posture"
+    "safety_posture",
+    "advice_integrity_receipt"
   ],
   "safety_assertions": {
     "no_external_calls": true,
@@ -1316,7 +1360,6 @@
     "checked_path_count": 52,
     "missing_checked_paths": [
       "generated/read_models/operator_active_contexts.json",
-      "generated/read_models/operator_intake_events.json",
       "generated/read_models/reference_data_hydration_status.json",
       "generated/read_models/watch_desk_feed.json",
       "operator_intake_events.py",
@@ -1340,7 +1383,8 @@
       "agent_role",
       "artifact_policy",
       "authority_boundary",
-      "safety_posture"
+      "safety_posture",
+      "advice_integrity_receipt"
     ],
     "sqlite_table_prefix_rule": "Registry schema must not explicitly define sqlite_* tables."
   },

@@ -124,3 +124,23 @@ CREATE TABLE IF NOT EXISTS safety_posture (
   next_safe_action TEXT NOT NULL,
   PRIMARY KEY (posture_id)
 );
+
+CREATE TABLE IF NOT EXISTS advice_integrity_receipt (
+  receipt_id TEXT NOT NULL,
+  desired_outcome TEXT NOT NULL,
+  verified_constraints TEXT NOT NULL,
+  protected_currencies_considered TEXT NOT NULL,
+  minimum_sufficient_option TEXT NOT NULL,
+  recommended_posture TEXT NOT NULL,
+  premium_justification TEXT NOT NULL,
+  restraint_rationale TEXT NOT NULL,
+  integrity_tests_applied TEXT NOT NULL,
+  client_agency_preserved TEXT NOT NULL,
+  commercial_interest_alignment TEXT NOT NULL,
+  trust_gear_state TEXT NOT NULL,
+  agent_contributions TEXT NOT NULL,
+  evidence_refs TEXT NOT NULL,
+  generated_at TEXT NOT NULL,
+  status TEXT NOT NULL,
+  PRIMARY KEY (receipt_id)
+);

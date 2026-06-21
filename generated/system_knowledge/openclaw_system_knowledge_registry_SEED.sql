@@ -129,3 +129,5 @@ INSERT INTO authority_boundary (boundary_id, boundary_name, allowed, blocked, ev
 DELETE FROM safety_posture;
 INSERT INTO safety_posture (posture_id, posture_name, state, evidence_basis, operator_summary, next_safe_action) VALUES ('posture_no_external_calls', 'No external calls', 'enforced_by_design', 'standard-library local file/sqlite exporter only', 'Registry exporter writes local artifacts only.', 'Keep network/push on Mac apply task, not PC export task.');
 INSERT INTO safety_posture (posture_id, posture_name, state, evidence_basis, operator_summary, next_safe_action) VALUES ('posture_no_live_grants', 'No live action grants', 'closed', 'authority boundary false flags and tests', 'Registry output cannot authorize model, tool, runtime, finance, or business action.', 'Use separate Guardian/operator approval lanes for protected actions.');
+
+DELETE FROM advice_integrity_receipt;

@@ -45,6 +45,7 @@ REQUIRED_TABLES = (
     "artifact_policy",
     "authority_boundary",
     "safety_posture",
+    "advice_integrity_receipt",
 )
 
 TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
@@ -146,6 +147,24 @@ TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "evidence_basis",
         "operator_summary",
         "next_safe_action",
+    ),
+    "advice_integrity_receipt": (
+        "receipt_id",
+        "desired_outcome",
+        "verified_constraints",
+        "protected_currencies_considered",
+        "minimum_sufficient_option",
+        "recommended_posture",
+        "premium_justification",
+        "restraint_rationale",
+        "integrity_tests_applied",
+        "client_agency_preserved",
+        "commercial_interest_alignment",
+        "trust_gear_state",
+        "agent_contributions",
+        "evidence_refs",
+        "generated_at",
+        "status",
     ),
 }
 
@@ -1015,6 +1034,48 @@ AUTHORITY_ROWS: tuple[dict[str, str], ...] = (
     for key, value in AUTHORITY_BOUNDARY.items()
 )
 
+ADVICE_INTEGRITY_RECEIPT_REQUIRED_FIELDS: tuple[str, ...] = (
+    "desired_outcome",
+    "verified_constraints",
+    "protected_currencies_considered",
+    "minimum_sufficient_option",
+    "recommended_posture",
+    "premium_justification",
+    "restraint_rationale",
+    "integrity_tests_applied",
+    "client_agency_preserved",
+    "commercial_interest_alignment",
+    "trust_gear_state",
+    "agent_contributions",
+    "evidence_refs",
+)
+
+ADVICE_INTEGRITY_RECEIPT_SCHEMA: dict[str, Any] = {
+    "schema_id": "Advice_Integrity_Receipt",
+    "schema_version": "advice_integrity_receipt_v0",
+    "status": "READ_ONLY_DESIGN",
+    "source_ref": "/mnt/e/openclaw/orchestration/SYSTEM-TRUSTED-COUNSEL-DOCTRINE-SOURCE.md",
+    "required_fields": list(ADVICE_INTEGRITY_RECEIPT_REQUIRED_FIELDS),
+    "storage_metadata_fields": ["receipt_id", "generated_at", "status"],
+    "integrity_tests": [
+        "Equal-Compensation Test",
+        "No-Audience Test",
+        "Client-Paraphrase Test",
+        "Upgrade-Trigger Test",
+        "Two-Sided Quality Test",
+        "Autonomy Test",
+        "Specificity Test",
+    ],
+    "authority_boundary": {
+        "read_only_design": True,
+        "live_prompt_mutation": False,
+        "autonomous_decline_or_task_drop": False,
+        "client_send_allowed": False,
+    },
+}
+
+ADVICE_INTEGRITY_RECEIPTS: tuple[dict[str, Any], ...] = ()
+
 SAFETY_POSTURE: tuple[dict[str, str], ...] = (
     {
         "posture_id": "posture_no_external_calls",
@@ -1201,6 +1262,8 @@ def build_registry(repo_root: Path | str | None = None, generated_at: str = DEFA
         "agent_roles": list(AGENT_ROLES),
         "artifact_policies": list(ARTIFACT_POLICIES),
         "authority_boundaries": list(AUTHORITY_ROWS),
+        "advice_integrity_receipt_schema": ADVICE_INTEGRITY_RECEIPT_SCHEMA,
+        "advice_integrity_receipts": list(ADVICE_INTEGRITY_RECEIPTS),
         "coverage_assessment": coverage,
         "source_audit": _source_audit(root),
         "generated_outputs": {name: str(path.relative_to(root)) for name, path in output_paths.items()},
@@ -1648,6 +1711,7 @@ def sqlite_rows(payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         "artifact_policy": list(payload["artifact_policies"]),
         "authority_boundary": list(payload["authority_boundaries"]),
         "safety_posture": list(payload["current_safety_posture"]),
+        "advice_integrity_receipt": list(payload["advice_integrity_receipts"]),
     }
 
 

@@ -1,0 +1,77 @@
+{
+  "read_model_id": "authority_trust_gear",
+  "schema_version": "authority_trust_gear_v0",
+  "status": "READ_ONLY_DESIGN",
+  "source_refs": [
+    "/mnt/e/openclaw/orchestration/SYSTEM-TRUSTED-COUNSEL-DOCTRINE-SOURCE.md",
+    "/mnt/e/openclaw/orchestration/loop/to-pc/038-BUILD-authority-trust-gear.md"
+  ],
+  "default_level": "LEVEL_1_RECOMMEND_ONLY",
+  "high_risk_actions": [
+    {
+      "action_id": "DECLINE_CLIENT_WORK",
+      "owning_agent": "clara",
+      "risk_reason": "Declining client work can affect reputation, relationship capital, money, and future opportunity.",
+      "levels": [
+        {
+          "level": "LEVEL_1_RECOMMEND_ONLY",
+          "authority": "May formulate a recommendation only; operator approval is required before any client-facing decline.",
+          "unlock_condition": "Default starting state for every domain.",
+          "allowed_without_operator": false
+        },
+        {
+          "level": "LEVEL_2_CONDITIONAL_AUTONOMY",
+          "authority": "May decline only if the case exactly matches an approved low-risk precedent and the Advice_Integrity_Receipt passes all required fields.",
+          "unlock_condition": "Requires 5 approved Level 1 decline recommendations in the same domain, no operator reversals, and matching verified constraints.",
+          "allowed_without_operator": false
+        },
+        {
+          "level": "LEVEL_3_FULL_AUTONOMY",
+          "authority": "May decline within a mature, bounded domain with logged evidence and after Guardian confirms no manipulative or evasive framing.",
+          "unlock_condition": "Requires 10 successful Level 2 executions in the same domain, no operator override, and explicit Master promotion.",
+          "allowed_without_operator": false
+        }
+      ]
+    },
+    {
+      "action_id": "PARK_OPERATOR_TASK",
+      "owning_agent": "maestro",
+      "risk_reason": "Parking operator work can hide obligations or deadlines if trust is granted too early.",
+      "levels": [
+        {
+          "level": "LEVEL_1_RECOMMEND_ONLY",
+          "authority": "May recommend parking or dropping a task; operator or Master confirmation is required.",
+          "unlock_condition": "Default starting state for every task family.",
+          "allowed_without_operator": false
+        },
+        {
+          "level": "LEVEL_2_CONDITIONAL_AUTONOMY",
+          "authority": "May park only low-risk tasks that match approved precedent and have no deadline, send, money, Legal, or client-visible consequence.",
+          "unlock_condition": "Requires 5 approved Level 1 park recommendations for that task family and no later recovery request.",
+          "allowed_without_operator": false
+        },
+        {
+          "level": "LEVEL_3_FULL_AUTONOMY",
+          "authority": "May park mature low-risk task families with audit trail, recovery path, and operator-visible summary.",
+          "unlock_condition": "Requires 10 successful Level 2 parks, no missed deadline, no hidden client obligation, and explicit Master promotion.",
+          "allowed_without_operator": false
+        }
+      ]
+    }
+  ],
+  "receipt_integration": {
+    "receipt_schema_id": "Advice_Integrity_Receipt",
+    "required_receipt_field": "trust_gear_state",
+    "required_evidence_field": "evidence_refs",
+    "must_record_action_id": true,
+    "must_record_level": true,
+    "must_record_unlock_condition": true
+  },
+  "authority_boundary": {
+    "read_only_design": true,
+    "day_one_autonomy_granted": false,
+    "send_or_money_action_allowed": false,
+    "live_task_deletion_allowed": false,
+    "client_decline_send_allowed": false
+  }
+}

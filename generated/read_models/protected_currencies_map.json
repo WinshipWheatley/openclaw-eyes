@@ -1,0 +1,94 @@
+{
+  "read_model_id": "protected_currencies_map",
+  "schema_version": "protected_currencies_map_v0",
+  "status": "READ_ONLY_DESIGN",
+  "source_ref": "/mnt/e/openclaw/orchestration/SYSTEM-TRUSTED-COUNSEL-DOCTRINE-SOURCE.md",
+  "doctrine_layer": "Counsel Before Commerce",
+  "currencies": [
+    {
+      "currency_id": "money",
+      "display_name": "Money",
+      "primary_agent": "clara",
+      "secondary_reviewers": ["chief", "guardian"],
+      "protects": "Client and operator spend; premium must earn its place."
+    },
+    {
+      "currency_id": "time",
+      "display_name": "Time",
+      "primary_agent": "clara",
+      "secondary_reviewers": ["maestro", "chief"],
+      "protects": "Client and operator schedule load; later action or no action may be the correct answer."
+    },
+    {
+      "currency_id": "attention",
+      "display_name": "Attention",
+      "primary_agent": "maestro",
+      "secondary_reviewers": ["cassandra", "guardian"],
+      "protects": "Operator focus and client cognitive load."
+    },
+    {
+      "currency_id": "mental_energy",
+      "display_name": "Mental energy",
+      "primary_agent": "maestro",
+      "secondary_reviewers": ["cassandra", "guardian"],
+      "protects": "The number of decisions Winship or a client must carry."
+    },
+    {
+      "currency_id": "technical_complexity",
+      "display_name": "Technical complexity",
+      "primary_agent": "hermes",
+      "secondary_reviewers": ["chief", "guardian"],
+      "protects": "Least-complex sufficient system selection."
+    },
+    {
+      "currency_id": "operational_risk",
+      "display_name": "Operational risk",
+      "primary_agent": "chief",
+      "secondary_reviewers": ["guardian", "hermes"],
+      "protects": "Real consequence, execution risk, and maintenance exposure."
+    },
+    {
+      "currency_id": "creative_momentum",
+      "display_name": "Creative momentum",
+      "primary_agent": "niles",
+      "secondary_reviewers": ["maestro", "chief"],
+      "protects": "Creative sufficiency; distinguishes corrective work from compulsive polishing."
+    },
+    {
+      "currency_id": "reputation",
+      "display_name": "Reputation",
+      "primary_agent": "clara",
+      "secondary_reviewers": ["guardian", "chief"],
+      "protects": "Client trust, honest scope, and pressure-free recommendations."
+    },
+    {
+      "currency_id": "relationship_capital",
+      "display_name": "Relationship capital",
+      "primary_agent": "clara",
+      "secondary_reviewers": ["cassandra", "guardian"],
+      "protects": "Future ease, goodwill, and the client's agency."
+    },
+    {
+      "currency_id": "future_maintenance_burden",
+      "display_name": "Future maintenance burden",
+      "primary_agent": "hermes",
+      "secondary_reviewers": ["chief", "maestro"],
+      "protects": "Long-tail complexity and support cost after the recommendation."
+    }
+  ],
+  "agent_contributions": {
+    "chief": "Verifies actual need and financial/operational consequence.",
+    "guardian": "Reviews manipulative framing, fake scarcity, and artificial urgency.",
+    "hermes": "Applies the least-complex-sufficient-system test.",
+    "niles": "Applies creative sufficiency.",
+    "maestro": "Composes operator-facing recommendation and determines what Winship can stop carrying.",
+    "clara": "Composes client-facing recommendation and protects client agency.",
+    "orchestrator": "Composes one recommendation from separate objections."
+  },
+  "authority_boundary": {
+    "read_only_design": true,
+    "voice_prompt_mutation": false,
+    "live_decision_authority_granted": false,
+    "send_or_money_action_allowed": false
+  }
+}
