@@ -8,6 +8,15 @@ import re
 _CH = re.compile(r"^/ch/(\d+)/config$")
 _BUS = re.compile(r"^/(?:bus|mtx|auxin)/(\d+)/config$")
 
+_DAW_KEYWORDS = ("ableton", "logic", "reaper")
+
+def _detect_daw(text: str) -> str | None:
+    lowered = text.lower()
+    for kw in _DAW_KEYWORDS:
+        if kw in lowered:
+            return kw
+    return None
+
 
 def _tokens(line):
     out, buf, inq = [], "", False
@@ -35,7 +44,11 @@ def _int(tok, default=None):
 
 def parse_scene(path):
     info = {"path": path, "scene_name": None, "channels": [], "buses": [],
-            "routing": {}, "routing_mode": None}
+            "routing": {}, "routing_mode": None,
+            "daw_hint": None, "has_card_routing": False,
+            "has_producer_osc": False, "producer_intent": False}
+    # Check filename for DAW keywords before reading content
+    info["daw_hint"] = _detect_daw(os.path.basename(path))
     with open(path, errors="replace") as f:
         for raw in f:
             line = raw.strip()
@@ -45,12 +58,18 @@ def parse_scene(path):
                 for t in _tokens(line):
                     if t.startswith('"'):
                         info["scene_name"] = t.strip('"')
+                        # Scene name may also carry a DAW hint
+                        if info["daw_hint"] is None:
+                            info["daw_hint"] = _detect_daw(info["scene_name"])
                         break
                 continue
             if not line.startswith("/"):
                 continue
             toks = _tokens(line)
             addr, args = toks[0], toks[1:]
+            # Producer OSC namespace
+            if addr.startswith("/_producer/"):
+                info["has_producer_osc"] = True
             m = _CH.match(addr)
             if m and len(args) >= 3:
                 info["channels"].append({
@@ -70,13 +89,23 @@ def parse_scene(path):
             if addr == "/config/routing" and args:
                 info["routing_mode"] = args[0]
             elif addr.startswith("/config/routing/"):
-                info["routing"][addr.rsplit("/", 1)[-1]] = " ".join(args)
+                key = addr.rsplit("/", 1)[-1]
+                val = " ".join(args)
+                info["routing"][key] = val
+                if key == "CARD" or "CARD" in val:
+                    info["has_card_routing"] = True
+    # Derive producer_intent: DAW keyword OR producer OSC namespace OR CARD routing
+    info["producer_intent"] = bool(
+        info["daw_hint"] or info["has_producer_osc"] or info["has_card_routing"]
+    )
     return info
 
 
 def analyze_corpus(paths):
     name_vocab, color_usage, icon_usage, bus_names = {}, {}, {}, {}
     routing_profiles, scenes = {}, []
+    producer_scenes = []
+    production_routing_profiles = {}
     for path in paths:
         try:
             s = parse_scene(path)
@@ -97,17 +126,29 @@ def analyze_corpus(paths):
                 bus_names[b["name"]] = bus_names.get(b["name"], 0) + 1
         sig = tuple(sorted(s["routing"].items())) + (("mode", s["routing_mode"]),)
         routing_profiles.setdefault(sig, []).append(s["scene_name"] or os.path.basename(path))
-        scenes.append({
+        scene_entry = {
             "name": s["scene_name"] or os.path.basename(path),
             "path": path,
             "named_channels": len(named),
             "routing_mode": s["routing_mode"],
             "uses_aes50b": bool(s["routing"].get("AES50B")),
             "uses_p16": any("P16" in v for v in s["routing"].values()),
-        })
+            "producer_intent": s["producer_intent"],
+            "daw_hint": s["daw_hint"],
+            "has_card_routing": s["has_card_routing"],
+        }
+        scenes.append(scene_entry)
+        if s["producer_intent"]:
+            producer_scenes.append(scene_entry)
+            prod_sig = sig + (("daw", s["daw_hint"]),)
+            production_routing_profiles.setdefault(prod_sig, []).append(
+                s["scene_name"] or os.path.basename(path)
+            )
     return {"name_vocab": name_vocab, "color_usage": color_usage,
             "icon_usage": icon_usage, "bus_names": bus_names,
-            "routing_profiles": routing_profiles, "scenes": scenes}
+            "routing_profiles": routing_profiles, "scenes": scenes,
+            "producer_scenes": producer_scenes,
+            "production_routing_profiles": production_routing_profiles}
 
 
 def _dominant(d):
@@ -132,4 +173,28 @@ def to_markdown(agg, title="X32 corpus foundation"):
     out.append("## Bus name conventions (top)")
     for name, n in sorted(agg["bus_names"].items(), key=lambda kv: -kv[1])[:20]:
         out.append(f"- {name} ({n})")
+    out.append("")
+    out.append("## Producer Routing Profiles")
+    producer_scenes = agg.get("producer_scenes", [])
+    prod_profiles = agg.get("production_routing_profiles", {})
+    if not producer_scenes:
+        out.append("_No producer-intent scenes detected in corpus._")
+    else:
+        out.append(f"_{len(producer_scenes)} scene(s) with producer intent "
+                   f"({len(prod_profiles)} distinct routing profile(s))_")
+        out.append("")
+        out.append("| Scene | DAW Hint | CARD Routing | Routing Mode |")
+        out.append("|---|---|---|---|")
+        for sc in sorted(producer_scenes, key=lambda s: s["name"]):
+            daw = sc["daw_hint"] or "—"
+            card = "yes" if sc["has_card_routing"] else "no"
+            mode = sc["routing_mode"] or "—"
+            out.append(f"| {sc['name']} | {daw} | {card} | {mode} |")
+        if prod_profiles:
+            out.append("")
+            out.append("### Distinct producer routing profiles")
+            for i, (_sig, members) in enumerate(
+                sorted(prod_profiles.items(), key=lambda kv: -len(kv[1])), 1
+            ):
+                out.append(f"{i}. **{len(members)} scene(s)**: {', '.join(sorted(set(members))[:6])}")
     return "\n".join(out) + "\n"
