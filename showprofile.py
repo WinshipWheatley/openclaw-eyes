@@ -34,17 +34,17 @@ _RULES = [
     ("horns", "YE", 35,  ["trumpet", "horn", "brass"]),
     ("horns", "YE", 36,  ["trombone", "bone"]),
     ("strings", "YE", 39, ["violin", "fiddle", "viola"]),
-    ("vox",   "WH", 42,  ["female", "fem vox"]),
-    ("vox",   "WH", 43,  ["choir", "bgv", "backing vox", "gang"]),
-    ("vox",   "WH", 41,  ["lead vox", "vox", "vocal", "sing", "singer"]),
-    ("vox",   "WH", 45,  ["talkback", "talk"]),
+    ("vox",   "MG", 42,  ["female", "fem vox"]),                 # vocals = magenta/violet
+    ("vox",   "MG", 43,  ["choir", "bgv", "backing vox", "gang"]),
+    ("vox",   "MG", 41,  ["lead vox", "vox", "vocal", "sing", "singer"]),
+    ("vox",   "WH", 45,  ["talkback", "talk"]),                  # talkback = utility white
     ("mic",   "WH", 51,  ["wireless mic", "wl mic", "handheld"]),
     ("mic",   "WH", 47,  ["mic", "sm57", "sm58", "beta", "e609", "md421", " 57", " 58"]),
-    ("playback", "CY", 60, ["usb", "tape", "playback", "track", "click", "metronome"]),
-    ("fx",    "MG", 61,  ["fx", "reverb", "delay", "verb", "echo"]),
-    ("pc",    "CY", 62,  ["pc ", "computer", " mac", "daw", "ableton", "logic", "reaper", "pro tools"]),
+    ("playback", "WH", 60, ["usb", "tape", "playback", "track", "click", "metronome"]),
+    ("fx",    "CY", 61,  ["fx", "reverb", "delay", "verb", "echo"]),   # FX = cyan / "ice blue"
+    ("pc",    "WH", 62,  ["pc ", "computer", " mac", "daw", "ableton", "logic", "reaper", "pro tools"]),
 ]
-_DEFAULT = ("other", "CY", 1)
+_DEFAULT = ("other", "OFF", 1)   # uncategorized = no color -> visibly flags channels to set on a fresh build
 
 
 def categorize(name):
