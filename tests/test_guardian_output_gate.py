@@ -60,6 +60,22 @@ def test_completion_claim_with_proof_refs_validates_without_authority():
     assert result["machine_proof"]["all_live_authority_false"] is True
 
 
+def test_proof_refs_do_not_authorize_send_submit_or_money_claims():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Invoice sent",
+            eliwinship="I sent the invoice, submitted it, and marked it paid.",
+            next_action="Next: wait for payment.",
+            proof_refs=("generated/read_models/capital_hilton_invoice_operator_run_status.json",),
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM
+    assert result["validation_result"]["output_publish_allowed"] is False
+    assert {"sent", "submitted", "paid"}.issubset(set(result["validation_result"]["forbidden_claims"]))
+
+
 def test_completion_claim_without_proof_refs_is_blocked():
     result = gate.validate_response_payload(
         _safe_payload(

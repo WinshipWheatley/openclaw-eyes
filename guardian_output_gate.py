@@ -108,6 +108,11 @@ COMPLETION_CLAIMS = (
     "updated",
 )
 
+PROOF_BACKED_LOCAL_CLAIMS = (
+    "completed",
+    "updated",
+)
+
 LEAKAGE_PATTERNS = (
     "password=",
     "password:",
@@ -324,6 +329,15 @@ def _leakage_hits(text: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(hits))
 
 
+def _blocked_completion_claims(claims: tuple[str, ...], proof_refs: tuple[str, ...]) -> tuple[str, ...]:
+    if not claims:
+        return ()
+    if not proof_refs:
+        return claims
+    proof_backed_local = set(PROOF_BACKED_LOCAL_CLAIMS)
+    return tuple(claim for claim in claims if claim not in proof_backed_local)
+
+
 def package_from_response_payload(payload: Mapping[str, Any]) -> RoleExecutionPackage:
     source_request_id = str(payload.get("source_request_id") or "unknown_request")
     role = _normalized_role(payload.get("response_author") or payload.get("agent_role"))
@@ -414,14 +428,17 @@ def validate_role_output(candidate: RoleResponseCandidate, package: RoleExecutio
         blocked.append("Role output appears to expose protected/private details.")
 
     forbidden_claims = candidate.completion_claims
-    if forbidden_claims and not candidate.proof_refs:
+    blocked_claims = _blocked_completion_claims(forbidden_claims, candidate.proof_refs)
+    if blocked_claims and not candidate.proof_refs:
         blocked.append("Role output makes completion/action claims without proof refs.")
+    elif blocked_claims:
+        blocked.append("Role output makes live-action or mutation claims that proof refs cannot authorize.")
 
     if forbidden_tools:
         verdict = BLOCKED_FORBIDDEN_TOOL
     elif forbidden_actions or authority_requested or package_authority_granted:
         verdict = BLOCKED_AUTHORITY
-    elif forbidden_claims and not candidate.proof_refs:
+    elif blocked_claims:
         verdict = BLOCKED_FORBIDDEN_CLAIM
     elif leakage:
         verdict = BLOCKED_LEAKAGE
