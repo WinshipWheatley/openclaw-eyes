@@ -38,7 +38,7 @@ import json
 import os
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from cassandra_brain import build_context_snapshot, build_current_truth_snapshot
@@ -77,6 +77,7 @@ _MORNING_DELIVERY_TIMEOUT_SECONDS = _env_int("OPENCLAW_CASSANDRA_MORNING_BRIEF_T
 _MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS", 90, minimum=30)
 _MORNING_STACK_CHIEF_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_CHIEF_TIMEOUT_SECONDS", 420, minimum=60)
 _MORNING_STACK_CASSANDRA_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_CASSANDRA_TIMEOUT_SECONDS", 300, minimum=60)
+_RECENT_MORNING_SYNTHESIS_REFRESH: dict[str, datetime] = {}
 
 # Read-only peeks at external state (no circular imports)
 _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
@@ -535,6 +536,24 @@ def _build_morning_context_from_synthesis() -> dict:
         "sections": sections,
         "prompt_context": "\n".join(prompt_parts),
     }
+
+
+def _recently_refreshed_this_process(path: Path, modified_at: datetime | None) -> bool:
+    """Return True for a synthesis file this process just refreshed.
+
+    The morning-window guard compares file mtime against today's 5am start.
+    During tests, or any injected policy-window run, a refresh before 5am can
+    otherwise be immediately reclassified as "before today's window." Keep the
+    exemption narrow: only the same path, only after the recorded refresh start,
+    and only if the mtime is not a synthetic future timestamp.
+    """
+    if modified_at is None:
+        return False
+    refreshed_at = _RECENT_MORNING_SYNTHESIS_REFRESH.get(str(path))
+    if refreshed_at is None:
+        return False
+    now = datetime.now()
+    return refreshed_at <= modified_at <= now + timedelta(seconds=60)
 
 
 def normalize_speech_text(text: str) -> str:
@@ -1215,13 +1234,18 @@ def generate_briefing(slot: str) -> str:
                     today_start = datetime.combine(now.date(), ORCHESTRATION_START_TIME)
                     # The policy predicate owns the active morning window; tests
                     # may inject it to exercise stale/fresh boundaries.
-                    if mtime < today_start:
+                    if mtime < today_start and not _recently_refreshed_this_process(
+                        _CHIEF_MORNING_SYNTHESIS,
+                        mtime,
+                    ):
                         should_refresh = True
         
         if should_refresh:
             print(f"[briefing_brain] Triggering morning artifact orchestration (reason: {'stale' if not morning_reference.get('available') or 'stale' in morning_reference.get('freshness', '').lower() else 'first run of window'})", flush=True)
             from chief_morning_orchestrator import refresh_morning_artifacts
+            refresh_started = datetime.now()
             if refresh_morning_artifacts():
+                _RECENT_MORNING_SYNTHESIS_REFRESH[str(_CHIEF_MORNING_SYNTHESIS)] = refresh_started
                 # Re-build context after refresh
                 morning_reference = _build_morning_context_from_synthesis()
 
