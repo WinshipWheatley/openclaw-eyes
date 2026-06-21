@@ -421,6 +421,7 @@
 !cassandra_outreach.py
 !cassandra_whisper_relay.py
 !cassandra_contact_policy.py
+!cassandra_tts_backends.py
 !capability_registry.py
 !chief_approval_policy.py
 !chief_guardian_sender.py
@@ -1135,6 +1136,7 @@
 !tests/test_openclaw_context_wiki_compiler.py
 !tests/test_home_fabric.py
 !tests/test_maestro_capability_classifier.py
+!tests/test_voice_synthesis_metrics.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md

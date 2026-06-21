@@ -269,6 +269,7 @@ def _synth_piper(text: str, wav_path: Path) -> None:
     """Write Piper synthesis to wav_path without playing."""
     from piper.config import SynthesisConfig
 
+    _t0 = time.monotonic()
     voice = _load_piper_voice()
     cfg   = SynthesisConfig(
         length_scale=LENGTH_SCALE,
@@ -277,6 +278,7 @@ def _synth_piper(text: str, wav_path: Path) -> None:
     )
     chunks = list(voice.synthesize(text, cfg))
     if not chunks:
+        print("[VOICE_METRIC] backend=piper latency_ms=0 audio_chars=0 result=empty_chunks", flush=True)
         return
 
     buf = io.BytesIO()
@@ -290,6 +292,13 @@ def _synth_piper(text: str, wav_path: Path) -> None:
 
     wav_path.parent.mkdir(parents=True, exist_ok=True)
     wav_path.write_bytes(buf.getvalue())
+    latency_ms = int((time.monotonic() - _t0) * 1000)
+    wav_bytes = wav_path.stat().st_size if wav_path.exists() else 0
+    print(
+        f"[VOICE_METRIC] backend=piper latency_ms={latency_ms}"
+        f" audio_chars={len(text)} wav_bytes={wav_bytes}",
+        flush=True,
+    )
 
 
 def _speak_piper(text: str, wav_path: Path, win_path: str) -> None:
@@ -310,11 +319,21 @@ def _synth_plugin(text: str, backend_name: str, wav_path: Path) -> bool:
         )
         return False
     try:
+        _t0 = time.monotonic()
         if backend_key == "kokoro":
-            return synth_kokoro_wav(text, _KOKORO_VOICE, wav_path, speed=float(_KOKORO_SPEED))
-        from cassandra_tts_backends import get_backend
-        backend = get_backend(backend_name)
-        return backend.synthesize(text, wav_path)
+            ok = synth_kokoro_wav(text, _KOKORO_VOICE, wav_path, speed=float(_KOKORO_SPEED))
+        else:
+            from cassandra_tts_backends import get_backend
+            backend = get_backend(backend_name)
+            ok = backend.synthesize(text, wav_path)
+        latency_ms = int((time.monotonic() - _t0) * 1000)
+        wav_bytes = wav_path.stat().st_size if ok and wav_path.exists() else 0
+        print(
+            f"[VOICE_METRIC] backend={backend_name.lower()} latency_ms={latency_ms}"
+            f" audio_chars={len(text)} wav_bytes={wav_bytes} result={'ok' if ok else 'failed'}",
+            flush=True,
+        )
+        return ok
     except Exception as e:
         _log_voice_side_effect(
             "tts_backend_failed",

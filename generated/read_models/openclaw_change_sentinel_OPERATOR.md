@@ -1,16 +1,16 @@
 # OpenClaw Change Sentinel
 
 Summary:
-- Status: `NO_MATERIAL_CHANGE`.
+- Status: `MATERIAL_CHANGE_DETECTED`.
 - Observed targets: 30.
-- Material changes: 0.
+- Material changes: 2.
 - Chief queue candidates: 0 (not launched).
 - LM called: `False`.
 
 Hermes Summary:
-- What changed: No material change since the previous sentinel snapshot.
-- Why it matters: OpenClaw can keep using the current generated state.
-- Next: No action required; rerun on the next 20-minute cadence or manually when needed.
+- What changed: service_status:openclaw-request-response.service changed from 'active' to 'active'. service_restart_count:openclaw-request-response.service changed from '4' to '3'.
+- Why it matters: A deterministic target moved, drifted, or became unstable.
+- Next: Review the recommended actions before assigning any build or repair work.
 
 Observed Targets:
 - `input_read_model:reference_resolver` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
@@ -42,7 +42,11 @@ Observed Targets:
 - `authority_semantics_registry:fingerprint` `AUTHORITY_SEMANTICS_REGISTRY` -> `NO_MATERIAL_CHANGE` `authority_semantics_v0`.
 - `lane_capability_harvest:recommendation` `LANE_CAPABILITY_HARVEST` -> `NO_MATERIAL_CHANGE` `finish_invoice_steel_thread_sequence`.
 - `service_status:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `active`.
-- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `4`.
+- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `3`.
+
+Material Changes:
+- `MATERIAL_CHANGE_DETECTED`: service_status:openclaw-request-response.service changed from 'active' to 'active'.
+- `MATERIAL_CHANGE_DETECTED`: service_restart_count:openclaw-request-response.service changed from '4' to '3'.
 
 Timer Proposal:
 - Proposed timer path: `~/.config/systemd/user/openclaw-change-sentinel.timer`.
