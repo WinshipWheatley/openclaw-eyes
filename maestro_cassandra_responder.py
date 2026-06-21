@@ -280,6 +280,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("status_capability_readback", True, "")
     if _is_system_knowledge_intent(normalized):
         return ("system_knowledge", True, "")
+    if _is_people_intent(normalized):
+        return ("people_reference_query", True, "")
     return ("maestro_brain_freeform", True, "")
 
 
@@ -372,6 +374,26 @@ def answer_frontdoor_chat(
             mac_render_hint=MAC_RENDER_HINT,
             session_forwarded=forwarded_session,
             machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
+        )
+
+    if intent_class == "people_reference_query":
+        people_answer = _answer_people_query(text)
+        if people_answer is None:
+            people_answer = "I don't have a current operator-corrected record for that person or contact."
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(people_answer),
+            plain_summary=people_answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "operator_truth_store_consulted": True,
+                "protected_generate_called": False,
+                "external_llm_invoked": False,
+            },
         )
 
     if intent_class == "ledger_reference_clarification":
@@ -1099,6 +1121,44 @@ def _is_status_capability_intent(text: str) -> bool:
         any(term in text for term in ("status", "capability", "capabilities", "online", "blocked", "roster"))
         and any(term in text for term in ("openclaw", "agents", "agent", "you", "can", "do"))
     )
+
+
+def _is_people_intent(text: str) -> bool:
+    direct_phrases = (
+        "who is",
+        "who's",
+        "who are",
+        "contact for",
+        "contact at",
+        "contact info",
+        "team member",
+        "person at",
+        "relationship with",
+    )
+    if any(phrase in text for phrase in direct_phrases):
+        from operator_truth_store import ENTITY_DEFS
+        lowered = text.lower()
+        # Only route to people intent if a known entity is mentioned
+        for definition in ENTITY_DEFS.values():
+            aliases = tuple(definition.get("aliases") or ())
+            if any(alias and alias.lower() in lowered for alias in aliases):
+                return True
+    return False
+
+
+def _answer_people_query(text: str) -> str | None:
+    try:
+        from operator_truth_store import find_operator_truth_for_text
+        match = find_operator_truth_for_text(text)
+        if match:
+            entity_key, record = match
+            label = str(record.get("label") or entity_key)
+            value = str(record.get("value") or "")
+            if value:
+                return f"{label}: {value}"
+    except Exception:
+        pass
+    return None
 
 
 def _status_capability_readback_focus(text: str) -> str:

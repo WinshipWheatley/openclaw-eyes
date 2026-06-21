@@ -851,3 +851,44 @@ def test_gitignore_allows_pc_maestro_listener_source():
     )
 
     assert result.returncode == 1, result.stdout + result.stderr
+
+
+def test_people_reference_query_routes_truth_before_llm(monkeypatch, tmp_path):
+    # 'who is will valcovic?' must detect people_intent, resolve from operator_truth,
+    # and return the answer without calling protected_generate (no LLM latency).
+    import json
+    from operator_truth_store import save_operator_truth_store
+
+    # Prime the truth store with a Capital Hilton record (will valcovic is its alias).
+    store_path = tmp_path / "operator_truth_store.json"
+    save_operator_truth_store(
+        {
+            "entities": {
+                "capital_hilton": {
+                    "entity_key": "capital_hilton",
+                    "label": "Capital Hilton",
+                    "value": "$2000 received through Coupa; Will Valcovic is the contact; July 1 check expected.",
+                    "provenance": "operator_corrected",
+                    "pii_tier": "LIGHT",
+                }
+            }
+        },
+        path=store_path,
+    )
+    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_STORE", str(store_path))
+
+    def forbidden_llm(*args, **kwargs):
+        raise AssertionError("people_reference_query must not call protected_generate")
+
+    result = maestro.answer_frontdoor_chat(
+        "who is will valcovic?",
+        protected_generate_fn=forbidden_llm,
+    )
+
+    assert result.status == "ANSWER_READY", result
+    assert result.intent_class == "people_reference_query"
+    assert result.allowed_to_call_handle is False
+    assert "Capital Hilton" in result.plain_summary or "Will Valcovic" in result.plain_summary, result.plain_summary
+    assert result.machine_proof["operator_truth_store_consulted"] is True
+    assert result.machine_proof["protected_generate_called"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
