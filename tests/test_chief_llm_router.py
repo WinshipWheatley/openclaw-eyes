@@ -346,6 +346,24 @@ def test_external_language_model_call_uses_configured_openrouter_model(monkeypat
     ]
 
 
+def test_configured_openrouter_model_has_no_implicit_default(monkeypatch):
+    for key in (
+        "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+        "CASSANDRA_EXTERNAL_MODEL",
+        "OPENCLAW_EXTERNAL_MODEL",
+        "OPENROUTER_MODEL",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    assert chief_llm._configured_openrouter_model() == ""
+
+    monkeypatch.setenv("OPENROUTER_MODEL", "openrouter/fallback-model")
+    assert chief_llm._configured_openrouter_model() == "openrouter/fallback-model"
+
+    monkeypatch.setenv("OPENCLAW_CASSANDRA_EXTERNAL_MODEL", "openrouter/operator-choice")
+    assert chief_llm._configured_openrouter_model() == "openrouter/operator-choice"
+
+
 def test_external_language_model_call_falls_back_to_nemotron_when_openrouter_unconfigured(monkeypatch):
     monkeypatch.delenv("OPENCLAW_CASSANDRA_EXTERNAL_MODEL", raising=False)
     monkeypatch.delenv("CASSANDRA_EXTERNAL_MODEL", raising=False)
@@ -364,6 +382,56 @@ def test_external_language_model_call_falls_back_to_nemotron_when_openrouter_unc
     )
 
     assert out == "nemotron answer"
+
+
+def test_protected_generate_short_circuits_unreachable_ollama_without_local_call(monkeypatch, tmp_path):
+    import protected_generate
+
+    for key in (
+        "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+        "CASSANDRA_EXTERNAL_MODEL",
+        "OPENCLAW_EXTERNAL_MODEL",
+        "OPENROUTER_MODEL",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT", "0.01")
+
+    probes: list[float] = []
+
+    def fake_ollama_unreachable(*, timeout: float = 0.2) -> bool:
+        probes.append(timeout)
+        return True
+
+    def fail_local_call(*_args, **_kwargs):
+        raise AssertionError("local Ollama generation must be skipped when the probe fails")
+
+    monkeypatch.setattr(chief_llm, "ollama_is_unreachable", fake_ollama_unreachable)
+    monkeypatch.setattr(protected_generate, "_call_local_ollama", fail_local_call)
+
+    outcome = protected_generate.protected_generate_with_receipt(
+        "Who is Winship?",
+        context_packet={
+            "facts": [
+                {
+                    "topic": "identity",
+                    "label": "operator",
+                    "value": "Winship is the human operator.",
+                }
+            ]
+        },
+        audit_log_path=tmp_path / "protected_generate_audit.jsonl",
+        allow_live_model=True,
+    )
+
+    assert "Winship is the human operator." in outcome.text
+    assert probes == [0.01]
+    assert outcome.receipt["route"] == "grounded_fallback_no_external_model_ollama_unreachable"
+    assert outcome.receipt["decision"] == "ALLOW_GROUNDED_FALLBACK"
+    assert outcome.receipt["external_model_configured"] is False
+    assert outcome.receipt["ollama_unreachable_shortcircuit"] is True
+    assert outcome.receipt["model_call_performed"] is False
+    assert outcome.receipt["external_llm_invoked"] is False
+    assert outcome.receipt["local_model_invoked"] is False
 
 
 def test_external_language_model_call_blocked_policy_does_not_call_provider(monkeypatch):
