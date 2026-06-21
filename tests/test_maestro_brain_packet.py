@@ -662,3 +662,90 @@ def test_fallback_named_entity_and_domain_routing_unchanged_by_000h(tmp_path: Pa
     assert "Capital Hilton" in answer("what is my Capital Hilton status?")
     assert "All paid up" in answer("what's the status of St Anne's?")
     assert "finance candidates" in answer("what invoices are open?")
+
+
+def test_packet_trim_question_relevant(tmp_path: Path) -> None:
+    # build_maestro_context_packet trims read model facts to top-K question-relevant.
+    # Question='what gigs do I have' should keep only gig-scoring facts, drop the rest.
+    import json
+
+    from maestro_context_packet import _question_terms, _score_fact, build_maestro_context_packet
+
+    read_model_root = tmp_path / "trim_rm"
+    read_model_root.mkdir()
+
+    (read_model_root / "agent_presence.json").write_text(
+        json.dumps({
+            "generated_at": "2026-06-21T10:00:00+00:00",
+            "agents": [
+                {"agent_id": "cassandra", "display_name": "Cassandra", "actual_state": "online"},
+                {"agent_id": "chief", "display_name": "Chief", "actual_state": "online"},
+                {"agent_id": "maestro", "display_name": "Maestro", "actual_state": "online"},
+                {"agent_id": "hermes", "display_name": "Hermes", "actual_state": "online"},
+                {"agent_id": "guardian", "display_name": "Guardian", "actual_state": "online"},
+            ],
+            "next_safe_move": "No gigs confirmed for today; review calendar before reply.",
+        }),
+        encoding="utf-8",
+    )
+    (read_model_root / "cassandra_email_calendar_delta_detangle.json").write_text(
+        json.dumps({
+            "calendar_operator_context": {
+                "google_apple_calendar_merged_context_recorded": True,
+                "live_calendar_access_enabled": False,
+            },
+            "classification_counts": {},
+            "upcoming_calendar_events": [
+                {"summary": "Wedding gig - Madison Ave", "date": "2026-06-26", "start_time": "20:00"},
+                {"summary": "Corporate gig - Capital Hilton", "date": "2026-06-27", "start_time": "19:00"},
+            ],
+        }),
+        encoding="utf-8",
+    )
+    (read_model_root / "openclaw_capability_index.json").write_text(
+        json.dumps({"generic_capabilities": [
+            {"capability_id": "request_processing", "capability_name": "Bounded request processor", "capability_status": "LIVE_IMPLEMENTED"},
+            {"capability_id": "invoice_readback", "capability_name": "Invoice status readback", "capability_status": "READ_MODEL_ONLY"},
+        ]}),
+        encoding="utf-8",
+    )
+    (read_model_root / "chief_status_rail.json").write_text(
+        json.dumps({"chief_current_status": "safe_status_read_model_only"}), encoding="utf-8"
+    )
+    (read_model_root / "openclaw_change_sentinel.json").write_text(
+        json.dumps({
+            "generated_at": "2026-06-21T10:01:00+00:00",
+            "hermes_summary": {"what_changed": "No material change.", "what_to_do_next": "Continue."},
+        }),
+        encoding="utf-8",
+    )
+    (read_model_root / "finance_invoice_reconciliation.json").write_text(
+        json.dumps({"counts": {"finance_candidate_count": 2, "high_risk_count": 0},
+                    "first_safe_workflow_proposal": {"operator_summary": "Invoice packets ready; sending blocked."}}),
+        encoding="utf-8",
+    )
+    (read_model_root / "work_board.json").write_text(
+        json.dumps({"counts_by_column": {"TODO": 3, "IN_PROGRESS": 1, "DONE": 5}}), encoding="utf-8"
+    )
+
+    packet = build_maestro_context_packet(
+        question="what gigs do I have",
+        read_model_root=read_model_root,
+        require_real_truth=False,
+    )
+
+    question = "what gigs do I have"
+    terms = _question_terms(question)
+    assert "gig" in terms or "gigs" in terms, f"expected gig term in {terms}"
+
+    facts = packet["facts"]
+    for fact in facts:
+        score = _score_fact(fact, terms)
+        assert score > 0, f"fact scored 0 for '{question}': {fact.get('label')!r} - {fact.get('value')!r}"
+
+    packet_text = packet.get("packet_text", "")
+    assert len(packet_text.encode()) < 2048, f"packet_text too large: {len(packet_text.encode())} bytes"
+
+    assert packet["schema_version"] == "maestro_context_packet_v0"
+    assert packet["bounds"]["outbound_send_allowed"] is False
+    assert "tiers_present" in packet["privacy"]

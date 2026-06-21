@@ -17,6 +17,16 @@ from typing import Any, Mapping, Sequence
 
 SCHEMA_VERSION = "maestro_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
+_PACKET_TOP_K = 8
+_PACKET_WORD_RE = re.compile(r"[a-z]+")
+_PACKET_STOP_WORDS = frozenset(
+    {
+        "about", "across", "and", "are", "can", "could", "does", "for", "from",
+        "have", "how", "into", "know", "like", "look", "next", "now", "status",
+        "tell", "that", "the", "this", "today", "what", "whats", "when", "where",
+        "which", "with", "would", "you", "your",
+    }
+)
 KNOWN_READ_MODELS = (
     "agent_presence.json",
     "openclaw_capability_index.json",
@@ -270,7 +280,32 @@ def _operator_truth_facts(
     return facts, bool(facts), str(path or "")
 
 
-def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
+def _question_terms(question: str) -> set[str]:
+    return {
+        token
+        for token in _PACKET_WORD_RE.findall(str(question or "").lower())
+        if len(token) > 2 and token not in _PACKET_STOP_WORDS
+    }
+
+
+def _score_fact(fact: Mapping[str, Any], terms: set[str]) -> int:
+    text = " ".join(str(fact.get(k) or "") for k in ("topic", "label", "value")).lower()
+    return sum(2 for term in terms if term in text)
+
+
+def _trim_facts(facts: list[dict[str, Any]], question: str) -> list[dict[str, Any]]:
+    """Return top-K question-relevant facts; if no question or few facts, return all."""
+    if not question or len(facts) <= _PACKET_TOP_K:
+        return facts
+    terms = _question_terms(question)
+    if not terms:
+        return facts
+    scored = sorted(((  _score_fact(f, terms), i, f) for i, f in enumerate(facts)), reverse=True)
+    relevant = [f for score, _i, f in scored if score > 0]
+    return relevant[:_PACKET_TOP_K] if relevant else facts[:_PACKET_TOP_K]
+
+
+def _read_model_facts(root: Path, question: str = "") -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
     proof: dict[str, Any] = {"read_model_presence": {}}
@@ -455,7 +490,7 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             freshness=_freshness(root / "work_board.json", work_board),
         )
 
-    return facts, refs, proof
+    return _trim_facts(facts, question), refs, proof
 
 
 def _actionable_sections(facts: Sequence[Mapping[str, Any]]) -> dict[str, list[str]]:
@@ -515,7 +550,7 @@ def build_maestro_context_packet(
     generated_at = _utc_now()
 
     truth_facts, operator_truth_used, truth_ref = _operator_truth_facts(path=truth_path, question=question)
-    read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root)
+    read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root, question=question)
     facts = [*truth_facts, *read_model_facts]
 
     if require_real_truth and (not operator_truth_used or len(read_model_refs) < 2):
