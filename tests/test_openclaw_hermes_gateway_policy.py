@@ -40,6 +40,28 @@ def test_send_and_money_actions_are_denied_for_live_action() -> None:
     assert "agent dispatch" in lowered
 
 
+def test_non_agent_route_target_with_money_falls_to_money_denial() -> None:
+    reply = policy.truthful_reply_for_text("forward this to accounting and pay the vendor")
+
+    assert reply is not None
+    lowered = reply.lower()
+    assert "cannot send messages" in lowered
+    assert "move money" in lowered
+    assert "denied for live action" in lowered
+    assert "cannot route this to accounting" not in lowered
+    assert "agent dispatch" in lowered
+
+
+def test_non_agent_route_target_is_not_treated_as_agent_route() -> None:
+    reply = policy.truthful_reply_for_text("route this to accounting")
+
+    assert reply is not None
+    lowered = reply.lower()
+    assert "cannot route this to accounting" in lowered
+    assert "not a canonical openclaw agent route" in lowered
+    assert "no route receipt was written" in lowered
+
+
 def test_sanitizer_removes_runtime_leaks() -> None:
     sanitized = policy.sanitize_gateway_response(
         "Non-canonical advisory output: Interrupting current task (iteration 7/90)\n"

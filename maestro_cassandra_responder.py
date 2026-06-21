@@ -69,6 +69,22 @@ ProtectedGenerateFn = Callable[..., Any]
 HANDLE_BACKEND_ROUTE = "maestro_cassandra_responder.cassandra_brain.handle"
 DATE_BACKEND_ROUTE = "maestro_cassandra_responder.datetime_deterministic"
 HERMES_TRUTHFUL_BACKEND_ROUTE = "maestro_cassandra_responder.hermes_truthful_advisory"
+HERMES_FALLBACK_AGENT_TARGETS = frozenset(
+    {
+        "cassandra",
+        "chief",
+        "guardian",
+        "hermes",
+        "niles",
+        "operator_briefing",
+        "operations_router",
+        "producer",
+        "report_bridge",
+    }
+)
+HERMES_SEND_OR_MONEY_RE = re.compile(
+    r"\b(send|email|message|text|telegram|notify|reply|forward|post|deliver|pay|payment|money|wire|ach|transfer|refund|charge)\b"
+)
 INTERNAL_STATE_LEAK_PATTERNS = (
     re.compile(r"\bInterrupting current task\s*(?:\([^)]*\))?\s*", re.IGNORECASE),
     re.compile(r"\(?(?:iteration|loop)\s+\d+\s*/\s*\d+\)?", re.IGNORECASE),
@@ -547,6 +563,7 @@ def build_hermes_truthful_advisory_answer(text: str) -> dict[str, Any]:
     normalized = _normalize(text)
     mode = _hermes_truthful_mode(normalized)
     target = _route_target(normalized)
+    target_candidate = _route_target_candidate(normalized)
     base_proof = {
         "hermes_truthful_advisory_performed": True,
         "hermes_reply_mode": mode,
@@ -567,18 +584,36 @@ def build_hermes_truthful_advisory_answer(text: str) -> dict[str, Any]:
         ),
     }
     if mode == "route_request":
-        target_label = target or "the requested agent"
+        target_label = target or target_candidate or "the requested agent"
         one_line = f"Hermes cannot route this to {target_label} from this surface."
+        detail = (
+            "That route target is not a canonical OpenClaw agent route."
+            if not target and target_candidate
+            else "Hermes is advisory here: it can describe adapter/protocol boundaries and recommend a safe review packet."
+        )
         plain = "\n".join(
             [
                 one_line,
+                detail,
                 "No agent handoff ran, no route receipt was written, and no message was sent.",
-                "Hermes is advisory here: it can describe adapter/protocol boundaries and recommend a safe review packet.",
                 "A real handoff needs a sanctioned bridge with a receipt; local helper tools are not agent bridges.",
                 "SEND_HOLD remains in force.",
             ]
         )
         base_proof["requested_route_target"] = target_label
+        base_proof["requested_route_target_is_canonical_agent"] = bool(target)
+    elif mode == "send_money_denial":
+        one_line = "Hermes cannot send messages, trigger payments, or move money from this surface."
+        plain = "\n".join(
+            [
+                one_line,
+                "This request is denied for live action and can only be staged for an operator-controlled review path.",
+                "No external send, payment, ledger mutation, route receipt, service start, or agent dispatch occurred.",
+                "SEND_HOLD remains in force.",
+            ]
+        )
+        base_proof["requested_route_target"] = target_candidate or ""
+        base_proof["requested_route_target_is_canonical_agent"] = False
     elif mode == "route_inventory":
         one_line = "Hermes has no proven live agent-routing bridge from this surface."
         plain = "\n".join(
@@ -931,12 +966,30 @@ def _is_hermes_truthful_intent(text: str) -> bool:
 def _hermes_truthful_mode(text: str) -> str:
     if _is_hermes_route_inventory_request(text):
         return "route_inventory"
+    if _is_hermes_route_request(text) and _route_target(text):
+        return "route_request"
+    if _is_hermes_addressed(text) and _is_hermes_send_or_money_action(text):
+        return "send_money_denial"
     if _is_hermes_route_request(text):
         return "route_request"
     return "capability"
 
 
-def _route_target(text: str) -> str:
+def _hermes_agent_route_targets() -> frozenset[str]:
+    try:
+        from agent_lane_registry import DEFAULT_AGENT_LANE_SEEDS
+
+        targets: set[str] = set()
+        for seed in DEFAULT_AGENT_LANE_SEEDS:
+            targets.add(str(seed.agent_id).strip().lower())
+            targets.add(str(seed.display_name).strip().lower().replace(" ", "_"))
+            targets.update(str(alias).strip().lower() for alias in seed.aliases)
+        return frozenset(target for target in targets if target)
+    except Exception:
+        return HERMES_FALLBACK_AGENT_TARGETS
+
+
+def _route_target_candidate(text: str) -> str:
     match = re.search(r"\bto\s+([a-z][a-z0-9_-]{1,40})\b", text)
     if not match:
         return ""
@@ -944,6 +997,15 @@ def _route_target(text: str) -> str:
     if target in {"me", "you", "this", "that", "the"}:
         return ""
     return target
+
+
+def _route_target(text: str) -> str:
+    target = _route_target_candidate(text)
+    return target if target in _hermes_agent_route_targets() else ""
+
+
+def _is_hermes_send_or_money_action(text: str) -> bool:
+    return bool(HERMES_SEND_OR_MONEY_RE.search(text))
 
 
 def _strip_internal_state_leaks(text: str) -> str:

@@ -411,6 +411,29 @@ def test_hermes_route_prompt_denies_without_guessing_skill_or_dispatching():
     assert result.machine_proof["agent_dispatch_performed"] is False
 
 
+def test_hermes_non_agent_money_route_denies_money_before_route():
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("Hermes money route prompts must not call cassandra_brain.handle")
+
+    result = maestro.answer_frontdoor_chat(
+        "Hermes, forward this to accounting and pay the vendor",
+        handle_fn=forbidden_handle,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "hermes_truthful_advisory"
+    lowered = result.plain_summary.lower()
+    assert "cannot send messages" in lowered
+    assert "move money" in lowered
+    assert "denied for live action" in lowered
+    assert "cannot route this to accounting" not in lowered
+    assert result.machine_proof["hermes_reply_mode"] == "send_money_denial"
+    assert result.machine_proof["requested_route_target"] == "accounting"
+    assert result.machine_proof["requested_route_target_is_canonical_agent"] is False
+    assert result.machine_proof["agent_dispatch_performed"] is False
+    assert result.machine_proof["email_send_performed"] is False
+
+
 def test_hermes_inventory_distinguishes_real_bridges_from_local_helpers():
     result = maestro.answer_frontdoor_chat("Hermes, what can you route to?")
 

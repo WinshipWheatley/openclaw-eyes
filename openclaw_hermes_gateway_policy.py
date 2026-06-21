@@ -16,6 +16,19 @@ _ROUTE_TARGET_RE = re.compile(
     r"\b(?:route|send|handoff|hand off|pass|forward|dispatch)\b.{0,80}\bto\s+([a-z][a-z0-9_-]{1,40})\b",
     re.IGNORECASE,
 )
+_FALLBACK_AGENT_TARGETS = frozenset(
+    {
+        "cassandra",
+        "chief",
+        "guardian",
+        "hermes",
+        "niles",
+        "operator_briefing",
+        "operations_router",
+        "producer",
+        "report_bridge",
+    }
+)
 _ROUTE_INVENTORY_PHRASES = (
     "what can you route to",
     "who can you route to",
@@ -51,9 +64,32 @@ def _normalize(text: str) -> str:
     return " ".join(str(text or "").lower().strip().replace("’", "'").split())
 
 
-def _route_target(text: str) -> str:
+def _agent_route_targets() -> frozenset[str]:
+    try:
+        from agent_lane_registry import DEFAULT_AGENT_LANE_SEEDS
+
+        targets: set[str] = set()
+        for seed in DEFAULT_AGENT_LANE_SEEDS:
+            targets.add(str(seed.agent_id).strip().lower())
+            targets.add(str(seed.display_name).strip().lower().replace(" ", "_"))
+            targets.update(str(alias).strip().lower() for alias in seed.aliases)
+        return frozenset(target for target in targets if target)
+    except Exception:
+        return _FALLBACK_AGENT_TARGETS
+
+
+def _route_target_candidate(text: str) -> str:
     match = _ROUTE_TARGET_RE.search(text)
     return match.group(1).lower() if match else ""
+
+
+def _route_target(text: str) -> str:
+    target = _route_target_candidate(text)
+    return target if target in _agent_route_targets() else ""
+
+
+def _is_route_request(text: str) -> bool:
+    return bool(_ROUTE_TARGET_RE.search(text))
 
 
 def _is_route_inventory(text: str) -> bool:
@@ -91,6 +127,27 @@ def truthful_reply_for_text(text: str) -> str | None:
             ]
         )
 
+    if _is_send_or_money_action(raw):
+        return "\n".join(
+            [
+                "Hermes cannot send messages, trigger payments, or move money from this surface.",
+                "This request is denied for live action and can only be staged for an operator-controlled review path.",
+                "No external send, payment, ledger mutation, route receipt, service start, or agent dispatch occurred.",
+                "SEND_HOLD remains in force.",
+            ]
+        )
+
+    if _is_route_request(raw):
+        requested = _route_target_candidate(raw) or "that destination"
+        return "\n".join(
+            [
+                f"Hermes cannot route this to {requested} from this surface.",
+                "That route target is not a canonical OpenClaw agent route.",
+                "No agent handoff ran, no route receipt was written, and no message was sent.",
+                "SEND_HOLD remains in force.",
+            ]
+        )
+
     if _is_route_inventory(raw):
         return "\n".join(
             [
@@ -98,16 +155,6 @@ def truthful_reply_for_text(text: str) -> str | None:
                 "Real agent bridges available to Hermes here: none proven.",
                 "Read-model sidecars may support advisory review, but they are not dispatch routes.",
                 "Hermes cannot send, enqueue, start services, or bypass SEND_HOLD.",
-                "SEND_HOLD remains in force.",
-            ]
-        )
-
-    if _is_send_or_money_action(raw):
-        return "\n".join(
-            [
-                "Hermes cannot send messages, trigger payments, or move money from this surface.",
-                "This request is denied for live action and can only be staged for an operator-controlled review path.",
-                "No external send, payment, ledger mutation, route receipt, service start, or agent dispatch occurred.",
                 "SEND_HOLD remains in force.",
             ]
         )
