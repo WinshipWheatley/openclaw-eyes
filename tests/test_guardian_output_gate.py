@@ -214,6 +214,54 @@ def test_abstract_credential_ref_wording_is_not_treated_as_secret_leakage():
     assert safe_result["validation_result"]["verdict"] == gate.VALIDATED
 
 
+def test_approval_claim_with_authority_request_is_blocked_authority():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            response_author="CHIEF",
+            headline="Invoice approved",
+            eliwinship="I approved the invoice for payment.",
+            next_action="Done.",
+            readback_files=(),
+            detail_disclosure={"authority_requested": {"approval_execution": True}},
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_AUTHORITY
+    assert result["validation_result"]["authority_granted"]["approval_execution"] is False
+    assert result["validation_result"]["output_publish_allowed"] is False
+
+
+def test_approval_text_claim_without_proof_refs_is_blocked_forbidden_claim():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            response_author="CHIEF",
+            headline="Invoice approved",
+            eliwinship="I approved the invoice.",
+            next_action="Done.",
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM
+    assert "approved" in result["validation_result"]["forbidden_claims"]
+    assert result["validation_result"]["output_publish_allowed"] is False
+
+
+def test_negated_approval_pending_is_not_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            response_author="CHIEF",
+            headline="Awaiting approval",
+            eliwinship="The approval is still pending. Nothing was sent.",
+            next_action="Next: wait for approval.",
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.VALIDATED
+    assert result["validation_result"]["forbidden_claims"] == ()
+    assert result["validation_result"]["output_publish_allowed"] is True
+
+
 def test_exported_readmodel_parses(tmp_path):
     payload = gate.build_payload(generated_at="2026-05-26T00:00:00+00:00")
     json_path, operator_path = gate.write_exports(payload, tmp_path)
