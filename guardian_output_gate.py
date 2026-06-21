@@ -113,6 +113,11 @@ PROOF_BACKED_LOCAL_CLAIMS = (
     "updated",
 )
 
+APPROVAL_EXECUTION_CLAIMS = (
+    "approved",
+    "authorized",
+)
+
 LEAKAGE_PATTERNS = (
     "password=",
     "password:",
@@ -428,6 +433,14 @@ def validate_role_output(candidate: RoleResponseCandidate, package: RoleExecutio
         blocked.append("Role output appears to expose protected/private details.")
 
     forbidden_claims = candidate.completion_claims
+    approval_execution_claims = tuple(claim for claim in forbidden_claims if claim in APPROVAL_EXECUTION_CLAIMS)
+    approval_authority_granted = any(
+        bool(package.authority_boundary.get(key))
+        for key in ("approval_execution", "approval_execution_allowed", "live_approval_execution_allowed")
+    )
+    approval_claim_without_authority = bool(approval_execution_claims and not approval_authority_granted)
+    if approval_claim_without_authority:
+        blocked.append("Role output claims approval execution without approval authority.")
     blocked_claims = _blocked_completion_claims(forbidden_claims, candidate.proof_refs)
     if blocked_claims and not candidate.proof_refs:
         blocked.append("Role output makes completion/action claims without proof refs.")
@@ -436,7 +449,7 @@ def validate_role_output(candidate: RoleResponseCandidate, package: RoleExecutio
 
     if forbidden_tools:
         verdict = BLOCKED_FORBIDDEN_TOOL
-    elif forbidden_actions or authority_requested or package_authority_granted:
+    elif forbidden_actions or authority_requested or package_authority_granted or approval_claim_without_authority:
         verdict = BLOCKED_AUTHORITY
     elif blocked_claims:
         verdict = BLOCKED_FORBIDDEN_CLAIM
