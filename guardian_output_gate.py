@@ -167,9 +167,18 @@ NEGATION_CUES = (
     "without",
     "blocked",
     "missing",
+    "unproven",
+)
+# Hedging cues: present-tense qualifiers that do NOT negate a completion claim.
+# "Pending: I sent it" still asserts the send happened — treat it as unnegated.
+# These are excluded from NEGATION_CUES so they cannot be used to bypass the gate.
+HEDGING_CUES = (
     "pending",
     "unverified",
-    "unproven",
+    "unconfirmed",
+    "subject to",
+    "contingent",
+    "conditional",
 )
 
 _CLAUSE_BOUNDARY_RE = re.compile(
@@ -308,6 +317,11 @@ def _same_clause_prefix(text: str, claim_start: int) -> str:
     return prefix[last_boundary_end:]
 
 
+def _has_hedging_cue(text: str) -> bool:
+    lowered = text.lower()
+    return any(cue in lowered for cue in HEDGING_CUES)
+
+
 def _unnegated_claims(text: str) -> tuple[str, ...]:
     lowered = str(text or "").lower()
     claims: list[str] = []
@@ -315,6 +329,9 @@ def _unnegated_claims(text: str) -> tuple[str, ...]:
         for match in re.finditer(rf"\b{re.escape(claim)}\b", lowered):
             clause_prefix = _same_clause_prefix(lowered, match.start())
             tokens = _NEGATION_TOKEN_RE.findall(clause_prefix)
+            # Real negations (not/cannot/didn't/etc.) clear THIS occurrence.
+            # Hedging cues (pending/unverified/subject to/etc.) are NOT in
+            # NEGATION_CUES — they do not clear the claim; agent still asserted it.
             if not any(token in NEGATION_CUES for token in tokens[-8:]):
                 claims.append(claim)
                 break

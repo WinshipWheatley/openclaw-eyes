@@ -137,6 +137,36 @@ def test_subject_clause_boundary_does_not_clear_later_completion_claim():
     assert result["validation_result"]["forbidden_claims"] == ("updated",)
 
 
+def test_hedging_cues_before_completion_claim_still_blocked():
+    # "Pending: I sent it" — hedge before claim does NOT negate it; gate stays blocked.
+    # Removes the bypass: pre-claim hedge words (pending/unverified/etc.) must not
+    # allow the completion claim to pass as "negated."
+    for text in (
+        "Unverified: I sent the invoice.",
+        "Pending: I sent it to the client.",
+        "Unconfirmed: I submitted the form.",
+        "Subject to final confirmation, I sent the payment.",
+    ):
+        result = gate.validate_response_payload(
+            _safe_payload(headline="Hedged claim", eliwinship=text, next_action="Next: review.", readback_files=())
+        )
+        assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM, f"Expected blocked for: {text!r}"
+        assert result["validation_result"]["output_publish_allowed"] is False
+
+
+def test_hedging_cues_adjacent_completion_claim_blocked():
+    # Hedge words immediately following the claim (across "but" boundary) still blocked.
+    for text in (
+        "I sent it, but unverified",
+        "Sent, pending approval",
+        "submitted subject to final confirmation",
+    ):
+        result = gate.validate_response_payload(
+            _safe_payload(headline="Post-hedge", eliwinship=text, next_action="Next.", readback_files=())
+        )
+        assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM, f"Expected blocked for: {text!r}"
+
+
 def test_negative_contractions_do_not_create_completion_claims():
     result = gate.validate_response_payload(
         _safe_payload(
