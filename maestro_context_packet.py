@@ -25,6 +25,9 @@ KNOWN_READ_MODELS = (
     "finance_invoice_reconciliation.json",
     "capital_hilton_invoice_operator_readback.json",
     "capital_hilton_invoice_operator_run_status.json",
+    "live_arts_md_invoice_candidate_register.json",
+    "st_annes_monthly_work_log_contract.json",
+    "st_annes_work_log_review_surface.json",
     "cassandra_email_calendar_delta_detangle.json",
     "work_board.json",
 )
@@ -388,6 +391,36 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             pii_tier="LIGHT",
             freshness=_freshness(root / "finance_invoice_reconciliation.json", finance),
         )
+
+    try:
+        from ar_receivables_read_model import EXPORT_NAME as AR_RECEIVABLES_EXPORT_NAME
+        from ar_receivables_read_model import build_ar_receivables_read_model
+
+        ar_payload = build_ar_receivables_read_model(read_model_root=root)
+    except Exception:
+        ar_payload = {}
+        AR_RECEIVABLES_EXPORT_NAME = "ar_receivables_status.json"
+    proof["ar_receivables_read_model_built"] = bool(ar_payload)
+    if ar_payload:
+        ar_refs = [str(ref) for ref in ar_payload.get("source_refs", ()) if str(ref).strip()]
+        refs.extend(ref for ref in ar_refs if ref not in refs)
+        proof["ar_receivables_read_model_status"] = str(ar_payload.get("status") or "")
+        proof["ar_receivables_source_count"] = len(ar_refs)
+        if ar_payload.get("operator_summary"):
+            _append_fact(
+                facts,
+                topic="ar_receivables",
+                label="AR receivables rollup",
+                value=(
+                    f"{ar_payload.get('operator_summary')}. "
+                    f"Open total: {ar_payload.get('open_amount_display')}. "
+                    f"Next safe AR move: {ar_payload.get('next_safe_ar_move')}"
+                ),
+                provenance="derived_read_model",
+                source_ref=f"generated/read_models/{AR_RECEIVABLES_EXPORT_NAME}",
+                pii_tier="LIGHT",
+                freshness={"source_refs": ar_refs},
+            )
 
     cap_run = payloads.get("capital_hilton_invoice_operator_run_status.json", {})
     if cap_run:
