@@ -394,6 +394,26 @@ _SCHEDULE_INTENT_MARKERS = (
     "rehearsal",
 )
 _SCHEDULE_ANSWER_TOPICS = frozenset({"calendar_day"})
+# Finance markers: only terms that cannot appear in schedule/calendar queries.
+# "today", "day", "gig", "calendar", "upcoming" are excluded — those belong to
+# _SCHEDULE_INTENT_MARKERS and schedule intent wins when present (checked first).
+_FINANCE_INTENT_MARKERS = (
+    "invoice",
+    "invoices",
+    "payment",
+    "payments",
+    "money owed",
+    "what do i owe",
+    "how much do i owe",
+    "owed",
+    "receivable",
+    "payable",
+    "overdue",
+    "balance due",
+    "outstanding balance",
+    "ledger",
+)
+_FINANCE_ANSWER_TOPICS = frozenset({"finance_invoice_reconciliation", "invoice_status"})
 _NO_PACKET_ANSWER = (
     "I don't have that in the current Maestro packet. "
     "I can answer from the packet or ask Chief for a reviewed action plan, but I won't invent it."
@@ -403,6 +423,11 @@ _NO_PACKET_ANSWER = (
 def _is_schedule_intent(prompt: str) -> bool:
     lowered = str(prompt or "").lower()
     return any(marker in lowered for marker in _SCHEDULE_INTENT_MARKERS)
+
+
+def _is_finance_intent(prompt: str) -> bool:
+    lowered = str(prompt or "").lower()
+    return any(marker in lowered for marker in _FINANCE_INTENT_MARKERS)
 
 
 def _schedule_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
@@ -421,13 +446,35 @@ def _schedule_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
     return " ".join(matched[:3]) if matched else None
 
 
+def _finance_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
+    matched: list[str] = []
+    seen: set[str] = set()
+    for fact in facts:
+        if str(fact.get("topic") or "").strip().lower() not in _FINANCE_ANSWER_TOPICS:
+            continue
+        sentence = _format_answer_fact(fact)
+        key = sentence.lower()
+        if sentence and key not in seen:
+            matched.append(sentence)
+            seen.add(key)
+        if len(matched) >= 3:
+            break
+    return " ".join(matched[:3]) if matched else None
+
+
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
 
+    # Schedule intent wins first — calendar/gig/day queries never reach finance path.
     if _is_schedule_intent(prompt):
         scheduled = _schedule_grounded_answer(facts)
         return scheduled if scheduled is not None else _NO_PACKET_ANSWER
+
+    # Finance intent: invoice/payment/owed queries answered from finance facts only.
+    if _is_finance_intent(prompt):
+        financed = _finance_grounded_answer(facts)
+        return financed if financed is not None else _NO_PACKET_ANSWER
 
     terms = _question_terms(prompt)
     allow_system_posture = _requests_system_posture(prompt)

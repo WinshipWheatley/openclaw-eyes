@@ -662,3 +662,51 @@ def test_fallback_named_entity_and_domain_routing_unchanged_by_000h(tmp_path: Pa
     assert "Capital Hilton" in answer("what is my Capital Hilton status?")
     assert "All paid up" in answer("what's the status of St Anne's?")
     assert "finance candidates" in answer("what invoices are open?")
+
+
+def test_finance_intent_grounded_answer(tmp_path: Path) -> None:
+    # Finance queries (invoice/payment/owed) must route to finance facts, not generic scoring.
+    # Calendar queries must NEVER match finance intent even when "today" is present.
+    from protected_generate import _is_finance_intent, protected_generate_with_receipt
+
+    # Verify finance markers hit finance intent and calendar markers do NOT.
+    assert _is_finance_intent("what's owed on invoices?")
+    assert _is_finance_intent("how much do I owe?")
+    assert _is_finance_intent("what payments are outstanding?")
+    assert not _is_finance_intent("what's on my calendar today?")
+    assert not _is_finance_intent("what does my day look like?")
+    assert not _is_finance_intent("when is my next gig?")
+
+    packet = {
+        "packet_id": "packet:test:finance_intent",
+        "facts": [
+            {
+                "topic": "finance_invoice_reconciliation",
+                "label": "Open invoices",
+                "value": "Capital Hilton $2000 receivable; payment due July 1.",
+            },
+            {
+                "topic": "calendar_day",
+                "label": "Upcoming calendar commitments",
+                "value": "2026-06-26 - Rehearsal at St Anne's - 19:00.",
+            },
+        ],
+    }
+
+    def answer(question: str) -> str:
+        return protected_generate_with_receipt(
+            question,
+            context_packet=packet,
+            audit_log_path=tmp_path / "audit.jsonl",
+            allow_live_model=False,
+        ).text
+
+    # Finance question returns finance fact, not calendar fact.
+    finance_answer = answer("what's owed on invoices?")
+    assert "Capital Hilton" in finance_answer or "receivable" in finance_answer, finance_answer
+    assert "Rehearsal" not in finance_answer, finance_answer
+
+    # Calendar question still routes to calendar fact, NOT finance fact.
+    calendar_answer = answer("what's on my calendar today?")
+    assert "Rehearsal" in calendar_answer, calendar_answer
+    assert "receivable" not in calendar_answer, calendar_answer
