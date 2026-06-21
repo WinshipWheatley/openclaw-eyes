@@ -336,6 +336,83 @@ def test_fallback_day_question_uses_calendar_events_not_posture(tmp_path: Path) 
     assert outcome.receipt["model_call_performed"] is False
 
 
+def test_fallback_filler_verb_does_not_collide_with_finance_fact(tmp_path: Path) -> None:
+    # 000i regression: "I NEED to understand X" must not surface a finance fact just
+    # because a business value contains the filler word "need". Live dogfooding caught
+    # this — "explain SQLite" returned "Live Arts MD owes you" via a substring collision.
+    from protected_generate import protected_generate_with_receipt
+
+    outcome = protected_generate_with_receipt(
+        "I need to understand better what you're saying about SQLITE",
+        context_packet={
+            "packet_id": "packet:test:need_collision",
+            "facts": [
+                {
+                    "topic": "invoice",
+                    "label": "Live Arts MD",
+                    "value": "Live Arts MD owes the operator for a ton of work; details need codex-desktop context from the Draper follow-up email chat.",
+                },
+            ],
+        },
+        audit_log_path=tmp_path / "audit.jsonl",
+        allow_live_model=False,
+    )
+
+    text = outcome.text
+    assert outcome.status == "ANSWER_READY"
+    assert "Live Arts MD" not in text
+    assert "owes" not in text
+    assert "won't invent it" in text
+    assert outcome.receipt["model_call_performed"] is False
+
+
+def test_fallback_pure_meta_question_stays_honest_not_first_fact(tmp_path: Path) -> None:
+    # 000i: a question that reduces to zero content terms (pure clarification/meta) must
+    # NOT dump an arbitrary business fact. The new filler-word stopwords must not open a
+    # fresh confabulation path through _fact_match_score's empty-terms branch.
+    from protected_generate import protected_generate_with_receipt
+
+    packet = {
+        "packet_id": "packet:test:pure_meta",
+        "facts": [
+            {"topic": "invoice", "label": "Live Arts MD", "value": "Live Arts MD owes the operator."},
+            {"topic": "calendar_day", "label": "Today", "value": "Capital Hilton gig at 7pm."},
+        ],
+    }
+    for meta_question in ("what do you mean", "what are you saying"):
+        outcome = protected_generate_with_receipt(
+            meta_question,
+            context_packet=packet,
+            audit_log_path=tmp_path / "audit.jsonl",
+            allow_live_model=False,
+        )
+        assert "won't invent it" in outcome.text, meta_question
+        assert "Live Arts MD" not in outcome.text, meta_question
+        assert "Capital Hilton" not in outcome.text, meta_question
+
+
+def test_fallback_overview_ask_still_digests_facts(tmp_path: Path) -> None:
+    # 000i: the honesty guard must not silence a genuine overview/status ask — a bare
+    # "status" / "what's up" still earns the headline digest.
+    from protected_generate import protected_generate_with_receipt
+
+    packet = {
+        "packet_id": "packet:test:overview",
+        "facts": [
+            {"topic": "invoice", "label": "Live Arts MD", "value": "Live Arts MD owes the operator."},
+        ],
+    }
+    for overview_ask in ("status", "what's up"):
+        outcome = protected_generate_with_receipt(
+            overview_ask,
+            context_packet=packet,
+            audit_log_path=tmp_path / "audit.jsonl",
+            allow_live_model=False,
+        )
+        assert "Live Arts MD" in outcome.text, overview_ask
+        assert "won't invent it" not in outcome.text, overview_ask
+
+
 def test_protected_generate_falls_back_after_fast_local_budget(monkeypatch, tmp_path: Path) -> None:
     from protected_generate import protected_generate_with_receipt
 
