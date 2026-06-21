@@ -391,6 +391,38 @@ def test_fallback_pure_meta_question_stays_honest_not_first_fact(tmp_path: Path)
         assert "Capital Hilton" not in outcome.text, meta_question
 
 
+def test_fallback_extended_filler_verbs_do_not_collide(tmp_path: Path) -> None:
+    # 000i (extended, AGY-G validation): meta/clarification questions built from OTHER
+    # filler verbs (show/give/help/more/details/doing) must also stay honest, even when a
+    # business fact's value contains those substrings.
+    from protected_generate import protected_generate_with_receipt
+
+    packet = {
+        "packet_id": "packet:test:extended_filler",
+        "facts": [
+            {
+                "topic": "invoice",
+                "label": "Live Arts MD",
+                "value": "Live Arts MD owes the operator; I can show you more details, give a breakdown, and help explain what they are doing.",
+            },
+        ],
+    }
+    for meta_question in (
+        "show me what you mean",
+        "give me more details",
+        "help me understand this",
+        "please show me what you are doing",
+    ):
+        outcome = protected_generate_with_receipt(
+            meta_question,
+            context_packet=packet,
+            audit_log_path=tmp_path / "audit.jsonl",
+            allow_live_model=False,
+        )
+        assert "won't invent it" in outcome.text, meta_question
+        assert "Live Arts MD" not in outcome.text, meta_question
+
+
 def test_fallback_overview_ask_still_digests_facts(tmp_path: Path) -> None:
     # 000i: the honesty guard must not silence a genuine overview/status ask — a bare
     # "status" / "what's up" still earns the headline digest.

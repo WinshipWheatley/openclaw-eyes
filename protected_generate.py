@@ -324,6 +324,36 @@ QUESTION_STOP_WORDS = frozenset(
         "wants",
         "wonder",
         "wondering",
+        # 000i (extended, per AGY-G validation): more conversational filler verbs/adverbs
+        # that substring-collide the same way. NOTE: business-ambiguous nouns like
+        # "check" ($2000 check) are deliberately NOT stopworded — protecting legit finance
+        # queries. The naive substring matcher means this list is necessarily best-effort;
+        # the structural fix (word-boundary + low-signal/rarity scoring) is a later pass.
+        "detail",
+        "details",
+        "did",
+        "doing",
+        "give",
+        "given",
+        "gives",
+        "giving",
+        "gave",
+        "help",
+        "helped",
+        "helping",
+        "helps",
+        "more",
+        "please",
+        "should",
+        "show",
+        "showing",
+        "shown",
+        "shows",
+        "telling",
+        "tells",
+        "these",
+        "told",
+        "those",
     }
 )
 SYSTEM_POSTURE_TOPICS = frozenset({"agent_presence", "capability", "chief", "freshness", "work_board"})
