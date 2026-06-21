@@ -27,20 +27,22 @@ class TestShowProfile(unittest.TestCase):
         self.assertEqual(chans[1]["name"], "Snare Top")
         self.assertEqual(chans[4]["name"], "Lead Vox")
 
-    def test_categorize_assigns_color_by_instrument(self):
-        self.assertEqual(categorize("Kick")[1], "RD")          # drums
-        self.assertEqual(categorize("Bass DI")[1], "BL")       # bass
-        self.assertEqual(categorize("Gtr SM57")[1], "GN")      # guitar
-        self.assertEqual(categorize("Lead Vox")[1], "WH")      # vocals
-        self.assertEqual(categorize("Nord Keys")[1], "YEi")    # keys
+    def test_categorize_assigns_color_and_icon_by_instrument(self):
+        # categorize -> (category, color, icon) ; icons per the canonical X32 table
+        self.assertEqual(categorize("Kick")[1:], ("RD", 2))        # kick-back
+        self.assertEqual(categorize("Snare Top")[1:], ("RD", 4))   # snare-top
+        self.assertEqual(categorize("Bass DI")[1:], ("BL", 17))    # elec-bass
+        self.assertEqual(categorize("Gtr SM57")[1:], ("GN", 20))   # elec-guit
+        self.assertEqual(categorize("Lead Vox")[1:], ("WH", 41))   # male-singer
+        self.assertEqual(categorize("Nord Keys")[1:], ("YEi", 29)) # elec-key
 
     def test_build_scene_is_valid_x32_format(self):
         chans = [{"ch": 1, "name": "Kick"}, {"ch": 2, "name": "Lead Vox"}]
         scn = build_scene(chans, "Reynolds Gig")
         lines = scn.splitlines()
         self.assertTrue(lines[0].startswith("#4.0#"))
-        self.assertIn('/ch/01/config "Kick" 1 RD 1', scn)
-        self.assertIn('/ch/02/config "Lead Vox" 1 WH 2', scn)
+        self.assertIn('/ch/01/config "Kick" 2 RD 1', scn)       # name + icon 2 + color + source
+        self.assertIn('/ch/02/config "Lead Vox" 41 WH 2', scn)
 
     def test_scene_name_truncated_to_16(self):
         scn = build_scene([{"ch": 1, "name": "X"}], "A really long show name here")
