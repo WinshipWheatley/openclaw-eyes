@@ -53,6 +53,52 @@ def _append_log(intent: str, issue: str, action: str) -> None:
         VAULT_LOG.write_text(entry, encoding="utf-8")
 
 
+# ── Severity integrity guard ───────────────────────────────────────────────────
+
+# Severity keywords: if present in source_text, they must not be dropped or
+# softened in output_text (doctrine: calm tone NEVER weakens a true critical state).
+_SEVERITY_KEYWORDS: frozenset[str] = frozenset({
+    "failed", "blocked", "risk", "missed", "overdue", "denied",
+})
+
+# Words that may euphemistically replace a severity keyword in output.
+_SOFTENING_REPLACEMENTS: tuple[str, ...] = (
+    "pending",
+    "in progress",
+    "waiting",
+    "deferred",
+    "ready",
+    "soft-landing",
+    "soft landing",
+)
+
+# Modifier prefixes that soften a severity keyword when they precede it.
+_SOFTENING_PREFIXES: tuple[str, ...] = (
+    "soft ",
+    "soft-",
+    "gentle ",
+    "graceful",
+)
+
+
+def check_severity_softening(source_text: str, output_text: str) -> str | None:
+    """Return a block-reason string if a severity keyword was dropped or softened, else None."""
+    source_lower = (source_text or "").lower()
+    output_lower = (output_text or "").lower()
+    for kw in _SEVERITY_KEYWORDS:
+        if kw not in source_lower:
+            continue
+        if kw not in output_lower:
+            for mod in _SOFTENING_REPLACEMENTS:
+                if mod in output_lower:
+                    return f"severity_softening_detected: {kw}→{mod}"
+            return f"severity_softening_detected: {kw} omitted from output"
+        for prefix in _SOFTENING_PREFIXES:
+            if (prefix + kw) in output_lower:
+                return f"severity_softening_detected: {prefix.strip()}+{kw}"
+    return None
+
+
 # ── Checks ─────────────────────────────────────────────────────────────────────
 
 def _has_traceback(text: str) -> bool:

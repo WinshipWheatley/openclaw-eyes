@@ -518,6 +518,7 @@
 !tests/test_send_truth.py
 !tests/test_chief_approval_brain.py
 !tests/test_chief_nonapproval_routing.py
+!tests/test_chief_validator_brain.py
 !tests/test_chief_claude_cleanup.py
 !tests/test_chief_llm_router.py
 !tests/test_openclaw_pytest_sandbox.py
