@@ -858,6 +858,55 @@ def build_and_export(
     return payload if format_name == "json" else build_summary(payload, export_root)
 
 
+# ── Terminology Adapter ────────────────────────────────────────────────────────
+
+
+class TerminologyAdapter:
+    """Deterministic 3-layer terminology adapter (Velvet/Concierge/Steel).
+
+    Maps machine-layer tokens to Maestro (internal operator) or Clara
+    (client-facing) voice equivalents. Preserves financial/legal fidelity:
+    never hides totals, never renames legal terms, never grants authority.
+    Falls back to the original term when no mapping exists.
+    """
+
+    _MAESTRO_MAP: dict[str, str] = {
+        "BLOCKED_PENDING_APPROVAL": "Ready and protected at your approval gate",
+        "SEND_HOLD": "Send authority is locked pending approval",
+        "VALIDATED": "Verified and ready for review",
+        "BLOCKED_AUTHORITY": "Blocked — authority boundary not met",
+        "BLOCKED_FORBIDDEN_CLAIM": "Blocked — claim requires proof",
+        "BLOCKED_LEAKAGE": "Blocked — credential or PII leakage detected",
+        "PAYMENT_PENDING": "Payment scheduled; awaiting confirmation",
+    }
+
+    _CLARA_MAP: dict[str, str] = {
+        "BLOCKED_PENDING_APPROVAL": "Everything is prepared. Once approved, we'll proceed.",
+        "SEND_HOLD": "We're holding here until you give the go-ahead.",
+        "VALIDATED": "This is ready for your review.",
+        "BLOCKED_AUTHORITY": "We cannot proceed further until approval is confirmed.",
+        "BLOCKED_FORBIDDEN_CLAIM": "We need proof before we can confirm this step.",
+        "BLOCKED_LEAKAGE": "We cannot share that detail here.",
+        "PAYMENT_PENDING": "Payment is on the way and will be confirmed shortly.",
+    }
+
+    def context_layer(self, term: str, role: str = "maestro") -> str:
+        """Return a voice-appropriate rendering of a machine token.
+
+        Args:
+            term: Machine-layer token (e.g. 'BLOCKED_PENDING_APPROVAL').
+            role: 'maestro' (internal operator) | 'clara' (client-facing).
+
+        Returns:
+            Mapped human-readable text, or the original term as fallback.
+        """
+        if role == "maestro":
+            return self._MAESTRO_MAP.get(term, term)
+        if role == "clara":
+            return self._CLARA_MAP.get(term, term)
+        return term
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export Agent Voice + Vibe Response Layer read-model.")
     parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
