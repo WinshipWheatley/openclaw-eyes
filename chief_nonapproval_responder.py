@@ -47,6 +47,7 @@ def _approval_hold_reason(t: str) -> str | None:
             "post",
             "publish",
             "deliver",
+            "pay",
         ),
     )
     approval_like = _has_any(t, ("approval", "approved", "approve", "sign off", "sign-off", "ok from", "greenlight"))
@@ -58,9 +59,13 @@ def _approval_hold_reason(t: str) -> str | None:
         (
             "before approval",
             "before final approval",
+            "before getting approval",
+            "before approval lands",
             "before winship",
             "without approval",
             "without final approval",
+            "approval missing",
+            "approval pending",
             "pending approval",
             "pending final approval",
             "missing approval",
@@ -71,6 +76,10 @@ def _approval_hold_reason(t: str) -> str | None:
             "no approval",
             "until approval",
             "until final approval",
+            "until approval lands",
+            "after approval",
+            "after approval lands",
+            "after final approval",
             "waiting on approval",
             "waiting for approval",
             "final wording approval",
@@ -91,13 +100,22 @@ def _approval_hold_reason(t: str) -> str | None:
             "approved except",
             "approved however",
             "approved; but",
+            "approve then",
+            "approve, then",
+            "approve; then",
+            "approved then",
+            "approved, then",
+            "approved; then",
             "approval says wait",
             "approval says hold",
             "approved if",
             "approved unless",
         ),
     )
-    if contradictory_approval and _has_any(t, ("wait", "hold", "not yet", "before", "unless", "until", "pending", "final")):
+    if contradictory_approval and _has_any(
+        t,
+        ("send", "pay", "wait", "hold", "not yet", "before", "unless", "until", "pending", "final"),
+    ):
         return "the approval is conditional or contradictory"
 
     return None
