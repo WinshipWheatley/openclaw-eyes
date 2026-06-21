@@ -1,7 +1,11 @@
 """RED-first tests for the Niles X32 OSC controller, against the X32 fake.
 Fast (sub-second), no hardware. Run: python3 -m unittest test_niles_x32 -v
+
+Maillot emulator tests run only when MAILLOT_IP is set and the emulator is
+reachable. Set MAILLOT_PORT to override the default (10023).
 """
 import os
+import socket
 import tempfile
 import time
 import unittest
@@ -10,18 +14,45 @@ from x32_fake import X32Fake
 from niles_x32 import NilesX32
 
 
-class TestNilesX32(unittest.TestCase):
-    def setUp(self):
-        self.fake = X32Fake().start()
-        self.n = NilesX32(self.fake.host, self.fake.port, timeout=1.0)
+# ── Maillot emulator probe ─────────────────────────────────────────────────────
 
-    def tearDown(self):
-        self.n.close()
-        self.fake.stop()
+def _maillot_reachable(ip: str, port: int, timeout: float = 1.0) -> bool:
+    """Return True if the Maillot X32 emulator responds at ip:port."""
+    try:
+        from osc_codec import encode, decode
+        probe = encode("/xinfo")
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(timeout)
+        sock.sendto(probe, (ip, port))
+        data, _ = sock.recvfrom(65535)
+        sock.close()
+        _, args = decode(data)
+        return bool(args)
+    except Exception:
+        return False
+
+
+_MAILLOT_IP   = os.environ.get("MAILLOT_IP", "")
+_MAILLOT_PORT = int(os.environ.get("MAILLOT_PORT", "10023"))
+_MAILLOT_AVAILABLE = bool(_MAILLOT_IP) and _maillot_reachable(_MAILLOT_IP, _MAILLOT_PORT)
+
+_SKIP_MAILLOT = unittest.skipUnless(
+    _MAILLOT_AVAILABLE,
+    f"MAILLOT_IP not set or emulator not reachable at {_MAILLOT_IP or '<unset>'}:{_MAILLOT_PORT}",
+)
+
+
+# ── Shared test logic (mix-in) ─────────────────────────────────────────────────
+
+class _X32ControllerTests:
+    """Shared test methods run against any X32 back-end (fake or emulator)."""
+
+    n: NilesX32  # provided by subclass setUp
 
     def test_connect_xinfo(self):
         info = self.n.xinfo()
-        self.assertIn("X32FAKE", info)
+        self.assertIsInstance(info, str)
+        self.assertTrue(len(info) > 0, "xinfo returned empty string")
 
     def test_set_and_get_channel_name(self):
         self.n.set_channel_name(1, "Kick")
@@ -42,7 +73,7 @@ class TestNilesX32(unittest.TestCase):
 
     def test_headamp_resolver_local_and_stagebox(self):
         self.assertEqual(self.n.resolve_headamp("local", 1), 0)
-        self.assertEqual(self.n.resolve_headamp("aes50a", 1), 32)   # DL16 input 1 over AES50-A
+        self.assertEqual(self.n.resolve_headamp("aes50a", 1), 32)
         self.assertEqual(self.n.resolve_headamp("aes50b", 1), 80)
 
     def test_headamp_gain_and_phantom_set(self):
@@ -72,6 +103,35 @@ class TestNilesX32(unittest.TestCase):
         time.sleep(0.02)
         self.assertTrue(self.n.verify("/ch/05/config/name", ["Vox"]))
         self.assertFalse(self.n.verify("/ch/05/config/name", ["Wrong"]))
+
+
+# ── Fake backend (always runs) ─────────────────────────────────────────────────
+
+class TestNilesX32(_X32ControllerTests, unittest.TestCase):
+    def setUp(self):
+        self.fake = X32Fake().start()
+        self.n = NilesX32(self.fake.host, self.fake.port, timeout=1.0)
+
+    def tearDown(self):
+        self.n.close()
+        self.fake.stop()
+
+    def test_connect_xinfo(self):
+        info = self.n.xinfo()
+        self.assertIn("X32FAKE", info)
+
+
+# ── Maillot emulator backend (skipped unless MAILLOT_IP reachable) ────────────
+
+@_SKIP_MAILLOT
+class TestNilesX32Maillot(_X32ControllerTests, unittest.TestCase):
+    """Same test suite against the Maillot X32 emulator."""
+
+    def setUp(self):
+        self.n = NilesX32(_MAILLOT_IP, _MAILLOT_PORT, timeout=2.0)
+
+    def tearDown(self):
+        self.n.close()
 
 
 if __name__ == "__main__":
