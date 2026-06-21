@@ -294,12 +294,46 @@ def test_fallback_capital_hilton_status_is_concise_and_question_targeted(tmp_pat
     assert "$2000" in text
     assert "July 1 check expected" in text
     assert "$400 gigs" in text
+    assert text.startswith("Ground:")
+    assert "Curate:" in text
+    assert "Move:" in text
+    assert "Release:" in text
     assert "live-implemented" not in text
     assert "Calendar merged-context" not in text
     assert "St Anne" not in text
     assert "next Friday" not in text
     assert "SEND_HOLD" not in text
     assert text.count(".") <= 3
+    assert outcome.receipt["model_call_performed"] is False
+
+
+def test_fallback_velvet_brief_keeps_hard_severity_exact(tmp_path: Path) -> None:
+    from protected_generate import protected_generate_with_receipt
+
+    outcome = protected_generate_with_receipt(
+        "what is the security and invoice status?",
+        context_packet={
+            "packet_id": "packet:test:severity_integrity",
+            "facts": [
+                {
+                    "topic": "operator_truth",
+                    "label": "Invoice and security status",
+                    "value": "Send failed; $2000 still owed; security review required.",
+                }
+            ],
+        },
+        audit_log_path=tmp_path / "audit.jsonl",
+        allow_live_model=False,
+    )
+
+    text = outcome.text
+    assert outcome.status == "ANSWER_READY"
+    assert "Send failed" in text
+    assert "$2000 still owed" in text
+    assert "security review required" in text
+    assert "treat that condition as active until fresh proof clears it" in text
+    assert "all good" not in text.lower()
+    assert "probably fine" not in text.lower()
     assert outcome.receipt["model_call_performed"] is False
 
 

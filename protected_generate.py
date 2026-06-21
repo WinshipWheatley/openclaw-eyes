@@ -10,7 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 
 DEFAULT_AUDIT_LOG = Path("/mnt/c/OpenClaw/logs/protected_generate_audit.jsonl")
@@ -312,6 +312,17 @@ SYSTEM_POSTURE_TERMS = frozenset(
     {"agent", "agents", "capability", "capabilities", "chief", "openclaw", "online", "rail", "rails", "roster", "system"}
 )
 ANSWER_FILLER_MARKERS = ("next friday",)
+VELVET_SEVERITY_MARKERS = (
+    "breach",
+    "failed",
+    "failure",
+    "missed",
+    "overdue",
+    "security",
+    "unauthorized",
+)
+VELVET_MONEY_MARKERS = ("$", "invoice", "money", "paid", "payment", "price", "receivable", "owed")
+VELVET_CALENDAR_MARKERS = ("calendar", "call", "commitment", "meeting", "rehearsal", "schedule")
 _WORD_RE = re.compile(r"[a-z0-9']+")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|;\s+")
 
@@ -371,6 +382,53 @@ def _format_answer_fact(fact: Mapping[str, Any]) -> str:
     return value.rstrip(".") + "."
 
 
+def _answer_fragments(sentences: Sequence[str]) -> list[str]:
+    fragments: list[str] = []
+    seen: set[str] = set()
+    for sentence in sentences:
+        for chunk in _SENTENCE_SPLIT_RE.split(str(sentence or "")):
+            clean = chunk.strip(" \t\r\n.")
+            if not clean:
+                continue
+            key = clean.lower()
+            if key in seen:
+                continue
+            fragments.append(clean)
+            seen.add(key)
+            if len(fragments) >= 4:
+                return fragments
+    return fragments
+
+
+def _velvet_move(prompt: str, fragments: Sequence[str]) -> str:
+    text = f"{prompt} {' '.join(fragments)}".lower()
+    if any(marker in text for marker in VELVET_SEVERITY_MARKERS):
+        return "treat that condition as active until fresh proof clears it"
+    if any(marker in text for marker in VELVET_CALENDAR_MARKERS):
+        return "use these commitments as the day plan"
+    if any(marker in text for marker in VELVET_MONEY_MARKERS):
+        return "use the stated money status as the next review point"
+    return "use this grounded fact as the current answer"
+
+
+def _velvet_release(prompt: str, fragments: Sequence[str]) -> str:
+    text = f"{prompt} {' '.join(fragments)}".lower()
+    if any(marker in text for marker in VELVET_SEVERITY_MARKERS):
+        return "background activity can stay quiet, but the consequence stays exact"
+    return "unrelated details can stay quiet"
+
+
+def _velvet_brief_answer(prompt: str, sentences: Sequence[str]) -> str:
+    fragments = _answer_fragments(sentences)
+    if not fragments:
+        return ""
+    ground = fragments[0]
+    curate = "; ".join(fragments[1:]) if len(fragments) > 1 else "no extra context is needed"
+    move = _velvet_move(prompt, fragments)
+    release = _velvet_release(prompt, fragments)
+    return f"Ground: {ground}; Curate: {curate}; Move: {move}; Release: {release}."
+
+
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
@@ -408,7 +466,7 @@ def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | s
             "I don't have that in the current Maestro packet. "
             "I can answer from the packet or ask Chief for a reviewed action plan, but I won't invent it."
         )
-    return " ".join(matched[:3])
+    return _velvet_brief_answer(prompt, matched[:3]) or " ".join(matched[:3])
 
 
 def _write_audit(receipt: Mapping[str, Any], audit_log_path: str | Path | None = None) -> str:
