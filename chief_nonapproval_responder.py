@@ -47,6 +47,7 @@ def _approval_hold_reason(t: str) -> str | None:
             "post",
             "publish",
             "deliver",
+            "pay",
         ),
     )
     approval_like = _has_any(t, ("approval", "approved", "approve", "sign off", "sign-off", "ok from", "greenlight"))
@@ -74,6 +75,15 @@ def _approval_hold_reason(t: str) -> str | None:
             "waiting on approval",
             "waiting for approval",
             "final wording approval",
+            "before getting approval",
+            "until getting approval",
+            "after approval lands",
+            "until approval lands",
+            "before approval lands",
+            "approval pending",
+            "approval is pending",
+            "approval missing",
+            "approval is missing",
         ),
     )
     if missing_final_approval:
@@ -99,6 +109,26 @@ def _approval_hold_reason(t: str) -> str | None:
     )
     if contradictory_approval and _has_any(t, ("wait", "hold", "not yet", "before", "unless", "until", "pending", "final")):
         return "the approval is conditional or contradictory"
+
+    approve_then_send = _has_any(
+        t,
+        (
+            "approve, then send",
+            "approve then send",
+            "approved, then send",
+            "approved then send",
+            "approve and then send",
+            "once approved, send",
+            "once approved send",
+            "once i approve",
+            "once you approve",
+            "after you approve",
+            "after approval, send",
+            "after approval send",
+        ),
+    )
+    if approve_then_send:
+        return "send is conditioned on future approval"
 
     return None
 

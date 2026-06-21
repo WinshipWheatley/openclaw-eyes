@@ -129,6 +129,18 @@ def test_guardian_capability_and_safety_questions_are_not_approval_status():
             "Winship approved the direction but said hold until final wording approval; should I send it?",
             "final or unambiguous approval is missing",
         ),
+        (
+            "send before getting approval",
+            "final or unambiguous approval is missing",
+        ),
+        (
+            "pay after approval lands",
+            "final or unambiguous approval is missing",
+        ),
+        (
+            "approve, then send it later",
+            "final or unambiguous approval is missing",
+        ),
     ],
 )
 def test_guardian_obvious_approval_hold_makes_stage_block_judgment(prompt, reason):
@@ -141,6 +153,15 @@ def test_guardian_obvious_approval_hold_makes_stage_block_judgment(prompt, reaso
     assert "Nothing was sent" in reply
     assert "SEND_HOLD" in reply
     assert "actual message, recipient, and intended action" not in reply
+
+
+def test_send_approval_email_is_not_money_or_judgment_block():
+    from chief_nonapproval_responder import classify_nonapproval_prompt
+
+    intent = classify_nonapproval_prompt("send the approval email")
+
+    assert intent != "money_block"
+    assert intent != "guardian_judgment_block"
 
 
 def test_chief_routes_obvious_approval_hold_without_detail_punt(monkeypatch):
