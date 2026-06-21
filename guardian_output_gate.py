@@ -120,8 +120,11 @@ LEAKAGE_PATTERNS = (
     "actual credential",
     "actual secret",
     "secret=",
+    "api_key=",
     "token=",
     "oauth_token",
+    "private_key:",
+    "client_secret=",
     "raw private body",
     "base64",
     "cookie",
@@ -130,6 +133,17 @@ LEAKAGE_PATTERNS = (
     "/users/",
     "c:\\",
     "sha256:",
+)
+LEAKAGE_REGEX_PATTERNS = (
+    (
+        "api key",
+        re.compile(r"\bapi[_ -]?key\b\s*(?:=|:|\s+)(?!ref(?:erence)?\b|missing\b|not\s+provided\b)[a-z0-9_\-]{8,}", re.IGNORECASE),
+    ),
+    ("bearer token", re.compile(r"\bbearer\s+[a-z0-9._~+/=-]{16,}", re.IGNORECASE)),
+    ("authorization", re.compile(r"\bauthorization:\s*(?:bearer\s+)?[a-z0-9._~+/=-]{16,}", re.IGNORECASE)),
+    ("jwt", re.compile(r"\b(?:jwt\s+)?eyj[a-z0-9_-]{8,}(?:\.[a-z0-9_-]+){0,2}", re.IGNORECASE)),
+    ("private_key", re.compile(r"\bprivate_key\s*[:=]\s*\S+", re.IGNORECASE)),
+    ("client_secret", re.compile(r"\bclient_secret\s*[:=]\s*\S+", re.IGNORECASE)),
 )
 
 NEGATION_CUES = (
@@ -324,6 +338,9 @@ def _unnegated_claims(text: str) -> tuple[str, ...]:
 def _leakage_hits(text: str) -> tuple[str, ...]:
     lowered = str(text or "").lower()
     hits = [pattern for pattern in LEAKAGE_PATTERNS if pattern in lowered]
+    for label, pattern in LEAKAGE_REGEX_PATTERNS:
+        if pattern.search(str(text or "")):
+            hits.append(label)
     if re.search(r"[\w.+-]+@[\w.-]+\.[a-z]{2,}", lowered):
         hits.append("email_address")
     return tuple(dict.fromkeys(hits))

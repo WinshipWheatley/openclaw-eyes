@@ -2,6 +2,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -212,6 +214,30 @@ def test_abstract_credential_ref_wording_is_not_treated_as_secret_leakage():
         )
     )
     assert safe_result["validation_result"]["verdict"] == gate.VALIDATED
+
+
+@pytest.mark.parametrize(
+    ("text", "hit"),
+    [
+        ("API key abc123xyz", "api key"),
+        ("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "bearer token"),
+        ("client_secret={secret}", "client_secret"),
+    ],
+)
+def test_common_api_credentials_are_blocked_as_leakage(text, hit):
+    result = gate.validate_response_payload(_safe_payload(response_author="CHIEF", eliwinship=text))
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_LEAKAGE
+    assert hit in result["validation_result"]["leakage_hits"]
+
+
+def test_abstract_api_key_reference_is_not_secret_leakage():
+    result = gate.validate_response_payload(
+        _safe_payload(response_author="CHIEF", eliwinship="The API key reference is missing from the safe config.")
+    )
+
+    assert result["validation_result"]["verdict"] == gate.VALIDATED
+    assert "api key" not in result["validation_result"]["leakage_hits"]
 
 
 def test_exported_readmodel_parses(tmp_path):
