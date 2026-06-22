@@ -9,6 +9,7 @@ scope:
 success:
 - Root cause identified or bounded
 - Exact next step recorded
+agent_id: chief
 generated_by: chief_cassandra_failure
 generated_at: 2026-06-10T20:56:23.068137
 

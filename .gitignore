@@ -129,6 +129,7 @@
 !agent_platform_alignment.py
 !agent_identity_actor_router_contract.py
 !model_selection_policy_contract.py
+!model_backend_catalog.py
 !agent_package_preview_contract.py
 !agent_memory_scope_contract.py
 !tool_protocol_adapter_registry_contract.py
@@ -911,6 +912,7 @@
 !tests/test_agent_platform_alignment.py
 !tests/test_agent_identity_actor_router_contract.py
 !tests/test_model_selection_policy_contract.py
+!tests/test_model_backend_catalog.py
 !tests/test_agent_package_preview_contract.py
 !tests/test_agent_memory_scope_contract.py
 !tests/test_tool_protocol_adapter_registry_contract.py

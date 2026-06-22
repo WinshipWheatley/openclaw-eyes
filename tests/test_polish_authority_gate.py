@@ -700,3 +700,157 @@ class TestEdgeCases:
     def test_guardian_blocked_for_r3(self):
         result = gate({"agent_id": "guardian", "consequence": "R3"})
         assert result["allowed"] is False
+
+
+# ---------------------------------------------------------------------------
+# 11. Fail-closed gate: no agent_id → REJECTED (D1 mandatory gate)
+# ---------------------------------------------------------------------------
+
+
+class TestFailClosedNoAgentId:
+    """
+    Tests that prove the gate is MANDATORY (fail-closed) when agent_id is absent.
+    These tests verify the D1(b) flip: tasks without agent_id are now rejected,
+    not silently promoted as legacy/trusted.
+    """
+
+    def _setup_orch(self, tmp_path):
+        """Helper: patch orchestrator globals for an isolated handle_idle() call."""
+        import orchestrator as orch
+        queue_dir = tmp_path / "tasks"
+        queue_dir.mkdir()
+        task_md = tmp_path / "task.md"
+        status_file = tmp_path / "status.json"
+        status_file.write_text('{"status": "idle", "task_name": "?"}')
+
+        saved = {}
+        for attr in (
+            "LOOP_DIR", "TASK_MD", "STATUS_FILE", "LOG_FILE",
+            "CURRENT_DIR", "PC_OUTPUT", "MAC_REVIEW", "CLOSEOUT",
+            "_TEST_SUPPRESS_FILE_LOGS", "_TEST_DISABLE_IDLE_AUTOLAUNCH",
+            "_TEST_DISABLE_AUTHORITY_GATE",
+        ):
+            saved[attr] = getattr(orch, attr)
+
+        orch.LOOP_DIR = tmp_path
+        orch.TASK_MD = task_md
+        orch.STATUS_FILE = status_file
+        orch.LOG_FILE = tmp_path / "orchestrator.log"
+        orch.CURRENT_DIR = tmp_path / "current"
+        orch.PC_OUTPUT = orch.CURRENT_DIR / "pc_output.md"
+        orch.MAC_REVIEW = orch.CURRENT_DIR / "mac_review.md"
+        orch.CLOSEOUT = orch.CURRENT_DIR / "closeout.ok"
+        orch._TEST_SUPPRESS_FILE_LOGS = True
+        orch._TEST_DISABLE_IDLE_AUTOLAUNCH = False
+        orch._TEST_DISABLE_AUTHORITY_GATE = False
+
+        return orch, queue_dir, task_md, saved
+
+    def _restore_orch(self, orch, saved):
+        for attr, val in saved.items():
+            setattr(orch, attr, val)
+
+    def test_task_without_agent_id_is_rejected_fail_closed(self, tmp_path):
+        """
+        A task with valid title + goal but NO agent_id must be REJECTED by the gate
+        and must NOT be promoted to task.md (fail-closed).
+        """
+        orch, queue_dir, task_md, saved = self._setup_orch(tmp_path)
+        try:
+            task_file = queue_dir / "no-agent-task.md"
+            task_file.write_text(
+                "title: no-agent-task\ngoal: do something\nscope:\n- stuff\n"
+            )
+            assert orch._AUTHORITY_GATE_AVAILABLE, "authority_gate must be importable"
+
+            orch.handle_idle({"status": "idle", "task_name": "?"}, dry_run=False)
+
+            assert not task_md.exists(), (
+                "task.md must NOT be written — gate must reject tasks without agent_id"
+            )
+        finally:
+            self._restore_orch(orch, saved)
+
+    def test_task_with_agent_id_is_promoted(self, tmp_path):
+        """
+        A task with agent_id + R1 consequence → promoted (gate ALLOWS it).
+        """
+        orch, queue_dir, task_md, saved = self._setup_orch(tmp_path)
+        try:
+            task_file = queue_dir / "good-agent-task.md"
+            task_file.write_text(
+                "title: good-agent-task\ngoal: do real work\nagent_id: chief\nconsequence: R1\n"
+            )
+            assert orch._AUTHORITY_GATE_AVAILABLE
+
+            orch.handle_idle({"status": "idle", "task_name": "?"}, dry_run=False)
+
+            assert task_md.exists(), (
+                "task.md must be written — chief@R1 is authorised"
+            )
+            assert "good-agent-task" in task_md.read_text()
+        finally:
+            self._restore_orch(orch, saved)
+
+    def test_task_with_agent_id_r4_consequence_is_rejected(self, tmp_path):
+        """
+        A task with agent_id but R4 consequence hits the hard floor — REJECTED.
+        """
+        orch, queue_dir, task_md, saved = self._setup_orch(tmp_path)
+        try:
+            task_file = queue_dir / "r4-task.md"
+            task_file.write_text(
+                "title: r4-task\ngoal: dangerous money work\nagent_id: chief\nconsequence: R4\n"
+            )
+            assert orch._AUTHORITY_GATE_AVAILABLE
+
+            orch.handle_idle({"status": "idle", "task_name": "?"}, dry_run=False)
+
+            assert not task_md.exists(), (
+                "task.md must NOT be written — R4 is a hard floor, never autonomous"
+            )
+        finally:
+            self._restore_orch(orch, saved)
+
+    def test_rejection_is_logged_for_missing_agent_id(self, tmp_path, capsys):
+        """
+        Rejecting a task without agent_id must produce a GATE log line and
+        a record_rejection stdout line.
+        """
+        orch, queue_dir, task_md, saved = self._setup_orch(tmp_path)
+        try:
+            task_file = queue_dir / "unowned-task.md"
+            task_file.write_text(
+                "title: unowned-task\ngoal: mystery work\nscope:\n- ???\n"
+            )
+            assert orch._AUTHORITY_GATE_AVAILABLE
+
+            orch.handle_idle({"status": "idle", "task_name": "?"}, dry_run=False)
+
+            captured = capsys.readouterr()
+            combined = captured.out + captured.err
+            assert "REJECTED" in combined, "Expected GATE REJECTED log for missing agent_id"
+            assert not task_md.exists()
+        finally:
+            self._restore_orch(orch, saved)
+
+    def test_gate_disabled_bypasses_agent_id_check(self, tmp_path):
+        """
+        _TEST_DISABLE_AUTHORITY_GATE=True is the test-isolation escape hatch:
+        a task without agent_id still gets promoted when gate is OFF.
+        """
+        orch, queue_dir, task_md, saved = self._setup_orch(tmp_path)
+        try:
+            task_file = queue_dir / "bypass-no-agent.md"
+            task_file.write_text(
+                "title: bypass-no-agent\ngoal: bypass test\nscope:\n- ok\n"
+            )
+            orch._TEST_DISABLE_AUTHORITY_GATE = True  # gate off
+
+            orch.handle_idle({"status": "idle", "task_name": "?"}, dry_run=False)
+
+            assert task_md.exists(), (
+                "task.md should be written when gate is disabled (escape hatch)"
+            )
+        finally:
+            self._restore_orch(orch, saved)

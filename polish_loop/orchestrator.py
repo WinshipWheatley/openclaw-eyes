@@ -782,13 +782,22 @@ def handle_idle(status: dict, dry_run: bool = False) -> None:
                         f"ALLOWED queued task {promote.name}: {_gate_result['reason']}",
                         dry_run,
                     )
-                # If agent_id is absent from frontmatter, the gate cannot evaluate —
-                # task proceeds (gate is opt-in; tasks without agent_id are legacy/trusted).
-                # TODO: once all queued tasks carry agent_id frontmatter, change this
-                # to fail closed: uncomment the block below.
-                # else:
-                #     log("GATE", f"REJECTED {promote.name}: no agent_id in frontmatter — fail closed", dry_run)
-                #     continue
+                else:
+                    # All legitimate queued tasks must carry agent_id frontmatter.
+                    # A missing agent_id means the task is unowned/unknown — FAIL CLOSED.
+                    _no_agent_id_rejection = {
+                        "allowed": False,
+                        "reason": "no agent_id in frontmatter — fail closed",
+                        "required_tier": None,
+                    }
+                    log(
+                        "GATE",
+                        f"REJECTED queued task {promote.name}: no agent_id in frontmatter — fail closed",
+                        dry_run,
+                    )
+                    if not dry_run and _record_gate_rejection is not None:
+                        _record_gate_rejection(_gate_fields, _no_agent_id_rejection)
+                    continue
             # ----------------------------------------------------------------
 
             promoted_name = promote.stem
@@ -1059,6 +1068,8 @@ def _queue_manus_recovery_task(failed_task: str, reason: str) -> str | None:
         body = (
             f"title: {task_name}\n"
             f"profile: standard\n"
+            f"agent_id: chief\n"
+            f"consequence: R1\n"
             f"goal: Diagnose '{failed_task}' failure via Manus documentation research and queue a fix task.\n"
             f"scope:\n"
             f"- Research error signatures and root-cause paths for reason: {reason}.\n"

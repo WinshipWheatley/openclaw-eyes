@@ -89,7 +89,8 @@ def test_handle_idle_skips_invalid_queued_task_and_promotes_next_valid_one(isola
     invalid_task = isolated_orchestrator["tasks_dir"] / "a-invalid.md"
     valid_task = isolated_orchestrator["tasks_dir"] / "b-valid.md"
     invalid_task.write_text("title: Missing goal\nscope:\n- nope\n")
-    valid_content = "title: Valid task\ngoal: Ship it\nscope:\n- yep\n"
+    # agent_id is required: all legitimate queued tasks must carry it (gate is now fail-closed)
+    valid_content = "title: Valid task\ngoal: Ship it\nagent_id: chief\nscope:\n- yep\n"
     valid_task.write_text(valid_content)
 
     orchestrator.handle_idle({"status": "idle", "task_name": "previous-task"})
@@ -131,7 +132,8 @@ def test_handle_idle_skips_human_supervised_queued_task_and_promotes_next_valid_
         "**Assigned to:** Human-supervised\n"
         "**Execution mode:** Human-supervised capture and record\n"
     )
-    valid_content = "title: Valid task\ngoal: Ship it\nscope:\n- yep\n"
+    # agent_id is required: all legitimate queued tasks must carry it (gate is now fail-closed)
+    valid_content = "title: Valid task\ngoal: Ship it\nagent_id: chief\nscope:\n- yep\n"
     valid_task.write_text(valid_content)
 
     orchestrator.handle_idle({"status": "idle", "task_name": "previous-task"})

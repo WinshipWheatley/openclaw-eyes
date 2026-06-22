@@ -18,6 +18,7 @@ verification:
 ```bash
 ./chief_env/bin/python -m pytest -q tests/test_pc_review_fallback.py tests/test_chief_cassandra_failure.py tests/test_chief_llm_router.py tests/test_cassandra_status_wiring.py tests/test_cassandra_payment_verify.py tests/test_non_runner_cloud_bypass_policy.py tests/test_agent_runtime_readiness.py tests/test_agent_voice_response_layer.py tests/test_agent_voice_router.py tests/test_telegram_agent_intake.py tests/test_chief_acceptance_gate.py
 ```
+agent_id: chief
 generated_by: codex_desktop_manual_queue
 generated_at: 2026-06-19T01:20:16Z
 evidence:

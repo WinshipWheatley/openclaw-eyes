@@ -57,6 +57,9 @@ INPUT_SPECS = (
     ("estate_topology_registry", "generated/read_models/openclaw_estate_topology_registry.json", True, "Estate topology registry."),
     ("reference_resolver", "generated/read_models/openclaw_reference_resolver.json", True, "Reference resolver and drift posture."),
     ("service_keeper_status", "generated/read_models/openclaw_service_keeper_status.json", False, "Service supervision status read-model."),
+    # Model backend catalog: what concrete models are deployed vs deprecated/disabled.
+    # READ-ONLY: Hermes uses this to know what models run; it does not switch them.
+    ("model_backend_catalog", "generated/read_models/model_backend_catalog.json", False, "Concrete vendor model catalog: abstract classes → deployed model strings + availability."),
 )
 
 BASE_DO_NOT_TOUCH = (
@@ -465,6 +468,50 @@ def _recommended_package(
     }
 
 
+def _model_backend_summary(catalog_payload: Mapping[str, Any], manifest: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Summarise the model backend catalog for the sidecar payload.
+
+    READ-ONLY: reports what models are known + their availability status.
+    Does NOT switch models, does NOT make API calls, does NOT store keys.
+    """
+    if not catalog_payload:
+        return {
+            "source_ref": _source_path(manifest, "model_backend_catalog"),
+            "catalog_present": False,
+            "catalog_as_of": None,
+            "available_count": 0,
+            "deprecated_or_disabled_count": 0,
+            "disabled_model_ids": [],
+            "entries_by_class": {},
+            "hermes_may_not_switch_models": True,
+        }
+
+    summary = catalog_payload.get("summary", {})
+    disabled = [
+        e.get("model_id", "")
+        for e in _as_list(catalog_payload.get("deprecated_and_disabled"))
+        if isinstance(e, Mapping) and e.get("availability") == "disabled"
+    ]
+    return {
+        "source_ref": _source_path(manifest, "model_backend_catalog"),
+        "catalog_present": True,
+        "catalog_as_of": str(catalog_payload.get("catalog_as_of") or ""),
+        "schema_version": str(catalog_payload.get("schema_version") or ""),
+        "available_count": int(summary.get("available_count") or 0),
+        "deprecated_or_disabled_count": int(summary.get("deprecated_or_disabled_count") or 0),
+        "model_classes_covered": list(_as_list(summary.get("model_classes_covered"))),
+        "disabled_model_ids": disabled,
+        "entries_by_class": {
+            cls: list(ids)
+            for cls, ids in (catalog_payload.get("entries_by_class") or {}).items()
+            if isinstance(ids, (list, tuple))
+        },
+        # Hard boundary: Hermes reads this catalog; it must never use it to switch models.
+        "hermes_may_not_switch_models": True,
+        "hermes_may_not_call_models": True,
+    }
+
+
 def _model_class(recommended_package: Mapping[str, Any]) -> str:
     if str(recommended_package.get("package_type")) == "diagnostic_package":
         return "PC_CODEX_DETERMINISTIC_DIAGNOSTIC"
@@ -491,12 +538,14 @@ def build_hermes_sidecar(
     wiki_payload = payloads.get("context_wiki_index", {})
     authority_payload = payloads.get("authority_semantics_registry", {})
     service_payload = payloads.get("service_keeper_status", {})
+    model_catalog_payload = payloads.get("model_backend_catalog", {})
 
     steel_thread = _active_steel_thread(lane_payload, input_manifest)
     changes = _material_changes(sentinel_payload, input_manifest)
     stale = _stale_surfaces(business_payload, wiki_payload, input_manifest)
     authority = _authority_drift(authority_payload, input_manifest)
     service_summary = _service_supervision(service_payload, input_manifest)
+    model_backend = _model_backend_summary(model_catalog_payload, input_manifest)
     recommendation = _recommended_package(
         lane_payload=lane_payload,
         material_changes=changes,
@@ -543,6 +592,9 @@ def build_hermes_sidecar(
         "stale_surfaces": stale,
         "authority_drift": authority,
         "service_supervision_summary": service_summary,
+        # Model backend catalog: what concrete models are deployed vs deprecated/disabled.
+        # READ-ONLY: Hermes knows what models run; it does NOT switch them.
+        "model_backend_catalog_summary": model_backend,
         "recommended_next_package": recommendation,
         "recommended_model_class": _model_class(recommendation),
         "do_not_touch": do_not_touch,
