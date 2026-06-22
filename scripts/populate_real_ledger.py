@@ -25,6 +25,7 @@ from pathlib import Path
 
 import canonical_doctrine_facts as cdf
 import model_selection_doctrine_facts as ms
+import niles_lane_doctrine_facts as nl
 from canonical_fact_ingest import reconcile_fact_index, _PRODUCTION_DB_PATH
 
 REAL_LEDGER = str(Path(_PRODUCTION_DB_PATH).expanduser().resolve())
@@ -48,13 +49,14 @@ def _populate(db: str, allow_production: bool) -> dict:
     """
     res = cdf.load_doctrine_facts(db, allow_production=allow_production)
     ms_res = ms.load_model_selection_doctrine(db, allow_production=allow_production)
+    nl_res = nl.load_niles_lane_doctrine(db, allow_production=allow_production)
     reconcile_fact_index(db, allow_production=allow_production)
     return {
-        "inserted": res["inserted"] + ms_res["inserted"],
-        "skipped": res["skipped"] + ms_res["skipped"],
-        "ungrounded_skipped": res["ungrounded_skipped"] + ms_res["ungrounded_skipped"],
-        "total": res["total"] + ms_res["total"],
-        "results": [*res.get("results", []), *ms_res.get("results", [])],
+        "inserted": res["inserted"] + ms_res["inserted"] + nl_res["inserted"],
+        "skipped": res["skipped"] + ms_res["skipped"] + nl_res["skipped"],
+        "ungrounded_skipped": res["ungrounded_skipped"] + ms_res["ungrounded_skipped"] + nl_res["ungrounded_skipped"],
+        "total": res["total"] + ms_res["total"] + nl_res["total"],
+        "results": [*res.get("results", []), *ms_res.get("results", []), *nl_res.get("results", [])],
     }
 
 
@@ -123,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
         "skipped": res["skipped"],
         "ungrounded_skipped": res["ungrounded_skipped"],
         "inserted_content_hashes": inserted_hashes,
-        "source": "canonical_doctrine_facts.SHARED_DOCTRINE_FACTS + model_selection_doctrine_facts.MODEL_SELECTION_DOCTRINE_FACTS",
+        "source": "canonical_doctrine_facts.SHARED_DOCTRINE_FACTS + model_selection_doctrine_facts.MODEL_SELECTION_DOCTRINE_FACTS + niles_lane_doctrine_facts.NILES_LANE_DOCTRINE_FACTS",
         "written_at_utc": datetime.now(timezone.utc).isoformat(),
     }
     RECEIPT_DIR.mkdir(parents=True, exist_ok=True)

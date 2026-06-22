@@ -1,0 +1,16 @@
+{
+  "action": "populate_real_ledger",
+  "db": "/home/openclaw/.openclaw/business_ops/ledger.sqlite",
+  "canonical_facts_before": 101,
+  "canonical_facts_after": 104,
+  "inserted": 3,
+  "skipped": 17,
+  "ungrounded_skipped": 0,
+  "inserted_content_hashes": [
+    "c4b979c7ba9b4912d1640e31af80de5a17186db0a304c3ed79304c0bf4bd3721",
+    "1ac558121a0b9a63121f443e096936bf3346b65f554dabd8fa8f7813268b0af4",
+    "d231d080fba67922ea9b453a6e00a76544024bd607730444df77fa837cf628f0"
+  ],
+  "source": "canonical_doctrine_facts.SHARED_DOCTRINE_FACTS + model_selection_doctrine_facts.MODEL_SELECTION_DOCTRINE_FACTS + niles_lane_doctrine_facts.NILES_LANE_DOCTRINE_FACTS",
+  "written_at_utc": "2026-06-22T15:32:43.963350+00:00"
+}
