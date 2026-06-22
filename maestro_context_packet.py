@@ -508,10 +508,25 @@ def _privacy_summary(facts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 _SENSITIVITY_TO_PII_TIER: dict[str, str] = {
+    # canonical_facts doc-sensitivity classes
     "public_canonical": "PUBLIC",
     "operational_canonical": "PUBLIC",
     "non_sensitive": "PUBLIC",
+    # explicit PII tiers passed through unchanged if a fact is already tier-tagged
+    "public": "PUBLIC",
+    "light": "LIGHT",
+    "med": "MED",
+    "medium": "MED",
+    "high": "HIGH",
+    "max": "MAX",
+    # known-sensitive doc classes fail TOWARD protection
+    "sensitive": "HIGH",
+    "confidential": "HIGH",
+    "legal": "MAX",
+    "legal_discovery": "MAX",
 }
+# Unknown sensitivity classes FAIL CLOSED to MAX (never silently downgrade to PUBLIC).
+_PII_TIER_FAIL_CLOSED = "MAX"
 
 _STOP_WORDS = frozenset(
     {
@@ -638,7 +653,7 @@ def _sqlite_canonical_facts(
 
             seen_hashes.add(chash)
             sensitivity = str(row["sensitivity_class"] or "operational_canonical")
-            pii_tier = _SENSITIVITY_TO_PII_TIER.get(sensitivity, "PUBLIC")
+            pii_tier = _SENSITIVITY_TO_PII_TIER.get(sensitivity.strip().lower(), _PII_TIER_FAIL_CLOSED)
             source_file = str(row["source_file"] or "unknown")
             topic = str(row["doc_category"] or "canonical_facts")
             label = str(row["section_heading"] or fact_id)
@@ -685,7 +700,12 @@ def build_maestro_context_packet(
     # The param overrides the env (explicit beats implicit).
     _effective_source = packet_source if packet_source is not None else os.environ.get("OPENCLAW_PACKET_SOURCE", "flat")
     if _effective_source.lower() in ("sqlite", "hybrid"):
-        facts.extend(_sqlite_canonical_facts(question=question, agent="maestro"))
+        sqlite_facts = _sqlite_canonical_facts(question=question, agent="maestro")
+        # Insert canonical/doctrine facts AHEAD of the bulky read-model facts (but after
+        # operator truth) so they survive format_maestro_context_packet's facts[:30] cap on
+        # packet_text. Appending at the end risked silent truncation when truth+read-models
+        # already fill the cap (AGY-G flip-1 audit, hole #3).
+        facts = [*truth_facts, *sqlite_facts, *read_model_facts]
 
     if require_real_truth and (not operator_truth_used or len(read_model_refs) < 2):
         raise MaestroContextPacketError(

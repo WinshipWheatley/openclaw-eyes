@@ -486,3 +486,56 @@ def test_sqlite_canonical_facts_empty_db(tmp_path: Path) -> None:
         ledger_path=str(empty_db),
     )
     assert results == []
+
+
+def test_pii_tier_mapping_fails_closed(tmp_path: Path) -> None:
+    """AGY-G flip-1 audit hole #2: the read-path sensitivity->PII-tier mapping must FAIL CLOSED.
+    (Note: record_canonical_fact's write-validation also rejects non-allowlisted classes, so this
+    is defense-in-depth — and forward-compatible for when graded finance/identity facts are added.)"""
+    from maestro_context_packet import _SENSITIVITY_TO_PII_TIER, _PII_TIER_FAIL_CLOSED
+
+    look = lambda s: _SENSITIVITY_TO_PII_TIER.get(s.strip().lower(), _PII_TIER_FAIL_CLOSED)
+    assert _PII_TIER_FAIL_CLOSED == "MAX"
+    # unknown / unmapped -> MAX (never silently PUBLIC)
+    assert look("some_unmapped_class") == "MAX"
+    assert look("") == "MAX"
+    # explicit sensitive tiers map to themselves (no downgrade)
+    assert look("HIGH") == "HIGH"
+    assert look("max") == "MAX"
+    assert look("med") == "MED"
+    assert look("legal_discovery") == "MAX"
+    # public doctrine classes still map to PUBLIC (no false upgrade)
+    assert look("public_canonical") == "PUBLIC"
+    assert look("operational_canonical") == "PUBLIC"
+
+
+def test_sqlite_facts_precede_read_models_for_cap_survival(monkeypatch, tmp_path: Path) -> None:
+    """AGY-G flip-1 audit hole #3: SQLite/canonical facts must be ordered BEFORE the bulky
+    read-model facts so doctrine survives format_maestro_context_packet's facts[:30] cap."""
+    store_path = _truth_store(monkeypatch, tmp_path)
+    read_model_root = _read_models(tmp_path)
+    db_path = _seed_ledger(tmp_path)
+    monkeypatch.delenv("OPENCLAW_PACKET_SOURCE", raising=False)
+
+    import maestro_context_packet as mcp
+    original_fn = mcp._sqlite_canonical_facts
+
+    def patched(question: str, agent: str = "maestro", ledger_path: str | None = None, limit: int = 12):
+        return original_fn(question=question, agent=agent, ledger_path=str(db_path), limit=limit)
+
+    with patch.object(mcp, "_sqlite_canonical_facts", side_effect=patched):
+        packet = mcp.build_maestro_context_packet(
+            question="doctrine Capital Hilton",
+            read_model_root=read_model_root,
+            operator_truth_store_path=store_path,
+            require_real_truth=True,
+            packet_source="sqlite",
+        )
+
+    facts = packet["facts"]
+    canonical_idx = [i for i, f in enumerate(facts) if f.get("provenance") == "canonical_facts"]
+    readmodel_idx = [i for i, f in enumerate(facts) if "read_models" in str(f.get("source_ref") or "")]
+    assert canonical_idx, "expected canonical facts present with flag on"
+    if readmodel_idx:
+        assert max(canonical_idx) < min(readmodel_idx), \
+            "canonical/SQLite facts must precede read-model facts so they survive the packet_text cap"
