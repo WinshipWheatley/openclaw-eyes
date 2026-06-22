@@ -298,9 +298,11 @@
 !scripts/check_truth_registry_hashes.py
 !scripts/ingest_canonical_docs.py
 !scripts/extract_canonical_facts.py
+!scripts/populate_real_ledger.py
 !canonical_fact_ingest.py
 !canonical_doctrine_facts.py
 !tests/test_canonical_doctrine_facts.py
+!tests/test_populate_real_ledger.py
 !tests/test_query_canonical_facts.py
 !tests/test_canonical_fact_ingest.py
 !tests/test_dataroom_clean_load.py

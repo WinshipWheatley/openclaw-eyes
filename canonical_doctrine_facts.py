@@ -489,7 +489,7 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
 # Loader: ingest all curated doctrine facts via the single door
 # ---------------------------------------------------------------------------
 
-def load_doctrine_facts(db_path: str) -> dict:
+def load_doctrine_facts(db_path: str, allow_production: bool = False) -> dict:
     """
     Ingest all curated shared-doctrine facts via ingest_graded_fact.
 
@@ -528,7 +528,7 @@ def load_doctrine_facts(db_path: str) -> dict:
             "verification_required": record.get("verification_required", 1),
         }
 
-        result = ingest_graded_fact(ingest_record, db_path=db_path)
+        result = ingest_graded_fact(ingest_record, db_path=db_path, allow_production=allow_production)
         results.append(result)
 
         if result["status"] == "inserted":

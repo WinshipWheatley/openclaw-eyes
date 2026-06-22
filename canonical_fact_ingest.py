@@ -36,14 +36,20 @@ logger = logging.getLogger(__name__)
 _PRODUCTION_DB_PATH = ".openclaw/business_ops/ledger.sqlite"
 
 
-def _guard_production_path(path: str) -> None:
-    """Raise if path resolves to the live production ledger."""
+def _guard_production_path(path: str, allow_production: bool = False) -> None:
+    """Raise if path resolves to the live production ledger, UNLESS the caller is
+    explicitly, deliberately authorized (allow_production=True).
+
+    Default refuses — no build/test path can write the real ledger by accident.
+    The ONLY sanctioned writer is scripts/populate_real_ledger.py, run under a
+    one-use operator approval; it passes allow_production=True after its own
+    explicit --confirm gate. Everything else stays hard-blocked."""
     resolved = str(Path(path).expanduser().resolve())
     production_resolved = str(Path(_PRODUCTION_DB_PATH).expanduser().resolve())
-    if resolved == production_resolved:
+    if resolved == production_resolved and not allow_production:
         raise ValueError(
-            "SAFETY: ingest_graded_fact refuses to write to the production ledger. "
-            "Supply an explicit test/temp db_path."
+            "SAFETY: refuses to write the production ledger. Supply a test/temp db_path, "
+            "or use the sanctioned, operator-approved populate_real_ledger.py."
         )
 
 
@@ -129,7 +135,7 @@ def _enqueue_embedding(conn: sqlite3.Connection, chash: str, fact_id: str) -> No
 # Public API
 # ---------------------------------------------------------------------------
 
-def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None) -> dict[str, Any]:
+def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None, allow_production: bool = False) -> dict[str, Any]:
     """
     THE SINGLE DOOR for writing a canonical fact.
 
@@ -151,7 +157,7 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None) -> di
         {'status': 'inserted'|'skipped', 'fact_id': str, 'content_hash': str}
     """
     path = resolve_business_ops_ledger_path(db_path)
-    _guard_production_path(path)
+    _guard_production_path(path, allow_production=allow_production)
 
     fact_text = record.get("fact_text", "")
     if not fact_text or not fact_text.strip():
@@ -215,7 +221,7 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None) -> di
         conn.close()
 
 
-def reconcile_fact_index(db_path: str | None = None) -> dict[str, Any]:
+def reconcile_fact_index(db_path: str | None = None, allow_production: bool = False) -> dict[str, Any]:
     """
     Deterministic, idempotent sweep to back-fill the FTS5 index for any
     canonical_facts row missing from fts_canonical_facts (keyed by content_hash).
@@ -226,7 +232,7 @@ def reconcile_fact_index(db_path: str | None = None) -> dict[str, Any]:
         {'back_filled': int, 'already_indexed': int, 'embedding_queued': int}
     """
     path = resolve_business_ops_ledger_path(db_path)
-    _guard_production_path(path)
+    _guard_production_path(path, allow_production=allow_production)
 
     init_business_ops_ledger(path)
     conn = _connect(path)
