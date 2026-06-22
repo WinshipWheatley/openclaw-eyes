@@ -273,14 +273,13 @@ class TestReconcile:
 # ---------------------------------------------------------------------------
 
 class TestWidenedMarkdownSources:
-    """Test that the 4 new doctrine files parse correctly and route through
-    ingest_graded_fact. Uses the actual files from the repo."""
+    """Test the widened doctrine source(s) that are committed + parseable.
+    populate-1b dropped CORE_ARCHITECTURE_PRINCIPLES.md / AGENTS.md /
+    OPEN_CLAW_MANIFEST.md (gitignored-untracked at root / 0 sections); their
+    doctrine moved to the grounded, verified canonical_doctrine_facts.py."""
 
     NEW_SOURCES = [
         "OPENCLAW_RUNTIME.md",
-        "CORE_ARCHITECTURE_PRINCIPLES.md",
-        "AGENTS.md",
-        "OPEN_CLAW_MANIFEST.md",
     ]
 
     def test_new_sources_in_registry(self):

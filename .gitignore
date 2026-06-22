@@ -299,6 +299,8 @@
 !scripts/ingest_canonical_docs.py
 !scripts/extract_canonical_facts.py
 !canonical_fact_ingest.py
+!canonical_doctrine_facts.py
+!tests/test_canonical_doctrine_facts.py
 !tests/test_query_canonical_facts.py
 !tests/test_canonical_fact_ingest.py
 !tests/test_dataroom_clean_load.py

@@ -85,27 +85,11 @@ SOURCE_REGISTRY = {
         "temporal_or_doctrine": "doctrine_reference",
         "description": "OpenClaw canonical runtime law — shared doctrine for all agents"
     },
-    "CORE_ARCHITECTURE_PRINCIPLES.md": {
-        "doc_category": "architecture_doctrine",
-        "sensitivity_class": "public_canonical",
-        "allowed_actors": ["cassandra", "chief", "guardian", "hermes", "niles", "gemini", "all"],
-        "temporal_or_doctrine": "doctrine_reference",
-        "description": "Core architecture principles — shared doctrine for all agents"
-    },
-    "AGENTS.md": {
-        "doc_category": "agent_rules_doctrine",
-        "sensitivity_class": "public_canonical",
-        "allowed_actors": ["cassandra", "chief", "guardian", "hermes", "niles", "gemini", "all"],
-        "temporal_or_doctrine": "doctrine_reference",
-        "description": "AGENTS adapter — canonical runtime law pointer for all agents"
-    },
-    "OPEN_CLAW_MANIFEST.md": {
-        "doc_category": "manifest_doctrine",
-        "sensitivity_class": "public_canonical",
-        "allowed_actors": ["cassandra", "chief", "guardian", "hermes", "niles", "gemini", "all"],
-        "temporal_or_doctrine": "doctrine_reference",
-        "description": "OpenClaw manifest — shared doctrine and purpose declaration"
-    },
+    # NOTE (populate-1b): CORE_ARCHITECTURE_PRINCIPLES.md, AGENTS.md, and
+    # OPEN_CLAW_MANIFEST.md were dropped from the registry — the root copies are
+    # gitignored/untracked (absent in a clean checkout) and AGENTS.md is a thin
+    # redirect with no parseable sections. Their doctrine is captured, grounded,
+    # and verified in canonical_doctrine_facts.py (loaded via load_doctrine_facts).
 }
 
 
