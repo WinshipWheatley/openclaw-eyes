@@ -40,7 +40,7 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
             "(email/invoice) do not transmit on Chief's word alone."
         ),
         "sensitivity_class": "operational_canonical",
-        "allowed_actors": ["maestro", "chief", "guardian", "cassandra", "fin"],
+        "allowed_actors": ["maestro", "chief", "guardian", "cassandra"],
         "doc_category": "send_gate_doctrine",
         "temporal_or_doctrine": "doctrine",
         "source_file": "protected_generate.py",
@@ -78,7 +78,7 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
             "external publish/send; drop/truncate table; bulk deletions)."
         ),
         "sensitivity_class": "operational_canonical",
-        "allowed_actors": ["chief", "guardian", "maestro", "cassandra", "fin"],
+        "allowed_actors": ["chief", "guardian", "maestro", "cassandra"],
         "doc_category": "approval_policy",
         "temporal_or_doctrine": "doctrine",
         "source_file": "chief_approval_policy.py",
@@ -146,7 +146,7 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
             "roster questions from this fixed self-knowledge, not the LLM."
         ),
         "sensitivity_class": "public_canonical",
-        "allowed_actors": ["maestro", "chief", "guardian", "hermes", "cassandra", "niles", "fin"],
+        "allowed_actors": ["maestro", "chief", "guardian", "hermes", "cassandra", "niles"],
         "doc_category": "system_self_knowledge",
         "temporal_or_doctrine": "doctrine",
         "source_file": "agent_lane_registry.py",
@@ -177,7 +177,7 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
             "KNOWN_GAPS.md."
         ),
         "sensitivity_class": "public_canonical",
-        "allowed_actors": ["maestro", "chief", "guardian", "hermes", "cassandra", "niles", "fin"],
+        "allowed_actors": ["maestro", "chief", "guardian", "hermes", "cassandra", "niles"],
         "doc_category": "governance_doctrine",
         "temporal_or_doctrine": "doctrine",
         "source_file": "OPENCLAW_RUNTIME.md",
@@ -330,7 +330,7 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
             "to the receiving lane."
         ),
         "sensitivity_class": "public_canonical",
-        "allowed_actors": ["chief", "maestro", "guardian", "cassandra", "niles", "fin", "hermes"],
+        "allowed_actors": ["chief", "maestro", "guardian", "cassandra", "niles", "hermes"],
         "doc_category": "authority_doctrine",
         "temporal_or_doctrine": "doctrine",
         "source_file": "agent_lane_registry.py",
