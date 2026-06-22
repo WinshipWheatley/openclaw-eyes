@@ -295,6 +295,65 @@ QUESTION_STOP_WORDS = frozenset(
         "would",
         "you",
         "your",
+        # 000i: conversational/meta filler verbs — not business content. Because
+        # _fact_match_score does naive substring matching, "need" (in "I NEED to
+        # understand X") matched a finance fact whose value contained "need", so
+        # "explain X" wrongly out-scored honesty and returned an invoice. Same
+        # collision family as the 000h gig/day fix.
+        "better",
+        "explain",
+        "explaining",
+        "explains",
+        "mean",
+        "meant",
+        "means",
+        "need",
+        "needed",
+        "needs",
+        "say",
+        "said",
+        "saying",
+        "says",
+        "think",
+        "thinking",
+        "thinks",
+        "understand",
+        "understands",
+        "want",
+        "wanted",
+        "wants",
+        "wonder",
+        "wondering",
+        # 000i (extended, per AGY-G validation): more conversational filler verbs/adverbs
+        # that substring-collide the same way. NOTE: business-ambiguous nouns like
+        # "check" ($2000 check) are deliberately NOT stopworded — protecting legit finance
+        # queries. The naive substring matcher means this list is necessarily best-effort;
+        # the structural fix (word-boundary + low-signal/rarity scoring) is a later pass.
+        "detail",
+        "details",
+        "did",
+        "doing",
+        "give",
+        "given",
+        "gives",
+        "giving",
+        "gave",
+        "help",
+        "helped",
+        "helping",
+        "helps",
+        "more",
+        "please",
+        "should",
+        "show",
+        "showing",
+        "shown",
+        "shows",
+        "telling",
+        "tells",
+        "these",
+        "told",
+        "those",
     }
 )
 SYSTEM_POSTURE_TOPICS = frozenset({"agent_presence", "capability", "chief", "freshness", "work_board"})
@@ -405,6 +464,38 @@ def _is_schedule_intent(prompt: str) -> bool:
     return any(marker in lowered for marker in _SCHEDULE_INTENT_MARKERS)
 
 
+# 000i: a question that reduces to zero content terms is ambiguous. It can be a
+# genuine "give me the overview" ask (worth a headline digest) or a pure-meta /
+# clarification question such as "what do you mean" or "what are you saying" (must
+# stay honest — never dump a random business fact). Only an explicit overview/status
+# ask earns the digest; everything else falls through to _NO_PACKET_ANSWER. This keeps
+# the new filler-word stopwords from opening a fresh confabulation path.
+_OVERVIEW_INTENT_MARKERS = (
+    "status",
+    "update",
+    "what's up",
+    "whats up",
+    "what's new",
+    "whats new",
+    "catch me up",
+    "fill me in",
+    "brief me",
+    "the latest",
+    "how are things",
+    "overview",
+    "summary",
+    "summarize",
+    "rundown",
+    "recap",
+    "everything",
+)
+
+
+def _requests_overview(prompt: str) -> bool:
+    lowered = str(prompt or "").lower()
+    return any(marker in lowered for marker in _OVERVIEW_INTENT_MARKERS)
+
+
 def _schedule_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
     matched: list[str] = []
     seen: set[str] = set()
@@ -431,6 +522,16 @@ def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | s
 
     terms = _question_terms(prompt)
     allow_system_posture = _requests_system_posture(prompt)
+
+    # 000i: a prompt that reduces to zero content terms only earns a fact digest when
+    # it is an explicit overview/status ask ("status", "what's up", "catch me up").
+    # Otherwise — a pure-meta/clarification question like "what do you mean" or "what
+    # are you saying" — stay honest. Without this guard the new filler-word stopwords
+    # would push such questions into _fact_match_score's empty-terms branch (which
+    # scores every non-posture fact 1) and dump an arbitrary business fact.
+    if not terms and not _requests_overview(prompt):
+        return _NO_PACKET_ANSWER
+
     scored: list[tuple[int, int, Mapping[str, Any]]] = []
     for index, fact in enumerate(facts):
         score = _fact_match_score(fact, terms, allow_system_posture=allow_system_posture)
