@@ -52,6 +52,20 @@ async def _run_producer_intake(payload: str) -> str:
     except Exception as e:
         return f"❌ Producer system error: {str(e)}"
 
+NILES_QUEUE_LOG = "/mnt/c/OpenClaw/logs/niles_queue.log"
+
+
+def _queue_for_memory(text: str) -> None:
+    """Append operator intake to the niles queue so niles_memory_worker tails it
+    into persistent memory. Best-effort: never raises, never blocks intake."""
+    try:
+        os.makedirs("/mnt/c/OpenClaw/logs", exist_ok=True)
+        with open(NILES_QUEUE_LOG, "a", encoding="utf-8") as f:
+            f.write(text.replace("\n", " ").strip() + "\n")
+    except Exception:
+        pass
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_user or update.effective_user.id != AUTHORIZED_USER_ID:
         return
@@ -68,6 +82,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         operator_message=True,
         route_intent=True,
     )
+    _queue_for_memory(text)  # feed Niles persistent memory (niles_memory_worker tails this)
 
     if text.lower() in ("/start", "/help"):
         await update.message.reply_text("Niles online. Producer intake active.")
