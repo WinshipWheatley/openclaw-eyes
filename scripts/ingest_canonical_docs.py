@@ -188,7 +188,7 @@ def main():
             skipped += 1
 
     print(
-        f"Successfully processed {len(facts)} facts from {args.source}: "
+        f"Successfully ingested {len(facts)} facts from {args.source}: "
         f"{inserted} inserted, {skipped} skipped (deduped)."
     )
 
