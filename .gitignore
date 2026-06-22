@@ -503,6 +503,7 @@
 !polish_loop/worker_runtime.py
 !polish_loop/answer_auditor.py
 !polish_loop/pc4_heal_emitter.py
+!polish_loop/CUTOVER-PLAN.md
 !polish_loop/tasks/
 !polish_loop/tasks/*.md
 !tests/
@@ -553,6 +554,7 @@
 !tests/test_hermes_packet_templates.py
 !tests/test_pc4_hardening.py
 !tests/test_pc4_self_healing.py
+!tests/test_control_plane_worker_integration.py
 
 # tools/ — standalone utility modules
 !tools/
