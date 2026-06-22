@@ -10,8 +10,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import sqlite3
 from typing import Any, Mapping, Sequence
 
 
@@ -501,6 +503,164 @@ def _privacy_summary(facts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# SQLite canonical-facts source (DEFAULT-OFF; enabled by OPENCLAW_PACKET_SOURCE)
+# ---------------------------------------------------------------------------
+
+_SENSITIVITY_TO_PII_TIER: dict[str, str] = {
+    "public_canonical": "PUBLIC",
+    "operational_canonical": "PUBLIC",
+    "non_sensitive": "PUBLIC",
+}
+
+_STOP_WORDS = frozenset(
+    {
+        "a", "an", "and", "are", "as", "at", "be", "by", "do", "for",
+        "from", "has", "have", "i", "if", "in", "is", "it", "its", "my",
+        "no", "not", "of", "on", "or", "so", "the", "to", "up", "was",
+        "what", "when", "which", "who", "with", "would",
+    }
+)
+
+
+def _extract_query_terms(question: str) -> list[str]:
+    """Return significant lowercase tokens from question, stripping stop-words."""
+    tokens = re.findall(r"[a-zA-Z0-9_']+", question.lower())
+    return [t for t in tokens if t not in _STOP_WORDS and len(t) >= 3]
+
+
+def _sqlite_canonical_facts(
+    question: str,
+    agent: str = "maestro",
+    ledger_path: str | None = None,
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    """Pull relevant facts from the canonical_facts SQLite ledger.
+
+    DEFAULT-OFF: only called when build_maestro_context_packet is explicitly
+    enabled via packet_source or OPENCLAW_PACKET_SOURCE.
+
+    Rules:
+    - Opens READ-ONLY via URI mode (file:...?mode=ro).
+    - Returns [] gracefully on ANY error (missing file, locked db, etc.).
+    - Includes facts where allowed_actors contains agent name or "all".
+    - Always includes doctrine facts regardless of query relevance.
+    - Deduplicates by content_hash; caps at limit.
+    - NEVER writes to the ledger.
+    """
+    if not ledger_path:
+        from business_ops_ledger import resolve_business_ops_ledger_path
+        ledger_path = resolve_business_ops_ledger_path(None)
+
+    try:
+        db_file = Path(ledger_path)
+        if not db_file.exists():
+            return []
+
+        uri = f"file:{db_file.as_posix()}?mode=ro"
+        conn = sqlite3.connect(uri, uri=True)
+        conn.row_factory = sqlite3.Row
+
+        # Verify required tables exist
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        # fts_canonical_facts is a virtual table (type='table' in sqlite_master for FTS5)
+        has_canonical = "canonical_facts" in tables
+        has_fts = "fts_canonical_facts" in tables
+        if not has_canonical:
+            conn.close()
+            return []
+
+        candidate_ids: list[str] = []
+        seen_hashes: set[str] = set()
+
+        # 1. FTS5 relevance search (if table present and query has terms)
+        terms = _extract_query_terms(question)
+        if has_fts and terms:
+            # Build a safe FTS5 MATCH expression: quote each term to avoid
+            # special-character injection; join with OR so partial matches work.
+            fts_expr = " OR ".join(f'"{t}"' for t in terms[:8])
+            try:
+                rows = conn.execute(
+                    "SELECT fact_id FROM fts_canonical_facts WHERE fts_canonical_facts MATCH ? LIMIT ?",
+                    (fts_expr, limit),
+                ).fetchall()
+                candidate_ids.extend(r["fact_id"] for r in rows)
+            except sqlite3.OperationalError:
+                # FTS match failure (e.g. bad token) → skip FTS, fall through to doctrine
+                pass
+
+        # 2. Always include doctrine facts (temporal_or_doctrine)
+        doctrine_rows = conn.execute(
+            """SELECT fact_id FROM canonical_facts
+               WHERE temporal_or_doctrine = 'doctrine'
+                  OR doc_category LIKE '%doctrine%'
+               LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        for r in doctrine_rows:
+            if r["fact_id"] not in candidate_ids:
+                candidate_ids.append(r["fact_id"])
+
+        if not candidate_ids:
+            conn.close()
+            return []
+
+        # 3. Fetch full rows for candidates; apply allowed_actors filter; dedupe
+        results: list[dict[str, Any]] = []
+        for fact_id in candidate_ids:
+            if len(results) >= limit:
+                break
+            row = conn.execute(
+                """SELECT fact_text, sensitivity_class, allowed_actors, doc_category,
+                          section_heading, source_file, content_hash, temporal_or_doctrine
+                   FROM canonical_facts WHERE fact_id = ? LIMIT 1""",
+                (fact_id,),
+            ).fetchone()
+            if row is None:
+                continue
+            chash = row["content_hash"] or ""
+            if chash in seen_hashes:
+                continue
+
+            # allowed_actors filter: must contain agent or "all"
+            raw_actors = row["allowed_actors"] or "[]"
+            try:
+                actors: list[str] = json.loads(raw_actors)
+            except (json.JSONDecodeError, TypeError):
+                actors = []
+            if agent not in actors and "all" not in actors:
+                continue
+
+            seen_hashes.add(chash)
+            sensitivity = str(row["sensitivity_class"] or "operational_canonical")
+            pii_tier = _SENSITIVITY_TO_PII_TIER.get(sensitivity, "PUBLIC")
+            source_file = str(row["source_file"] or "unknown")
+            topic = str(row["doc_category"] or "canonical_facts")
+            label = str(row["section_heading"] or fact_id)
+            fact_list: list[dict[str, Any]] = []
+            _append_fact(
+                fact_list,
+                topic=topic,
+                label=label,
+                value=str(row["fact_text"] or ""),
+                source_ref="canonical_facts:" + source_file,
+                provenance="canonical_facts",
+                pii_tier=pii_tier,
+            )
+            results.extend(fact_list)
+
+        conn.close()
+        return results
+
+    except Exception:  # noqa: BLE001 — never break packet building
+        return []
+
+
 def build_maestro_context_packet(
     *,
     question: str = "",
@@ -509,6 +669,7 @@ def build_maestro_context_packet(
     read_model_root: str | Path | None = None,
     operator_truth_store_path: str | Path | None = None,
     require_real_truth: bool = True,
+    packet_source: str | None = None,
 ) -> dict[str, Any]:
     root = _read_model_root(session, read_model_root)
     truth_path = _operator_truth_store_path(session, operator_truth_store_path)
@@ -517,6 +678,14 @@ def build_maestro_context_packet(
     truth_facts, operator_truth_used, truth_ref = _operator_truth_facts(path=truth_path, question=question)
     read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root)
     facts = [*truth_facts, *read_model_facts]
+
+    # SQLite canonical-facts source — DEFAULT-OFF.
+    # Enabled when packet_source param is "sqlite"/"hybrid", OR when
+    # env OPENCLAW_PACKET_SOURCE is set to "sqlite" or "hybrid".
+    # The param overrides the env (explicit beats implicit).
+    _effective_source = packet_source if packet_source is not None else os.environ.get("OPENCLAW_PACKET_SOURCE", "flat")
+    if _effective_source.lower() in ("sqlite", "hybrid"):
+        facts.extend(_sqlite_canonical_facts(question=question, agent="maestro"))
 
     if require_real_truth and (not operator_truth_used or len(read_model_refs) < 2):
         raise MaestroContextPacketError(
