@@ -120,6 +120,68 @@ def _default_sources(*, primary_posture: str = "request_only") -> tuple[tuple[st
 
 DEFAULT_AGENT_LANE_SEEDS: tuple[AgentLaneSeed, ...] = (
     AgentLaneSeed(
+        agent_id="maestro",
+        display_name="Maestro Front Door",
+        lane_id="operator_frontdoor",
+        lane_label="Operator Front Door",
+        status="active_registry",
+        authority_level="request_only",
+        role_summary=(
+            "Operate the operator front-door chat: receive operator intent, assemble the grounded "
+            "context packet, answer, and route to the correct agent. Enforces SEND_HOLD; proposes "
+            "and routes but executes or sends nothing on its own."
+        ),
+        allowed_worlds=("cross_world", "operations", "communications"),
+        allowed_input_kinds=(
+            "operator_intent",
+            "operator_local_intake_event",
+            "generated_read_model",
+            "context_packet",
+            "source_metadata",
+        ),
+        blocked_input_kinds=(
+            "no_go_raw_content",
+            "credential_material",
+            "raw_private_body",
+            "arbitrary_command_string",
+        ),
+        allowed_output_kinds=(
+            "answer",
+            "route_request",
+            "operator_briefing",
+            "telegram_ready_response",
+        ),
+        blocked_output_kinds=(
+            "external_send",
+            "approval_decision",
+            "direct_execution",
+            "truth_promotion",
+            "external_ledger_mutation",
+            "client_deployment",
+            "file_delete",
+        ),
+        approval_required_for=(
+            "sending_messages",
+            "external_comms",
+            "action_requests",
+        ),
+        receipt_required_for=("answer", "operator_briefing"),
+        source_kind_postures=_default_sources(primary_posture="request_only"),
+        aliases=("front_door", "maestro_chat", "operator_chat"),
+        routing_hints=(
+            "operator chat",
+            "front door",
+            "question answering",
+            "agent routing",
+            "context packet assembly",
+        ),
+        notes=(
+            "Maestro is the operator front-door brain: it grounds, answers, and routes, and enforces "
+            "SEND_HOLD. It executes or sends nothing on its own — actuation goes through gated "
+            "executors with operator approval."
+        ),
+    ),
+    AgentLaneSeed(
         agent_id="chief",
         display_name="Chief",
         lane_id="system_orchestration",
