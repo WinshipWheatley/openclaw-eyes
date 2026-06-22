@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 try:  # pragma: no cover
-    from .answer_auditor import AuditFinding
+    from .answer_auditor import AuditFinding, check_agent_claim
     from .control_plane import (
         DEFAULT_GREEN_GATE,
         HEAL_TASK_PAYLOAD_FIELDS,
@@ -16,7 +17,7 @@ try:  # pragma: no cover
         make_acceptance_ref,
     )
 except ImportError:  # pragma: no cover
-    from answer_auditor import AuditFinding
+    from answer_auditor import AuditFinding, check_agent_claim
     from control_plane import (
         DEFAULT_GREEN_GATE,
         HEAL_TASK_PAYLOAD_FIELDS,
@@ -135,3 +136,63 @@ def emit_heal_task(
         repo_ref=repo_ref,
     )
     return ledger.admit_task(**kwargs)
+
+
+def control_plane_emit_enabled() -> bool:
+    """Whether the detector may admit heal tasks to the LIVE control-plane ledger.
+
+    DEFAULT OFF. Wiring the detector into a live audit path therefore changes nothing
+    in production until the operator explicitly flips OPENCLAW_CONTROL_PLANE_EMIT on.
+    This is the reversible safety seam for the control-plane cutover: the code is in
+    place and tested, but dormant until a deliberate, supervised enable.
+    """
+    return os.environ.get("OPENCLAW_CONTROL_PLANE_EMIT", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def detect_and_emit_heal_task(
+    ledger: ControlPlaneLedger,
+    agent_id: str,
+    claim_type: str,
+    observed_answer: Any,
+    *,
+    read_model_root: str | Path,
+    request_text: str,
+    answer_text: str | None = None,
+    repro_prompts: Sequence[str] = (),
+    acceptance_path: str | Path = DEFAULT_ACCEPTANCE_PATH,
+    enabled: bool | None = None,
+) -> tuple[AuditFinding, str | None]:
+    """Audit one agent claim and, on a FAILING finding, admit a heal task to the ledger.
+
+    This is the control-plane cutover detector seam (CUTOVER-PLAN.md Step 1): the single
+    place a live audit loop calls to turn a detected bad claim into a deterministically
+    tracked heal task. Emission is gated by control_plane_emit_enabled() (default OFF)
+    unless an explicit ``enabled`` is passed, so the wire is dormant until turned on.
+
+    Returns (finding, task_id). task_id is None when the claim passes OR when emission
+    is disabled -- a passing claim and a dormant detector both yield "no task", which is
+    the safe default.
+    """
+    finding = check_agent_claim(
+        agent_id, claim_type, observed_answer, read_model_root=read_model_root
+    )
+    if finding.verdict != "fail":
+        return finding, None
+    if enabled is None:
+        enabled = control_plane_emit_enabled()
+    if not enabled:
+        return finding, None
+    task_id = emit_heal_task(
+        ledger,
+        finding,
+        request_text=request_text,
+        answer_text=answer_text if answer_text is not None else str(observed_answer),
+        repro_prompts=tuple(repro_prompts) or (request_text,),
+        acceptance_path=acceptance_path,
+    )
+    return finding, task_id
