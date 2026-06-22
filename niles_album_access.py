@@ -11,9 +11,28 @@ it exposes the full album so that reasoning has the data it needs.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import chief_album_io as _album
+
+
+def _safe_song_title(song_title: str) -> str:
+    """Validate a song title BEFORE it is used to build a filesystem path.
+
+    Rejects path-traversal vectors (``/`` ``\\`` ``..`` leading-dot NUL) while preserving
+    legitimate titles (spaces, apostrophes, etc. — e.g. "Blue Weather"), then asserts the
+    resolved path stays directly inside the songs dir. Raises ValueError otherwise.
+    Both the read sink (load_song_doc) and the write sink (ensure_song_doc) go through this.
+    """
+    title = str(song_title).strip()
+    if (not title or title in (".", "..") or title.startswith(".")
+            or "/" in title or "\\" in title or "\x00" in title):
+        raise ValueError(f"invalid/unsafe song title: {song_title!r}")
+    base = Path(_album.SONGS_DIR).resolve()
+    if _album._song_path(title).resolve().parent != base:
+        raise ValueError(f"song path escapes songs dir: {song_title!r}")
+    return title
 
 
 def _to_int(v: Any, default: int = 0) -> int:
@@ -36,7 +55,7 @@ def load_album() -> list[dict]:
 
 def load_song_doc(song_title: str) -> dict:
     """The per-song rich-text .md (sections) for a song — the song's living memory."""
-    return _album.load_song_md(song_title)
+    return _album.load_song_md(_safe_song_title(song_title))
 
 
 SONG_DOC_TEMPLATE = """# {song}
@@ -73,13 +92,14 @@ def ensure_song_doc(song_title: str, create: bool = False) -> dict:
     album area. When create=True and the doc is missing, writes the template scaffold.
     Returns the path + whether it exists. Setting the csv `song_doc_ref` is a separate gated step.
     """
-    p = _album._song_path(song_title)
+    title = _safe_song_title(song_title)
+    p = _album._song_path(title)
     created = False
     if create and not p.exists():
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(SONG_DOC_TEMPLATE.format(song=song_title), encoding="utf-8")
+        p.write_text(SONG_DOC_TEMPLATE.format(song=title), encoding="utf-8")
         created = True
-    return {"song": song_title, "doc_path": str(p), "exists": p.exists(), "created": created}
+    return {"song": title, "doc_path": str(p), "exists": p.exists(), "created": created}
 
 
 def suggest_easy_win() -> dict:
