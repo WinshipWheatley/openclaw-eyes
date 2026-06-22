@@ -534,8 +534,24 @@ _STOP_WORDS = frozenset(
         "from", "has", "have", "i", "if", "in", "is", "it", "its", "my",
         "no", "not", "of", "on", "or", "so", "the", "to", "up", "was",
         "what", "when", "which", "who", "with", "would",
+        # Question-filler / function words: keep these OUT of FTS match terms so
+        # rare, meaningful terms (e.g. "routing", "escalation", "send_hold") drive
+        # relevance instead of being crowded out under the candidate cap.
+        "how", "should", "could", "can", "you", "your", "about", "this",
+        "that", "these", "those", "we", "us", "our", "me", "tell", "give",
+        "show", "need", "want", "does", "did", "will", "they", "them",
+        "their", "there", "here", "get", "got", "use", "using", "choose",
+        "vs", "versus", "any", "into", "but", "than", "then", "also",
+        "just", "like", "make", "way", "etc", "via", "per", "been",
+        "being", "had", "were", "now", "let",
     }
 )
+
+# Doctrine facts are ALWAYS-included as candidates (relevance-independent), so the
+# candidate query for them must not truncate below the doctrine-set size — otherwise
+# later-inserted doctrine (e.g. MS-* added after the 12 SD-*) silently falls out of
+# reach. Final per-packet output is still bounded by the caller's `limit`.
+_DOCTRINE_CANDIDATE_CAP = 64
 
 
 def _extract_query_terms(question: str) -> list[str]:
@@ -600,8 +616,12 @@ def _sqlite_canonical_facts(
             # special-character injection; join with OR so partial matches work.
             fts_expr = " OR ".join(f'"{t}"' for t in terms[:8])
             try:
+                # ORDER BY rank (bm25) so the MOST RELEVANT facts come first —
+                # without it FTS returns rowid order, and newest-inserted facts
+                # (e.g. MS-* added after SD-*) get truncated by LIMIT even when
+                # they match the query's rare terms best.
                 rows = conn.execute(
-                    "SELECT fact_id FROM fts_canonical_facts WHERE fts_canonical_facts MATCH ? LIMIT ?",
+                    "SELECT fact_id FROM fts_canonical_facts WHERE fts_canonical_facts MATCH ? ORDER BY rank LIMIT ?",
                     (fts_expr, limit),
                 ).fetchall()
                 candidate_ids.extend(r["fact_id"] for r in rows)
@@ -615,7 +635,7 @@ def _sqlite_canonical_facts(
                WHERE temporal_or_doctrine = 'doctrine'
                   OR doc_category LIKE '%doctrine%'
                LIMIT ?""",
-            (limit,),
+            (_DOCTRINE_CANDIDATE_CAP,),
         ).fetchall()
         for r in doctrine_rows:
             if r["fact_id"] not in candidate_ids:

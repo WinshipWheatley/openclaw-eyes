@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import canonical_doctrine_facts as cdf
+import model_selection_doctrine_facts as ms
 from canonical_fact_ingest import reconcile_fact_index, _PRODUCTION_DB_PATH
 
 REAL_LEDGER = str(Path(_PRODUCTION_DB_PATH).expanduser().resolve())
@@ -39,10 +40,22 @@ def _count(db: str) -> int:
 
 
 def _populate(db: str, allow_production: bool) -> dict:
-    """Load the curated, grounded doctrine facts via the single door, then reconcile the index."""
+    """Load the curated, grounded doctrine facts via the single door, then reconcile the index.
+
+    Loads BOTH curated doctrine sets (shared-doctrine SD-1..13 and model-selection
+    MS-1..N). Results are merged so the receipt's inserted_content_hashes covers
+    every insert from either set — keeping the whole population rollback-safe.
+    """
     res = cdf.load_doctrine_facts(db, allow_production=allow_production)
+    ms_res = ms.load_model_selection_doctrine(db, allow_production=allow_production)
     reconcile_fact_index(db, allow_production=allow_production)
-    return res
+    return {
+        "inserted": res["inserted"] + ms_res["inserted"],
+        "skipped": res["skipped"] + ms_res["skipped"],
+        "ungrounded_skipped": res["ungrounded_skipped"] + ms_res["ungrounded_skipped"],
+        "total": res["total"] + ms_res["total"],
+        "results": [*res.get("results", []), *ms_res.get("results", [])],
+    }
 
 
 def _do_rollback(receipt_path: str) -> int:
@@ -110,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
         "skipped": res["skipped"],
         "ungrounded_skipped": res["ungrounded_skipped"],
         "inserted_content_hashes": inserted_hashes,
-        "source": "canonical_doctrine_facts.SHARED_DOCTRINE_FACTS",
+        "source": "canonical_doctrine_facts.SHARED_DOCTRINE_FACTS + model_selection_doctrine_facts.MODEL_SELECTION_DOCTRINE_FACTS",
         "written_at_utc": datetime.now(timezone.utc).isoformat(),
     }
     RECEIPT_DIR.mkdir(parents=True, exist_ok=True)
