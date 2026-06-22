@@ -304,6 +304,7 @@
 !model_selection_doctrine_facts.py
 !niles_memory_worker.py
 !niles_lane_doctrine_facts.py
+!niles_album_access.py
 !tests/test_canonical_doctrine_facts.py
 !tests/test_populate_real_ledger.py
 !tests/test_query_canonical_facts.py
