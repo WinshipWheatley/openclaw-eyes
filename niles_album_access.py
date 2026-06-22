@@ -39,6 +39,49 @@ def load_song_doc(song_title: str) -> dict:
     return _album.load_song_md(song_title)
 
 
+SONG_DOC_TEMPLATE = """# {song}
+
+> Niles rich-text memory for this song. Wired to the album.csv row via `song_doc_ref`,
+> and (Mac-side, future) travels with the active DAW file across save-as.
+
+## Tracking plan
+- Lead vs backing:
+- Bars / playhead (cycle · full-pass · punch-in):
+- Instrument tracking order:
+
+## Music
+- Tempo / key / time-signature:
+- MIDI / theory notes:
+
+## Wheelhouse
+- In or out of wheelhouse:
+- AI-assist slider point (operator fully plays  ⟷  AI does it / Suno):
+
+## Live (derail → return)
+- Derail cues / how far to push:
+- Snap-back / return-to-show-plan cues:
+
+## Versions (Mac-side file wiring — future executor)
+- Active DAW file:
+- Prior DAW file:
+"""
+
+
+def ensure_song_doc(song_title: str, create: bool = False) -> dict:
+    """Locate (and optionally scaffold) a song's rich-text .md, reusing chief_album_io's
+    per-song doc location. OPT-IN write (create=False by default) — does NOT auto-mutate the
+    album area. When create=True and the doc is missing, writes the template scaffold.
+    Returns the path + whether it exists. Setting the csv `song_doc_ref` is a separate gated step.
+    """
+    p = _album._song_path(song_title)
+    created = False
+    if create and not p.exists():
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(SONG_DOC_TEMPLATE.format(song=song_title), encoding="utf-8")
+        created = True
+    return {"song": song_title, "doc_path": str(p), "exists": p.exists(), "created": created}
+
+
 def suggest_easy_win() -> dict:
     """Deterministic 'easy win to accommodate ADD' suggestion + the reasoning.
 
