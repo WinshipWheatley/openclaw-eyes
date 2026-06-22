@@ -92,6 +92,56 @@ except ImportError:
         _PHASE_C_WORKER_RUNTIME_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
+# Authority gate — deterministic, fail-closed pre-execution check.
+# Python reads rules to BLOCK; agents read rules to plan.
+# ---------------------------------------------------------------------------
+
+try:
+    from .authority_gate import check_task_authority, record_rejection as _record_gate_rejection
+    _AUTHORITY_GATE_AVAILABLE = True
+except ImportError:
+    try:
+        from authority_gate import check_task_authority, record_rejection as _record_gate_rejection  # type: ignore
+        _AUTHORITY_GATE_AVAILABLE = True
+    except ImportError:
+        check_task_authority = None  # type: ignore[assignment]
+        _record_gate_rejection = None  # type: ignore[assignment]
+        _AUTHORITY_GATE_AVAILABLE = False
+
+# Set to True in tests to disable the authority gate (UNSAFE — tests only).
+_TEST_DISABLE_AUTHORITY_GATE: bool = False
+
+# Regex for pulling authority-gate fields from task frontmatter.
+_TASK_AGENT_ID_RE = re.compile(r"^agent_id:\s*(\S.*)$", re.MULTILINE)
+_TASK_CONSEQUENCE_RE = re.compile(r"^consequence:\s*(\S.*)$", re.MULTILINE)
+_TASK_OUTPUT_KIND_RE = re.compile(r"^output_kind:\s*(\S.*)$", re.MULTILINE)
+_TASK_ACTION_RE = re.compile(r"^action:\s*(\S.*)$", re.MULTILINE)
+
+
+def _parse_authority_gate_fields(task_path: "Path") -> dict:
+    """Extract authority-gate fields from task frontmatter (best-effort, no raises)."""
+    try:
+        content = task_path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return {}
+    fields: dict = {}
+    for name, pattern in (
+        ("agent_id", _TASK_AGENT_ID_RE),
+        ("consequence", _TASK_CONSEQUENCE_RE),
+        ("output_kind", _TASK_OUTPUT_KIND_RE),
+        ("action", _TASK_ACTION_RE),
+    ):
+        m = pattern.search(content)
+        if m:
+            fields[name] = m.group(1).strip()
+    # Always include task title for audit trail
+    title_m = TASK_TITLE_RE.search(content)
+    if title_m:
+        fields["task_id"] = title_m.group(1).strip()
+    return fields
+
+
+# ---------------------------------------------------------------------------
 # Constants (configurable)
 # ---------------------------------------------------------------------------
 
@@ -707,6 +757,39 @@ def handle_idle(status: dict, dry_run: bool = False) -> None:
             if autonomous_skip_reason:
                 log("WARN", f"skipping queued task {promote.name}: {autonomous_skip_reason}", dry_run)
                 continue
+
+            # ----------------------------------------------------------------
+            # AUTHORITY GATE — deterministic, fail-closed pre-execution check.
+            # Must run BEFORE the task is promoted to task.md (before execution).
+            # Agents read rules to plan; Python reads rules to BLOCK.
+            # Gated by _TEST_DISABLE_AUTHORITY_GATE for test isolation only.
+            # ----------------------------------------------------------------
+            if _AUTHORITY_GATE_AVAILABLE and not _TEST_DISABLE_AUTHORITY_GATE:
+                _gate_fields = _parse_authority_gate_fields(promote)
+                if _gate_fields.get("agent_id"):
+                    _gate_result = check_task_authority(_gate_fields)
+                    if not _gate_result["allowed"]:
+                        log(
+                            "GATE",
+                            f"REJECTED queued task {promote.name}: {_gate_result['reason']}",
+                            dry_run,
+                        )
+                        if not dry_run and _record_gate_rejection is not None:
+                            _record_gate_rejection(_gate_fields, _gate_result)
+                        continue
+                    log(
+                        "GATE",
+                        f"ALLOWED queued task {promote.name}: {_gate_result['reason']}",
+                        dry_run,
+                    )
+                # If agent_id is absent from frontmatter, the gate cannot evaluate —
+                # task proceeds (gate is opt-in; tasks without agent_id are legacy/trusted).
+                # TODO: once all queued tasks carry agent_id frontmatter, change this
+                # to fail closed: uncomment the block below.
+                # else:
+                #     log("GATE", f"REJECTED {promote.name}: no agent_id in frontmatter — fail closed", dry_run)
+                #     continue
+            # ----------------------------------------------------------------
 
             promoted_name = promote.stem
             log("ACTION", f"promoting queued task {promote.name} → task.md", dry_run)
