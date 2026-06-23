@@ -39,20 +39,11 @@ log() {
 
 # --- Process checks ---
 
-check_orchestrator() {
-    if pgrep -f "orchestrator.py --loop" > /dev/null 2>&1; then
-        return 0
-    fi
-    log "DEAD: orchestrator.py not running — restarting"
-    cd /home/openclaw
-    setsid nohup python3 polish_loop/orchestrator.py --loop >> /mnt/c/OpenClaw/logs/orchestrator.out 2>&1 &
-    sleep 2
-    if pgrep -f "orchestrator.py --loop" > /dev/null 2>&1; then
-        log "RESTART OK: orchestrator.py (PID $(pgrep -f 'orchestrator.py --loop' | head -1))"
-    else
-        log "RESTART FAILED: orchestrator.py — manual intervention needed"
-    fi
-}
+# NOTE (2026-06-23): the orchestrator is NO LONGER supervised here. It moved from a standing
+# poll loop to an EVENT-TRIGGERED model — `orchestrator.py --loop` is deprecated/disabled and
+# exits 2, so supervising it here just thrashed (RESTART FAILED every cycle). The orchestrator is
+# now driven by a cron tick calling `orchestrator.py --once` (one Phase-C ledger event per tick).
+# See Operator/POLISH-LOOP-REVIVAL-PACKET.md.
 
 check_builder_watcher() {
     if pgrep -f "builder_watcher.sh" > /dev/null 2>&1; then
@@ -195,8 +186,10 @@ except Exception:
 # --- Duplicate process detection ---
 
 check_duplicates() {
+    # Only the (deprecated) standing-loop daemon should ever be a duplicate; transient
+    # `orchestrator.py --once` cron ticks are short-lived and must NOT be counted/killed.
     local orch_count
-    orch_count=$(pgrep -fc "orchestrator.py" 2>/dev/null || echo 0)
+    orch_count=$(pgrep -fc "orchestrator.py --loop" 2>/dev/null || echo 0)
     if [ "$orch_count" -gt 1 ]; then
         log "WARN: $orch_count orchestrator processes running (expected 1) — killing extras"
         # Keep the oldest (lowest PID), kill the rest
@@ -232,7 +225,7 @@ BALANCE_EVERY=10   # run queue balancer every N cycles
 cycle=0
 
 while true; do
-    check_orchestrator
+    # orchestrator is cron-driven via `--once` now (see note above) — not supervised here
     check_builder_watcher
     check_dashboard_gen
     check_dashboard_watchdog
