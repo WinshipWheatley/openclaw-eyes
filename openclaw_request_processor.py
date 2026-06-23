@@ -6968,11 +6968,23 @@ def _enrich_operator_surface(
             question = _operator_text(_load_json_request(request_path))
         except Exception:
             question = ""
-        # Comedy is allowed ONLY on a normal, non-blocked CHAT answer. Everything else (blocked,
-        # deny, intake, approval, file, evidence, money, legal) is high-risk -> comedy hard-off.
-        comedy_allowed = (
+        # Decoration (jargon + comedy) is allowed ONLY on a normal, non-blocked CHAT answer that is
+        # NOT a safety/denial surface. Everything else (blocked, deny, intake, approval, file,
+        # evidence, money, legal, AND any refusal/SEND_HOLD text) is high_risk -> NO text mutation
+        # (only the read-only guard + detector run). This keeps crisp safety denials verbatim — a
+        # jargon insert must never split a phrase like "SEND_HOLD remains in force".
+        _ml = message.lower()
+        safety_surface = any(
+            marker in _ml for marker in (
+                "send_hold", "cannot route", "cannot send", "will not send", "won't send",
+                "no external send", "not authorized to send", "ledger remains untouched",
+                "denied", "blocked outputs", "no money", "no payment",
+            )
+        )
+        decorate_ok = (
             str(response.request_type or "").upper() == "CHAT"
             and not str(getattr(response, "blocked_reason", "") or "").strip()
+            and not safety_surface
         )
         from reply_pipeline import apply_reply_pipeline
 
@@ -6982,7 +6994,7 @@ def _enrich_operator_surface(
             agent_id,
             packet_id=str(response.source_request_id or ""),
             read_model_root=str(export_root),
-            high_risk=not comedy_allowed,
+            high_risk=not decorate_ok,
         )
         if isinstance(enriched, str) and enriched.strip() and enriched != message:
             return replace(response, operator_message=enriched)

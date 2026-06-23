@@ -35,15 +35,19 @@ def apply_reply_pipeline(
     rid = (str(packet_id) or f"{agent_id}-reply")[:64] or f"{agent_id}-reply"
 
     # 1) Jargon teaching — verified terms only, exact ELI5, records learning progress.
-    try:
-        from jargon_realize import realize_term_teaching
-        from jargon_teaching_store import record_teaching_events_after_delivery
+    #    SKIPPED on high_risk surfaces (deny/safety/blocked): never mutate a crisp safety denial —
+    #    an inline insert would split a verbatim phrase like "SEND_HOLD remains in force". Only the
+    #    read-only guard + detector run on those surfaces (below).
+    if not high_risk:
+        try:
+            from jargon_realize import realize_term_teaching
+            from jargon_teaching_store import record_teaching_events_after_delivery
 
-        answer_text, _hints = realize_term_teaching(answer_text, operator_id=operator_id)
-        if _hints:
-            record_teaching_events_after_delivery(operator_id, rid, _hints)
-    except Exception:
-        pass
+            answer_text, _hints = realize_term_teaching(answer_text, operator_id=operator_id)
+            if _hints:
+                record_teaching_events_after_delivery(operator_id, rid, _hints)
+        except Exception:
+            pass
 
     # 2) Comedy-as-diagnostic — grounded, scoped to the answer's situation, gate + rank governed.
     try:
