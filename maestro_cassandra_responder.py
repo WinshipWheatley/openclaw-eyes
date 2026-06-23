@@ -550,6 +550,23 @@ def _answer_with_maestro_brain(
             print(f"[maestro] operator-surface leak survived strip: {_leak.reasons}", flush=True)
     except Exception:
         pass
+    # Claim detector (pipeline step 11): audit the EXACT final answer; queue SUPERVISED heal
+    # candidates on confirmed-wrong claims. Shadow-default, deterministic-only queues, NEVER
+    # deploys. Non-blocking — must never affect or delay the answer.
+    try:
+        from pathlib import Path as _Path
+        from claim_detector import detect_claims
+
+        detect_claims(
+            str(context_packet.get("packet_id") or "maestro-reply")[:64],
+            "maestro",
+            text,
+            answer_text,
+            reply_timestamp=str(context_packet.get("generated_at") or ""),
+            read_model_root=_Path("generated/read_models"),
+        )
+    except Exception:
+        pass
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
     return MaestroCassandraResult(
         status="ANSWER_READY",
