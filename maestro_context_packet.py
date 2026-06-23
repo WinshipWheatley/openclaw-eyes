@@ -29,6 +29,7 @@ KNOWN_READ_MODELS = (
     "capital_hilton_invoice_operator_run_status.json",
     "cassandra_email_calendar_delta_detangle.json",
     "work_board.json",
+    "orchestration_progress.json",
 )
 
 FINANCE_CONTEXT_TERMS = frozenset(
@@ -455,6 +456,23 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             provenance="generated_read_model",
             source_ref=_display_read_model_ref(root / "work_board.json"),
             freshness=_freshness(root / "work_board.json", work_board),
+        )
+
+    progress = payloads.get("orchestration_progress.json", {})
+    milestones = [m for m in progress.get("shipped_milestones", ()) if isinstance(m, Mapping)]
+    if milestones:
+        recent = "; ".join(str(m.get("summary") or "").strip() for m in milestones[:6] if m.get("summary"))
+        _append_fact(
+            facts,
+            topic="progress",
+            label="Where we are at (recently shipped)",
+            value=(
+                f"{len(milestones)} recent engineering milestones on branch "
+                f"{progress.get('branch', 'unknown')}. Most recent: {recent}."
+            ),
+            provenance="generated_read_model",
+            source_ref=_display_read_model_ref(root / "orchestration_progress.json"),
+            freshness=_freshness(root / "orchestration_progress.json", progress),
         )
 
     return facts, refs, proof
