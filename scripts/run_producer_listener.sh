@@ -26,5 +26,5 @@ for var in "${REQUIRED_VARS[@]}"; do
 done
 
 # Run the producer listener
-# Ensure chief_env is active via existing env setup if required
-python3 producer_listener.py
+# Use the chief_env venv (has python-telegram-bot); system python3 lacks it.
+exec /home/openclaw/chief_env/bin/python -u producer_listener.py
