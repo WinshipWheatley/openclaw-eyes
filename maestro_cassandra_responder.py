@@ -540,6 +540,16 @@ def _answer_with_maestro_brain(
         observe_packet_dankness(context_packet, text, "maestro")
     except Exception:
         pass
+    # Defense-in-depth (persona-voice layer): flag if any machine-contract leaked past the
+    # strip above. Observability only — never alters or blocks the reply. Surfaces strip gaps.
+    try:
+        from operator_surface_guard import check_machine_contract_leak
+
+        _leak = check_machine_contract_leak(answer_text, audience="ELIWINSHIP")
+        if _leak.is_leak:
+            print(f"[maestro] operator-surface leak survived strip: {_leak.reasons}", flush=True)
+    except Exception:
+        pass
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
     return MaestroCassandraResult(
         status="ANSWER_READY",
