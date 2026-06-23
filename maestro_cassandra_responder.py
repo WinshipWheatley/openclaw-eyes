@@ -546,6 +546,36 @@ def _answer_with_maestro_brain(
             )
     except Exception:
         pass
+    # Comedy-as-diagnostic (pipeline steps 3-4,9): append ONE grounded diagnostic line IF a real
+    # situation-signal exists, the comedy gate admits, AND the signal RELATES to this answer's
+    # situation (comedy_scope) — so a global signal never lands as a non-sequitur. Grounded slots
+    # only (no fabrication); the surface guard below still inspects the full text. Non-blocking.
+    try:
+        from comedy_signal_facts import produce_signal_facts, default_state
+        from comedy_archetype_seeder import seed_comedy_archetype, realize_comedy_line
+        from operator_surface_guard import check_comedy_gate
+        from comedy_scope import is_comedy_relevant
+
+        _ph = str(context_packet.get("packet_id") or "")
+        _sig = produce_signal_facts(default_state())
+        if _sig:
+            _gr = check_comedy_gate(agent_role="maestro", error_flags=0, process_hung=False, payload_hash=_ph)
+            _gd = {
+                "admitted": _gr.comedy_eligible, "zero_error_pass": not _gr.comedy_hard_locked,
+                "agent_rank": _gr.agent_humor_rank, "intensity_cap": _gr.agent_humor_rank,
+                "golden_ratio_roll_passed": _gr.golden_ratio_passed, "gate_decision_ref": _ph,
+            }
+            _ch = seed_comedy_archetype(
+                context_packet_facts=_sig, gate_decision=_gd, reply_id=(_ph[:64] or "r"), agent_id="maestro"
+            )
+            if getattr(_ch, "enabled", False) and is_comedy_relevant(
+                getattr(_ch, "diagnostic_signal", None), text, answer_text
+            ):
+                _cl = realize_comedy_line(_ch, _sig, literal_explanation=answer_text)
+                if _cl:
+                    answer_text = f"{answer_text}\n\n{_cl}"
+    except Exception:
+        pass
     # Live dankifier hook: score the packet just used + queue grounded gaps, so the system
     # gets danker the more it's used. Never blocks or alters the answer (already finalized
     # above) — observe_packet_dankness swallows all errors; enrichment runs in a separate drain.
