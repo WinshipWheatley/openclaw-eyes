@@ -40,6 +40,13 @@ NO_AUTHORITY_FLAGS = {
 
 GOVERNED_EVIDENCE_SOURCES = (
     {
+        "source_id": "niles_track_registry",
+        "source_path": "generated/read_models/niles_track_registry.json",
+        "source_role": "governed chief album track-registry CSV metadata (song roster + status)",
+        "truth_status": "governed_operator_metadata_evidence_not_final_audio_truth",
+        "confidence": "high",
+    },
+    {
         "source_id": "niles_album_evidence_intake_boundary",
         "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
         "source_role": "metadata-only evidence intake boundary contract",
@@ -270,6 +277,50 @@ def _runtime_readiness_posture(agent_runtime: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _track_registry_posture(track_registry: dict[str, Any]) -> dict[str, Any]:
+    """Surface real song roster facts from the governed track-registry read-model."""
+    source_present = bool(track_registry)
+    tracks = track_registry.get("tracks", [])
+    if not isinstance(tracks, list):
+        tracks = []
+    track_count = track_registry.get("track_count", len(tracks))
+    status_summary = track_registry.get("status_summary", {})
+    if not isinstance(status_summary, dict):
+        status_summary = {}
+    source_missing_gap = track_registry.get("source_missing_gap") or (
+        None if source_present else "Track-registry CSV not found; song roster unavailable."
+    )
+    track_rows: list[dict[str, Any]] = []
+    for t in tracks:
+        if not isinstance(t, dict):
+            continue
+        track_rows.append(
+            {
+                "track_id": t.get("track_id"),
+                "title": t.get("title"),
+                "status": t.get("status"),
+                "next_step": t.get("next_step"),
+                "target_week": t.get("target_week"),
+                "metadata_only": True,
+                "album_state_confirmed": False,
+                "source_ref": "generated/read_models/niles_track_registry.json",
+            }
+        )
+    return {
+        "source_present": source_present,
+        "track_count": track_count,
+        "status_summary": status_summary,
+        "track_rows": track_rows,
+        "source_missing_gap": source_missing_gap,
+        "real_track_roster_available": source_present and track_count > 0,
+        "metadata_only": True,
+        "raw_audio_ingested": False,
+        "album_state_confirmed": False,
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "truth_status": "governed_operator_metadata_evidence_not_final_audio_truth",
+    }
+
+
 def _generic_review_packet_identity() -> dict[str, Any]:
     return {
         "packet_identity": {
@@ -378,12 +429,14 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
     repo_b_intake = _read_json_if_present(root / "generated/read_models/repo_b_runtime_intake.json")
     agent_runtime = _read_json_if_present(root / "generated/read_models/agent_runtime_readiness.json")
     intake_boundary = _read_json_if_present(root / "generated/read_models/niles_album_evidence_intake_boundary.json")
+    track_registry = _read_json_if_present(root / "generated/read_models/niles_track_registry.json")
 
     workflow = _niles_workflow_posture(workflow_atlas)
     module = _module_posture(module_registry)
     memory = _memory_album_posture(memory_dry_run)
     repo_b = _repo_b_music_candidate_posture(repo_b_intake)
     runtime = _runtime_readiness_posture(agent_runtime)
+    track_posture = _track_registry_posture(track_registry)
     boundary_present = bool(intake_boundary)
     intake_status = intake_boundary.get("operator_metadata_intake_status", {}) if isinstance(intake_boundary, dict) else {}
     metadata_review_items = _operator_metadata_review_items(intake_boundary)
@@ -445,6 +498,33 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
             "authority_status": "operator_metadata_evidence_consumed_not_truth" if metadata_consumed else "contract_only_no_real_album_metadata",
         },
     ]
+    if track_posture["real_track_roster_available"]:
+        track_count = track_posture["track_count"]
+        status_summary = track_posture["status_summary"]
+        status_parts = ", ".join(f"{v} {k}" for k, v in sorted(status_summary.items()))
+        confirmed_items.append(
+            {
+                "item_id": "track_registry_roster_available",
+                "label": (
+                    f"Governed track-registry CSV confirms {track_count} song(s) in the chief album roster: {status_parts}. "
+                    "Titles are operator working titles; status is metadata-only, not final audio truth."
+                ),
+                "source": "niles_track_registry",
+                "authority_status": "governed_metadata_evidence_not_final_audio_truth",
+                "track_count": track_count,
+                "status_summary": status_summary,
+            }
+        )
+    elif not track_posture["source_present"]:
+        confirmed_items.append(
+            {
+                "item_id": "track_registry_source_missing",
+                "label": "GAP: track-registry CSV not found; no governed song roster in packet.",
+                "source": "niles_track_registry",
+                "authority_status": "source_missing_gap_flagged",
+                "gap_detail": track_posture.get("source_missing_gap"),
+            }
+        )
     if metadata_consumed:
         confirmed_items.append(
             {
@@ -519,6 +599,8 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
     packet_status = (
         "ready_for_review_from_governed_operator_metadata"
         if metadata_consumed
+        else "partial_track_registry_only_operator_metadata_still_needed"
+        if track_posture["real_track_roster_available"]
         else "blocked_needs_governed_album_evidence"
     )
     payload = {
@@ -568,6 +650,7 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
         "memory_album_posture": memory,
         "repo_b_music_candidate_posture": repo_b,
         "runtime_readiness_posture": runtime,
+        "track_registry_posture": track_posture,
         "evidence_intake_boundary_posture": boundary_posture,
         "authority_boundary": dict(NO_AUTHORITY_FLAGS),
         "receipt_proof_status": {
@@ -618,6 +701,27 @@ def format_niles_album_review_packet(payload: dict[str, Any]) -> str:
                 lines.append(f"  - Missing/unknown fields: {', '.join(item['missing_or_unknown_fields'])}.")
     else:
         lines.append("- None. Review packet remains blocked until governed operator metadata exists.")
+    # Track roster — surface real data from governed CSV
+    track_posture = payload.get("track_registry_posture", {})
+    lines.extend(["", "## Track Roster (governed CSV metadata — not final audio truth)"])
+    if track_posture.get("real_track_roster_available"):
+        tc = track_posture["track_count"]
+        ss = track_posture.get("status_summary", {})
+        status_str = ", ".join(f"{v} {k}" for k, v in sorted(ss.items()))
+        lines.append(f"- Source: `{track_posture.get('source_ref', 'niles_track_registry')}` | {tc} tracks | statuses: {status_str}")
+        for row in track_posture.get("track_rows", []):
+            title = row.get("title") or row.get("track_id") or "[unknown]"
+            track_id = row.get("track_id") or ""
+            status = row.get("status") or "[unknown]"
+            next_step = row.get("next_step") or "[unknown]"
+            target = row.get("target_week") or "[unknown]"
+            lines.append(
+                f"  - {track_id} | {title} | status={status} | next={next_step} | target_week={target}"
+            )
+    elif track_posture.get("source_missing_gap"):
+        lines.append(f"- GAP: {track_posture['source_missing_gap']}")
+    else:
+        lines.append("- Track registry not available; run scripts/export_niles_track_registry_read_model.py first.")
     lines.extend([
         "",
         "## Confirmed Governed Evidence",

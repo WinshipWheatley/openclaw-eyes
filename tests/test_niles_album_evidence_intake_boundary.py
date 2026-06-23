@@ -93,7 +93,11 @@ def test_niles_review_packet_references_boundary_but_remains_blocked_without_rea
     review_packet.export_niles_album_review_packet(generated_at=FIXED_NOW)
     payload = json.loads(Path("generated/read_models/niles_album_review_packet.json").read_text(encoding="utf-8"))
 
-    assert payload["packet_status"] == "blocked_needs_governed_album_evidence"
+    # packet_status may be partial when track registry is present, but always non-ready without operator metadata
+    assert payload["packet_status"] in (
+        "blocked_needs_governed_album_evidence",
+        "partial_track_registry_only_operator_metadata_still_needed",
+    )
     assert payload["metadata_consumption"]["metadata_consumed"] is False
     assert payload["metadata_consumption"]["metadata_record_count"] == 0
     assert payload["operator_metadata_review_items"] == []

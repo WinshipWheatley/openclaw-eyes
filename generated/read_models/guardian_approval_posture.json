@@ -1,0 +1,73 @@
+{
+  "active_not_expired_count": 0,
+  "approval_receipts": {
+    "by_receipt_type": {
+      "cassandra_proposal_shadow_created": {
+        "observed": 3
+      },
+      "decision_shadow_observed": {
+        "approved_observed": 11
+      },
+      "legacy_sqlite_mismatch": {
+        "mismatch_observed": 3
+      },
+      "request_shadow_created": {
+        "observed": 11
+      }
+    },
+    "latest_receipt_at": "2026-06-14T15:42:23+00:00",
+    "present": true,
+    "total": 28
+  },
+  "approval_requests": {
+    "active_not_expired": 0,
+    "by_action_type": {
+      "cassandra_hitl_proposal": 3,
+      "chief_approval_request": 11
+    },
+    "by_status": {
+      "cassandra_proposal_shadow_created": 3,
+      "request_shadow_created": 11
+    },
+    "latest_requested_at": "2026-06-14T11:41:22+00:00",
+    "note": "All rows are observational shadow/dual-write entries. Legacy JSON remains authoritative; these are metadata-only mirror records.",
+    "present": true,
+    "total": 14
+  },
+  "boundaries": {
+    "approvals_issued": false,
+    "legacy_json_authoritative": true,
+    "mutations_allowed": false,
+    "raw_action_text_read": false,
+    "read_only": true,
+    "secrets_read": false,
+    "shadow_rows_are_metadata_only": true
+  },
+  "data_gap": null,
+  "generated_at": "2026-06-23T00:58:26+00:00",
+  "generated_by": "scripts/export_guardian_approval_posture_read_model.py",
+  "ledger_path": "/home/openclaw/.openclaw/business_ops/ledger.sqlite",
+  "ledger_present": true,
+  "note": "Counts reflect shadow/dual-write observation rows only. Active approval truth lives in /mnt/c/OpenClaw/logs/approval_pending.json which is NOT read by this generator (read-only-safe boundary).",
+  "pending_approval_count": 14,
+  "posture_summary": "14 approval records in ledger (0 not-yet-expired by timestamp): 3 cassandra_proposal_shadow_created; 11 request_shadow_created. Receipts: 28. Recovery clearances: 2 (1 approved; 1 used). All records are observational shadow entries; legacy JSON remains authoritative for live gate.",
+  "recovery_clearances": {
+    "by_status": {
+      "approved": 1,
+      "used": 1
+    },
+    "most_recent": {
+      "agent_id": "cassandra",
+      "approved_at": "2026-05-16T04:45:40+00:00",
+      "recovery_action_id": "cassandra_systemd_user_start",
+      "requested_at": "2026-05-16T04:45:33+00:00",
+      "status": "approved",
+      "used_at": null
+    },
+    "note": "Cassandra-only fixed-scope recovery clearances; not general runtime approval authority.",
+    "present": true,
+    "total": 2
+  },
+  "schema_version": "guardian_approval_posture_read_model_v0",
+  "source_ref": ".openclaw/business_ops/ledger.sqlite"
+}

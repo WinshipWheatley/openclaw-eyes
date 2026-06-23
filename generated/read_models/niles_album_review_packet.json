@@ -62,6 +62,16 @@
       "item_id": "niles_album_evidence_intake_boundary_defined",
       "label": "A metadata-only Niles album evidence intake boundary is defined.",
       "source": "niles_album_evidence_intake_boundary"
+    },
+    {
+      "authority_status": "governed_metadata_evidence_not_final_audio_truth",
+      "item_id": "track_registry_roster_available",
+      "label": "Governed track-registry CSV confirms 12 song(s) in the chief album roster: 12 idea. Titles are operator working titles; status is metadata-only, not final audio truth.",
+      "source": "niles_track_registry",
+      "status_summary": {
+        "idea": 12
+      },
+      "track_count": 12
     }
   ],
   "daw_automation_allowed": false,
@@ -177,7 +187,7 @@
     "packet_kind": "operator_review_packet",
     "review_packet_contract": "generic_review_packet_shape_v0"
   },
-  "packet_status": "blocked_needs_governed_album_evidence",
+  "packet_status": "partial_track_registry_only_operator_metadata_still_needed",
   "raw_audio_ingest_allowed": false,
   "receipt_proof_status": {
     "external_action_taken": false,
@@ -210,6 +220,17 @@
   "schema_version": "niles_album_review_packet_v0",
   "send_or_submit_authority_added": false,
   "source_evidence": [
+    {
+      "confidence": "high",
+      "old_files_treated_as_evidence_not_truth": true,
+      "source_id": "niles_track_registry",
+      "source_path": "generated/read_models/niles_track_registry.json",
+      "source_payload_kind": "niles_track_registry_v0",
+      "source_present": true,
+      "source_promoted_to_truth": false,
+      "source_role": "governed chief album track-registry CSV metadata (song roster + status)",
+      "truth_status": "governed_operator_metadata_evidence_not_final_audio_truth"
+    },
     {
       "confidence": "high",
       "old_files_treated_as_evidence_not_truth": true,
@@ -291,7 +312,7 @@
   "source_summary": {
     "all_sources_repo_a_read_models_or_docs": true,
     "broad_private_drive_scan_triggered": false,
-    "confirmed_evidence_source_count": 7,
+    "confirmed_evidence_source_count": 8,
     "missing_evidence_source_count": 0,
     "operator_metadata_consumed": false,
     "operator_metadata_record_count": 0,
@@ -308,6 +329,142 @@
     }
   ],
   "tool_execution_authority_added": false,
+  "track_registry_posture": {
+    "album_state_confirmed": false,
+    "metadata_only": true,
+    "raw_audio_ingested": false,
+    "real_track_roster_available": true,
+    "source_missing_gap": null,
+    "source_present": true,
+    "source_ref": "generated/read_models/niles_track_registry.json",
+    "status_summary": {
+      "idea": 12
+    },
+    "track_count": 12,
+    "track_rows": [
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 01",
+        "track_id": "T01"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 02",
+        "track_id": "T02"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 03",
+        "track_id": "T03"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 04",
+        "track_id": "T04"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 05",
+        "track_id": "T05"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 06",
+        "track_id": "T06"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 07",
+        "track_id": "T07"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 08",
+        "track_id": "T08"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 09",
+        "track_id": "T09"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 10",
+        "track_id": "T10"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 11",
+        "track_id": "T11"
+      },
+      {
+        "album_state_confirmed": false,
+        "metadata_only": true,
+        "next_step": "unknown",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+        "status": "idea",
+        "target_week": "TBD",
+        "title": "Song 12",
+        "track_id": "T12"
+      }
+    ],
+    "truth_status": "governed_operator_metadata_evidence_not_final_audio_truth"
+  },
   "unknown_album_state_not_treated_as_confirmed": true,
   "workflow_domain": "music_art",
   "workflow_name": "Niles album progress review",

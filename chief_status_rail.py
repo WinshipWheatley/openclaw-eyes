@@ -30,6 +30,7 @@ DEFAULT_WORK_BOARD_PATH = DEFAULT_EXPORT_ROOT / "work_board.json"
 DEFAULT_AGENT_WORK_PACKETS_PATH = DEFAULT_EXPORT_ROOT / "agent_work_packets.json"
 DEFAULT_INTENT_ROUTER_PATH = DEFAULT_EXPORT_ROOT / "intent_router.json"
 DEFAULT_DROPPED_INTENTS_PATH = DEFAULT_EXPORT_ROOT / "dropped_intents.json"
+DEFAULT_FLEET_HEALTH_PATH = DEFAULT_EXPORT_ROOT / "chief_agent_fleet_health.json"
 
 STATUS_CATEGORIES = (
     "proven",
@@ -80,6 +81,7 @@ SOURCE_READ_MODELS = (
     SourceReadModel("agent_work_packets", str(DEFAULT_AGENT_WORK_PACKETS_PATH), "Chief-routed work packet signals"),
     SourceReadModel("intent_router", str(DEFAULT_INTENT_ROUTER_PATH), "Chief-routed intent signals"),
     SourceReadModel("dropped_intents", str(DEFAULT_DROPPED_INTENTS_PATH), "Deferred/unresolved Chief-adjacent intent signals"),
+    SourceReadModel("fleet_health", str(DEFAULT_FLEET_HEALTH_PATH), "Agent fleet health + sync posture + shipped milestones"),
 )
 
 
@@ -285,6 +287,48 @@ def _eli5_summary() -> dict[str, str]:
     }
 
 
+def _extract_fleet_health_facts(fleet_health: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract grounded facts from fleet-health read model for inclusion in the status rail."""
+    return list(fleet_health.get("grounded_facts") or [])
+
+
+def _fleet_health_summary(fleet_health: dict[str, Any]) -> dict[str, Any]:
+    """Compact, provenance-carrying summary of fleet health for the status rail."""
+    if not fleet_health:
+        return {"available": False, "source_ref": str(DEFAULT_FLEET_HEALTH_PATH)}
+    ah = fleet_health.get("agent_health") or {}
+    sh = fleet_health.get("sync_health") or {}
+    gm = fleet_health.get("git_milestones") or {}
+    return {
+        "available": True,
+        "source_ref": str(DEFAULT_FLEET_HEALTH_PATH),
+        "generated_at": fleet_health.get("generated_at") or "",
+        "agent_health": {
+            "online_count": ah.get("online_count"),
+            "total_agents": ah.get("total_agents"),
+            "online_agents": ah.get("online_agents") or [],
+            "degraded_agents": ah.get("degraded_agents") or [],
+            "offline_agents": ah.get("offline_agents") or [],
+            "unexpected_offline_count": ah.get("unexpected_offline_count"),
+            "summary": ah.get("summary") or "",
+        } if ah else None,
+        "sync_health": {
+            "mirror_status": sh.get("mirror_status"),
+            "display_status": sh.get("display_status"),
+            "operator_action_required": sh.get("operator_action_required"),
+            "last_mac_completion_time": sh.get("last_mac_completion_time"),
+            "summary": sh.get("summary") or "",
+        } if sh else None,
+        "git_milestones": {
+            "branch": gm.get("branch"),
+            "count": gm.get("count"),
+            "available": gm.get("available"),
+            "latest_milestone": gm.get("milestones", [{}])[0] if gm.get("milestones") else None,
+        } if gm else None,
+        "grounded_fact_count": fleet_health.get("grounded_fact_count", 0),
+    }
+
+
 def build_chief_status_rail(
     *,
     repo_root: str | Path = ROOT,
@@ -293,6 +337,7 @@ def build_chief_status_rail(
     agent_work_packets_path: str | Path = DEFAULT_AGENT_WORK_PACKETS_PATH,
     intent_router_path: str | Path = DEFAULT_INTENT_ROUTER_PATH,
     dropped_intents_path: str | Path = DEFAULT_DROPPED_INTENTS_PATH,
+    fleet_health_path: str | Path = DEFAULT_FLEET_HEALTH_PATH,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     segmentation = _read_json_if_present(segmentation_path, repo_root=repo_root)
@@ -300,12 +345,14 @@ def build_chief_status_rail(
     agent_work_packets = _read_json_if_present(agent_work_packets_path, repo_root=repo_root)
     intent_router = _read_json_if_present(intent_router_path, repo_root=repo_root)
     dropped_intents = _read_json_if_present(dropped_intents_path, repo_root=repo_root)
+    fleet_health = _read_json_if_present(fleet_health_path, repo_root=repo_root)
     source_payloads = {
         "segmentation": segmentation,
         "work_board": work_board,
         "agent_work_packets": agent_work_packets,
         "intent_router": intent_router,
         "dropped_intents": dropped_intents,
+        "fleet_health": fleet_health,
     }
     surfaces = _surface_summary(
         work_board=work_board,
@@ -417,6 +464,9 @@ def build_chief_status_rail(
             _source_record(source, repo_root=repo_root, payload=source_payloads[source.key])
             for source in SOURCE_READ_MODELS
         ],
+        # ── Grounded fleet-health facts (from agent_presence.json, sync_health.json, git log) ──
+        "fleet_health_summary": _fleet_health_summary(fleet_health),
+        "fleet_health_grounded_facts": _extract_fleet_health_facts(fleet_health),
         "next_safe_chief_lane": {
             "lane_name": "Build Now Vs Hold Queue Posture v0",
             "reason": "The status rail is now complete; the next bounded gap is timing posture for deferred versus ready Chief-adjacent work.",
@@ -460,8 +510,30 @@ def format_chief_status_rail(payload: dict[str, Any]) -> str:
         f"- Chief intent routes: `{status['chief_route_count']}`.",
         f"- Chief dropped/deferred intents: `{status['chief_dropped_intent_count']}`.",
         "",
-        "## Proven Now",
+        "## Fleet Health (Grounded)",
     ]
+    fhs = payload.get("fleet_health_summary") or {}
+    if fhs.get("available"):
+        ah = fhs.get("agent_health") or {}
+        sh = fhs.get("sync_health") or {}
+        gm = fhs.get("git_milestones") or {}
+        if ah:
+            lines.append(f"- {ah.get('summary', '')}")
+        if sh:
+            lines.append(f"- {sh.get('summary', '')}")
+        if gm and gm.get("available"):
+            latest = gm.get("latest_milestone") or {}
+            lines.append(
+                f"- Shipped milestones: {gm.get('count')} on `{gm.get('branch')}`. "
+                f"Latest: {latest.get('summary', 'n/a')} ({latest.get('commit', '')})."
+            )
+        lines.append(f"  source: `{fhs.get('source_ref', '')}`, as-of: {fhs.get('generated_at', 'unknown')}")
+    else:
+        lines.append("- Fleet health read-model not yet available (generate with chief_agent_fleet_health.py).")
+    lines.extend([
+        "",
+        "## Proven Now",
+    ])
     for item in payload["status_category_model"]["proven"]:
         lines.append(f"- {item['display_name']}: {item['authority_boundary']}")
     lines.extend(["", "## Partially Represented"])

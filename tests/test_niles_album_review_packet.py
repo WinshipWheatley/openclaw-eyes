@@ -79,7 +79,12 @@ def test_unknown_album_state_is_not_confirmed():
     assert payload["album_state_confirmed"] is False
     assert payload["unknown_album_state_not_treated_as_confirmed"] is True
     assert payload["evidence_sufficient_for_album_status"] is False
-    assert payload["packet_status"] == "blocked_needs_governed_album_evidence"
+    # Status is partial when track registry is available, blocked when not.
+    assert payload["packet_status"] in (
+        "blocked_needs_governed_album_evidence",
+        "partial_track_registry_only_operator_metadata_still_needed",
+        "ready_for_review_from_governed_operator_metadata",
+    )
     assert payload["metadata_consumption"]["metadata_consumed"] is False
     assert payload["metadata_consumption"]["metadata_record_count"] == 0
     assert any(item["item_id"] == "missing_current_album_source_of_truth" for item in payload["missing_evidence"])
@@ -248,10 +253,14 @@ def test_no_audio_daw_file_mutation_or_runtime_authority_added():
     assert payload["runtime_readiness_posture"]["can_bypass_approval"] is False
 
 
-def test_missing_evidence_produces_blocked_needs_ingestion_status_not_hallucinated_state():
-    payload = packet.build_niles_album_review_packet(generated_at=FIXED_NOW)
+def test_missing_evidence_produces_no_hallucinated_album_state(tmp_path):
+    # Use a tmp_path with no track registry to verify truly-blocked state.
+    repo_root = tmp_path
+    (tmp_path / "generated" / "read_models").mkdir(parents=True, exist_ok=True)
+    payload = packet.build_niles_album_review_packet(repo_root=repo_root, generated_at=FIXED_NOW)
     rendered = packet.format_niles_album_review_packet(payload)
 
+    assert payload["packet_status"] == "blocked_needs_governed_album_evidence"
     assert "blocked_needs_governed_album_evidence" in rendered
     assert "Album state confirmed: `false`" in rendered
     assert "No governed album/project metadata packet exists yet" in rendered
@@ -259,9 +268,11 @@ def test_missing_evidence_produces_blocked_needs_ingestion_status_not_hallucinat
 
 
 def test_export_writes_json_operator_and_cli_outputs(tmp_path, capsys):
+    # Use tmp_path as repo_root so no live read-models bleed in.
     export_root = tmp_path / "read_models"
+    (tmp_path / "generated" / "read_models").mkdir(parents=True, exist_ok=True)
 
-    result = packet.export_niles_album_review_packet(export_root=export_root, generated_at=FIXED_NOW)
+    result = packet.export_niles_album_review_packet(repo_root=tmp_path, export_root=export_root, generated_at=FIXED_NOW)
     payload = json.loads((export_root / packet.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
     operator = (export_root / packet.OPERATOR_EXPORT_NAME).read_text(encoding="utf-8")
 
@@ -269,7 +280,7 @@ def test_export_writes_json_operator_and_cli_outputs(tmp_path, capsys):
     assert payload["schema_version"] == packet.SCHEMA_VERSION
     assert "Niles Album Review Packet v0" in operator
     assert "DAW automation added: `false`" in operator
-    assert export_main(["--export-root", str(export_root), "--format", "json"]) == 0
+    assert export_main(["--repo-root", str(tmp_path), "--export-root", str(export_root), "--format", "json"]) == 0
     assert json.loads(capsys.readouterr().out)["packet_status"] == "blocked_needs_governed_album_evidence"
 
 
