@@ -18,7 +18,7 @@ import re
 import sys
 import tempfile
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -6636,7 +6636,7 @@ def _future_blocked_response(
     )
 
 
-def process_request_path(
+def _process_request_path_core(
     request_path: Path,
     *,
     export_root: Path = DEFAULT_EXPORT_ROOT,
@@ -6932,6 +6932,85 @@ def process_request_path(
             classification=classification,
         )
     return _future_blocked_response(request_path, raw_request, classification=classification)
+
+
+def _enrich_operator_surface(
+    response: OpenClawResponseForMac,
+    request_path: Path,
+    export_root: Path,
+) -> OpenClawResponseForMac:
+    """THE single author-aware operator-surface pipeline. Applies the live reply engines (jargon
+    teaching + scoped comedy-as-diagnostic + surface-guard + claim detection) to the FINAL
+    operator_message of EVERY reply, regardless of which agent/lane produced it — so all six agent
+    voices (Maestro, Cassandra, Chief, Guardian, Niles, Hermes) get the engines from one place.
+
+    Additive + TRUTH-FIRST: jargon inserts only VERIFIED catalog wording, comedy uses grounded
+    slots scoped to the answer's situation, the detector is read-only/shadow-default and queues
+    only supervised heals. Comedy is HARD-LOCKED on any non-CHAT or blocked surface (money, legal,
+    intake, approval, deny). Never raises — returns the response unchanged on any issue.
+    """
+    try:
+        if not isinstance(response, OpenClawResponseForMac):
+            return response
+        message = response.operator_message
+        if not isinstance(message, str) or not message.strip():
+            return response
+        # Responding agent — the same deterministic routing used for voice authorship.
+        try:
+            layered = _layered_response_fields(response, created_at=utc_now())
+            author = str(_voice_authorship_fields(response, layered).get("response_author") or "OPENCLAW_SYSTEM")
+        except Exception:
+            author = "OPENCLAW_SYSTEM"
+        agent_id = author.strip().lower() or "openclaw_system"
+        # The operator's question — for comedy relevance scoping + claim-detection context.
+        question = ""
+        try:
+            question = _operator_text(_load_json_request(request_path))
+        except Exception:
+            question = ""
+        # Comedy is allowed ONLY on a normal, non-blocked CHAT answer. Everything else (blocked,
+        # deny, intake, approval, file, evidence, money, legal) is high-risk -> comedy hard-off.
+        comedy_allowed = (
+            str(response.request_type or "").upper() == "CHAT"
+            and not str(getattr(response, "blocked_reason", "") or "").strip()
+        )
+        from reply_pipeline import apply_reply_pipeline
+
+        enriched = apply_reply_pipeline(
+            message,
+            question,
+            agent_id,
+            packet_id=str(response.source_request_id or ""),
+            read_model_root=str(export_root),
+            high_risk=not comedy_allowed,
+        )
+        if isinstance(enriched, str) and enriched.strip() and enriched != message:
+            return replace(response, operator_message=enriched)
+        return response
+    except Exception:
+        return response
+
+
+def process_request_path(
+    request_path: Path,
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+    duplicate_check: bool = True,
+    read_model_reader: ReadModelReader | None = None,
+) -> OpenClawResponseForMac:
+    """Universal request entrypoint. Runs the real processor, then applies the single author-aware
+    operator-surface pipeline so every agent voice gets the live reply engines (see
+    _enrich_operator_surface). The enrichment is additive + non-blocking; a failure returns the
+    un-enriched response unchanged."""
+    response = _process_request_path_core(
+        request_path,
+        export_root=export_root,
+        generated_at=generated_at,
+        duplicate_check=duplicate_check,
+        read_model_reader=read_model_reader,
+    )
+    return _enrich_operator_surface(response, request_path, export_root)
 
 
 def process(

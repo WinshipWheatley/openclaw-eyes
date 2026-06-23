@@ -6,7 +6,7 @@
     {
       "term_id": "grounded_fact",
       "canonical_surface": "grounded fact",
-      "aliases": ["grounded", "grounding"],
+      "aliases": ["grounded facts", "grounded-fact"],
       "domain": "openclaw_architecture",
       "concept_version": 1,
       "wording_version": 1,
@@ -78,7 +78,7 @@
     {
       "term_id": "shadow_mode",
       "canonical_surface": "shadow mode",
-      "aliases": ["shadow"],
+      "aliases": ["shadow-mode"],
       "domain": "openclaw_safety",
       "concept_version": 1,
       "wording_version": 1,

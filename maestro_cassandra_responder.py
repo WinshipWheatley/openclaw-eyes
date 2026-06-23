@@ -531,51 +531,10 @@ def _answer_with_maestro_brain(
     answer_text = _strip_internal_state_leaks(answer_text) or (
         "I don't have that in the current Maestro packet."
     )
-    # Jargon teaching (pipeline steps 5-8): teach verified terms the operator doesn't yet know,
-    # inline with the EXACT catalog ELI5 (naturally scoped to terms that appear in the answer),
-    # and record the learning events so the operator progresses unknown->learning->known.
-    # Verified-only, never invents a definition. Non-blocking — can't break the answer.
-    try:
-        from jargon_realize import realize_term_teaching
-        from jargon_teaching_store import record_teaching_events_after_delivery
-
-        answer_text, _jargon_hints = realize_term_teaching(answer_text, operator_id="winship")
-        if _jargon_hints:
-            record_teaching_events_after_delivery(
-                "winship", str(context_packet.get("packet_id") or "maestro-reply")[:64], _jargon_hints
-            )
-    except Exception:
-        pass
-    # Comedy-as-diagnostic (pipeline steps 3-4,9): append ONE grounded diagnostic line IF a real
-    # situation-signal exists, the comedy gate admits, AND the signal RELATES to this answer's
-    # situation (comedy_scope) — so a global signal never lands as a non-sequitur. Grounded slots
-    # only (no fabrication); the surface guard below still inspects the full text. Non-blocking.
-    try:
-        from comedy_signal_facts import produce_signal_facts, default_state
-        from comedy_archetype_seeder import seed_comedy_archetype, realize_comedy_line
-        from operator_surface_guard import check_comedy_gate
-        from comedy_scope import is_comedy_relevant
-
-        _ph = str(context_packet.get("packet_id") or "")
-        _sig = produce_signal_facts(default_state())
-        if _sig:
-            _gr = check_comedy_gate(agent_role="maestro", error_flags=0, process_hung=False, payload_hash=_ph)
-            _gd = {
-                "admitted": _gr.comedy_eligible, "zero_error_pass": not _gr.comedy_hard_locked,
-                "agent_rank": _gr.agent_humor_rank, "intensity_cap": _gr.agent_humor_rank,
-                "golden_ratio_roll_passed": _gr.golden_ratio_passed, "gate_decision_ref": _ph,
-            }
-            _ch = seed_comedy_archetype(
-                context_packet_facts=_sig, gate_decision=_gd, reply_id=(_ph[:64] or "r"), agent_id="maestro"
-            )
-            if getattr(_ch, "enabled", False) and is_comedy_relevant(
-                getattr(_ch, "diagnostic_signal", None), text, answer_text
-            ):
-                _cl = realize_comedy_line(_ch, _sig, literal_explanation=answer_text)
-                if _cl:
-                    answer_text = f"{answer_text}\n\n{_cl}"
-    except Exception:
-        pass
+    # NOTE: jargon teaching + comedy-as-diagnostic + claim detection were CONSOLIDATED into the
+    # single author-aware operator-surface pipeline (_enrich_operator_surface in
+    # openclaw_request_processor) so EVERY agent voice gets them on the FINAL operator_message —
+    # not just this Maestro brain path. They no longer run here (would double-process the surface).
     # Live dankifier hook: score the packet just used + queue grounded gaps, so the system
     # gets danker the more it's used. Never blocks or alters the answer (already finalized
     # above) — observe_packet_dankness swallows all errors; enrichment runs in a separate drain.
@@ -595,23 +554,8 @@ def _answer_with_maestro_brain(
             print(f"[maestro] operator-surface leak survived strip: {_leak.reasons}", flush=True)
     except Exception:
         pass
-    # Claim detector (pipeline step 11): audit the EXACT final answer; queue SUPERVISED heal
-    # candidates on confirmed-wrong claims. Shadow-default, deterministic-only queues, NEVER
-    # deploys. Non-blocking — must never affect or delay the answer.
-    try:
-        from pathlib import Path as _Path
-        from claim_detector import detect_claims
-
-        detect_claims(
-            str(context_packet.get("packet_id") or "maestro-reply")[:64],
-            "maestro",
-            text,
-            answer_text,
-            reply_timestamp=str(context_packet.get("generated_at") or ""),
-            read_model_root=_Path("generated/read_models"),
-        )
-    except Exception:
-        pass
+    # (Claim detection now runs centrally in _enrich_operator_surface on the FINAL operator_message
+    # for every agent — see the consolidation note above.)
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
     return MaestroCassandraResult(
         status="ANSWER_READY",
