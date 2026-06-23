@@ -137,3 +137,17 @@ def test_lm_useful_scorer_fails_safe_to_gap():
     score = crit.score_packet_dankness(_dank_packet(), "calendar tomorrow", useful_scorer=crit.lm_useful_scorer(_boom))
     assert score.useful == 0.0  # error -> 0.0 -> flags a gap, never crashes or inflates
     assert any(g["kind"] == "missing_fact" for g in score.gaps)
+
+
+def test_observe_packet_dankness_scores_and_queues(tmp_path):
+    ledger = ControlPlaneLedger(tmp_path / "cp.sqlite3", status_view_path=tmp_path / "s.json")
+    score = crit.observe_packet_dankness(_dank_packet(), "what is on my calendar", "maestro", ledger=ledger)
+    assert score is not None and 0.0 <= score.overall <= 1.0
+    assert ledger.counts()["tasks"] >= 1  # the live hook queued the gap (default ON)
+
+
+def test_observe_never_raises_on_bad_input(tmp_path):
+    ledger = ControlPlaneLedger(tmp_path / "cp.sqlite3", status_view_path=tmp_path / "s.json")
+    # garbage input must never raise — a live answer must never break on observation
+    out = crit.observe_packet_dankness({"facts": "not a list"}, "x", "maestro", ledger=ledger)
+    assert out is None or hasattr(out, "overall")

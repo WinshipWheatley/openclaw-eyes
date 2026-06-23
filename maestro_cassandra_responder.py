@@ -531,6 +531,15 @@ def _answer_with_maestro_brain(
     answer_text = _strip_internal_state_leaks(answer_text) or (
         "I don't have that in the current Maestro packet."
     )
+    # Live dankifier hook: score the packet just used + queue grounded gaps, so the system
+    # gets danker the more it's used. Never blocks or alters the answer (already finalized
+    # above) — observe_packet_dankness swallows all errors; enrichment runs in a separate drain.
+    try:
+        from packet_dankness_critic import observe_packet_dankness
+
+        observe_packet_dankness(context_packet, text, "maestro")
+    except Exception:
+        pass
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
     return MaestroCassandraResult(
         status="ANSWER_READY",

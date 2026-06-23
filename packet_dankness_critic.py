@@ -225,3 +225,46 @@ def emit_packet_enrich_tasks(
         if task_id:
             admitted.append(task_id)
     return admitted
+
+
+def default_lm_useful_scorer() -> Callable[[Sequence[Mapping[str, Any]], str], float]:
+    """An lm_useful_scorer wired to the system's local LLM (chief_llm.ollama_call).
+
+    This is the "LM useful-scorer live" wiring: relevance judged by the real model instead of
+    the deterministic term-match. Intended for the periodic enrich drain (not the per-response
+    path, for cost). The model only RATES relevance; it never adds content (no confab risk).
+    """
+
+    def _generate(prompt: str) -> str:
+        from chief_llm import ollama_call  # local import: keeps the critic importable without the model
+
+        return str(ollama_call(prompt) or "")
+
+    return lm_useful_scorer(_generate)
+
+
+def observe_packet_dankness(
+    packet: Mapping[str, Any],
+    question: str,
+    agent_id: str,
+    *,
+    ledger: ControlPlaneLedger | None = None,
+) -> DanknessScore | None:
+    """Per-response hook for the live self-improving loop.
+
+    Scores the packet that was just used (cheap, deterministic, NO LM call) and queues grounded
+    gaps to the control-plane ledger. NEVER raises — a scoring/queueing failure must never
+    affect the agent's answer. Returns the score (or None on failure). The actual enrichment
+    (refresh/escalate, optional LM re-score) runs in a separate drain, not here, so the
+    response path stays cheap.
+    """
+    try:
+        score = score_packet_dankness(packet, question)
+        if ledger is None:
+            from polish_loop.control_plane import DEFAULT_LEDGER_PATH
+
+            ledger = ControlPlaneLedger(DEFAULT_LEDGER_PATH)
+        emit_packet_enrich_tasks(ledger, score, agent_id=agent_id, question=question)
+        return score
+    except Exception:  # noqa: BLE001 — observation must never break a live answer
+        return None
