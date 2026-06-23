@@ -531,6 +531,21 @@ def _answer_with_maestro_brain(
     answer_text = _strip_internal_state_leaks(answer_text) or (
         "I don't have that in the current Maestro packet."
     )
+    # Jargon teaching (pipeline steps 5-8): teach verified terms the operator doesn't yet know,
+    # inline with the EXACT catalog ELI5 (naturally scoped to terms that appear in the answer),
+    # and record the learning events so the operator progresses unknown->learning->known.
+    # Verified-only, never invents a definition. Non-blocking — can't break the answer.
+    try:
+        from jargon_realize import realize_term_teaching
+        from jargon_teaching_store import record_teaching_events_after_delivery
+
+        answer_text, _jargon_hints = realize_term_teaching(answer_text, operator_id="winship")
+        if _jargon_hints:
+            record_teaching_events_after_delivery(
+                "winship", str(context_packet.get("packet_id") or "maestro-reply")[:64], _jargon_hints
+            )
+    except Exception:
+        pass
     # Live dankifier hook: score the packet just used + queue grounded gaps, so the system
     # gets danker the more it's used. Never blocks or alters the answer (already finalized
     # above) — observe_packet_dankness swallows all errors; enrichment runs in a separate drain.

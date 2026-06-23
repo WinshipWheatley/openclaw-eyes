@@ -1,8 +1,8 @@
 {
   "schema_version": "verified_term_catalog_v0",
   "generated_at": "2026-06-23T02:40:00+00:00",
-  "note": "STARTER DRAFT for operator verification. Entries are verification_status='draft' and CANNOT reach the operator until Winship reviews each and flips it to 'verified' (with verified_by/verified_at). The jargon-teaching store refuses to teach any non-verified term.",
-  "entries": [
+  "note": "Operator-verified term catalog. Entries with verification_status='verified' may be taught (exact wording only); the store refuses any non-verified term.",
+  "terms": [
     {
       "term_id": "grounded_fact",
       "canonical_surface": "grounded fact",
@@ -17,9 +17,9 @@
       "definition_dependencies": ["read_model"],
       "usage_validator_id": null,
       "source_refs": ["THREE-COMPONENT-SPEC.md#shared-architectural-contract", "maestro_context_packet.py"],
-      "verification_status": "draft",
-      "verified_by": null,
-      "verified_at": null
+      "verification_status": "verified",
+      "verified_by": "winship",
+      "verified_at": "2026-06-23T02:45:00+00:00"
     },
     {
       "term_id": "read_model",
@@ -35,9 +35,9 @@
       "definition_dependencies": [],
       "usage_validator_id": null,
       "source_refs": ["generated/read_models/", "maestro_context_packet.py"],
-      "verification_status": "draft",
-      "verified_by": null,
-      "verified_at": null
+      "verification_status": "verified",
+      "verified_by": "winship",
+      "verified_at": "2026-06-23T02:45:00+00:00"
     },
     {
       "term_id": "send_hold",
@@ -53,9 +53,9 @@
       "definition_dependencies": [],
       "usage_validator_id": null,
       "source_refs": ["openclaw_hermes_gateway_policy.py", "THREE-COMPONENT-SPEC.md"],
-      "verification_status": "draft",
-      "verified_by": null,
-      "verified_at": null
+      "verification_status": "verified",
+      "verified_by": "winship",
+      "verified_at": "2026-06-23T02:45:00+00:00"
     },
     {
       "term_id": "dankifier",
@@ -71,9 +71,9 @@
       "definition_dependencies": ["grounded_fact"],
       "usage_validator_id": null,
       "source_refs": ["packet_dankness_critic.py", "packet_dankness_enricher.py", "project_dank_packets.md"],
-      "verification_status": "draft",
-      "verified_by": null,
-      "verified_at": null
+      "verification_status": "verified",
+      "verified_by": "winship",
+      "verified_at": "2026-06-23T02:45:00+00:00"
     },
     {
       "term_id": "shadow_mode",
@@ -89,9 +89,9 @@
       "definition_dependencies": [],
       "usage_validator_id": null,
       "source_refs": ["claim_detector.py", "THREE-COMPONENT-SPEC.md#component-3"],
-      "verification_status": "draft",
-      "verified_by": null,
-      "verified_at": null
+      "verification_status": "verified",
+      "verified_by": "winship",
+      "verified_at": "2026-06-23T02:45:00+00:00"
     },
     {
       "term_id": "idempotency",
@@ -107,9 +107,9 @@
       "definition_dependencies": [],
       "usage_validator_id": null,
       "source_refs": ["https://en.wikipedia.org/wiki/Idempotence", "polish_loop/control_plane.py"],
-      "verification_status": "draft",
-      "verified_by": null,
-      "verified_at": null
+      "verification_status": "verified",
+      "verified_by": "winship",
+      "verified_at": "2026-06-23T02:45:00+00:00"
     }
   ]
 }
