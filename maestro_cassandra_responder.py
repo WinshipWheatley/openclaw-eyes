@@ -636,6 +636,19 @@ def build_hermes_truthful_advisory_answer(text: str) -> dict[str, Any]:
                 "SEND_HOLD remains in force.",
             ]
         )
+    # Hermes context packet — grounded posture facts (canonical route targets, blocked
+    # output kinds, SEND_HOLD posture, authority flags hard-False) from real config.
+    # READ-ONLY, additive; adds no send/execute capability. Failures silently skipped.
+    try:
+        from hermes_context_packet import build_hermes_context_packet
+        _hpt = str(build_hermes_context_packet(question=text).get("packet_text") or "").strip()
+    except Exception:
+        _hpt = ""
+    if _hpt:
+        if len(_hpt) > 900:  # keep the operator reply under the Telegram cap
+            _hpt = _hpt[:900].rstrip() + " …"
+        plain = f"{plain}\n\n{_hpt}"
+        base_proof["hermes_context_packet_used"] = True
     return {
         "one_line_answer": _one_line_answer(one_line),
         "plain_summary": _strip_internal_state_leaks(plain),
