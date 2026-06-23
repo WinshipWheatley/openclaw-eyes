@@ -19,7 +19,7 @@ import dataclasses
 import os
 import re
 from datetime import datetime, timezone
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 try:  # pragma: no cover - package import
     from polish_loop.control_plane import ControlPlaneLedger
@@ -77,11 +77,20 @@ def _fact_text(fact: Mapping[str, Any]) -> str:
     ).lower()
 
 
-def score_packet_dankness(packet: Mapping[str, Any], question: str = "") -> DanknessScore:
+def score_packet_dankness(
+    packet: Mapping[str, Any],
+    question: str = "",
+    *,
+    useful_scorer: Callable[[Sequence[Mapping[str, Any]], str], float] | None = None,
+) -> DanknessScore:
     """Score a built packet's dankness on real-source coverage; identify grounded gaps.
 
     Never inspects or rewards content plausibility — only whether real, current, relevant,
     sourced facts are present. Gaps are task specs for grounded enrichment, not content.
+
+    ``useful_scorer`` (optional) overrides the cheap deterministic term-match for the USEFUL
+    dimension with a semantic judge (e.g. an LLM via ``lm_useful_scorer``). It only RATES
+    relevance — it never adds content, so it carries no confabulation risk.
     """
     facts = [f for f in packet.get("facts", ()) if isinstance(f, Mapping)]
     n = len(facts)
@@ -100,11 +109,15 @@ def score_packet_dankness(packet: Mapping[str, Any], question: str = "") -> Dank
     useful_hits = [
         f for f in facts if q_terms and any(t in _fact_text(f) for t in q_terms)
     ]
-    # No question terms => usefulness is not assessable from the question; treat as neutral.
-    useful = 1.0 if (not q_terms or useful_hits) else 0.0
+    if not q_terms:
+        useful = 1.0  # no question => relevance not assessable => neutral
+    elif useful_scorer is not None:
+        useful = max(0.0, min(1.0, float(useful_scorer(facts, question))))  # semantic judge
+    else:
+        useful = 1.0 if useful_hits else 0.0  # deterministic term-match
 
     gaps: list[dict[str, Any]] = []
-    if q_terms and not useful_hits:
+    if q_terms and useful < 0.5:
         gaps.append({
             "kind": "missing_fact",
             "about": " ".join(q_terms[:4]),
@@ -136,15 +149,42 @@ def score_packet_dankness(packet: Mapping[str, Any], question: str = "") -> Dank
 
 
 def dankify_emit_enabled() -> bool:
-    """Whether the critic may queue packet_enrich tasks to the LIVE ledger. DEFAULT OFF.
+    """Whether the critic may queue packet_enrich tasks to the LIVE ledger. DEFAULT ON.
 
-    Mirrors the control-plane detector wire: scoring is always safe and free; queueing into
-    the live self-improvement loop is dormant until the operator turns it on for a
-    supervised run (OPENCLAW_PACKET_DANKIFY_EMIT=1).
+    The loop's safety is NOT this switch — it is the grounded-only enricher contract (refresh
+    a real source or escalate to the operator; never fabricate). Queueing a gap spec is itself
+    harmless (it just records what's missing). Set OPENCLAW_PACKET_DANKIFY_EMIT to
+    0/false/no/off to disable.
     """
-    return os.environ.get("OPENCLAW_PACKET_DANKIFY_EMIT", "").strip().lower() in {
-        "1", "true", "yes", "on",
+    return os.environ.get("OPENCLAW_PACKET_DANKIFY_EMIT", "on").strip().lower() not in {
+        "0", "false", "no", "off",
     }
+
+
+def lm_useful_scorer(generate: Callable[[str], str]) -> Callable[[Sequence[Mapping[str, Any]], str], float]:
+    """Build a USEFUL-dimension scorer backed by an LLM relevance judgment.
+
+    ``generate(prompt) -> str`` is the injected model call (e.g. the system's protected_generate).
+    The LM ONLY RATES whether the packet's facts can answer the question — it never adds or
+    invents content, so scoring carries no confabulation risk. Fails safe: any error scores 0.0
+    (which flags a gap) rather than crashing or inflating the score.
+    """
+
+    def _score(facts: Sequence[Mapping[str, Any]], question: str) -> float:
+        summary = "; ".join(_fact_text(f)[:140] for f in list(facts)[:12])
+        prompt = (
+            "You rate packet relevance for a truth system. On a scale 0.0 to 1.0, how well do "
+            "these facts let an agent answer the question? Reply with ONLY the number.\n"
+            f"Question: {question}\nFacts: {summary}\n"
+        )
+        try:
+            raw = str(generate(prompt)).strip()
+            m = re.search(r"[01](?:\.\d+)?", raw)
+            return max(0.0, min(1.0, float(m.group(0)))) if m else 0.0
+        except Exception:  # noqa: BLE001 — never let a scorer crash a run; absence -> gap
+            return 0.0
+
+    return _score
 
 
 def emit_packet_enrich_tasks(
