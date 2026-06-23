@@ -7011,6 +7011,19 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         calendar_ctx, gmail_ctx, contacts_ctx, finance_ctx, payment_verify_ctx, reality_ctx, context, query
     )
 
+    # Cassandra context packet — grounded facts: presence, wiring posture,
+    # email/calendar capability, sync health. Additive; never overrides existing
+    # context. Build failures are silently skipped to preserve existing behavior.
+    cassandra_packet_block = ""
+    try:
+        from cassandra_context_packet import build_cassandra_context_packet
+        _ccp = build_cassandra_context_packet(question=query)
+        _ccp_text = _ccp.get("packet_text") or ""
+        if _ccp_text:
+            cassandra_packet_block = f"{_ccp_text}\n\n"
+    except Exception as _ccp_exc:
+        print(f"[cassandra] context packet build skipped: {_ccp_exc}", flush=True)
+
     prompt = (
         f"{build_authoritative_date_context()}\n\n"
         f"{persona}\n"
@@ -7023,6 +7036,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         f"{payment_verify_block}"
         f"{reality_block}"
         f"{session_override_block}"
+        f"{cassandra_packet_block}"
         f"{registry_block}"
         f"User: {query}\n"
         f"Cassandra:"

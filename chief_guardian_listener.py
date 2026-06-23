@@ -237,7 +237,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     if not has_pending_approval():
-        await update.message.reply_text(guardian_no_pending_reply(text))
+        _reply = guardian_no_pending_reply(text)
+        # Surface grounded approval-posture facts from the HITL ledger. READ-ONLY:
+        # build_guardian_context_packet never resolves/approves anything. Additive —
+        # appended to the existing reply; any failure is silently skipped.
+        try:
+            from guardian_context_packet import (
+                build_guardian_context_packet,
+                format_guardian_context_packet,
+            )
+            _posture = format_guardian_context_packet(build_guardian_context_packet())
+            if _posture and _posture.strip():
+                _posture = _posture.strip()
+                if len(_posture) > 900:  # keep the Telegram reply well under the 4096 cap
+                    _posture = _posture[:900].rstrip() + " …"
+                _reply = f"{_reply}\n\n{_posture}"
+        except Exception:
+            pass
+        await update.message.reply_text(_reply)
         return
 
     # Read pending record once: id → binding; options → correct format hint.
