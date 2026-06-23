@@ -204,8 +204,26 @@ def emit_packet_enrich_tasks(
         enabled = dankify_emit_enabled()
     if not enabled or not score.gaps:
         return []
+    # Dedup: never re-queue a gap that already has a READY packet_enrich task. Without this
+    # an always-on loop would re-file the same gap on every response (queue/escalation spam).
+    existing: set[str] = set()
+    try:
+        import json as _json
+        for _t in ledger.list_tasks():
+            if _t.get("type") == "packet_enrich" and _t.get("status") == "READY":
+                _pg = _t.get("payload") or {}
+                if isinstance(_pg, str):
+                    _pg = _json.loads(_pg)
+                _g = _pg.get("gap", {}) if isinstance(_pg, Mapping) else {}
+                existing.add(f"{_g.get('kind')}:{_g.get('source_ref') or _g.get('about')}")
+    except Exception:
+        existing = set()
     admitted: list[str] = []
     for gap in score.gaps:
+        _key = f"{gap.get('kind')}:{gap.get('source_ref') or gap.get('about')}"
+        if _key in existing:
+            continue
+        existing.add(_key)
         payload = {
             "kind": "packet_enrich",
             "agent_id": agent_id,
