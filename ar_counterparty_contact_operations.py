@@ -112,6 +112,7 @@ def _connect(sqlite_path: Path | str = DEFAULT_SQLITE_PATH) -> sqlite3.Connectio
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
     ensure_schema(conn)
     return conn
 
@@ -173,6 +174,91 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
           created_at TEXT NOT NULL,
           event_json TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS ar_evidence_registry (
+          evidence_id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL REFERENCES ar_counterparty_accounts(account_id),
+          source_system TEXT NOT NULL,
+          source_event TEXT NOT NULL,
+          source_locator TEXT NOT NULL,
+          evidence_hash TEXT NOT NULL,
+          governed_artifact_path TEXT NOT NULL,
+          mime_type TEXT,
+          byte_size INTEGER,
+          world TEXT NOT NULL,
+          privacy_classification TEXT,
+          governance_status TEXT NOT NULL CHECK(governance_status IN ('active', 'quarantined', 'revoked')),
+          processing_status TEXT NOT NULL CHECK(processing_status IN ('pending', 'extracted', 'failed')),
+          availability TEXT NOT NULL CHECK(availability IN ('available', 'missing')),
+          first_seen_timestamp TEXT NOT NULL,
+          source_modified_timestamp TEXT,
+          ingestion_timestamp TEXT NOT NULL,
+          extractor_version TEXT NOT NULL,
+          schema_version TEXT NOT NULL,
+          supersedes_evidence_id TEXT REFERENCES ar_evidence_registry(evidence_id),
+          source_reference TEXT NOT NULL,
+          UNIQUE(source_system, source_event, source_locator, evidence_hash)
+        );
+
+        CREATE TABLE IF NOT EXISTS ar_materialization_runs (
+          run_id TEXT PRIMARY KEY,
+          generator_id TEXT NOT NULL,
+          generator_version TEXT NOT NULL,
+          schema_version TEXT NOT NULL,
+          run_start_timestamp TEXT NOT NULL,
+          run_completion_timestamp TEXT,
+          freshness_cutoff TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('preparing', 'published', 'failed', 'aborted')),
+          error_code TEXT,
+          error_details TEXT,
+          stable_payload_hash TEXT,
+          published_artifact_path TEXT,
+          published_artifact_hash TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS ar_materialization_run_evidence (
+          run_id TEXT NOT NULL REFERENCES ar_materialization_runs(run_id),
+          evidence_id TEXT NOT NULL REFERENCES ar_evidence_registry(evidence_id),
+          inclusion_status TEXT NOT NULL CHECK(inclusion_status IN ('used', 'excluded')),
+          PRIMARY KEY (run_id, evidence_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS ar_published_read_models (
+          read_model_domain TEXT PRIMARY KEY,
+          current_run_id TEXT NOT NULL REFERENCES ar_materialization_runs(run_id),
+          updated_at TEXT NOT NULL
+        );
+
+        CREATE TRIGGER IF NOT EXISTS enforce_published_read_model
+        BEFORE INSERT ON ar_published_read_models
+        FOR EACH ROW
+        BEGIN
+            SELECT RAISE(ABORT, 'Cannot publish a run that is not in published status')
+            WHERE (SELECT status FROM ar_materialization_runs WHERE run_id = NEW.current_run_id) != 'published';
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS enforce_published_read_model_update
+        BEFORE UPDATE ON ar_published_read_models
+        FOR EACH ROW
+        BEGIN
+            SELECT RAISE(ABORT, 'Cannot publish a run that is not in published status')
+            WHERE (SELECT status FROM ar_materialization_runs WHERE run_id = NEW.current_run_id) != 'published';
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS enforce_run_publication_completeness
+        BEFORE UPDATE ON ar_materialization_runs
+        FOR EACH ROW
+        WHEN NEW.status = 'published'
+        BEGIN
+            SELECT RAISE(ABORT, 'Cannot mark run published: run_completion_timestamp is required')
+            WHERE NEW.run_completion_timestamp IS NULL;
+            SELECT RAISE(ABORT, 'Cannot mark run published: stable_payload_hash is required')
+            WHERE NEW.stable_payload_hash IS NULL;
+            SELECT RAISE(ABORT, 'Cannot mark run published: published_artifact_path is required')
+            WHERE NEW.published_artifact_path IS NULL;
+            SELECT RAISE(ABORT, 'Cannot mark run published: published_artifact_hash is required')
+            WHERE NEW.published_artifact_hash IS NULL;
+        END;
         """
     )
 

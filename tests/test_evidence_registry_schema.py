@@ -580,3 +580,197 @@ def test_existing_schema_tables_still_present(tmp_path):
         "ar_contact_events",
     }
     assert pre_existing.issubset(tables), f"Missing legacy tables: {pre_existing - tables}"
+
+
+# ---------------------------------------------------------------------------
+# T002 — Publication completeness invariant tests
+# (enforce_run_publication_completeness trigger)
+# A run must not transition to 'published' unless all four fields are non-null:
+#   run_completion_timestamp, stable_payload_hash,
+#   published_artifact_path, published_artifact_hash
+# ---------------------------------------------------------------------------
+
+def _seed_preparing_run(conn: sqlite3.Connection, run_id: str = "run:t002") -> str:
+    """Insert a minimal ar_materialization_runs row in 'preparing' state."""
+    now = "2026-01-01T00:00:00+00:00"
+    conn.execute(
+        """
+        INSERT INTO ar_materialization_runs (
+          run_id, generator_id, generator_version, schema_version,
+          run_start_timestamp, freshness_cutoff, status
+        ) VALUES (?, 'gen:test', '0.1', '1', ?, ?, 'preparing')
+        """,
+        (run_id, now, now),
+    )
+    conn.commit()
+    return run_id
+
+
+def test_t002_publication_completeness_trigger_exists(tmp_path):
+    """enforce_run_publication_completeness trigger must be registered by ensure_schema."""
+    conn = _tmp_conn(tmp_path)
+    triggers = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='trigger'"
+        ).fetchall()
+    }
+    assert "enforce_run_publication_completeness" in triggers
+
+
+def test_t002_blocks_publish_with_no_completeness_fields(tmp_path):
+    """Transition to published with all completeness fields NULL must be rejected."""
+    conn = _tmp_conn(tmp_path)
+    run = _seed_preparing_run(conn)
+    with pytest.raises(sqlite3.IntegrityError, match="run_completion_timestamp is required"):
+        conn.execute(
+            "UPDATE ar_materialization_runs SET status='published' WHERE run_id=?",
+            (run,),
+        )
+
+
+def test_t002_blocks_publish_missing_stable_payload_hash(tmp_path):
+    """Transition to published with stable_payload_hash NULL must be rejected."""
+    conn = _tmp_conn(tmp_path)
+    run = _seed_preparing_run(conn)
+    now = "2026-01-01T00:00:00+00:00"
+    with pytest.raises(sqlite3.IntegrityError, match="stable_payload_hash is required"):
+        conn.execute(
+            """
+            UPDATE ar_materialization_runs
+            SET status='published', run_completion_timestamp=?
+            WHERE run_id=?
+            """,
+            (now, run),
+        )
+
+
+def test_t002_blocks_publish_missing_published_artifact_path(tmp_path):
+    """Transition to published with published_artifact_path NULL must be rejected."""
+    conn = _tmp_conn(tmp_path)
+    run = _seed_preparing_run(conn)
+    now = "2026-01-01T00:00:00+00:00"
+    with pytest.raises(sqlite3.IntegrityError, match="published_artifact_path is required"):
+        conn.execute(
+            """
+            UPDATE ar_materialization_runs
+            SET status='published',
+                run_completion_timestamp=?,
+                stable_payload_hash='abc123'
+            WHERE run_id=?
+            """,
+            (now, run),
+        )
+
+
+def test_t002_blocks_publish_missing_published_artifact_hash(tmp_path):
+    """Transition to published with published_artifact_hash NULL must be rejected."""
+    conn = _tmp_conn(tmp_path)
+    run = _seed_preparing_run(conn)
+    now = "2026-01-01T00:00:00+00:00"
+    with pytest.raises(sqlite3.IntegrityError, match="published_artifact_hash is required"):
+        conn.execute(
+            """
+            UPDATE ar_materialization_runs
+            SET status='published',
+                run_completion_timestamp=?,
+                stable_payload_hash='abc123',
+                published_artifact_path='/gov/art/run.json'
+            WHERE run_id=?
+            """,
+            (now, run),
+        )
+
+
+def test_t002_allows_publish_with_all_completeness_fields(tmp_path):
+    """Transition to published with all four fields populated must succeed."""
+    conn = _tmp_conn(tmp_path)
+    run = _seed_preparing_run(conn)
+    now = "2026-01-01T00:00:00+00:00"
+    conn.execute(
+        """
+        UPDATE ar_materialization_runs
+        SET status='published',
+            run_completion_timestamp=?,
+            stable_payload_hash='abc123',
+            published_artifact_path='/gov/art/run.json',
+            published_artifact_hash='def456'
+        WHERE run_id=?
+        """,
+        (now, run),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT status FROM ar_materialization_runs WHERE run_id=?", (run,)
+    ).fetchone()
+    assert row["status"] == "published"
+
+
+def test_t002_trigger_does_not_block_non_published_transitions(tmp_path):
+    """Transition to 'failed' or 'aborted' with NULL completeness fields must be allowed."""
+    conn = _tmp_conn(tmp_path)
+    run1 = _seed_preparing_run(conn, run_id="run:t002-fail")
+    run2 = _seed_preparing_run(conn, run_id="run:t002-abort")
+    conn.execute(
+        "UPDATE ar_materialization_runs SET status='failed' WHERE run_id=?", (run1,)
+    )
+    conn.execute(
+        "UPDATE ar_materialization_runs SET status='aborted' WHERE run_id=?", (run2,)
+    )
+    conn.commit()
+    statuses = {
+        row["run_id"]: row["status"]
+        for row in conn.execute(
+            "SELECT run_id, status FROM ar_materialization_runs WHERE run_id IN (?, ?)",
+            (run1, run2),
+        ).fetchall()
+    }
+    assert statuses[run1] == "failed"
+    assert statuses[run2] == "aborted"
+
+
+def test_t002_ar_seed_helper_uses_direct_insert_bypassing_trigger(tmp_path):
+    """_seed_run helper uses INSERT (not UPDATE) so it bypasses the UPDATE trigger correctly.
+    
+    Runs seeded directly with status='published' and no completeness fields are used
+    in helper tests; this confirms the trigger only guards UPDATE paths, not INSERT.
+    Direct INSERT of a 'published' run without completeness fields IS currently
+    allowed by schema (INSERT trigger not yet implemented). This test documents
+    that known behavior and confirms the UPDATE path is guarded.
+    """
+    conn = _tmp_conn(tmp_path)
+    # Direct INSERT with status='published' and no completeness fields (legacy helper behavior)
+    now = "2026-01-01T00:00:00+00:00"
+    conn.execute(
+        """
+        INSERT INTO ar_materialization_runs (
+          run_id, generator_id, generator_version, schema_version,
+          run_start_timestamp, freshness_cutoff, status
+        ) VALUES ('run:direct-pub', 'gen:test', '0.1', '1', ?, ?, 'published')
+        """,
+        (now, now),
+    )
+    conn.commit()
+    # Confirm row exists with NULL completeness fields (INSERT path — not guarded by trigger)
+    row = conn.execute(
+        "SELECT status, run_completion_timestamp FROM ar_materialization_runs WHERE run_id='run:direct-pub'"
+    ).fetchone()
+    assert row["status"] == "published"
+    assert row["run_completion_timestamp"] is None  # Documents INSERT gap for future T002b
+
+
+def test_t002_full_combined_suite_count(tmp_path):
+    """Smoke test: ensure all tables, triggers are present after T002 trigger addition."""
+    conn = _tmp_conn(tmp_path)
+    triggers = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='trigger'"
+        ).fetchall()
+    }
+    expected_triggers = {
+        "enforce_published_read_model",
+        "enforce_published_read_model_update",
+        "enforce_run_publication_completeness",
+    }
+    assert expected_triggers.issubset(triggers), f"Missing triggers: {expected_triggers - triggers}"
