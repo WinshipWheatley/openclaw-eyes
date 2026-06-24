@@ -1003,3 +1003,235 @@ def test_t004_sha256_then_object_path_roundtrip(tmp_path):
     parts = full.parts
     assert parts[-2] == digest[:2]
     assert parts[-1] == digest[2:]
+
+
+# ---------------------------------------------------------------------------
+# T005 — Registry data-access operation tests
+# registry_lookup, registry_register, registry_supersede,
+# registry_set_governance, registry_set_processing, registry_set_availability
+# ---------------------------------------------------------------------------
+
+def _reg_kwargs(account_id: str, evidence_id: str = "ev:t005:001") -> dict:
+    """Return a minimal valid set of registry_register keyword arguments."""
+    now = "2026-01-01T00:00:00+00:00"
+    return dict(
+        evidence_id=evidence_id,
+        account_id=account_id,
+        source_system="synthetic",
+        source_event="evt:t005",
+        source_locator="loc:t005",
+        evidence_hash=f"hash:{evidence_id}",
+        governed_artifact_path_str=f"/governed/artifacts/{evidence_id}.bin",
+        world="test-world",
+        first_seen_timestamp=now,
+        ingestion_timestamp=now,
+        extractor_version="0.1",
+        schema_version="1",
+        source_reference=f"ref:{evidence_id}",
+    )
+
+
+# --- registry_lookup ---
+
+def test_t005_lookup_returns_none_for_absent(tmp_path):
+    """registry_lookup must return None for a non-existent evidence_id."""
+    conn = _tmp_conn(tmp_path)
+    assert ar_ops.registry_lookup(conn, "ev:nonexistent") is None
+
+
+def test_t005_lookup_returns_dict_for_existing(tmp_path):
+    """registry_lookup must return a dict for a found evidence_id."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:t005:lookup")
+    result = ar_ops.registry_lookup(conn, "ev:t005:lookup")
+    assert isinstance(result, dict)
+    assert result["evidence_id"] == "ev:t005:lookup"
+    assert result["account_id"] == acct
+
+
+# --- registry_register ---
+
+def test_t005_register_inserts_new_row(tmp_path):
+    """registry_register must insert a new row and return it."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    kwargs = _reg_kwargs(acct)
+    result = ar_ops.registry_register(conn, **kwargs)
+    assert isinstance(result, dict)
+    assert result["evidence_id"] == "ev:t005:001"
+    assert result["governance_status"] == "active"
+    assert result["processing_status"] == "pending"
+    assert result["availability"] == "available"
+
+
+def test_t005_register_is_idempotent(tmp_path):
+    """registry_register called twice with same source composite must return same row."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    kwargs = _reg_kwargs(acct)
+    r1 = ar_ops.registry_register(conn, **kwargs)
+    # Second call with different evidence_id but same source composite — should be ignored
+    kwargs2 = dict(kwargs, evidence_id="ev:t005:dup")
+    r2 = ar_ops.registry_register(conn, **kwargs2)
+    # Both should return the *first* row (INSERT OR IGNORE, then SELECT by composite)
+    assert r1["evidence_id"] == r2["evidence_id"]
+    # Only one row should exist for this composite
+    count = conn.execute(
+        "SELECT COUNT(*) FROM ar_evidence_registry WHERE source_system=? AND source_event=? "
+        "AND source_locator=? AND evidence_hash=?",
+        ("synthetic", "evt:t005", "loc:t005", "hash:ev:t005:001"),
+    ).fetchone()[0]
+    assert count == 1
+
+
+def test_t005_register_rejects_invalid_governance_status(tmp_path):
+    """registry_register must reject invalid governance_status."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    kwargs = dict(_reg_kwargs(acct), governance_status="deleted")
+    with pytest.raises(ValueError, match="governance_status"):
+        ar_ops.registry_register(conn, **kwargs)
+
+
+def test_t005_register_rejects_invalid_processing_status(tmp_path):
+    """registry_register must reject invalid processing_status."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    kwargs = dict(_reg_kwargs(acct), processing_status="processing")
+    with pytest.raises(ValueError, match="processing_status"):
+        ar_ops.registry_register(conn, **kwargs)
+
+
+def test_t005_register_rejects_invalid_availability(tmp_path):
+    """registry_register must reject invalid availability."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    kwargs = dict(_reg_kwargs(acct), availability="unknown")
+    with pytest.raises(ValueError, match="availability"):
+        ar_ops.registry_register(conn, **kwargs)
+
+
+# --- registry_supersede ---
+
+def test_t005_supersede_sets_supersedes_field(tmp_path):
+    """registry_supersede must set new_evidence.supersedes_evidence_id."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:base", evidence_hash="hash:base")
+    _seed_evidence(conn, acct, evidence_id="ev:new", evidence_hash="hash:new")
+    ar_ops.registry_supersede(conn, "ev:base", "ev:new")
+    row = ar_ops.registry_lookup(conn, "ev:new")
+    assert row["supersedes_evidence_id"] == "ev:base"
+
+
+def test_t005_supersede_rejects_missing_new(tmp_path):
+    """registry_supersede must raise ValueError if new_evidence_id not found."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:base2", evidence_hash="hash:base2")
+    with pytest.raises(ValueError, match="new_evidence_id"):
+        ar_ops.registry_supersede(conn, "ev:base2", "ev:nonexistent")
+
+
+def test_t005_supersede_rejects_missing_superseded(tmp_path):
+    """registry_supersede must raise ValueError if superseded_evidence_id not found."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:new2", evidence_hash="hash:new2")
+    with pytest.raises(ValueError, match="superseded_evidence_id"):
+        ar_ops.registry_supersede(conn, "ev:nonexistent", "ev:new2")
+
+
+# --- registry_set_governance ---
+
+def test_t005_set_governance_updates_status(tmp_path):
+    """registry_set_governance must update governance_status."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:gov")
+    ar_ops.registry_set_governance(conn, "ev:gov", "quarantined")
+    row = ar_ops.registry_lookup(conn, "ev:gov")
+    assert row["governance_status"] == "quarantined"
+
+
+def test_t005_set_governance_to_revoked(tmp_path):
+    """registry_set_governance must allow revocation."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:revoke")
+    ar_ops.registry_set_governance(conn, "ev:revoke", "revoked")
+    row = ar_ops.registry_lookup(conn, "ev:revoke")
+    assert row["governance_status"] == "revoked"
+
+
+def test_t005_set_governance_rejects_invalid(tmp_path):
+    """registry_set_governance must reject invalid status values."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:govbad")
+    with pytest.raises(ValueError, match="invalid status"):
+        ar_ops.registry_set_governance(conn, "ev:govbad", "deleted")
+
+
+def test_t005_set_governance_rejects_missing_id(tmp_path):
+    """registry_set_governance must raise ValueError for missing evidence_id."""
+    conn = _tmp_conn(tmp_path)
+    with pytest.raises(ValueError, match="evidence_id"):
+        ar_ops.registry_set_governance(conn, "ev:nonexistent", "active")
+
+
+# --- registry_set_processing ---
+
+def test_t005_set_processing_updates_status(tmp_path):
+    """registry_set_processing must update processing_status."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:proc")
+    ar_ops.registry_set_processing(conn, "ev:proc", "extracted")
+    row = ar_ops.registry_lookup(conn, "ev:proc")
+    assert row["processing_status"] == "extracted"
+
+
+def test_t005_set_processing_rejects_invalid(tmp_path):
+    """registry_set_processing must reject invalid status values."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:procbad")
+    with pytest.raises(ValueError, match="invalid status"):
+        ar_ops.registry_set_processing(conn, "ev:procbad", "processing")
+
+
+def test_t005_set_processing_rejects_missing_id(tmp_path):
+    """registry_set_processing must raise ValueError for missing evidence_id."""
+    conn = _tmp_conn(tmp_path)
+    with pytest.raises(ValueError, match="evidence_id"):
+        ar_ops.registry_set_processing(conn, "ev:nonexistent", "extracted")
+
+
+# --- registry_set_availability ---
+
+def test_t005_set_availability_updates_to_missing(tmp_path):
+    """registry_set_availability must update availability to 'missing'."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:avail")
+    ar_ops.registry_set_availability(conn, "ev:avail", "missing")
+    row = ar_ops.registry_lookup(conn, "ev:avail")
+    assert row["availability"] == "missing"
+
+
+def test_t005_set_availability_rejects_invalid(tmp_path):
+    """registry_set_availability must reject invalid availability values."""
+    conn = _tmp_conn(tmp_path)
+    acct = _seed_account(conn)
+    _seed_evidence(conn, acct, evidence_id="ev:availbad")
+    with pytest.raises(ValueError, match="availability"):
+        ar_ops.registry_set_availability(conn, "ev:availbad", "unknown")
+
+
+def test_t005_set_availability_rejects_missing_id(tmp_path):
+    """registry_set_availability must raise ValueError for missing evidence_id."""
+    conn = _tmp_conn(tmp_path)
+    with pytest.raises(ValueError, match="evidence_id"):
+        ar_ops.registry_set_availability(conn, "ev:nonexistent", "available")

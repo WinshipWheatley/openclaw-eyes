@@ -361,6 +361,243 @@ def governed_artifact_path(
     return joined
 
 
+# ---------------------------------------------------------------------------
+# Evidence Registry data-access operations (T005)
+# All functions accept an open sqlite3.Connection; callers manage transactions.
+# No file I/O occurs here; that belongs to atomic-import (T006).
+# ---------------------------------------------------------------------------
+
+_GOVERNANCE_STATUSES = frozenset({"active", "quarantined", "revoked"})
+_PROCESSING_STATUSES = frozenset({"pending", "extracted", "failed"})
+_AVAILABILITY_STATUSES = frozenset({"available", "missing"})
+_INCLUSION_STATUSES = frozenset({"used", "excluded"})
+
+
+def registry_lookup(
+    conn: sqlite3.Connection,
+    evidence_id: str,
+) -> dict[str, Any] | None:
+    """Return the evidence-registry row for *evidence_id*, or None if absent.
+
+    Args:
+        conn: Open database connection (foreign_keys must be ON).
+        evidence_id: Primary key to look up.
+
+    Returns:
+        A dict of column→value, or None if not found.
+    """
+    row = conn.execute(
+        "SELECT * FROM ar_evidence_registry WHERE evidence_id = ?",
+        (evidence_id,),
+    ).fetchone()
+    return dict(row) if row is not None else None
+
+
+def registry_register(
+    conn: sqlite3.Connection,
+    *,
+    evidence_id: str,
+    account_id: str,
+    source_system: str,
+    source_event: str,
+    source_locator: str,
+    evidence_hash: str,
+    governed_artifact_path_str: str,
+    world: str,
+    first_seen_timestamp: str,
+    ingestion_timestamp: str,
+    extractor_version: str,
+    schema_version: str,
+    source_reference: str,
+    mime_type: str | None = None,
+    byte_size: int | None = None,
+    privacy_classification: str | None = None,
+    source_modified_timestamp: str | None = None,
+    supersedes_evidence_id: str | None = None,
+    governance_status: str = "active",
+    processing_status: str = "pending",
+    availability: str = "available",
+) -> dict[str, Any]:
+    """Idempotent source-occurrence registration for one evidence item.
+
+    Uses INSERT OR IGNORE so a duplicate call (same source_system, source_event,
+    source_locator, evidence_hash) is a no-op, and the existing row is returned.
+    The returned dict is always the authoritative registry row.
+
+    Args:
+        conn: Open connection with foreign_keys ON.
+        evidence_id: Caller-generated PK (must be unique or match existing).
+        ... (see schema for remaining fields)
+
+    Returns:
+        The registry row dict (newly inserted or pre-existing).
+
+    Raises:
+        ValueError: For invalid status values.
+        sqlite3.IntegrityError: If evidence_id collides with a different record.
+    """
+    if governance_status not in _GOVERNANCE_STATUSES:
+        raise ValueError(
+            f"registry_register: invalid governance_status {governance_status!r}; "
+            f"must be one of {sorted(_GOVERNANCE_STATUSES)}"
+        )
+    if processing_status not in _PROCESSING_STATUSES:
+        raise ValueError(
+            f"registry_register: invalid processing_status {processing_status!r}; "
+            f"must be one of {sorted(_PROCESSING_STATUSES)}"
+        )
+    if availability not in _AVAILABILITY_STATUSES:
+        raise ValueError(
+            f"registry_register: invalid availability {availability!r}; "
+            f"must be one of {sorted(_AVAILABILITY_STATUSES)}"
+        )
+
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO ar_evidence_registry (
+          evidence_id, account_id, source_system, source_event, source_locator,
+          evidence_hash, governed_artifact_path, world, governance_status,
+          processing_status, availability, first_seen_timestamp,
+          ingestion_timestamp, extractor_version, schema_version, source_reference,
+          mime_type, byte_size, privacy_classification, source_modified_timestamp,
+          supersedes_evidence_id
+        ) VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
+        """,
+        (
+            evidence_id, account_id, source_system, source_event, source_locator,
+            evidence_hash, governed_artifact_path_str, world, governance_status,
+            processing_status, availability, first_seen_timestamp,
+            ingestion_timestamp, extractor_version, schema_version, source_reference,
+            mime_type, byte_size, privacy_classification, source_modified_timestamp,
+            supersedes_evidence_id,
+        ),
+    )
+    conn.commit()
+    # Return the authoritative row (may be the pre-existing one if INSERT was ignored)
+    row = conn.execute(
+        "SELECT * FROM ar_evidence_registry WHERE source_system=? AND source_event=? "
+        "AND source_locator=? AND evidence_hash=?",
+        (source_system, source_event, source_locator, evidence_hash),
+    ).fetchone()
+    return dict(row)
+
+
+def registry_supersede(
+    conn: sqlite3.Connection,
+    superseded_evidence_id: str,
+    new_evidence_id: str,
+) -> None:
+    """Record that *new_evidence_id* supersedes *superseded_evidence_id*.
+
+    Updates the new evidence row's ``supersedes_evidence_id`` field.
+    The superseded row's governance_status is unchanged (revocation is a
+    separate explicit operation).
+
+    Raises:
+        ValueError: If either evidence_id does not exist.
+    """
+    if registry_lookup(conn, new_evidence_id) is None:
+        raise ValueError(
+            f"registry_supersede: new_evidence_id {new_evidence_id!r} not found"
+        )
+    if registry_lookup(conn, superseded_evidence_id) is None:
+        raise ValueError(
+            f"registry_supersede: superseded_evidence_id {superseded_evidence_id!r} not found"
+        )
+    conn.execute(
+        "UPDATE ar_evidence_registry SET supersedes_evidence_id=? WHERE evidence_id=?",
+        (superseded_evidence_id, new_evidence_id),
+    )
+    conn.commit()
+
+
+def registry_set_governance(
+    conn: sqlite3.Connection,
+    evidence_id: str,
+    governance_status: str,
+) -> None:
+    """Update the governance_status of an evidence item.
+
+    Valid values: 'active', 'quarantined', 'revoked'.
+
+    Raises:
+        ValueError: If *governance_status* is not a valid value, or if
+            *evidence_id* does not exist.
+    """
+    if governance_status not in _GOVERNANCE_STATUSES:
+        raise ValueError(
+            f"registry_set_governance: invalid status {governance_status!r}; "
+            f"must be one of {sorted(_GOVERNANCE_STATUSES)}"
+        )
+    if registry_lookup(conn, evidence_id) is None:
+        raise ValueError(
+            f"registry_set_governance: evidence_id {evidence_id!r} not found"
+        )
+    conn.execute(
+        "UPDATE ar_evidence_registry SET governance_status=? WHERE evidence_id=?",
+        (governance_status, evidence_id),
+    )
+    conn.commit()
+
+
+def registry_set_processing(
+    conn: sqlite3.Connection,
+    evidence_id: str,
+    processing_status: str,
+) -> None:
+    """Update the processing_status of an evidence item.
+
+    Valid values: 'pending', 'extracted', 'failed'.
+
+    Raises:
+        ValueError: If *processing_status* is invalid or *evidence_id* absent.
+    """
+    if processing_status not in _PROCESSING_STATUSES:
+        raise ValueError(
+            f"registry_set_processing: invalid status {processing_status!r}; "
+            f"must be one of {sorted(_PROCESSING_STATUSES)}"
+        )
+    if registry_lookup(conn, evidence_id) is None:
+        raise ValueError(
+            f"registry_set_processing: evidence_id {evidence_id!r} not found"
+        )
+    conn.execute(
+        "UPDATE ar_evidence_registry SET processing_status=? WHERE evidence_id=?",
+        (processing_status, evidence_id),
+    )
+    conn.commit()
+
+
+def registry_set_availability(
+    conn: sqlite3.Connection,
+    evidence_id: str,
+    availability: str,
+) -> None:
+    """Update the availability of an evidence item.
+
+    Valid values: 'available', 'missing'.
+
+    Raises:
+        ValueError: If *availability* is invalid or *evidence_id* absent.
+    """
+    if availability not in _AVAILABILITY_STATUSES:
+        raise ValueError(
+            f"registry_set_availability: invalid availability {availability!r}; "
+            f"must be one of {sorted(_AVAILABILITY_STATUSES)}"
+        )
+    if registry_lookup(conn, evidence_id) is None:
+        raise ValueError(
+            f"registry_set_availability: evidence_id {evidence_id!r} not found"
+        )
+    conn.execute(
+        "UPDATE ar_evidence_registry SET availability=? WHERE evidence_id=?",
+        (availability, evidence_id),
+    )
+    conn.commit()
+
+
 def _read_json(path: Path | str) -> dict[str, Any]:
     path = Path(path)
     if not path.exists():
