@@ -774,3 +774,112 @@ def test_t002_full_combined_suite_count(tmp_path):
         "enforce_run_publication_completeness",
     }
     assert expected_triggers.issubset(triggers), f"Missing triggers: {expected_triggers - triggers}"
+
+
+# ---------------------------------------------------------------------------
+# T003 — Governed-artifact path policy tests
+# governed_artifact_path(relative_path, governed_root) must enforce:
+# 1. No absolute path injection
+# 2. No parent-traversal components (..)
+# 3. Resolved path contained within governed root
+# 4. Symlink escape rejected (via resolve())
+# ---------------------------------------------------------------------------
+
+def test_t003_valid_simple_path(tmp_path):
+    """A simple relative path inside the governed root must be accepted."""
+    result = ar_ops.governed_artifact_path("evidence/abc123.pdf", tmp_path)
+    assert result == (tmp_path / "evidence" / "abc123.pdf").resolve()
+    assert str(result).startswith(str(tmp_path.resolve()))
+
+
+def test_t003_valid_nested_path(tmp_path):
+    """A valid multi-level relative path inside the governed root must be accepted."""
+    result = ar_ops.governed_artifact_path("year/2026/month/06/artifact.json", tmp_path)
+    assert result.is_absolute()
+    assert str(result).startswith(str(tmp_path.resolve()))
+
+
+def test_t003_rejects_absolute_path_injection(tmp_path):
+    """An absolute path must be rejected regardless of content."""
+    with pytest.raises(ValueError, match="absolute path injection"):
+        ar_ops.governed_artifact_path("/etc/passwd", tmp_path)
+
+
+def test_t003_rejects_absolute_path_under_root(tmp_path):
+    """Even an absolute path pointing inside the root must be rejected (must be relative)."""
+    abs_inside = str(tmp_path / "evidence" / "file.pdf")
+    with pytest.raises(ValueError, match="absolute path injection"):
+        ar_ops.governed_artifact_path(abs_inside, tmp_path)
+
+
+def test_t003_rejects_simple_parent_traversal(tmp_path):
+    """A path with .. must be rejected before joining."""
+    with pytest.raises(ValueError, match="parent-traversal"):
+        ar_ops.governed_artifact_path("../outside.pdf", tmp_path)
+
+
+def test_t003_rejects_embedded_parent_traversal(tmp_path):
+    """A path with embedded .. must be rejected."""
+    with pytest.raises(ValueError, match="parent-traversal"):
+        ar_ops.governed_artifact_path("evidence/../../../etc/passwd", tmp_path)
+
+
+def test_t003_rejects_dotdot_only(tmp_path):
+    """A path consisting only of .. must be rejected."""
+    with pytest.raises(ValueError, match="parent-traversal"):
+        ar_ops.governed_artifact_path("..", tmp_path)
+
+
+def test_t003_rejects_empty_path(tmp_path):
+    """An empty string must be rejected."""
+    with pytest.raises(ValueError):
+        ar_ops.governed_artifact_path("", tmp_path)
+
+
+def test_t003_rejects_whitespace_only_path(tmp_path):
+    """A whitespace-only string must be rejected."""
+    with pytest.raises(ValueError):
+        ar_ops.governed_artifact_path("   ", tmp_path)
+
+
+def test_t003_rejects_symlink_escape(tmp_path):
+    """A symlink that points outside the governed root must be rejected."""
+    # Create a symlink inside the root that points outside
+    outside = tmp_path.parent / "outside_dir"
+    outside.mkdir(exist_ok=True)
+    link = tmp_path / "escape_link"
+    link.symlink_to(outside)
+    with pytest.raises(ValueError, match="path escapes governed root"):
+        ar_ops.governed_artifact_path("escape_link/secret.pdf", tmp_path)
+
+
+def test_t003_valid_symlink_inside_root(tmp_path):
+    """A symlink pointing to another location inside the root must be accepted."""
+    inner = tmp_path / "inner"
+    inner.mkdir()
+    target = tmp_path / "real_file.pdf"
+    target.write_text("data")
+    link = inner / "link_to_real.pdf"
+    link.symlink_to(target)
+    result = ar_ops.governed_artifact_path("inner/link_to_real.pdf", tmp_path)
+    assert str(result).startswith(str(tmp_path.resolve()))
+
+
+def test_t003_path_does_not_need_to_exist(tmp_path):
+    """governed_artifact_path must succeed even for a non-existent path (validate only)."""
+    result = ar_ops.governed_artifact_path("not/yet/written/artifact.pdf", tmp_path)
+    assert not result.exists()
+    assert str(result).startswith(str(tmp_path.resolve()))
+
+
+def test_t003_return_type_is_path(tmp_path):
+    """governed_artifact_path must return a pathlib.Path object."""
+    result = ar_ops.governed_artifact_path("ev/test.bin", tmp_path)
+    assert isinstance(result, Path)
+
+
+def test_t003_root_as_string(tmp_path):
+    """governed_artifact_path must accept governed_root as a string."""
+    result = ar_ops.governed_artifact_path("ev/test.bin", str(tmp_path))
+    assert isinstance(result, Path)
+    assert str(result).startswith(str(tmp_path.resolve()))

@@ -263,6 +263,56 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     )
 
 
+
+def governed_artifact_path(
+    relative_path: str,
+    governed_root: Path | str,
+) -> Path:
+    """Validate and return an absolute path inside the governed artifact root.
+
+    Policy (in evaluation order):
+    1. **Absolute-path injection** — ``relative_path`` must not be absolute.
+    2. **Parent traversal** — ``relative_path`` must not contain ``..`` segments.
+    3. **Path containment** — the resolved path must start with the resolved root.
+    4. **Symlink escape** — uses ``Path.resolve()`` on the joined path; if the
+       real path falls outside the root (via symlink), the call is rejected.
+
+    Returns the fully resolved ``Path`` inside the governed root.
+    Raises ``ValueError`` for any policy violation.  Never raises ``OSError``
+    for a missing path — the path is validated, not stat-checked.
+    """
+    if not relative_path or relative_path.strip() == "":
+        raise ValueError("governed_artifact_path: relative_path must not be empty")
+
+    # Rule 1 — reject absolute paths
+    candidate = Path(relative_path)
+    if candidate.is_absolute():
+        raise ValueError(
+            f"governed_artifact_path: absolute path injection rejected: {relative_path!r}"
+        )
+
+    # Rule 2 — reject traversal components before joining (pre-check)
+    for part in candidate.parts:
+        if part == "..":
+            raise ValueError(
+                f"governed_artifact_path: parent-traversal rejected: {relative_path!r}"
+            )
+
+    root = Path(governed_root).resolve()
+    # Rule 3 & 4 — resolve joined path and verify containment (defeats symlinks)
+    # We use strict=False so the path need not exist yet (evidence not yet written).
+    joined = (root / candidate).resolve()
+    try:
+        joined.relative_to(root)
+    except ValueError:
+        raise ValueError(
+            f"governed_artifact_path: path escapes governed root "
+            f"({joined!r} not under {root!r}): {relative_path!r}"
+        )
+
+    return joined
+
+
 def _read_json(path: Path | str) -> dict[str, Any]:
     path = Path(path)
     if not path.exists():
