@@ -883,3 +883,123 @@ def test_t003_root_as_string(tmp_path):
     result = ar_ops.governed_artifact_path("ev/test.bin", str(tmp_path))
     assert isinstance(result, Path)
     assert str(result).startswith(str(tmp_path.resolve()))
+
+
+# ---------------------------------------------------------------------------
+# T004 — Hashing and object-path util tests
+# sha256_hex(data: bytes) -> str
+# object_path(digest_hex: str) -> str
+# ---------------------------------------------------------------------------
+
+# Known SHA-256 test vector: sha256("") == e3b0c44298fc1c14...
+_SHA256_EMPTY = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+# Known vector: sha256("hello") == 2cf24dba5fb0a30e...
+_SHA256_HELLO = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+
+
+def test_t004_sha256_hex_empty_bytes():
+    """sha256_hex(b'') must return the standard SHA-256 digest of empty bytes."""
+    assert ar_ops.sha256_hex(b"") == _SHA256_EMPTY
+
+
+def test_t004_sha256_hex_known_vector():
+    """sha256_hex(b'hello') must match the known test vector."""
+    assert ar_ops.sha256_hex(b"hello") == _SHA256_HELLO
+
+
+def test_t004_sha256_hex_returns_64_chars():
+    """sha256_hex must always return a 64-character string."""
+    result = ar_ops.sha256_hex(b"arbitrary content for length check")
+    assert len(result) == 64
+
+
+def test_t004_sha256_hex_returns_lowercase_hex():
+    """sha256_hex must return only lowercase hexadecimal characters."""
+    result = ar_ops.sha256_hex(b"case check data")
+    assert all(c in "0123456789abcdef" for c in result)
+
+
+def test_t004_sha256_hex_is_deterministic():
+    """sha256_hex must return the same value for the same input."""
+    data = b"determinism check"
+    assert ar_ops.sha256_hex(data) == ar_ops.sha256_hex(data)
+
+
+def test_t004_sha256_hex_different_inputs_differ():
+    """sha256_hex must return different values for different inputs."""
+    assert ar_ops.sha256_hex(b"abc") != ar_ops.sha256_hex(b"abd")
+
+
+def test_t004_sha256_hex_rejects_non_bytes():
+    """sha256_hex must raise TypeError for non-bytes input."""
+    with pytest.raises(TypeError, match="expected bytes"):
+        ar_ops.sha256_hex("not bytes")  # type: ignore[arg-type]
+
+
+def test_t004_sha256_hex_rejects_int():
+    """sha256_hex must raise TypeError for integer input."""
+    with pytest.raises(TypeError):
+        ar_ops.sha256_hex(42)  # type: ignore[arg-type]
+
+
+def test_t004_object_path_format():
+    """object_path must return '<2-char-prefix>/<remaining-62-chars>'."""
+    result = ar_ops.object_path(_SHA256_HELLO)
+    assert result == f"{_SHA256_HELLO[:2]}/{_SHA256_HELLO[2:]}"
+    assert result == "2c/f24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+
+
+def test_t004_object_path_length():
+    """object_path result must have exactly 65 chars (2 + '/' + 62)."""
+    result = ar_ops.object_path(_SHA256_HELLO)
+    assert len(result) == 65
+    parts = result.split("/")
+    assert len(parts) == 2
+    assert len(parts[0]) == 2
+    assert len(parts[1]) == 62
+
+
+def test_t004_object_path_accepts_uppercase_hex():
+    """object_path must accept uppercase hex and normalize to lowercase."""
+    upper = _SHA256_HELLO.upper()
+    result = ar_ops.object_path(upper)
+    assert result == f"{_SHA256_HELLO[:2]}/{_SHA256_HELLO[2:]}"
+
+
+def test_t004_object_path_rejects_short_digest():
+    """object_path must reject digests shorter than 64 characters."""
+    with pytest.raises(ValueError, match="64-char"):
+        ar_ops.object_path("abc123")
+
+
+def test_t004_object_path_rejects_long_digest():
+    """object_path must reject digests longer than 64 characters."""
+    with pytest.raises(ValueError, match="64-char"):
+        ar_ops.object_path(_SHA256_HELLO + "00")
+
+
+def test_t004_object_path_rejects_non_hex():
+    """object_path must reject strings containing non-hex characters."""
+    bad = "g" + _SHA256_HELLO[1:]  # 'g' is not a hex char
+    with pytest.raises(ValueError, match="64-char"):
+        ar_ops.object_path(bad)
+
+
+def test_t004_object_path_rejects_non_str():
+    """object_path must raise TypeError for non-string input."""
+    with pytest.raises(TypeError, match="expected str"):
+        ar_ops.object_path(b"bytes not str")  # type: ignore[arg-type]
+
+
+def test_t004_sha256_then_object_path_roundtrip(tmp_path):
+    """sha256_hex + object_path + governed_artifact_path must produce a valid path."""
+    data = b"synthetic evidence payload for round-trip test"
+    digest = ar_ops.sha256_hex(data)
+    rel = ar_ops.object_path(digest)
+    full = ar_ops.governed_artifact_path(rel, tmp_path)
+    assert full.is_absolute()
+    assert str(full).startswith(str(tmp_path.resolve()))
+    # The last two parts of the path must be the 2-char prefix and 62-char suffix
+    parts = full.parts
+    assert parts[-2] == digest[:2]
+    assert parts[-1] == digest[2:]

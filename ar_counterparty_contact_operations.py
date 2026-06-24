@@ -92,6 +92,54 @@ def _short_hash(*parts: Any, length: int = 16) -> str:
     return digest.hexdigest()[:length]
 
 
+def sha256_hex(data: bytes) -> str:
+    """Return the SHA-256 hex digest of *data*.
+
+    Pure deterministic utility — no I/O, no state.
+
+    Args:
+        data: Arbitrary bytes to hash.
+
+    Returns:
+        64-character lowercase hex string.
+
+    Raises:
+        TypeError: If *data* is not bytes.
+    """
+    if not isinstance(data, bytes):
+        raise TypeError(f"sha256_hex: expected bytes, got {type(data).__name__!r}")
+    return hashlib.sha256(data).hexdigest()
+
+
+def object_path(digest_hex: str) -> str:
+    """Return the content-addressed relative path for a SHA-256 hex digest.
+
+    Uses 2-character prefix sharding (git object-store convention):
+        "abcdef..." -> "ab/cdef..."
+
+    The returned path is always relative (no leading slash or root component).
+    It must be passed through ``governed_artifact_path()`` before use as a
+    filesystem path.
+
+    Args:
+        digest_hex: A 64-character lowercase hex SHA-256 digest.
+
+    Returns:
+        A relative path string of the form ``"<2-char-prefix>/<remaining-62-chars>"``.
+
+    Raises:
+        ValueError: If *digest_hex* is not a valid 64-character hex string.
+    """
+    if not isinstance(digest_hex, str):
+        raise TypeError(f"object_path: expected str, got {type(digest_hex).__name__!r}")
+    digest_hex = digest_hex.lower()
+    if len(digest_hex) != 64 or not all(c in "0123456789abcdef" for c in digest_hex):
+        raise ValueError(
+            f"object_path: expected 64-char lowercase hex digest, got {digest_hex!r}"
+        )
+    return f"{digest_hex[:2]}/{digest_hex[2:]}"
+
+
 def _slug(value: str) -> str:
     return re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", str(value or "").lower())).strip("_")
 
