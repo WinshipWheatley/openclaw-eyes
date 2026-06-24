@@ -72,7 +72,12 @@ def import_evidence(source_path: Union[str, Path], target_dir: Union[str, Path])
         raise ImporterError(f"Failed to copy source: {e}") from e
 
     file_hash = sha256.hexdigest()
-    final_path = target_d / file_hash
+    from ar_counterparty_contact_operations import object_path
+    rel_path = object_path(file_hash)
+    final_path = target_d / rel_path
+    
+    # Ensure shard directory exists
+    final_path.parent.mkdir(parents=True, exist_ok=True)
     
     # 3. Idempotent check
     if final_path.exists():

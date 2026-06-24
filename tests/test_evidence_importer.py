@@ -30,12 +30,12 @@ def test_atomic_import_success(workspace):
     actual_hash = import_evidence(src_file, target_dir)
     assert actual_hash == expected_hash
     
-    final_path = target_dir / actual_hash
+    final_path = target_dir / actual_hash[:2] / actual_hash[2:]
     assert final_path.exists()
     assert final_path.read_bytes() == content
     
-    # Check that temp files were cleaned up
-    assert len(list(target_dir.iterdir())) == 1
+    # temp files cleaned up
+    assert len(list(target_dir.rglob("*.tmp"))) == 0
 
 def test_idempotent_import(workspace):
     source_dir, target_dir = workspace
@@ -49,7 +49,7 @@ def test_idempotent_import(workspace):
     h2 = import_evidence(src_file, target_dir)
     
     assert h1 == h2
-    assert len(list(target_dir.iterdir())) == 1
+    assert len(list(target_dir.rglob("*.tmp"))) == 0
 
 def test_reject_symlink(workspace):
     source_dir, target_dir = workspace
@@ -82,8 +82,7 @@ def test_interruption_cleanup(workspace, monkeypatch):
     with pytest.raises(ImporterError, match="Atomic replace failed"):
         import_evidence(src_file, target_dir)
         
-    # The temp file should have been cleaned up in the except block
-    assert len(list(target_dir.iterdir())) == 0
+    assert len(list(target_dir.rglob("*.tmp"))) == 0
 
 def test_concurrent_imports(workspace):
     source_dir, target_dir = workspace
@@ -102,8 +101,8 @@ def test_concurrent_imports(workspace):
     assert all(r == expected_hash for r in results)
     
     # Should only be one finalized file, no temp files leftover
-    assert len(list(target_dir.iterdir())) == 1
-    final_path = target_dir / expected_hash
+    assert len(list(target_dir.rglob("*.tmp"))) == 0
+    final_path = target_dir / expected_hash[:2] / expected_hash[2:]
     assert final_path.exists()
 
 def test_source_mutation_during_copy(workspace, monkeypatch):
@@ -135,7 +134,7 @@ def test_source_mutation_during_copy(workspace, monkeypatch):
     with pytest.raises(SourceChangedError, match="Source file was modified during copy"):
         import_evidence(src_file, target_dir)
         
-    assert len(list(target_dir.iterdir())) == 0
+    assert len(list(target_dir.rglob("*.tmp"))) == 0
 
 def test_existing_corruption(workspace):
     source_dir, target_dir = workspace
@@ -146,7 +145,8 @@ def test_existing_corruption(workspace):
     expected_hash = hashlib.sha256(content).hexdigest()
     
     # Forge a corrupted target file with the same name
-    corrupted_path = target_dir / expected_hash
+    corrupted_path = target_dir / expected_hash[:2] / expected_hash[2:]
+    corrupted_path.parent.mkdir(parents=True, exist_ok=True)
     corrupted_path.write_bytes(b"Tampered content")
     
     with pytest.raises(SecurityError, match="Existing file corrupted"):

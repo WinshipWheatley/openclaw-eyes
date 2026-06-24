@@ -1244,3 +1244,5 @@ generated/system_knowledge/*.sqlite
 
 !evidence_importer.py
 !tests/test_evidence_importer.py
+!/evidence_integration.py
+!/tests/test_evidence_integration.py
