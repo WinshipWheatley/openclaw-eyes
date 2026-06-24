@@ -1241,3 +1241,6 @@ generated/system_knowledge/*.sqlite
 !generated/audit_shards/active_machinery_v0/mock_worker_outputs/
 !generated/audit_shards/active_machinery_v0/mock_worker_outputs/*.json
 !master_voice.sh
+
+!evidence_importer.py
+!tests/test_evidence_importer.py
