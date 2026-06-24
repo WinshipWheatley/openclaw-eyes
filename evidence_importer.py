@@ -40,34 +40,46 @@ def import_evidence(source_path: Union[str, Path], target_dir: Union[str, Path])
     
     sha256 = hashlib.sha256()
     
-    stat_before = source.stat()
+    # Use os.O_NOFOLLOW if available, otherwise 0
+    o_nofollow = getattr(os, "O_NOFOLLOW", 0)
     
     try:
-        with source.open('rb') as src_file:
+        src_fd = os.open(str(source), os.O_RDONLY | o_nofollow)
+        try:
+            stat_before = os.fstat(src_fd)
+            import stat
+            if not stat.S_ISREG(stat_before.st_mode):
+                raise SecurityError(f"Must be a regular file: {source}")
+                
             # Open temp file exclusively
-            fd = os.open(str(temp_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o444)
-            with open(fd, 'wb') as dst_file:
-                while True:
-                    chunk = src_file.read(65536)
-                    if not chunk:
-                        break
-                    sha256.update(chunk)
-                    dst_file.write(chunk)
+            dst_fd = os.open(str(temp_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o444)
+            try:
+                with open(src_fd, 'rb', closefd=False) as src_file, open(dst_fd, 'wb', closefd=False) as dst_file:
+                    while True:
+                        chunk = src_file.read(65536)
+                        if not chunk:
+                            break
+                        sha256.update(chunk)
+                        dst_file.write(chunk)
+                    
+                    # Flush and fsync data
+                    dst_file.flush()
+                    os.fsync(dst_file.fileno())
+            finally:
+                os.close(dst_fd)
                 
-                # Flush and fsync data
-                dst_file.flush()
-                os.fsync(dst_file.fileno())
-                
-        stat_after = source.stat()
-        if (stat_before.st_ino != stat_after.st_ino or 
-            stat_before.st_size != stat_after.st_size or 
-            stat_before.st_mtime != stat_after.st_mtime):
-            raise SourceChangedError("Source file was modified during copy.")
+            stat_after = os.fstat(src_fd)
+            if (stat_before.st_ino != stat_after.st_ino or 
+                stat_before.st_size != stat_after.st_size or 
+                stat_before.st_mtime != stat_after.st_mtime):
+                raise SourceChangedError("Source file was modified during copy.")
+        finally:
+            os.close(src_fd)
             
     except Exception as e:
         if temp_path.exists():
             temp_path.unlink(missing_ok=True)
-        if isinstance(e, SourceChangedError):
+        if isinstance(e, SourceChangedError) or isinstance(e, SecurityError):
             raise
         raise ImporterError(f"Failed to copy source: {e}") from e
 

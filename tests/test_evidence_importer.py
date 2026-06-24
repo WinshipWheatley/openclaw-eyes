@@ -110,18 +110,20 @@ def test_source_mutation_during_copy(workspace, monkeypatch):
     src_file = source_dir / "mutating.txt"
     src_file.write_bytes(b"initial")
     
-    # Mock Path.stat to return different sizes on subsequent calls
-    original_stat = Path.stat
+    original_fstat = os.fstat
     call_count = 0
     
-    def mock_stat(self, *args, **kwargs):
+    def mock_fstat(fd):
         nonlocal call_count
-        st = original_stat(self, *args, **kwargs)
-        if kwargs.get('follow_symlinks') is False or self != src_file:
+        st = original_fstat(fd)
+        try:
+            path = Path(os.readlink(f"/proc/self/fd/{fd}"))
+        except OSError:
+            path = None
+        if path != src_file.resolve():
             return st
         call_count += 1
-        if call_count == 3: # Third call on src_file (stat_after)
-            import os
+        if call_count == 2: # Second call on src_file (stat_after)
             return os.stat_result((
                 st.st_mode, st.st_ino, st.st_dev, st.st_nlink,
                 st.st_uid, st.st_gid, st.st_size + 100,
@@ -129,7 +131,7 @@ def test_source_mutation_during_copy(workspace, monkeypatch):
             ))
         return st
         
-    monkeypatch.setattr(Path, "stat", mock_stat)
+    monkeypatch.setattr(os, "fstat", mock_fstat)
     
     with pytest.raises(SourceChangedError, match="Source file was modified during copy"):
         import_evidence(src_file, target_dir)

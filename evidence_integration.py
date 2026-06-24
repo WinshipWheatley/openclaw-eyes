@@ -55,9 +55,9 @@ def import_and_register_evidence(
         # We look for the most recent active record for the same source_locator.
         old_row = conn.execute(
             """SELECT evidence_id, evidence_hash FROM ar_evidence_registry 
-               WHERE source_system=? AND source_locator=? AND governance_status='active'
+               WHERE account_id=? AND source_system=? AND source_locator=? AND governance_status='active'
                ORDER BY ingestion_timestamp DESC LIMIT 1""",
-            (source_system, source_locator)
+            (account_id, source_system, source_locator)
         ).fetchone()
         
         supersedes_id = None

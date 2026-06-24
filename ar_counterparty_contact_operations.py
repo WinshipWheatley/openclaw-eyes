@@ -454,7 +454,7 @@ def registry_register(
 
     conn.execute(
         """
-        INSERT OR IGNORE INTO ar_evidence_registry (
+        INSERT INTO ar_evidence_registry (
           evidence_id, account_id, source_system, source_event, source_locator,
           evidence_hash, governed_artifact_path, world, governance_status,
           processing_status, availability, first_seen_timestamp,
@@ -463,7 +463,7 @@ def registry_register(
           supersedes_evidence_id
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-        )
+        ) ON CONFLICT(source_system, source_event, source_locator, evidence_hash) DO NOTHING
         """,
         (
             evidence_id, account_id, source_system, source_event, source_locator,
