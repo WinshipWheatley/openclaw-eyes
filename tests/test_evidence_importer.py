@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from evidence_importer import import_evidence, SecurityError, ImporterError
+from evidence_importer import import_evidence, SecurityError, ImporterError, SourceChangedError
 
 @pytest.fixture
 def workspace(tmp_path):
@@ -111,33 +111,43 @@ def test_source_mutation_during_copy(workspace, monkeypatch):
     src_file = source_dir / "mutating.txt"
     src_file.write_bytes(b"initial")
     
-    # To simulate mutation, we will monkeypatch hashlib.sha256 to sleep halfway
-    # so we can append to the file while it's being read.
-    # However, since the read loop copies exactly what is read, the final file
-    # will exactly match the computed hash of the *copied bytes*.
-    # That is the expected behavior: the digest matches exactly what landed in target.
+    # Mock Path.stat to return different sizes on subsequent calls
+    original_stat = Path.stat
+    call_count = 0
     
-    original_read = getattr(open, "read", None)
+    def mock_stat(self, *args, **kwargs):
+        nonlocal call_count
+        st = original_stat(self, *args, **kwargs)
+        if kwargs.get('follow_symlinks') is False or self != src_file:
+            return st
+        call_count += 1
+        if call_count == 3: # Third call on src_file (stat_after)
+            import os
+            return os.stat_result((
+                st.st_mode, st.st_ino, st.st_dev, st.st_nlink,
+                st.st_uid, st.st_gid, st.st_size + 100,
+                st.st_atime, st.st_mtime, st.st_ctime
+            ))
+        return st
+        
+    monkeypatch.setattr(Path, "stat", mock_stat)
     
-    # We'll just run it in a thread and mutate
-    def mutator():
-        time.sleep(0.01)
-        with src_file.open('ab') as f:
-            f.write(b"appended")
-            
-    t = threading.Thread(target=mutator)
-    t.start()
+    with pytest.raises(SourceChangedError, match="Source file was modified during copy"):
+        import_evidence(src_file, target_dir)
+        
+    assert len(list(target_dir.iterdir())) == 0
+
+def test_existing_corruption(workspace):
+    source_dir, target_dir = workspace
+    src_file = source_dir / "test.txt"
+    content = b"Safe data"
+    src_file.write_bytes(content)
     
-    # we make the source file large enough so the mutator has time
-    src_file.write_bytes(b"0" * 1024 * 1024 * 10) # 10 MB
+    expected_hash = hashlib.sha256(content).hexdigest()
     
-    file_hash = import_evidence(src_file, target_dir)
-    t.join()
+    # Forge a corrupted target file with the same name
+    corrupted_path = target_dir / expected_hash
+    corrupted_path.write_bytes(b"Tampered content")
     
-    final_path = target_dir / file_hash
-    assert final_path.exists()
-    
-    # The crucial security property: The hash matches the actual data resting in the target_dir.
-    with final_path.open('rb') as f:
-        actual_content = f.read()
-        assert hashlib.sha256(actual_content).hexdigest() == file_hash
+    with pytest.raises(SecurityError, match="Existing file corrupted"):
+        import_evidence(src_file, target_dir)

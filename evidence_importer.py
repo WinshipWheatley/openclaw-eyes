@@ -12,6 +12,9 @@ class SecurityError(Exception):
 class ImporterError(Exception):
     pass
 
+class SourceChangedError(ImporterError):
+    pass
+
 def import_evidence(source_path: Union[str, Path], target_dir: Union[str, Path]) -> str:
     """
     Atomically imports a file into governed content-addressed storage.
@@ -37,6 +40,8 @@ def import_evidence(source_path: Union[str, Path], target_dir: Union[str, Path])
     
     sha256 = hashlib.sha256()
     
+    stat_before = source.stat()
+    
     try:
         with source.open('rb') as src_file:
             # Open temp file exclusively
@@ -52,9 +57,18 @@ def import_evidence(source_path: Union[str, Path], target_dir: Union[str, Path])
                 # Flush and fsync data
                 dst_file.flush()
                 os.fsync(dst_file.fileno())
+                
+        stat_after = source.stat()
+        if (stat_before.st_ino != stat_after.st_ino or 
+            stat_before.st_size != stat_after.st_size or 
+            stat_before.st_mtime != stat_after.st_mtime):
+            raise SourceChangedError("Source file was modified during copy.")
+            
     except Exception as e:
         if temp_path.exists():
             temp_path.unlink(missing_ok=True)
+        if isinstance(e, SourceChangedError):
+            raise
         raise ImporterError(f"Failed to copy source: {e}") from e
 
     file_hash = sha256.hexdigest()
@@ -62,8 +76,21 @@ def import_evidence(source_path: Union[str, Path], target_dir: Union[str, Path])
     
     # 3. Idempotent check
     if final_path.exists():
-        # Already imported
         temp_path.unlink(missing_ok=True)
+        if not final_path.is_file() or final_path.is_symlink():
+            raise SecurityError(f"Existing target is not a regular file: {final_path}")
+            
+        # Verify the bytes actually match the hash
+        verify_sha256 = hashlib.sha256()
+        with final_path.open('rb') as vf:
+            while True:
+                chunk = vf.read(65536)
+                if not chunk:
+                    break
+                verify_sha256.update(chunk)
+        if verify_sha256.hexdigest() != file_hash:
+            raise SecurityError(f"Existing file corrupted: hash {verify_sha256.hexdigest()} does not match name {file_hash}")
+            
         return file_hash
         
     # 4. Atomic replace
