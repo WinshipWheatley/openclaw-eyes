@@ -1257,3 +1257,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_read_model_resolver.py
 !tests/test_t014_deterministic_response.py
 !tests/test_t016_synthetic_e2e.py
+!tests/test_t017_operator_approval_gate.py
