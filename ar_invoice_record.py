@@ -6,8 +6,7 @@ VALID_INVOICE_LIFECYCLE_STATES = frozenset([
     "draft",
     "approved",
     "issued",
-    "voided",
-    "superseded"
+    "voided"
 ])
 
 @dataclass(frozen=True)
@@ -51,9 +50,25 @@ class InvoiceRecord:
         if self.lifecycle_state not in VALID_INVOICE_LIFECYCLE_STATES:
             raise ValueError(f"Invalid lifecycle state: {self.lifecycle_state}")
             
-        # Validate that total is integer if provided
-        if self.total_minor_units is not None and not isinstance(self.total_minor_units, int):
+        # Validate that total is strictly an integer if provided (not bool)
+        if self.total_minor_units is not None and type(self.total_minor_units) is not int:
             raise ValueError("total_minor_units must be an integer representing minor units (not floats)")
+
+        # Validate currency formatting
+        if self.currency_iso is not None:
+            if not isinstance(self.currency_iso, str) or len(self.currency_iso) != 3 or not self.currency_iso.isupper():
+                raise ValueError("currency_iso must be exactly three uppercase letters")
+
+        # Validate dates if provided
+        issue_dt = None
+        due_dt = None
+        if self.issue_date_iso is not None:
+            issue_dt = datetime.fromisoformat(self.issue_date_iso)
+        if self.due_date_iso is not None:
+            due_dt = datetime.fromisoformat(self.due_date_iso)
+            
+        if issue_dt and due_dt and due_dt < issue_dt:
+            raise ValueError("due_date_iso cannot precede issue_date_iso")
 
         # Invariant: Approved or issued versions must have a number, dates, currency, and total
         if self.lifecycle_state in {"approved", "issued"}:

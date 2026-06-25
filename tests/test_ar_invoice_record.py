@@ -59,7 +59,7 @@ def test_invoice_issued_requires_fields():
             total_minor_units=None
         )
 
-def test_total_minor_units_must_be_integer():
+def test_total_minor_units_must_be_strictly_integer():
     with pytest.raises(ValueError, match="total_minor_units must be an integer representing minor units \\(not floats\\)"):
         create_invoice_record(
             counterparty_ref="cpt:1",
@@ -68,6 +68,55 @@ def test_total_minor_units_must_be_integer():
             source_ref="src:1",
             lifecycle_state="draft",
             total_minor_units=150.00 # float
+        )
+
+    with pytest.raises(ValueError, match="total_minor_units must be an integer representing minor units \\(not floats\\)"):
+        create_invoice_record(
+            counterparty_ref="cpt:1",
+            billing_entity_ref="entity:1",
+            idempotency_key="idemp:1",
+            source_ref="src:1",
+            lifecycle_state="draft",
+            total_minor_units=True # bool subclasses int in python
+        )
+
+def test_currency_formatting():
+    with pytest.raises(ValueError, match="currency_iso must be exactly three uppercase letters"):
+        create_invoice_record(
+            counterparty_ref="cpt:1",
+            billing_entity_ref="entity:1",
+            idempotency_key="idemp:1",
+            source_ref="src:1",
+            currency_iso="usd" # lowercase
+        )
+        
+    with pytest.raises(ValueError, match="currency_iso must be exactly three uppercase letters"):
+        create_invoice_record(
+            counterparty_ref="cpt:1",
+            billing_entity_ref="entity:1",
+            idempotency_key="idemp:1",
+            source_ref="src:1",
+            currency_iso="US" # too short
+        )
+
+def test_date_parsing_and_ordering():
+    with pytest.raises(ValueError, match="Invalid isoformat string"):
+        create_invoice_record(
+            counterparty_ref="cpt:1",
+            billing_entity_ref="entity:1",
+            idempotency_key="idemp:1",
+            source_ref="src:1",
+            issue_date_iso="not-a-date"
+        )
+        
+    with pytest.raises(ValueError, match="due_date_iso cannot precede issue_date_iso"):
+        create_invoice_record(
+            counterparty_ref="cpt:1",
+            billing_entity_ref="entity:1",
+            idempotency_key="idemp:1",
+            source_ref="src:1",
+            issue_date_iso="2026-07-25",
+            due_date_iso="2026-06-25" # precedes issue date
         )
 
 def test_invoice_versioning_pointer():
