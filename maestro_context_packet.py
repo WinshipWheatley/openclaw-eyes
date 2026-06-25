@@ -817,6 +817,30 @@ def build_maestro_context_packet(
                     "Deterministic Context: The Capital Hilton read-model answers this query directly. "
                     f"Status: {ch_payload.get('status')}."
                 )
+                
+                run_id = conn.execute("SELECT current_run_id FROM ar_published_read_models WHERE read_model_domain = 'capital_hilton_ar_context'").fetchone()["current_run_id"]
+                
+                # T015: Traceability
+                packet["traceability"] = {
+                    "renderer_bypassed": True,
+                    "reason": "Deterministic read-model match for Capital Hilton",
+                    "package_hash": _short_hash(packet_basis),
+                    "prompt_hash": hashlib.sha256(question.encode("utf-8")).hexdigest() if question else "",
+                    "response_hash": _short_hash(packet["deterministic_response"]),
+                    "conversation_id": session.get("conversation_id", "unknown") if isinstance(session, dict) else "unknown",
+                    "turn_id": session.get("turn_id", "unknown") if isinstance(session, dict) else "unknown",
+                    "timestamp": generated_at,
+                    "materialization_run_id": run_id,
+                    "model": "explicit_no_model_invocation",
+                    "agent_id": "cassandra",
+                    "lane_id": "operator_comms",
+                    "telegram_bot_username": "@openclaw_cassandra_bot",
+                    "telegram_display_name": "Clara Reid",
+                    "authority_scope": "read_only",
+                    "delivery_status": "pending_delivery",
+                    "telegram_chat_id": session.get("telegram_chat_id", "unknown") if isinstance(session, dict) else "unknown",
+                    "telegram_message_id": session.get("telegram_message_id", "unknown") if isinstance(session, dict) else "unknown"
+                }
                 packet["packet_text"] = format_maestro_context_packet(packet)
             except Exception:
                 pass

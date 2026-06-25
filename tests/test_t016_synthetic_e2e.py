@@ -48,13 +48,6 @@ def test_t016_synthetic_e2e(tmp_path, monkeypatch):
         
         # 4. Resolve the Published Read Model
         model_path, payload = resolve_current_read_model(conn, governed_root, "capital_hilton_ar_context")
-        
-        # Verify T015 traceability fields
-        traceability = payload.get("traceability", {})
-        assert "receipt_id" in traceability
-        assert traceability["command_id"] == "command:capital_hilton_ar_generation"
-        assert traceability["telegram_bot_username"] == "@openclaw_cassandra_bot"
-        assert traceability["telegram_display_name"] == "Clara Reid"
 
     # 5. Verify Context Packet Deterministic Response (T014)
     packet = build_maestro_context_packet(
@@ -66,3 +59,40 @@ def test_t016_synthetic_e2e(tmp_path, monkeypatch):
     assert packet["status"] == "ANSWER_READY"
     assert "deterministic_response" in packet
     assert "Capital Hilton" in packet["deterministic_response"]
+    
+    traceability = packet.get("traceability", {})
+    assert traceability.get("renderer_bypassed") is True
+    assert traceability.get("materialization_run_id") == run_id
+
+    # NEGATIVE PATH 1: Feature Flag OFF
+    monkeypatch.delenv("OPENCLAW_FEATURE_CAPITAL_HILTON_AR", raising=False)
+    packet_off = build_maestro_context_packet(
+        question="What is the capital hilton invoice status?",
+        read_model_root=governed_root,
+        require_real_truth=False
+    )
+    assert packet_off["status"] == "READY"
+    assert "deterministic_response" not in packet_off
+    monkeypatch.setenv("OPENCLAW_FEATURE_CAPITAL_HILTON_AR", "1")
+    
+    # NEGATIVE PATH 2: Tampered Artifact
+    model_path.chmod(0o644)
+    model_path.write_text("{\"tampered\": true}")
+    packet_tampered = build_maestro_context_packet(
+        question="What is the capital hilton invoice status?",
+        read_model_root=governed_root,
+        require_real_truth=False
+    )
+    assert packet_tampered["status"] == "READY"
+    assert "deterministic_response" not in packet_tampered
+
+    # NEGATIVE PATH 3: Missing active read model pointer
+    conn.execute("DELETE FROM ar_published_read_models WHERE read_model_domain = 'capital_hilton_ar_context'")
+    conn.commit()
+    packet_missing = build_maestro_context_packet(
+        question="What is the capital hilton invoice status?",
+        read_model_root=governed_root,
+        require_real_truth=False
+    )
+    assert packet_missing["status"] == "READY"
+    assert "deterministic_response" not in packet_missing

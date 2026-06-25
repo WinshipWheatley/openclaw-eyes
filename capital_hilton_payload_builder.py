@@ -60,12 +60,6 @@ def build_capital_hilton_read_model(conn: sqlite3.Connection) -> Dict[str, Any]:
         "contacts": contacts,
         "communication_policies": policies,
         "evidence_registry": evidence,
-        "traceability": {
-            "receipt_id": f"receipt:ar_read_model:{uuid.uuid4().hex[:16]}",
-            "command_id": "command:capital_hilton_ar_generation",
-            "telegram_bot_username": "@openclaw_cassandra_bot",
-            "telegram_display_name": "Clara Reid"
-        },
         "generation_timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds")
     }
     
