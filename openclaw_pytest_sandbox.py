@@ -241,6 +241,22 @@ class OpenClawPytestSandbox:
                 return self.redirect_root / label / rel
         return None
 
+    def _tmp_sqlite_redirect(self, path: Path | None) -> Path | None:
+        if path is None:
+            return None
+        if os.environ.get("OPENCLAW_PYTEST_REDIRECT_TMP_SQLITE") != "1":
+            return None
+        if path.suffix.lower() not in {".sqlite", ".sqlite3", ".db"}:
+            return None
+        tmp_root = Path("/tmp").resolve(strict=False)
+        if not self._is_relative_to(path, tmp_root):
+            return None
+        redirect_root = os.environ.get("OPENCLAW_PYTEST_TMP_SQLITE_ROOT", "").strip()
+        if not redirect_root:
+            return None
+        rel = path.relative_to(tmp_root)
+        return Path(redirect_root).expanduser().resolve(strict=False) / rel
+
     def _mapped_path_for_open(self, path: Path | None, *, write_mode: bool) -> Path | None:
         shadow = self._shadow_path_for_live_path(path)
         if shadow is None:
@@ -363,6 +379,10 @@ class OpenClawPytestSandbox:
         if target == self.live_business_ledger:
             self.isolated_ledger.parent.mkdir(parents=True, exist_ok=True)
             return self._original_sqlite_connect(self.isolated_ledger, *args, **kwargs)
+        tmp_sqlite = self._tmp_sqlite_redirect(target)
+        if tmp_sqlite is not None:
+            tmp_sqlite.parent.mkdir(parents=True, exist_ok=True)
+            return self._original_sqlite_connect(tmp_sqlite, *args, **kwargs)
         shadow = self._shadow_path_for_live_path(target)
         if shadow is not None:
             shadow.parent.mkdir(parents=True, exist_ok=True)
