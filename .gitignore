@@ -1249,3 +1249,5 @@ generated/system_knowledge/*.sqlite
 !tests/test_materialization_operations.py
 !tests/test_materialization_publisher.py
 !materialization_publisher.py
+!capital_hilton_payload_builder.py
+!tests/test_capital_hilton_payload_builder.py
