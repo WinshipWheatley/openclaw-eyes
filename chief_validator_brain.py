@@ -35,6 +35,29 @@ VALIDATED_INTENTS = {
     "album_arc_continue",
 }
 
+SEVERITY_KEYWORD_VARIANTS = (
+    ("failed", ("failed", "fail", "failure")),
+    ("blocked", ("blocked", "block", "blocks")),
+    ("risk", ("security risk", "risk", "risky")),
+    ("missed", ("missed", "miss")),
+    ("overdue", ("overdue",)),
+    ("denied", ("denied", "deny", "denies")),
+    ("payment", ("payment",)),
+)
+
+SOFTENING_PHRASES = (
+    "pending",
+    "ready",
+    "graceful",
+    "gentle",
+    "soft-landing",
+    "soft landing",
+    "soft",
+    "in progress",
+    "waiting",
+    "deferred",
+)
+
 # ── Log ────────────────────────────────────────────────────────────────────────
 
 def _append_log(intent: str, issue: str, action: str) -> None:
@@ -91,6 +114,33 @@ def _truncate(text: str) -> str:
     return text[:SAFE_LENGTH] + "\n… (truncated)"
 
 
+def _contains_phrase(text: str, phrase: str) -> bool:
+    pattern = re.escape(phrase).replace(r"\ ", r"\s+").replace(r"\-", r"[-\s]")
+    return bool(re.search(rf"\b{pattern}\b", text))
+
+
+def _first_present(text: str, phrases: tuple[str, ...]) -> str:
+    for phrase in phrases:
+        if _contains_phrase(text, phrase):
+            return phrase
+    return ""
+
+
+def _severity_softening_issue(source_text: str, output_text: str) -> str:
+    source = str(source_text or "").lower()
+    output = str(output_text or "").lower()
+    softening = _first_present(output, SOFTENING_PHRASES)
+
+    for canonical, variants in SEVERITY_KEYWORD_VARIANTS:
+        if not _first_present(source, variants):
+            continue
+        if softening:
+            return f"severity_softening_detected: {canonical}→{softening}"
+        if not _first_present(output, variants):
+            return f"severity_softening_detected: {canonical}→omitted"
+    return ""
+
+
 # ── Retry ──────────────────────────────────────────────────────────────────────
 
 def _retry_once(original_prompt: str, timeout: int = 45) -> str:
@@ -134,7 +184,13 @@ def _run_checks(
         _append_log(intent, "Raw code dump in non-code context", "Stripped code fences")
         return _strip_code_fences(reply)
 
-    # 4. Oversized for Telegram
+    # 4. Severity integrity
+    severity_issue = _severity_softening_issue(original_prompt, reply)
+    if severity_issue:
+        _append_log(intent, severity_issue, "Blocked softened severity output")
+        return f"Validation blocked: {severity_issue}. Keep severe facts exact before sending."
+
+    # 5. Oversized for Telegram
     if len(reply) > MAX_TELEGRAM:
         _append_log(intent, f"Reply too long ({len(reply)} chars)", f"Truncated to {SAFE_LENGTH}")
         return _truncate(reply)
@@ -160,7 +216,10 @@ def validate_reply(
     Returns:
         A clean, safe string ready to send via Telegram.
     """
-    return tts_clean(_run_checks(original_prompt, reply, intent, retry_prompt))
+    result = _run_checks(original_prompt, reply, intent, retry_prompt)
+    if result.startswith("Validation blocked:"):
+        return result
+    return tts_clean(result)
 
 
 # ── CLI smoke test ─────────────────────────────────────────────────────────────
