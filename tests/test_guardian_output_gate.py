@@ -221,6 +221,42 @@ def test_authority_request_fails_closed():
     assert all(value is False for value in result["validation_result"]["authority_granted"].values())
 
 
+def test_approval_claim_without_authority_is_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Approval complete",
+            eliwinship="I approved it.",
+            next_action="Next: continue.",
+            detail_disclosure={"authority_requested": {"approval_execution": False}},
+            readback_files=(),
+        )
+    )
+
+    validation = result["validation_result"]
+    assert result["role_response_candidate"]["authority_requested"]["approval_execution"] is False
+    assert validation["verdict"] == gate.BLOCKED_AUTHORITY
+    assert "approved" in validation["forbidden_claims"]
+    assert any("approval" in reason.lower() for reason in validation["blocked_reasons"])
+    assert all(value is False for value in validation["authority_granted"].values())
+
+
+def test_approval_pending_wording_does_not_claim_approval_authority():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Approval pending",
+            eliwinship="The approval is pending; I did not approve it.",
+            next_action="Next: wait for exact approval.",
+            detail_disclosure={"authority_requested": {"approval_execution": False}},
+            readback_files=(),
+        )
+    )
+
+    validation = result["validation_result"]
+    assert validation["verdict"] == gate.VALIDATED
+    assert validation["forbidden_claims"] == ()
+    assert validation["output_publish_allowed"] is True
+
+
 def test_abstract_credential_ref_wording_is_not_treated_as_secret_leakage():
     result = gate.validate_response_payload(
         _safe_payload(
