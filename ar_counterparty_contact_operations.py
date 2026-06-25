@@ -598,6 +598,117 @@ def registry_set_availability(
     conn.commit()
 
 
+# ---------------------------------------------------------------------------
+# Materialization Run database operations (T008)
+# ---------------------------------------------------------------------------
+
+_MATERIALIZATION_STATUSES = frozenset({"preparing", "published", "failed", "aborted"})
+_INCLUSION_STATUSES = frozenset({"used", "excluded"})
+
+
+def materialization_run_start(
+    conn: sqlite3.Connection,
+    run_id: str,
+    generator_id: str,
+    generator_version: str,
+    schema_version: str,
+    freshness_cutoff: str,
+    run_start_timestamp: str,
+) -> None:
+    """Initialize a new materialization run in 'preparing' status."""
+    conn.execute(
+        """
+        INSERT INTO ar_materialization_runs (
+          run_id, generator_id, generator_version, schema_version,
+          run_start_timestamp, freshness_cutoff, status
+        ) VALUES (?, ?, ?, ?, ?, ?, 'preparing')
+        """,
+        (run_id, generator_id, generator_version, schema_version, run_start_timestamp, freshness_cutoff),
+    )
+    conn.commit()
+
+
+def materialization_add_evidence(
+    conn: sqlite3.Connection,
+    run_id: str,
+    evidence_id: str,
+    inclusion_status: str,
+) -> None:
+    """Link an evidence item to a materialization run."""
+    if inclusion_status not in _INCLUSION_STATUSES:
+        raise ValueError(f"materialization_add_evidence: invalid inclusion_status {inclusion_status!r}")
+    conn.execute(
+        """
+        INSERT INTO ar_materialization_run_evidence (run_id, evidence_id, inclusion_status)
+        VALUES (?, ?, ?)
+        """,
+        (run_id, evidence_id, inclusion_status),
+    )
+    conn.commit()
+
+
+def materialization_run_fail(
+    conn: sqlite3.Connection,
+    run_id: str,
+    run_completion_timestamp: str,
+    error_code: str,
+    error_details: str,
+) -> None:
+    """Mark a materialization run as failed."""
+    conn.execute(
+        """
+        UPDATE ar_materialization_runs 
+        SET status='failed', run_completion_timestamp=?, error_code=?, error_details=?
+        WHERE run_id=?
+        """,
+        (run_completion_timestamp, error_code, error_details, run_id),
+    )
+    conn.commit()
+
+
+def materialization_run_publish(
+    conn: sqlite3.Connection,
+    run_id: str,
+    run_completion_timestamp: str,
+    stable_payload_hash: str,
+    published_artifact_path: str,
+    published_artifact_hash: str,
+) -> None:
+    """Mark a materialization run as published. Trigger enforces completeness."""
+    conn.execute(
+        """
+        UPDATE ar_materialization_runs 
+        SET status='published', 
+            run_completion_timestamp=?, 
+            stable_payload_hash=?, 
+            published_artifact_path=?, 
+            published_artifact_hash=?
+        WHERE run_id=?
+        """,
+        (run_completion_timestamp, stable_payload_hash, published_artifact_path, published_artifact_hash, run_id),
+    )
+    conn.commit()
+
+
+def materialization_set_current_read_model(
+    conn: sqlite3.Connection,
+    read_model_domain: str,
+    run_id: str,
+    updated_at: str,
+) -> None:
+    """Publish a materialization run as the current active read model for a domain."""
+    conn.execute(
+        """
+        INSERT INTO ar_published_read_models (read_model_domain, current_run_id, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(read_model_domain) DO UPDATE SET
+          current_run_id=excluded.current_run_id,
+          updated_at=excluded.updated_at
+        """,
+        (read_model_domain, run_id, updated_at),
+    )
+    conn.commit()
+
 def _read_json(path: Path | str) -> dict[str, Any]:
     path = Path(path)
     if not path.exists():
