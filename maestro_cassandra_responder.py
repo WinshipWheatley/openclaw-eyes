@@ -261,6 +261,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("hermes_truthful_advisory", True, "")
     if _is_operator_truth_correction_intent(text):
         return ("operator_truth_correction", True, "")
+    if _is_operator_truth_query_intent(normalized):
+        return ("operator_truth_query", True, "")
     if _is_send_or_reply_intent(normalized):
         return ("send_reply_email_action", False, "send_reply_email_action_intent_routes_to_staging")
     if _is_inbox_metadata_intent(normalized):
@@ -325,6 +327,41 @@ def answer_frontdoor_chat(
                 **_adapter_machine_proof(handle_called=False),
                 "operator_truth_store_written": bool(records),
                 "operator_truth_entities": labels,
+            },
+        )
+
+    if intent_class == "operator_truth_query":
+        from operator_truth_store import find_operator_truth_for_text
+
+        match = find_operator_truth_for_text(text)
+        if match is None:
+            answer = "I do not have a matching operator-truth record for that query. No model call was made."
+            entity_key = ""
+            label = ""
+            value = ""
+        else:
+            entity_key, record = match
+            label = str(record.get("label") or entity_key)
+            value = " ".join(str(record.get("value") or "").split()).strip()
+            answer = f"Yes. The operator truth store has {label}: {value}"
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(answer),
+            plain_summary=answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "operator_truth_query_performed": True,
+                "operator_truth_store_read": True,
+                "operator_truth_record_found": match is not None,
+                "operator_truth_entity_key": entity_key,
+                "operator_truth_label": label,
+                "protected_generate_called": False,
+                "maestro_context_packet_used": False,
+                "external_llm_invoked": False,
             },
         )
 
@@ -1185,6 +1222,21 @@ def _is_operator_truth_correction_intent(text: str) -> bool:
         return bool(extract_operator_truth_candidates(text, source_surface="operator_maestro_chat"))
     except Exception:
         return False
+
+
+def _is_operator_truth_query_intent(text: str) -> bool:
+    return bool(
+        re.search(
+            r"\b("
+            r"did you (?:store|save|record|remember)|"
+            r"what have you recorded about|"
+            r"what (?:did|do) you (?:store|save|record|remember)|"
+            r"do you (?:have|remember|know) .* truth|"
+            r"is .* (?:in your truth|stored|saved|recorded|remembered)"
+            r")\b",
+            text,
+        )
+    )
 
 
 def _is_inbox_metadata_intent(text: str) -> bool:
