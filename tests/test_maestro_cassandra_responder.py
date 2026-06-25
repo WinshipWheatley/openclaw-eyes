@@ -557,7 +557,7 @@ def test_people_reference_query_routes_truth_before_llm(monkeypatch, tmp_path):
     assert result.machine_proof["external_llm_invoked"] is False
 
 
-<<<<<<< HEAD
+
 def test_operator_truth_query_recorded_about_phrase_is_zero_llm(monkeypatch, tmp_path):
     store_path = tmp_path / "operator_truth_store.json"
     monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
@@ -613,8 +613,7 @@ def test_operator_truth_query_no_match_still_short_circuits_models(monkeypatch, 
     assert result.machine_proof["external_llm_invoked"] is False
 
 
-=======
->>>>>>> origin/codex/048-people-reference-query
+
 def test_send_reply_intent_never_reaches_handle_or_send_spies(monkeypatch):
     calls: list[str] = []
 
