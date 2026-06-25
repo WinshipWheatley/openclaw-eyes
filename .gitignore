@@ -1247,3 +1247,5 @@ generated/system_knowledge/*.sqlite
 !/evidence_integration.py
 !/tests/test_evidence_integration.py
 !tests/test_materialization_operations.py
+!tests/test_materialization_publisher.py
+!materialization_publisher.py
