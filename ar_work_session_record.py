@@ -28,7 +28,7 @@ class WorkSessionRecord:
     end_utc_iso: str | None = None
     
     # Optional correction pointer
-    superseded_by_session_id: str | None = None
+    supersedes_session_id: str | None = None
 
     def __post_init__(self):
         if not self.work_session_id:
@@ -79,7 +79,7 @@ def create_work_session(
     iana_timezone: str = "UTC",
     lifecycle_state: str = "active",
     end_utc_iso: str | None = None,
-    superseded_by_session_id: str | None = None
+    supersedes_session_id: str | None = None
 ) -> WorkSessionRecord:
     return WorkSessionRecord(
         work_session_id=f"ws:{uuid.uuid4().hex}",
@@ -91,5 +91,5 @@ def create_work_session(
         lifecycle_state=lifecycle_state,
         start_utc_iso=start_utc_iso,
         end_utc_iso=end_utc_iso,
-        superseded_by_session_id=superseded_by_session_id
+        supersedes_session_id=supersedes_session_id
     )
