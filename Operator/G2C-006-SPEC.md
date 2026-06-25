@@ -22,7 +22,7 @@
 
 - `ar_gig_to_cash_store.py` — the DAL.
 - `tests/test_ar_gig_to_cash_store.py` — the test suite.
-- DB path is **injectable** (constructor arg). Default is an isolated file under a dedicated gig-to-cash directory; **tests MUST use a temp file or `:memory:`** — never a shared/production DB, the polish-loop `control_plane.sqlite3`, generated read-models, or any vault path.
+- DB path is **injectable** (constructor arg). Canonical default (operator decision D2): **`/home/openclaw/state/gig_to_cash/gig_to_cash.sqlite3`** — the module creates the parent dir on first open (no established canonical-state dir exists today). Never the polish-loop `control_plane.sqlite3`, generated read-models, or any vault path. **Test DBs (D2):** use a **temp FILE** DB for transaction / foreign-key / concurrency tests; `:memory:` is acceptable ONLY when the *same connection* is retained for the whole test. The canonical JSON stored inside the authoritative SQLite row is the record of truth — distinct from, and does not make authoritative, any generated JSON file.
 - Do **not** modify the four domain-record modules or `ar_gig_to_cash_serialization.py`. If a genuine contract defect blocks the DAL, **stop and report** — do not silently change a model.
 
 ---
@@ -32,7 +32,7 @@
 `PRAGMA foreign_keys = ON;` `PRAGMA journal_mode = WAL;` Common columns on every record table:
 `ingestion_seq INTEGER PRIMARY KEY AUTOINCREMENT`, `ingested_utc TEXT NOT NULL` (ISO-8601 UTC, supplied by caller or `strftime`), `canonical_json TEXT NOT NULL`, `content_sha256 TEXT NOT NULL`, `idempotency_key TEXT NOT NULL UNIQUE`, `lifecycle_state TEXT NOT NULL`.
 
-1. **`gig_records`** — single-identity, append-only. Cols: `gig_id TEXT NOT NULL` + common. Current = row with MAX(`ingestion_seq`) for a `gig_id`. Index `(gig_id, ingestion_seq)`. *(No version_id/supersedes in the GigRecord contract — documented; current is latest-ingested. Flag for operator: confirm this is acceptable vs. requiring a future gig-version contract.)*
+1. **`gig_records`** — single-identity, **CREATE-ONCE** (operator decision D1 — NOT latest-ingested). Cols: `gig_id TEXT NOT NULL UNIQUE` + common. **Exactly one row per `gig_id`.** `get_current` returns that row; there is no version chain and no "latest" semantics. Gig **lifecycle changes are NOT supported in G2C-006** — they await a future contract that adds explicit `gig_version_id` + `supersedes_gig_version_id`. Uniqueness from `UNIQUE(gig_id)` + `UNIQUE(idempotency_key)`.
 2. **`work_session_records`** — correction-pointer. Cols: `work_session_id TEXT NOT NULL`, `gig_id TEXT NOT NULL`, `supersedes_session_id TEXT NULL` + common. Current(work_session_id) = the row whose `work_session_id` is not referenced by any other row's `supersedes_session_id`. Index `(work_session_id)`, `(gig_id)`, `(supersedes_session_id)`.
 3. **`invoice_records`** — full version chain. Cols: `invoice_id TEXT NOT NULL`, `invoice_version_id TEXT NOT NULL UNIQUE`, `supersedes_invoice_version_id TEXT NULL`, `source_ref TEXT NOT NULL` + common. Current(invoice_id) = the version not referenced by any `supersedes_invoice_version_id`. Index `(invoice_id)`, unique `(invoice_version_id)`.
 4. **`expected_receivable_records`** — full version chain, FK to a specific invoice version. Cols: `receivable_id TEXT NOT NULL`, `receivable_version_id TEXT NOT NULL UNIQUE`, `invoice_id TEXT NOT NULL`, `invoice_version_id TEXT NOT NULL`, `supersedes_receivable_version_id TEXT NULL`, `source_ref TEXT NOT NULL` + common. **FK** `(invoice_version_id)` → `invoice_records(invoice_version_id)` (a receivable must reference an already-stored immutable invoice version). Current(receivable_id) = version not superseded.
@@ -46,11 +46,11 @@ Referential rule: enforce hard FK only on **internal immutable version links** (
 
 Class `GigToCashStore(db_path: str)`; `open()`/context-manager applies migrations idempotently.
 
-1. `append(record) -> AppendResult` — accept any of the 4 record types (reject others with `TypeError`). Serialize via `to_json`; compute `canonical_sha256`. **Idempotency:** if `idempotency_key` exists → compare `content_sha256`: equal ⇒ no-op, return existing (`created=False`); differ ⇒ raise `IdempotencyConflict`. For versioned types, `*_version_id` must be globally unique (UNIQUE enforces). Insert in **one transaction** (`BEGIN IMMEDIATE`). Returns the stored identity + `created` flag.
+1. `append(record) -> AppendResult` — accept any of the 4 record types (reject others with `TypeError`). Serialize via `to_json`; compute `canonical_sha256`. **Idempotency:** if `idempotency_key` exists → compare `content_sha256`: equal ⇒ no-op, return existing (`created=False`); differ ⇒ raise `IdempotencyConflict`. For versioned types, `*_version_id` must be globally unique (UNIQUE enforces). **GigRecord create-once (D1):** beyond idempotency, a GigRecord whose `gig_id` already exists is a no-op IFF the stored `content_sha256` is identical (`created=False`); a **different** payload for an existing `gig_id` raises `GigImmutableConflict` — gigs never gain hidden versions. Insert in **one transaction** (`BEGIN IMMEDIATE`). Returns the stored identity + `created` flag.
 2. `get_current(record_type, logical_id) -> record | None` — reconstruct the current snapshot via `from_json`; return `None` if absent.
 3. `get_version(record_type, version_id) -> record | None` — versioned types only (`TypeError` for Gig).
 4. `list_history(record_type, logical_id) -> list[record]` — full append-only chain, oldest→newest.
-5. `supersede(prior_logical_id, new_record) -> AppendResult` — the ONLY "update_status". Validate: `new_record`'s logical id == `prior_logical_id`; for versioned types `new_record.supersedes_*_version_id` must equal the current version's `*_version_id`; for WorkSession `new_record.supersedes_session_id == current.work_session_id`. Then `append(new_record)` transactionally. The prior row is **never touched** (test asserts its `content_sha256` unchanged + row count grows by exactly 1).
+5. `supersede(prior_logical_id, new_record) -> AppendResult` — the ONLY "update_status". Validate: `new_record`'s logical id == `prior_logical_id`; for versioned types `new_record.supersedes_*_version_id` must equal the current version's `*_version_id`; for WorkSession `new_record.supersedes_session_id == current.work_session_id`. Then `append(new_record)` transactionally. The prior row is **never touched** (test asserts its `content_sha256` unchanged + row count grows by exactly 1). **`supersede` is NOT supported for GigRecord** (raises `UnsupportedOperation`) — gig lifecycle changes await the future gig-version contract (D1).
 6. Integrity on read: if a stored row's `content_sha256` ≠ `sha256(canonical_json)`, raise `IntegrityError`. `from_json` strictness (unknown/missing fields, dup keys, NaN) applies on every read.
 
 No `delete`, no `update`, no money/send/bank method anywhere in the public or private surface.
@@ -91,6 +91,6 @@ Author the tests to the *contract*, not the implementation (the Step-2 drift hap
 
 ---
 
-## H. Open architecture decisions for operator (flag before implementation)
-- **D1 — Gig versioning:** GigRecord has no `version_id`/`supersedes` in its contract, so the store treats gig state changes as latest-ingested append-only (§C.1). Accept, or require a future gig-version contract (G2C-00x) before persisting gig state transitions?
-- **D2 — DB location/name:** proposed isolated path + module name `ar_gig_to_cash_store.py`; confirm the canonical DB path (kept out of generated read-models / control_plane / vault).
+## H. Architecture decisions — RESOLVED (operator, 2026-06-25)
+- **D1 — Gig versioning: RESOLVED → create-once.** GigRecord is create-once (§C.1, §D.1, §D.5): unique `gig_id`, same key+payload returns existing, changed payload for an existing `gig_id` raises `GigImmutableConflict`, and gig lifecycle changes are deferred to a future contract with explicit `gig_version_id` + `supersedes_gig_version_id`. No hidden version semantics.
+- **D2 — DB location/name: RESOLVED → approved.** Module `ar_gig_to_cash_store.py`; canonical DB `/home/openclaw/state/gig_to_cash/gig_to_cash.sqlite3`; injectable path; temp-file DBs for tx/FK/concurrency tests (`:memory:` only with a retained connection); canonical JSON in the SQLite row is the record of truth.
