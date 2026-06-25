@@ -790,6 +790,37 @@ def build_maestro_context_packet(
         },
     }
     packet["packet_text"] = format_maestro_context_packet(packet)
+
+    # T014: Capital Hilton AR Context integration & Deterministic Response
+    if os.environ.get("OPENCLAW_FEATURE_CAPITAL_HILTON_AR") == "1":
+        q_lower = (question or "").lower()
+        if "capital hilton" in q_lower:
+            try:
+                from read_model_resolver import resolve_current_read_model
+                from ar_counterparty_contact_operations import _connect
+                db_path = root / "ar.sqlite"
+                with _connect(db_path) as conn:
+                    ch_path, ch_payload = resolve_current_read_model(conn, root, "capital_hilton_ar_context")
+                
+                _append_fact(
+                    packet["facts"],
+                    topic="capital_hilton_ar",
+                    label="Capital Hilton Context",
+                    value=f"Status: {ch_payload.get('status')}",
+                    provenance="generated_read_model",
+                    source_ref=_display_read_model_ref(ch_path),
+                    pii_tier="LIGHT"
+                )
+                
+                packet["status"] = "ANSWER_READY"
+                packet["deterministic_response"] = (
+                    "Deterministic Context: The Capital Hilton read-model answers this query directly. "
+                    f"Status: {ch_payload.get('status')}."
+                )
+                packet["packet_text"] = format_maestro_context_packet(packet)
+            except Exception:
+                pass
+
     return packet
 
 
