@@ -521,7 +521,43 @@ def test_operator_truth_query_intent_routes_deterministic(monkeypatch, tmp_path)
     assert result.machine_proof["protected_generate_called"] is False
     assert result.machine_proof["external_llm_invoked"] is False
 
+def test_people_reference_query_routes_truth_before_llm(monkeypatch, tmp_path):
+    store_path = tmp_path / "operator_truth_store.json"
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(store_path))
+    operator_truth_store.upsert_operator_truth(
+        "capital_hilton",
+        "Will Valcovic is the Capital Hilton contact for Coupa and payment follow-up.",
+        source_surface="test",
+        path=store_path,
+    )
 
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("cassandra_brain.handle must not run for people reference query")
+
+    def forbidden_protected_generate(*_args, **_kwargs):
+        raise AssertionError("protected_generate must not run when operator truth matches")
+
+    result = maestro.answer_frontdoor_chat(
+        "who is will valcovic?",
+        handle_fn=forbidden_handle,
+        protected_generate_fn=forbidden_protected_generate,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "people_reference_query"
+    assert result.allowed_to_call_handle is False
+    assert "Will Valcovic is the Capital Hilton contact" in result.plain_summary
+    assert result.machine_proof["people_reference_query_performed"] is True
+    assert result.machine_proof["operator_truth_store_read"] is True
+    assert result.machine_proof["operator_truth_record_found"] is True
+    assert result.machine_proof["operator_truth_entity_key"] == "capital_hilton"
+    assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["protected_generate_called"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
+
+
+<<<<<<< HEAD
 def test_operator_truth_query_recorded_about_phrase_is_zero_llm(monkeypatch, tmp_path):
     store_path = tmp_path / "operator_truth_store.json"
     monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
@@ -577,6 +613,8 @@ def test_operator_truth_query_no_match_still_short_circuits_models(monkeypatch, 
     assert result.machine_proof["external_llm_invoked"] is False
 
 
+=======
+>>>>>>> origin/codex/048-people-reference-query
 def test_send_reply_intent_never_reaches_handle_or_send_spies(monkeypatch):
     calls: list[str] = []
 
