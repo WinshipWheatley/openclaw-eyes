@@ -84,6 +84,8 @@ class AgentLaneSeed:
     aliases: tuple[str, ...]
     routing_hints: tuple[str, ...]
     notes: str
+    telegram_bot_username: str | None = None
+    telegram_display_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -237,6 +239,8 @@ DEFAULT_AGENT_LANE_SEEDS: tuple[AgentLaneSeed, ...] = (
     AgentLaneSeed(
         agent_id="cassandra",
         display_name="Cassandra",
+        telegram_bot_username="@openclaw_cassandra_bot",
+        telegram_display_name="Clara Reid",
         lane_id="operator_comms",
         lane_label="Business Ops and Operator Communications",
         status="active_registry",
@@ -512,6 +516,8 @@ CREATE TABLE IF NOT EXISTS agent_lanes (
   can_call_models INTEGER NOT NULL DEFAULT 0,
   runtime_authority INTEGER NOT NULL DEFAULT 0,
   client_deployment_authority INTEGER NOT NULL DEFAULT 0,
+  telegram_bot_username TEXT,
+  telegram_display_name TEXT,
   notes TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -805,8 +811,9 @@ ON CONFLICT(run_id) DO UPDATE SET
                 """
 INSERT INTO agent_lanes (
   agent_id, display_name, lane_id, lane_label, status, authority_level,
-  role_summary, notes, created_at, updated_at, run_id
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  role_summary, notes, created_at, updated_at, run_id,
+  telegram_bot_username, telegram_display_name
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(agent_id) DO UPDATE SET
   display_name = excluded.display_name,
   lane_id = excluded.lane_id,
@@ -822,6 +829,8 @@ ON CONFLICT(agent_id) DO UPDATE SET
   can_call_models = 0,
   runtime_authority = 0,
   client_deployment_authority = 0,
+  telegram_bot_username = excluded.telegram_bot_username,
+  telegram_display_name = excluded.telegram_display_name,
   notes = excluded.notes,
   updated_at = excluded.updated_at,
   run_id = excluded.run_id
@@ -838,6 +847,8 @@ ON CONFLICT(agent_id) DO UPDATE SET
                     created_at,
                     now,
                     resolved_run_id,
+                    seed.telegram_bot_username,
+                    seed.telegram_display_name,
                 ),
             )
 
