@@ -5031,6 +5031,7 @@ def _process_maestro_frontdoor_operator_instruction(
         "workflow_package_request_v0_emitted": False,
         "email_send_performed": False,
         "gmail_access_performed": False,
+        "telegram_send_triggered": False,
         "business_action_performed": False,
         "ledger_mutation_performed": False,
         "workbook_mutation_performed": False,
@@ -5084,6 +5085,624 @@ def _process_maestro_frontdoor_operator_instruction(
         detail_disclosure=detail,
         readback_files=(),
         next_safe_move="Ask Maestro a follow-up if you need more.",
+    )
+
+
+def _interpreter_enabled() -> bool:
+    """Return True only when OPENCLAW_INTERPRETER_LM is "1" or "true".
+
+    Thin wrapper so tests can monkeypatch this location without touching the
+    interpreter_lm module directly.
+    """
+    import os
+    return os.environ.get("OPENCLAW_INTERPRETER_LM", "0").lower() in ("1", "true")
+
+
+# Per-request memoization of the interpreter result so the BRAIN divert and the
+# ACTION/BLOCKED divert read the SAME classification from a SINGLE LM call. Without
+# this, each divert would independently call interpret_operator_message → two
+# stochastic LM calls per request that could disagree (a BRAIN<0.75 followed by an
+# ACTION>0.75 would otherwise produce an advisory the first call never made).
+# Keyed on the operator text; returns UNCERTAIN on any error (deterministic fallback).
+_INTERPRETER_RESULT_CACHE: "dict[str, Any]" = {}
+_INTERPRETER_RESULT_CACHE_MAX = 256
+
+
+def _interpret_for_request(operator_text: str) -> Any:
+    """Compute (once, memoized by operator_text) the interpreter result for this
+    message. Both diverts call this so exactly one LM call happens per request.
+    Returns an InterpretResult; UNCERTAIN on any error → deterministic fallback."""
+    from interpreter_lm import interpret_operator_message, InterpretResult, ROUTE_UNCERTAIN
+
+    key = operator_text
+    cached = _INTERPRETER_RESULT_CACHE.get(key)
+    if cached is not None:
+        return cached
+    try:
+        result = interpret_operator_message(operator_text)
+    except Exception:  # noqa: BLE001 — interpreter error → deterministic path
+        result = InterpretResult(route=ROUTE_UNCERTAIN, reason="interpreter_exception")
+    # Bound the cache so a long-running process does not grow unboundedly.
+    if len(_INTERPRETER_RESULT_CACHE) >= _INTERPRETER_RESULT_CACHE_MAX:
+        _INTERPRETER_RESULT_CACHE.clear()
+    _INTERPRETER_RESULT_CACHE[key] = result
+    return result
+
+
+def _try_interpreter_brain_divert(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any],
+    _capsule: Any | None = None,
+) -> OpenClawResponseForMac | None:
+    """Flag-gated interpreter-LM routing augmentation.
+
+    DISCIPLINE
+    ----------
+    - Only runs when OPENCLAW_INTERPRETER_LM="1".  When off → returns None
+      immediately (zero side effects, byte-identical downstream behaviour).
+    - Only applies to messages on the operator_maestro_chat surface that the
+      DETERMINISTIC gate would NOT handle (i.e. the deterministic check
+      returned None).  We never override or block a brain route that already
+      fired.
+    - ADVISORY ONLY: the interpreter can ADD a brain diversion; it can NEVER
+      block the brain, escalate authority, or trigger an action.
+    - NO authority effect: the interpreter result is never consulted by
+      authority_gate, action_runtime, or any SEND_HOLD path.
+    - Fallback: any exception or low-confidence result → returns None so the
+      caller falls through to the deterministic workflow consumer path.
+    """
+    if not _interpreter_enabled():
+        return None
+
+    # Only augment the maestro frontdoor surface
+    if _maestro_frontdoor_surface(raw_request) != "operator_maestro_chat":
+        return None
+
+    # Defense-in-depth: only augment messages the DETERMINISTIC gate declined.
+    # The dispatch already calls us only after _process_maestro_frontdoor_operator_instruction
+    # returned None, but we re-assert here so a future refactor cannot let the
+    # interpreter override a request the deterministic gate owns.
+    if _is_maestro_frontdoor_operator_instruction(raw_request):
+        return None
+
+    # Only apply when there IS operator text to interpret
+    operator_text = maestro_cassandra_responder.operator_text_from_request(raw_request)
+    if not operator_text:
+        return None
+
+    try:
+        interp_result = _interpret_for_request(operator_text)
+    except Exception:  # noqa: BLE001 — interpreter error → deterministic path
+        return None
+
+    if not interp_result.is_high_confidence_brain():
+        return None  # UNCERTAIN or WORKFLOW or low-confidence → deterministic path
+
+    # Interpreter says BRAIN with high confidence → route to answer_frontdoor_chat.
+    # We build the fact_selection list from the interpreter result and pass it
+    # to answer_frontdoor_chat via the session so build_maestro_context_packet
+    # can elevate the right read-models.
+    session = maestro_cassandra_responder.session_from_request(raw_request)
+    # Inject fact_selection into the session so it flows through to the packet builder.
+    # The key "interpreter_fact_selection" is read by the answer_frontdoor_chat
+    # wrapper below; it does NOT affect authority_gate or action_runtime.
+    augmented_session: dict[str, Any] = dict(session or {})
+    if interp_result.fact_selection:
+        augmented_session["interpreter_fact_selection"] = list(interp_result.fact_selection)
+
+    source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
+    try:
+        result = maestro_cassandra_responder.answer_frontdoor_chat(
+            operator_text,
+            session=augmented_session,
+            source_surface=source_surface,
+            _capsule=_capsule,
+        )
+    except TypeError as exc:
+        if "source_surface" not in str(exc):
+            raise
+        result = maestro_cassandra_responder.answer_frontdoor_chat(
+            operator_text, session=augmented_session
+        )
+    except Exception:  # noqa: BLE001 — answer error → fall through
+        return None
+
+    if result.status != "ANSWER_READY":
+        return None  # brain said no → fall through to workflow consumer
+
+    # Re-use the existing frontdoor response builder (same code path, different
+    # entry — ensures the machine proof, receipt, and render hint are consistent).
+    backend_route = maestro_cassandra_responder.backend_route_for_result(result)
+    proof_refs = maestro_cassandra_responder.proof_refs_for_result(
+        result,
+        "generated/read_models/openclaw_request_processor_status.json",
+        "interpreter_lm:divert",
+    )
+    external_llm_invoked = maestro_cassandra_responder.external_llm_invoked_for_result(result)
+    result_payload = maestro_cassandra_responder.result_dict_for_receipt(result)
+    machine_proof = maestro_cassandra_responder.machine_proof_for_result(result)
+    machine_proof = {
+        **machine_proof,
+        "interpreter_lm_divert": True,
+        "interpreter_route": interp_result.route,
+        "interpreter_confidence": interp_result.confidence,
+        "interpreter_reason": interp_result.reason,
+        "interpreter_fact_selection": list(interp_result.fact_selection),
+    }
+    local_model_invoked = bool(machine_proof.get("local_model_invoked", False))
+    model_call_performed = bool(machine_proof.get("model_call_performed", False))
+    response_adapter_called = bool(
+        result.allowed_to_call_handle
+        or machine_proof.get("protected_generate_called")
+        or machine_proof.get("cassandra_handle_called")
+    )
+    request_id = str(raw_request.get("request_id") or raw_request.get("source_request_id") or f"missing_request_id_{request_path.stem}")
+    current_world = str(
+        raw_request.get("current_world_ref")
+        or raw_request.get("currentWorldRef")
+        or raw_request.get("world_ref")
+        or raw_request.get("worldRef")
+        or raw_request.get("world")
+        or "general"
+    )
+    current_thread = str(
+        raw_request.get("current_thread_ref")
+        or raw_request.get("currentThreadRef")
+        or raw_request.get("thread_ref")
+        or raw_request.get("threadRef")
+        or _maestro_frontdoor_surface(raw_request)
+        or "operator_maestro_chat"
+    )
+    response_classification = _maestro_frontdoor_classification(classification, request_path=request_path)
+    response_provenance = {
+        "speaker": "Maestro",
+        "lane": "telegram_pc_maestro_listener",
+        "relay_origin": None,
+        "actor": "maestro",
+        "surface_ref": source_surface,
+        "message_role": "final_agent_reply",
+        "source_request_id": request_id,
+    }
+    card = {
+        "schema_version": "maestro_frontdoor_answer_card_v0",
+        "card_id": f"maestro_frontdoor_answer_{_short_hash(request_id, result.one_line_answer)}",
+        "card_type": "MAESTRO_CASSANDRA_ANSWER",
+        "title": result.one_line_answer or "Maestro response",
+        "summary": result.plain_summary,
+        "status_label": "Maestro",
+        "route_status": "TEXT_RESPONSE_READY",
+        "mac_render_hint": result.mac_render_hint,
+        "actions": [],
+        "provenance": response_provenance,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "proof": {
+            "proof_refs": list(proof_refs),
+            "machine_proof": machine_proof,
+        },
+    }
+    detail = {
+        "message_provenance": response_provenance,
+        "request_message_provenance": raw_request.get("message_provenance")
+        if isinstance(raw_request.get("message_provenance"), Mapping)
+        else {
+            "speaker": "Winship",
+            "lane": "telegram_pc_maestro_listener",
+            "relay_origin": None,
+            "actor": "operator_winship",
+            "surface_ref": source_surface,
+            "message_role": "operator_prompt",
+        },
+        "correlation": {
+            "source_request_id": request_id,
+            "request_filename": request_path.name,
+            "thread_ref": current_thread,
+            "world_ref": current_world,
+        },
+        "operator_display": {"speaker_ref": "maestro"},
+        "request_classification": asdict(response_classification),
+        "original_request_classification": asdict(classification),
+        "request_router_decision": dict(route_decision),
+        "maestro_frontdoor_routing": {
+            "source_surface": _maestro_frontdoor_surface(raw_request),
+            "workflow_package_staged": False,
+            "default_deny_preserved": True,
+            "route_to_staging_when_not_answer_ready": True,
+            "interpreter_lm_divert": True,
+        },
+        "maestro_cassandra_responder": result_payload,
+        "dynamic_card_response": card,
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": response_adapter_called,
+        "workflow_package_staged": False,
+        "workflow_package_request_v0_emitted": False,
+        "email_send_performed": False,
+        "gmail_access_performed": False,
+        "telegram_send_triggered": False,
+        "business_action_performed": False,
+        "ledger_mutation_performed": False,
+        "workbook_mutation_performed": False,
+        "paid_marking_performed": False,
+        "external_llm_invoked": external_llm_invoked,
+        "local_model_runtime_connected": local_model_invoked,
+    }
+    model_runtime_sentence = (
+        "No external LLM, local model runtime, worker, or business execution occurred."
+        if not (external_llm_invoked or local_model_invoked or model_call_performed)
+        else (
+            "The protected Maestro generation path recorded model_call_performed="
+            f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
+            f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+        )
+    )
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=f"{current_world}/{current_thread}",
+        request_type="CHAT",
+        internal_status="RESPONSE_READY",
+        operator_headline=result.one_line_answer or "Maestro response",
+        operator_message=result.plain_summary,
+        what_happened=(
+            "OpenClaw recognized the general Maestro front-door chat surface.",
+            "The interpreter LM classified this as a conversational message (BRAIN route).",
+            "The gated Maestro Cassandra responder answered via interpreter divert.",
+            "No workflow package was staged for this allowed answer.",
+            "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid marking, or external business action occurred.",
+            model_runtime_sentence,
+        ),
+        why_it_happened=(
+            f"The interpreter LM diverted a message that the deterministic gate would have sent to the workflow consumer. "
+            f"Confidence: {interp_result.confidence:.2f}. Reason: {interp_result.reason}. "
+            f"Brain intent: {result.intent_class} via {backend_route}."
+        ),
+        how_to_fix="No fix is needed. Review the Maestro answer and ask a follow-up if needed.",
+        visible_cards=(card,),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": "PC_CODEX",
+                "selected_machine": "PC_WSL",
+                "routing_status": "PROCESSING_ON_PC",
+                "selected_rail": "MAESTRO_CASSANDRA_RESPONDER",
+                "controller_event_type": "chat_goal",
+                "route_status": "TEXT_RESPONSE_READY",
+                "backend_route": backend_route,
+                "interpreter_lm_divert": True,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=None,
+        detail_disclosure=detail,
+        readback_files=(),
+        next_safe_move="Ask Maestro a follow-up if you need more.",
+    )
+
+
+def _try_interpreter_action_blocked_divert(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any],
+    _capsule: Any | None = None,
+) -> OpenClawResponseForMac | None:
+    """Flag-gated interpreter-LM routing for ACTION and BLOCKED routes.
+
+    DISCIPLINE
+    ----------
+    - Only runs when OPENCLAW_INTERPRETER_LM="1".  OFF → returns None immediately.
+    - Only applies to operator_maestro_chat surface messages that the DETERMINISTIC
+      gate AND the BRAIN divert both declined (deterministic path returned None).
+    - ADVISORY ONLY:
+      * ACTION (high-conf): consults authority_gate.decide() for the verdict
+        (ALLOW/HITL_REQUIRED/DENY).  The interpreter NEVER decides authority —
+        the gate decides.  NO execution, no executor call, no real side effect.
+        external_actions_locked / email_send_performed / ledger_mutation_performed
+        are all False (same as the brain divert).
+      * BLOCKED (high-conf): surfaces "blocked / needs approval" to the operator.
+        No execution, no executor call.
+    - Fallback: any exception, low-confidence, or UNCERTAIN result → None so the
+      caller falls through to the deterministic workflow consumer path.
+    - The interpreter result carries NO authority/allow/send/action field and is
+      NEVER consulted by authority_gate for a gate pass — it only identifies that
+      the gate should be consulted.
+    """
+    if not _interpreter_enabled():
+        return None
+
+    if _maestro_frontdoor_surface(raw_request) != "operator_maestro_chat":
+        return None
+
+    # Defense-in-depth: only augment messages the DETERMINISTIC gate declined.
+    if _is_maestro_frontdoor_operator_instruction(raw_request):
+        return None
+
+    operator_text = maestro_cassandra_responder.operator_text_from_request(raw_request)
+    if not operator_text:
+        return None
+
+    try:
+        interp_result = _interpret_for_request(operator_text)
+    except Exception:  # noqa: BLE001 — interpreter error → deterministic path
+        return None
+
+    # Only handle ACTION and BLOCKED here; BRAIN is handled by _try_interpreter_brain_divert.
+    if not (interp_result.is_high_confidence_action() or interp_result.is_high_confidence_blocked()):
+        return None
+
+    # Common fields for both response types
+    request_id = str(
+        raw_request.get("request_id")
+        or raw_request.get("source_request_id")
+        or f"missing_request_id_{request_path.stem}"
+    )
+    current_world = str(
+        raw_request.get("current_world_ref")
+        or raw_request.get("currentWorldRef")
+        or raw_request.get("world_ref")
+        or raw_request.get("worldRef")
+        or raw_request.get("world")
+        or "general"
+    )
+    current_thread = str(
+        raw_request.get("current_thread_ref")
+        or raw_request.get("currentThreadRef")
+        or raw_request.get("thread_ref")
+        or raw_request.get("threadRef")
+        or _maestro_frontdoor_surface(raw_request)
+        or "operator_maestro_chat"
+    )
+    source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
+    response_classification = _maestro_frontdoor_classification(classification, request_path=request_path)
+    response_provenance = {
+        "speaker": "Maestro",
+        "lane": "telegram_pc_maestro_listener",
+        "relay_origin": None,
+        "actor": "maestro",
+        "surface_ref": source_surface,
+        "message_role": "final_agent_reply",
+        "source_request_id": request_id,
+    }
+    base_machine_proof = {
+        "interpreter_lm_divert": True,
+        "interpreter_route": interp_result.route,
+        "interpreter_confidence": interp_result.confidence,
+        "interpreter_reason": interp_result.reason,
+        "interpreter_fact_selection": list(interp_result.fact_selection),
+        "external_llm_invoked": False,
+        "local_model_invoked": False,
+        "model_call_performed": False,
+        "protected_generate_called": False,
+        "external_actions_locked": True,
+        "email_send_performed": False,
+        "ledger_mutation_performed": False,
+    }
+    base_detail = {
+        "message_provenance": response_provenance,
+        "request_message_provenance": raw_request.get("message_provenance")
+        if isinstance(raw_request.get("message_provenance"), Mapping)
+        else {
+            "speaker": "Winship",
+            "lane": "telegram_pc_maestro_listener",
+            "relay_origin": None,
+            "actor": "operator_winship",
+            "surface_ref": source_surface,
+            "message_role": "operator_prompt",
+        },
+        "correlation": {
+            "source_request_id": request_id,
+            "request_filename": request_path.name,
+            "thread_ref": current_thread,
+            "world_ref": current_world,
+        },
+        "operator_display": {"speaker_ref": "maestro"},
+        "request_classification": asdict(response_classification),
+        "original_request_classification": asdict(classification),
+        "request_router_decision": dict(route_decision),
+        "maestro_frontdoor_routing": {
+            "source_surface": source_surface,
+            "workflow_package_staged": False,
+            "default_deny_preserved": True,
+            "route_to_staging_when_not_answer_ready": True,
+            "interpreter_lm_divert": True,
+        },
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+        "workflow_package_staged": False,
+        "workflow_package_request_v0_emitted": False,
+        "email_send_performed": False,
+        "gmail_access_performed": False,
+        "telegram_send_triggered": False,
+        "business_action_performed": False,
+        "ledger_mutation_performed": False,
+        "workbook_mutation_performed": False,
+        "paid_marking_performed": False,
+        "external_llm_invoked": False,
+        "local_model_runtime_connected": False,
+    }
+
+    # ── ACTION route: consult authority_gate; surface verdict; NO execution ────
+    if interp_result.is_high_confidence_action():
+        try:
+            from authority_gate import decide as _gate_decide
+
+            gate_decision = _gate_decide(
+                "interpreter_action_proposal",
+                surface="interpreter_action_proposal",
+            )
+            gate_verdict = gate_decision.verdict.value if hasattr(gate_decision.verdict, "value") else str(gate_decision.verdict)
+            gate_reason = str(gate_decision.reason or "")
+        except Exception:  # noqa: BLE001 — gate consult error → still surface safely
+            gate_verdict = "DENY"
+            gate_reason = "authority_gate_consult_error"
+
+        operator_msg = (
+            f"Treated as an action proposal. Authority gate: {gate_verdict} — {gate_reason}. "
+            f"Interpreter reason: {interp_result.reason}. "
+            "No action was executed. Operator approval required before any execution."
+        )
+        card = {
+            "schema_version": "maestro_frontdoor_answer_card_v0",
+            "card_id": f"maestro_interp_action_{_short_hash(request_id, operator_msg)}",
+            "card_type": "MAESTRO_ACTION_PROPOSAL_ADVISORY",
+            "title": f"Action proposal — gate: {gate_verdict}",
+            "summary": operator_msg,
+            "status_label": "Action Proposal",
+            "route_status": "ACTION_PROPOSAL_SURFACED",
+            "mac_render_hint": "advisory",
+            "actions": [],
+            "provenance": response_provenance,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            "proof": {
+                "proof_refs": [],
+                "machine_proof": {
+                    **base_machine_proof,
+                    "authority_gate_consulted": True,
+                    "authority_gate_verdict": gate_verdict,
+                    "authority_gate_reason": gate_reason,
+                    "action_executed": False,
+                    "no_executor_called": True,
+                },
+            },
+        }
+        what_happened = (
+            "OpenClaw recognized the general Maestro front-door chat surface.",
+            f"The interpreter LM classified this as an ACTION proposal (confidence: {interp_result.confidence:.2f}).",
+            f"The authority gate was consulted and returned: {gate_verdict} — {gate_reason}.",
+            "No action was executed. No executor, workflow, or business action was called.",
+            "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid marking, or external business action occurred.",
+        )
+        why_it_happened = (
+            f"Interpreter classified route=ACTION with confidence {interp_result.confidence:.2f}. "
+            f"Reason: {interp_result.reason}. Authority gate verdict: {gate_verdict}."
+        )
+        detail = {
+            **base_detail,
+            "dynamic_card_response": card,
+            "interpreter_action_proposal": {
+                "authority_gate_consulted": True,
+                "authority_gate_verdict": gate_verdict,
+                "authority_gate_reason": gate_reason,
+                "action_executed": False,
+                "no_executor_called": True,
+            },
+        }
+        return OpenClawResponseForMac(
+            source_request_id=request_id,
+            source_request_filename=request_path.name,
+            workflow_ref=f"{current_world}/{current_thread}",
+            request_type="CHAT",
+            internal_status="RESPONSE_READY",
+            operator_headline=f"Action proposal — gate: {gate_verdict}",
+            operator_message=operator_msg,
+            what_happened=what_happened,
+            why_it_happened=why_it_happened,
+            how_to_fix="Review the authority gate verdict. No action was executed. Provide explicit approval if needed.",
+            visible_cards=(card,),
+            cards_available=True,
+            card_mirror_refs=(),
+            file_readback_refs=(),
+            worker_route_refs=(
+                {
+                    "selected_worker_target": "PC_CODEX",
+                    "selected_machine": "PC_WSL",
+                    "routing_status": "PROCESSING_ON_PC",
+                    "selected_rail": "INTERPRETER_ACTION_ADVISORY",
+                    "controller_event_type": "action_proposal",
+                    "route_status": "ACTION_PROPOSAL_SURFACED",
+                    "backend_route": "interpreter_action_advisory",
+                    "interpreter_lm_divert": True,
+                },
+            ),
+            context_package_refs=(),
+            blocked_reason=None,
+            detail_disclosure=detail,
+            readback_files=(),
+            next_safe_move="Review the authority gate verdict and provide explicit approval if you want the action to proceed.",
+        )
+
+    # ── BLOCKED route: surface the block to the operator; NO execution ─────────
+    operator_msg = (
+        f"This request needs operator approval or is blocked: {interp_result.reason}. "
+        "No action was executed. Please provide explicit approval to proceed."
+    )
+    card = {
+        "schema_version": "maestro_frontdoor_answer_card_v0",
+        "card_id": f"maestro_interp_blocked_{_short_hash(request_id, operator_msg)}",
+        "card_type": "MAESTRO_BLOCKED_ADVISORY",
+        "title": "Blocked — operator approval required",
+        "summary": operator_msg,
+        "status_label": "Blocked",
+        "route_status": "BLOCKED_PENDING_APPROVAL",
+        "mac_render_hint": "advisory",
+        "actions": [],
+        "provenance": response_provenance,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "proof": {
+            "proof_refs": [],
+            "machine_proof": {
+                **base_machine_proof,
+                "action_executed": False,
+                "no_executor_called": True,
+            },
+        },
+    }
+    what_happened = (
+        "OpenClaw recognized the general Maestro front-door chat surface.",
+        f"The interpreter LM classified this as BLOCKED/needs-approval (confidence: {interp_result.confidence:.2f}).",
+        "No action was executed. No executor, workflow, or business action was called.",
+        "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid marking, or external business action occurred.",
+    )
+    why_it_happened = (
+        f"Interpreter classified route=BLOCKED with confidence {interp_result.confidence:.2f}. "
+        f"Reason: {interp_result.reason}."
+    )
+    detail = {
+        **base_detail,
+        "dynamic_card_response": card,
+        "interpreter_blocked": {
+            "action_executed": False,
+            "no_executor_called": True,
+            "block_reason": interp_result.reason,
+        },
+    }
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=f"{current_world}/{current_thread}",
+        request_type="CHAT",
+        internal_status="BLOCKED_WITH_REASON",
+        operator_headline="Blocked — operator approval required",
+        operator_message=operator_msg,
+        what_happened=what_happened,
+        why_it_happened=why_it_happened,
+        how_to_fix="Provide explicit operator approval if you want this to proceed.",
+        visible_cards=(card,),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": "PC_CODEX",
+                "selected_machine": "PC_WSL",
+                "routing_status": "BLOCKED",
+                "selected_rail": "INTERPRETER_BLOCKED_ADVISORY",
+                "controller_event_type": "blocked_approval_required",
+                "route_status": "BLOCKED_PENDING_APPROVAL",
+                "backend_route": "interpreter_blocked_advisory",
+                "interpreter_lm_divert": True,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=interp_result.reason,
+        detail_disclosure=detail,
+        readback_files=(),
+        next_safe_move="Provide explicit operator approval if you want this to proceed.",
     )
 
 
@@ -6824,6 +7443,37 @@ def _process_request_path_core(
     )
     if maestro_frontdoor_response is not None:
         return maestro_frontdoor_response
+    # ── Interpreter LM routing augmentation (flag-gated, ADVISORY, DEFAULT-OFF) ──
+    # When OPENCLAW_INTERPRETER_LM="1" AND the deterministic gate would send this
+    # message to the workflow consumer, consult the interpreter LM.  If it returns
+    # route=BRAIN with high confidence → divert to answer_frontdoor_chat (the brain).
+    # When off or interpreter returns UNCERTAIN/low-confidence → deterministic path,
+    # byte-identical.  The interpreter has NO authority effect and cannot authorize
+    # sends, actions, or DENY→ALLOW flips.
+    interpreter_divert = _try_interpreter_brain_divert(
+        request_path,
+        raw_request,
+        classification=effective_classification,
+        route_decision=route_decision,
+        _capsule=_capsule,
+    )
+    if interpreter_divert is not None:
+        return interpreter_divert
+    # ── Interpreter LM ACTION / BLOCKED advisory (flag-gated, ADVISORY, DEFAULT-OFF) ──
+    # When OPENCLAW_INTERPRETER_LM="1" AND the BRAIN divert also returned None,
+    # check for ACTION or BLOCKED routes.  ACTION → consults authority_gate (gate
+    # decides); BLOCKED → surfaces approval requirement.  NO execution in either case.
+    # Off or uncertain/low-confidence → deterministic path, byte-identical.
+    interpreter_action_blocked_divert = _try_interpreter_action_blocked_divert(
+        request_path,
+        raw_request,
+        classification=effective_classification,
+        route_decision=route_decision,
+        _capsule=_capsule,
+    )
+    if interpreter_action_blocked_divert is not None:
+        return interpreter_action_blocked_divert
+    # ─────────────────────────────────────────────────────────────────────────────
     if effective_classification.request_family == "WORKFLOW_PACKAGE_REQUEST":
         return _process_workflow_package_request(
             request_path,

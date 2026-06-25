@@ -599,6 +599,24 @@ def _answer_with_maestro_brain(
     protected_generate_fn: ProtectedGenerateFn | None,
     _capsule: Any | None = None,
 ) -> MaestroCassandraResult:
+    # ── INTERPRETER-LM fact selection bridge (flag-gated, ADDITIVE) ──────────
+    # When OPENCLAW_INTERPRETER_LM is on AND the raw session carries an
+    # "interpreter_fact_selection" hint (injected upstream by the interpreter
+    # divert in openclaw_request_processor), forward it to the packet builder so
+    # the interpreter-selected read-models are elevated. When the flag is OFF or
+    # no hint is present: _fact_selection stays None → byte-identical pre-edit
+    # behaviour. This is advisory-only ordering: it never drops or rewrites facts.
+    _fact_selection = None
+    try:
+        from interpreter_lm import _interpreter_enabled
+
+        if _interpreter_enabled() and isinstance(session, Mapping):
+            _raw_selection = session.get("interpreter_fact_selection")
+            if isinstance(_raw_selection, (list, tuple)) and _raw_selection:
+                _fact_selection = [str(item) for item in _raw_selection if str(item).strip()]
+    except Exception:  # noqa: BLE001 — never break the brain path on a hint
+        _fact_selection = None
+    # ─────────────────────────────────────────────────────────────────────────
     try:
         from maestro_context_packet import build_maestro_context_packet
 
@@ -613,6 +631,7 @@ def _answer_with_maestro_brain(
             source_surface=source_surface,
             require_real_truth=True,
             capsule=_capsule_arg,
+            fact_selection=_fact_selection,
         )
     except Exception as exc:
         answer = (
@@ -713,6 +732,9 @@ def _answer_with_maestro_brain(
             "local_model_invoked": bool(receipt.get("local_model_invoked", False)),
             "send_hold_boundary_visible": True,
             "claims_trace_to_packet": True,
+            # Interpreter-LM traceability (advisory only — None/empty when off):
+            "interpreter_fact_selection_applied": list(_fact_selection or []),
+            "interpreter_fact_selection_used": bool(_fact_selection),
         },
     )
 

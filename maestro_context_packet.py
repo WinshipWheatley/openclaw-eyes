@@ -730,7 +730,22 @@ def build_maestro_context_packet(
     require_real_truth: bool = True,
     packet_source: str | None = None,
     capsule: Any | None = None,
+    fact_selection: Sequence[str] | None = None,
 ) -> dict[str, Any]:
+    """Build a deterministic context packet for the Maestro brain.
+
+    Parameters (new — flag-gated)
+    ------------------------------
+    fact_selection:
+        Optional list of read-model filenames (e.g. "agent_presence.json")
+        provided by the interpreter LM to guide which facts are elevated.
+        When None (default) OR when OPENCLAW_INTERPRETER_LM is off → current
+        deterministic behaviour, BYTE-IDENTICAL.  When provided and the
+        interpreter flag is on, the selected read-models are moved to the
+        front of the fact list so they survive the facts[:30] cap in
+        format_maestro_context_packet.  All existing facts are still assembled
+        normally; this is purely an ordering/elevation hint — never a filter.
+    """
     root = _read_model_root(session, read_model_root)
     truth_path = _operator_truth_store_path(session, operator_truth_store_path)
     generated_at = _utc_now()
@@ -751,6 +766,46 @@ def build_maestro_context_packet(
         # packet_text. Appending at the end risked silent truncation when truth+read-models
         # already fill the cap (AGY-G flip-1 audit, hole #3).
         facts = [*truth_facts, *sqlite_facts, *read_model_facts]
+
+    # ── Interpreter LM fact-selection elevation (flag-gated, ADDITIVE) ──────────
+    # When OPENCLAW_INTERPRETER_LM is on AND fact_selection is a non-empty list,
+    # elevate the interpreter-selected READ-MODEL facts to the front of the
+    # read-model slice ONLY — operator-truth and SQLite canonical facts keep their
+    # higher precedence (they are NEVER demoted below a read-model fact). This
+    # preserves the [*truth_facts, *sqlite_facts, *read_model_facts] precedence
+    # invariant. This is purely an ordering hint within the read-model slice — all
+    # existing facts remain; nothing is filtered, removed, or rewritten.
+    # When flag is off OR fact_selection is None/empty → NO change (byte-identical).
+    # The interpreter_lm import is guarded behind fact_selection so the default
+    # (None) path does not even import the module.
+    if fact_selection:
+        try:
+            from interpreter_lm import _interpreter_enabled  # local import avoids circular dep
+
+            _selection_active = _interpreter_enabled()
+        except Exception:  # noqa: BLE001 — never break packet building
+            _selection_active = False
+        if _selection_active:
+            try:
+                # The leading facts (operator truth + optional sqlite canonical) keep
+                # their precedence; we only reorder WITHIN the trailing read-model slice.
+                _lead_count = len(facts) - len(read_model_facts)
+                _lead_facts = facts[:_lead_count]
+                _rm_slice = facts[_lead_count:]
+                _selected_set = set(fact_selection)
+                _selected_rm = [
+                    f for f in _rm_slice
+                    if any(sel in (f.get("source_ref") or "") for sel in _selected_set)
+                ]
+                _other_rm = [
+                    f for f in _rm_slice
+                    if not any(sel in (f.get("source_ref") or "") for sel in _selected_set)
+                ]
+                if _selected_rm:
+                    facts = [*_lead_facts, *_selected_rm, *_other_rm]
+            except Exception:  # noqa: BLE001 — never break packet building
+                pass  # fall through to deterministic fact order unchanged
+    # ──────────────────────────────────────────────────────────────────────────
 
     if require_real_truth and (not operator_truth_used or len(read_model_refs) < 2):
         raise MaestroContextPacketError(

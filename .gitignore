@@ -591,6 +591,7 @@
 !systemd/user/openclaw-read-model-import.service.in
 !systemd/user/openclaw-read-model-import.timer.in
 !maestro_listener.py
+!interpreter_lm.py
 
 !agent_task_proposals.py
 !dashboard_gen.py
@@ -1149,6 +1150,8 @@
 !tests/test_home_fabric.py
 !tests/test_maestro_capability_classifier.py
 !tests/test_packet_sqlite_flip.py
+!tests/test_interpreter_lm.py
+!tests/test_interpreter_lm_integration.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md
