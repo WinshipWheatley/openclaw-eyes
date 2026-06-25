@@ -109,6 +109,15 @@ def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+# ── Conversation-continuity flag (ADDITIVE, default OFF) ──────────────────────
+def _continuity_enabled() -> bool:
+    """Return True only when OPENCLAW_CONTINUITY_CAPSULE is "1" or "true".
+
+    Cheap + import-safe: reads env at call time, no side-effects.
+    """
+    return os.environ.get("OPENCLAW_CONTINUITY_CAPSULE", "0").lower() in ("1", "true")
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -285,6 +294,21 @@ def build_operator_maestro_chat_request(
         "telegram_chat_ref": f"sha256:{_short_hash('telegram_chat', chat_id)}" if chat_id is not None else "unknown",
     }
     request["payload_hash"] = _content_hash(request)
+    # ── CONTINUITY CAPSULE (flag-gated, ADDITIVE) ────────────────────────────
+    # When ON: mint a deterministic conversation_id and add it to the request so
+    # the processor can correlate capsule load/write to this exact chat session.
+    # When OFF: no key added — dict is byte-identical to pre-edit behavior.
+    if _continuity_enabled():
+        try:
+            import conversation_capsule as _cc
+            _channel_id = str(request.get("source_channel") or "maestro_listener")
+            _chat_id_str = str(chat_id) if chat_id is not None else "unknown"
+            _first_seen = str(request.get("created_at") or created_at)
+            request["conversation_id"] = _cc.mint_conversation_id(
+                _channel_id, _chat_id_str, _first_seen
+            )
+        except Exception:
+            pass  # never block the live path
     return request
 
 

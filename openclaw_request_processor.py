@@ -627,6 +627,15 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+# ── Conversation-continuity flag (ADDITIVE, default OFF) ──────────────────────
+def _continuity_enabled() -> bool:
+    """Return True only when OPENCLAW_CONTINUITY_CAPSULE is "1" or "true".
+
+    Cheap + import-safe: reads env at call time, no side-effects.
+    """
+    return os.environ.get("OPENCLAW_CONTINUITY_CAPSULE", "0").lower() in ("1", "true")
+
+
 def json_safe(value: Any) -> Any:
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
@@ -4905,6 +4914,7 @@ def _process_maestro_frontdoor_operator_instruction(
     *,
     classification: RequestClassification,
     route_decision: Mapping[str, Any],
+    _capsule: Any | None = None,
 ) -> OpenClawResponseForMac | None:
     if not _is_maestro_frontdoor_operator_instruction(raw_request):
         return None
@@ -4917,6 +4927,7 @@ def _process_maestro_frontdoor_operator_instruction(
             operator_text,
             session=session,
             source_surface=source_surface,
+            _capsule=_capsule,
         )
     except TypeError as exc:
         if "source_surface" not in str(exc):
@@ -6643,6 +6654,7 @@ def _process_request_path_core(
     generated_at: str | None = None,
     duplicate_check: bool = True,
     read_model_reader: ReadModelReader | None = None,
+    _capsule: Any | None = None,
 ) -> OpenClawResponseForMac:
     classification = classify_request_filename(request_path.name)
     try:
@@ -6808,6 +6820,7 @@ def _process_request_path_core(
         raw_request,
         classification=effective_classification,
         route_decision=route_decision,
+        _capsule=_capsule,
     )
     if maestro_frontdoor_response is not None:
         return maestro_frontdoor_response
@@ -6997,7 +7010,31 @@ def _enrich_operator_surface(
             high_risk=not decorate_ok,
         )
         if isinstance(enriched, str) and enriched.strip() and enriched != message:
-            return replace(response, operator_message=enriched)
+            response = replace(response, operator_message=enriched)
+        # ── RESPONSE VALIDATION Stage 1 — operator_surface_guard (flag-gated) ─
+        # When ON: call check_operator_surface on the final operator_message; if
+        # safe_for_operator is False (machine-contract leak detected), SUBSTITUTE
+        # a deterministic prose-only safe fallback instead of shipping the leak.
+        # When OFF: the block is never entered — current print-only behavior,
+        # response returned unchanged (byte-identical to pre-edit).
+        if _continuity_enabled():
+            try:
+                from operator_surface_guard import check_operator_surface
+                _surface_text = response.operator_message
+                if isinstance(_surface_text, str) and _surface_text.strip():
+                    _guard_result = check_operator_surface(
+                        _surface_text,
+                        agent_role=agent_id,
+                        high_risk_context=not decorate_ok,
+                    )
+                    if not _guard_result.safe_for_operator:
+                        _safe_fallback = (
+                            "Routed for review. The response contained content "
+                            "that requires operator-surface validation before delivery."
+                        )
+                        return replace(response, operator_message=_safe_fallback)
+            except Exception:
+                pass  # fail-safe: never block a response due to guard error
         return response
     except Exception:
         return response
@@ -7015,14 +7052,84 @@ def process_request_path(
     operator-surface pipeline so every agent voice gets the live reply engines (see
     _enrich_operator_surface). The enrichment is additive + non-blocking; a failure returns the
     un-enriched response unchanged."""
+    # ── CONTINUITY CAPSULE load@turn-start (flag-gated, ADDITIVE) ────────────
+    # When ON: load the capsule (or cold-start) from the conversation_id in the
+    # request; pass it into the core processor so it flows to
+    # build_maestro_context_packet (Edit 2 capsule-aware packet).
+    # When OFF: _capsule stays None, _process_request_path_core call is
+    # byte-identical to pre-edit behavior.
+    _capsule = None
+    _continuity_store_state: dict[str, Any] = {}
+    if _continuity_enabled():
+        try:
+            import conversation_capsule as _cc
+            _DEFAULT_CAPSULE_STORE_DIR = "/home/openclaw/state/conversation_capsules"
+            _raw_req = _load_json_request(request_path)
+            _conv_id = str(_raw_req.get("conversation_id") or "")
+            _channel_id = str(_raw_req.get("source_channel") or "maestro_listener")
+            _operator_id = str(_raw_req.get("actor") or _raw_req.get("speaker") or "operator")
+            _generated_at_str = generated_at or utc_now()
+            if _conv_id:
+                _store = _cc.ConversationCapsuleStore(_DEFAULT_CAPSULE_STORE_DIR)
+                _loaded = _store.load(_operator_id, "maestro", _conv_id, _channel_id)
+                if _loaded is None:
+                    _loaded = _cc.Capsule.cold_start(
+                        agent_id="maestro",
+                        operator_id=_operator_id,
+                        conversation_id=_conv_id,
+                        channel_id=_channel_id,
+                    )
+                _capsule = _loaded
+                _continuity_store_state = {
+                    "store": _store,
+                    "operator_id": _operator_id,
+                    "conv_id": _conv_id,
+                    "channel_id": _channel_id,
+                    "generated_at": _generated_at_str,
+                }
+        except Exception:
+            _capsule = None  # never block the live path
     response = _process_request_path_core(
         request_path,
         export_root=export_root,
         generated_at=generated_at,
         duplicate_check=duplicate_check,
         read_model_reader=read_model_reader,
+        _capsule=_capsule,
     )
-    return _enrich_operator_surface(response, request_path, export_root)
+    response = _enrich_operator_surface(response, request_path, export_root)
+    # ── CONTINUITY CAPSULE write-back@turn-end + receipt (flag-gated) ────────
+    # When ON: append the turn to recent_messages, set last_interaction_at, and
+    # write the capsule back; add conversation_id to detail_disclosure as the
+    # proof-of-correlation receipt field.
+    # When OFF: no write, response returned unchanged.
+    if _continuity_enabled() and _capsule is not None and _continuity_store_state:
+        try:
+            import conversation_capsule as _cc2
+            _ts = _continuity_store_state.get("generated_at") or utc_now()
+            _turn_summary = str(response.operator_message or "")[:200]
+            _turn_ref = "sha256:" + __import__("hashlib").sha256(_turn_summary.encode()).hexdigest()[:16]
+            _new_messages = list(_capsule.recent_messages)
+            _new_messages.append({"role": "agent", "ref": _turn_ref, "summary": _turn_summary, "ts": _ts})
+            from dataclasses import replace as _dc_replace
+            _updated_capsule = _dc_replace(
+                _capsule,
+                recent_messages=_new_messages,
+                last_interaction_at=_ts,
+            )
+            _st = _continuity_store_state
+            _st["store"].write(
+                _st["operator_id"], "maestro", _st["conv_id"], _st["channel_id"],
+                _updated_capsule,
+            )
+            # Stamp conversation_id into detail_disclosure as receipt correlation
+            _conv_id_for_receipt = _st["conv_id"]
+            _detail = dict(response.detail_disclosure) if isinstance(response.detail_disclosure, dict) else {}
+            _detail["conversation_id"] = _conv_id_for_receipt
+            response = replace(response, detail_disclosure=_detail)
+        except Exception:
+            pass  # never block response delivery
+    return response
 
 
 def process(

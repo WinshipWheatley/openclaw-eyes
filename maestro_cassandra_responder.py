@@ -10,9 +10,16 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import json
+import os
 from pathlib import Path
 import re
 from typing import Any, Callable, Mapping, Sequence
+
+
+# ── Conversation-continuity flag (ADDITIVE, default OFF) ──────────────────────
+def _continuity_enabled() -> bool:
+    """Return True only when OPENCLAW_CONTINUITY_CAPSULE is "1" or "true"."""
+    return os.environ.get("OPENCLAW_CONTINUITY_CAPSULE", "0").lower() in ("1", "true")
 
 
 MAC_RENDER_HINT = "COMPACT_WITH_DISCLOSURE"
@@ -294,6 +301,7 @@ def answer_frontdoor_chat(
     source_surface: str = "operator_maestro_chat",
     handle_fn: HandleFn | None = None,
     protected_generate_fn: ProtectedGenerateFn | None = None,
+    _capsule: Any | None = None,
 ) -> MaestroCassandraResult:
     intent_class, allowed, reason = classify_frontdoor_intent(text)
     forwarded_session = filtered_session(session)
@@ -407,6 +415,7 @@ def answer_frontdoor_chat(
             source_surface=source_surface,
             forwarded_session=forwarded_session,
             protected_generate_fn=protected_generate_fn,
+            _capsule=_capsule,
         )
 
     if intent_class == "hermes_truthful_advisory":
@@ -465,6 +474,7 @@ def answer_frontdoor_chat(
             source_surface=source_surface,
             forwarded_session=forwarded_session,
             protected_generate_fn=protected_generate_fn,
+            _capsule=_capsule,
         )
 
     replies = list((handle_fn or _default_handle)(text, forwarded_session))
@@ -519,6 +529,7 @@ def _answer_people_query(
     source_surface: str,
     forwarded_session: Mapping[str, Any],
     protected_generate_fn: ProtectedGenerateFn | None,
+    _capsule: Any | None = None,
 ) -> MaestroCassandraResult:
     from operator_truth_store import find_operator_truth_for_text
 
@@ -555,6 +566,7 @@ def _answer_people_query(
         source_surface=source_surface,
         forwarded_session=forwarded_session,
         protected_generate_fn=protected_generate_fn,
+        _capsule=_capsule,
     )
     proof = {
         **dict(fallback.machine_proof or {}),
@@ -585,15 +597,22 @@ def _answer_with_maestro_brain(
     source_surface: str,
     forwarded_session: Mapping[str, Any],
     protected_generate_fn: ProtectedGenerateFn | None,
+    _capsule: Any | None = None,
 ) -> MaestroCassandraResult:
     try:
         from maestro_context_packet import build_maestro_context_packet
 
+        # ── CONTINUITY CAPSULE threading (flag-gated, ADDITIVE) ──────────────
+        # When ON and a capsule is provided, pass it to build_maestro_context_packet
+        # so it can populate packet_entity_aliases + packet_source_revision (Edit 2).
+        # When OFF or no capsule: call is identical to pre-edit (capsule=None default).
+        _capsule_arg = _capsule if _continuity_enabled() else None
         context_packet = build_maestro_context_packet(
             question=text,
             session=session,
             source_surface=source_surface,
             require_real_truth=True,
+            capsule=_capsule_arg,
         )
     except Exception as exc:
         answer = (

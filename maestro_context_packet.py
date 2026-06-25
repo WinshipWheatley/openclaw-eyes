@@ -17,6 +17,12 @@ import sqlite3
 from typing import Any, Mapping, Sequence
 
 
+# ── Conversation-continuity flag (ADDITIVE, default OFF) ──────────────────────
+def _continuity_enabled() -> bool:
+    """Return True only when OPENCLAW_CONTINUITY_CAPSULE is "1" or "true"."""
+    return os.environ.get("OPENCLAW_CONTINUITY_CAPSULE", "0").lower() in ("1", "true")
+
+
 SCHEMA_VERSION = "maestro_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 KNOWN_READ_MODELS = (
@@ -723,6 +729,7 @@ def build_maestro_context_packet(
     operator_truth_store_path: str | Path | None = None,
     require_real_truth: bool = True,
     packet_source: str | None = None,
+    capsule: Any | None = None,
 ) -> dict[str, Any]:
     root = _read_model_root(session, read_model_root)
     truth_path = _operator_truth_store_path(session, operator_truth_store_path)
@@ -790,6 +797,26 @@ def build_maestro_context_packet(
         },
     }
     packet["packet_text"] = format_maestro_context_packet(packet)
+
+    # ── CONTINUITY CAPSULE enrichment (flag-gated, ADDITIVE) ─────────────────
+    # When ON and a capsule is provided, inject entity aliases from distilled
+    # memories + current facts, and set packet_source_revision from the capsule
+    # version.  This revives the dormant claim-detector heal path (the
+    # claim_detector needs non-None packet_entity_aliases + packet_source_revision
+    # to emit HealTasks via _bind_truth_source).
+    # When OFF or capsule is None: packet is byte-identical to pre-edit behavior.
+    if _continuity_enabled() and capsule is not None:
+        try:
+            _entity_aliases = list(getattr(capsule, "current_facts", []) or [])
+            _capsule_version = getattr(capsule, "capsule_version", 1)
+            _conversation_id = getattr(capsule, "conversation_id", "")
+            packet["packet_entity_aliases"] = _entity_aliases
+            packet["packet_source_revision"] = (
+                f"capsule:v{_capsule_version}:{_conversation_id}"
+            )
+        except Exception:
+            pass  # never break packet building
+    # ─────────────────────────────────────────────────────────────────────────
 
     # T014: Capital Hilton AR Context integration & Deterministic Response
     if os.environ.get("OPENCLAW_FEATURE_CAPITAL_HILTON_AR") == "1":
