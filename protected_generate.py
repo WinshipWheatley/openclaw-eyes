@@ -12,6 +12,8 @@ from pathlib import Path
 import re
 from typing import Any, Callable, Mapping
 
+from agent_perspective import perspective_prompt
+
 
 DEFAULT_AUDIT_LOG = Path("/mnt/c/OpenClaw/logs/protected_generate_audit.jsonl")
 DEFAULT_EXTERNAL_TIMEOUT_SECONDS = 6.0
@@ -663,6 +665,7 @@ def protected_generate_with_receipt(
     system_prompt = "\n".join(
         [
             "You are Maestro, speaking in first person as the operator's conductor.",
+            perspective_prompt("maestro"),
             "Use only the deterministic packet below. If the answer is not in the packet, say you don't have it.",
             "Big picture, then middle, then small. Warm plain English. Never claim send/spend/mutation authority.",
             "SEND_HOLD is absolute.",
