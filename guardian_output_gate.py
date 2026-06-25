@@ -167,9 +167,15 @@ NEGATION_CUES = (
     "without",
     "blocked",
     "missing",
-    "pending",
-    "unverified",
     "unproven",
+)
+HEDGING_CUES = (
+    "conditional",
+    "contingent",
+    "pending",
+    "subject",
+    "unconfirmed",
+    "unverified",
 )
 
 _CLAUSE_BOUNDARY_RE = re.compile(
@@ -314,8 +320,12 @@ def _unnegated_claims(text: str) -> tuple[str, ...]:
     for claim in COMPLETION_CLAIMS:
         for match in re.finditer(rf"\b{re.escape(claim)}\b", lowered):
             clause_prefix = _same_clause_prefix(lowered, match.start())
-            tokens = _NEGATION_TOKEN_RE.findall(clause_prefix)
-            if not any(token in NEGATION_CUES for token in tokens[-8:]):
+            prefix_tokens = _NEGATION_TOKEN_RE.findall(clause_prefix)
+            suffix_tokens = _NEGATION_TOKEN_RE.findall(lowered[match.end() : match.end() + 96])
+            nearby_tokens = [*prefix_tokens[-8:], *suffix_tokens[:8]]
+            has_true_negation = any(token in NEGATION_CUES for token in prefix_tokens[-8:])
+            has_hedge = any(token in HEDGING_CUES for token in nearby_tokens)
+            if has_hedge or not has_true_negation:
                 claims.append(claim)
                 break
     return tuple(dict.fromkeys(claims))

@@ -2,6 +2,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -90,6 +92,31 @@ def test_completion_claim_without_proof_refs_is_blocked():
     assert result["validation_result"]["output_publish_allowed"] is False
     assert "sent" in result["validation_result"]["forbidden_claims"]
     assert "posted" in result["validation_result"]["forbidden_claims"]
+
+
+@pytest.mark.parametrize(
+    ("text", "claim"),
+    [
+        ("I sent it, but unverified.", "sent"),
+        ("Sent, pending approval.", "sent"),
+        ("Submitted subject to final confirmation.", "submitted"),
+        ("Unverified sent confirmation.", "sent"),
+        ("Conditional submitted status.", "submitted"),
+    ],
+)
+def test_hedged_completion_claims_are_blocked(text, claim):
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Hedged completion",
+            eliwinship=text,
+            next_action="Next: require proof before saying it happened.",
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM
+    assert result["validation_result"]["output_publish_allowed"] is False
+    assert claim in result["validation_result"]["forbidden_claims"]
 
 
 def test_completion_claim_with_readback_file_only_is_still_blocked():
