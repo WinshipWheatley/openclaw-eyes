@@ -74,6 +74,14 @@ def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
 
 
+def stable_payload_hash(payload: Any) -> str:
+    """Return a canonical SHA-256 hex digest for arbitrary JSON-serializable payloads.
+    
+    Used to compute stable_payload_hash for materialization runs (T009).
+    """
+    return sha256_hex(stable_json(payload).encode("utf-8"))
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
