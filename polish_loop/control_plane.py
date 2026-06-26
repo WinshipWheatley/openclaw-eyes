@@ -909,6 +909,7 @@ class ControlPlaneLedger:
         lease_nonce: str,
         failure_fingerprint: str,
         budget_spent: float = 0.0,
+        failure_detail: dict[str, Any] | None = None,
     ) -> None:
         with self._tx() as conn:
             row = self._require_live_lease_locked(conn, task_id, owner, lease_nonce)
@@ -929,10 +930,20 @@ class ControlPlaneLedger:
                 reason = ""
 
             now = iso_now()
+            failure_receipt = None
+            if failure_detail:
+                failure_receipt = _encode_json(
+                    {
+                        "schema_version": "polish_loop_failure_receipt_v0",
+                        "failure_fingerprint": failure_fingerprint,
+                        "detail": failure_detail,
+                    }
+                )
             conn.execute(
                 """
                 UPDATE attempts
-                SET status=?, finished_at=?, failure_fingerprint=?, budget_spent=?
+                SET status=?, finished_at=?, failure_fingerprint=?, budget_spent=?,
+                    evidence=COALESCE(?, evidence)
                 WHERE task_id=? AND attempt_no=?
                 """,
                 (
@@ -940,6 +951,7 @@ class ControlPlaneLedger:
                     now,
                     failure_fingerprint,
                     budget_spent,
+                    failure_receipt,
                     task_id,
                     row["attempts"],
                 ),
@@ -962,7 +974,11 @@ class ControlPlaneLedger:
                     actor=owner,
                     from_status="LEASED",
                     to_status="BLOCKED",
-                    detail={"reason": reason},
+                    detail={
+                        "reason": reason,
+                        "failure_fingerprint": failure_fingerprint,
+                        **({"failure_detail": failure_detail} if failure_detail else {}),
+                    },
                 )
             else:
                 conn.execute(
@@ -982,7 +998,10 @@ class ControlPlaneLedger:
                     actor=owner,
                     from_status="LEASED",
                     to_status="READY",
-                    detail={"failure_fingerprint": failure_fingerprint},
+                    detail={
+                        "failure_fingerprint": failure_fingerprint,
+                        **({"failure_detail": failure_detail} if failure_detail else {}),
+                    },
                 )
 
     def decide_acceptance(

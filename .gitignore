@@ -554,6 +554,7 @@
 !tests/test_hermes_packet_templates.py
 !tests/test_pc4_hardening.py
 !tests/test_pc4_self_healing.py
+!tests/test_polish_loop_closure_bridge.py
 
 # tools/ — standalone utility modules
 !tools/

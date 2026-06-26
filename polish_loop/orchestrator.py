@@ -14,13 +14,17 @@ Usage:
 """
 
 import argparse
+import dataclasses
 import datetime
+import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any, Callable
 
 # Notification support
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -99,6 +103,8 @@ POLL_INTERVAL    = 15    # seconds between poll cycles (faster state reaction)
 BUILDER_TIMEOUT  = 600   # 10 min — block if Builder dead and no output
 PLANNER_TIMEOUT  = 600   # 10 min — block if Planner gone and no review
 MAX_PASSES       = 3     # block if task needs a 4th pass
+LOCAL_BUILDER_FLAG = "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"
+LOCAL_BUILDER_FLAG_ON_VALUES = {"1", "true", "yes", "on"}
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -134,6 +140,19 @@ _CASSANDRA_TOOL_ARCH_LOCK_MSG = (
     "cassandra tool/capability tasks must use cassandra_custom_tools.py; "
     "direct cassandra_brain.py feature additions are forbidden"
 )
+
+
+@dataclasses.dataclass(frozen=True)
+class LocalBuilderDispatchReceipt:
+    task_id: str
+    directive_path: str | None
+    builder_invoked: bool
+    ledger_recorded: bool
+    status: str
+    exit_code: int | None = None
+    failure_fingerprint: str | None = None
+    artifact_path: str | None = None
+    pc_output_path: str | None = None
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -1337,25 +1356,331 @@ def run_one_cycle(dry_run: bool = False) -> dict | None:
     return read_status()
 
 
+def _local_builder_enabled(explicit: bool | None) -> bool:
+    if explicit is not None:
+        return bool(explicit)
+    value = os.environ.get(LOCAL_BUILDER_FLAG, "")
+    return value.strip().lower() in LOCAL_BUILDER_FLAG_ON_VALUES
+
+
+def _task_row_or_none(ledger: "ControlPlaneLedger", task_id: str) -> dict | None:
+    try:
+        return ledger.get_task(task_id)
+    except KeyError:
+        return None
+
+
+def _row_matches_live_lease(row: dict | None, lease: "TaskLease") -> bool:
+    if row is None:
+        return False
+    if (
+        row.get("status") != "LEASED"
+        or row.get("owner") != lease.owner
+        or row.get("lease_nonce") != lease.lease_nonce
+        or int(row.get("attempts") or 0) != int(lease.attempt_no)
+    ):
+        return False
+    expiry = row.get("lease_expiry")
+    if not expiry:
+        return False
+    try:
+        parsed = datetime.datetime.fromisoformat(str(expiry))
+    except ValueError:
+        return False
+    if parsed.tzinfo is None:
+        return parsed > datetime.datetime.now()
+    return parsed > datetime.datetime.now(parsed.tzinfo)
+
+
+def _builder_result_field(result: Any, field: str, default: Any = None) -> Any:
+    if isinstance(result, dict):
+        return result.get(field, default)
+    return getattr(result, field, default)
+
+
+def _builder_exit_code(result: Any) -> int | None:
+    value = _builder_result_field(result, "exit_code", None)
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _builder_path_field(result: Any, field: str) -> str | None:
+    value = _builder_result_field(result, field, None)
+    if value is None:
+        return None
+    return str(value)
+
+
+def _failure_fingerprint_from_exception(exc: BaseException) -> str:
+    name = re.sub(r"[^a-z0-9_]+", "_", exc.__class__.__name__.lower()).strip("_")
+    digest = hashlib.sha256(repr(exc).encode("utf-8", errors="replace")).hexdigest()[:12]
+    return f"local_builder_exception_{name or 'error'}_{digest}"
+
+
+def _failure_fingerprint_from_result(result: Any, exit_code: int | None) -> str:
+    explicit = _builder_result_field(result, "fingerprint", None)
+    if explicit:
+        return str(explicit)
+    if result is None:
+        return "local_builder_no_structured_result"
+    if exit_code is None:
+        return "local_builder_invalid_exit_code"
+    return f"local_builder_exit_{exit_code}_no_candidate"
+
+
+def _builder_receipt_detail(
+    lease: "TaskLease",
+    *,
+    directive_path: Path | None,
+    result: Any = None,
+    exit_code: int | None = None,
+    status: str,
+    exception: BaseException | None = None,
+) -> dict[str, Any]:
+    detail: dict[str, Any] = {
+        "schema_version": "polish_loop_local_builder_receipt_v0",
+        "bridge": "orchestrator_phase_c_dispatch",
+        "status": status,
+        "task_id": lease.task_id,
+        "owner": lease.owner,
+        "lease_nonce": lease.lease_nonce,
+        "attempt_no": lease.attempt_no,
+        "directive_path": str(directive_path) if directive_path else None,
+        "exit_code": exit_code,
+        "artifact_path": _builder_path_field(result, "artifact_path"),
+        "pc_output_path": _builder_path_field(result, "pc_output_path"),
+    }
+    if exception is not None:
+        detail["exception_type"] = exception.__class__.__name__
+        detail["exception"] = str(exception)
+    return detail
+
+
+def _record_local_builder_result(
+    ledger: "ControlPlaneLedger",
+    lease: "TaskLease",
+    *,
+    directive_path: Path | None,
+    result: Any,
+) -> LocalBuilderDispatchReceipt:
+    exit_code = _builder_exit_code(result)
+    submitted = bool(_builder_result_field(result, "submitted_candidate", False))
+    failure_recorded = bool(_builder_result_field(result, "failure_recorded", False))
+    row = _task_row_or_none(ledger, lease.task_id)
+
+    if submitted and row is not None and row.get("status") == "VERIFYING":
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=str(directive_path) if directive_path else None,
+            builder_invoked=True,
+            ledger_recorded=True,
+            status="success_already_recorded",
+            exit_code=exit_code,
+            artifact_path=_builder_path_field(result, "artifact_path"),
+            pc_output_path=_builder_path_field(result, "pc_output_path"),
+        )
+    if failure_recorded and row is not None and row.get("status") in {"READY", "BLOCKED"}:
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=str(directive_path) if directive_path else None,
+            builder_invoked=True,
+            ledger_recorded=True,
+            status="failure_already_recorded",
+            exit_code=exit_code,
+            failure_fingerprint=_failure_fingerprint_from_result(result, exit_code),
+            artifact_path=_builder_path_field(result, "artifact_path"),
+            pc_output_path=_builder_path_field(result, "pc_output_path"),
+        )
+    if not _row_matches_live_lease(row, lease):
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=str(directive_path) if directive_path else None,
+            builder_invoked=True,
+            ledger_recorded=False,
+            status="stale_lease_result_rejected",
+            exit_code=exit_code,
+            failure_fingerprint=_failure_fingerprint_from_result(result, exit_code),
+            artifact_path=_builder_path_field(result, "artifact_path"),
+            pc_output_path=_builder_path_field(result, "pc_output_path"),
+        )
+
+    if submitted and exit_code == 0:
+        evidence = _builder_receipt_detail(
+            lease,
+            directive_path=directive_path,
+            result=result,
+            exit_code=exit_code,
+            status="submitted_candidate",
+        )
+        evidence.update(
+            {
+                "runner": "local_builder",
+                "worker_runtime": "phase_c_closure_bridge",
+                "runtime_artifact_path": evidence.get("artifact_path"),
+                "task_md_path": _builder_path_field(result, "task_md_path"),
+            }
+        )
+        ledger.submit_candidate_evidence(
+            lease.task_id,
+            owner=lease.owner,
+            lease_nonce=lease.lease_nonce,
+            evidence=evidence,
+        )
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=str(directive_path) if directive_path else None,
+            builder_invoked=True,
+            ledger_recorded=True,
+            status="candidate_submitted",
+            exit_code=exit_code,
+            artifact_path=evidence.get("artifact_path"),
+            pc_output_path=evidence.get("pc_output_path"),
+        )
+
+    fingerprint = _failure_fingerprint_from_result(result, exit_code)
+    ledger.record_failure(
+        lease.task_id,
+        owner=lease.owner,
+        lease_nonce=lease.lease_nonce,
+        failure_fingerprint=fingerprint,
+        failure_detail=_builder_receipt_detail(
+            lease,
+            directive_path=directive_path,
+            result=result,
+            exit_code=exit_code,
+            status="builder_failed",
+        ),
+    )
+    return LocalBuilderDispatchReceipt(
+        task_id=lease.task_id,
+        directive_path=str(directive_path) if directive_path else None,
+        builder_invoked=True,
+        ledger_recorded=True,
+        status="failure_recorded",
+        exit_code=exit_code,
+        failure_fingerprint=fingerprint,
+        artifact_path=_builder_path_field(result, "artifact_path"),
+        pc_output_path=_builder_path_field(result, "pc_output_path"),
+    )
+
+
+def _record_local_builder_exception(
+    ledger: "ControlPlaneLedger",
+    lease: "TaskLease",
+    *,
+    directive_path: Path | None,
+    exc: BaseException,
+) -> LocalBuilderDispatchReceipt:
+    fingerprint = _failure_fingerprint_from_exception(exc)
+    if not _row_matches_live_lease(_task_row_or_none(ledger, lease.task_id), lease):
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=str(directive_path) if directive_path else None,
+            builder_invoked=True,
+            ledger_recorded=False,
+            status="builder_exception_stale_lease_rejected",
+            failure_fingerprint=fingerprint,
+        )
+    ledger.record_failure(
+        lease.task_id,
+        owner=lease.owner,
+        lease_nonce=lease.lease_nonce,
+        failure_fingerprint=fingerprint,
+        failure_detail=_builder_receipt_detail(
+            lease,
+            directive_path=directive_path,
+            exit_code=None,
+            status="builder_exception",
+            exception=exc,
+        ),
+    )
+    return LocalBuilderDispatchReceipt(
+        task_id=lease.task_id,
+        directive_path=str(directive_path) if directive_path else None,
+        builder_invoked=True,
+        ledger_recorded=True,
+        status="builder_exception_recorded",
+        failure_fingerprint=fingerprint,
+    )
+
+
 def phase_c_dispatch_local_builder(
     lease: "TaskLease",
     *,
     ledger: "ControlPlaneLedger | None" = None,
     config: "WorkerRuntimeConfig | None" = None,
-) -> None:
+    builder_runner: Callable[..., Any] | None = None,
+    enable_local_builder: bool | None = None,
+) -> LocalBuilderDispatchReceipt:
     if (
         not _PHASE_C_AVAILABLE
-        or not _PHASE_C_WORKER_RUNTIME_AVAILABLE
         or ControlPlaneLedger is None
+    ):
+        raise RuntimeError("Phase-C control plane module is unavailable")
+    active_ledger = ledger or ControlPlaneLedger(DEFAULT_LEDGER_PATH)
+    if _task_row_or_none(active_ledger, lease.task_id) is None:
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=None,
+            builder_invoked=False,
+            ledger_recorded=False,
+            status="missing_task",
+        )
+    runtime_config = (
+        config
+        or (WorkerRuntimeConfig.from_env() if WorkerRuntimeConfig is not None else None)
+    )
+    loop_dir = runtime_config.loop_dir if runtime_config is not None else LOOP_DIR
+    log("ACTION", f"phase-c dispatch | task={lease.task_id} | owner={lease.owner}")
+    directive = write_phase_c_fix_directive(active_ledger, lease, loop_dir=loop_dir)
+    log("EVIDENCE", f"phase-c FIX directive queued | task={lease.task_id} | directive={directive}")
+    if not _local_builder_enabled(enable_local_builder):
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=str(directive),
+            builder_invoked=False,
+            ledger_recorded=False,
+            status="local_builder_disabled",
+        )
+    if not _row_matches_live_lease(_task_row_or_none(active_ledger, lease.task_id), lease):
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=str(directive),
+            builder_invoked=False,
+            ledger_recorded=False,
+            status="stale_lease_not_dispatched",
+        )
+    if (
+        not _PHASE_C_WORKER_RUNTIME_AVAILABLE
         or WorkerRuntimeConfig is None
         or run_local_builder_worker is None
     ):
         raise RuntimeError("Phase-C worker runtime module is unavailable")
-    active_ledger = ledger or ControlPlaneLedger(DEFAULT_LEDGER_PATH)
-    runtime_config = config or WorkerRuntimeConfig.from_env()
-    log("ACTION", f"phase-c dispatch | task={lease.task_id} | owner={lease.owner}")
-    directive = write_phase_c_fix_directive(active_ledger, lease, loop_dir=runtime_config.loop_dir)
-    log("EVIDENCE", f"phase-c FIX directive queued | task={lease.task_id} | directive={directive}")
+
+    runner = builder_runner or run_local_builder_worker
+    try:
+        result = runner(active_ledger, lease, config=runtime_config)
+    except Exception as exc:
+        receipt = _record_local_builder_exception(
+            active_ledger,
+            lease,
+            directive_path=directive,
+            exc=exc,
+        )
+        log("WARN", f"phase-c local builder exception recorded | task={lease.task_id} | fingerprint={receipt.failure_fingerprint}")
+        return receipt
+    receipt = _record_local_builder_result(
+        active_ledger,
+        lease,
+        directive_path=directive,
+        result=result,
+    )
+    log("EVIDENCE", f"phase-c local builder receipt | task={lease.task_id} | status={receipt.status}")
+    return receipt
 
 
 def write_phase_c_fix_directive(
@@ -1401,6 +1726,10 @@ def run_phase_c_once(
     ledger_path: Path = DEFAULT_LEDGER_PATH,
     owner: str = "orchestrator",
     dry_run: bool = False,
+    worker_config: "WorkerRuntimeConfig | None" = None,
+    builder_runner: Callable[..., Any] | None = None,
+    enable_local_builder: bool | None = None,
+    lease_seconds: int = 900,
 ) -> "DispatchResult":
     if not _PHASE_C_AVAILABLE or ControlPlaneLedger is None or run_control_plane_once is None:
         raise RuntimeError("Phase-C control plane module is unavailable")
@@ -1413,9 +1742,15 @@ def run_phase_c_once(
     touch_loop_heartbeat(owner)
 
     def dispatch(lease: "TaskLease") -> None:
-        phase_c_dispatch_local_builder(lease, ledger=ledger)
+        phase_c_dispatch_local_builder(
+            lease,
+            ledger=ledger,
+            config=worker_config,
+            builder_runner=builder_runner,
+            enable_local_builder=enable_local_builder,
+        )
 
-    return run_control_plane_once(ledger, owner=owner, dispatch=dispatch)
+    return run_control_plane_once(ledger, owner=owner, dispatch=dispatch, lease_seconds=lease_seconds)
 
 
 def touch_loop_heartbeat(role: str, *, loop_dir: Path = LOOP_DIR) -> Path:

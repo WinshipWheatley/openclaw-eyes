@@ -171,7 +171,12 @@ def run_local_builder_worker(
 
     cfg = config or WorkerRuntimeConfig.from_env()
     row = ledger.get_task(lease.task_id)
-    if row["status"] != "LEASED" or row["owner"] != lease.owner:
+    if (
+        row["status"] != "LEASED"
+        or row["owner"] != lease.owner
+        or row["lease_nonce"] != lease.lease_nonce
+        or int(row["attempts"]) != int(lease.attempt_no)
+    ):
         raise RuntimeError(f"lease is not live for task {lease.task_id}")
 
     cfg.task_path.parent.mkdir(parents=True, exist_ok=True)
@@ -296,6 +301,15 @@ def run_local_builder_worker(
         owner=lease.owner,
         lease_nonce=lease.lease_nonce,
         failure_fingerprint=fingerprint,
+        failure_detail={
+            "runner": "local_builder",
+            "worker_runtime": "phase_c_pc1",
+            "pc_output_path": str(cfg.pc_output_path),
+            "runtime_artifact_path": str(artifact_path),
+            "task_md_path": str(cfg.task_path),
+            "exit_code": exit_code,
+            "attempt_no": lease.attempt_no,
+        },
     )
     return WorkerRuntimeResult(
         task_id=lease.task_id,
