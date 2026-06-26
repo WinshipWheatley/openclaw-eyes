@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import socket
 import subprocess
 import urllib.request
 import urllib.error
@@ -81,6 +82,7 @@ _OLLAMA_UNREACHABLE_MEMO = False
 # RAM-fitting models that may serve the interactive operator front-door reply.
 # Never contains gemma4:26b/31b. Env-overridable as a comma list.
 _FRONTDOOR_MODEL_ALLOWLIST_DEFAULT = ("qwen3.5:4b", "qwen3:8b-q4_K_M", "qwen3.5:9b")
+_FRONTDOOR_MODEL_HARD_DENY = frozenset({"gemma4:26b", "gemma4:31b"})
 # RAM headroom (GB) reserved below available RAM, and a hard size ceiling.
 _FRONTDOOR_MODEL_RAM_HEADROOM_GB = 4.0
 _FRONTDOOR_MODEL_MAX_GB_DEFAULT = 12.0
@@ -731,13 +733,18 @@ def FRONTDOOR_MODEL_ALLOWLIST() -> tuple[str, ...]:
     """Ordered (smallest-first) front-door latency ladder.
 
     Default ``_FRONTDOOR_MODEL_ALLOWLIST_DEFAULT``; overridable via
-    ``OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`` (comma list). Never includes gemma4:26b/31b.
+    ``OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`` (comma list). gemma4:26b/31b are hard
+    filtered even when present in the environment override.
     """
     raw = os.environ.get("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", "").strip()
     if not raw:
         return _FRONTDOOR_MODEL_ALLOWLIST_DEFAULT
-    parsed = tuple(item.strip() for item in raw.split(",") if item.strip())
-    return parsed or _FRONTDOOR_MODEL_ALLOWLIST_DEFAULT
+    parsed = tuple(
+        item.strip()
+        for item in raw.split(",")
+        if item.strip() and item.strip() not in _FRONTDOOR_MODEL_HARD_DENY
+    )
+    return parsed
 
 
 def select_frontdoor_model(
@@ -918,7 +925,8 @@ def ollama_call(
     think: bool | None = None,
     num_predict: int | None = None,
     options: dict | None = None,
-) -> str:
+    return_metadata: bool = False,
+) -> str | dict[str, object]:
     """Call Ollama and return raw text response. Returns '' on any error. Retries up to 3 times with backoff.
 
     model=None (default): auto-selects via should_escalate(), logs on escalation.
@@ -933,6 +941,11 @@ def ollama_call(
         think=False → payload gains "think": false. When num_predict=N → payload
         gains/merges "options":{"num_predict":N}. An explicit ``options`` dict is
         merged under the same "options" key without clobbering num_predict.
+
+    return_metadata=False preserves the legacy return shape (plain string). When True,
+        return a dict containing text, done_reason, elapsed_ms, model, status, and
+        response_metadata so front-door callers can classify truncation without
+        affecting legacy callers.
     """
     selected_lane = lane
     models_to_try: tuple[str, ...]
@@ -963,6 +976,40 @@ def ollama_call(
         timeout = max(timeout, _CASSANDRA_MORNING_TEST_TIMEOUT)
         attempt_count = _CASSANDRA_MORNING_TEST_ATTEMPTS
     prompt_words = len(prompt.split())
+
+    def _metadata_response(
+        *,
+        text: str = "",
+        done_reason: str | None = None,
+        elapsed_ms: int | None = None,
+        model_name: str | None = None,
+        status: str = "failure",
+        response_metadata: dict | None = None,
+        exception: BaseException | None = None,
+    ) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "text": str(text or ""),
+            "response": str(text or ""),
+            "done_reason": done_reason,
+            "elapsed_ms": elapsed_ms,
+            "model": model_name,
+            "status": status,
+            "response_metadata": dict(response_metadata or {}),
+        }
+        if exception is not None:
+            payload["exception_type"] = type(exception).__name__
+            payload["exception"] = str(exception)
+        return payload
+
+    def _exception_done_reason(exc: BaseException) -> str:
+        if isinstance(exc, (TimeoutError, socket.timeout)):
+            return "timeout"
+        name = type(exc).__name__.lower()
+        text = str(exc).lower()
+        if "timeout" in name or "timed out" in text or "timeout" in text:
+            return "timeout"
+        return "unreachable"
+
     # Merge bounded front-door options WITHOUT clobbering. When think / num_predict /
     # options are all None the resulting payload dict is byte-identical to the legacy
     # {"model","prompt","stream":False}; the extra keys are only inserted when a caller
@@ -993,6 +1040,8 @@ def ollama_call(
                 with urllib.request.urlopen(req, timeout=timeout) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     result = data.get("response", "").strip()
+                    done_reason = data.get("done_reason")
+                    response_metadata = {key: value for key, value in data.items() if key != "response"}
                     duration_ms = int((_time.monotonic() - started) * 1000)
                     _log_ollama_diagnostic({
                         "event": "ollama_call",
@@ -1004,14 +1053,37 @@ def ollama_call(
                         "timeout": timeout,
                         "duration_ms": duration_ms,
                         "elapsed_ms": duration_ms,
+                        "done_reason": done_reason,
+                        "num_predict": merged_options.get("num_predict"),
+                        "think": payload_dict.get("think"),
+                        "response_metadata": response_metadata,
                         "prompt_words": prompt_words,
                         "response_chars": len(result),
                         "empty_response": not bool(result),
                     })
                     if result:
+                        if return_metadata:
+                            return _metadata_response(
+                                text=result,
+                                done_reason=str(done_reason) if done_reason is not None else None,
+                                elapsed_ms=duration_ms,
+                                model_name=candidate_model,
+                                status="success",
+                                response_metadata=response_metadata,
+                            )
                         return result
+                    if return_metadata and attempt == attempt_count - 1:
+                        return _metadata_response(
+                            text="",
+                            done_reason=str(done_reason) if done_reason is not None else None,
+                            elapsed_ms=duration_ms,
+                            model_name=candidate_model,
+                            status="empty",
+                            response_metadata=response_metadata,
+                        )
             except Exception as e:
                 duration_ms = int((_time.monotonic() - started) * 1000)
+                done_reason = _exception_done_reason(e)
                 _log_ollama_diagnostic({
                     "event": "ollama_call",
                     "status": "exception",
@@ -1022,6 +1094,9 @@ def ollama_call(
                     "timeout": timeout,
                     "duration_ms": duration_ms,
                     "elapsed_ms": duration_ms,
+                    "done_reason": done_reason,
+                    "num_predict": merged_options.get("num_predict"),
+                    "think": payload_dict.get("think"),
                     "prompt_words": prompt_words,
                     "exception_type": type(e).__name__,
                     "exception": str(e),
@@ -1029,6 +1104,18 @@ def ollama_call(
                 if attempt < attempt_count - 1:
                     _time.sleep(2 ** attempt)
                     continue
+                if return_metadata:
+                    return _metadata_response(
+                        text="",
+                        done_reason=done_reason,
+                        elapsed_ms=duration_ms,
+                        model_name=candidate_model,
+                        status="exception",
+                        response_metadata={},
+                        exception=e,
+                    )
+    if return_metadata:
+        return _metadata_response(status="empty")
     return ""
 
 

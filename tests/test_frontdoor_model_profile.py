@@ -36,7 +36,7 @@ class _FakeResp:
 
 
 @contextmanager
-def _capture_ollama_payload(monkeypatch, response_text="hello", raise_exc=None):
+def _capture_ollama_payload(monkeypatch, response_text="hello", raise_exc=None, response_body=None):
     """Patch urlopen used by ollama_call; capture the POST payload bytes."""
     captured: dict = {}
 
@@ -45,7 +45,7 @@ def _capture_ollama_payload(monkeypatch, response_text="hello", raise_exc=None):
         captured["timeout"] = timeout
         if raise_exc is not None:
             raise raise_exc
-        return _FakeResp({"response": response_text})
+        return _FakeResp(response_body or {"response": response_text})
 
     monkeypatch.setattr(chief_llm.urllib.request, "urlopen", fake_urlopen)
     yield captured
@@ -108,6 +108,27 @@ def test_ollama_call_timeout_returns_empty(monkeypatch):
     assert out == ""
 
 
+def test_ollama_call_return_metadata_preserves_done_reason(monkeypatch):
+    body = {
+        "response": "hello",
+        "done_reason": "length",
+        "eval_count": 12,
+        "total_duration": 123456,
+    }
+    with _capture_ollama_payload(monkeypatch, response_body=body) as cap:
+        out = chief_llm.ollama_call(
+            "hi",
+            model="qwen3.5:4b",
+            attempts=1,
+            return_metadata=True,
+        )
+    assert out["text"] == "hello"
+    assert out["done_reason"] == "length"
+    assert out["response_metadata"]["eval_count"] == 12
+    decoded = json.loads(cap["payload_bytes"].decode("utf-8"))
+    assert decoded == {"model": "qwen3.5:4b", "prompt": "hi", "stream": False}
+
+
 # ── select_frontdoor_model: sizing / ladder ──────────────────────────────────
 
 _SIZES = {
@@ -131,6 +152,29 @@ def test_select_frontdoor_largest_fitting_excludes_gemma(monkeypatch):
     assert model == "qwen3.5:9b"
     assert reason == "frontdoor_largest_fitting"
     assert model not in {"gemma4:26b", "gemma4:31b"}
+
+
+def test_select_frontdoor_env_override_hard_filters_gemma(monkeypatch):
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", "gemma4:31b,qwen3.5:4b,gemma4:26b")
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", "40")
+    installed = {"qwen3.5:4b", "gemma4:26b", "gemma4:31b"}
+    model, reason = chief_llm.select_frontdoor_model(
+        installed=installed, sizes=_SIZES, available_ram_gb=64.0
+    )
+    assert chief_llm.FRONTDOOR_MODEL_ALLOWLIST() == ("qwen3.5:4b",)
+    assert model == "qwen3.5:4b"
+    assert reason == "frontdoor_largest_fitting"
+
+
+def test_select_frontdoor_env_override_only_gemma_no_fitting_model(monkeypatch):
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", "gemma4:31b,gemma4:26b")
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", "40")
+    model, reason = chief_llm.select_frontdoor_model(
+        installed={"gemma4:26b", "gemma4:31b"}, sizes=_SIZES, available_ram_gb=64.0
+    )
+    assert chief_llm.FRONTDOOR_MODEL_ALLOWLIST() == ()
+    assert model is None
+    assert reason == "no_fitting_model"
 
 
 # Test 8 (ladder): when the larger allowlist model misses budget, a smaller one is chosen.
@@ -303,11 +347,27 @@ _PACKET = {
     ]
 }
 
+_FRONTDOOR_PACKET = {
+    "schema_version": "maestro_context_packet_v0",
+    "packet_id": "maestro_context_packet:test",
+    "source_surface": "operator_maestro_chat",
+    "facts": [
+        {
+            "fact_id": "identity:operator",
+            "topic": "identity",
+            "label": "operator",
+            "value": "Winship is the human operator.",
+            "source_ref": "generated/read_models/operator_truth.json",
+        }
+    ],
+}
+
 _TELEMETRY_KEYS = {
     "front_door_profile_used", "model_selected", "prompt_chars", "model_elapsed_ms",
     "model_timeout_s", "model_num_predict", "model_think", "done_reason",
     "model_fallback_reason", "response_truncated", "context_facts_kept",
-    "context_facts_dropped",
+    "context_facts_dropped", "prompt_context_chars", "model_call_attempted",
+    "model_output_delivered", "delivered_response_source", "model_response_metadata",
 }
 
 
@@ -348,12 +408,18 @@ def test_pgwr_frontdoor_stop_complete_model_ok(tmp_path):
     assert r["prompt_chars"] == 512
     assert r["context_facts_kept"] == 1
     assert r["model_elapsed_ms"] is not None
+    assert r["model_call_attempted"] is True
+    assert r["model_output_delivered"] is True
+    assert r["delivered_response_source"] == "model"
     assert _TELEMETRY_KEYS.issubset(r.keys())
     assert "Winship is the operator." in outcome.text
 
 
 # Test 13: done_reason=length but complete+validated utterance → model_ok, not truncated.
-def test_pgwr_frontdoor_length_but_complete_is_model_ok(tmp_path):
+def test_pgwr_frontdoor_length_but_complete_is_model_ok(tmp_path, monkeypatch):
+    import protected_generate as pg
+
+    monkeypatch.setattr(pg, "_stage1_validate", lambda _text: (True, True, ()))
     outcome = protected_generate_with_receipt(
         "Who is the operator?",
         context_packet=_PACKET,
@@ -366,6 +432,27 @@ def test_pgwr_frontdoor_length_but_complete_is_model_ok(tmp_path):
     assert r["model_fallback_reason"] == "model_ok"
     assert r["response_truncated"] is False
     assert "Winship is the human operator here." in outcome.text
+
+
+def test_pgwr_frontdoor_length_validator_unavailable_fails_closed(tmp_path, monkeypatch):
+    import protected_generate as pg
+
+    monkeypatch.setattr(pg, "_stage1_validate", lambda _text: (True, False, ()))
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_PACKET,
+        generator_fn=_gen_returning("Winship is the human operator here.", done_reason="length"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+    )
+    r = outcome.receipt
+    assert r["model_fallback_reason"] == "truncated"
+    assert r["response_truncated"] is True
+    assert r["validation_unavailable"] is True
+    assert r["model_call_attempted"] is True
+    assert r["model_output_delivered"] is False
+    assert r["delivered_response_source"] == "grounded_fallback"
 
 
 # Test 14: done_reason=length dangling/invalid → truncated, grounded fallback.
@@ -392,6 +479,9 @@ def test_pgwr_frontdoor_length_dangling_is_truncated(tmp_path):
     assert r["deterministic_fallback_used"] is True
     assert r["decision"] == "ALLOW_GROUNDED_FALLBACK"
     assert r["local_model_invoked"] is False
+    assert r["model_call_attempted"] is True
+    assert r["model_output_delivered"] is False
+    assert r["delivered_response_source"] == "grounded_fallback"
 
 
 # Test 15: timeout → timeout, fallback.
@@ -408,6 +498,9 @@ def test_pgwr_frontdoor_timeout(tmp_path):
     r = outcome.receipt
     assert r["model_fallback_reason"] == "timeout"
     assert r["response_truncated"] is False
+    assert r["model_call_attempted"] is True
+    assert r["model_output_delivered"] is False
+    assert r["delivered_response_source"] == "grounded_fallback"
     assert outcome.status == "ANSWER_READY"
 
 
@@ -440,6 +533,7 @@ def test_pgwr_frontdoor_unreachable(tmp_path, monkeypatch):
         audit_log_path=tmp_path / "a.jsonl",
         allow_live_model=True,
         front_door_profile=True,
+        interactive_timeout_s=25.0,
     )
     assert outcome.receipt["model_fallback_reason"] == "unreachable"
 
@@ -455,6 +549,8 @@ def test_pgwr_frontdoor_never_invoked(tmp_path):
         front_door_profile=True,
     )
     assert outcome.receipt["model_fallback_reason"] == "never_invoked"
+    assert outcome.receipt["model_call_attempted"] is False
+    assert outcome.receipt["model_output_delivered"] is False
 
 
 # Test 16d: no-fitting-model → no_fitting_model (caller threads done_reason + model_selected None).
@@ -470,6 +566,8 @@ def test_pgwr_frontdoor_no_fitting_model(tmp_path):
         done_reason="no_fitting_model",
     )
     assert outcome.receipt["model_fallback_reason"] == "no_fitting_model"
+    assert outcome.receipt["model_call_attempted"] is False
+    assert outcome.receipt["model_output_delivered"] is False
 
 
 # Test 16e: validator-reject → validation_failed.
@@ -488,6 +586,67 @@ def test_pgwr_frontdoor_validation_failed(tmp_path):
     assert r["model_fallback_reason"] == "validation_failed"
     # The leaking text is never delivered.
     assert outcome.text != leak
+    assert r["model_call_attempted"] is True
+    assert r["model_output_delivered"] is False
+
+
+def test_pgwr_real_frontdoor_packet_auto_uses_profile_local_path(tmp_path, monkeypatch):
+    import protected_generate as pg
+
+    calls: dict = {}
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_REPLY_TIMEOUT", "25")
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_NUM_PREDICT", "180")
+    monkeypatch.setattr(pg, "_live_model_allowed", lambda *a, **k: True)
+    monkeypatch.setattr(chief_llm, "_configured_openrouter_model", lambda: "", raising=False)
+    monkeypatch.setattr(chief_llm, "ollama_is_unreachable", lambda **_k: False, raising=False)
+    monkeypatch.setattr(
+        chief_llm,
+        "select_frontdoor_model",
+        lambda **_k: ("qwen3.5:4b", "frontdoor_largest_fitting"),
+        raising=False,
+    )
+
+    def fake_ollama(prompt, **kwargs):
+        calls["prompt"] = prompt
+        calls["kwargs"] = kwargs
+        return {
+            "text": "Winship is the human operator.",
+            "done_reason": "stop",
+            "elapsed_ms": 42,
+            "response_metadata": {"eval_count": 9, "total_duration": 123},
+        }
+
+    monkeypatch.setattr(chief_llm, "ollama_call", fake_ollama)
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_FRONTDOOR_PACKET,
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=True,
+    )
+    r = outcome.receipt
+    assert "You are Maestro" in calls["prompt"]
+    assert "OPERATOR QUESTION:" in calls["prompt"]
+    assert calls["kwargs"]["model"] == "qwen3.5:4b"
+    assert calls["kwargs"]["task_class"] == "frontdoor_reply"
+    assert calls["kwargs"]["think"] is False
+    assert calls["kwargs"]["num_predict"] == 180
+    assert calls["kwargs"]["timeout"] == 25.0
+    assert calls["kwargs"]["attempts"] == 1
+    assert calls["kwargs"]["return_metadata"] is True
+    assert r["front_door_profile_used"] is True
+    assert r["model_selected"] == "qwen3.5:4b"
+    assert r["model_timeout_s"] == 25.0
+    assert r["model_num_predict"] == 180
+    assert r["model_think"] is False
+    assert r["done_reason"] == "stop"
+    assert r["model_elapsed_ms"] == 42
+    assert r["model_response_metadata"]["eval_count"] == 9
+    assert r["model_fallback_reason"] == "model_ok"
+    assert r["model_call_attempted"] is True
+    assert r["model_output_delivered"] is True
+    assert r["delivered_response_source"] == "model"
+    assert r["context_facts_kept"] == 1
+    assert "Winship is the human operator." in outcome.text
 
 
 # Test 17: flag-off / front_door_profile=False / params absent → receipts BYTE-IDENTICAL.
