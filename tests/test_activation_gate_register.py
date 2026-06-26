@@ -40,10 +40,85 @@ def test_known_capabilities_are_present():
 
     for capability_id in register.REQUIRED_CAPABILITY_IDS:
         assert capability_id in capabilities
+    for capability_id in register.REGISTER_GAP_CAPABILITY_IDS:
+        assert capability_id in capabilities
 
     assert "lm_consult_spine" in capabilities
     assert "runtime_module_activation_gate" in capabilities
     assert payload["schema_version"] == register.SCHEMA_VERSION
+
+
+def test_register_gap_capabilities_are_catalogued_with_no_activation_authority():
+    capabilities = _capabilities_by_id(_payload())
+
+    assert len(register.REGISTER_GAP_CAPABILITY_IDS) == 19
+    for capability_id in register.REGISTER_GAP_CAPABILITY_IDS:
+        capability = capabilities[capability_id]
+        assert capability["activation_allowed_now"] is False
+        assert capability["operator_approval_required"] is True
+        assert capability["rollback_note"]
+        assert capability["next_required_step"]
+        assert capability["canary_status"]
+
+
+def test_packet_source_sqlite_flip_is_standalone_capability():
+    capabilities = _capabilities_by_id(_payload())
+    packet_source = capabilities["packet_source_sqlite_flip"]
+    continuity = capabilities["continuity_capsule"]
+
+    assert packet_source["flag_or_config"] == ["OPENCLAW_PACKET_SOURCE"]
+    assert packet_source["gate_stage"] == "canary"
+    assert packet_source["risk_level"] == "medium"
+    assert packet_source["activation_allowed_now"] is False
+    assert "OPENCLAW_PACKET_SOURCE" in continuity["flag_or_config"]
+    assert packet_source["capability_id"] != continuity["capability_id"]
+
+
+def test_register_gap_whitelist_names_are_present():
+    for name in [
+        "OPENCLAW_MAESTRO_BRAIN_LIVE",
+        "OPENCLAW_LLM_DIAGNOSTICS",
+        "HITL_ENABLED",
+        "OPENCLAW_ACTION_RUNTIME",
+        "OPENCLAW_CONTROL_PLANE_EMIT",
+        "OPENCLAW_OLLAMA_MODEL",
+        "OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT",
+        "CASSANDRA_MORNING_BRIEF_TEST_MODE",
+    ]:
+        assert name in register.LIVE_ENV_WHITELIST
+
+
+def test_high_risk_gap_capabilities_remain_off_or_blocked():
+    capabilities = _capabilities_by_id(_payload())
+
+    for capability_id in [
+        "hitl_pipeline",
+        "action_runtime",
+        "walk_away_autonomy_mode",
+        "nemotron_provider",
+        "claude_agent_hard_block",
+        "openai_adapter_stub",
+    ]:
+        capability = capabilities[capability_id]
+        assert capability["activation_allowed_now"] is False
+        assert capability["risk_level"] == "high"
+        assert capability["gate_stage"] in {"intentionally_off", "blocked"}
+
+
+def test_already_enabled_gap_guardrails_do_not_grant_activation_authority():
+    capabilities = _capabilities_by_id(_payload())
+
+    for capability_id in [
+        "authority_gate_send_hold",
+        "external_model_packet_policy",
+        "maestro_brain_live",
+        "llm_diagnostics_logging",
+        "ollama_model_defaults",
+        "protected_generate_ollama_timeouts",
+    ]:
+        capability = capabilities[capability_id]
+        assert "enabled" in json.dumps(capability["current_state_if_verifiable"], sort_keys=True)
+        assert capability["activation_allowed_now"] is False
 
 
 def test_required_fields_and_gate_stages_are_valid():
@@ -208,11 +283,14 @@ def test_live_packet_source_sqlite_records_runtime_context():
 
     packet_source = payload["live_reconciliation"]["runtime_context"]["packet_source"]
     continuity = _capabilities_by_id(payload)["continuity_capsule"]
+    standalone = _capabilities_by_id(payload)["packet_source_sqlite_flip"]
 
     assert packet_source["status"] == "enabled_verified"
     assert packet_source["findings"][0]["variable_name"] == "OPENCLAW_PACKET_SOURCE"
     assert packet_source["findings"][0]["redacted_value_category"] == "set_sqlite"
     assert continuity["live_state"]["related_findings"][0]["redacted_value_category"] == "set_sqlite"
+    assert standalone["live_production_state"] == "enabled_verified"
+    assert standalone["activation_allowed_now"] is False
 
 
 def test_missing_interpreter_lm_stays_default_off():
@@ -264,14 +342,23 @@ def test_secret_like_values_are_redacted():
         _test_source({
             "OPENROUTER_API_KEY": "sk-super-secret",
             "OPENROUTER_MODEL": "vendor/private-model",
+            "NVIDIA_API_KEY": "nvapi-secret",
+            "OPENAI_API_KEY": "sk-openai-secret",
+            "OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL": "shadow-secret",
             "OPENCLAW_FREEFORM_CLOUD": "0",
         })
     ])
     encoded = register.stable_json(payload)
     external = _capabilities_by_id(payload)["external_model_openrouter_path"]
+    nemotron = _capabilities_by_id(payload)["nemotron_provider"]
+    openai = _capabilities_by_id(payload)["openai_adapter_stub"]
+    shadow = _capabilities_by_id(payload)["external_shadow_lm_config"]
 
     assert "sk-super-secret" not in encoded
     assert "vendor/private-model" not in encoded
+    assert "nvapi-secret" not in encoded
+    assert "sk-openai-secret" not in encoded
+    assert "shadow-secret" not in encoded
     categories = {
         finding["variable_name"]: finding["redacted_value_category"]
         for finding in external["live_state"]["related_findings"]
@@ -279,6 +366,9 @@ def test_secret_like_values_are_redacted():
     assert categories["OPENROUTER_API_KEY"] == "set_other_redacted"
     assert categories["OPENROUTER_MODEL"] == "set_other_redacted"
     assert external["live_production_state"] == "configured_but_inert"
+    assert nemotron["live_state"]["findings"][0]["redacted_value_category"] == "set_other_redacted"
+    assert openai["live_state"]["findings"][0]["redacted_value_category"] == "set_other_redacted"
+    assert shadow["live_state"]["findings"][0]["redacted_value_category"] == "set_other_redacted"
 
 
 def test_unknown_unreadable_source_records_operator_verification_needed():
@@ -300,7 +390,7 @@ def test_live_enabled_does_not_grant_activation_allowed_now():
         })
     ])
 
-    assert payload["summary"]["verified_enabled"] == ["continuity_capsule"]
+    assert payload["summary"]["verified_enabled"] == ["continuity_capsule", "packet_source_sqlite_flip"]
     assert payload["summary"]["activation_allowed_now"] == []
     for capability in payload["capabilities"]:
         assert capability["activation_allowed_now"] is False

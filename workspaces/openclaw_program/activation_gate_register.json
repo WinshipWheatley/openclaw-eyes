@@ -3,6 +3,51 @@
     {
       "activation_allowed_now": false,
       "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_run_live",
+      "capability_id": "action_runtime",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies action runtime intentionally off",
+        "code_default": "off unless OPENCLAW_ACTION_RUNTIME is truthy",
+        "production": "not_enabled_by_this_register; production action runtime remains off or unknown",
+        "summary": "built but intentionally off; dispatch raises while the flag is off"
+      },
+      "default_state": "off",
+      "disabled_by": "OPENCLAW_ACTION_RUNTIME default 0",
+      "display_name": "Action runtime",
+      "enabled_by": "explicit operator approval immediately before a contained action-runtime canary",
+      "evidence_refs": [
+        "action_runtime.py:_action_runtime_enabled",
+        "action_runtime.py:dispatch_action"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_ACTION_RUNTIME"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "prove synthetic executor canary and rollback before any live action runtime activation",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "high-risk action dispatch must remain off without canary and operator approval",
+      "risk_level": "high",
+      "rollback_note": "unset OPENCLAW_ACTION_RUNTIME or set it to 0; remove any caller binding added by a canary",
+      "source_files": [
+        "action_runtime.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
         "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md"
       ],
       "canary_status": "synthetic_ready",
@@ -90,6 +135,149 @@
       ],
       "tests": [
         "tests/test_agent_package_preview_contract.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "enabled_guardrail_no_new_canary",
+      "capability_id": "authority_gate_send_hold",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS marks this guardrail already enabled",
+        "code_default": "deny unless authority_gate returns ALLOW; SEND_HOLD denies send surfaces",
+        "production": "enabled_verified_by_opus_decision_and_code_guardrail",
+        "summary": "enabled guardrail: default-deny authority gate and SEND_HOLD sentinel keep send surfaces denied; no new activation authority"
+      },
+      "default_state": "enabled_guardrail_default_deny",
+      "disabled_by": "removing SEND_HOLD or bypassing authority_gate would be a separate prohibited activation change",
+      "display_name": "Authority gate + SEND_HOLD sentinel",
+      "enabled_by": "existing default-deny authority gate and SEND_HOLD sentinel",
+      "evidence_refs": [
+        "authority_gate.py:decide",
+        "authority_gate.py:DEFAULT_SEND_HOLD_PATH"
+      ],
+      "flag_or_config": [
+        "authority_gate.decide",
+        "SEND_HOLD.md"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep SEND_HOLD in place; audit any future send-surface change before activation",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "not off; active guardrail only and grants no send authority",
+      "risk_level": "medium",
+      "rollback_note": "restore SEND_HOLD sentinel and route send surfaces through authority_gate default-deny decisions",
+      "source_files": [
+        "authority_gate.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "manual_dry_run_only",
+      "capability_id": "brain_dump_parser_cli",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies brain dump parser intentionally off/manual dry-run",
+        "code_default": "manual invocation only; dry-run avoids writes",
+        "production": "not_invoked_by_this_register",
+        "summary": "manual CLI can dry-run; non-dry-run can call local Ollama and write handoff files, so it remains intentionally off for unattended use"
+      },
+      "default_state": "manual_cli/dry_run_available",
+      "disabled_by": "not wired to unattended queue ingestion by this register",
+      "display_name": "Brain dump parser CLI",
+      "enabled_by": "manual operator invocation or future bounded parser task with synthetic fixtures",
+      "evidence_refs": [
+        "brain_dump_parser.py:--dry-run",
+        "brain_dump_parser.py:ollama invocation"
+      ],
+      "flag_or_config": [
+        "brain_dump_parser.py --dry-run"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "wait for deterministic size/risk routing before any queue-ready parser automation",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "non-dry-run parser can call a local model and write handoff files; unattended activation is not approved",
+      "risk_level": "medium",
+      "rollback_note": "use --dry-run or do not invoke; remove any unattended caller binding",
+      "source_files": [
+        "brain_dump_parser.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "synthetic_test_mode_only",
+      "capability_id": "cassandra_morning_brief_test_mode",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies Cassandra morning-brief test mode intentionally off",
+        "code_default": "test mode off unless CASSANDRA_MORNING_BRIEF_TEST_MODE is truthy",
+        "production": "not_enabled_by_this_register; live briefing not touched",
+        "summary": "test-mode branch exists for synthetic morning brief context; production morning path is separate"
+      },
+      "default_state": "test_mode_off",
+      "disabled_by": "CASSANDRA_MORNING_BRIEF_TEST_MODE unset by default",
+      "display_name": "Cassandra morning-brief test mode",
+      "enabled_by": "test-only invocation in focused tests, not production services",
+      "evidence_refs": [
+        "cassandra_briefing_brain.py:_MORNING_TEST_MODE_ENV",
+        "chief_llm.py:_CASSANDRA_MORNING_TEST_TIMEOUT"
+      ],
+      "flag_or_config": [
+        "CASSANDRA_MORNING_BRIEF_TEST_MODE",
+        "OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS",
+        "OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS",
+        "OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "use only in synthetic tests unless Opus queues a separate briefing canary",
+      "operator_approval_required": true,
+      "owner": "Cassandra lane / Opus",
+      "reason_if_off": "test mode should not be treated as production briefing activation",
+      "risk_level": "low",
+      "rollback_note": "unset CASSANDRA_MORNING_BRIEF_TEST_MODE and keep production briefing path unchanged",
+      "source_files": [
+        "cassandra_briefing_brain.py",
+        "chief_llm.py"
+      ],
+      "tests": [
+        "tests/test_cassandra_briefing_context.py",
+        "tests/test_chief_llm_router.py"
       ]
     },
     {
@@ -188,6 +376,52 @@
     {
       "activation_allowed_now": false,
       "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_applicable_permanent_block",
+      "capability_id": "claude_agent_hard_block",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS treats Claude CLI agent calls as a permanent block",
+        "code_default": "claude_call returns empty and claude_json raises policy block",
+        "production": "blocked_verified_by_code_policy",
+        "summary": "agent-side Claude calls are hard-blocked and should remain blocked"
+      },
+      "default_state": "blocked_by_policy",
+      "disabled_by": "hard-coded policy block",
+      "display_name": "Claude agent hard-block",
+      "enabled_by": "not enabled; human-only Claude CLI policy",
+      "evidence_refs": [
+        "chief_llm.py:claude_call",
+        "chief_llm.py:claude_json"
+      ],
+      "flag_or_config": [
+        "chief_llm.claude_call",
+        "chief_llm.claude_json"
+      ],
+      "gate_stage": "blocked",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep permanently blocked unless Opus writes a new human-only design",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "Claude CLI agent calls are intentionally unavailable to agents",
+      "risk_level": "high",
+      "rollback_note": "restore the hard block if any future branch attempts to call Claude CLI from agents",
+      "source_files": [
+        "chief_llm.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
         "user task scope: required proposed capability"
       ],
       "canary_status": "not_applicable",
@@ -275,6 +509,51 @@
         "tests/test_continuity_stamp.py",
         "tests/test_packet_sqlite_flip.py"
       ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "queued_for_supervised_canary",
+      "capability_id": "control_plane_heal_emission",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS queues control-plane heal emission for canary",
+        "code_default": "off unless OPENCLAW_CONTROL_PLANE_EMIT is truthy",
+        "production": "not_enabled_by_this_register; production ledger not touched",
+        "summary": "built detector-to-ledger emission gate remains off pending supervised canary"
+      },
+      "default_state": "off",
+      "disabled_by": "OPENCLAW_CONTROL_PLANE_EMIT default off",
+      "display_name": "Control-plane heal emission",
+      "enabled_by": "supervised canary after Opus approval, with rollback to dormant detector mode",
+      "evidence_refs": [
+        "polish_loop/pc4_heal_emitter.py:_control_plane_emit_enabled",
+        "polish_loop/pc4_heal_emitter.py:emit_heal_task"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_CONTROL_PLANE_EMIT"
+      ],
+      "gate_stage": "canary",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "queue a synthetic/supervised canary with temp ledger proof before activation",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "writes to control-plane ledger and needs canary evidence before live emission",
+      "risk_level": "medium",
+      "rollback_note": "unset OPENCLAW_CONTROL_PLANE_EMIT; keep detector-only mode and do not admit live heal tasks",
+      "source_files": [
+        "polish_loop/pc4_heal_emitter.py"
+      ],
+      "tests": []
     },
     {
       "activation_allowed_now": false,
@@ -381,6 +660,100 @@
     {
       "activation_allowed_now": false,
       "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "enabled_guardrail_no_new_canary",
+      "capability_id": "external_model_packet_policy",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS marks this policy already enabled",
+        "code_default": "external_model_safe false unless explicit safety criteria pass",
+        "production": "enabled_verified_by_opus_decision_and_code_guardrail",
+        "summary": "enabled guardrail: cloud eligibility policy fails closed and does not authorize external calls by itself"
+      },
+      "default_state": "enabled_guardrail_fail_closed",
+      "disabled_by": "external model paths remain disabled unless separate provider/egress gates pass",
+      "display_name": "External-model packet safety policy",
+      "enabled_by": "existing fail-closed packet policy",
+      "evidence_refs": [
+        "chief_llm.py:external_model_packet_policy",
+        "chief_llm.py:external_model_allowed"
+      ],
+      "flag_or_config": [
+        "chief_llm.external_model_packet_policy"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep active and require policy/canary proof before any external egress activation",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "not off; active safety policy only and grants no external egress authority",
+      "risk_level": "medium",
+      "rollback_note": "keep cloud eligibility policy fail-closed; revert any policy relaxation before provider canary",
+      "source_files": [
+        "chief_llm.py"
+      ],
+      "tests": [
+        "tests/test_chief_llm_router.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "shadow_only_no_live_canary",
+      "capability_id": "external_shadow_lm_config",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies external shadow LM config intentionally off",
+        "code_default": "production_allowed false and credential values never stored",
+        "production": "not_enabled_by_this_register; credential presence not inspected",
+        "summary": "shadow-only config records redacted credential presence but grants no provider call authority"
+      },
+      "default_state": "shadow_only/no_production_authority",
+      "disabled_by": "AUTHORITY_BOUNDARY production/provider/network authority false",
+      "display_name": "External shadow LM config",
+      "enabled_by": "shadow-only provider policy records; no live provider calls",
+      "evidence_refs": [
+        "external_shadow_provider_config.py:AUTHORITY_BOUNDARY",
+        "external_shadow_provider_config.py:ExternalShadowProviderConfigRecord"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL",
+        "OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL",
+        "OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep shadow-only; any external call path requires high-risk provider activation approval",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "configuration is intentionally non-production and external egress remains off",
+      "risk_level": "low",
+      "rollback_note": "remove shadow credential references and keep production_allowed false",
+      "source_files": [
+        "external_shadow_provider_config.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
         "/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md"
@@ -475,6 +848,97 @@
       "tests": [
         "tests/test_gated_email_send_adapter.py"
       ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_run_live",
+      "capability_id": "git_task_guard",
+      "current_state_if_verifiable": {
+        "audit_report": "CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT identified git_task_guard as absent register gap",
+        "code_default": "inert unless invoked by future loop task path",
+        "production": "not_invoked_by_this_register; live loop remains prohibited",
+        "summary": "catalogued from audit as repo-mutation guard; current base may not contain the script"
+      },
+      "default_state": "inert_unless_invoked",
+      "disabled_by": "not wired/invoked by this register; live loop prohibited",
+      "display_name": "Polish Loop git task guard",
+      "enabled_by": "future approved Polish Loop task path only after branch mutation safeguards are audited",
+      "evidence_refs": [
+        "polish_loop/git_task_guard.sh:audit reference"
+      ],
+      "flag_or_config": [
+        "polish_loop/git_task_guard.sh"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "reconcile source presence and audit branch-mutation behavior before any use",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "repo mutation guard can create commits/branches if invoked and is not authorized here",
+      "risk_level": "medium",
+      "rollback_note": "remove caller wiring and keep branch mutation guarded by human review",
+      "source_files": [
+        "polish_loop/git_task_guard.sh"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_run_live",
+      "capability_id": "hitl_pipeline",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies HITL pipeline intentionally off",
+        "code_default": "off unless HITL_ENABLED is truthy or flag file is active",
+        "production": "not_enabled_by_this_register; live state requires redacted operator verification",
+        "summary": "built but intentionally off; pending action mutation is a high-risk action surface"
+      },
+      "default_state": "off",
+      "disabled_by": "HITL_ENABLED default off and no approved flag-file activation",
+      "display_name": "Human-in-the-loop pending action pipeline",
+      "enabled_by": "explicit operator approval plus canary/rollback receipt for pending-action writes",
+      "evidence_refs": [
+        "hitl_pending_store.py:is_hitl_enabled",
+        "hitl_pending_action.py:_hitl_enabled"
+      ],
+      "flag_or_config": [
+        "HITL_ENABLED",
+        "HITL_FLAG_PATH"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "define a synthetic-only pending-action canary before any live enablement",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "external/action approval pipeline is high risk and lacks canary evidence",
+      "risk_level": "high",
+      "rollback_note": "unset HITL_ENABLED and remove any HITL flag file created by an approved canary",
+      "source_files": [
+        "hitl_pending_store.py",
+        "hitl_pending_action.py"
+      ],
+      "tests": []
     },
     {
       "activation_allowed_now": false,
@@ -581,6 +1045,50 @@
     },
     {
       "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_applicable_internal_observability",
+      "capability_id": "llm_diagnostics_logging",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies diagnostics logging as already enabled",
+        "code_default": "on unless OPENCLAW_LLM_DIAGNOSTICS is false/off",
+        "production": "enabled_verified_by_code_default_and_opus_decision",
+        "summary": "already-on internal observability; no external action or activation authority"
+      },
+      "default_state": "enabled_by_default",
+      "disabled_by": "set OPENCLAW_LLM_DIAGNOSTICS=0 through approved config if needed",
+      "display_name": "LLM diagnostics logging",
+      "enabled_by": "code default internal diagnostics logging",
+      "evidence_refs": [
+        "chief_llm.py:_diagnostics_enabled"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_LLM_DIAGNOSTICS"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep as internal read-only observability; do not expose secrets in logs",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "not off by default; if disabled, operator should record why diagnostics were suppressed",
+      "risk_level": "low",
+      "rollback_note": "set OPENCLAW_LLM_DIAGNOSTICS=0 to suppress diagnostic logging",
+      "source_files": [
+        "chief_llm.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
       "audits": [],
       "canary_status": "not_run_by_this_task",
       "capability_id": "lm_consult_spine",
@@ -630,6 +1138,141 @@
     {
       "activation_allowed_now": false,
       "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "already_live_watch_timeout_lane",
+      "capability_id": "maestro_brain_live",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS says Maestro brain live was GO'd 2026-06-19",
+        "code_default": "on unless OPENCLAW_MAESTRO_BRAIN_LIVE is false/off or TEST_MODE disables it",
+        "production": "enabled_verified_by_opus_decision; this catalog task did not inspect live services",
+        "summary": "already-on runtime lane per Opus decision; disabled under TEST_MODE and does not grant new activation authority"
+      },
+      "default_state": "enabled_by_default_outside_test_mode",
+      "disabled_by": "set OPENCLAW_MAESTRO_BRAIN_LIVE=0 through approved service configuration change",
+      "display_name": "Maestro brain live",
+      "enabled_by": "Opus GO on 2026-06-19 behind protected_generate",
+      "evidence_refs": [
+        "protected_generate.py:_maestro_brain_live_enabled"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_MAESTRO_BRAIN_LIVE"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep watching model-fit and timeout behavior; do not change this flag in this task",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "not off per Opus decision; no new enablement is authorized by this register",
+      "risk_level": "medium",
+      "rollback_note": "set OPENCLAW_MAESTRO_BRAIN_LIVE=0 through approved runtime rollback; keep TEST_MODE disabling behavior",
+      "source_files": [
+        "protected_generate.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_applicable_metadata_only",
+      "capability_id": "model_selection_policy_contract",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies model-selection policy contract intentionally off metadata-only",
+        "code_default": "NO_AUTHORITY_FLAGS all false",
+        "production": "not_applicable_metadata_only",
+        "summary": "metadata-only contract exists with no runtime/model/provider authority"
+      },
+      "default_state": "metadata_only_all_authority_false",
+      "disabled_by": "NO_AUTHORITY_FLAGS false by design",
+      "display_name": "Model-selection policy contract",
+      "enabled_by": "metadata generation only; no runtime activation authority",
+      "evidence_refs": [
+        "model_selection_policy_contract.py:NO_AUTHORITY_FLAGS"
+      ],
+      "flag_or_config": [
+        "NO_AUTHORITY_FLAGS"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep as metadata; future runtime policy wiring needs a separate default-off task",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "contract is descriptive and intentionally grants no model-selection authority",
+      "risk_level": "low",
+      "rollback_note": "remove any consumer that treats this metadata contract as activation authority",
+      "source_files": [
+        "model_selection_policy_contract.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_run_live",
+      "capability_id": "nemotron_provider",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies Nemotron provider intentionally off",
+        "code_default": "returns empty/fail-closed without NVIDIA_API_KEY or credentials file",
+        "production": "not_enabled_by_this_register; credential presence not inspected",
+        "summary": "external provider path exists but is intentionally off for live use without policy-safe caller and credentials"
+      },
+      "default_state": "provider_config_required/fail_closed",
+      "disabled_by": "no approved external-provider activation; missing key fails closed",
+      "display_name": "Nemotron provider",
+      "enabled_by": "explicit operator approval, policy-safe packet, credential-safe provider setup, canary, and rollback",
+      "evidence_refs": [
+        "chief_llm.py:nemotron_call",
+        "chief_llm.py:_nemotron_api_key"
+      ],
+      "flag_or_config": [
+        "NVIDIA_API_KEY",
+        "NEMOTRON_URL",
+        "NEMOTRON_MODEL"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep off until external egress policy and canary evidence are recorded",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "external model egress is high risk and requires explicit approval immediately before activation",
+      "risk_level": "high",
+      "rollback_note": "remove approved provider env/config and keep external calls fail-closed",
+      "source_files": [
+        "chief_llm.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
         "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md"
       ],
       "canary_status": "synthetic_ready; no real album evidence ingest",
@@ -671,6 +1314,148 @@
       ],
       "tests": [
         "tests/test_niles_album_evidence_intake_boundary.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "already_local_default; model_fit_repair_pending",
+      "capability_id": "ollama_model_defaults",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS marks Ollama 8b default lane already on",
+        "code_default": "OPENCLAW_OLLAMA_MODEL defaults to qwen3:8b-q4_K_M",
+        "production": "enabled_verified_by_code_default_and_opus_decision",
+        "summary": "already-on local model default lane; model-fit repair remains needed for strong/deep references"
+      },
+      "default_state": "enabled_by_code_default_qwen3_8b",
+      "disabled_by": "set OPENCLAW_OLLAMA_MODEL through approved config change or disable callers",
+      "display_name": "Ollama model defaults",
+      "enabled_by": "existing local-only code default",
+      "evidence_refs": [
+        "chief_llm.py:OLLAMA_MODEL",
+        "chief_llm.py:OLLAMA_MODEL_DEEP"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_OLLAMA_MODEL",
+        "OPENCLAW_OLLAMA_MODEL_DEEP"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "repair strong/deep lane model-fit references before expanding model routing",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "not off by code default; no new model activation is authorized here",
+      "risk_level": "medium",
+      "rollback_note": "restore OPENCLAW_OLLAMA_MODEL=qwen3:8b-q4_K_M or unset env to return to code default",
+      "source_files": [
+        "chief_llm.py"
+      ],
+      "tests": [
+        "tests/test_chief_llm_router.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_applicable_stub",
+      "capability_id": "openai_adapter_stub",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS says deprecated/remove later unless a live design is queued",
+        "code_default": "adapter_stub_not_live",
+        "production": "not_enabled_by_this_register; credential presence not inspected",
+        "summary": "adapter exists only as a hard unavailable stub; no live OpenAI provider path is enabled"
+      },
+      "default_state": "stub_unavailable",
+      "disabled_by": "adapter raises adapter_stub_not_live",
+      "display_name": "OpenAI adapter stub",
+      "enabled_by": "future explicit provider design only; not this register",
+      "evidence_refs": [
+        "openclaw_lm_consult_spine.py:OpenAIConsultAdapter",
+        "openclaw_lm_consult_spine.py:adapter_stub_not_live"
+      ],
+      "flag_or_config": [
+        "OPENAI_API_KEY",
+        "OpenAIConsultAdapter"
+      ],
+      "gate_stage": "blocked",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "DEPRECATED_OR_REMOVE_LATER unless Opus queues a credential-safe OpenAI design",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "provider adapter is a stub and external egress would be high risk",
+      "risk_level": "high",
+      "rollback_note": "keep the adapter unavailable or remove it if Opus chooses deprecation",
+      "source_files": [
+        "openclaw_lm_consult_spine.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "queued_for_hybrid_canary",
+      "capability_id": "packet_source_sqlite_flip",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS queues packet-source SQLite flip for canary",
+        "code_default": "flat unless OPENCLAW_PACKET_SOURCE selects sqlite or hybrid",
+        "production": "unknown_or_related_live_context_only; this task did not inspect live services",
+        "summary": "standalone activation record for packet-source sqlite/hybrid flip; related continuity context is preserved separately"
+      },
+      "default_state": "flat/default",
+      "disabled_by": "flat default or unset OPENCLAW_PACKET_SOURCE",
+      "display_name": "Packet-source SQLite flip",
+      "enabled_by": "operator-approved hybrid/sqlite packet-source canary with content-diff receipt",
+      "evidence_refs": [
+        "maestro_context_packet.py:OPENCLAW_PACKET_SOURCE",
+        "activation_gate_register.py:continuity related runtime context"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_PACKET_SOURCE"
+      ],
+      "gate_stage": "canary",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "run a supervised hybrid packet content-diff canary before production flip",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "packet content changes need a canary and rollback receipt before activation",
+      "risk_level": "medium",
+      "rollback_note": "set OPENCLAW_PACKET_SOURCE=flat or unset it through approved service configuration",
+      "source_files": [
+        "maestro_context_packet.py",
+        "activation_gate_register.py"
+      ],
+      "tests": [
+        "tests/test_activation_gate_register.py"
       ]
     },
     {
@@ -878,6 +1663,54 @@
     },
     {
       "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_applicable_internal_tuning",
+      "capability_id": "protected_generate_ollama_timeouts",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS marks protected_generate timeouts already enabled",
+        "code_default": "safe timeout and attempt defaults used unless env overrides are set",
+        "production": "enabled_verified_by_code_default_and_opus_decision",
+        "summary": "already-on internal timeout knobs with safe defaults; they tune bounded local generation behavior only"
+      },
+      "default_state": "enabled_by_safe_defaults",
+      "disabled_by": "override/remove timeout env through approved config change only",
+      "display_name": "protected_generate Ollama timeouts",
+      "enabled_by": "existing safe default timeout values",
+      "evidence_refs": [
+        "protected_generate.py:OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT",
+        "protected_generate.py:OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT",
+        "OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT",
+        "OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS",
+        "OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "keep defaults; record any future timeout tuning receipt",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "not off by code default; no new runtime enablement is performed by this register",
+      "risk_level": "low",
+      "rollback_note": "unset OPENCLAW_PROTECTED_GENERATE_* timeout env values to return to code defaults",
+      "source_files": [
+        "protected_generate.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
       "audits": [],
       "canary_status": "not_applicable; readiness contract only",
       "capability_id": "runtime_module_activation_gate",
@@ -919,6 +1752,51 @@
       "tests": [
         "tests/test_runtime_activation_gate.py"
       ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
+      ],
+      "canary_status": "not_run_live",
+      "capability_id": "walk_away_autonomy_mode",
+      "current_state_if_verifiable": {
+        "audit_report": "OPUS_ACTIVATION_DECISIONS classifies walk-away autonomy intentionally off",
+        "code_default": "mode off when state file is absent or disabled",
+        "production": "not_enabled_by_this_register; state file was not inspected",
+        "summary": "built but intentionally off by default; enabling writes an autonomy mode state file"
+      },
+      "default_state": "off",
+      "disabled_by": "default off state and no approved state-file write",
+      "display_name": "Walk-away autonomy mode",
+      "enabled_by": "explicit operator approval for a bounded autonomy window",
+      "evidence_refs": [
+        "autonomy_mode.py:_default_state",
+        "autonomy_mode.py:cmd_enable"
+      ],
+      "flag_or_config": [
+        "autonomy_mode.py state file"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "do not enable from the register; require an operator-approved autonomy receipt",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "walk-away autonomy expands unattended authority and requires immediate operator approval",
+      "risk_level": "high",
+      "rollback_note": "run the approved disable path or restore the default off state file",
+      "source_files": [
+        "autonomy_mode.py"
+      ],
+      "tests": []
     }
   ],
   "gate_stages": [
@@ -951,7 +1829,27 @@
     "OPENCLAW_EXTERNAL_MODEL",
     "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
     "CASSANDRA_EXTERNAL_MODEL",
-    "OPENROUTER_API_KEY"
+    "OPENROUTER_API_KEY",
+    "NVIDIA_API_KEY",
+    "OPENAI_API_KEY",
+    "OPENCLAW_MAESTRO_BRAIN_LIVE",
+    "OPENCLAW_LLM_DIAGNOSTICS",
+    "HITL_ENABLED",
+    "OPENCLAW_ACTION_RUNTIME",
+    "OPENCLAW_CONTROL_PLANE_EMIT",
+    "OPENCLAW_OLLAMA_MODEL",
+    "OPENCLAW_OLLAMA_MODEL_DEEP",
+    "OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT",
+    "OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT",
+    "OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS",
+    "OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT",
+    "CASSANDRA_MORNING_BRIEF_TEST_MODE",
+    "OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS",
+    "OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS",
+    "OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS",
+    "OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL",
+    "OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL",
+    "OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL"
   ],
   "live_reconciliation": {
     "enabled": false,
@@ -1005,7 +1903,27 @@
       "OPENCLAW_EXTERNAL_MODEL",
       "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
       "CASSANDRA_EXTERNAL_MODEL",
-      "OPENROUTER_API_KEY"
+      "OPENROUTER_API_KEY",
+      "NVIDIA_API_KEY",
+      "OPENAI_API_KEY",
+      "OPENCLAW_MAESTRO_BRAIN_LIVE",
+      "OPENCLAW_LLM_DIAGNOSTICS",
+      "HITL_ENABLED",
+      "OPENCLAW_ACTION_RUNTIME",
+      "OPENCLAW_CONTROL_PLANE_EMIT",
+      "OPENCLAW_OLLAMA_MODEL",
+      "OPENCLAW_OLLAMA_MODEL_DEEP",
+      "OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT",
+      "OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT",
+      "OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS",
+      "OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT",
+      "CASSANDRA_MORNING_BRIEF_TEST_MODE",
+      "OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS",
+      "OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS",
+      "OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS",
+      "OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL",
+      "OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL",
+      "OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL"
     ]
   },
   "live_state_values": [
@@ -1063,42 +1981,67 @@
   "summary": {
     "activation_allowed_now": [],
     "blocked": [
+      "claude_agent_hard_block",
       "legal_sealed_ingestion",
+      "openai_adapter_stub",
       "polish_loop_factory_mode",
       "polish_loop_local_builder_bridge",
       "runtime_module_activation_gate"
     ],
     "conflicting_live_state": [],
     "currently_off_or_blocked": [
+      "action_runtime",
       "agent_package_preview_contract",
+      "brain_dump_parser_cli",
+      "cassandra_morning_brief_test_mode",
       "cassandra_telegram_delivery",
+      "claude_agent_hard_block",
       "computer_use_worker_gateway",
       "continuity_capsule",
       "external_model_openrouter_path",
+      "external_shadow_lm_config",
       "gated_email_send_rail",
+      "git_task_guard",
+      "hitl_pipeline",
       "interpreter_lm",
       "legal_sealed_ingestion",
       "lm_consult_spine",
+      "model_selection_policy_contract",
+      "nemotron_provider",
+      "openai_adapter_stub",
       "polish_loop_factory_mode",
       "polish_loop_file_ledger_bridge",
       "polish_loop_local_builder_bridge",
       "polish_loop_task_package_v1",
-      "runtime_module_activation_gate"
+      "runtime_module_activation_gate",
+      "walk_away_autonomy_mode"
     ],
     "intentionally_off": [
+      "action_runtime",
       "agent_package_preview_contract",
+      "brain_dump_parser_cli",
+      "cassandra_morning_brief_test_mode",
       "cassandra_telegram_delivery",
       "external_model_openrouter_path",
+      "external_shadow_lm_config",
       "gated_email_send_rail",
+      "git_task_guard",
+      "hitl_pipeline",
       "lm_consult_spine",
+      "model_selection_policy_contract",
+      "nemotron_provider",
       "polish_loop_file_ledger_bridge",
-      "polish_loop_task_package_v1"
+      "polish_loop_task_package_v1",
+      "walk_away_autonomy_mode"
     ],
     "ready_for_canary": [
-      "frontdoor_model_profile"
+      "control_plane_heal_emission",
+      "frontdoor_model_profile",
+      "packet_source_sqlite_flip"
     ],
-    "total_capabilities": 19,
+    "total_capabilities": 38,
     "unknown_production_state": [
+      "action_runtime",
       "active_machinery_classification",
       "agent_package_preview_contract",
       "cassandra_telegram_delivery",
@@ -1113,6 +2056,7 @@
       "legal_sealed_ingestion",
       "lm_consult_spine",
       "niles_album_evidence_intake_boundary",
+      "packet_source_sqlite_flip",
       "polish_loop_factory_mode",
       "polish_loop_local_builder_bridge",
       "runtime_module_activation_gate"
@@ -1123,70 +2067,206 @@
     "flag_detection": {
       "CASSANDRA_EXTERNAL_MODEL": {
         "files": [
+          "activation_gate_register.py",
           "chief_llm.py",
           "tests/test_chief_llm_router.py"
         ],
         "status": "found"
       },
+      "CASSANDRA_MORNING_BRIEF_TEST_MODE": {
+        "files": [
+          "activation_gate_register.py",
+          "cassandra_briefing_brain.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
       "CASSANDRA_TELEGRAM_DELIVERY_ENABLED": {
         "files": [
+          "activation_gate_register.py",
           "cassandra_telegram_delivery.py"
         ],
         "status": "found"
       },
       "GEMINI_API_KEY": {
         "files": [
+          "activation_gate_register.py",
           "openclaw_lm_consult_spine.py"
         ],
         "status": "found"
       },
       "GOOGLE_API_KEY": {
         "files": [
+          "activation_gate_register.py",
           "openclaw_lm_consult_spine.py"
         ],
         "status": "found"
       },
       "GOOGLE_GENERATIVE_AI_API_KEY": {
         "files": [
+          "activation_gate_register.py",
           "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "HITL_ENABLED": {
+        "files": [
+          "activation_gate_register.py",
+          "hitl_pending_action.py",
+          "hitl_pending_store.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "HITL_FLAG_PATH": {
+        "files": [
+          "activation_gate_register.py",
+          "hitl_pending_store.py"
+        ],
+        "status": "found"
+      },
+      "NEMOTRON_MODEL": {
+        "files": [
+          "activation_gate_register.py",
+          "chief_llm.py"
+        ],
+        "status": "found"
+      },
+      "NEMOTRON_URL": {
+        "files": [
+          "activation_gate_register.py",
+          "chief_llm.py"
+        ],
+        "status": "found"
+      },
+      "NO_AUTHORITY_FLAGS": {
+        "files": [
+          "activation_gate_register.py",
+          "agent_package_preview_contract.py",
+          "model_selection_policy_contract.py",
+          "niles_album_evidence_intake_boundary.py"
+        ],
+        "status": "found"
+      },
+      "NVIDIA_API_KEY": {
+        "files": [
+          "activation_gate_register.py",
+          "chief_llm.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENAI_API_KEY": {
+        "files": [
+          "activation_gate_register.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_ACTION_RUNTIME": {
+        "files": [
+          "action_runtime.py",
+          "activation_gate_register.py",
+          "authority_gate.py",
+          "tests/test_activation_gate_register.py"
         ],
         "status": "found"
       },
       "OPENCLAW_CASSANDRA_EXTERNAL_MODEL": {
         "files": [
+          "activation_gate_register.py",
           "chief_llm.py",
           "tests/test_chief_llm_router.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS": {
+        "files": [
+          "activation_gate_register.py",
+          "chief_llm.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS": {
+        "files": [
+          "activation_gate_register.py",
+          "cassandra_briefing_brain.py",
+          "chief_llm.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS": {
+        "files": [
+          "activation_gate_register.py",
+          "chief_llm.py"
         ],
         "status": "found"
       },
       "OPENCLAW_CONTINUITY_CAPSULE": {
         "files": [
+          "activation_gate_register.py",
           "maestro_context_packet.py",
-          "maestro_listener.py"
+          "maestro_listener.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_CONTROL_PLANE_EMIT": {
+        "files": [
+          "activation_gate_register.py",
+          "polish_loop/pc4_heal_emitter.py",
+          "tests/test_activation_gate_register.py"
         ],
         "status": "found"
       },
       "OPENCLAW_ENABLE_LM_CONSULTS": {
         "files": [
+          "activation_gate_register.py",
           "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL": {
+        "files": [
+          "activation_gate_register.py",
+          "external_shadow_provider_config.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL": {
+        "files": [
+          "activation_gate_register.py",
+          "external_shadow_provider_config.py"
         ],
         "status": "found"
       },
       "OPENCLAW_EXTERNAL_MODEL": {
         "files": [
+          "activation_gate_register.py",
           "chief_llm.py",
           "tests/test_chief_llm_router.py"
         ],
         "status": "found"
       },
+      "OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL": {
+        "files": [
+          "activation_gate_register.py",
+          "external_shadow_provider_config.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
       "OPENCLAW_FREEFORM_CLOUD": {
         "files": [
-          "protected_generate.py"
+          "activation_gate_register.py",
+          "protected_generate.py",
+          "tests/test_activation_gate_register.py"
         ],
         "status": "found"
       },
       "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST": {
         "files": [
+          "activation_gate_register.py",
           "chief_llm.py",
           "tests/test_frontdoor_model_profile.py"
         ],
@@ -1194,6 +2274,7 @@
       },
       "OPENCLAW_FRONTDOOR_MODEL_MAX_GB": {
         "files": [
+          "activation_gate_register.py",
           "chief_llm.py",
           "tests/test_frontdoor_model_profile.py"
         ],
@@ -1201,13 +2282,16 @@
       },
       "OPENCLAW_FRONTDOOR_MODEL_PROFILE": {
         "files": [
+          "activation_gate_register.py",
           "protected_generate.py",
+          "tests/test_activation_gate_register.py",
           "tests/test_frontdoor_model_profile.py"
         ],
         "status": "found"
       },
       "OPENCLAW_FRONTDOOR_NUM_PREDICT": {
         "files": [
+          "activation_gate_register.py",
           "protected_generate.py",
           "tests/test_frontdoor_model_profile.py"
         ],
@@ -1215,6 +2299,7 @@
       },
       "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT": {
         "files": [
+          "activation_gate_register.py",
           "protected_generate.py",
           "tests/test_frontdoor_model_profile.py"
         ],
@@ -1222,85 +2307,166 @@
       },
       "OPENCLAW_GEMINI_FORM_MODEL": {
         "files": [
+          "activation_gate_register.py",
           "openclaw_lm_consult_spine.py"
         ],
         "status": "found"
       },
       "OPENCLAW_GEMINI_MODEL": {
         "files": [
+          "activation_gate_register.py",
           "openclaw_lm_consult_spine.py"
         ],
         "status": "found"
       },
       "OPENCLAW_INTERPRETER_LM": {
         "files": [
+          "activation_gate_register.py",
           "interpreter_lm.py",
           "maestro_context_packet.py",
+          "tests/test_activation_gate_register.py",
           "tests/test_continuity_stamp.py"
         ],
         "status": "found"
       },
       "OPENCLAW_LEGAL_PRIVATE_ROOT": {
-        "files": [],
-        "status": "not_found_in_scanned_repo_paths"
+        "files": [
+          "activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_LLM_DIAGNOSTICS": {
+        "files": [
+          "activation_gate_register.py",
+          "chief_llm.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
       },
       "OPENCLAW_LM_PROVIDER": {
         "files": [
+          "activation_gate_register.py",
           "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_MAESTRO_BRAIN_LIVE": {
+        "files": [
+          "activation_gate_register.py",
+          "protected_generate.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_OLLAMA_MODEL": {
+        "files": [
+          "activation_gate_register.py",
+          "chief_llm.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_OLLAMA_MODEL_DEEP": {
+        "files": [
+          "activation_gate_register.py",
+          "chief_llm.py"
         ],
         "status": "found"
       },
       "OPENCLAW_PACKET_SOURCE": {
         "files": [
+          "activation_gate_register.py",
           "maestro_context_packet.py",
+          "tests/test_activation_gate_register.py",
           "tests/test_packet_sqlite_flip.py"
         ],
         "status": "found"
       },
       "OPENCLAW_POLISH_LANE_WORKER_CMD": {
         "files": [
+          "activation_gate_register.py",
           "polish_loop/lane_launcher.py"
         ],
         "status": "found"
       },
       "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE": {
         "files": [
-          "polish_loop/orchestrator.py"
+          "activation_gate_register.py",
+          "polish_loop/orchestrator.py",
+          "tests/test_activation_gate_register.py"
         ],
         "status": "found"
       },
       "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER": {
         "files": [
-          "polish_loop/orchestrator.py"
+          "activation_gate_register.py",
+          "polish_loop/orchestrator.py",
+          "tests/test_activation_gate_register.py"
         ],
         "status": "found"
       },
       "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1": {
         "files": [
+          "activation_gate_register.py",
           "polish_loop/orchestrator.py",
           "polish_loop/worker_runtime.py",
+          "tests/test_activation_gate_register.py",
           "tests/test_polish_loop_task_package_materialization.py"
         ],
         "status": "found"
       },
       "OPENCLAW_POLISH_MAX_PARALLEL_LANES": {
         "files": [
+          "activation_gate_register.py",
           "polish_loop/lane_launcher.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT": {
+        "files": [
+          "activation_gate_register.py",
+          "protected_generate.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS": {
+        "files": [
+          "activation_gate_register.py",
+          "protected_generate.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT": {
+        "files": [
+          "activation_gate_register.py",
+          "protected_generate.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT": {
+        "files": [
+          "activation_gate_register.py",
+          "protected_generate.py"
         ],
         "status": "found"
       },
       "OPENCLAW_SEND_HOLD": {
         "files": [
+          "activation_gate_register.py",
           "polish_loop/lane_launcher.py",
           "polish_loop/orchestrator.py",
+          "polish_loop/pc4_heal_emitter.py",
           "tests/test_polish_loop_self_scaling.py"
         ],
         "status": "found"
       },
       "OPENCLAW_TEST_MODE": {
         "files": [
+          "activation_gate_register.py",
           "polish_loop/lane_launcher.py",
           "polish_loop/orchestrator.py",
+          "polish_loop/pc4_heal_emitter.py",
           "protected_generate.py",
           "tests/test_continuity_stamp.py",
           "tests/test_polish_loop_self_scaling.py"
@@ -1309,20 +2475,25 @@
       },
       "OPENROUTER_API_KEY": {
         "files": [
+          "activation_gate_register.py",
           "chief_llm.py",
+          "tests/test_activation_gate_register.py",
           "tests/test_chief_llm_router.py"
         ],
         "status": "found"
       },
       "OPENROUTER_MODEL": {
         "files": [
+          "activation_gate_register.py",
           "chief_llm.py",
+          "tests/test_activation_gate_register.py",
           "tests/test_chief_llm_router.py"
         ],
         "status": "found"
       },
       "TELEGRAM_AUTHORIZED_USER_ID": {
         "files": [
+          "activation_gate_register.py",
           "cassandra_telegram_delivery.py",
           "maestro_listener.py"
         ],
