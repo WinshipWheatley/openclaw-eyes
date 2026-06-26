@@ -66,10 +66,31 @@ def test_known_flags_are_detected_without_live_env_reads():
     assert "maestro_context_packet.py" in flags["OPENCLAW_PACKET_SOURCE"]["files"]
     assert flags["OPENCLAW_FREEFORM_CLOUD"]["status"] == "found"
     assert "protected_generate.py" in flags["OPENCLAW_FREEFORM_CLOUD"]["files"]
-    assert flags["OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"]["status"] == "not_found_in_scanned_repo_paths"
+    assert flags["OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"]["status"] in {
+        "found",
+        "not_found_in_scanned_repo_paths",
+    }
 
     assert payload["policy"]["production_env_files_inspected"] is False
     assert payload["policy"]["systemd_inspected_or_modified"] is False
+
+
+def test_polish_loop_builder_flag_detection_handles_bridge_present(tmp_path):
+    orchestrator = tmp_path / "polish_loop" / "orchestrator.py"
+    orchestrator.parent.mkdir()
+    orchestrator.write_text(
+        'LOCAL_BUILDER_FLAG = "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"\n',
+        encoding="utf-8",
+    )
+
+    payload = register.build_activation_gate_register(
+        repo_root=tmp_path,
+        last_verified_at=FIXED_NOW,
+    )
+    flag = payload["verification"]["flag_detection"]["OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"]
+
+    assert flag["status"] == "found"
+    assert flag["files"] == ["polish_loop/orchestrator.py"]
 
 
 def test_unknown_or_unverified_current_state_is_honest():
