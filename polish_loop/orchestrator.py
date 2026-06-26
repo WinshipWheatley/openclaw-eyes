@@ -84,15 +84,36 @@ except ImportError:
         _PHASE_C_AVAILABLE = False
 
 try:
-    from .worker_runtime import WorkerRuntimeConfig, run_local_builder_worker
+    from .worker_runtime import (
+        TASK_PACKAGE_FLAG,
+        TASK_PACKAGE_FLAG_ON_VALUES,
+        TaskPackageError,
+        WorkerRuntimeConfig,
+        build_task_package_markdown,
+        run_local_builder_worker,
+        task_package_enabled,
+    )
     _PHASE_C_WORKER_RUNTIME_AVAILABLE = True
 except ImportError:
     try:
-        from worker_runtime import WorkerRuntimeConfig, run_local_builder_worker  # type: ignore
+        from worker_runtime import (  # type: ignore
+            TASK_PACKAGE_FLAG,
+            TASK_PACKAGE_FLAG_ON_VALUES,
+            TaskPackageError,
+            WorkerRuntimeConfig,
+            build_task_package_markdown,
+            run_local_builder_worker,
+            task_package_enabled,
+        )
         _PHASE_C_WORKER_RUNTIME_AVAILABLE = True
     except ImportError:
+        TASK_PACKAGE_FLAG = "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"
+        TASK_PACKAGE_FLAG_ON_VALUES = {"1", "true", "yes", "on"}
+        TaskPackageError = ValueError  # type: ignore[assignment]
         WorkerRuntimeConfig = None  # type: ignore[assignment]
+        build_task_package_markdown = None  # type: ignore[assignment]
         run_local_builder_worker = None  # type: ignore[assignment]
+        task_package_enabled = None  # type: ignore[assignment]
         _PHASE_C_WORKER_RUNTIME_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
@@ -1420,6 +1441,15 @@ def _local_builder_enabled(explicit: bool | None) -> bool:
     return value.strip().lower() in LOCAL_BUILDER_FLAG_ON_VALUES
 
 
+def _task_package_v1_enabled(explicit: bool | None = None) -> bool:
+    if task_package_enabled is not None:
+        return bool(task_package_enabled(explicit))
+    if explicit is not None:
+        return bool(explicit)
+    value = os.environ.get(TASK_PACKAGE_FLAG, "")
+    return value.strip().lower() in TASK_PACKAGE_FLAG_ON_VALUES
+
+
 def _file_ledger_bridge_enabled(explicit: bool | None = None) -> bool:
     if explicit is not None:
         return bool(explicit)
@@ -1979,7 +2009,49 @@ def phase_c_dispatch_local_builder(
     )
     loop_dir = runtime_config.loop_dir if runtime_config is not None else LOOP_DIR
     log("ACTION", f"phase-c dispatch | task={lease.task_id} | owner={lease.owner}")
-    directive = write_phase_c_fix_directive(active_ledger, lease, loop_dir=loop_dir)
+    try:
+        directive = write_phase_c_fix_directive(active_ledger, lease, loop_dir=loop_dir)
+    except TaskPackageError as exc:
+        missing = tuple(getattr(exc, "missing_fields", ()) or ())
+        fingerprint = (
+            "task_package_v1_missing_"
+            + hashlib.sha256("|".join(missing).encode("utf-8")).hexdigest()[:12]
+        )
+        if not _row_matches_live_lease(_task_row_or_none(active_ledger, lease.task_id), lease):
+            return LocalBuilderDispatchReceipt(
+                task_id=lease.task_id,
+                directive_path=None,
+                builder_invoked=False,
+                ledger_recorded=False,
+                status="task_package_stale_lease_rejected",
+                failure_fingerprint=fingerprint,
+            )
+        active_ledger.record_failure(
+            lease.task_id,
+            owner=lease.owner,
+            lease_nonce=lease.lease_nonce,
+            failure_fingerprint=fingerprint,
+            failure_detail={
+                "schema_version": "polish_loop_task_package_failure_v1",
+                "bridge": "orchestrator_phase_c_dispatch",
+                "status": "task_package_failed_closed",
+                "task_id": lease.task_id,
+                "owner": lease.owner,
+                "lease_nonce": lease.lease_nonce,
+                "attempt_no": lease.attempt_no,
+                "missing_fields": list(missing),
+                "error": str(exc),
+            },
+        )
+        log("WARN", f"phase-c task package failed closed | task={lease.task_id} | missing={','.join(missing)}")
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=None,
+            builder_invoked=False,
+            ledger_recorded=True,
+            status="task_package_failed_closed",
+            failure_fingerprint=fingerprint,
+        )
     log("EVIDENCE", f"phase-c FIX directive queued | task={lease.task_id} | directive={directive}")
     if not _local_builder_enabled(enable_local_builder):
         return LocalBuilderDispatchReceipt(
@@ -2039,6 +2111,26 @@ def write_phase_c_fix_directive(
     safe_task_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", lease.task_id).strip("._") or "task"
     directive_path = to_pc / f"FIX-{safe_task_id}-attempt-{lease.attempt_no}.md"
     tmp = directive_path.with_suffix(directive_path.suffix + ".tmp")
+    if _task_package_v1_enabled():
+        if build_task_package_markdown is None:
+            raise RuntimeError("task package materializer is unavailable")
+        package_row = dict(row)
+        package_row["_ledger_db"] = str(ledger.path)
+        repo_root = str(payload.get("repo_root") or REPO_ROOT)
+        worktree = str(payload.get("worktree") or repo_root)
+        branch = str(payload.get("branch") or payload.get("branch_hint") or "unknown")
+        tmp.write_text(
+            build_task_package_markdown(
+                package_row,
+                lease,
+                repo_root=repo_root,
+                worktree=worktree,
+                branch=branch,
+            ),
+            encoding="utf-8",
+        )
+        tmp.replace(directive_path)
+        return directive_path
     lines = [
         f"FIX: {lease.task_id}",
         "",

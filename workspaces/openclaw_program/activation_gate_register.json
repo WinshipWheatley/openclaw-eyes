@@ -698,6 +698,7 @@
       "flag_or_config": [
         "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
         "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
+        "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
         "OPENCLAW_POLISH_MAX_PARALLEL_LANES",
         "OPENCLAW_POLISH_LANE_WORKER_CMD",
         "OPENCLAW_TEST_MODE",
@@ -828,6 +829,55 @@
     },
     {
       "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md"
+      ],
+      "canary_status": "synthetic_only; canary required before runtime activation",
+      "capability_id": "polish_loop_task_package_v1",
+      "current_state_if_verifiable": {
+        "audit_report": "POLISH-BLOCKER-003 audit identified sparse/stale task.md materialization as a factory blocker",
+        "code_default": "off unless OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1 is explicitly truthy",
+        "production": "not_enabled_by_this_task; production activation prohibited",
+        "summary": "deterministic task-package materialization is built as a default-off candidate for Polish Loop blocker #3"
+      },
+      "default_state": "default-off",
+      "disabled_by": "default-off flag; legacy task.md/directive materialization remains unchanged when unset",
+      "display_name": "Polish Loop deterministic task package v1",
+      "enabled_by": "explicit OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1 only after Opus review, synthetic tests, canary, rollback proof, and operator-approved runtime scope",
+      "evidence_refs": [
+        "polish_loop/worker_runtime.py:build_task_package_markdown",
+        "polish_loop/orchestrator.py:write_phase_c_fix_directive",
+        "tests/test_polish_loop_task_package_materialization.py",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "Opus review of blocker #3 implementation, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "changes builder input materialization and Polish Loop remains NOT_READY; canary and Opus/operator approval are required",
+      "risk_level": "medium",
+      "rollback_note": "unset OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1 or set it to 0; legacy task.md/directive materialization remains available",
+      "source_files": [
+        "polish_loop/worker_runtime.py",
+        "polish_loop/orchestrator.py"
+      ],
+      "tests": [
+        "tests/test_polish_loop_task_package_materialization.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
       "audits": [],
       "canary_status": "not_applicable; readiness contract only",
       "capability_id": "runtime_module_activation_gate",
@@ -891,6 +941,7 @@
     "OPENCLAW_PACKET_SOURCE",
     "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
     "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
+    "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
     "OPENCLAW_FREEFORM_CLOUD",
     "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
     "OPENCLAW_FRONTDOOR_NUM_PREDICT",
@@ -944,6 +995,7 @@
       "OPENCLAW_PACKET_SOURCE",
       "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
       "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
+      "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
       "OPENCLAW_FREEFORM_CLOUD",
       "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
       "OPENCLAW_FRONTDOOR_NUM_PREDICT",
@@ -1030,6 +1082,7 @@
       "polish_loop_factory_mode",
       "polish_loop_file_ledger_bridge",
       "polish_loop_local_builder_bridge",
+      "polish_loop_task_package_v1",
       "runtime_module_activation_gate"
     ],
     "intentionally_off": [
@@ -1038,12 +1091,13 @@
       "external_model_openrouter_path",
       "gated_email_send_rail",
       "lm_consult_spine",
-      "polish_loop_file_ledger_bridge"
+      "polish_loop_file_ledger_bridge",
+      "polish_loop_task_package_v1"
     ],
     "ready_for_canary": [
       "frontdoor_model_profile"
     ],
-    "total_capabilities": 18,
+    "total_capabilities": 19,
     "unknown_production_state": [
       "active_machinery_classification",
       "agent_package_preview_contract",
@@ -1218,6 +1272,14 @@
       "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER": {
         "files": [
           "polish_loop/orchestrator.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1": {
+        "files": [
+          "polish_loop/orchestrator.py",
+          "polish_loop/worker_runtime.py",
+          "tests/test_polish_loop_task_package_materialization.py"
         ],
         "status": "found"
       },

@@ -26,12 +26,12 @@ This register is descriptive only. It does not enable features, edit production 
 
 ## Summary
 
-- Total capabilities registered: `18`
+- Total capabilities registered: `19`
 - Verified enabled/live: none recorded
 - Activation allowed now: none recorded
 - Ready for canary queue: `frontdoor_model_profile`
 - Blocked: `legal_sealed_ingestion`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
-- Intentionally off: `agent_package_preview_contract`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `gated_email_send_rail`, `lm_consult_spine`, `polish_loop_file_ledger_bridge`
+- Intentionally off: `agent_package_preview_contract`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `gated_email_send_rail`, `lm_consult_spine`, `polish_loop_file_ledger_bridge`, `polish_loop_task_package_v1`
 - Conflicting live state: none recorded
 - Unknown production state: `active_machinery_classification`, `agent_package_preview_contract`, `cassandra_telegram_delivery`, `cassandra_telegram_dryrun_inbox`, `computer_use_worker_gateway`, `continuity_capsule`, `draft_only_email_adapter`, `external_model_openrouter_path`, `frontdoor_model_profile`, `gated_email_send_rail`, `interpreter_lm`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
 
@@ -54,6 +54,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Polish Loop factory mode (`polish_loop_factory_mode`) | `blocked` | `not_applicable` | factory remains NOT_READY; no live loop was run or enabled | no | repair blockers #2 and #3, re-audit all 10 switch criteria, then separately approve activation |
 | Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `not_applicable` | bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger | no | Opus review of task-003 implementation, then a separate synthetic/canary authorization task if the factory remains otherwise eligible |
 | Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `blocked` | `not_applicable` | candidate built on isolated polish-loop-closure branch; current base branch does not contain the flag; production not enabled | no | Opus review/integration of closure branch, then blockers #2 and #3 and all 10 switch criteria |
+| Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`) | `intentionally_off` | `not_applicable` | deterministic task-package materialization is built as a default-off candidate for Polish Loop blocker #3 | no | Opus review of blocker #3 implementation, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass |
 | Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`) | `blocked` | `not_applicable` | v0 gate always blocks runtime/module activation and claims no runtime health | no | satisfy and record all gate prerequisites before runtime/module activation |
 
 ## Capabilities
@@ -466,7 +467,7 @@ Live-state evidence:
 
 ### Polish Loop factory mode (`polish_loop_factory_mode`)
 
-- Flag/config: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_MAX_PARALLEL_LANES`, `OPENCLAW_POLISH_LANE_WORKER_CMD`, `OPENCLAW_TEST_MODE`, `OPENCLAW_SEND_HOLD`
+- Flag/config: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_POLISH_MAX_PARALLEL_LANES`, `OPENCLAW_POLISH_LANE_WORKER_CMD`, `OPENCLAW_TEST_MODE`, `OPENCLAW_SEND_HOLD`
 - Default state: `not_ready/off`
 - Current state if verifiable: factory remains NOT_READY; no live loop was run or enabled
 - Production state: `unknown_not_read_from_env_files_or_services`
@@ -551,6 +552,35 @@ Live-state evidence:
 - Confidence: `none`
 - Notes: live environment reconciliation was not requested for this register generation
 
+### Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`)
+
+- Flag/config: `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`
+- Default state: `default-off`
+- Current state if verifiable: deterministic task-package materialization is built as a default-off candidate for Polish Loop blocker #3
+- Production state: `not_enabled_by_this_task; production activation prohibited`
+- Live production state: `not_applicable`
+- Gate stage: `intentionally_off`
+- Canary status: `synthetic_only; canary required before runtime activation`
+- Risk level: `medium`
+- Owner: `Opus`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: changes builder input materialization and Polish Loop remains NOT_READY; canary and Opus/operator approval are required
+- Enabled by: explicit OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1 only after Opus review, synthetic tests, canary, rollback proof, and operator-approved runtime scope
+- Disabled by: default-off flag; legacy task.md/directive materialization remains unchanged when unset
+- Rollback: unset OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1 or set it to 0; legacy task.md/directive materialization remains available
+- Next required step: Opus review of blocker #3 implementation, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass
+- Source files: `polish_loop/worker_runtime.py`, `polish_loop/orchestrator.py`
+- Tests: `tests/test_polish_loop_task_package_materialization.py`
+- Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`
+- Evidence refs: `polish_loop/worker_runtime.py:build_task_package_markdown`, `polish_loop/orchestrator.py:write_phase_c_fix_directive`, `tests/test_polish_loop_task_package_materialization.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`
+- Last verified at: `2026-06-26T00:00:00-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
+
 ### Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`)
 
 - Flag/config: `scripted gate report; no enable flag`
@@ -606,6 +636,7 @@ Live-state evidence:
 - `OPENCLAW_POLISH_LANE_WORKER_CMD`: `found` in `polish_loop/lane_launcher.py`
 - `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`: `found` in `polish_loop/orchestrator.py`
 - `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`: `found` in `polish_loop/orchestrator.py`
+- `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`: `found` in `polish_loop/orchestrator.py`, `polish_loop/worker_runtime.py`, `tests/test_polish_loop_task_package_materialization.py`
 - `OPENCLAW_POLISH_MAX_PARALLEL_LANES`: `found` in `polish_loop/lane_launcher.py`
 - `OPENCLAW_SEND_HOLD`: `found` in `polish_loop/lane_launcher.py`, `polish_loop/orchestrator.py`, `tests/test_polish_loop_self_scaling.py`
 - `OPENCLAW_TEST_MODE`: `found` in `polish_loop/lane_launcher.py`, `polish_loop/orchestrator.py`, `protected_generate.py`, `tests/test_continuity_stamp.py`, `tests/test_polish_loop_self_scaling.py`
@@ -616,7 +647,7 @@ Live-state evidence:
 ## Live Environment Reconciliation
 
 - Enabled for this generation: `no`
-- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`
+- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`
 - Packet source runtime context: `not_applicable`
 
 Sources inspected:

@@ -72,6 +72,8 @@ def test_known_flags_are_detected_without_live_env_reads():
     }
     assert flags["OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"]["status"] == "found"
     assert "polish_loop/orchestrator.py" in flags["OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"]["files"]
+    assert flags["OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"]["status"] == "found"
+    assert "polish_loop/worker_runtime.py" in flags["OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"]["files"]
 
     assert payload["policy"]["production_env_files_inspected"] is False
     assert payload["policy"]["systemd_inspected_or_modified"] is False
@@ -104,6 +106,17 @@ def test_file_ledger_bridge_flag_is_registered_as_intentionally_off():
     assert bridge["risk_level"] == "medium"
     assert bridge["activation_allowed_now"] is False
     assert "canary" in bridge["next_required_step"].lower()
+
+
+def test_task_package_flag_is_registered_as_intentionally_off():
+    capabilities = _capabilities_by_id(_payload())
+    package = capabilities["polish_loop_task_package_v1"]
+
+    assert package["flag_or_config"] == ["OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"]
+    assert package["gate_stage"] == "intentionally_off"
+    assert package["risk_level"] == "medium"
+    assert package["activation_allowed_now"] is False
+    assert "canary" in package["next_required_step"].lower()
 
 
 def test_unknown_or_unverified_current_state_is_honest():
