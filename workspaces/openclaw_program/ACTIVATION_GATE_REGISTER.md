@@ -11,7 +11,7 @@ This register is descriptive only. It does not enable features, edit production 
 - `descriptive_only`: `true`
 - `features_enabled_by_this_register`: `false`
 - `live_env_raw_values_stored`: `false`
-- `live_env_reconciliation_enabled`: `true`
+- `live_env_reconciliation_enabled`: `false`
 - `live_env_reconciliation_read_only`: `true`
 - `live_env_secrets_printed_or_stored`: `false`
 - `live_env_whitelist_only`: `true`
@@ -20,39 +20,40 @@ This register is descriptive only. It does not enable features, edit production 
 - `production_env_files_inspected`: `false`
 - `production_flags_changed`: `false`
 - `systemctl_invoked`: `false`
-- `systemd_inspected_or_modified`: `true`
+- `systemd_inspected_or_modified`: `false`
 - `systemd_modified`: `false`
-- `systemd_user_unit_files_inspected_read_only`: `true`
+- `systemd_user_unit_files_inspected_read_only`: `false`
 
 ## Summary
 
-- Total capabilities registered: `17`
-- Verified enabled/live: `continuity_capsule`
+- Total capabilities registered: `18`
+- Verified enabled/live: none recorded
 - Activation allowed now: none recorded
 - Ready for canary queue: `frontdoor_model_profile`
 - Blocked: `legal_sealed_ingestion`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
-- Intentionally off: `agent_package_preview_contract`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `gated_email_send_rail`, `lm_consult_spine`
+- Intentionally off: `agent_package_preview_contract`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `gated_email_send_rail`, `lm_consult_spine`, `polish_loop_file_ledger_bridge`
 - Conflicting live state: none recorded
-- Unknown production state: `agent_package_preview_contract`, `cassandra_telegram_delivery`, `computer_use_worker_gateway`, `draft_only_email_adapter`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
+- Unknown production state: `active_machinery_classification`, `agent_package_preview_contract`, `cassandra_telegram_delivery`, `cassandra_telegram_dryrun_inbox`, `computer_use_worker_gateway`, `continuity_capsule`, `draft_only_email_adapter`, `external_model_openrouter_path`, `frontdoor_model_profile`, `gated_email_send_rail`, `interpreter_lm`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
 
 | Capability | Stage | Live production state | Current state | Activation allowed now | Next required step |
 | --- | --- | --- | --- | --- | --- |
-| Active Machinery classification orchestrator (`active_machinery_classification`) | `dry_run` | `dry_run_verified` | classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch | no | record a synthetic-to-canary plan before any Gemini worker dispatch |
+| Active Machinery classification orchestrator (`active_machinery_classification`) | `dry_run` | `not_applicable` | classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch | no | record a synthetic-to-canary plan before any Gemini worker dispatch |
 | Agent package preview contract (`agent_package_preview_contract`) | `intentionally_off` | `not_applicable` | metadata-only preview contract exists; all dispatch/external authority toggles are false | no | use as review artifact only; do not grant package send authority |
 | Cassandra / Telegram delivery (`cassandra_telegram_delivery`) | `intentionally_off` | `not_applicable` | code default dry-run/off; production toggle and authorized user were not inspected | no | keep disabled unless Opus defines an operator-watched internal-only canary |
-| Cassandra Telegram dry-run inbox (`cassandra_telegram_dryrun_inbox`) | `dry_run` | `dry_run_verified` | dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting | no | keep as a synthetic proof source; do not connect to Telegram |
+| Cassandra Telegram dry-run inbox (`cassandra_telegram_dryrun_inbox`) | `dry_run` | `not_applicable` | dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting | no | keep as a synthetic proof source; do not connect to Telegram |
 | Computer Use Worker Gateway (`computer_use_worker_gateway`) | `proposed` | `not_applicable` | proposed only; no production flag or built gateway was verified in this branch | no | write a design/proposal before implementation; do not grant desktop/browser authority |
-| Continuity Capsule (`continuity_capsule`) | `unknown` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | Opus should verify current runtime env without exposing secrets and record whether it remains approved live |
+| Continuity Capsule (`continuity_capsule`) | `unknown` | `not_applicable` | code default off; activation audit reported maestro-listener continuity flag ON, but this generator did not inspect systemd or production env | no | Opus should verify current runtime env without exposing secrets and record whether it remains approved live |
 | Draft-only email adapter (`draft_only_email_adapter`) | `synthetic` | `not_applicable` | adapter exists as deterministic local artifact generator; live draft and send authority are false; production wiring unknown | no | wire only a synthetic/operator-review draft lane with receipts; do not create live Gmail/Mail drafts |
-| External model / OpenRouter path (`external_model_openrouter_path`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded |
-| Front-door model profile (`frontdoor_model_profile`) | `canary` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | run a contained front-door canary only after load is acceptable and Opus approves the envelope |
+| External model / OpenRouter path (`external_model_openrouter_path`) | `intentionally_off` | `not_applicable` | code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected | no | keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded |
+| Front-door model profile (`frontdoor_model_profile`) | `canary` | `not_applicable` | code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review | no | run a contained front-door canary only after load is acceptable and Opus approves the envelope |
 | Gated email send rail (`gated_email_send_rail`) | `intentionally_off` | `not_applicable` | send rail exists as a deterministic fail-closed receipt surface; live provider/network authority is false | no | do not activate; use draft-only review rail instead |
-| Interpreter-LM (`interpreter_lm`) | `disabled` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | integrated-state audit and bounded canary plan before any live activation |
+| Interpreter-LM (`interpreter_lm`) | `disabled` | `not_applicable` | code default off; production state unknown because production env files/services were not inspected | no | integrated-state audit and bounded canary plan before any live activation |
 | Legal Sealed ingestion (`legal_sealed_ingestion`) | `blocked` | `not_applicable` | local legal policies and console bridge are synthetic/local-only; real sealed/private ingestion remains blocked | no | complete legal authorization and sealed-ingestion design before any implementation or test with real material |
 | Advisory LM consult spine (`lm_consult_spine`) | `intentionally_off` | `not_applicable` | advisory-only consult spine is built; provider credentials/config and production env were not inspected | no | keep advisory-only and record any provider probe evidence separately without exposing credentials |
 | Niles album evidence intake boundary (`niles_album_evidence_intake_boundary`) | `synthetic` | `not_applicable` | metadata-only boundary exists; raw audio, DAW contents, broad drive scans, automation, and mutation are blocked | no | if needed, run only synthetic metadata tests or operator-supplied metadata review |
 | Polish Loop factory mode (`polish_loop_factory_mode`) | `blocked` | `not_applicable` | factory remains NOT_READY; no live loop was run or enabled | no | repair blockers #2 and #3, re-audit all 10 switch criteria, then separately approve activation |
-| Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `blocked` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | Opus review/integration of closure branch, then blockers #2 and #3 and all 10 switch criteria |
+| Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `not_applicable` | bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger | no | Opus review of task-003 implementation, then a separate synthetic/canary authorization task if the factory remains otherwise eligible |
+| Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `blocked` | `not_applicable` | candidate built on isolated polish-loop-closure branch; current base branch does not contain the flag; production not enabled | no | Opus review/integration of closure branch, then blockers #2 and #3 and all 10 switch criteria |
 | Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`) | `blocked` | `not_applicable` | v0 gate always blocks runtime/module activation and claims no runtime health | no | satisfy and record all gate prerequisites before runtime/module activation |
 
 ## Capabilities
@@ -62,8 +63,8 @@ This register is descriptive only. It does not enable features, edit production 
 - Flag/config: `dry_run mode; Gemini worker dispatch operator-gated`
 - Default state: `dry_run`
 - Current state if verifiable: classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch
-- Production state: `dry_run_verified`
-- Live production state: `dry_run_verified`
+- Production state: `unknown_not_read_from_env_files_or_services`
+- Live production state: `not_applicable`
 - Gate stage: `dry_run`
 - Canary status: `synthetic_ready`
 - Risk level: `medium`
@@ -82,9 +83,9 @@ This register is descriptive only. It does not enable features, edit production 
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:
-- Status: `dry_run_verified`
-- Confidence: `medium`
-- Notes: capability is static dry-run/synthetic; no live feature flag is defined for reconciliation
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Agent package preview contract (`agent_package_preview_contract`)
 
@@ -113,7 +114,7 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Cassandra / Telegram delivery (`cassandra_telegram_delivery`)
 
@@ -142,15 +143,15 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Cassandra Telegram dry-run inbox (`cassandra_telegram_dryrun_inbox`)
 
 - Flag/config: `local JSON dry-run inbox paths; no live Telegram credential flag`
 - Default state: `dry_run`
 - Current state if verifiable: dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting
-- Production state: `dry_run_verified`
-- Live production state: `dry_run_verified`
+- Production state: `unknown_not_read_from_env_files_or_services`
+- Live production state: `not_applicable`
 - Gate stage: `dry_run`
 - Canary status: `synthetic_only`
 - Risk level: `medium`
@@ -169,9 +170,9 @@ Live-state evidence:
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:
-- Status: `dry_run_verified`
-- Confidence: `medium`
-- Notes: capability is static dry-run/synthetic; no live feature flag is defined for reconciliation
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Computer Use Worker Gateway (`computer_use_worker_gateway`)
 
@@ -200,15 +201,15 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Continuity Capsule (`continuity_capsule`)
 
 - Flag/config: `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`
 - Default state: `off`
-- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
-- Production state: `enabled_verified`
-- Live production state: `enabled_verified`
+- Current state if verifiable: code default off; activation audit reported maestro-listener continuity flag ON, but this generator did not inspect systemd or production env
+- Production state: `unknown_not_reverified; audit_reported_maestro_listener_continuity_on`
+- Live production state: `not_applicable`
 - Gate stage: `unknown`
 - Canary status: `audit_reported_running_flag_on; not_reverified_by_this_task`
 - Risk level: `low`
@@ -227,13 +228,9 @@ Live-state evidence:
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:
-- Status: `enabled_verified`
-- Confidence: `high`
-- Notes: live source verifies this capability/config is active; this does not grant new activation authority
-- Finding: `OPENCLAW_CONTINUITY_CAPSULE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf` -> `set_true` (confidence `high`; raw value redacted)
-- Finding: `OPENCLAW_CONTINUITY_CAPSULE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf` -> `set_true` (confidence `high`; raw value redacted)
-- Related finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf` -> `set_sqlite` (confidence `high`; raw value redacted)
-- Related finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf` -> `set_sqlite` (confidence `high`; raw value redacted)
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Draft-only email adapter (`draft_only_email_adapter`)
 
@@ -262,15 +259,15 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### External model / OpenRouter path (`external_model_openrouter_path`)
 
 - Flag/config: `OPENCLAW_FREEFORM_CLOUD`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`
 - Default state: `fail_closed/no_external_call`
-- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
-- Production state: `unset_default_off`
-- Live production state: `unset_default_off`
+- Current state if verifiable: code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected
+- Production state: `unknown_not_read_from_env_files_or_services`
+- Live production state: `not_applicable`
 - Gate stage: `intentionally_off`
 - Canary status: `not_run_live`
 - Risk level: `high`
@@ -289,18 +286,17 @@ Live-state evidence:
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:
-- Status: `unset_default_off`
-- Confidence: `high`
-- Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_FREEFORM_CLOUD` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Front-door model profile (`frontdoor_model_profile`)
 
 - Flag/config: `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`
 - Default state: `off`
-- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
-- Production state: `unset_default_off`
-- Live production state: `unset_default_off`
+- Current state if verifiable: code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review
+- Production state: `unknown_not_read_from_env_files_or_services`
+- Live production state: `not_applicable`
 - Gate stage: `canary`
 - Canary status: `queued_for_contained_canary; not_run_due_to_load_and_audit_gap`
 - Risk level: `medium`
@@ -319,10 +315,9 @@ Live-state evidence:
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:
-- Status: `unset_default_off`
-- Confidence: `high`
-- Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_FRONTDOOR_MODEL_PROFILE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Gated email send rail (`gated_email_send_rail`)
 
@@ -351,15 +346,15 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Interpreter-LM (`interpreter_lm`)
 
 - Flag/config: `OPENCLAW_INTERPRETER_LM`
 - Default state: `off`
-- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
-- Production state: `unset_default_off`
-- Live production state: `unset_default_off`
+- Current state if verifiable: code default off; production state unknown because production env files/services were not inspected
+- Production state: `unknown_not_read_from_env_files_or_services`
+- Live production state: `not_applicable`
 - Gate stage: `disabled`
 - Canary status: `not_run`
 - Risk level: `medium`
@@ -378,10 +373,9 @@ Live-state evidence:
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:
-- Status: `unset_default_off`
-- Confidence: `high`
-- Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_INTERPRETER_LM` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Legal Sealed ingestion (`legal_sealed_ingestion`)
 
@@ -410,7 +404,7 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Advisory LM consult spine (`lm_consult_spine`)
 
@@ -439,7 +433,7 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Niles album evidence intake boundary (`niles_album_evidence_intake_boundary`)
 
@@ -468,11 +462,11 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Polish Loop factory mode (`polish_loop_factory_mode`)
 
-- Flag/config: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_MAX_PARALLEL_LANES`, `OPENCLAW_POLISH_LANE_WORKER_CMD`, `OPENCLAW_TEST_MODE`, `OPENCLAW_SEND_HOLD`
+- Flag/config: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_MAX_PARALLEL_LANES`, `OPENCLAW_POLISH_LANE_WORKER_CMD`, `OPENCLAW_TEST_MODE`, `OPENCLAW_SEND_HOLD`
 - Default state: `not_ready/off`
 - Current state if verifiable: factory remains NOT_READY; no live loop was run or enabled
 - Production state: `unknown_not_read_from_env_files_or_services`
@@ -497,15 +491,44 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
+
+### Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`)
+
+- Flag/config: `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`
+- Default state: `default-off`
+- Current state if verifiable: bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger
+- Production state: `not_enabled_by_this_task; production activation prohibited`
+- Live production state: `not_applicable`
+- Gate stage: `intentionally_off`
+- Canary status: `synthetic_only; canary required before runtime activation`
+- Risk level: `medium`
+- Owner: `Opus`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: changes runtime reconciliation behavior and Polish Loop remains NOT_READY; canary and Opus/operator approval are required
+- Enabled by: explicit OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE only after Opus review, synthetic tests, canary, rollback proof, and operator-approved runtime scope
+- Disabled by: default-off flag; production live loop remains prohibited
+- Rollback: unset OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE or set it to 0; revert the bridge branch if synthetic receipts regress
+- Next required step: Opus review of task-003 implementation, then a separate synthetic/canary authorization task if the factory remains otherwise eligible
+- Source files: `polish_loop/orchestrator.py`, `polish_loop/control_plane.py`
+- Tests: `tests/test_polish_loop_file_ledger_reconciliation.py`
+- Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_IMPL_RESULT.md`
+- Evidence refs: `polish_loop/orchestrator.py:reconcile_file_loop_result_with_ledger`, `tests/test_polish_loop_file_ledger_reconciliation.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`
+- Last verified at: `2026-06-26T00:00:00-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Polish Loop local builder bridge (`polish_loop_local_builder_bridge`)
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`
 - Default state: `candidate default-off; not present in this base branch`
-- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
-- Production state: `unset_default_off`
-- Live production state: `unset_default_off`
+- Current state if verifiable: candidate built on isolated polish-loop-closure branch; current base branch does not contain the flag; production not enabled
+- Production state: `not_enabled_by_this_task; production_state_unknown_not_read`
+- Live production state: `not_applicable`
 - Gate stage: `blocked`
 - Canary status: `synthetic_only_on_isolated_branch; no live loop`
 - Risk level: `high`
@@ -524,10 +547,9 @@ Live-state evidence:
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:
-- Status: `unset_default_off`
-- Confidence: `high`
-- Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
 
 ### Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`)
 
@@ -556,7 +578,7 @@ Live-state evidence:
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: no whitelisted live variable is mapped to this capability
+- Notes: live environment reconciliation was not requested for this register generation
 
 ## Flag Detection
 
@@ -582,7 +604,8 @@ Live-state evidence:
 - `OPENCLAW_LM_PROVIDER`: `found` in `openclaw_lm_consult_spine.py`
 - `OPENCLAW_PACKET_SOURCE`: `found` in `maestro_context_packet.py`, `tests/test_packet_sqlite_flip.py`
 - `OPENCLAW_POLISH_LANE_WORKER_CMD`: `found` in `polish_loop/lane_launcher.py`
-- `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`: `not_found_in_scanned_repo_paths` in none recorded
+- `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`: `found` in `polish_loop/orchestrator.py`
+- `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`: `found` in `polish_loop/orchestrator.py`
 - `OPENCLAW_POLISH_MAX_PARALLEL_LANES`: `found` in `polish_loop/lane_launcher.py`
 - `OPENCLAW_SEND_HOLD`: `found` in `polish_loop/lane_launcher.py`, `polish_loop/orchestrator.py`, `tests/test_polish_loop_self_scaling.py`
 - `OPENCLAW_TEST_MODE`: `found` in `polish_loop/lane_launcher.py`, `polish_loop/orchestrator.py`, `protected_generate.py`, `tests/test_continuity_stamp.py`, `tests/test_polish_loop_self_scaling.py`
@@ -592,27 +615,18 @@ Live-state evidence:
 
 ## Live Environment Reconciliation
 
-- Enabled for this generation: `yes`
-- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`
-- Packet source runtime context: `enabled_verified`
-- Packet source finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf` -> `set_sqlite`
-- Packet source finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf` -> `set_sqlite`
+- Enabled for this generation: `no`
+- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`
+- Packet source runtime context: `not_applicable`
 
 Sources inspected:
-- `process_env` `current_process_env`: `inspected` (only whitelisted variable names were checked from the current process environment)
-- `systemd_user_unit` `/home/openclaw/.config/systemd/user/maestro-listener.service`: `inspected` (read-only parse of whitelisted Environment assignments)
-- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
-- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
-- `systemd_user_unit` `/home/openclaw/.config/systemd/user/openclaw-request-response.service`: `inspected` (read-only parse of whitelisted Environment assignments)
-- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
-- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- none recorded
 
 Sources not inspected:
-- `systemctl_user_show_environment` `systemctl --user show ... -p Environment`: not used because it can dump non-whitelisted environment values
-- `secret_env_file` `.chief.env and producer.env`: not read wholesale; secret-bearing env files require operator-approved whitelisted grep if needed
+- `live_env_reconciliation` `all_live_sources`: not requested for this deterministic generation
 
 ## Evidence Gaps
 
-- Missing repository evidence files referenced by register: `tests/test_polish_loop_closure_bridge.py`
-- Production env/service state: `redacted live reconciliation enabled`
+- Missing repository evidence files referenced by register: none recorded
+- Production env/service state: `not inspected by this task`
 - Feature activation performed by this task: `no`

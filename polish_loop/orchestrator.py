@@ -105,6 +105,8 @@ PLANNER_TIMEOUT  = 600   # 10 min — block if Planner gone and no review
 MAX_PASSES       = 3     # block if task needs a 4th pass
 LOCAL_BUILDER_FLAG = "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"
 LOCAL_BUILDER_FLAG_ON_VALUES = {"1", "true", "yes", "on"}
+FILE_LEDGER_BRIDGE_FLAG = "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"
+FILE_LEDGER_BRIDGE_FLAG_ON_VALUES = {"1", "true", "yes", "on"}
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -153,6 +155,20 @@ class LocalBuilderDispatchReceipt:
     failure_fingerprint: str | None = None
     artifact_path: str | None = None
     pc_output_path: str | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class FileLedgerBridgeReceipt:
+    task_id: str | None
+    ledger_path: str | None
+    status: str
+    ledger_recorded: bool
+    evidence_recorded: bool = False
+    failure_recorded: bool = False
+    failure_fingerprint: str | None = None
+    pc_output_path: str | None = None
+    reason: str | None = None
+    conflict_detail: dict[str, Any] | None = None
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -787,6 +803,19 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
             log("EVIDENCE", f"pc_output valid — PASS:{pass_num} matches", dry_run)
             log("TRANSITION", "pc_turn → mac_turn", dry_run)
             if not dry_run:
+                bridge_receipt = reconcile_file_loop_result_with_ledger(
+                    status,
+                    result_kind="success",
+                )
+                if bridge_receipt.status != "bridge_disabled":
+                    log(
+                        "EVIDENCE" if bridge_receipt.ledger_recorded else "WARN",
+                        f"file-loop ledger bridge success receipt | task={bridge_receipt.task_id} | status={bridge_receipt.status}",
+                        dry_run,
+                    )
+                if not _bridge_receipt_allows_legacy_success(bridge_receipt):
+                    write_status("blocked", reason=f"file_ledger_bridge_{bridge_receipt.status}")
+                    return
                 write_status("mac_turn")
             return
         running_now = builder_running()
@@ -818,6 +847,13 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
             log("EVIDENCE", f"pc_output stale — file says PASS:{found_pass}, expected {pass_num}", dry_run)
             log("TRANSITION", "pc_turn → blocked (reason: stale_pc_output)", dry_run)
             if not dry_run:
+                bridge_receipt = _record_file_ledger_failure(
+                    status,
+                    failure_reason="stale_pc_output",
+                    dry_run=dry_run,
+                )
+                if _bridge_receipt_recorded_failure(bridge_receipt):
+                    return
                 write_status("blocked", reason="stale_pc_output")
             return
         if reason == "quality_gate":
@@ -845,6 +881,13 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
             log("EVIDENCE", "pc_output failed quality gate (missing required narrative/reporting sections)", dry_run)
             log("TRANSITION", "pc_turn → blocked (reason: weak_pc_output_quality)", dry_run)
             if not dry_run:
+                bridge_receipt = _record_file_ledger_failure(
+                    status,
+                    failure_reason="weak_pc_output_quality",
+                    dry_run=dry_run,
+                )
+                if _bridge_receipt_recorded_failure(bridge_receipt):
+                    return
                 write_status("blocked", reason="weak_pc_output_quality")
             return
         # If stale BLOCKED output remains and Builder is currently dead, attempt a
@@ -854,6 +897,13 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
                 log("EVIDENCE", "harness-backed retest failed closed — no live builder fallback allowed", dry_run)
                 log("TRANSITION", "pc_turn → blocked (reason: harness_retest_fail_closed)", dry_run)
                 if not dry_run:
+                    bridge_receipt = _record_file_ledger_failure(
+                        status,
+                        failure_reason="harness_retest_fail_closed",
+                        dry_run=dry_run,
+                    )
+                    if _bridge_receipt_recorded_failure(bridge_receipt):
+                        return
                     write_status("blocked", reason="harness_retest_fail_closed")
                 return
             if not running_now:
@@ -896,6 +946,13 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
 
     log("TRANSITION", "pc_turn → idle (self-heal skip after repeated builder failure)", dry_run)
     if not dry_run:
+        bridge_receipt = _record_file_ledger_failure(
+            status,
+            failure_reason="builder_timeout",
+            dry_run=dry_run,
+        )
+        if _bridge_receipt_recorded_failure(bridge_receipt):
+            return
         recovery_task = _queue_manus_recovery_task(archive_task, "builder_timeout_after_retry")
         if recovery_task:
             log("ACTION", f"queued self-heal recovery task: {recovery_task}")
@@ -1363,6 +1420,13 @@ def _local_builder_enabled(explicit: bool | None) -> bool:
     return value.strip().lower() in LOCAL_BUILDER_FLAG_ON_VALUES
 
 
+def _file_ledger_bridge_enabled(explicit: bool | None = None) -> bool:
+    if explicit is not None:
+        return bool(explicit)
+    value = os.environ.get(FILE_LEDGER_BRIDGE_FLAG, "")
+    return value.strip().lower() in FILE_LEDGER_BRIDGE_FLAG_ON_VALUES
+
+
 def _task_row_or_none(ledger: "ControlPlaneLedger", task_id: str) -> dict | None:
     try:
         return ledger.get_task(task_id)
@@ -1390,6 +1454,285 @@ def _row_matches_live_lease(row: dict | None, lease: "TaskLease") -> bool:
     if parsed.tzinfo is None:
         return parsed > datetime.datetime.now()
     return parsed > datetime.datetime.now(parsed.tzinfo)
+
+
+def _row_has_live_lease(row: dict | None) -> bool:
+    if row is None or row.get("status") != "LEASED":
+        return False
+    if not row.get("owner") or not row.get("lease_nonce"):
+        return False
+    expiry = row.get("lease_expiry")
+    if not expiry:
+        return False
+    try:
+        parsed = datetime.datetime.fromisoformat(str(expiry))
+    except ValueError:
+        return False
+    if parsed.tzinfo is None:
+        return parsed > datetime.datetime.now()
+    return parsed > datetime.datetime.now(parsed.tzinfo)
+
+
+def _int_or_none(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _phase_c_context_conflict(status: dict, row: dict) -> dict[str, Any] | None:
+    conflicts: dict[str, Any] = {}
+    expected_owner = status.get("phase_c_owner")
+    if expected_owner is not None and expected_owner != row.get("owner"):
+        conflicts["owner"] = {"status_json": expected_owner, "ledger": row.get("owner")}
+    expected_nonce = status.get("phase_c_lease_nonce")
+    if expected_nonce is not None and expected_nonce != row.get("lease_nonce"):
+        conflicts["lease_nonce"] = "status_json_nonce_does_not_match_live_ledger"
+    expected_attempt = _int_or_none(status.get("phase_c_attempt_no", status.get("pass")))
+    if expected_attempt is not None and expected_attempt != _int_or_none(row.get("attempts")):
+        conflicts["attempt_no"] = {"status_json": expected_attempt, "ledger": row.get("attempts")}
+    expected_status = status.get("phase_c_status")
+    if expected_status is not None and expected_status != row.get("status"):
+        conflicts["phase_c_status"] = {"status_json": expected_status, "ledger": row.get("status")}
+    return conflicts or None
+
+
+def _file_ledger_receipt(
+    *,
+    task_id: str | None,
+    ledger_path: Path | str | None,
+    status: str,
+    ledger_recorded: bool = False,
+    evidence_recorded: bool = False,
+    failure_recorded: bool = False,
+    failure_fingerprint: str | None = None,
+    pc_output_path: Path | str | None = None,
+    reason: str | None = None,
+    conflict_detail: dict[str, Any] | None = None,
+) -> FileLedgerBridgeReceipt:
+    return FileLedgerBridgeReceipt(
+        task_id=task_id,
+        ledger_path=str(ledger_path) if ledger_path is not None else None,
+        status=status,
+        ledger_recorded=ledger_recorded,
+        evidence_recorded=evidence_recorded,
+        failure_recorded=failure_recorded,
+        failure_fingerprint=failure_fingerprint,
+        pc_output_path=str(pc_output_path) if pc_output_path is not None else None,
+        reason=reason,
+        conflict_detail=conflict_detail,
+    )
+
+
+def reconcile_file_loop_result_with_ledger(
+    status: dict,
+    *,
+    result_kind: str,
+    failure_reason: str | None = None,
+    pc_output_path: Path | None = None,
+    status_json_path: Path | None = None,
+    task_md_path: Path | None = None,
+    bridge_enabled: bool | None = None,
+    ledger_factory: Callable[[Path], Any] | None = None,
+) -> FileLedgerBridgeReceipt:
+    """Record a legacy file-loop result against the authoritative ledger."""
+
+    pc_output_path = pc_output_path or PC_OUTPUT
+    status_json_path = status_json_path or STATUS_FILE
+    task_md_path = task_md_path or TASK_MD
+
+    if not _file_ledger_bridge_enabled(bridge_enabled):
+        return _file_ledger_receipt(
+            task_id=status.get("phase_c_task_id"),
+            ledger_path=status.get("phase_c_ledger"),
+            status="bridge_disabled",
+            reason=f"{FILE_LEDGER_BRIDGE_FLAG} is not enabled",
+            pc_output_path=pc_output_path,
+        )
+    if result_kind not in {"success", "failure"}:
+        raise ValueError(f"unsupported file-loop result kind: {result_kind!r}")
+    if not _PHASE_C_AVAILABLE or ControlPlaneLedger is None:
+        return _file_ledger_receipt(
+            task_id=status.get("phase_c_task_id"),
+            ledger_path=status.get("phase_c_ledger"),
+            status="phase_c_unavailable",
+            reason="Control Plane ledger module is unavailable",
+            pc_output_path=pc_output_path,
+        )
+
+    task_id = status.get("phase_c_task_id")
+    ledger_path_raw = status.get("phase_c_ledger")
+    if not task_id or not ledger_path_raw:
+        return _file_ledger_receipt(
+            task_id=str(task_id) if task_id else None,
+            ledger_path=str(ledger_path_raw) if ledger_path_raw else None,
+            status="no_phase_c_context",
+            reason="status snapshot lacks phase_c_task_id or phase_c_ledger",
+            pc_output_path=pc_output_path,
+        )
+
+    ledger_path = Path(str(ledger_path_raw))
+    factory = ledger_factory or ControlPlaneLedger
+    ledger = factory(ledger_path)
+    row = _task_row_or_none(ledger, str(task_id))
+    if row is None:
+        return _file_ledger_receipt(
+            task_id=str(task_id),
+            ledger_path=ledger_path,
+            status="missing_task",
+            reason="ledger has no task for status snapshot",
+            pc_output_path=pc_output_path,
+        )
+
+    if result_kind == "success" and row.get("status") == "VERIFYING":
+        evidence = row.get("candidate_evidence") or {}
+        if isinstance(evidence, dict) and evidence.get("pc_output_path"):
+            return _file_ledger_receipt(
+                task_id=str(task_id),
+                ledger_path=ledger_path,
+                status="already_recorded",
+                ledger_recorded=True,
+                evidence_recorded=True,
+                pc_output_path=evidence.get("pc_output_path"),
+                reason="candidate evidence is already recorded",
+            )
+
+    fingerprint = f"file_loop_{failure_reason or 'failure'}"
+    if result_kind == "failure" and row.get("status") in {"READY", "BLOCKED"}:
+        if row.get("failure_fingerprint") == fingerprint:
+            return _file_ledger_receipt(
+                task_id=str(task_id),
+                ledger_path=ledger_path,
+                status="already_recorded",
+                ledger_recorded=True,
+                failure_recorded=True,
+                failure_fingerprint=fingerprint,
+                pc_output_path=pc_output_path,
+                reason="failure is already recorded",
+            )
+
+    conflict = _phase_c_context_conflict(status, row)
+    if conflict:
+        return _file_ledger_receipt(
+            task_id=str(task_id),
+            ledger_path=ledger_path,
+            status="conflicting_sources",
+            reason="status snapshot does not match the live ledger row",
+            pc_output_path=pc_output_path,
+            conflict_detail=conflict,
+        )
+    if not _row_has_live_lease(row):
+        return _file_ledger_receipt(
+            task_id=str(task_id),
+            ledger_path=ledger_path,
+            status="stale_lease_result_rejected",
+            reason=f"ledger task is not a live lease: {row.get('status')}",
+            pc_output_path=pc_output_path,
+        )
+
+    owner = str(row["owner"])
+    lease_nonce = str(row["lease_nonce"])
+    attempt_no = _int_or_none(row.get("attempts")) or 0
+    observed_pass = _int_or_none(status.get("pass"))
+    if result_kind == "success":
+        if not pc_output_path.exists():
+            return _file_ledger_receipt(
+                task_id=str(task_id),
+                ledger_path=ledger_path,
+                status="missing_pc_output",
+                reason="success cannot be recorded without pc_output.md",
+                pc_output_path=pc_output_path,
+            )
+        evidence = {
+            "schema_version": "polish_loop_file_ledger_reconciliation_receipt_v0",
+            "bridge": "orchestrator_file_loop_reconciliation",
+            "source": "legacy_file_loop",
+            "status": "candidate_submitted",
+            "task_id": str(task_id),
+            "owner": owner,
+            "lease_nonce": lease_nonce,
+            "attempt_no": attempt_no,
+            "observed_pass": observed_pass,
+            "pc_output_path": str(pc_output_path),
+            "status_json_path": str(status_json_path),
+            "task_md_path": str(task_md_path),
+        }
+        ledger.submit_candidate_evidence(
+            str(task_id),
+            owner=owner,
+            lease_nonce=lease_nonce,
+            evidence=evidence,
+        )
+        return _file_ledger_receipt(
+            task_id=str(task_id),
+            ledger_path=ledger_path,
+            status="candidate_submitted",
+            ledger_recorded=True,
+            evidence_recorded=True,
+            pc_output_path=pc_output_path,
+        )
+
+    failure_detail = {
+        "schema_version": "polish_loop_file_ledger_reconciliation_receipt_v0",
+        "bridge": "orchestrator_file_loop_reconciliation",
+        "source": "legacy_file_loop",
+        "status": "failure_recorded",
+        "task_id": str(task_id),
+        "owner": owner,
+        "lease_nonce": lease_nonce,
+        "attempt_no": attempt_no,
+        "observed_pass": observed_pass,
+        "pc_output_path": str(pc_output_path),
+        "status_json_path": str(status_json_path),
+        "task_md_path": str(task_md_path),
+        "failure_reason": failure_reason or "failure",
+    }
+    ledger.record_failure(
+        str(task_id),
+        owner=owner,
+        lease_nonce=lease_nonce,
+        failure_fingerprint=fingerprint,
+        failure_detail=failure_detail,
+    )
+    return _file_ledger_receipt(
+        task_id=str(task_id),
+        ledger_path=ledger_path,
+        status="failure_recorded",
+        ledger_recorded=True,
+        failure_recorded=True,
+        failure_fingerprint=fingerprint,
+        pc_output_path=pc_output_path,
+    )
+
+
+def _bridge_receipt_allows_legacy_success(receipt: FileLedgerBridgeReceipt) -> bool:
+    return receipt.status == "bridge_disabled" or (
+        receipt.ledger_recorded and receipt.evidence_recorded
+    )
+
+
+def _bridge_receipt_recorded_failure(receipt: FileLedgerBridgeReceipt) -> bool:
+    return receipt.status != "bridge_disabled" and receipt.ledger_recorded and receipt.failure_recorded
+
+
+def _record_file_ledger_failure(
+    status: dict,
+    *,
+    failure_reason: str,
+    dry_run: bool = False,
+) -> FileLedgerBridgeReceipt:
+    receipt = reconcile_file_loop_result_with_ledger(
+        status,
+        result_kind="failure",
+        failure_reason=failure_reason,
+    )
+    if receipt.status != "bridge_disabled":
+        log(
+            "EVIDENCE" if receipt.ledger_recorded else "WARN",
+            f"file-loop ledger bridge failure receipt | task={receipt.task_id} | status={receipt.status}",
+            dry_run,
+        )
+    return receipt
 
 
 def _builder_result_field(result: Any, field: str, default: Any = None) -> Any:

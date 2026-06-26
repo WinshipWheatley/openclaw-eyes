@@ -70,6 +70,8 @@ def test_known_flags_are_detected_without_live_env_reads():
         "found",
         "not_found_in_scanned_repo_paths",
     }
+    assert flags["OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"]["status"] == "found"
+    assert "polish_loop/orchestrator.py" in flags["OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"]["files"]
 
     assert payload["policy"]["production_env_files_inspected"] is False
     assert payload["policy"]["systemd_inspected_or_modified"] is False
@@ -91,6 +93,17 @@ def test_polish_loop_builder_flag_detection_handles_bridge_present(tmp_path):
 
     assert flag["status"] == "found"
     assert flag["files"] == ["polish_loop/orchestrator.py"]
+
+
+def test_file_ledger_bridge_flag_is_registered_as_intentionally_off():
+    capabilities = _capabilities_by_id(_payload())
+    bridge = capabilities["polish_loop_file_ledger_bridge"]
+
+    assert bridge["flag_or_config"] == ["OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"]
+    assert bridge["gate_stage"] == "intentionally_off"
+    assert bridge["risk_level"] == "medium"
+    assert bridge["activation_allowed_now"] is False
+    assert "canary" in bridge["next_required_step"].lower()
 
 
 def test_unknown_or_unverified_current_state_is_honest():
