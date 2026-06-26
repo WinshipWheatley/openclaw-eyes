@@ -773,6 +773,12 @@
 !tests/test_context_packet_retrieval.py
 !scripts/check_runtime_activation_gate.py
 !tests/test_runtime_activation_gate.py
+!activation_gate_register.py
+!tests/test_activation_gate_register.py
+!workspaces/
+!workspaces/openclaw_program/
+!workspaces/openclaw_program/ACTIVATION_GATE_REGISTER.md
+!workspaces/openclaw_program/activation_gate_register.json
 !tests/test_context_substrate_pipeline.py
 !scripts/build_helm_state.py
 !tests/test_helm_state.py

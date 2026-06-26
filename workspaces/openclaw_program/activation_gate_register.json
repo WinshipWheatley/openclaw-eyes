@@ -1,0 +1,991 @@
+{
+  "capabilities": [
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md"
+      ],
+      "canary_status": "synthetic_ready",
+      "capability_id": "active_machinery_classification",
+      "current_state_if_verifiable": {
+        "audit_report": "activation audit classifies as ready_synthetic",
+        "code_default": "dry-run/mock classification path",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch"
+      },
+      "default_state": "dry_run",
+      "disabled_by": "dry-run mode and operator gate",
+      "display_name": "Active Machinery classification orchestrator",
+      "enabled_by": "future operator-approved Gemini verification dispatch",
+      "evidence_refs": [
+        "active_machinery_classification_orchestrator.py",
+        "tests/test_active_machinery_classification_orchestrator.py"
+      ],
+      "flag_or_config": [
+        "dry_run mode; Gemini worker dispatch operator-gated"
+      ],
+      "gate_stage": "dry_run",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "record a synthetic-to-canary plan before any Gemini worker dispatch",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "built as synthetic classification; live worker dispatch remains gated",
+      "risk_level": "medium",
+      "rollback_note": "leave worker dispatch disabled; keep mock classification only",
+      "source_files": [
+        "active_machinery_classification_orchestrator.py"
+      ],
+      "tests": [
+        "tests/test_active_machinery_classification_orchestrator.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md"
+      ],
+      "canary_status": "synthetic_ready; no dispatch canary",
+      "capability_id": "agent_package_preview_contract",
+      "current_state_if_verifiable": {
+        "audit_report": "activation audit classifies as intentionally_disabled_safety",
+        "code_default": "operator_final_authority only; no runtime/model/agent/tool execution authority",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "metadata-only preview contract exists; all dispatch/external authority toggles are false"
+      },
+      "default_state": "intentionally disabled",
+      "disabled_by": "contract authority flags false",
+      "display_name": "Agent package preview contract",
+      "enabled_by": "future explicit operator approval for any dispatch-capable successor",
+      "evidence_refs": [
+        "agent_package_preview_contract.py",
+        "tests/test_agent_package_preview_contract.py"
+      ],
+      "flag_or_config": [
+        "contract toggles: runtime/model/agent/tool/package send authority false"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "use as review artifact only; do not grant package send authority",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "preview is intentionally not an activation or dispatch mechanism",
+      "risk_level": "medium",
+      "rollback_note": "keep metadata-only contract; reject any package preview that becomes dispatch",
+      "source_files": [
+        "agent_package_preview_contract.py"
+      ],
+      "tests": [
+        "tests/test_agent_package_preview_contract.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md"
+      ],
+      "canary_status": "not_run_live; dry-run tests only",
+      "capability_id": "cassandra_telegram_delivery",
+      "current_state_if_verifiable": {
+        "audit_report": "activation audit classifies delivery as intentionally disabled by safety",
+        "code_default": "off unless env toggle or flag file is enabled",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "code default dry-run/off; production toggle and authorized user were not inspected"
+      },
+      "default_state": "dry_run/off",
+      "disabled_by": "default toggle false and dry-run receipt path",
+      "display_name": "Cassandra / Telegram delivery",
+      "enabled_by": "explicit operator approval plus documented toggle for authorized internal Telegram only",
+      "evidence_refs": [
+        "cassandra_telegram_delivery.py:TOGGLE_ENV_VAR",
+        "cassandra_telegram_delivery.py:TelegramDeliveryReceipt",
+        "tests/test_cassandra_telegram_delivery.py"
+      ],
+      "flag_or_config": [
+        "CASSANDRA_TELEGRAM_DELIVERY_ENABLED",
+        "/mnt/c/OpenClaw/logs/cassandra_telegram_delivery_enabled.flag",
+        "TELEGRAM_AUTHORIZED_USER_ID"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "keep disabled unless Opus defines an operator-watched internal-only canary",
+      "operator_approval_required": true,
+      "owner": "Cassandra lane / Opus",
+      "reason_if_off": "live Telegram is an external action surface and remains intentionally off",
+      "risk_level": "high",
+      "rollback_note": "unset CASSANDRA_TELEGRAM_DELIVERY_ENABLED and remove the enabled flag file",
+      "source_files": [
+        "cassandra_telegram_delivery.py"
+      ],
+      "tests": [
+        "tests/test_cassandra_telegram_delivery.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [],
+      "canary_status": "synthetic_only",
+      "capability_id": "cassandra_telegram_dryrun_inbox",
+      "current_state_if_verifiable": {
+        "audit_report": "synthetic dry-run inbox; no live Telegram",
+        "code_default": "dry-run only with authority flags false",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting"
+      },
+      "default_state": "dry_run",
+      "disabled_by": "authority boundary blocks live Telegram and external actions",
+      "display_name": "Cassandra Telegram dry-run inbox",
+      "enabled_by": "local synthetic fixture processing only",
+      "evidence_refs": [
+        "cassandra_telegram_dryrun_inbox.py:AUTHORITY_BOUNDARY",
+        "tests/test_cassandra_telegram_dryrun_inbox.py"
+      ],
+      "flag_or_config": [
+        "local JSON dry-run inbox paths; no live Telegram credential flag"
+      ],
+      "gate_stage": "dry_run",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "keep as a synthetic proof source; do not connect to Telegram",
+      "operator_approval_required": true,
+      "owner": "Cassandra lane / Opus",
+      "reason_if_off": "live Telegram delivery remains disabled even though dry-run inbox can process local fixtures",
+      "risk_level": "medium",
+      "rollback_note": "delete local dry-run fixture binding; no live Telegram state exists to roll back",
+      "source_files": [
+        "cassandra_telegram_dryrun_inbox.py"
+      ],
+      "tests": [
+        "tests/test_cassandra_telegram_dryrun_inbox.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "user task scope: required proposed capability"
+      ],
+      "canary_status": "not_applicable",
+      "capability_id": "computer_use_worker_gateway",
+      "current_state_if_verifiable": {
+        "audit_report": "",
+        "code_default": "unknown",
+        "production": "not_applicable_proposed_only",
+        "summary": "proposed only; no production flag or built gateway was verified in this branch"
+      },
+      "default_state": "not_built/proposed",
+      "disabled_by": "no implementation or activation flag verified",
+      "display_name": "Computer Use Worker Gateway",
+      "enabled_by": "future design, audit, canary, and explicit operator approval",
+      "evidence_refs": [
+        "required by activation gate register task"
+      ],
+      "flag_or_config": [
+        "unknown"
+      ],
+      "gate_stage": "proposed",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "write a design/proposal before implementation; do not grant desktop/browser authority",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "not implemented in this evidence pass; proposed only",
+      "risk_level": "high",
+      "rollback_note": "do not create worker bindings until an approved design names rollback and receipts",
+      "source_files": [],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md",
+        "/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md"
+      ],
+      "canary_status": "audit_reported_running_flag_on; not_reverified_by_this_task",
+      "capability_id": "continuity_capsule",
+      "current_state_if_verifiable": {
+        "audit_report": "activation audit reported maestro-listener continuity flag ON on 2026-06-25",
+        "code_default": "off unless OPENCLAW_CONTINUITY_CAPSULE is truthy",
+        "production": "unknown_not_reverified; audit_reported_maestro_listener_continuity_on",
+        "summary": "code default off; activation audit reported maestro-listener continuity flag ON, but this generator did not inspect systemd or production env"
+      },
+      "default_state": "off",
+      "disabled_by": "OPENCLAW_CONTINUITY_CAPSULE default 0",
+      "display_name": "Continuity Capsule",
+      "enabled_by": "operator-controlled runtime environment",
+      "evidence_refs": [
+        "maestro_listener.py:_continuity_enabled",
+        "tests/test_continuity_stamp.py"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_CONTINUITY_CAPSULE"
+      ],
+      "gate_stage": "unknown",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "Opus should verify current runtime env without exposing secrets and record whether it remains approved live",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "current production state was not reverified here; code default is off",
+      "risk_level": "low",
+      "rollback_note": "unset OPENCLAW_CONTINUITY_CAPSULE or set it to 0 and restart only through approved service-management procedure",
+      "source_files": [
+        "maestro_listener.py"
+      ],
+      "tests": [
+        "tests/test_continuity_stamp.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md"
+      ],
+      "canary_status": "synthetic_ready; no live email canary",
+      "capability_id": "draft_only_email_adapter",
+      "current_state_if_verifiable": {
+        "audit_report": "activation audit classifies as ready_synthetic and unwired Level-1 draft-only candidate",
+        "code_default": "no live email send, Gmail draft, Apple Mail draft, network, credential, or workflow authority",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "adapter exists as deterministic local artifact generator; live draft and send authority are false; production wiring unknown"
+      },
+      "default_state": "unwired/no-send",
+      "disabled_by": "no router binding and authority_boundary live send/draft fields false",
+      "display_name": "Draft-only email adapter",
+      "enabled_by": "future explicit draft-only router binding plus operator approval; never send authority",
+      "evidence_refs": [
+        "gated_email_draft_adapter.py:AUTHORITY_BOUNDARY",
+        "tests/test_gated_email_draft_adapter.py"
+      ],
+      "flag_or_config": [
+        "no_live_send_flag; draft adapter is deterministic/no-send",
+        "unknown_live_wiring_flag"
+      ],
+      "gate_stage": "synthetic",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "wire only a synthetic/operator-review draft lane with receipts; do not create live Gmail/Mail drafts",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "built local draft artifact path is not live-wired; live email and provider actions remain prohibited",
+      "risk_level": "high",
+      "rollback_note": "remove the router binding and keep generated local artifacts only",
+      "source_files": [
+        "gated_email_draft_adapter.py"
+      ],
+      "tests": [
+        "tests/test_gated_email_draft_adapter.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "docs/operations/OPENROUTER_KEY_STORAGE.md",
+        "docs/planning/OPENCLAW_LANE_A_OPENROUTER_SCOUT_BACKLOG.md"
+      ],
+      "canary_status": "not_run_live",
+      "capability_id": "external_model_openrouter_path",
+      "current_state_if_verifiable": {
+        "audit_report": "OpenRouter docs/backlog say support is optional guarded plumbing, not default runtime authority",
+        "code_default": "off/fail-closed without OPENCLAW_FREEFORM_CLOUD and OpenRouter configuration",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected"
+      },
+      "default_state": "fail_closed/no_external_call",
+      "disabled_by": "no explicit OPENCLAW_FREEFORM_CLOUD enablement in this task; fail-closed if key/model missing",
+      "display_name": "External model / OpenRouter path",
+      "enabled_by": "explicit operator approval, safe classification, cloud flag, and provider configuration",
+      "evidence_refs": [
+        "protected_generate.py:OPENCLAW_FREEFORM_CLOUD",
+        "chief_llm.py:OPENROUTER_API_KEY",
+        "chief_llm.py:_external_model_configured"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_FREEFORM_CLOUD",
+        "OPENROUTER_API_KEY",
+        "OPENROUTER_MODEL",
+        "OPENCLAW_EXTERNAL_MODEL",
+        "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+        "CASSANDRA_EXTERNAL_MODEL"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "external model calls can cross privacy boundaries and require explicit policy approval",
+      "risk_level": "high",
+      "rollback_note": "unset OPENCLAW_FREEFORM_CLOUD and OpenRouter model/provider variables; remove provider credentials through approved secret process",
+      "source_files": [
+        "protected_generate.py",
+        "chief_llm.py",
+        "openclaw_lm_consult_spine.py"
+      ],
+      "tests": [
+        "tests/test_chief_llm_router.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md"
+      ],
+      "canary_status": "queued_for_contained_canary; not_run_due_to_load_and_audit_gap",
+      "capability_id": "frontdoor_model_profile",
+      "current_state_if_verifiable": {
+        "audit_report": "CODEX front-door integration result reports default-off integration and no live enablement",
+        "code_default": "off unless OPENCLAW_FRONTDOOR_MODEL_PROFILE is truthy and packet is a Maestro front-door packet",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review"
+      },
+      "default_state": "off",
+      "disabled_by": "OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0",
+      "display_name": "Front-door model profile",
+      "enabled_by": "OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope",
+      "evidence_refs": [
+        "protected_generate.py:_frontdoor_model_profile_flag_enabled",
+        "chief_llm.py:select_frontdoor_model",
+        "tests/test_frontdoor_model_profile.py"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
+        "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
+        "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+        "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
+        "OPENCLAW_FRONTDOOR_MODEL_MAX_GB"
+      ],
+      "gate_stage": "canary",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "run a contained front-door canary only after load is acceptable and Opus approves the envelope",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "built but canary evidence is incomplete; not production-safe to enable from this register",
+      "risk_level": "medium",
+      "rollback_note": "unset OPENCLAW_FRONTDOOR_MODEL_PROFILE; protected_generate falls back to deterministic/non-profile path",
+      "source_files": [
+        "protected_generate.py",
+        "chief_llm.py"
+      ],
+      "tests": [
+        "tests/test_frontdoor_model_profile.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [],
+      "canary_status": "not_run; live send prohibited",
+      "capability_id": "gated_email_send_rail",
+      "current_state_if_verifiable": {
+        "audit_report": "not in scope for activation; included because it is a built sensitive off capability",
+        "code_default": "no live SMTP/Gmail/Mail/provider/network authority",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "send rail exists as a deterministic fail-closed receipt surface; live provider/network authority is false"
+      },
+      "default_state": "blocked/no-send",
+      "disabled_by": "AUTHORITY_BOUNDARY live send/provider fields false",
+      "display_name": "Gated email send rail",
+      "enabled_by": "not enabled by this register; any future send path requires separate approval and legal/comms policy",
+      "evidence_refs": [
+        "gated_email_send_adapter.py:AUTHORITY_BOUNDARY",
+        "tests/test_gated_email_send_adapter.py"
+      ],
+      "flag_or_config": [
+        "approval receipt inputs only; no live provider flag"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "do not activate; use draft-only review rail instead",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "email sending is an external action and remains outside this task",
+      "risk_level": "critical",
+      "rollback_note": "keep provider send calls absent; remove any caller binding that attempts live send",
+      "source_files": [
+        "gated_email_send_adapter.py"
+      ],
+      "tests": [
+        "tests/test_gated_email_send_adapter.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md"
+      ],
+      "canary_status": "not_run",
+      "capability_id": "interpreter_lm",
+      "current_state_if_verifiable": {
+        "audit_report": "reported built and default-off; only tests enable the flag",
+        "code_default": "off unless OPENCLAW_INTERPRETER_LM is truthy",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "code default off; production state unknown because production env files/services were not inspected"
+      },
+      "default_state": "off",
+      "disabled_by": "OPENCLAW_INTERPRETER_LM default 0",
+      "display_name": "Interpreter-LM",
+      "enabled_by": "explicit operator approval after audit and canary evidence",
+      "evidence_refs": [
+        "interpreter_lm.py:_interpreter_enabled",
+        "tests/test_continuity_stamp.py:interpreter flag test coverage"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_INTERPRETER_LM"
+      ],
+      "gate_stage": "disabled",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "integrated-state audit and bounded canary plan before any live activation",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "built flag remains default-off; no live activation evidence is recorded in this register",
+      "risk_level": "medium",
+      "rollback_note": "unset OPENCLAW_INTERPRETER_LM or set it to 0; deterministic fallback remains available",
+      "source_files": [
+        "interpreter_lm.py",
+        "maestro_listener.py"
+      ],
+      "tests": [
+        "tests/test_continuity_stamp.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md",
+        "docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_MAC_BRIDGE_VALIDATION_PROTOCOL.md",
+        "docs/planning/openclaw_legal/law_program/LEGAL_VAULT_PATH_CONTRACT.md"
+      ],
+      "canary_status": "blocked; no real matter canary",
+      "capability_id": "legal_sealed_ingestion",
+      "current_state_if_verifiable": {
+        "audit_report": "legal validation protocols are planning-only and do not authorize real matter access",
+        "code_default": "synthetic-only validation paths; no real legal private-root ingestion",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "local legal policies and console bridge are synthetic/local-only; real sealed/private ingestion remains blocked"
+      },
+      "default_state": "blocked/no_real_matter_ingestion",
+      "disabled_by": "synthetic-only bridge and path guard constraints",
+      "display_name": "Legal Sealed ingestion",
+      "enabled_by": "future explicit legal authorization, sealed-data protocol, audit, and operator approval",
+      "evidence_refs": [
+        "legal/local_capability_policy.py",
+        "legal/path_guard.py",
+        "apps/legal-console-spike/src-tauri/src/run.rs:synthetic_only"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_LEGAL_PRIVATE_ROOT",
+        "legal-console synthetic_only bridge"
+      ],
+      "gate_stage": "blocked",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "complete legal authorization and sealed-ingestion design before any implementation or test with real material",
+      "operator_approval_required": true,
+      "owner": "Legal lane / Opus",
+      "reason_if_off": "legal evidence and sealed/private matter ingestion are explicitly not ready",
+      "risk_level": "critical",
+      "rollback_note": "keep legal private roots inaccessible; revert any bridge that can touch real sealed material",
+      "source_files": [
+        "legal/local_capability_policy.py",
+        "legal/path_guard.py",
+        "apps/legal-console-spike/src-tauri/src/run.rs"
+      ],
+      "tests": [
+        "tests/test_alternative_methods.py",
+        "tests/test_support_packet.py",
+        "tests/test_legal_mock_discovery_demo.py",
+        "tests/test_legal_synthetic_stress_pack.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [],
+      "canary_status": "not_run_by_this_task",
+      "capability_id": "lm_consult_spine",
+      "current_state_if_verifiable": {
+        "audit_report": "watch-desk status language records blocked provider config as the safe default",
+        "code_default": "blocked unless approved provider config is present and consults are enabled",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "advisory-only consult spine is built; provider credentials/config and production env were not inspected"
+      },
+      "default_state": "provider_config_required/off",
+      "disabled_by": "provider config required and no runtime mutation authority",
+      "display_name": "Advisory LM consult spine",
+      "enabled_by": "explicit operator approval and approved provider configuration; advisory-only",
+      "evidence_refs": [
+        "openclaw_lm_consult_spine.py:GENERIC_ENABLE_ENV",
+        "openclaw_lm_consult_spine.py:AUTHORITY_FALSE"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_ENABLE_LM_CONSULTS",
+        "OPENCLAW_LM_PROVIDER",
+        "OPENCLAW_GEMINI_MODEL",
+        "OPENCLAW_GEMINI_FORM_MODEL",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_GENERATIVE_AI_API_KEY"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "keep advisory-only and record any provider probe evidence separately without exposing credentials",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "external/provider-backed consults require explicit approval and credential-safe verification",
+      "risk_level": "high",
+      "rollback_note": "unset OPENCLAW_ENABLE_LM_CONSULTS and provider/model variables",
+      "source_files": [
+        "openclaw_lm_consult_spine.py"
+      ],
+      "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md"
+      ],
+      "canary_status": "synthetic_ready; no real album evidence ingest",
+      "capability_id": "niles_album_evidence_intake_boundary",
+      "current_state_if_verifiable": {
+        "audit_report": "activation audit classifies as ready_synthetic",
+        "code_default": "no real metadata recorded unless operator-supplied through bounded metadata fields",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "metadata-only boundary exists; raw audio, DAW contents, broad drive scans, automation, and mutation are blocked"
+      },
+      "default_state": "synthetic/metadata-only",
+      "disabled_by": "blocked raw/private evidence types and no broad scan authority",
+      "display_name": "Niles album evidence intake boundary",
+      "enabled_by": "operator-supplied metadata only under approved intake boundary",
+      "evidence_refs": [
+        "niles_album_evidence_intake_boundary.py:NO_AUTHORITY_FLAGS",
+        "tests/test_niles_album_evidence_intake_boundary.py"
+      ],
+      "flag_or_config": [
+        "metadata-only intake contract; no live private-root flag"
+      ],
+      "gate_stage": "synthetic",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "if needed, run only synthetic metadata tests or operator-supplied metadata review",
+      "operator_approval_required": true,
+      "owner": "Niles lane / Opus",
+      "reason_if_off": "real album/private evidence ingestion is not activated; only metadata boundary exists",
+      "risk_level": "medium",
+      "rollback_note": "reject metadata packets and keep raw/private evidence inaccessible",
+      "source_files": [
+        "niles_album_evidence_intake_boundary.py"
+      ],
+      "tests": [
+        "tests/test_niles_album_evidence_intake_boundary.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md"
+      ],
+      "canary_status": "blocked; no live loop",
+      "capability_id": "polish_loop_factory_mode",
+      "current_state_if_verifiable": {
+        "audit_report": "Polish Loop audit switch criteria passed 2/10 and blockers #2/#3 remain",
+        "code_default": "not a default-on production loop; launch paths set test/send-hold guards for lane workers",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "factory remains NOT_READY; no live loop was run or enabled"
+      },
+      "default_state": "not_ready/off",
+      "disabled_by": "audit NOT_READY verdict and live-loop prohibition",
+      "display_name": "Polish Loop factory mode",
+      "enabled_by": "only after blockers #2 and #3 and all 10 switch criteria pass re-audit",
+      "evidence_refs": [
+        "/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md:10-point switch criteria",
+        "polish_loop/orchestrator.py"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
+        "OPENCLAW_POLISH_MAX_PARALLEL_LANES",
+        "OPENCLAW_POLISH_LANE_WORKER_CMD",
+        "OPENCLAW_TEST_MODE",
+        "OPENCLAW_SEND_HOLD"
+      ],
+      "gate_stage": "blocked",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "repair blockers #2 and #3, re-audit all 10 switch criteria, then separately approve activation",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "Blocker #1 candidate is not enough; factory mode remains NOT_READY",
+      "risk_level": "high",
+      "rollback_note": "do not start orchestrator loop; keep production queues/ledgers untouched",
+      "source_files": [
+        "polish_loop/orchestrator.py",
+        "polish_loop/lane_launcher.py",
+        "polish_loop/control_plane.py",
+        "builder_watcher.sh"
+      ],
+      "tests": [
+        "tests/test_polish_loop_self_scaling.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md"
+      ],
+      "canary_status": "synthetic_only_on_isolated_branch; no live loop",
+      "capability_id": "polish_loop_local_builder_bridge",
+      "current_state_if_verifiable": {
+        "audit_report": "CODEX_POLISH_LOOP_CLOSURE_RESULT.md reports synthetic-only fix for blocker #1 on isolated branch",
+        "code_default": "not present in current base; candidate branch default-off",
+        "production": "not_enabled_by_this_task; production_state_unknown_not_read",
+        "summary": "candidate built on isolated polish-loop-closure branch; current base branch does not contain the flag; production not enabled"
+      },
+      "default_state": "candidate default-off; not present in this base branch",
+      "disabled_by": "flag absent/off; live loop prohibited",
+      "display_name": "Polish Loop local builder bridge",
+      "enabled_by": "explicit OPENCLAW_POLISH_LOOP_LOCAL_BUILDER after Opus integration review, remaining blockers, and switch criteria",
+      "evidence_refs": [
+        "polish_loop/worker_runtime.py:run_local_builder_worker",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"
+      ],
+      "gate_stage": "blocked",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "Opus review/integration of closure branch, then blockers #2 and #3 and all 10 switch criteria",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "blocker #1 candidate exists but factory remains NOT_READY and this base branch lacks the bridge flag",
+      "risk_level": "high",
+      "rollback_note": "leave the flag unset; revert/disable bridge branch before any live dispatch if receipts regress",
+      "source_files": [
+        "polish_loop/orchestrator.py",
+        "polish_loop/worker_runtime.py",
+        "polish_loop/control_plane.py"
+      ],
+      "tests": [
+        "tests/test_polish_loop_closure_bridge.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [],
+      "canary_status": "not_applicable; readiness contract only",
+      "capability_id": "runtime_module_activation_gate",
+      "current_state_if_verifiable": {
+        "audit_report": "test coverage proves no runtime side effects or SQLite touch",
+        "code_default": "activation_allowed false",
+        "production": "unknown_not_read_from_env_files_or_services",
+        "summary": "v0 gate always blocks runtime/module activation and claims no runtime health"
+      },
+      "default_state": "blocked",
+      "disabled_by": "blocked_v0_contract",
+      "display_name": "Runtime / Module Activation Gate v0",
+      "enabled_by": "future explicit prerequisites: approval, rollback, manifest, boundary, receipt, dry-run proof",
+      "evidence_refs": [
+        "scripts/check_runtime_activation_gate.py:build_activation_gate_report",
+        "tests/test_runtime_activation_gate.py"
+      ],
+      "flag_or_config": [
+        "scripted gate report; no enable flag"
+      ],
+      "gate_stage": "blocked",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "next_required_step": "satisfy and record all gate prerequisites before runtime/module activation",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "the gate is intentionally a blocker, not an activator",
+      "risk_level": "medium",
+      "rollback_note": "keep using the v0 blocked report until a new audited gate version exists",
+      "source_files": [
+        "scripts/check_runtime_activation_gate.py"
+      ],
+      "tests": [
+        "tests/test_runtime_activation_gate.py"
+      ]
+    }
+  ],
+  "gate_stages": [
+    "disabled",
+    "dry_run",
+    "synthetic",
+    "canary",
+    "operator_approved_live",
+    "whitelisted_autonomous",
+    "intentionally_off",
+    "blocked",
+    "proposed",
+    "unknown"
+  ],
+  "generated_at": "2026-06-26T00:00:00-04:00",
+  "policy": {
+    "classification_rule": "Do not mark a capability enabled or safe to enable unless evidence proves it.",
+    "descriptive_only": true,
+    "features_enabled_by_this_register": false,
+    "live_external_actions_run": false,
+    "production_databases_touched": false,
+    "production_env_files_inspected": false,
+    "production_flags_changed": false,
+    "systemd_inspected_or_modified": false
+  },
+  "required_fields": [
+    "capability_id",
+    "display_name",
+    "flag_or_config",
+    "default_state",
+    "current_state_if_verifiable",
+    "source_files",
+    "tests",
+    "audits",
+    "canary_status",
+    "risk_level",
+    "owner",
+    "gate_stage",
+    "enabled_by",
+    "disabled_by",
+    "rollback_note",
+    "next_required_step",
+    "activation_allowed_now",
+    "operator_approval_required",
+    "reason_if_off",
+    "last_verified_at",
+    "evidence_refs"
+  ],
+  "schema_version": "activation_gate_register_v0",
+  "summary": {
+    "activation_allowed_now": [],
+    "blocked": [
+      "legal_sealed_ingestion",
+      "polish_loop_factory_mode",
+      "polish_loop_local_builder_bridge",
+      "runtime_module_activation_gate"
+    ],
+    "currently_off_or_blocked": [
+      "agent_package_preview_contract",
+      "cassandra_telegram_delivery",
+      "computer_use_worker_gateway",
+      "continuity_capsule",
+      "external_model_openrouter_path",
+      "gated_email_send_rail",
+      "interpreter_lm",
+      "legal_sealed_ingestion",
+      "lm_consult_spine",
+      "polish_loop_factory_mode",
+      "polish_loop_local_builder_bridge",
+      "runtime_module_activation_gate"
+    ],
+    "intentionally_off": [
+      "agent_package_preview_contract",
+      "cassandra_telegram_delivery",
+      "external_model_openrouter_path",
+      "gated_email_send_rail",
+      "lm_consult_spine"
+    ],
+    "ready_for_canary": [
+      "frontdoor_model_profile"
+    ],
+    "total_capabilities": 17,
+    "unknown_production_state": [
+      "active_machinery_classification",
+      "agent_package_preview_contract",
+      "cassandra_telegram_delivery",
+      "cassandra_telegram_dryrun_inbox",
+      "computer_use_worker_gateway",
+      "continuity_capsule",
+      "draft_only_email_adapter",
+      "external_model_openrouter_path",
+      "frontdoor_model_profile",
+      "gated_email_send_rail",
+      "interpreter_lm",
+      "legal_sealed_ingestion",
+      "lm_consult_spine",
+      "niles_album_evidence_intake_boundary",
+      "polish_loop_factory_mode",
+      "polish_loop_local_builder_bridge",
+      "runtime_module_activation_gate"
+    ]
+  },
+  "verification": {
+    "flag_detection": {
+      "CASSANDRA_EXTERNAL_MODEL": {
+        "files": [
+          "chief_llm.py",
+          "tests/test_chief_llm_router.py"
+        ],
+        "status": "found"
+      },
+      "CASSANDRA_TELEGRAM_DELIVERY_ENABLED": {
+        "files": [
+          "cassandra_telegram_delivery.py"
+        ],
+        "status": "found"
+      },
+      "GEMINI_API_KEY": {
+        "files": [
+          "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "GOOGLE_API_KEY": {
+        "files": [
+          "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "GOOGLE_GENERATIVE_AI_API_KEY": {
+        "files": [
+          "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_CASSANDRA_EXTERNAL_MODEL": {
+        "files": [
+          "chief_llm.py",
+          "tests/test_chief_llm_router.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_CONTINUITY_CAPSULE": {
+        "files": [
+          "maestro_listener.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_ENABLE_LM_CONSULTS": {
+        "files": [
+          "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_EXTERNAL_MODEL": {
+        "files": [
+          "chief_llm.py",
+          "tests/test_chief_llm_router.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_FREEFORM_CLOUD": {
+        "files": [
+          "protected_generate.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST": {
+        "files": [
+          "chief_llm.py",
+          "tests/test_frontdoor_model_profile.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_FRONTDOOR_MODEL_MAX_GB": {
+        "files": [
+          "chief_llm.py",
+          "tests/test_frontdoor_model_profile.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_FRONTDOOR_MODEL_PROFILE": {
+        "files": [
+          "protected_generate.py",
+          "tests/test_frontdoor_model_profile.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_FRONTDOOR_NUM_PREDICT": {
+        "files": [
+          "protected_generate.py",
+          "tests/test_frontdoor_model_profile.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT": {
+        "files": [
+          "protected_generate.py",
+          "tests/test_frontdoor_model_profile.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_GEMINI_FORM_MODEL": {
+        "files": [
+          "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_GEMINI_MODEL": {
+        "files": [
+          "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_INTERPRETER_LM": {
+        "files": [
+          "interpreter_lm.py",
+          "tests/test_continuity_stamp.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_LEGAL_PRIVATE_ROOT": {
+        "files": [],
+        "status": "not_found_in_scanned_repo_paths"
+      },
+      "OPENCLAW_LM_PROVIDER": {
+        "files": [
+          "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_POLISH_LANE_WORKER_CMD": {
+        "files": [
+          "polish_loop/lane_launcher.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER": {
+        "files": [],
+        "status": "not_found_in_scanned_repo_paths"
+      },
+      "OPENCLAW_POLISH_MAX_PARALLEL_LANES": {
+        "files": [
+          "polish_loop/lane_launcher.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_SEND_HOLD": {
+        "files": [
+          "polish_loop/lane_launcher.py",
+          "polish_loop/orchestrator.py",
+          "tests/test_polish_loop_self_scaling.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_TEST_MODE": {
+        "files": [
+          "polish_loop/lane_launcher.py",
+          "polish_loop/orchestrator.py",
+          "protected_generate.py",
+          "tests/test_continuity_stamp.py",
+          "tests/test_polish_loop_self_scaling.py"
+        ],
+        "status": "found"
+      },
+      "OPENROUTER_API_KEY": {
+        "files": [
+          "chief_llm.py",
+          "tests/test_chief_llm_router.py"
+        ],
+        "status": "found"
+      },
+      "OPENROUTER_MODEL": {
+        "files": [
+          "chief_llm.py",
+          "tests/test_chief_llm_router.py"
+        ],
+        "status": "found"
+      },
+      "TELEGRAM_AUTHORIZED_USER_ID": {
+        "files": [
+          "cassandra_telegram_delivery.py",
+          "maestro_listener.py"
+        ],
+        "status": "found"
+      }
+    },
+    "missing_repo_evidence_files": [
+      "tests/test_polish_loop_closure_bridge.py"
+    ]
+  }
+}
