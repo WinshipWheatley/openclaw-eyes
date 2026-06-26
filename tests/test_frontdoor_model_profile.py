@@ -590,10 +590,36 @@ def test_pgwr_frontdoor_validation_failed(tmp_path):
     assert r["model_output_delivered"] is False
 
 
-def test_pgwr_real_frontdoor_packet_auto_uses_profile_local_path(tmp_path, monkeypatch):
+def test_pgwr_real_frontdoor_packet_flag_off_uses_legacy_path(tmp_path, monkeypatch):
+    calls: dict = {}
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", raising=False)
+
+    def gen(prompt, **kwargs):
+        calls["prompt"] = prompt
+        calls["kwargs"] = kwargs
+        return "Legacy path answer."
+
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_FRONTDOOR_PACKET,
+        generator_fn=gen,
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+    )
+    assert "Big picture, then middle, then small." in calls["prompt"]
+    assert "DETERMINISTIC PACKET:" in calls["prompt"]
+    assert "front_door_profile_used" not in outcome.receipt
+    assert _TELEMETRY_KEYS.isdisjoint(set(outcome.receipt.keys()))
+    assert outcome.receipt["route"] == "injected_generator"
+    assert outcome.receipt["model_call_performed"] is True
+    assert "Legacy path answer." in outcome.text
+
+
+def test_pgwr_real_frontdoor_packet_flag_on_auto_uses_profile_local_path(tmp_path, monkeypatch):
     import protected_generate as pg
 
     calls: dict = {}
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", "1")
     monkeypatch.setenv("OPENCLAW_FRONTDOOR_REPLY_TIMEOUT", "25")
     monkeypatch.setenv("OPENCLAW_FRONTDOOR_NUM_PREDICT", "180")
     monkeypatch.setattr(pg, "_live_model_allowed", lambda *a, **k: True)
@@ -647,6 +673,45 @@ def test_pgwr_real_frontdoor_packet_auto_uses_profile_local_path(tmp_path, monke
     assert r["delivered_response_source"] == "model"
     assert r["context_facts_kept"] == 1
     assert "Winship is the human operator." in outcome.text
+
+
+def test_pgwr_explicit_frontdoor_true_works_with_flag_off(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", raising=False)
+
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_FRONTDOOR_PACKET,
+        generator_fn=_gen_returning("Winship is the operator.", done_reason="stop"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+    )
+    assert outcome.receipt["front_door_profile_used"] is True
+    assert outcome.receipt["model_fallback_reason"] == "model_ok"
+    assert outcome.receipt["model_output_delivered"] is True
+
+
+def test_pgwr_explicit_frontdoor_false_overrides_flag_on(tmp_path, monkeypatch):
+    calls: dict = {}
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", "1")
+
+    def gen(prompt, **kwargs):
+        calls["prompt"] = prompt
+        calls["kwargs"] = kwargs
+        return "Forced legacy answer."
+
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_FRONTDOOR_PACKET,
+        generator_fn=gen,
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=False,
+    )
+    assert "Big picture, then middle, then small." in calls["prompt"]
+    assert "front_door_profile_used" not in outcome.receipt
+    assert _TELEMETRY_KEYS.isdisjoint(set(outcome.receipt.keys()))
+    assert "Forced legacy answer." in outcome.text
 
 
 # Test 17: flag-off / front_door_profile=False / params absent → receipts BYTE-IDENTICAL.

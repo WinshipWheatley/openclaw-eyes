@@ -199,13 +199,22 @@ def _is_maestro_frontdoor_packet(context_packet: Mapping[str, Any] | str | None)
     )
 
 
+def _frontdoor_model_profile_flag_enabled() -> bool:
+    return os.environ.get("OPENCLAW_FRONTDOOR_MODEL_PROFILE", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def _frontdoor_profile_active(
     explicit: bool | None,
     context_packet: Mapping[str, Any] | str | None,
 ) -> bool:
     if explicit is not None:
         return bool(explicit)
-    return _is_maestro_frontdoor_packet(context_packet)
+    return _frontdoor_model_profile_flag_enabled() and _is_maestro_frontdoor_packet(context_packet)
 
 
 def _frontdoor_timeout_from_env() -> float | None:
