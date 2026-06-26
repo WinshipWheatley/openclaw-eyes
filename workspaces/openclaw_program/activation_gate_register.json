@@ -10,7 +10,7 @@
       "current_state_if_verifiable": {
         "audit_report": "activation audit classifies as ready_synthetic",
         "code_default": "dry-run/mock classification path",
-        "production": "unknown_not_read_from_env_files_or_services",
+        "production": "dry_run_verified",
         "summary": "classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch"
       },
       "default_state": "dry_run",
@@ -26,6 +26,13 @@
       ],
       "gate_stage": "dry_run",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "dry_run_verified",
+      "live_state": {
+        "confidence": "medium",
+        "findings": [],
+        "notes": "capability is static dry-run/synthetic; no live feature flag is defined for reconciliation",
+        "status": "dry_run_verified"
+      },
       "next_required_step": "record a synthetic-to-canary plan before any Gemini worker dispatch",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -65,6 +72,13 @@
       ],
       "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "use as review artifact only; do not grant package send authority",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -107,6 +121,13 @@
       ],
       "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "keep disabled unless Opus defines an operator-watched internal-only canary",
       "operator_approval_required": true,
       "owner": "Cassandra lane / Opus",
@@ -128,7 +149,7 @@
       "current_state_if_verifiable": {
         "audit_report": "synthetic dry-run inbox; no live Telegram",
         "code_default": "dry-run only with authority flags false",
-        "production": "unknown_not_read_from_env_files_or_services",
+        "production": "dry_run_verified",
         "summary": "dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting"
       },
       "default_state": "dry_run",
@@ -144,6 +165,13 @@
       ],
       "gate_stage": "dry_run",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "dry_run_verified",
+      "live_state": {
+        "confidence": "medium",
+        "findings": [],
+        "notes": "capability is static dry-run/synthetic; no live feature flag is defined for reconciliation",
+        "status": "dry_run_verified"
+      },
       "next_required_step": "keep as a synthetic proof source; do not connect to Telegram",
       "operator_approval_required": true,
       "owner": "Cassandra lane / Opus",
@@ -182,6 +210,13 @@
       ],
       "gate_stage": "proposed",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "write a design/proposal before implementation; do not grant desktop/browser authority",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -202,8 +237,8 @@
       "current_state_if_verifiable": {
         "audit_report": "activation audit reported maestro-listener continuity flag ON on 2026-06-25",
         "code_default": "off unless OPENCLAW_CONTINUITY_CAPSULE is truthy",
-        "production": "unknown_not_reverified; audit_reported_maestro_listener_continuity_on",
-        "summary": "code default off; activation audit reported maestro-listener continuity flag ON, but this generator did not inspect systemd or production env"
+        "production": "enabled_verified",
+        "summary": "live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false"
       },
       "default_state": "off",
       "disabled_by": "OPENCLAW_CONTINUITY_CAPSULE default 0",
@@ -214,10 +249,53 @@
         "tests/test_continuity_stamp.py"
       ],
       "flag_or_config": [
-        "OPENCLAW_CONTINUITY_CAPSULE"
+        "OPENCLAW_CONTINUITY_CAPSULE",
+        "OPENCLAW_PACKET_SOURCE"
       ],
       "gate_stage": "unknown",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "enabled_verified",
+      "live_state": {
+        "confidence": "high",
+        "findings": [
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_CONTINUITY_CAPSULE"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_CONTINUITY_CAPSULE"
+          }
+        ],
+        "notes": "live source verifies this capability/config is active; this does not grant new activation authority",
+        "related_findings": [
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_sqlite",
+            "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_PACKET_SOURCE"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_sqlite",
+            "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_PACKET_SOURCE"
+          }
+        ],
+        "status": "enabled_verified"
+      },
       "next_required_step": "Opus should verify current runtime env without exposing secrets and record whether it remains approved live",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -225,10 +303,12 @@
       "risk_level": "low",
       "rollback_note": "unset OPENCLAW_CONTINUITY_CAPSULE or set it to 0 and restart only through approved service-management procedure",
       "source_files": [
-        "maestro_listener.py"
+        "maestro_listener.py",
+        "maestro_context_packet.py"
       ],
       "tests": [
-        "tests/test_continuity_stamp.py"
+        "tests/test_continuity_stamp.py",
+        "tests/test_packet_sqlite_flip.py"
       ]
     },
     {
@@ -258,6 +338,13 @@
       ],
       "gate_stage": "synthetic",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "wire only a synthetic/operator-review draft lane with receipts; do not create live Gmail/Mail drafts",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -282,8 +369,8 @@
       "current_state_if_verifiable": {
         "audit_report": "OpenRouter docs/backlog say support is optional guarded plumbing, not default runtime authority",
         "code_default": "off/fail-closed without OPENCLAW_FREEFORM_CLOUD and OpenRouter configuration",
-        "production": "unknown_not_read_from_env_files_or_services",
-        "summary": "code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected"
+        "production": "unset_default_off",
+        "summary": "live reconciliation state is unset_default_off; activation_allowed_now remains false"
       },
       "default_state": "fail_closed/no_external_call",
       "disabled_by": "no explicit OPENCLAW_FREEFORM_CLOUD enablement in this task; fail-closed if key/model missing",
@@ -304,6 +391,23 @@
       ],
       "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "unset_default_off",
+      "live_state": {
+        "confidence": "high",
+        "findings": [
+          {
+            "confidence": "medium",
+            "notes": "variable was not found in inspected whitelisted live-env sources",
+            "redacted_value_category": "unset",
+            "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,current_process_env",
+            "source_type": "reconciliation_summary",
+            "variable_name": "OPENCLAW_FREEFORM_CLOUD"
+          }
+        ],
+        "notes": "primary flag/config was absent from inspected sources and defaults off",
+        "related_findings": [],
+        "status": "unset_default_off"
+      },
       "next_required_step": "keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -331,8 +435,8 @@
       "current_state_if_verifiable": {
         "audit_report": "CODEX front-door integration result reports default-off integration and no live enablement",
         "code_default": "off unless OPENCLAW_FRONTDOOR_MODEL_PROFILE is truthy and packet is a Maestro front-door packet",
-        "production": "unknown_not_read_from_env_files_or_services",
-        "summary": "code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review"
+        "production": "unset_default_off",
+        "summary": "live reconciliation state is unset_default_off; activation_allowed_now remains false"
       },
       "default_state": "off",
       "disabled_by": "OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0",
@@ -352,6 +456,23 @@
       ],
       "gate_stage": "canary",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "unset_default_off",
+      "live_state": {
+        "confidence": "high",
+        "findings": [
+          {
+            "confidence": "medium",
+            "notes": "variable was not found in inspected whitelisted live-env sources",
+            "redacted_value_category": "unset",
+            "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,current_process_env",
+            "source_type": "reconciliation_summary",
+            "variable_name": "OPENCLAW_FRONTDOOR_MODEL_PROFILE"
+          }
+        ],
+        "notes": "primary flag/config was absent from inspected sources and defaults off",
+        "related_findings": [],
+        "status": "unset_default_off"
+      },
       "next_required_step": "run a contained front-door canary only after load is acceptable and Opus approves the envelope",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -390,6 +511,13 @@
       ],
       "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "do not activate; use draft-only review rail instead",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -414,8 +542,8 @@
       "current_state_if_verifiable": {
         "audit_report": "reported built and default-off; only tests enable the flag",
         "code_default": "off unless OPENCLAW_INTERPRETER_LM is truthy",
-        "production": "unknown_not_read_from_env_files_or_services",
-        "summary": "code default off; production state unknown because production env files/services were not inspected"
+        "production": "unset_default_off",
+        "summary": "live reconciliation state is unset_default_off; activation_allowed_now remains false"
       },
       "default_state": "off",
       "disabled_by": "OPENCLAW_INTERPRETER_LM default 0",
@@ -430,6 +558,23 @@
       ],
       "gate_stage": "disabled",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "unset_default_off",
+      "live_state": {
+        "confidence": "high",
+        "findings": [
+          {
+            "confidence": "medium",
+            "notes": "variable was not found in inspected whitelisted live-env sources",
+            "redacted_value_category": "unset",
+            "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,current_process_env",
+            "source_type": "reconciliation_summary",
+            "variable_name": "OPENCLAW_INTERPRETER_LM"
+          }
+        ],
+        "notes": "primary flag/config was absent from inspected sources and defaults off",
+        "related_findings": [],
+        "status": "unset_default_off"
+      },
       "next_required_step": "integrated-state audit and bounded canary plan before any live activation",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -474,6 +619,13 @@
       ],
       "gate_stage": "blocked",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "complete legal authorization and sealed-ingestion design before any implementation or test with real material",
       "operator_approval_required": true,
       "owner": "Legal lane / Opus",
@@ -522,6 +674,13 @@
       ],
       "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "keep advisory-only and record any provider probe evidence separately without exposing credentials",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -559,6 +718,13 @@
       ],
       "gate_stage": "synthetic",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "if needed, run only synthetic metadata tests or operator-supplied metadata review",
       "operator_approval_required": true,
       "owner": "Niles lane / Opus",
@@ -603,6 +769,13 @@
       ],
       "gate_stage": "blocked",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "repair blockers #2 and #3, re-audit all 10 switch criteria, then separately approve activation",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -630,8 +803,8 @@
       "current_state_if_verifiable": {
         "audit_report": "CODEX_POLISH_LOOP_CLOSURE_RESULT.md reports synthetic-only fix for blocker #1 on isolated branch",
         "code_default": "not present in current base; candidate branch default-off",
-        "production": "not_enabled_by_this_task; production_state_unknown_not_read",
-        "summary": "candidate built on isolated polish-loop-closure branch; current base branch does not contain the flag; production not enabled"
+        "production": "unset_default_off",
+        "summary": "live reconciliation state is unset_default_off; activation_allowed_now remains false"
       },
       "default_state": "candidate default-off; not present in this base branch",
       "disabled_by": "flag absent/off; live loop prohibited",
@@ -646,6 +819,23 @@
       ],
       "gate_stage": "blocked",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "unset_default_off",
+      "live_state": {
+        "confidence": "high",
+        "findings": [
+          {
+            "confidence": "medium",
+            "notes": "variable was not found in inspected whitelisted live-env sources",
+            "redacted_value_category": "unset",
+            "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,current_process_env",
+            "source_type": "reconciliation_summary",
+            "variable_name": "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"
+          }
+        ],
+        "notes": "primary flag/config was absent from inspected sources and defaults off",
+        "related_findings": [],
+        "status": "unset_default_off"
+      },
       "next_required_step": "Opus review/integration of closure branch, then blockers #2 and #3 and all 10 switch criteria",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -685,6 +875,13 @@
       ],
       "gate_stage": "blocked",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
       "next_required_step": "satisfy and record all gate prerequisites before runtime/module activation",
       "operator_approval_required": true,
       "owner": "Opus",
@@ -712,15 +909,201 @@
     "unknown"
   ],
   "generated_at": "2026-06-26T00:00:00-04:00",
+  "live_env_whitelist": [
+    "OPENCLAW_INTERPRETER_LM",
+    "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
+    "OPENCLAW_CONTINUITY_CAPSULE",
+    "OPENCLAW_PACKET_SOURCE",
+    "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
+    "OPENCLAW_FREEFORM_CLOUD",
+    "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
+    "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+    "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
+    "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
+    "OPENROUTER_MODEL",
+    "OPENCLAW_EXTERNAL_MODEL",
+    "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+    "CASSANDRA_EXTERNAL_MODEL",
+    "OPENROUTER_API_KEY"
+  ],
+  "live_reconciliation": {
+    "enabled": true,
+    "findings": [
+      {
+        "confidence": "high",
+        "notes": "raw value redacted",
+        "redacted_value_category": "set_true",
+        "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf",
+        "source_type": "systemd_user_dropin",
+        "variable_name": "OPENCLAW_CONTINUITY_CAPSULE"
+      },
+      {
+        "confidence": "high",
+        "notes": "raw value redacted",
+        "redacted_value_category": "set_sqlite",
+        "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf",
+        "source_type": "systemd_user_dropin",
+        "variable_name": "OPENCLAW_PACKET_SOURCE"
+      },
+      {
+        "confidence": "high",
+        "notes": "raw value redacted",
+        "redacted_value_category": "set_true",
+        "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf",
+        "source_type": "systemd_user_dropin",
+        "variable_name": "OPENCLAW_CONTINUITY_CAPSULE"
+      },
+      {
+        "confidence": "high",
+        "notes": "raw value redacted",
+        "redacted_value_category": "set_sqlite",
+        "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf",
+        "source_type": "systemd_user_dropin",
+        "variable_name": "OPENCLAW_PACKET_SOURCE"
+      }
+    ],
+    "policy": {
+      "raw_values_stored": false,
+      "read_only": true,
+      "secrets_printed_or_stored": false,
+      "whitelist_only": true
+    },
+    "runtime_context": {
+      "packet_source": {
+        "findings": [
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_sqlite",
+            "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_PACKET_SOURCE"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_sqlite",
+            "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_PACKET_SOURCE"
+          }
+        ],
+        "notes": "OPENCLAW_PACKET_SOURCE is tracked as related runtime context for continuity/packet sourcing",
+        "status": "enabled_verified"
+      }
+    },
+    "source_errors": [],
+    "sources_inspected": [
+      {
+        "notes": "only whitelisted variable names were checked from the current process environment",
+        "source_ref": "current_process_env",
+        "source_type": "process_env",
+        "status": "inspected"
+      },
+      {
+        "notes": "read-only parse of whitelisted Environment assignments",
+        "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service",
+        "source_type": "systemd_user_unit",
+        "status": "inspected"
+      },
+      {
+        "notes": "read-only parse of whitelisted Environment assignments",
+        "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf",
+        "source_type": "systemd_user_dropin",
+        "status": "inspected"
+      },
+      {
+        "notes": "read-only parse of whitelisted Environment assignments",
+        "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf",
+        "source_type": "systemd_user_dropin",
+        "status": "inspected"
+      },
+      {
+        "notes": "read-only parse of whitelisted Environment assignments",
+        "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service",
+        "source_type": "systemd_user_unit",
+        "status": "inspected"
+      },
+      {
+        "notes": "read-only parse of whitelisted Environment assignments",
+        "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf",
+        "source_type": "systemd_user_dropin",
+        "status": "inspected"
+      },
+      {
+        "notes": "read-only parse of whitelisted Environment assignments",
+        "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf",
+        "source_type": "systemd_user_dropin",
+        "status": "inspected"
+      }
+    ],
+    "sources_not_inspected": [
+      {
+        "reason": "not used because it can dump non-whitelisted environment values",
+        "source_ref": "systemctl --user show ... -p Environment",
+        "source_type": "systemctl_user_show_environment"
+      },
+      {
+        "reason": "not read wholesale; secret-bearing env files require operator-approved whitelisted grep if needed",
+        "source_ref": ".chief.env and producer.env",
+        "source_type": "secret_env_file"
+      }
+    ],
+    "state_vocabulary": [
+      "enabled_verified",
+      "disabled_verified",
+      "unset_default_off",
+      "unknown_requires_operator_verification",
+      "not_applicable",
+      "conflicting_sources",
+      "configured_but_inert",
+      "dry_run_verified"
+    ],
+    "whitelisted_names": [
+      "OPENCLAW_INTERPRETER_LM",
+      "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
+      "OPENCLAW_CONTINUITY_CAPSULE",
+      "OPENCLAW_PACKET_SOURCE",
+      "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
+      "OPENCLAW_FREEFORM_CLOUD",
+      "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
+      "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+      "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
+      "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
+      "OPENROUTER_MODEL",
+      "OPENCLAW_EXTERNAL_MODEL",
+      "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+      "CASSANDRA_EXTERNAL_MODEL",
+      "OPENROUTER_API_KEY"
+    ]
+  },
+  "live_state_values": [
+    "enabled_verified",
+    "disabled_verified",
+    "unset_default_off",
+    "unknown_requires_operator_verification",
+    "not_applicable",
+    "conflicting_sources",
+    "configured_but_inert",
+    "dry_run_verified"
+  ],
   "policy": {
     "classification_rule": "Do not mark a capability enabled or safe to enable unless evidence proves it.",
     "descriptive_only": true,
     "features_enabled_by_this_register": false,
+    "live_env_raw_values_stored": false,
+    "live_env_reconciliation_enabled": true,
+    "live_env_reconciliation_read_only": true,
+    "live_env_secrets_printed_or_stored": false,
+    "live_env_whitelist_only": true,
     "live_external_actions_run": false,
     "production_databases_touched": false,
     "production_env_files_inspected": false,
     "production_flags_changed": false,
-    "systemd_inspected_or_modified": false
+    "systemctl_invoked": false,
+    "systemd_inspected_or_modified": true,
+    "systemd_modified": false,
+    "systemd_user_unit_files_inspected_read_only": true
   },
   "required_fields": [
     "capability_id",
@@ -754,11 +1137,11 @@
       "polish_loop_local_builder_bridge",
       "runtime_module_activation_gate"
     ],
+    "conflicting_live_state": [],
     "currently_off_or_blocked": [
       "agent_package_preview_contract",
       "cassandra_telegram_delivery",
       "computer_use_worker_gateway",
-      "continuity_capsule",
       "external_model_openrouter_path",
       "gated_email_send_rail",
       "interpreter_lm",
@@ -780,23 +1163,19 @@
     ],
     "total_capabilities": 17,
     "unknown_production_state": [
-      "active_machinery_classification",
       "agent_package_preview_contract",
       "cassandra_telegram_delivery",
-      "cassandra_telegram_dryrun_inbox",
       "computer_use_worker_gateway",
-      "continuity_capsule",
       "draft_only_email_adapter",
-      "external_model_openrouter_path",
-      "frontdoor_model_profile",
       "gated_email_send_rail",
-      "interpreter_lm",
       "legal_sealed_ingestion",
       "lm_consult_spine",
       "niles_album_evidence_intake_boundary",
       "polish_loop_factory_mode",
-      "polish_loop_local_builder_bridge",
       "runtime_module_activation_gate"
+    ],
+    "verified_enabled": [
+      "continuity_capsule"
     ]
   },
   "verification": {
@@ -841,6 +1220,7 @@
       },
       "OPENCLAW_CONTINUITY_CAPSULE": {
         "files": [
+          "maestro_context_packet.py",
           "maestro_listener.py"
         ],
         "status": "found"
@@ -914,6 +1294,7 @@
       "OPENCLAW_INTERPRETER_LM": {
         "files": [
           "interpreter_lm.py",
+          "maestro_context_packet.py",
           "tests/test_continuity_stamp.py"
         ],
         "status": "found"
@@ -925,6 +1306,13 @@
       "OPENCLAW_LM_PROVIDER": {
         "files": [
           "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_PACKET_SOURCE": {
+        "files": [
+          "maestro_context_packet.py",
+          "tests/test_packet_sqlite_flip.py"
         ],
         "status": "found"
       },

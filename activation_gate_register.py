@@ -2,15 +2,17 @@
 """Build the OpenClaw Activation Gate Register.
 
 The register is intentionally descriptive. It records built, off, gated,
-blocked, and proposed capabilities without enabling any flag or probing live
-runtime state.
+blocked, and proposed capabilities without enabling any flag. Optional live
+environment reconciliation is read-only, whitelisted, and redacted.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shlex
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -18,6 +20,80 @@ from typing import Any, Iterable, Mapping, Sequence
 SCHEMA_VERSION = "activation_gate_register_v0"
 DEFAULT_LAST_VERIFIED_AT = "2026-06-26T00:00:00-04:00"
 DEFAULT_OUTPUT_DIR = Path("workspaces/openclaw_program")
+
+LIVE_STATE_VALUES = (
+    "enabled_verified",
+    "disabled_verified",
+    "unset_default_off",
+    "unknown_requires_operator_verification",
+    "not_applicable",
+    "conflicting_sources",
+    "configured_but_inert",
+    "dry_run_verified",
+)
+
+LIVE_ENV_WHITELIST = (
+    "OPENCLAW_INTERPRETER_LM",
+    "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
+    "OPENCLAW_CONTINUITY_CAPSULE",
+    "OPENCLAW_PACKET_SOURCE",
+    "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
+    "OPENCLAW_FREEFORM_CLOUD",
+    "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
+    "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+    "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
+    "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
+    "OPENROUTER_MODEL",
+    "OPENCLAW_EXTERNAL_MODEL",
+    "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+    "CASSANDRA_EXTERNAL_MODEL",
+    "OPENROUTER_API_KEY",
+)
+
+OPENROUTER_REDACTED_NAMES = (
+    "OPENROUTER_API_KEY",
+    "OPENROUTER_MODEL",
+    "OPENCLAW_EXTERNAL_MODEL",
+    "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+    "CASSANDRA_EXTERNAL_MODEL",
+)
+
+TRUTHY_VALUES = {"1", "true", "yes", "on", "enabled"}
+FALSEY_VALUES = {"", "0", "false", "no", "off", "disabled"}
+
+CAPABILITY_LIVE_VARIABLES = {
+    "interpreter_lm": {
+        "primary": ("OPENCLAW_INTERPRETER_LM",),
+        "related": (),
+    },
+    "frontdoor_model_profile": {
+        "primary": ("OPENCLAW_FRONTDOOR_MODEL_PROFILE",),
+        "related": (
+            "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
+            "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+            "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
+            "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
+        ),
+    },
+    "continuity_capsule": {
+        "primary": ("OPENCLAW_CONTINUITY_CAPSULE",),
+        "related": ("OPENCLAW_PACKET_SOURCE",),
+    },
+    "polish_loop_local_builder_bridge": {
+        "primary": ("OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",),
+        "related": (),
+    },
+    "external_model_openrouter_path": {
+        "primary": ("OPENCLAW_FREEFORM_CLOUD",),
+        "related": (
+            "OPENROUTER_MODEL",
+            "OPENCLAW_EXTERNAL_MODEL",
+            "OPENCLAW_CASSANDRA_EXTERNAL_MODEL",
+            "CASSANDRA_EXTERNAL_MODEL",
+            "OPENROUTER_API_KEY",
+        ),
+    },
+}
 
 REQUIRED_FIELDS = (
     "capability_id",
@@ -92,6 +168,15 @@ def _state(
         "code_default": code_default,
         "production": production,
         "audit_report": audit_report,
+    }
+
+
+def _not_applicable_live_state() -> dict[str, Any]:
+    return {
+        "status": "not_applicable",
+        "findings": [],
+        "confidence": "none",
+        "notes": "live environment reconciliation was not requested for this register generation",
     }
 
 
@@ -225,7 +310,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
         _capability(
             capability_id="continuity_capsule",
             display_name="Continuity Capsule",
-            flag_or_config=["OPENCLAW_CONTINUITY_CAPSULE"],
+            flag_or_config=["OPENCLAW_CONTINUITY_CAPSULE", "OPENCLAW_PACKET_SOURCE"],
             default_state="off",
             current_state_if_verifiable=_state(
                 "code default off; activation audit reported maestro-listener continuity flag ON, but this generator did not inspect systemd or production env",
@@ -233,8 +318,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 production="unknown_not_reverified; audit_reported_maestro_listener_continuity_on",
                 audit_report="activation audit reported maestro-listener continuity flag ON on 2026-06-25",
             ),
-            source_files=["maestro_listener.py"],
-            tests=["tests/test_continuity_stamp.py"],
+            source_files=["maestro_listener.py", "maestro_context_packet.py"],
+            tests=["tests/test_continuity_stamp.py", "tests/test_packet_sqlite_flip.py"],
             audits=[
                 "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md",
                 "/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md",
@@ -811,23 +896,485 @@ def _missing_repo_files(repo_root: Path, capabilities: Sequence[Mapping[str, Any
     return sorted(missing)
 
 
+def _redacted_value_category(variable_name: str, value: Any) -> str:
+    if value is None:
+        return "unset"
+    text = str(value).strip()
+    lowered = text.lower()
+    if lowered == "sqlite":
+        return "set_sqlite"
+    if lowered in TRUTHY_VALUES:
+        return "set_true"
+    if lowered in FALSEY_VALUES:
+        return "set_false"
+    return "set_other_redacted"
+
+
+def _source_confidence(source_type: str) -> str:
+    if source_type in {"systemd_user_unit", "systemd_user_dropin", "test_source"}:
+        return "high"
+    if source_type == "process_env":
+        return "medium"
+    return "low"
+
+
+def _finding(
+    *,
+    source_type: str,
+    source_ref: str,
+    variable_name: str,
+    redacted_value_category: str,
+    confidence: str,
+    notes: str = "",
+) -> dict[str, str]:
+    return {
+        "source_type": source_type,
+        "source_ref": source_ref,
+        "variable_name": variable_name,
+        "redacted_value_category": redacted_value_category,
+        "confidence": confidence,
+        "notes": notes,
+    }
+
+
+def _unset_finding(variable_name: str, inspected_sources: Sequence[Mapping[str, str]]) -> dict[str, str]:
+    source_ref = "inspected_sources"
+    if inspected_sources:
+        source_ref = ",".join(sorted(str(item["source_ref"]) for item in inspected_sources))
+    return _finding(
+        source_type="reconciliation_summary",
+        source_ref=source_ref,
+        variable_name=variable_name,
+        redacted_value_category="unset",
+        confidence="medium" if inspected_sources else "low",
+        notes="variable was not found in inspected whitelisted live-env sources",
+    )
+
+
+def _unknown_finding(variable_name: str, source_errors: Sequence[Mapping[str, str]]) -> dict[str, str]:
+    source_ref = "unreadable_or_unavailable_source"
+    if source_errors:
+        source_ref = ",".join(sorted(str(item["source_ref"]) for item in source_errors))
+    return _finding(
+        source_type="reconciliation_summary",
+        source_ref=source_ref,
+        variable_name=variable_name,
+        redacted_value_category="unknown",
+        confidence="low",
+        notes="source could not be safely inspected; operator verification required",
+    )
+
+
+def _parse_whitelisted_assignments(text: str) -> dict[str, str | None]:
+    """Return only whitelisted variable assignments from systemd/env text."""
+
+    values: dict[str, str | None] = {}
+    whitelist = set(LIVE_ENV_WHITELIST)
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("EnvironmentFile="):
+            continue
+        tokens: list[str] = []
+        if line.startswith("Environment="):
+            payload = line.split("=", 1)[1].strip()
+            try:
+                tokens.extend(shlex.split(payload, posix=True))
+            except ValueError:
+                tokens.extend(payload.split())
+        else:
+            tokens.append(line.removeprefix("export ").strip())
+        for token in tokens:
+            if "=" not in token:
+                continue
+            name, value = token.split("=", 1)
+            name = name.strip()
+            if name in whitelist:
+                values[name] = value.strip().strip('"').strip("'")
+    return values
+
+
+def _default_systemd_user_paths(home: Path | None = None) -> list[Path]:
+    user_home = home or Path.home()
+    base = user_home / ".config" / "systemd" / "user"
+    service_names = ("maestro-listener.service", "openclaw-request-response.service")
+    paths: list[Path] = []
+    for service_name in service_names:
+        service_path = base / service_name
+        if service_path.is_file():
+            paths.append(service_path)
+        dropin_dir = base / f"{service_name}.d"
+        if dropin_dir.is_dir():
+            paths.extend(sorted(dropin_dir.glob("*.conf")))
+    return paths
+
+
+def default_live_env_sources(environ: Mapping[str, str] | None = None) -> list[dict[str, Any]]:
+    """Build safe read-only source descriptors for optional live reconciliation."""
+
+    env = os.environ if environ is None else environ
+    process_values = {name: env[name] for name in LIVE_ENV_WHITELIST if name in env}
+    sources: list[dict[str, Any]] = [
+        {
+            "source_type": "process_env",
+            "source_ref": "current_process_env",
+            "values": process_values,
+            "notes": "only whitelisted variable names were checked from the current process environment",
+        }
+    ]
+    for path in _default_systemd_user_paths():
+        source_type = "systemd_user_dropin" if path.suffix == ".conf" else "systemd_user_unit"
+        sources.append(
+            {
+                "source_type": source_type,
+                "source_ref": str(path),
+                "path": str(path),
+                "notes": "read-only parse of whitelisted Environment assignments",
+            }
+        )
+    return sources
+
+
+def _source_values(source: Mapping[str, Any]) -> tuple[dict[str, str | None], str]:
+    if "error" in source:
+        return {}, str(source.get("error") or "source_unavailable")
+    if "values" in source:
+        raw_values = source.get("values") or {}
+        values = {
+            str(name): (None if value is None else str(value))
+            for name, value in dict(raw_values).items()
+            if str(name) in LIVE_ENV_WHITELIST
+        }
+        return values, ""
+    if "content" in source:
+        return _parse_whitelisted_assignments(str(source.get("content") or "")), ""
+    if "path" in source:
+        path = Path(str(source["path"]))
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError as exc:
+            return {}, exc.__class__.__name__
+        return _parse_whitelisted_assignments(text), ""
+    return {}, "source_has_no_values_content_or_path"
+
+
+def _collect_live_env_findings(
+    live_env_sources: Sequence[Mapping[str, Any]],
+) -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
+    findings: list[dict[str, str]] = []
+    source_statuses: list[dict[str, str]] = []
+    source_errors: list[dict[str, str]] = []
+    for source in live_env_sources:
+        source_type = str(source.get("source_type") or "unknown_source")
+        source_ref = str(source.get("source_ref") or source.get("path") or "unknown_source")
+        values, error = _source_values(source)
+        if error:
+            status = {
+                "source_type": source_type,
+                "source_ref": source_ref,
+                "status": "unknown_requires_operator_verification",
+                "notes": f"source not safely inspected: {error}",
+            }
+            source_statuses.append(status)
+            source_errors.append(status)
+            continue
+        source_statuses.append(
+            {
+                "source_type": source_type,
+                "source_ref": source_ref,
+                "status": "inspected",
+                "notes": str(source.get("notes") or "whitelisted variables only; values redacted"),
+            }
+        )
+        for variable_name in sorted(values):
+            category = _redacted_value_category(variable_name, values[variable_name])
+            notes = "raw value redacted"
+            if variable_name in OPENROUTER_REDACTED_NAMES:
+                notes = "OpenRouter/model-selection value checked only as set/unset/redacted"
+            findings.append(
+                _finding(
+                    source_type=source_type,
+                    source_ref=source_ref,
+                    variable_name=variable_name,
+                    redacted_value_category=category,
+                    confidence=_source_confidence(source_type),
+                    notes=notes,
+                )
+            )
+    return findings, source_statuses, source_errors
+
+
+def _findings_by_variable(findings: Sequence[Mapping[str, str]]) -> dict[str, list[dict[str, str]]]:
+    grouped: dict[str, list[dict[str, str]]] = {}
+    for finding in findings:
+        grouped.setdefault(str(finding["variable_name"]), []).append(dict(finding))
+    return grouped
+
+
+def _explicit_categories(findings: Sequence[Mapping[str, str]]) -> set[str]:
+    return {
+        str(item["redacted_value_category"])
+        for item in findings
+        if item["redacted_value_category"] not in {"unset", "unknown"}
+    }
+
+
+def _variable_conflicts(findings: Sequence[Mapping[str, str]]) -> bool:
+    categories = _explicit_categories(findings)
+    if {"set_true", "set_false"} <= categories:
+        return True
+    if "set_sqlite" in categories and "set_other_redacted" in categories:
+        return True
+    return False
+
+
+def _primary_state(
+    variable_name: str,
+    grouped_findings: Mapping[str, Sequence[Mapping[str, str]]],
+    inspected_sources: Sequence[Mapping[str, str]],
+    source_errors: Sequence[Mapping[str, str]],
+) -> tuple[str, list[dict[str, str]]]:
+    findings = [dict(item) for item in grouped_findings.get(variable_name, [])]
+    if _variable_conflicts(findings):
+        return "conflicting_sources", findings
+    categories = _explicit_categories(findings)
+    if "set_true" in categories:
+        return "enabled_verified", findings
+    if "set_false" in categories:
+        return "disabled_verified", findings
+    if "set_sqlite" in categories:
+        return "enabled_verified", findings
+    if "set_other_redacted" in categories:
+        return "configured_but_inert", findings
+    if source_errors:
+        return "unknown_requires_operator_verification", [_unknown_finding(variable_name, source_errors)]
+    if inspected_sources:
+        return "unset_default_off", [_unset_finding(variable_name, inspected_sources)]
+    return "unknown_requires_operator_verification", [_unknown_finding(variable_name, source_errors)]
+
+
+def _capability_live_state(
+    capability: Mapping[str, Any],
+    reconciliation: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not reconciliation.get("enabled"):
+        return _not_applicable_live_state()
+
+    variable_spec = CAPABILITY_LIVE_VARIABLES.get(str(capability["capability_id"]))
+    if not variable_spec:
+        if str(capability["gate_stage"]) == "dry_run":
+            return {
+                "status": "dry_run_verified",
+                "findings": [],
+                "confidence": "medium",
+                "notes": "capability is static dry-run/synthetic; no live feature flag is defined for reconciliation",
+            }
+        return {
+            "status": "not_applicable",
+            "findings": [],
+            "confidence": "none",
+            "notes": "no whitelisted live variable is mapped to this capability",
+        }
+
+    grouped_findings = _findings_by_variable(reconciliation["findings"])
+    inspected_sources = [
+        dict(item)
+        for item in reconciliation["sources_inspected"]
+        if item["status"] == "inspected"
+    ]
+    source_errors = list(reconciliation["source_errors"])
+    primary_vars = tuple(variable_spec["primary"])
+    related_vars = tuple(variable_spec["related"])
+
+    statuses: list[str] = []
+    capability_findings: list[dict[str, str]] = []
+    for variable_name in primary_vars:
+        status, findings = _primary_state(variable_name, grouped_findings, inspected_sources, source_errors)
+        statuses.append(status)
+        capability_findings.extend(findings)
+
+    related_findings: list[dict[str, str]] = []
+    related_conflict = False
+    related_configured = False
+    for variable_name in related_vars:
+        findings = [dict(item) for item in grouped_findings.get(variable_name, [])]
+        if findings:
+            related_findings.extend(findings)
+            related_configured = True
+        if _variable_conflicts(findings):
+            related_conflict = True
+
+    if "conflicting_sources" in statuses or related_conflict:
+        status = "conflicting_sources"
+    elif str(capability["capability_id"]) == "external_model_openrouter_path":
+        status = statuses[0]
+        if status in {"disabled_verified", "unset_default_off"} and related_configured:
+            status = "configured_but_inert"
+    else:
+        status = statuses[0]
+
+    notes = {
+        "enabled_verified": "live source verifies this capability/config is active; this does not grant new activation authority",
+        "disabled_verified": "live source explicitly sets the primary flag/config off",
+        "unset_default_off": "primary flag/config was absent from inspected sources and defaults off",
+        "unknown_requires_operator_verification": "one or more live sources could not be inspected safely",
+        "conflicting_sources": "conflicting whitelisted source findings require Opus/operator review",
+        "configured_but_inert": "related configuration is present, but the enabling flag/path is off or insufficient",
+        "dry_run_verified": "dry-run path remains non-live",
+        "not_applicable": "no whitelisted live variable applies",
+    }[status]
+
+    return {
+        "status": status,
+        "findings": capability_findings,
+        "related_findings": related_findings,
+        "confidence": "high" if capability_findings and status != "unknown_requires_operator_verification" else "low",
+        "notes": notes,
+    }
+
+
+def _apply_live_reconciliation(
+    capabilities: Sequence[dict[str, Any]],
+    reconciliation: Mapping[str, Any],
+) -> None:
+    for capability in capabilities:
+        live_state = _capability_live_state(capability, reconciliation)
+        status = str(live_state["status"])
+        capability["live_production_state"] = status
+        capability["live_state"] = live_state
+        validate_live_state(status)
+        if not reconciliation.get("enabled") or status == "not_applicable":
+            continue
+        capability["current_state_if_verifiable"]["production"] = status
+        if status == "enabled_verified":
+            capability["current_state_if_verifiable"]["summary"] = (
+                "live reconciliation verified active/configured state from safe read-only whitelisted source; "
+                "activation_allowed_now remains false"
+            )
+        elif status in {"disabled_verified", "unset_default_off", "configured_but_inert", "conflicting_sources"}:
+            capability["current_state_if_verifiable"]["summary"] = (
+                f"live reconciliation state is {status}; activation_allowed_now remains false"
+            )
+
+
+def _runtime_context(reconciliation: Mapping[str, Any]) -> dict[str, Any]:
+    grouped_findings = _findings_by_variable(reconciliation["findings"])
+    packet_findings = [dict(item) for item in grouped_findings.get("OPENCLAW_PACKET_SOURCE", [])]
+    categories = _explicit_categories(packet_findings)
+    if _variable_conflicts(packet_findings):
+        status = "conflicting_sources"
+    elif "set_sqlite" in categories:
+        status = "enabled_verified"
+    elif "set_false" in categories:
+        status = "disabled_verified"
+    elif "set_other_redacted" in categories:
+        status = "configured_but_inert"
+    elif reconciliation.get("enabled"):
+        status = "unset_default_off"
+    else:
+        status = "not_applicable"
+    return {
+        "packet_source": {
+            "status": status,
+            "findings": packet_findings,
+            "notes": "OPENCLAW_PACKET_SOURCE is tracked as related runtime context for continuity/packet sourcing",
+        }
+    }
+
+
+def validate_live_state(status: str) -> None:
+    if status not in LIVE_STATE_VALUES:
+        raise ValueError(f"invalid live production state: {status!r}")
+
+
+def build_live_env_reconciliation(
+    live_env_sources: Sequence[Mapping[str, Any]] | None = None,
+    *,
+    enabled: bool = False,
+) -> dict[str, Any]:
+    if live_env_sources is None and not enabled:
+        return {
+            "enabled": False,
+            "whitelisted_names": list(LIVE_ENV_WHITELIST),
+            "state_vocabulary": list(LIVE_STATE_VALUES),
+            "findings": [],
+            "sources_inspected": [],
+            "sources_not_inspected": [
+                {
+                    "source_type": "live_env_reconciliation",
+                    "source_ref": "all_live_sources",
+                    "reason": "not requested for this deterministic generation",
+                }
+            ],
+            "source_errors": [],
+            "runtime_context": {"packet_source": {"status": "not_applicable", "findings": [], "notes": ""}},
+            "policy": {
+                "read_only": True,
+                "whitelist_only": True,
+                "raw_values_stored": False,
+                "secrets_printed_or_stored": False,
+            },
+        }
+
+    sources = list(default_live_env_sources() if live_env_sources is None else live_env_sources)
+    findings, source_statuses, source_errors = _collect_live_env_findings(sources)
+    reconciliation = {
+        "enabled": True,
+        "whitelisted_names": list(LIVE_ENV_WHITELIST),
+        "state_vocabulary": list(LIVE_STATE_VALUES),
+        "findings": findings,
+        "sources_inspected": source_statuses,
+        "sources_not_inspected": [
+            {
+                "source_type": "systemctl_user_show_environment",
+                "source_ref": "systemctl --user show ... -p Environment",
+                "reason": "not used because it can dump non-whitelisted environment values",
+            },
+            {
+                "source_type": "secret_env_file",
+                "source_ref": ".chief.env and producer.env",
+                "reason": "not read wholesale; secret-bearing env files require operator-approved whitelisted grep if needed",
+            },
+        ],
+        "source_errors": source_errors,
+        "policy": {
+            "read_only": True,
+            "whitelist_only": True,
+            "raw_values_stored": False,
+            "secrets_printed_or_stored": False,
+        },
+    }
+    reconciliation["runtime_context"] = _runtime_context(reconciliation)
+    return reconciliation
+
+
 def _summarize(capabilities: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     def ids_matching(predicate: Any) -> list[str]:
         return sorted(str(item["capability_id"]) for item in capabilities if predicate(item))
 
     return {
         "total_capabilities": len(capabilities),
+        "verified_enabled": ids_matching(lambda item: item.get("live_production_state") == "enabled_verified"),
         "activation_allowed_now": ids_matching(lambda item: item["activation_allowed_now"] is True),
         "currently_off_or_blocked": ids_matching(
-            lambda item: item["gate_stage"] in {"disabled", "intentionally_off", "blocked", "proposed", "unknown"}
+            lambda item: item.get("live_production_state") != "enabled_verified"
+            and item["gate_stage"] in {"disabled", "intentionally_off", "blocked", "proposed", "unknown"}
         ),
         "ready_for_canary": ids_matching(
             lambda item: item["gate_stage"] == "canary" and item["activation_allowed_now"] is False
         ),
         "blocked": ids_matching(lambda item: item["gate_stage"] == "blocked"),
         "intentionally_off": ids_matching(lambda item: item["gate_stage"] == "intentionally_off"),
+        "conflicting_live_state": ids_matching(lambda item: item.get("live_production_state") == "conflicting_sources"),
         "unknown_production_state": ids_matching(
-            lambda item: "unknown" in json.dumps(item["current_state_if_verifiable"], sort_keys=True)
+            lambda item: item.get("live_production_state") == "unknown_requires_operator_verification"
+            or (
+                item.get("live_production_state") in {None, "not_applicable"}
+                and "unknown" in json.dumps(item["current_state_if_verifiable"], sort_keys=True)
+            )
         ),
     }
 
@@ -836,12 +1383,19 @@ def build_activation_gate_register(
     *,
     repo_root: str | Path = ".",
     last_verified_at: str = DEFAULT_LAST_VERIFIED_AT,
+    live_env_sources: Sequence[Mapping[str, Any]] | None = None,
+    reconcile_live_env: bool = False,
 ) -> dict[str, Any]:
     repo = Path(repo_root)
     capabilities = sorted(
         _capability_templates(last_verified_at),
         key=lambda item: item["capability_id"],
     )
+    live_reconciliation = build_live_env_reconciliation(
+        live_env_sources,
+        enabled=reconcile_live_env,
+    )
+    _apply_live_reconciliation(capabilities, live_reconciliation)
     for capability in capabilities:
         validate_capability(capability)
 
@@ -849,6 +1403,11 @@ def build_activation_gate_register(
     missing_required = sorted(set(REQUIRED_CAPABILITY_IDS) - present_ids)
     if missing_required:
         raise ValueError(f"missing required capabilities: {missing_required}")
+    systemd_read_only = any(
+        str(source.get("source_type", "")).startswith("systemd_")
+        and source.get("status") == "inspected"
+        for source in live_reconciliation["sources_inspected"]
+    )
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -858,15 +1417,26 @@ def build_activation_gate_register(
             "features_enabled_by_this_register": False,
             "production_flags_changed": False,
             "production_env_files_inspected": False,
-            "systemd_inspected_or_modified": False,
+            "systemd_inspected_or_modified": systemd_read_only,
+            "systemd_user_unit_files_inspected_read_only": systemd_read_only,
+            "systemd_modified": False,
+            "systemctl_invoked": False,
+            "live_env_reconciliation_enabled": bool(live_reconciliation["enabled"]),
+            "live_env_reconciliation_read_only": True,
+            "live_env_whitelist_only": True,
+            "live_env_raw_values_stored": False,
+            "live_env_secrets_printed_or_stored": False,
             "live_external_actions_run": False,
             "production_databases_touched": False,
             "classification_rule": "Do not mark a capability enabled or safe to enable unless evidence proves it.",
         },
         "gate_stages": list(GATE_STAGES),
+        "live_state_values": list(LIVE_STATE_VALUES),
+        "live_env_whitelist": list(LIVE_ENV_WHITELIST),
         "required_fields": list(REQUIRED_FIELDS),
         "capabilities": capabilities,
         "summary": _summarize(capabilities),
+        "live_reconciliation": live_reconciliation,
         "verification": {
             "flag_detection": detect_flags(repo, capabilities),
             "missing_repo_evidence_files": _missing_repo_files(repo, capabilities),
@@ -917,14 +1487,16 @@ def render_markdown(register: Mapping[str, Any]) -> str:
             "## Summary",
             "",
             f"- Total capabilities registered: `{summary['total_capabilities']}`",
+            f"- Verified enabled/live: {_format_list(summary['verified_enabled'])}",
             f"- Activation allowed now: {_format_list(summary['activation_allowed_now'])}",
             f"- Ready for canary queue: {_format_list(summary['ready_for_canary'])}",
             f"- Blocked: {_format_list(summary['blocked'])}",
             f"- Intentionally off: {_format_list(summary['intentionally_off'])}",
+            f"- Conflicting live state: {_format_list(summary['conflicting_live_state'])}",
             f"- Unknown production state: {_format_list(summary['unknown_production_state'])}",
             "",
-            "| Capability | Stage | Current state | Activation allowed now | Next required step |",
-            "| --- | --- | --- | --- | --- |",
+            "| Capability | Stage | Live production state | Current state | Activation allowed now | Next required step |",
+            "| --- | --- | --- | --- | --- | --- |",
         ]
     )
 
@@ -935,6 +1507,7 @@ def render_markdown(register: Mapping[str, Any]) -> str:
                 [
                     f"{capability['display_name']} (`{capability['capability_id']}`)",
                     f"`{capability['gate_stage']}`",
+                    f"`{capability.get('live_production_state', 'not_applicable')}`",
                     _state_summary(capability["current_state_if_verifiable"]).replace("|", "\\|"),
                     _format_bool(bool(capability["activation_allowed_now"])),
                     str(capability["next_required_step"]).replace("|", "\\|"),
@@ -954,6 +1527,7 @@ def render_markdown(register: Mapping[str, Any]) -> str:
                 f"- Default state: `{capability['default_state']}`",
                 f"- Current state if verifiable: {_state_summary(state)}",
                 f"- Production state: `{state.get('production', 'unknown')}`",
+                f"- Live production state: `{capability.get('live_production_state', 'not_applicable')}`",
                 f"- Gate stage: `{capability['gate_stage']}`",
                 f"- Canary status: `{capability['canary_status']}`",
                 f"- Risk level: `{capability['risk_level']}`",
@@ -970,15 +1544,77 @@ def render_markdown(register: Mapping[str, Any]) -> str:
                 f"- Audits: {_format_list(capability['audits'])}",
                 f"- Evidence refs: {_format_list(capability['evidence_refs'])}",
                 f"- Last verified at: `{capability['last_verified_at']}`",
-                "",
+            "",
             ]
         )
+        live_state = capability.get("live_state") or _not_applicable_live_state()
+        lines.extend(
+            [
+                "Live-state evidence:",
+                f"- Status: `{live_state['status']}`",
+                f"- Confidence: `{live_state.get('confidence', 'unknown')}`",
+                f"- Notes: {live_state.get('notes', '')}",
+            ]
+        )
+        for finding in live_state.get("findings", []):
+            lines.append(
+                "- Finding: "
+                f"`{finding['variable_name']}` from `{finding['source_type']}` "
+                f"`{finding['source_ref']}` -> `{finding['redacted_value_category']}` "
+                f"(confidence `{finding['confidence']}`; {finding.get('notes', '')})"
+            )
+        for finding in live_state.get("related_findings", []):
+            lines.append(
+                "- Related finding: "
+                f"`{finding['variable_name']}` from `{finding['source_type']}` "
+                f"`{finding['source_ref']}` -> `{finding['redacted_value_category']}` "
+                f"(confidence `{finding['confidence']}`; {finding.get('notes', '')})"
+            )
+        lines.append("")
 
     detection = register["verification"]["flag_detection"]
     lines.extend(["## Flag Detection", ""])
     for flag in sorted(detection):
         info = detection[flag]
         lines.append(f"- `{flag}`: `{info['status']}` in {_format_list(info['files'])}")
+
+    live_reconciliation = register["live_reconciliation"]
+    packet_context = live_reconciliation["runtime_context"]["packet_source"]
+    lines.extend(
+        [
+            "",
+            "## Live Environment Reconciliation",
+            "",
+            f"- Enabled for this generation: `{_format_bool(bool(live_reconciliation['enabled']))}`",
+            f"- Whitelisted names: {_format_list(live_reconciliation['whitelisted_names'])}",
+            f"- Packet source runtime context: `{packet_context['status']}`",
+        ]
+    )
+    for finding in packet_context.get("findings", []):
+        lines.append(
+            "- Packet source finding: "
+            f"`{finding['variable_name']}` from `{finding['source_type']}` "
+            f"`{finding['source_ref']}` -> `{finding['redacted_value_category']}`"
+        )
+    lines.extend(["", "Sources inspected:"])
+    if live_reconciliation["sources_inspected"]:
+        for source in live_reconciliation["sources_inspected"]:
+            lines.append(
+                f"- `{source['source_type']}` `{source['source_ref']}`: `{source['status']}` ({source['notes']})"
+            )
+    else:
+        lines.append("- none recorded")
+    lines.extend(["", "Sources not inspected:"])
+    for source in live_reconciliation["sources_not_inspected"]:
+        lines.append(
+            f"- `{source['source_type']}` `{source['source_ref']}`: {source['reason']}"
+        )
+    if live_reconciliation["source_errors"]:
+        lines.extend(["", "Source errors:"])
+        for source in live_reconciliation["source_errors"]:
+            lines.append(
+                f"- `{source['source_type']}` `{source['source_ref']}`: `{source['status']}` ({source['notes']})"
+            )
 
     missing = register["verification"]["missing_repo_evidence_files"]
     lines.extend(
@@ -987,7 +1623,7 @@ def render_markdown(register: Mapping[str, Any]) -> str:
             "## Evidence Gaps",
             "",
             f"- Missing repository evidence files referenced by register: {_format_list(missing)}",
-            "- Production env/service state: `not inspected by this task`",
+            f"- Production env/service state: `{'redacted live reconciliation enabled' if live_reconciliation['enabled'] else 'not inspected by this task'}`",
             "- Feature activation performed by this task: `no`",
             "",
         ]
@@ -1000,8 +1636,15 @@ def write_outputs(
     repo_root: str | Path = ".",
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
     last_verified_at: str = DEFAULT_LAST_VERIFIED_AT,
+    live_env_sources: Sequence[Mapping[str, Any]] | None = None,
+    reconcile_live_env: bool = False,
 ) -> dict[str, Path]:
-    register = build_activation_gate_register(repo_root=repo_root, last_verified_at=last_verified_at)
+    register = build_activation_gate_register(
+        repo_root=repo_root,
+        last_verified_at=last_verified_at,
+        live_env_sources=live_env_sources,
+        reconcile_live_env=reconcile_live_env,
+    )
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
 
@@ -1025,6 +1668,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_LAST_VERIFIED_AT,
         help="Deterministic timestamp written into register records.",
     )
+    parser.add_argument(
+        "--reconcile-live-env",
+        action="store_true",
+        help="Read whitelisted live env/config sources in read-only mode and store redacted state categories.",
+    )
     return parser.parse_args(argv)
 
 
@@ -1034,6 +1682,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         repo_root=Path(args.repo_root),
         output_dir=Path(args.output_dir),
         last_verified_at=args.last_verified_at,
+        reconcile_live_env=bool(args.reconcile_live_env),
     )
     print(f"wrote {paths['markdown']}")
     print(f"wrote {paths['json']}")

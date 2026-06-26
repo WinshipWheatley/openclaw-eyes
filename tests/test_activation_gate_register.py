@@ -10,8 +10,28 @@ def _payload():
     return register.build_activation_gate_register(last_verified_at=FIXED_NOW)
 
 
+def _live_payload(sources):
+    return register.build_activation_gate_register(
+        last_verified_at=FIXED_NOW,
+        live_env_sources=sources,
+    )
+
+
 def _capabilities_by_id(payload):
     return {item["capability_id"]: item for item in payload["capabilities"]}
+
+
+def _test_source(values=None, *, error=None, ref="maestro-listener.service"):
+    source = {
+        "source_type": "test_source",
+        "source_ref": ref,
+        "values": values or {},
+        "notes": "fake source for deterministic test",
+    }
+    if error is not None:
+        source.pop("values")
+        source["error"] = error
+    return source
 
 
 def test_known_capabilities_are_present():
@@ -42,6 +62,8 @@ def test_known_flags_are_detected_without_live_env_reads():
     assert "interpreter_lm.py" in flags["OPENCLAW_INTERPRETER_LM"]["files"]
     assert flags["OPENCLAW_FRONTDOOR_MODEL_PROFILE"]["status"] == "found"
     assert "protected_generate.py" in flags["OPENCLAW_FRONTDOOR_MODEL_PROFILE"]["files"]
+    assert flags["OPENCLAW_PACKET_SOURCE"]["status"] == "found"
+    assert "maestro_context_packet.py" in flags["OPENCLAW_PACKET_SOURCE"]["files"]
     assert flags["OPENCLAW_FREEFORM_CLOUD"]["status"] == "found"
     assert "protected_generate.py" in flags["OPENCLAW_FREEFORM_CLOUD"]["files"]
     assert flags["OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"]["status"] == "not_found_in_scanned_repo_paths"
@@ -115,3 +137,161 @@ def test_write_outputs_creates_deterministic_json_and_markdown(tmp_path):
     assert paths["json"].read_text(encoding="utf-8") == first_json
     assert paths["markdown"].read_text(encoding="utf-8") == first_markdown
     assert json.loads(first_json)["summary"]["total_capabilities"] >= len(register.REQUIRED_CAPABILITY_IDS)
+
+
+def test_live_continuity_enabled_marks_enabled_verified():
+    payload = _live_payload([
+        _test_source({"OPENCLAW_CONTINUITY_CAPSULE": "1"}),
+    ])
+    continuity = _capabilities_by_id(payload)["continuity_capsule"]
+
+    assert continuity["live_production_state"] == "enabled_verified"
+    assert continuity["current_state_if_verifiable"]["production"] == "enabled_verified"
+    assert continuity["activation_allowed_now"] is False
+    assert continuity["live_state"]["findings"][0]["redacted_value_category"] == "set_true"
+
+
+def test_live_packet_source_sqlite_records_runtime_context():
+    payload = _live_payload([
+        _test_source({
+            "OPENCLAW_CONTINUITY_CAPSULE": "1",
+            "OPENCLAW_PACKET_SOURCE": "sqlite",
+        })
+    ])
+
+    packet_source = payload["live_reconciliation"]["runtime_context"]["packet_source"]
+    continuity = _capabilities_by_id(payload)["continuity_capsule"]
+
+    assert packet_source["status"] == "enabled_verified"
+    assert packet_source["findings"][0]["variable_name"] == "OPENCLAW_PACKET_SOURCE"
+    assert packet_source["findings"][0]["redacted_value_category"] == "set_sqlite"
+    assert continuity["live_state"]["related_findings"][0]["redacted_value_category"] == "set_sqlite"
+
+
+def test_missing_interpreter_lm_stays_default_off():
+    payload = _live_payload([
+        _test_source({"OPENCLAW_CONTINUITY_CAPSULE": "1"}),
+    ])
+    interpreter = _capabilities_by_id(payload)["interpreter_lm"]
+
+    assert interpreter["live_production_state"] == "unset_default_off"
+    assert interpreter["activation_allowed_now"] is False
+    assert interpreter["live_state"]["findings"][0]["redacted_value_category"] == "unset"
+
+
+def test_missing_frontdoor_profile_stays_default_off():
+    payload = _live_payload([
+        _test_source({"OPENCLAW_CONTINUITY_CAPSULE": "1"}),
+    ])
+    frontdoor = _capabilities_by_id(payload)["frontdoor_model_profile"]
+
+    assert frontdoor["live_production_state"] == "unset_default_off"
+    assert frontdoor["activation_allowed_now"] is False
+
+
+def test_polish_loop_local_builder_zero_keeps_bridge_off():
+    payload = _live_payload([
+        _test_source({"OPENCLAW_POLISH_LOOP_LOCAL_BUILDER": "0"}),
+    ])
+    bridge = _capabilities_by_id(payload)["polish_loop_local_builder_bridge"]
+
+    assert bridge["live_production_state"] == "disabled_verified"
+    assert bridge["activation_allowed_now"] is False
+    assert "NOT_READY" in bridge["reason_if_off"]
+
+
+def test_conflicting_sources_are_reported():
+    payload = _live_payload([
+        _test_source({"OPENCLAW_CONTINUITY_CAPSULE": "1"}, ref="maestro-listener.service"),
+        _test_source({"OPENCLAW_CONTINUITY_CAPSULE": "0"}, ref="openclaw-request-response.service"),
+    ])
+    continuity = _capabilities_by_id(payload)["continuity_capsule"]
+
+    assert continuity["live_production_state"] == "conflicting_sources"
+    assert payload["summary"]["conflicting_live_state"] == ["continuity_capsule"]
+    assert continuity["activation_allowed_now"] is False
+
+
+def test_secret_like_values_are_redacted():
+    payload = _live_payload([
+        _test_source({
+            "OPENROUTER_API_KEY": "sk-super-secret",
+            "OPENROUTER_MODEL": "vendor/private-model",
+            "OPENCLAW_FREEFORM_CLOUD": "0",
+        })
+    ])
+    encoded = register.stable_json(payload)
+    external = _capabilities_by_id(payload)["external_model_openrouter_path"]
+
+    assert "sk-super-secret" not in encoded
+    assert "vendor/private-model" not in encoded
+    categories = {
+        finding["variable_name"]: finding["redacted_value_category"]
+        for finding in external["live_state"]["related_findings"]
+    }
+    assert categories["OPENROUTER_API_KEY"] == "set_other_redacted"
+    assert categories["OPENROUTER_MODEL"] == "set_other_redacted"
+    assert external["live_production_state"] == "configured_but_inert"
+
+
+def test_unknown_unreadable_source_records_operator_verification_needed():
+    payload = _live_payload([
+        _test_source(error="permission_denied"),
+    ])
+    continuity = _capabilities_by_id(payload)["continuity_capsule"]
+
+    assert continuity["live_production_state"] == "unknown_requires_operator_verification"
+    assert payload["live_reconciliation"]["source_errors"][0]["status"] == "unknown_requires_operator_verification"
+    assert continuity["live_state"]["findings"][0]["redacted_value_category"] == "unknown"
+
+
+def test_live_enabled_does_not_grant_activation_allowed_now():
+    payload = _live_payload([
+        _test_source({
+            "OPENCLAW_CONTINUITY_CAPSULE": "1",
+            "OPENCLAW_PACKET_SOURCE": "sqlite",
+        })
+    ])
+
+    assert payload["summary"]["verified_enabled"] == ["continuity_capsule"]
+    assert payload["summary"]["activation_allowed_now"] == []
+    for capability in payload["capabilities"]:
+        assert capability["activation_allowed_now"] is False
+
+
+def test_live_json_output_is_valid():
+    payload = _live_payload([
+        _test_source({"OPENCLAW_CONTINUITY_CAPSULE": "1"}),
+    ])
+
+    assert json.loads(register.stable_json(payload)) == payload
+
+
+def test_markdown_includes_live_state_evidence():
+    payload = _live_payload([
+        _test_source({
+            "OPENCLAW_CONTINUITY_CAPSULE": "1",
+            "OPENCLAW_PACKET_SOURCE": "sqlite",
+        })
+    ])
+    markdown = register.render_markdown(payload)
+
+    assert "## Live Environment Reconciliation" in markdown
+    assert "Live-state evidence:" in markdown
+    assert "`enabled_verified`" in markdown
+    assert "`OPENCLAW_PACKET_SOURCE`" in markdown
+    assert "`set_sqlite`" in markdown
+
+
+def test_live_generation_remains_deterministic_under_fake_sources():
+    sources = [
+        _test_source({
+            "OPENCLAW_CONTINUITY_CAPSULE": "1",
+            "OPENCLAW_PACKET_SOURCE": "sqlite",
+            "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER": "0",
+        })
+    ]
+    first = _live_payload(sources)
+    second = _live_payload(sources)
+
+    assert register.stable_json(first) == register.stable_json(second)
