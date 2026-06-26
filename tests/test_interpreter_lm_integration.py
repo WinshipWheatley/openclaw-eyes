@@ -720,3 +720,190 @@ class TestAuthorityLockedThroughBridge:
         result = interpreter_lm.InterpretResult(route="BRAIN", confidence=1.0, reason="x")
         for forbidden in ("authority", "allow", "send", "action", "deny", "authorize"):
             assert not hasattr(result, forbidden)
+
+
+# ---------------------------------------------------------------------------
+# 7. Messy-human canary — realistic rambling operator text through the REAL
+#    dispatch → REAL answer_frontdoor_chat brain path → REAL context-packet build.
+#
+# This is the end-to-end proof the prior tests deliberately did NOT give:
+#   - TestStarvationBugFixedSynthetically STUBS answer_frontdoor_chat, so it proves
+#     ROUTING but never exercises the real brain / packet build.
+#   - This class exercises the REAL brain path (build_maestro_context_packet runs on
+#     seeded read-models + operator truth), mocking ONLY the two LM boundaries:
+#       * the interpreter LM (classification JSON) — no real tokens
+#       * the answering LM (protected_generate) — no real tokens / no model call
+#   - It proves messy conversational text that the deterministic gate DECLINES (the
+#     starvation case) reaches the brain as a CHAT response, fact-selection rides
+#     along into the real packet, and ALL authority/send/ledger/action flags stay False.
+# ---------------------------------------------------------------------------
+
+# Controlled messy-human messages: lowercase, rambling, no clean punctuation — the
+# kind that today get tagged WORKFLOW_PACKAGE_REQUEST_V0 and "saved for review".
+_MESSY_HUMAN_MESSAGES = (
+    "hey so uhh whats actually going on with everything right now are we good or is stuff on fire",
+    "ok real talk where are we at with the board today what should i even be looking at",
+)
+
+
+def _messy_starved_request(text: str) -> dict:
+    """Request shaped like the real listener's WORKFLOW_PACKAGE_REQUEST_V0 with NO
+    authority_boundary → fails the deterministic frontdoor gate (the starvation case)."""
+    return {
+        "request_id": f"canary_{abs(hash(text)) % 10_000_000}",
+        "source_request_id": f"canary_{abs(hash(text)) % 10_000_000}",
+        "request_type": "WORKFLOW_PACKAGE_REQUEST_V0",
+        "kind": "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+        "active_surface_ref": "operator_maestro_chat",
+        "operator_text": text,
+        "world_ref": "general",
+        "current_world_ref": "general",
+        "thread_ref": "operator_maestro_chat",
+        "current_thread_ref": "operator_maestro_chat",
+        # deliberately NO authority_boundary → deterministic gate declines
+    }
+
+
+def _answering_lm_stub(text, *, context_packet=None, **kwargs):
+    """Stub for the ANSWERING LM (the SECOND LM). Returns a natural, conversational
+    answer shape and records which packet topics it was handed — NO real model call.
+    The wording-quality of a natural-vs-recited answer is the answering-LM's job and
+    requires a live model to judge; this canary proves ROUTING + FACT RELEVANCE, which
+    is what the interpreter controls."""
+    facts = (context_packet or {}).get("facts", []) if isinstance(context_packet, dict) else []
+    top_topics = [str(f.get("topic")) for f in facts[:6]]
+
+    class _Outcome:
+        def __init__(self):
+            self.text = "Yeah we're good — nothing on fire. Here's the quick read."
+            self.receipt = {
+                "receipt_id": "canary_receipt",
+                "decision": "INJECTED_CANARY_STUB",
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+                "model_call_performed": False,
+                "canary_packet_top_topics": top_topics,
+            }
+
+    return _Outcome()
+
+
+class TestMessyHumanCanary:
+    @pytest.mark.parametrize("messy_text", _MESSY_HUMAN_MESSAGES)
+    def test_messy_human_reaches_brain_through_real_packet_path(
+        self, messy_text, tmp_path, monkeypatch
+    ):
+        """Messy-human operator text (flag ON): deterministic gate declines →
+        interpreter returns high-confidence BRAIN → real divert → REAL
+        answer_frontdoor_chat → REAL build_maestro_context_packet → CHAT response,
+        fact-selection carried, all authority/send/ledger/action flags False."""
+        monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
+        monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")  # blocks any accidental live model
+        read_model_root = _seed_packet_read_models(tmp_path)
+        truth_path = _seed_operator_truth(tmp_path, monkeypatch)
+
+        # 1) The deterministic gate DECLINES this (the starvation case today).
+        req = _messy_starved_request(messy_text)
+        assert processor._is_maestro_frontdoor_operator_instruction(req) is False
+
+        # 2) Mock ONLY the interpreter LM: classify the messy message as BRAIN.
+        def _interpreter_stub(text, *, session=None, protected_generate_fn=None):
+            return interpreter_lm.InterpretResult(
+                route=interpreter_lm.ROUTE_BRAIN,
+                fact_selection=["work_board.json", "agent_presence.json"],
+                confidence=0.93,
+                reason="conversational status check, no action requested",
+            )
+
+        monkeypatch.setattr(interpreter_lm, "interpret_operator_message", _interpreter_stub)
+
+        # The divert builds its session via session_from_request(req); seed it so the
+        # REAL packet build finds the read-models + operator truth.
+        seeded_session = {
+            "read_model_root": read_model_root.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        }
+        monkeypatch.setattr(
+            maestro, "session_from_request", lambda _r: dict(seeded_session)
+        )
+
+        # 3) Wrap answer_frontdoor_chat to inject the answering-LM stub while keeping
+        # the REAL routing + REAL packet build path intact (no real tokens).
+        real_answer = maestro.answer_frontdoor_chat
+
+        def _answer_with_stub(t, **kw):
+            kw["protected_generate_fn"] = _answering_lm_stub
+            return real_answer(t, **kw)
+
+        monkeypatch.setattr(maestro, "answer_frontdoor_chat", _answer_with_stub)
+
+        # 4) Drive the REAL divert.
+        request_path = tmp_path / "req.json"
+        request_path.write_text(json.dumps(req), encoding="utf-8")
+        response = processor._try_interpreter_brain_divert(
+            request_path, req, classification=_workflow_classification(),
+            route_decision={}, _capsule=None,
+        )
+
+        # 5) Reached the brain as a CHAT response (NOT the workflow consumer).
+        assert response is not None, "messy-human message must be diverted to the brain"
+        assert response.request_type == "CHAT"
+        assert response.internal_status == "RESPONSE_READY"
+        # A conversational answer shell came back (not a save-for-review receipt).
+        assert response.operator_headline
+        assert "Saved for" not in (response.operator_message or "")
+
+        detail = response.detail_disclosure
+        # Interpreter routing recorded in the proof.
+        proof = detail["dynamic_card_response"]["proof"]["machine_proof"]
+        assert proof["interpreter_lm_divert"] is True
+        assert proof["interpreter_route"] == "BRAIN"
+        assert proof["interpreter_confidence"] == 0.93
+
+        # The REAL brain path ran build_maestro_context_packet and carried fact selection.
+        responder = detail["maestro_cassandra_responder"]
+        brain_proof = responder["machine_proof"]
+        assert brain_proof["maestro_context_packet_used"] is True
+        assert brain_proof["interpreter_fact_selection_used"] is True
+        assert brain_proof["interpreter_fact_selection_applied"] == [
+            "work_board.json", "agent_presence.json"
+        ]
+        # The answering LM was the mock (no real/external model).
+        assert brain_proof["external_llm_invoked"] is False
+
+        # 6) Authority / send / ledger / action ALL locked False end-to-end.
+        for locked in (
+            "email_send_performed",
+            "gmail_access_performed",
+            "telegram_send_triggered",
+            "business_action_performed",
+            "ledger_mutation_performed",
+            "workbook_mutation_performed",
+            "paid_marking_performed",
+        ):
+            assert detail[locked] is False, f"{locked} must remain False"
+        assert detail["external_actions_locked"] is True
+
+    def test_messy_human_starved_today_without_flag(self, tmp_path, monkeypatch):
+        """Sanity / no-regression: with the flag OFF, the SAME messy message is NOT
+        diverted (returns None → falls through to the deterministic workflow path).
+        Proves the canary behavior is strictly flag-gated."""
+        monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "0")
+
+        tripwire = {"interpret_called": False}
+
+        def _tripwire(*a, **k):
+            tripwire["interpret_called"] = True
+            raise AssertionError("interpreter must not run when flag is off")
+
+        monkeypatch.setattr(interpreter_lm, "interpret_operator_message", _tripwire)
+
+        req = _messy_starved_request(_MESSY_HUMAN_MESSAGES[0])
+        request_path = tmp_path / "req.json"
+        request_path.write_text(json.dumps(req), encoding="utf-8")
+        response = processor._try_interpreter_brain_divert(
+            request_path, req, classification=_workflow_classification(),
+            route_decision={}, _capsule=None,
+        )
+        assert response is None
+        assert tripwire["interpret_called"] is False
