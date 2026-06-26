@@ -1074,6 +1074,115 @@ def _load_json_request(path: Path) -> dict[str, Any]:
     return value
 
 
+# ── Continuity-identity stamping for brain/CHAT responses (ADDITIVE) ──────────
+# Bug: brain/CHAT responses (answer_frontdoor_chat + interpreter diverts) were
+# emitted WITHOUT conversation_id / turn / agent / thread identifiers, so the
+# continuity capsule and any downstream correlation are starved even when the
+# message reached the brain. The conversation_id stamp previously lived only in
+# the continuity write-back block (flag-gated AND requiring a non-empty minted
+# conversation_id AND a loaded capsule) — so a brain CHAT turn with no minted id
+# (or with continuity off) carried no identifiers at all.
+#
+# This stamper is FLAG-INDEPENDENT and applies ONLY to CHAT responses. It never
+# loads/writes a capsule (that stays continuity-flag-gated and unchanged); it
+# only ATTACHES correlation identifiers to the response detail + the brain card's
+# machine_proof. For non-CHAT responses it returns the response unchanged.
+
+def _derive_conversation_id(raw_request: Mapping[str, Any]) -> str:
+    """Return a stable conversation_id for this request.
+
+    Prefers an explicit minted ``conversation_id``. Otherwise derives a stable
+    FALLBACK from per-conversation-stable request keys (channel + chat/thread),
+    deliberately WITHOUT a per-message timestamp so two turns in the same
+    conversation get the SAME fallback id (continuity across follow-ups).
+    """
+    explicit = str(raw_request.get("conversation_id") or "").strip()
+    if explicit:
+        return explicit
+    channel = str(raw_request.get("source_channel") or "maestro_listener").strip()
+    # chat/thread anchor: prefer the per-chat ref, fall back to thread/surface.
+    chat_anchor = str(
+        raw_request.get("telegram_chat_ref")
+        or raw_request.get("thread_ref")
+        or raw_request.get("current_thread_ref")
+        or raw_request.get("active_surface_ref")
+        or raw_request.get("active_entity_ref")
+        or "operator_maestro_chat"
+    ).strip()
+    return "conv_fallback_" + _short_hash("continuity_fallback", channel, chat_anchor)
+
+
+def _continuity_identity_for_request(raw_request: Mapping[str, Any]) -> dict[str, str]:
+    """Build the continuity-identity bundle attached to brain/CHAT responses."""
+    conversation_id = _derive_conversation_id(raw_request)
+    operator_id = str(
+        raw_request.get("actor") or raw_request.get("speaker") or "operator"
+    ).strip() or "operator"
+    thread_id = str(
+        raw_request.get("thread_ref")
+        or raw_request.get("current_thread_ref")
+        or raw_request.get("active_surface_ref")
+        or "operator_maestro_chat"
+    ).strip() or "operator_maestro_chat"
+    # turn_id is per-message (request-scoped); conversation_id is per-conversation.
+    # Prefer request_id; fall back to other per-message-unique anchors so two turns
+    # in the same conversation never collide to the same turn_id even on degraded
+    # input where request_id/source_request_id are both absent (payload_hash and
+    # created_at are per-message; the listener always sets payload_hash).
+    request_anchor = str(
+        raw_request.get("request_id")
+        or raw_request.get("source_request_id")
+        or raw_request.get("payload_hash")
+        or raw_request.get("created_at")
+        or ""
+    ).strip()
+    turn_id = "turn_" + _short_hash("continuity_turn", conversation_id, request_anchor)
+    return {
+        "conversation_id": conversation_id,
+        "turn_id": turn_id,
+        "operator_id": operator_id,
+        "agent_id": "maestro",
+        "thread_id": thread_id,
+        "conversation_id_source": "minted" if str(raw_request.get("conversation_id") or "").strip() else "fallback",
+    }
+
+
+def _stamp_continuity_identity(
+    response: "OpenClawResponseForMac",
+    raw_request: Mapping[str, Any],
+) -> "OpenClawResponseForMac":
+    """Attach continuity identifiers to a brain/CHAT response (additive, CHAT-only).
+
+    - Non-CHAT responses: returned UNCHANGED (byte-identical).
+    - CHAT responses: detail_disclosure gains conversation_id/turn_id/operator_id/
+      agent_id/thread_id; the brain card's proof.machine_proof gains conversation_id
+      + turn_id so the receipt carries the same correlation. Never raises.
+    """
+    try:
+        if response is None or str(getattr(response, "request_type", "")) != "CHAT":
+            return response
+        ids = _continuity_identity_for_request(raw_request)
+        detail = dict(response.detail_disclosure) if isinstance(response.detail_disclosure, dict) else {}
+        # Do not clobber an already-present (e.g. continuity write-back) conversation_id.
+        for key in ("conversation_id", "turn_id", "operator_id", "agent_id", "thread_id"):
+            detail.setdefault(key, ids[key])
+        detail.setdefault("continuity_identity", dict(ids))
+
+        # Mirror conversation_id + turn_id into the brain card's machine_proof so the
+        # receipt carries the same correlation ids (acceptance criterion 2).
+        card = detail.get("dynamic_card_response")
+        if isinstance(card, dict):
+            proof = card.get("proof")
+            if isinstance(proof, dict):
+                mp = proof.get("machine_proof")
+                if isinstance(mp, dict):
+                    mp.setdefault("conversation_id", detail["conversation_id"])
+                    mp.setdefault("turn_id", detail["turn_id"])
+        return replace(response, detail_disclosure=detail)
+    except Exception:
+        return response  # never block response delivery
+
+
 def build_responder_targets(selected_family: str) -> tuple[RequestProcessorResponderTarget, ...]:
     def target(
         target_type: str,
@@ -7779,6 +7888,18 @@ def process_request_path(
             response = replace(response, detail_disclosure=_detail)
         except Exception:
             pass  # never block response delivery
+
+    # ── Continuity-identity stamp for brain/CHAT responses (ADDITIVE, flag-INDEPENDENT) ──
+    # Always attach conversation_id/turn_id/operator_id/agent_id/thread_id to a CHAT
+    # response (and mirror conversation_id+turn_id into the brain card's machine_proof)
+    # so brain answers are never continuity-starved — even when the continuity flag is
+    # off or no conversation_id was minted (safe fallback id). setdefault preserves any
+    # conversation_id the write-back above already stamped. Non-CHAT responses unchanged.
+    try:
+        _raw_req_for_ids = _load_json_request(request_path)
+        response = _stamp_continuity_identity(response, _raw_req_for_ids)
+    except Exception:
+        pass  # never block response delivery
     return response
 
 

@@ -1152,6 +1152,7 @@
 !tests/test_packet_sqlite_flip.py
 !tests/test_interpreter_lm.py
 !tests/test_interpreter_lm_integration.py
+!tests/test_continuity_stamp.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md
