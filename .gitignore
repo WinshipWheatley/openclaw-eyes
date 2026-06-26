@@ -52,6 +52,7 @@
 !chief_obsidian_sync.py
 !chief_album_brain_legacy.py
 !chief_llm.py
+!frontdoor_prompt.py
 !chief_marketing_brain.py
 !chief_approval_brain.py
 !chief_reporter_brain.py
@@ -1263,3 +1264,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_t014_deterministic_response.py
 !tests/test_t016_synthetic_e2e.py
 !tests/test_t017_operator_approval_gate.py
+!tests/test_frontdoor_model_profile.py

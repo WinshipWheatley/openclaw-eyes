@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 from typing import Any, Callable, Mapping
 
 from agent_perspective import perspective_prompt
@@ -92,6 +93,10 @@ LEGAL_RAW_PATTERNS = (
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _now_ms() -> int:
+    return int(time.monotonic() * 1000)
 
 
 def _stable_json(payload: Any) -> str:
@@ -211,6 +216,39 @@ def _call_generator(generator_fn: Callable[..., str], prompt: str, **kwargs: Any
         return str(generator_fn(prompt, **kwargs) or "")
     except TypeError:
         return str(generator_fn(prompt) or "")
+
+
+def _call_generator_capturing(
+    generator_fn: Callable[..., Any], prompt: str, **kwargs: Any
+) -> tuple[str, str | None]:
+    """Call a front-door generator and surface (text, done_reason).
+
+    The generator may return either plain text (str) — done_reason unknown — or a
+    Mapping carrying {"text"/"response", "done_reason"} so the caller can classify
+    truncation. Anything else is coerced to str with done_reason=None.
+    """
+    try:
+        signature = inspect.signature(generator_fn)
+    except (TypeError, ValueError):
+        signature = None
+    if signature is not None:
+        params = signature.parameters
+        if any(param.kind == inspect.Parameter.VAR_KEYWORD for param in params.values()):
+            result = generator_fn(prompt, **kwargs)
+        else:
+            accepted = {key: value for key, value in kwargs.items() if key in params}
+            result = generator_fn(prompt, **accepted)
+    else:
+        try:
+            result = generator_fn(prompt, **kwargs)
+        except TypeError:
+            result = generator_fn(prompt)
+
+    if isinstance(result, Mapping):
+        text = str(result.get("text") or result.get("response") or "")
+        done = result.get("done_reason")
+        return text, (str(done) if done is not None else None)
+    return str(result or ""), None
 
 
 def _live_model_allowed(explicit: bool | None = None) -> bool:
@@ -566,6 +604,77 @@ def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | s
     return " ".join(matched[:3])
 
 
+# ── Front-door profile: completeness + Stage-1 validation (Revision 8) ────────
+# A truncated-mid-sentence answer is NEVER delivered. done_reason=="length" is a
+# FAILURE unless the text is a complete utterance AND passes the Stage-1 validator.
+
+_SENTENCE_FINAL_RE = re.compile(r"[.!?][\"')\]]*\s*$")
+# A dangling clause typically ends on a coordinating/subordinating conjunction or a
+# comma — an obvious mid-sentence cut even if punctuation were appended.
+_DANGLING_TAIL_WORDS = frozenset(
+    {
+        "and",
+        "or",
+        "but",
+        "so",
+        "because",
+        "with",
+        "for",
+        "the",
+        "a",
+        "an",
+        "to",
+        "of",
+        "in",
+        "on",
+        "at",
+        "as",
+        "that",
+        "which",
+        "while",
+        "when",
+        "if",
+        "then",
+    }
+)
+
+
+def _is_complete_utterance(text: str) -> bool:
+    """True when ``text`` ends on sentence-final punctuation with no dangling clause."""
+    stripped = str(text or "").strip()
+    if not stripped:
+        return False
+    if not _SENTENCE_FINAL_RE.search(stripped):
+        return False
+    # Strip trailing punctuation/quotes to inspect the final word.
+    tail = re.sub(r"[.!?\"')\]\s]+$", "", stripped)
+    last_word = tail.split()[-1].lower().strip(",;:") if tail.split() else ""
+    if last_word in _DANGLING_TAIL_WORDS:
+        return False
+    # A bare comma right before the final punctuation also signals a cut clause.
+    if re.search(r",\s*$", tail):
+        return False
+    return True
+
+
+def _stage1_validate(text: str) -> tuple[bool, bool, tuple[str, ...]]:
+    """Run the existing Stage-1 operator-surface validator on ``text``.
+
+    Returns (passed, available, reasons). ``available`` is False when the validator
+    module cannot be imported — callers then record ``validation_unavailable`` and
+    fall back to the completeness heuristic alone (Revision 8).
+    """
+    try:
+        from operator_surface_guard import check_machine_contract_leak
+    except Exception:
+        return True, False, ()
+    try:
+        result = check_machine_contract_leak(str(text or ""))
+        return (not bool(result.is_leak)), True, tuple(result.reasons)
+    except Exception:
+        return True, False, ()
+
+
 def _write_audit(receipt: Mapping[str, Any], audit_log_path: str | Path | None = None) -> str:
     target = Path(audit_log_path or os.environ.get("OPENCLAW_PII_AUDIT_LOG", "") or DEFAULT_AUDIT_LOG)
     try:
@@ -609,11 +718,30 @@ def protected_generate_with_receipt(
     generator_fn: Callable[..., str] | None = None,
     audit_log_path: str | Path | None = None,
     allow_live_model: bool | None = None,
+    front_door_profile: bool = False,
+    interactive_timeout_s: float | None = None,
+    num_predict: int | None = None,
+    model_selected: str | None = None,
+    model_think: bool | None = None,
+    done_reason: str | None = None,
+    context_facts_kept: int | None = None,
+    context_facts_dropped: int | None = None,
+    prompt_chars: int | None = None,
 ) -> ProtectedGenerateOutcome:
     """Generate text through graded PII tokenization and an audit receipt.
 
     This function returns a blocked outcome instead of raising for policy
     denials, because front-door callers need to give the operator a clear answer.
+
+    front_door_profile (DEFAULT-OFF): when False the receipt and behavior are
+    BYTE-IDENTICAL to before — NONE of the new telemetry fields are emitted. When
+    True, the front-door classification (model_fallback_reason), truncation/validation
+    policy (Revision 8), and telemetry fields (Revision 9) are added to the receipt.
+    The other new params (interactive_timeout_s / num_predict / model_selected /
+    done_reason / context_facts_kept / context_facts_dropped / prompt_chars) are
+    front-door pass-throughs recorded only when front_door_profile=True; ``done_reason``
+    may also be threaded by a caller that only has the text (the injected generator
+    can alternatively return a dict carrying done_reason).
     """
 
     raw_prompt = str(prompt or "").strip()
@@ -681,22 +809,43 @@ def protected_generate_with_receipt(
     route = "deterministic_fallback"
     local_invoked = False
     external_invoked = False
+    # Tracks whether an injected generator's output is actually DELIVERED. Starts as
+    # generator_fn (off-path unchanged) and is cleared only if the front-door profile
+    # discards the model output, so model_call_performed / decision /
+    # deterministic_fallback_used stay truthful. Off-path: identical to generator_fn.
+    generator_fn_used = generator_fn
     raw_output = ""
     external_timeout = _float_env("OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT", DEFAULT_EXTERNAL_TIMEOUT_SECONDS)
     local_timeout = _float_env("OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT", DEFAULT_LOCAL_TIMEOUT_SECONDS)
     local_attempts = _int_env("OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS", DEFAULT_LOCAL_ATTEMPTS)
     ollama_probe_timeout = _float_env("OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT", 0.2)
     ollama_unreachable_shortcircuit = False
+    # Front-door telemetry capture (only consulted when front_door_profile=True).
+    fd_captured_done_reason: str | None = done_reason
+    fd_model_elapsed_ms: int | None = None
+    fd_call_started = _now_ms()
     if generator_fn is not None:
         route = "injected_generator"
         local_invoked = True
-        raw_output = _call_generator(
-            generator_fn,
-            system_prompt,
-            context_packet=safe_packet,
-            metadata=metadata,
-            receipt=dict(receipt),
-        )
+        if front_door_profile:
+            raw_output, _captured = _call_generator_capturing(
+                generator_fn,
+                system_prompt,
+                context_packet=safe_packet,
+                metadata=metadata,
+                receipt=dict(receipt),
+            )
+            if _captured is not None:
+                fd_captured_done_reason = _captured
+            fd_model_elapsed_ms = _now_ms() - fd_call_started
+        else:
+            raw_output = _call_generator(
+                generator_fn,
+                system_prompt,
+                context_packet=safe_packet,
+                metadata=metadata,
+                receipt=dict(receipt),
+            )
     elif _live_model_allowed(allow_live_model):
         if (
             external_safe
@@ -730,6 +879,68 @@ def protected_generate_with_receipt(
                     route = "local_ollama" if raw_output else route
             except Exception:
                 raw_output = ""
+        if front_door_profile and fd_model_elapsed_ms is None:
+            fd_model_elapsed_ms = _now_ms() - fd_call_started
+
+    # ── Front-door classification + truncation/validation (Revisions 8/9) ──────
+    # All of this is gated behind front_door_profile; when off, nothing below runs
+    # and the receipt is byte-identical to the legacy path.
+    fd_fallback_reason: str | None = None
+    fd_response_truncated = False
+    fd_validation_unavailable = False
+    fd_validation_reasons: tuple[str, ...] = ()
+    if front_door_profile:
+        dr_lower = str(fd_captured_done_reason or "").strip().lower()
+        model_was_invoked = bool(local_invoked or external_invoked)
+        if dr_lower == "timeout":
+            # A caller/generator that surfaced a timeout outcome (Rev 2 ceiling exceeded).
+            fd_fallback_reason = "timeout"
+        elif dr_lower == "no_fitting_model":
+            # Caller (the selector) found no allowlisted model that fits the box.
+            fd_fallback_reason = "no_fitting_model"
+        elif dr_lower == "unreachable" or ollama_unreachable_shortcircuit:
+            fd_fallback_reason = "unreachable"
+        elif not model_was_invoked:
+            # No live model answer. Distinguish WHY for first-class telemetry.
+            if route == "grounded_fallback_no_external_model_ollama_unreachable":
+                fd_fallback_reason = "unreachable"
+            elif not _live_model_allowed(allow_live_model) and generator_fn is None:
+                fd_fallback_reason = "never_invoked"
+            else:
+                fd_fallback_reason = "empty_output"
+        elif not str(raw_output or "").strip():
+            fd_fallback_reason = "empty_output"
+        else:
+            # Model produced non-empty text. Apply truncation + Stage-1 validation.
+            passed, available, vreasons = _stage1_validate(raw_output)
+            fd_validation_unavailable = not available
+            fd_validation_reasons = vreasons
+            if not passed:
+                fd_fallback_reason = "validation_failed"
+            elif dr_lower == "length":
+                # done_reason=length is a FAILURE unless complete + validated (Rev 8).
+                if _is_complete_utterance(raw_output):
+                    fd_fallback_reason = "model_ok"
+                else:
+                    fd_fallback_reason = "truncated"
+                    fd_response_truncated = True
+            else:
+                fd_fallback_reason = "model_ok"
+
+        # Any non-model_ok reason → never deliver a bad/late/truncated answer; drop the
+        # model output, route to the grounded deterministic fallback, and reflect that
+        # no model answer was delivered in the model_call fields.
+        if fd_fallback_reason != "model_ok":
+            raw_output = ""
+            local_invoked = False
+            external_invoked = False
+            # The model output was DISCARDED → the receipt's model_call_performed /
+            # decision / deterministic_fallback_used must reflect that no model answer
+            # was delivered. Clearing generator_fn_used (not generator_fn itself, which
+            # is left intact for the off-path) makes those three fields truthful.
+            generator_fn_used = None
+            route = f"deterministic_fallback_{fd_fallback_reason}"
+
     if not raw_output:
         raw_output = _fallback_grounded_answer(raw_prompt, context_packet)
 
@@ -737,11 +948,11 @@ def protected_generate_with_receipt(
     receipt.update(
         {
             "status": "ANSWER_READY",
-            "decision": "ALLOW_TOKENIZED_MODEL_REASONING" if (local_invoked or external_invoked or generator_fn) else "ALLOW_GROUNDED_FALLBACK",
+            "decision": "ALLOW_TOKENIZED_MODEL_REASONING" if (local_invoked or external_invoked or generator_fn_used) else "ALLOW_GROUNDED_FALLBACK",
             "tokenization_applied": tokenization_applied,
             "token_count": token_count,
             "raw_values_included": raw_values_included,
-            "model_call_performed": bool(local_invoked or external_invoked or generator_fn),
+            "model_call_performed": bool(local_invoked or external_invoked or generator_fn_used),
             "external_llm_invoked": external_invoked,
             "local_model_invoked": local_invoked,
             "route": route,
@@ -753,10 +964,33 @@ def protected_generate_with_receipt(
             "local_model_attempts": local_attempts,
             "ollama_probe_timeout_seconds": ollama_probe_timeout,
             "ollama_unreachable_shortcircuit": ollama_unreachable_shortcircuit,
-            "deterministic_fallback_used": not bool(local_invoked or external_invoked or generator_fn),
+            "deterministic_fallback_used": not bool(local_invoked or external_invoked or generator_fn_used),
             "safe_prompt_hash": _sha256(system_prompt),
         }
     )
+    # Front-door telemetry (Revision 9). ONLY emitted when front_door_profile=True so
+    # the default-off receipt stays byte-identical to the pre-change schema.
+    if front_door_profile:
+        receipt.update(
+            {
+                "front_door_profile_used": True,
+                "model_selected": model_selected,
+                "prompt_chars": prompt_chars if prompt_chars is not None else len(system_prompt),
+                "model_elapsed_ms": fd_model_elapsed_ms,
+                "model_timeout_s": interactive_timeout_s,
+                "model_num_predict": num_predict,
+                "model_think": model_think,
+                "done_reason": fd_captured_done_reason,
+                "model_fallback_reason": fd_fallback_reason,
+                "response_truncated": fd_response_truncated,
+                "context_facts_kept": context_facts_kept,
+                "context_facts_dropped": context_facts_dropped,
+            }
+        )
+        if fd_validation_unavailable:
+            receipt["validation_unavailable"] = True
+        if fd_validation_reasons:
+            receipt["validation_reasons"] = list(fd_validation_reasons)
     audit_ref = _write_audit(receipt, audit_log_path)
     receipt["audit_ref"] = audit_ref
     return ProtectedGenerateOutcome(status="ANSWER_READY", text=text, receipt=receipt)

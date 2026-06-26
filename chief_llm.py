@@ -74,7 +74,16 @@ def _log_external_call(model: str, prompt_words: int, response_words: int,
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 _INSTALLED_MODEL_CACHE: tuple[float, set[str]] | None = None
+_MODEL_SIZE_CACHE: tuple[float, dict[str, float]] | None = None
 _OLLAMA_UNREACHABLE_MEMO = False
+
+# Front-door latency ladder (Revision 5): smallest-first ordered allowlist of
+# RAM-fitting models that may serve the interactive operator front-door reply.
+# Never contains gemma4:26b/31b. Env-overridable as a comma list.
+_FRONTDOOR_MODEL_ALLOWLIST_DEFAULT = ("qwen3.5:4b", "qwen3:8b-q4_K_M", "qwen3.5:9b")
+# RAM headroom (GB) reserved below available RAM, and a hard size ceiling.
+_FRONTDOOR_MODEL_RAM_HEADROOM_GB = 4.0
+_FRONTDOOR_MODEL_MAX_GB_DEFAULT = 12.0
 
 
 def _ollama_tags_url() -> str:
@@ -686,6 +695,112 @@ def _ollama_installed_models(force_refresh: bool = False) -> set[str]:
     return models
 
 
+def _ollama_model_sizes(force_refresh: bool = False) -> dict[str, float]:
+    """Return {model_name: size_GB} by querying the Ollama /api/tags endpoint.
+
+    Graceful: returns {} on ANY error (unreachable, bad JSON, missing fields).
+    Cached for 60s like ``_ollama_installed_models``. The /api/tags ``size``
+    field is bytes; we convert to GB (decimal, /1e9) to match disk-size budgets.
+    """
+    global _MODEL_SIZE_CACHE
+    if not force_refresh and _MODEL_SIZE_CACHE is not None:
+        cached_at, cached_sizes = _MODEL_SIZE_CACHE
+        if (_time.time() - cached_at) < 60:
+            return dict(cached_sizes)
+
+    sizes: dict[str, float] = {}
+    try:
+        req = urllib.request.Request(_ollama_tags_url(), method="GET")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        for entry in (data.get("models") or []):
+            if not isinstance(entry, dict):
+                continue
+            name = entry.get("name")
+            size_bytes = entry.get("size")
+            if isinstance(name, str) and isinstance(size_bytes, (int, float)) and size_bytes > 0:
+                sizes[name] = float(size_bytes) / 1e9
+    except Exception:
+        sizes = {}
+
+    _MODEL_SIZE_CACHE = (_time.time(), dict(sizes))
+    return sizes
+
+
+def FRONTDOOR_MODEL_ALLOWLIST() -> tuple[str, ...]:
+    """Ordered (smallest-first) front-door latency ladder.
+
+    Default ``_FRONTDOOR_MODEL_ALLOWLIST_DEFAULT``; overridable via
+    ``OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`` (comma list). Never includes gemma4:26b/31b.
+    """
+    raw = os.environ.get("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", "").strip()
+    if not raw:
+        return _FRONTDOOR_MODEL_ALLOWLIST_DEFAULT
+    parsed = tuple(item.strip() for item in raw.split(",") if item.strip())
+    return parsed or _FRONTDOOR_MODEL_ALLOWLIST_DEFAULT
+
+
+def select_frontdoor_model(
+    *,
+    installed: set[str] | None = None,
+    sizes: dict[str, float] | None = None,
+    available_ram_gb: float | None = None,
+) -> tuple[str | None, str]:
+    """Pick the LARGEST allowlisted model that is installed AND fits the RAM/size budget.
+
+    Sizing rule:
+        budget_gb = min(available_ram_gb - headroom(4), OPENCLAW_FRONTDOOR_MODEL_MAX_GB[=12])
+    From the allowlist (smallest-first), keep candidates that are installed and whose
+    on-disk size is <= budget_gb, then return the LARGEST such (best quality within
+    budget). The smallest-first ladder lets callers fall to smaller models at runtime
+    when latency (measured live, not here) misses the budget.
+
+    Returns (model_or_None, reason). gemma4:26b/31b never appear (not in the allowlist
+    and also excluded by the size budget). installed/sizes/available_ram_gb are
+    injectable for tests; default to live queries.
+    """
+    allowlist = FRONTDOOR_MODEL_ALLOWLIST()
+    if installed is None:
+        installed = _ollama_installed_models()
+    if sizes is None:
+        sizes = _ollama_model_sizes()
+
+    try:
+        max_gb = float(os.environ.get("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", "").strip() or _FRONTDOOR_MODEL_MAX_GB_DEFAULT)
+    except (TypeError, ValueError):
+        max_gb = _FRONTDOOR_MODEL_MAX_GB_DEFAULT
+    if max_gb <= 0:
+        max_gb = _FRONTDOOR_MODEL_MAX_GB_DEFAULT
+
+    if available_ram_gb is not None:
+        ram_budget = float(available_ram_gb) - _FRONTDOOR_MODEL_RAM_HEADROOM_GB
+        budget_gb = min(ram_budget, max_gb)
+    else:
+        budget_gb = max_gb
+
+    # Walk smallest-first; collect installed candidates that fit the size budget.
+    # The size table maps disk-size; a candidate with NO known size cannot be
+    # proven to fit, so it is conservatively excluded from the fitting set.
+    # An EMPTY ``installed`` set means "couldn't enumerate" (mirrors
+    # _ollama_installed_models / resolve_local_model), so the installed filter is
+    # skipped rather than read as "nothing installed".
+    fitting: list[str] = []
+    for candidate in allowlist:
+        if installed and candidate not in installed:
+            continue
+        size_gb = sizes.get(candidate)
+        if size_gb is None:
+            continue
+        if size_gb <= budget_gb:
+            fitting.append(candidate)
+
+    if not fitting:
+        return None, "no_fitting_model"
+    # allowlist is smallest-first, so the LAST fitting entry is the largest fitting.
+    chosen = fitting[-1]
+    return chosen, "frontdoor_largest_fitting"
+
+
 def local_model_candidates(lane: str, *, task_class: str | None = None) -> tuple[str, ...]:
     if task_class in _TASK_CLASS_MODEL_CANDIDATES:
         return _TASK_CLASS_MODEL_CANDIDATES[task_class]
@@ -751,7 +866,15 @@ def resolve_local_model(
     lane: str | None = None,
     *,
     task_class: str | None = None,
+    profile: str | None = None,
 ) -> tuple[str, str]:
+    # Front-door profile path (additive, opt-in): return the latency-ladder pick from
+    # select_frontdoor_model instead of the strong/gemma candidates. Reachable via
+    # profile="frontdoor" OR task_class="frontdoor_reply". chief_user_reply is untouched.
+    if profile == "frontdoor" or task_class == "frontdoor_reply":
+        model, reason = select_frontdoor_model()
+        return (model or ""), reason
+
     selected_lane = choose_local_model_lane(prompt, lane, task_class=task_class)
     installed = _ollama_installed_models()
     candidates = local_model_candidates(selected_lane, task_class=task_class)
@@ -792,6 +915,9 @@ def ollama_call(
     *,
     task_class: str | None = None,
     attempts: int | None = None,
+    think: bool | None = None,
+    num_predict: int | None = None,
+    options: dict | None = None,
 ) -> str:
     """Call Ollama and return raw text response. Returns '' on any error. Retries up to 3 times with backoff.
 
@@ -800,6 +926,13 @@ def ollama_call(
                           that have already made the routing decision.
     When using 14b (either path), timeout is raised to _DEEP_TIMEOUT_FLOOR.
     attempts=<n>:          optional caller budget override for latency-sensitive front-door paths.
+
+    think / num_predict / options (ALL default None → payload BYTE-IDENTICAL to today):
+        front-door-profile-only bounded options. When NONE of these are passed the
+        json payload is exactly {"model","prompt","stream":False} as before. When
+        think=False → payload gains "think": false. When num_predict=N → payload
+        gains/merges "options":{"num_predict":N}. An explicit ``options`` dict is
+        merged under the same "options" key without clobbering num_predict.
     """
     selected_lane = lane
     models_to_try: tuple[str, ...]
@@ -830,12 +963,24 @@ def ollama_call(
         timeout = max(timeout, _CASSANDRA_MORNING_TEST_TIMEOUT)
         attempt_count = _CASSANDRA_MORNING_TEST_ATTEMPTS
     prompt_words = len(prompt.split())
+    # Merge bounded front-door options WITHOUT clobbering. When think / num_predict /
+    # options are all None the resulting payload dict is byte-identical to the legacy
+    # {"model","prompt","stream":False}; the extra keys are only inserted when a caller
+    # opts in to the front-door profile, preserving DEFAULT-OFF byte-identity.
+    merged_options: dict = dict(options) if isinstance(options, dict) else {}
+    if num_predict is not None:
+        merged_options["num_predict"] = num_predict
     for candidate_model in models_to_try:
-        payload = json.dumps({
+        payload_dict: dict = {
             "model": candidate_model,
             "prompt": prompt,
             "stream": False,
-        }).encode("utf-8")
+        }
+        if think is not None:
+            payload_dict["think"] = bool(think)
+        if merged_options:
+            payload_dict["options"] = dict(merged_options)
+        payload = json.dumps(payload_dict).encode("utf-8")
         req = urllib.request.Request(
             OLLAMA_URL,
             data=payload,
