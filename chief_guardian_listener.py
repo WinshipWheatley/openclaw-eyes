@@ -133,6 +133,25 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         await _update(f"{_orig}\n\n{_result}")
         return
 
+    # ── Build-request approval (polish-loop factory intake, Gap A) ────────────
+    # Additive: only the BUILDOK/BUILDNO tokens reach here; existing approvals are
+    # untouched. Wrapped so a polish_loop import hiccup can never crash the listener.
+    if decision_token in {"BUILDOK", "BUILDNO"}:
+        try:
+            from polish_loop.build_request_intake import handle_build_approval
+            from polish_loop.control_plane import ControlPlaneLedger
+
+            _br = handle_build_approval(callback_data, ledger=ControlPlaneLedger())
+            if _br["result"] == "approved":
+                await _update(f"{_orig}\n\n✅ Approved — build queued (READY).")
+            elif _br["result"] == "denied":
+                await _update(f"{_orig}\n\n🛑 Denied — build request dropped.")
+            else:
+                await _update(f"{_orig}\n\n[Build request no longer actionable.]")
+        except Exception as _exc:  # never crash the Guardian listener
+            await _update(f"{_orig}\n\n[Build approval error: {type(_exc).__name__}]")
+        return
+
     from chief_approval_brain import (
         record_decision, has_pending_approval, _load_pending, _save_pending, _is_hard_t2,
     )

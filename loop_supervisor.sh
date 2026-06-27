@@ -189,7 +189,7 @@ check_duplicates() {
     # Only the (deprecated) standing-loop daemon should ever be a duplicate; transient
     # `orchestrator.py --once` cron ticks are short-lived and must NOT be counted/killed.
     local orch_count
-    orch_count=$(pgrep -fc "orchestrator.py --loop" 2>/dev/null || echo 0)
+    orch_count=$(pgrep -fc "orchestrator.py --loop" 2>/dev/null || true); orch_count=${orch_count:-0}
     if [ "$orch_count" -gt 1 ]; then
         log "WARN: $orch_count orchestrator processes running (expected 1) — killing extras"
         # Keep the oldest (lowest PID), kill the rest
