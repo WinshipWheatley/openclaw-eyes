@@ -756,12 +756,13 @@
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md",
-        "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md"
+        "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md"
       ],
-      "canary_status": "queued_for_contained_canary; not_run_due_to_load_and_audit_gap",
+      "canary_status": "queued_for_recanary; task-019 config remains default-off until Opus contained recanary",
       "capability_id": "frontdoor_model_profile",
       "current_state_if_verifiable": {
-        "audit_report": "CODEX front-door integration result reports default-off integration and no live enablement",
+        "audit_report": "CODEX front-door integration result reports default-off integration and no live enablement; task-019 adds default-off warm-pin/offload config for future contained recanary",
         "code_default": "off unless OPENCLAW_FRONTDOOR_MODEL_PROFILE is truthy and packet is a Maestro front-door packet",
         "production": "unknown_not_read_from_env_files_or_services",
         "summary": "code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review"
@@ -772,13 +773,19 @@
       "enabled_by": "OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope",
       "evidence_refs": [
         "protected_generate.py:_frontdoor_model_profile_flag_enabled",
+        "protected_generate.py:_frontdoor_ollama_options",
+        "protected_generate.py:_frontdoor_keep_alive",
         "chief_llm.py:select_frontdoor_model",
-        "tests/test_frontdoor_model_profile.py"
+        "tests/test_frontdoor_model_profile.py",
+        "tests/test_frontdoor_warmpin_offload.py"
       ],
       "flag_or_config": [
         "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
         "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
         "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+        "OPENCLAW_FRONTDOOR_NUM_CTX",
+        "OPENCLAW_FRONTDOOR_NUM_GPU",
+        "OPENCLAW_FRONTDOOR_KEEP_ALIVE",
         "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
         "OPENCLAW_FRONTDOOR_MODEL_MAX_GB"
       ],
@@ -791,7 +798,7 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "run a contained front-door canary only after load is acceptable and Opus approves the envelope",
+      "next_required_step": "Opus integrates task-019, then runs contained qwen3:8b recanary with OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope",
       "operator_approval_required": true,
       "owner": "Opus",
       "reason_if_off": "built but canary evidence is incomplete; not production-safe to enable from this register",
@@ -802,7 +809,8 @@
         "chief_llm.py"
       ],
       "tests": [
-        "tests/test_frontdoor_model_profile.py"
+        "tests/test_frontdoor_model_profile.py",
+        "tests/test_frontdoor_warmpin_offload.py"
       ]
     },
     {
@@ -1823,6 +1831,9 @@
     "OPENCLAW_FREEFORM_CLOUD",
     "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
     "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+    "OPENCLAW_FRONTDOOR_NUM_CTX",
+    "OPENCLAW_FRONTDOOR_NUM_GPU",
+    "OPENCLAW_FRONTDOOR_KEEP_ALIVE",
     "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
     "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
     "OPENROUTER_MODEL",
@@ -1897,6 +1908,9 @@
       "OPENCLAW_FREEFORM_CLOUD",
       "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
       "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+      "OPENCLAW_FRONTDOOR_NUM_CTX",
+      "OPENCLAW_FRONTDOOR_NUM_GPU",
+      "OPENCLAW_FRONTDOOR_KEEP_ALIVE",
       "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
       "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
       "OPENROUTER_MODEL",
@@ -2264,11 +2278,21 @@
         ],
         "status": "found"
       },
+      "OPENCLAW_FRONTDOOR_KEEP_ALIVE": {
+        "files": [
+          "activation_gate_register.py",
+          "protected_generate.py",
+          "tests/test_activation_gate_register.py",
+          "tests/test_frontdoor_warmpin_offload.py"
+        ],
+        "status": "found"
+      },
       "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST": {
         "files": [
           "activation_gate_register.py",
           "chief_llm.py",
-          "tests/test_frontdoor_model_profile.py"
+          "tests/test_frontdoor_model_profile.py",
+          "tests/test_frontdoor_warmpin_offload.py"
         ],
         "status": "found"
       },
@@ -2276,7 +2300,9 @@
         "files": [
           "activation_gate_register.py",
           "chief_llm.py",
-          "tests/test_frontdoor_model_profile.py"
+          "protected_generate.py",
+          "tests/test_frontdoor_model_profile.py",
+          "tests/test_frontdoor_warmpin_offload.py"
         ],
         "status": "found"
       },
@@ -2285,7 +2311,26 @@
           "activation_gate_register.py",
           "protected_generate.py",
           "tests/test_activation_gate_register.py",
-          "tests/test_frontdoor_model_profile.py"
+          "tests/test_frontdoor_model_profile.py",
+          "tests/test_frontdoor_warmpin_offload.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_FRONTDOOR_NUM_CTX": {
+        "files": [
+          "activation_gate_register.py",
+          "protected_generate.py",
+          "tests/test_activation_gate_register.py",
+          "tests/test_frontdoor_warmpin_offload.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_FRONTDOOR_NUM_GPU": {
+        "files": [
+          "activation_gate_register.py",
+          "protected_generate.py",
+          "tests/test_activation_gate_register.py",
+          "tests/test_frontdoor_warmpin_offload.py"
         ],
         "status": "found"
       },
@@ -2293,7 +2338,8 @@
         "files": [
           "activation_gate_register.py",
           "protected_generate.py",
-          "tests/test_frontdoor_model_profile.py"
+          "tests/test_frontdoor_model_profile.py",
+          "tests/test_frontdoor_warmpin_offload.py"
         ],
         "status": "found"
       },
@@ -2301,7 +2347,8 @@
         "files": [
           "activation_gate_register.py",
           "protected_generate.py",
-          "tests/test_frontdoor_model_profile.py"
+          "tests/test_frontdoor_model_profile.py",
+          "tests/test_frontdoor_warmpin_offload.py"
         ],
         "status": "found"
       },
@@ -2500,6 +2547,9 @@
         "status": "found"
       }
     },
-    "missing_repo_evidence_files": []
+    "missing_repo_evidence_files": [
+      "brain_dump_parser.py",
+      "polish_loop/git_task_guard.sh"
+    ]
   }
 }

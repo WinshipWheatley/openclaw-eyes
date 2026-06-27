@@ -43,6 +43,9 @@ LIVE_ENV_WHITELIST = (
     "OPENCLAW_FREEFORM_CLOUD",
     "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
     "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+    "OPENCLAW_FRONTDOOR_NUM_CTX",
+    "OPENCLAW_FRONTDOOR_NUM_GPU",
+    "OPENCLAW_FRONTDOOR_KEEP_ALIVE",
     "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
     "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
     "OPENROUTER_MODEL",
@@ -98,6 +101,9 @@ CAPABILITY_LIVE_VARIABLES = {
         "related": (
             "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
             "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+            "OPENCLAW_FRONTDOOR_NUM_CTX",
+            "OPENCLAW_FRONTDOOR_NUM_GPU",
+            "OPENCLAW_FRONTDOOR_KEEP_ALIVE",
             "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
             "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
         ),
@@ -1008,6 +1014,9 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
                 "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
                 "OPENCLAW_FRONTDOOR_NUM_PREDICT",
+                "OPENCLAW_FRONTDOOR_NUM_CTX",
+                "OPENCLAW_FRONTDOOR_NUM_GPU",
+                "OPENCLAW_FRONTDOOR_KEEP_ALIVE",
                 "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
                 "OPENCLAW_FRONTDOOR_MODEL_MAX_GB",
             ],
@@ -1015,30 +1024,42 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             current_state_if_verifiable=_state(
                 "code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review",
                 code_default="off unless OPENCLAW_FRONTDOOR_MODEL_PROFILE is truthy and packet is a Maestro front-door packet",
-                audit_report="CODEX front-door integration result reports default-off integration and no live enablement",
+                audit_report=(
+                    "CODEX front-door integration result reports default-off integration and no live enablement; "
+                    "task-019 adds default-off warm-pin/offload config for future contained recanary"
+                ),
             ),
             source_files=["protected_generate.py", "chief_llm.py"],
-            tests=["tests/test_frontdoor_model_profile.py"],
+            tests=["tests/test_frontdoor_model_profile.py", "tests/test_frontdoor_warmpin_offload.py"],
             audits=[
                 "/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md",
                 "/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md",
                 "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md",
+                "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md",
             ],
-            canary_status="queued_for_contained_canary; not_run_due_to_load_and_audit_gap",
+            canary_status="queued_for_recanary; task-019 config remains default-off until Opus contained recanary",
             risk_level="medium",
             owner="Opus",
             gate_stage="canary",
             enabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope",
             disabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0",
             rollback_note="unset OPENCLAW_FRONTDOOR_MODEL_PROFILE; protected_generate falls back to deterministic/non-profile path",
-            next_required_step="run a contained front-door canary only after load is acceptable and Opus approves the envelope",
+            next_required_step=(
+                "Opus integrates task-019, then runs contained qwen3:8b recanary with "
+                "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, "
+                "OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, "
+                "and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope"
+            ),
             activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="built but canary evidence is incomplete; not production-safe to enable from this register",
             evidence_refs=[
                 "protected_generate.py:_frontdoor_model_profile_flag_enabled",
+                "protected_generate.py:_frontdoor_ollama_options",
+                "protected_generate.py:_frontdoor_keep_alive",
                 "chief_llm.py:select_frontdoor_model",
                 "tests/test_frontdoor_model_profile.py",
+                "tests/test_frontdoor_warmpin_offload.py",
             ],
             last_verified_at=last_verified_at,
         ),

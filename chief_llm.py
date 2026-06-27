@@ -752,6 +752,7 @@ def select_frontdoor_model(
     installed: set[str] | None = None,
     sizes: dict[str, float] | None = None,
     available_ram_gb: float | None = None,
+    max_gb: float | None = None,
 ) -> tuple[str | None, str]:
     """Pick the LARGEST allowlisted model that is installed AND fits the RAM/size budget.
 
@@ -772,10 +773,11 @@ def select_frontdoor_model(
     if sizes is None:
         sizes = _ollama_model_sizes()
 
-    try:
-        max_gb = float(os.environ.get("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", "").strip() or _FRONTDOOR_MODEL_MAX_GB_DEFAULT)
-    except (TypeError, ValueError):
-        max_gb = _FRONTDOOR_MODEL_MAX_GB_DEFAULT
+    if max_gb is None:
+        try:
+            max_gb = float(os.environ.get("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", "").strip() or _FRONTDOOR_MODEL_MAX_GB_DEFAULT)
+        except (TypeError, ValueError):
+            max_gb = _FRONTDOOR_MODEL_MAX_GB_DEFAULT
     if max_gb <= 0:
         max_gb = _FRONTDOOR_MODEL_MAX_GB_DEFAULT
 
@@ -925,6 +927,7 @@ def ollama_call(
     think: bool | None = None,
     num_predict: int | None = None,
     options: dict | None = None,
+    keep_alive: str | None = None,
     return_metadata: bool = False,
 ) -> str | dict[str, object]:
     """Call Ollama and return raw text response. Returns '' on any error. Retries up to 3 times with backoff.
@@ -935,12 +938,13 @@ def ollama_call(
     When using 14b (either path), timeout is raised to _DEEP_TIMEOUT_FLOOR.
     attempts=<n>:          optional caller budget override for latency-sensitive front-door paths.
 
-    think / num_predict / options (ALL default None → payload BYTE-IDENTICAL to today):
+    think / num_predict / options / keep_alive (ALL default None → payload BYTE-IDENTICAL to today):
         front-door-profile-only bounded options. When NONE of these are passed the
         json payload is exactly {"model","prompt","stream":False} as before. When
         think=False → payload gains "think": false. When num_predict=N → payload
         gains/merges "options":{"num_predict":N}. An explicit ``options`` dict is
-        merged under the same "options" key without clobbering num_predict.
+        merged under the same "options" key without clobbering num_predict. When
+        keep_alive is set, it is passed as Ollama's top-level keep_alive field.
 
     return_metadata=False preserves the legacy return shape (plain string). When True,
         return a dict containing text, done_reason, elapsed_ms, model, status, and
@@ -1027,6 +1031,8 @@ def ollama_call(
             payload_dict["think"] = bool(think)
         if merged_options:
             payload_dict["options"] = dict(merged_options)
+        if keep_alive is not None and str(keep_alive).strip():
+            payload_dict["keep_alive"] = str(keep_alive).strip()
         payload = json.dumps(payload_dict).encode("utf-8")
         req = urllib.request.Request(
             OLLAMA_URL,

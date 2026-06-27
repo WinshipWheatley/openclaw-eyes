@@ -82,6 +82,9 @@ def test_register_gap_whitelist_names_are_present():
         "OPENCLAW_ACTION_RUNTIME",
         "OPENCLAW_CONTROL_PLANE_EMIT",
         "OPENCLAW_OLLAMA_MODEL",
+        "OPENCLAW_FRONTDOOR_NUM_CTX",
+        "OPENCLAW_FRONTDOOR_NUM_GPU",
+        "OPENCLAW_FRONTDOOR_KEEP_ALIVE",
         "OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT",
         "CASSANDRA_MORNING_BRIEF_TEST_MODE",
     ]:
@@ -137,6 +140,12 @@ def test_known_flags_are_detected_without_live_env_reads():
     assert "interpreter_lm.py" in flags["OPENCLAW_INTERPRETER_LM"]["files"]
     assert flags["OPENCLAW_FRONTDOOR_MODEL_PROFILE"]["status"] == "found"
     assert "protected_generate.py" in flags["OPENCLAW_FRONTDOOR_MODEL_PROFILE"]["files"]
+    assert flags["OPENCLAW_FRONTDOOR_NUM_CTX"]["status"] == "found"
+    assert "protected_generate.py" in flags["OPENCLAW_FRONTDOOR_NUM_CTX"]["files"]
+    assert flags["OPENCLAW_FRONTDOOR_NUM_GPU"]["status"] == "found"
+    assert "protected_generate.py" in flags["OPENCLAW_FRONTDOOR_NUM_GPU"]["files"]
+    assert flags["OPENCLAW_FRONTDOOR_KEEP_ALIVE"]["status"] == "found"
+    assert "protected_generate.py" in flags["OPENCLAW_FRONTDOOR_KEEP_ALIVE"]["files"]
     assert flags["OPENCLAW_PACKET_SOURCE"]["status"] == "found"
     assert "maestro_context_packet.py" in flags["OPENCLAW_PACKET_SOURCE"]["files"]
     assert flags["OPENCLAW_FREEFORM_CLOUD"]["status"] == "found"
@@ -207,6 +216,19 @@ def test_unknown_or_unverified_current_state_is_honest():
 
     frontdoor = capabilities["frontdoor_model_profile"]["current_state_if_verifiable"]
     assert "production state unknown" in frontdoor["summary"]
+
+
+def test_frontdoor_warmpin_offload_config_is_registered_for_canary():
+    capabilities = _capabilities_by_id(_payload())
+    frontdoor = capabilities["frontdoor_model_profile"]
+
+    assert "OPENCLAW_FRONTDOOR_NUM_CTX" in frontdoor["flag_or_config"]
+    assert "OPENCLAW_FRONTDOOR_NUM_GPU" in frontdoor["flag_or_config"]
+    assert "OPENCLAW_FRONTDOOR_KEEP_ALIVE" in frontdoor["flag_or_config"]
+    assert "tests/test_frontdoor_warmpin_offload.py" in frontdoor["tests"]
+    assert frontdoor["gate_stage"] == "canary"
+    assert frontdoor["activation_allowed_now"] is False
+    assert "recanary" in frontdoor["next_required_step"]
 
 
 def test_no_capability_is_marked_safe_to_enable_without_evidence():

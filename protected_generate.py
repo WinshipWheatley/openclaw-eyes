@@ -21,6 +21,7 @@ DEFAULT_EXTERNAL_TIMEOUT_SECONDS = 6.0
 DEFAULT_LOCAL_TIMEOUT_SECONDS = 6.0
 DEFAULT_LOCAL_ATTEMPTS = 1
 DEFAULT_FRONTDOOR_NUM_PREDICT = 200
+DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
 MAX_FRONTDOOR_TIMEOUT_SECONDS = 45.0
 PUBLIC = "PUBLIC"
 LIGHT = "LIGHT"
@@ -234,6 +235,47 @@ def _frontdoor_num_predict() -> int:
     return _int_env("OPENCLAW_FRONTDOOR_NUM_PREDICT", DEFAULT_FRONTDOOR_NUM_PREDICT)
 
 
+def _frontdoor_optional_int_env(name: str) -> int | None:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        return None
+    return value if value > 0 else None
+
+
+def _frontdoor_ollama_options() -> dict[str, int]:
+    options: dict[str, int] = {}
+    num_ctx = _frontdoor_optional_int_env("OPENCLAW_FRONTDOOR_NUM_CTX")
+    num_gpu = _frontdoor_optional_int_env("OPENCLAW_FRONTDOOR_NUM_GPU")
+    if num_ctx is not None:
+        options["num_ctx"] = num_ctx
+    if num_gpu is not None:
+        options["num_gpu"] = num_gpu
+    return options
+
+
+def _frontdoor_keep_alive() -> str | None:
+    value = os.environ.get("OPENCLAW_FRONTDOOR_KEEP_ALIVE")
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _frontdoor_model_max_gb() -> float:
+    raw = os.environ.get("OPENCLAW_FRONTDOOR_MODEL_MAX_GB")
+    if raw is None or not raw.strip():
+        return DEFAULT_FRONTDOOR_MODEL_MAX_GB
+    try:
+        value = float(raw)
+    except ValueError:
+        return DEFAULT_FRONTDOOR_MODEL_MAX_GB
+    return value if value > 0 else DEFAULT_FRONTDOOR_MODEL_MAX_GB
+
+
 def _tokenized_frontdoor_packet(
     packet: Mapping[str, Any],
     tier: str,
@@ -370,6 +412,8 @@ def _call_local_ollama(
     task_class: str = "chief_user_reply",
     think: bool | None = None,
     num_predict: int | None = None,
+    options: Mapping[str, Any] | None = None,
+    keep_alive: str | None = None,
     return_metadata: bool = False,
 ) -> Any:
     from chief_llm import ollama_call
@@ -396,6 +440,16 @@ def _call_local_ollama(
     }.items():
         if signature is None or key in signature.parameters or any(
             param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()
+        ):
+            kwargs[key] = value
+    for key, value in {
+        "options": dict(options) if options else None,
+        "keep_alive": keep_alive,
+    }.items():
+        if value is not None and (
+            signature is None or key in signature.parameters or any(
+                param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()
+            )
         ):
             kwargs[key] = value
     result = ollama_call(prompt, **kwargs)
@@ -936,6 +990,9 @@ def protected_generate_with_receipt(
         fd_interactive_timeout_s = None
     fd_num_predict = num_predict if num_predict is not None else (_frontdoor_num_predict() if front_door_profile else None)
     fd_model_think = model_think if model_think is not None else (False if front_door_profile else None)
+    fd_ollama_options = _frontdoor_ollama_options() if front_door_profile else {}
+    fd_keep_alive = _frontdoor_keep_alive() if front_door_profile else None
+    fd_model_max_gb = _frontdoor_model_max_gb() if front_door_profile else None
     fd_model_selected = model_selected
 
     route = "deterministic_fallback"
@@ -1013,7 +1070,7 @@ def protected_generate_with_receipt(
                             fd_captured_done_reason = "unreachable"
                             route = "grounded_fallback_no_external_model_ollama_unreachable"
                         else:
-                            _model, _reason = select_frontdoor_model()
+                            _model, _reason = select_frontdoor_model(max_gb=fd_model_max_gb)
                             fd_model_selected = fd_model_selected or _model
                             if not _model:
                                 fd_captured_done_reason = "no_fitting_model"
@@ -1029,6 +1086,8 @@ def protected_generate_with_receipt(
                                     task_class="frontdoor_reply",
                                     think=fd_model_think,
                                     num_predict=fd_num_predict,
+                                    options=fd_ollama_options,
+                                    keep_alive=fd_keep_alive,
                                     return_metadata=True,
                                 )
                                 raw_output, _captured, _elapsed, _metadata = _model_result_tuple(_result)
@@ -1176,6 +1235,10 @@ def protected_generate_with_receipt(
                 "model_elapsed_ms": fd_model_elapsed_ms,
                 "model_timeout_s": fd_interactive_timeout_s,
                 "model_num_predict": fd_num_predict,
+                "model_num_ctx": fd_ollama_options.get("num_ctx"),
+                "model_num_gpu": fd_ollama_options.get("num_gpu"),
+                "model_keep_alive": fd_keep_alive,
+                "model_max_gb": fd_model_max_gb,
                 "model_think": fd_model_think,
                 "done_reason": fd_captured_done_reason,
                 "model_fallback_reason": fd_fallback_reason,

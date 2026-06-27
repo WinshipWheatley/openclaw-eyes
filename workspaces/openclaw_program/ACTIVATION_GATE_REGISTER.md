@@ -53,7 +53,7 @@ This register is descriptive only. It does not enable features, edit production 
 | External model / OpenRouter path (`external_model_openrouter_path`) | `intentionally_off` | `not_applicable` | code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected | no | keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded |
 | External-model packet safety policy (`external_model_packet_policy`) | `operator_approved_live` | `not_applicable` | enabled guardrail: cloud eligibility policy fails closed and does not authorize external calls by itself | no | keep active and require policy/canary proof before any external egress activation |
 | External shadow LM config (`external_shadow_lm_config`) | `intentionally_off` | `not_applicable` | shadow-only config records redacted credential presence but grants no provider call authority | no | keep shadow-only; any external call path requires high-risk provider activation approval |
-| Front-door model profile (`frontdoor_model_profile`) | `canary` | `not_applicable` | code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review | no | run a contained front-door canary only after load is acceptable and Opus approves the envelope |
+| Front-door model profile (`frontdoor_model_profile`) | `canary` | `not_applicable` | code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review | no | Opus integrates task-019, then runs contained qwen3:8b recanary with OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope |
 | Gated email send rail (`gated_email_send_rail`) | `intentionally_off` | `not_applicable` | send rail exists as a deterministic fail-closed receipt surface; live provider/network authority is false | no | do not activate; use draft-only review rail instead |
 | Polish Loop git task guard (`git_task_guard`) | `intentionally_off` | `not_applicable` | catalogued from audit as repo-mutation guard; current base may not contain the script | no | reconcile source presence and audit branch-mutation behavior before any use |
 | Human-in-the-loop pending action pipeline (`hitl_pipeline`) | `intentionally_off` | `not_applicable` | built but intentionally off; pending action mutation is a high-risk action surface | no | define a synthetic-only pending-action canary before any live enablement |
@@ -544,13 +544,13 @@ Live-state evidence:
 
 ### Front-door model profile (`frontdoor_model_profile`)
 
-- Flag/config: `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`
+- Flag/config: `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`
 - Default state: `off`
 - Current state if verifiable: code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review
 - Production state: `unknown_not_read_from_env_files_or_services`
 - Live production state: `not_applicable`
 - Gate stage: `canary`
-- Canary status: `queued_for_contained_canary; not_run_due_to_load_and_audit_gap`
+- Canary status: `queued_for_recanary; task-019 config remains default-off until Opus contained recanary`
 - Risk level: `medium`
 - Owner: `Opus`
 - Activation allowed now: `no`
@@ -559,11 +559,11 @@ Live-state evidence:
 - Enabled by: OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope
 - Disabled by: OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0
 - Rollback: unset OPENCLAW_FRONTDOOR_MODEL_PROFILE; protected_generate falls back to deterministic/non-profile path
-- Next required step: run a contained front-door canary only after load is acceptable and Opus approves the envelope
+- Next required step: Opus integrates task-019, then runs contained qwen3:8b recanary with OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope
 - Source files: `protected_generate.py`, `chief_llm.py`
-- Tests: `tests/test_frontdoor_model_profile.py`
-- Audits: `/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`
-- Evidence refs: `protected_generate.py:_frontdoor_model_profile_flag_enabled`, `chief_llm.py:select_frontdoor_model`, `tests/test_frontdoor_model_profile.py`
+- Tests: `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
+- Audits: `/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
+- Evidence refs: `protected_generate.py:_frontdoor_model_profile_flag_enabled`, `protected_generate.py:_frontdoor_ollama_options`, `protected_generate.py:_frontdoor_keep_alive`, `chief_llm.py:select_frontdoor_model`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:
@@ -1208,11 +1208,14 @@ Live-state evidence:
 - `OPENCLAW_EXTERNAL_MODEL`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_chief_llm_router.py`
 - `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`: `found` in `activation_gate_register.py`, `external_shadow_provider_config.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_FREEFORM_CLOUD`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`
-- `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_frontdoor_model_profile.py`
-- `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_frontdoor_model_profile.py`
-- `OPENCLAW_FRONTDOOR_MODEL_PROFILE`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_frontdoor_model_profile.py`
-- `OPENCLAW_FRONTDOOR_NUM_PREDICT`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_frontdoor_model_profile.py`
-- `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_frontdoor_model_profile.py`
+- `OPENCLAW_FRONTDOOR_KEEP_ALIVE`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_frontdoor_warmpin_offload.py`
+- `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
+- `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`: `found` in `activation_gate_register.py`, `chief_llm.py`, `protected_generate.py`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
+- `OPENCLAW_FRONTDOOR_MODEL_PROFILE`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
+- `OPENCLAW_FRONTDOOR_NUM_CTX`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_frontdoor_warmpin_offload.py`
+- `OPENCLAW_FRONTDOOR_NUM_GPU`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_frontdoor_warmpin_offload.py`
+- `OPENCLAW_FRONTDOOR_NUM_PREDICT`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
+- `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
 - `OPENCLAW_GEMINI_FORM_MODEL`: `found` in `activation_gate_register.py`, `openclaw_lm_consult_spine.py`
 - `OPENCLAW_GEMINI_MODEL`: `found` in `activation_gate_register.py`, `openclaw_lm_consult_spine.py`
 - `OPENCLAW_INTERPRETER_LM`: `found` in `activation_gate_register.py`, `interpreter_lm.py`, `maestro_context_packet.py`, `tests/test_activation_gate_register.py`, `tests/test_continuity_stamp.py`
@@ -1241,7 +1244,7 @@ Live-state evidence:
 ## Live Environment Reconciliation
 
 - Enabled for this generation: `no`
-- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `OPENAI_API_KEY`, `OPENCLAW_MAESTRO_BRAIN_LIVE`, `OPENCLAW_LLM_DIAGNOSTICS`, `HITL_ENABLED`, `OPENCLAW_ACTION_RUNTIME`, `OPENCLAW_CONTROL_PLANE_EMIT`, `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`, `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`, `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`, `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
+- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `OPENAI_API_KEY`, `OPENCLAW_MAESTRO_BRAIN_LIVE`, `OPENCLAW_LLM_DIAGNOSTICS`, `HITL_ENABLED`, `OPENCLAW_ACTION_RUNTIME`, `OPENCLAW_CONTROL_PLANE_EMIT`, `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`, `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`, `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`, `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
 - Packet source runtime context: `not_applicable`
 
 Sources inspected:
@@ -1252,6 +1255,6 @@ Sources not inspected:
 
 ## Evidence Gaps
 
-- Missing repository evidence files referenced by register: none recorded
+- Missing repository evidence files referenced by register: `brain_dump_parser.py`, `polish_loop/git_task_guard.sh`
 - Production env/service state: `not inspected by this task`
 - Feature activation performed by this task: `no`

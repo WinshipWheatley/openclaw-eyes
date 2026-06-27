@@ -1272,3 +1272,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_t016_synthetic_e2e.py
 !tests/test_t017_operator_approval_gate.py
 !tests/test_frontdoor_model_profile.py
+!tests/test_frontdoor_warmpin_offload.py
