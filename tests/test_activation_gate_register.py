@@ -231,7 +231,7 @@ def test_activation_sprint_reconcile_dispositions_are_catalog_only():
 
     assert router["flag_or_config"] == ["OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"]
     assert router["gate_stage"] == "intentionally_off"
-    assert "queued_for_repair" in router["canary_status"]
+    assert "canary" in router["canary_status"]
     assert router["activation_allowed_now"] is False
     assert "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1" in capabilities["polish_loop_factory_mode"]["flag_or_config"]
 
