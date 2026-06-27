@@ -28,8 +28,8 @@ This register is descriptive only. It does not enable features, edit production 
 
 - Total capabilities registered: `40`
 - Verified enabled/live: none recorded
-- Activation allowed now: none recorded
-- Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `packet_source_sqlite_flip`
+- Activation allowed now: `frontdoor_model_profile`
+- Ready for canary queue: `control_plane_heal_emission`, `packet_source_sqlite_flip`
 - Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
 - Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `polish_loop_file_ledger_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
@@ -53,7 +53,7 @@ This register is descriptive only. It does not enable features, edit production 
 | External model / OpenRouter path (`external_model_openrouter_path`) | `intentionally_off` | `not_applicable` | code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected | no | keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded |
 | External-model packet safety policy (`external_model_packet_policy`) | `operator_approved_live` | `not_applicable` | enabled guardrail: cloud eligibility policy fails closed and does not authorize external calls by itself | no | keep active and require policy/canary proof before any external egress activation |
 | External shadow LM config (`external_shadow_lm_config`) | `intentionally_off` | `not_applicable` | shadow-only config records redacted credential presence but grants no provider call authority | no | keep shadow-only; any external call path requires high-risk provider activation approval |
-| Front-door model profile (`frontdoor_model_profile`) | `canary` | `not_applicable` | code default off; activation sprint canary failed 3/3 by timeout; task-014 found a qwen3:8b contained recanary recipe but production remains off | no | Opus integrates task-019, then runs contained qwen3:8b recanary with OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope |
+| Front-door model profile (`frontdoor_model_profile`) | `operator_approved_live` | `not_applicable` | ACTIVATED 2026-06-27 under operator keyboard authorization after a PASSING contained recanary (the prior 3/3 timeout was hardware memory/swap pressure, since cleared: 16GB free, GPU offload restored) | yes | MONITOR live operator front-door latency/quality; OPTIONAL tuning: raise OPENCLAW_FRONTDOOR_NUM_PREDICT above 200 if broad 'big picture' asks keep hitting the truncation->deterministic-fallback path |
 | Gated email send rail (`gated_email_send_rail`) | `intentionally_off` | `not_applicable` | send rail exists as a deterministic fail-closed receipt surface; live provider/network authority is false | no | do not activate; use draft-only review rail instead |
 | Polish Loop git task guard (`git_task_guard`) | `intentionally_off` | `not_applicable` | catalogued from audit as repo-mutation guard; current base may not contain the script | no | reconcile source presence and audit branch-mutation behavior before any use |
 | Human-in-the-loop pending action pipeline (`hitl_pipeline`) | `intentionally_off` | `not_applicable` | built but intentionally off; pending action mutation is a high-risk action surface | no | define a synthetic-only pending-action canary before any live enablement |
@@ -548,24 +548,24 @@ Live-state evidence:
 
 - Flag/config: `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`
 - Default state: `off`
-- Current state if verifiable: code default off; activation sprint canary failed 3/3 by timeout; task-014 found a qwen3:8b contained recanary recipe but production remains off
-- Production state: `not_enabled_by_this_task; production activation prohibited`
+- Current state if verifiable: ACTIVATED 2026-06-27 under operator keyboard authorization after a PASSING contained recanary (the prior 3/3 timeout was hardware memory/swap pressure, since cleared: 16GB free, GPU offload restored)
+- Production state: `ENABLED on openclaw-request-response.service (processor) via systemd --user drop-in frontdoor-model.conf with the 6-key envelope (PROFILE=1, REPLY_TIMEOUT=44, allowlist=qwen3:8b-q4_K_M, NUM_CTX=1024, NUM_GPU=999, KEEP_ALIVE=10m); live process env verified`
 - Live production state: `not_applicable`
-- Gate stage: `canary`
-- Canary status: `queued_for_recanary; task-019 config remains default-off until Opus contained recanary`
+- Gate stage: `operator_approved_live`
+- Canary status: `recanary PASSED (direct 6/6 + end-to-end through brain); ACTIVATED in prod 2026-06-27`
 - Risk level: `medium`
 - Owner: `Opus`
-- Activation allowed now: `no`
+- Activation allowed now: `yes`
 - Operator approval required: `yes`
-- Reason if off: QUEUED_FOR_CANARY: prior activation-sprint ladder canary failed 3/3 by timeout, but task-014 + Opus re-probe found a working qwen3:8b recanary recipe; a passing contained recanary is still required before any enablement
-- Enabled by: OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope after repair/recanary evidence
+- Reason if off: ACTIVATED 2026-06-27; if rolled back, reverts to the deterministic grounded front-door (byte-identical to legacy). Prior 3/3 timeout was hardware memory/swap pressure, since cleared.
+- Enabled by: OPENCLAW_FRONTDOOR_MODEL_PROFILE + REPLY_TIMEOUT on the processor service, under operator keyboard authorization after a passing recanary (DONE 2026-06-27)
 - Disabled by: OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0
-- Rollback: unset OPENCLAW_FRONTDOOR_MODEL_PROFILE; protected_generate falls back to deterministic/non-profile path
-- Next required step: Opus integrates task-019, then runs contained qwen3:8b recanary with OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope
+- Rollback: delete frontdoor-model.conf drop-in (or set OPENCLAW_FRONTDOOR_MODEL_PROFILE=0) on openclaw-request-response.service, then `systemctl --user daemon-reload && systemctl --user restart openclaw-request-response.service`; protected_generate falls back to deterministic/non-profile path (byte-identical to legacy)
+- Next required step: MONITOR live operator front-door latency/quality; OPTIONAL tuning: raise OPENCLAW_FRONTDOOR_NUM_PREDICT above 200 if broad 'big picture' asks keep hitting the truncation->deterministic-fallback path
 - Source files: `protected_generate.py`, `chief_llm.py`
 - Tests: `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/04_frontdoor_canary_decision.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
-- Evidence refs: `protected_generate.py:_frontdoor_model_profile_flag_enabled`, `protected_generate.py:_frontdoor_ollama_options`, `protected_generate.py:_frontdoor_keep_alive`, `chief_llm.py:select_frontdoor_model`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
+- Evidence refs: `protected_generate.py:_frontdoor_model_profile_flag_enabled`, `protected_generate.py:_frontdoor_ollama_options`, `protected_generate.py:_frontdoor_keep_alive`, `chief_llm.py:select_frontdoor_model`, `maestro_cassandra_responder.py:664 (live caller of protected_generate_with_receipt)`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`, `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/05_frontdoor_recanary_activation.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_recanary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`
 - Last verified at: `2026-06-26T00:00:00-04:00`
 
 Live-state evidence:

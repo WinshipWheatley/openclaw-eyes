@@ -1037,12 +1037,16 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ],
             default_state="off",
             current_state_if_verifiable=_state(
-                "code default off; activation sprint canary failed 3/3 by timeout; task-014 found a qwen3:8b contained recanary recipe but production remains off",
+                "ACTIVATED 2026-06-27 under operator keyboard authorization after a PASSING contained recanary (the prior 3/3 timeout was hardware memory/swap pressure, since cleared: 16GB free, GPU offload restored)",
                 code_default="off unless OPENCLAW_FRONTDOOR_MODEL_PROFILE is truthy and packet is a Maestro front-door packet",
-                production="not_enabled_by_this_task; production activation prohibited",
+                production=(
+                    "ENABLED on openclaw-request-response.service (processor) via systemd --user drop-in "
+                    "frontdoor-model.conf with the 6-key envelope (PROFILE=1, REPLY_TIMEOUT=44, "
+                    "allowlist=qwen3:8b-q4_K_M, NUM_CTX=1024, NUM_GPU=999, KEEP_ALIVE=10m); live process env verified"
+                ),
                 audit_report=(
-                    "CODEX front-door integration result reports default-off integration and no live enablement; "
-                    "task-019 adds default-off warm-pin/offload config for future contained recanary"
+                    "recanary PASSED 6/6 direct (p50 1.9s) and end-to-end through answer_frontdoor_chat (4 grounded 8b "
+                    "answers, no confabulation, out-of-packet control declined); 2 adversarial verifies (wiring+safety) held"
                 ),
             ),
             source_files=["protected_generate.py", "chief_llm.py"],
@@ -1055,31 +1059,37 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json",
                 "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md",
             ],
-            canary_status="queued_for_recanary; task-019 config remains default-off until Opus contained recanary",
+            canary_status="recanary PASSED (direct 6/6 + end-to-end through brain); ACTIVATED in prod 2026-06-27",
             risk_level="medium",
             owner="Opus",
-            gate_stage="canary",
-            enabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope after repair/recanary evidence",
+            gate_stage="operator_approved_live",
+            enabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE + REPLY_TIMEOUT on the processor service, under operator keyboard authorization after a passing recanary (DONE 2026-06-27)",
             disabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0",
-            rollback_note="unset OPENCLAW_FRONTDOOR_MODEL_PROFILE; protected_generate falls back to deterministic/non-profile path",
+            rollback_note="delete frontdoor-model.conf drop-in (or set OPENCLAW_FRONTDOOR_MODEL_PROFILE=0) on openclaw-request-response.service, then `systemctl --user daemon-reload && systemctl --user restart openclaw-request-response.service`; protected_generate falls back to deterministic/non-profile path (byte-identical to legacy)",
             next_required_step=(
-                "Opus integrates task-019, then runs contained qwen3:8b recanary with "
-                "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, "
-                "OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, "
-                "and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope"
+                "MONITOR live operator front-door latency/quality; OPTIONAL tuning: raise "
+                "OPENCLAW_FRONTDOOR_NUM_PREDICT above 200 if broad 'big picture' asks keep "
+                "hitting the truncation->deterministic-fallback path"
             ),
-            activation_allowed_now=False,
+            activation_allowed_now=True,
             operator_approval_required=True,
-            reason_if_off="QUEUED_FOR_CANARY: prior activation-sprint ladder canary failed 3/3 by timeout, but task-014 + Opus re-probe found a working qwen3:8b recanary recipe; a passing contained recanary is still required before any enablement",
+            reason_if_off=(
+                "ACTIVATED 2026-06-27; if rolled back, reverts to the deterministic grounded "
+                "front-door (byte-identical to legacy). Prior 3/3 timeout was hardware memory/swap "
+                "pressure, since cleared."
+            ),
             evidence_refs=[
                 "protected_generate.py:_frontdoor_model_profile_flag_enabled",
                 "protected_generate.py:_frontdoor_ollama_options",
                 "protected_generate.py:_frontdoor_keep_alive",
                 "chief_llm.py:select_frontdoor_model",
+                "maestro_cassandra_responder.py:664 (live caller of protected_generate_with_receipt)",
                 "tests/test_frontdoor_model_profile.py",
                 "tests/test_frontdoor_warmpin_offload.py",
+                "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf",
+                "/home/openclaw/workspaces/openclaw_program/activation_receipts/05_frontdoor_recanary_activation.md",
+                "/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_recanary_RESULT.json",
                 "/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json",
-                "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md",
             ],
             last_verified_at=last_verified_at,
         ),
