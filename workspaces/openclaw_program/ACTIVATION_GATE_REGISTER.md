@@ -26,12 +26,12 @@ This register is descriptive only. It does not enable features, edit production 
 
 ## Summary
 
-- Total capabilities registered: `39`
+- Total capabilities registered: `40`
 - Verified enabled/live: none recorded
 - Activation allowed now: none recorded
 - Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `packet_source_sqlite_flip`
 - Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
-- Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `polish_loop_file_ledger_bridge`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
+- Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `polish_loop_file_ledger_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
 - Unknown production state: `action_runtime`, `active_machinery_classification`, `agent_package_preview_contract`, `cassandra_telegram_delivery`, `cassandra_telegram_dryrun_inbox`, `computer_use_worker_gateway`, `continuity_capsule`, `draft_only_email_adapter`, `external_model_openrouter_path`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `packet_source_sqlite_flip`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
 
@@ -72,6 +72,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `not_applicable` | bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger | no | Opus review of task-003 implementation, then a separate synthetic/canary authorization task if the factory remains otherwise eligible |
 | Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `blocked` | `not_applicable` | candidate built on isolated polish-loop-closure branch; current base branch does not contain the flag; production not enabled | no | Opus review/integration of closure branch, then blockers #2 and #3 and all 10 switch criteria |
 | Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`) | `intentionally_off` | `not_applicable` | planned default-off size/type/risk router record from task-012; catalog-only here and no runtime wiring in this branch | no | Opus review/integration of task-012, then separate synthetic/canary authorization if Polish Loop switch criteria otherwise pass |
+| Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`) | `intentionally_off` | `not_applicable` | size/type/risk routing is built as a default-off candidate to classify ledger tasks before dispatchability | no | Opus review of size-router wiring, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass |
 | Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`) | `intentionally_off` | `not_applicable` | deterministic task-package materialization is built as a default-off candidate for Polish Loop blocker #3 | no | Opus review of blocker #3 implementation, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass |
 | protected_generate Ollama timeouts (`protected_generate_ollama_timeouts`) | `operator_approved_live` | `not_applicable` | already-on internal timeout knobs with safe defaults; they tune bounded local generation behavior only | no | keep defaults; record any future timeout tuning receipt |
 | Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`) | `blocked` | `not_applicable` | v0 gate always blocks runtime/module activation and claims no runtime health | no | satisfy and record all gate prerequisites before runtime/module activation |
@@ -1094,6 +1095,35 @@ Live-state evidence:
 - Confidence: `none`
 - Notes: live environment reconciliation was not requested for this register generation
 
+### Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`)
+
+- Flag/config: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`
+- Default state: `default-off`
+- Current state if verifiable: size/type/risk routing is built as a default-off candidate to classify ledger tasks before dispatchability
+- Production state: `not_enabled_by_this_task; production activation prohibited`
+- Live production state: `not_applicable`
+- Gate stage: `intentionally_off`
+- Canary status: `synthetic_only; canary required before runtime activation`
+- Risk level: `medium`
+- Owner: `Opus`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: changes ledger admission and dispatchability decisions; canary and Opus/operator approval are required while the Polish Loop remains NOT_READY
+- Enabled by: explicit OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1 only after Opus review, synthetic tests, canary, rollback proof, and operator-approved runtime scope
+- Disabled by: default-off flag; legacy admission/dispatchability remains unchanged when unset
+- Rollback: unset OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1 or set it to 0; Control Plane returns to legacy source-based admission/dispatchability
+- Next required step: Opus review of size-router wiring, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass
+- Source files: `polish_loop/control_plane.py`, `polish_loop/task_routing.py`
+- Tests: `tests/test_polish_loop_size_router_wire.py`, `tests/test_polish_loop_size_routing.py`
+- Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
+- Evidence refs: `polish_loop/control_plane.py:SIZE_ROUTER_FLAG`, `polish_loop/task_routing.py:classify_task_routing`, `tests/test_polish_loop_size_router_wire.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`
+- Last verified at: `2026-06-26T00:00:00-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: live environment reconciliation was not requested for this register generation
+
 ### Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`)
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`
@@ -1259,7 +1289,7 @@ Live-state evidence:
 - `OPENCLAW_POLISH_LANE_WORKER_CMD`: `found` in `activation_gate_register.py`, `polish_loop/lane_launcher.py`
 - `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`: `found` in `activation_gate_register.py`, `polish_loop/orchestrator.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`: `found` in `activation_gate_register.py`, `polish_loop/orchestrator.py`, `tests/test_activation_gate_register.py`
-- `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`: `found` in `activation_gate_register.py`, `tests/test_activation_gate_register.py`
+- `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`: `found` in `activation_gate_register.py`, `polish_loop/control_plane.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`: `found` in `activation_gate_register.py`, `polish_loop/orchestrator.py`, `polish_loop/worker_runtime.py`, `tests/test_activation_gate_register.py`, `tests/test_polish_loop_task_package_materialization.py`
 - `OPENCLAW_POLISH_MAX_PARALLEL_LANES`: `found` in `activation_gate_register.py`, `polish_loop/lane_launcher.py`
 - `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`: `found` in `activation_gate_register.py`, `protected_generate.py`
@@ -1286,6 +1316,6 @@ Sources not inspected:
 
 ## Evidence Gaps
 
-- Missing repository evidence files referenced by register: `tests/test_polish_loop_size_router_wire.py`
+- Missing repository evidence files referenced by register: none recorded
 - Production env/service state: `not inspected by this task`
 - Feature activation performed by this task: `no`

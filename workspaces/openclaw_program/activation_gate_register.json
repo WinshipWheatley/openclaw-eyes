@@ -1690,6 +1690,57 @@
     {
       "activation_allowed_now": false,
       "audits": [
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md"
+      ],
+      "canary_status": "synthetic_only; canary required before runtime activation",
+      "capability_id": "polish_loop_size_router_v1",
+      "current_state_if_verifiable": {
+        "audit_report": "POLISH-LIVE-WIRING-AUDIT identified the classifier as built but not persisted or consumed by the Control Plane",
+        "code_default": "off unless OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1 is explicitly truthy",
+        "production": "not_enabled_by_this_task; production activation prohibited",
+        "summary": "size/type/risk routing is built as a default-off candidate to classify ledger tasks before dispatchability"
+      },
+      "default_state": "default-off",
+      "disabled_by": "default-off flag; legacy admission/dispatchability remains unchanged when unset",
+      "display_name": "Polish Loop size/type/risk router v1",
+      "enabled_by": "explicit OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1 only after Opus review, synthetic tests, canary, rollback proof, and operator-approved runtime scope",
+      "evidence_refs": [
+        "polish_loop/control_plane.py:SIZE_ROUTER_FLAG",
+        "polish_loop/task_routing.py:classify_task_routing",
+        "tests/test_polish_loop_size_router_wire.py",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "Opus review of size-router wiring, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "changes ledger admission and dispatchability decisions; canary and Opus/operator approval are required while the Polish Loop remains NOT_READY",
+      "risk_level": "medium",
+      "rollback_note": "unset OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1 or set it to 0; Control Plane returns to legacy source-based admission/dispatchability",
+      "source_files": [
+        "polish_loop/control_plane.py",
+        "polish_loop/task_routing.py"
+      ],
+      "tests": [
+        "tests/test_polish_loop_size_router_wire.py",
+        "tests/test_polish_loop_size_routing.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
         "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md",
         "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md"
       ],
@@ -2102,6 +2153,7 @@
       "polish_loop_file_ledger_bridge",
       "polish_loop_local_builder_bridge",
       "polish_loop_size_router_v1",
+      "polish_loop_size_router_v1",
       "polish_loop_task_package_v1",
       "runtime_module_activation_gate",
       "walk_away_autonomy_mode"
@@ -2123,6 +2175,7 @@
       "nemotron_provider",
       "polish_loop_file_ledger_bridge",
       "polish_loop_size_router_v1",
+      "polish_loop_size_router_v1",
       "polish_loop_task_package_v1",
       "walk_away_autonomy_mode"
     ],
@@ -2131,7 +2184,7 @@
       "frontdoor_model_profile",
       "packet_source_sqlite_flip"
     ],
-    "total_capabilities": 39,
+    "total_capabilities": 40,
     "unknown_production_state": [
       "action_runtime",
       "active_machinery_classification",
@@ -2531,6 +2584,7 @@
       "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1": {
         "files": [
           "activation_gate_register.py",
+          "polish_loop/control_plane.py",
           "tests/test_activation_gate_register.py"
         ],
         "status": "found"
@@ -2630,8 +2684,6 @@
         "status": "found"
       }
     },
-    "missing_repo_evidence_files": [
-      "tests/test_polish_loop_size_router_wire.py"
-    ]
+    "missing_repo_evidence_files": []
   }
 }

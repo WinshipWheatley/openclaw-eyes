@@ -160,7 +160,7 @@ def test_known_flags_are_detected_without_live_env_reads():
     assert flags["OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"]["status"] == "found"
     assert "polish_loop/worker_runtime.py" in flags["OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"]["files"]
     assert flags["OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"]["status"] == "found"
-    assert "activation_gate_register.py" in flags["OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"]["files"]
+    assert "polish_loop/control_plane.py" in flags["OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"]["files"]
 
     assert payload["policy"]["production_env_files_inspected"] is False
     assert payload["policy"]["systemd_inspected_or_modified"] is False
@@ -233,6 +233,18 @@ def test_activation_sprint_reconcile_dispositions_are_catalog_only():
     assert router["gate_stage"] == "intentionally_off"
     assert "queued_for_repair" in router["canary_status"]
     assert router["activation_allowed_now"] is False
+    assert "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1" in capabilities["polish_loop_factory_mode"]["flag_or_config"]
+
+
+def test_size_router_flag_is_registered_as_intentionally_off():
+    capabilities = _capabilities_by_id(_payload())
+    router = capabilities["polish_loop_size_router_v1"]
+
+    assert router["flag_or_config"] == ["OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"]
+    assert router["gate_stage"] == "intentionally_off"
+    assert router["risk_level"] == "medium"
+    assert router["activation_allowed_now"] is False
+    assert "canary" in router["next_required_step"].lower()
     assert "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1" in capabilities["polish_loop_factory_mode"]["flag_or_config"]
 
 

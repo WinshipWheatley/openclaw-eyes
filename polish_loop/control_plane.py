@@ -25,6 +25,15 @@ try:  # pragma: no cover - exercised when imported as a package
 except ImportError:  # pragma: no cover - exercised by legacy sys.path imports
     from builder_output_validator import validate_candidate_evidence as validate_builder_output
 
+try:  # pragma: no cover - exercised when imported as a package
+    from .task_routing import ROUTING_SCHEMA_VERSION, classify_task_routing
+except ImportError:  # pragma: no cover - exercised by legacy sys.path imports
+    try:
+        from task_routing import ROUTING_SCHEMA_VERSION, classify_task_routing  # type: ignore
+    except ImportError:  # pragma: no cover - old checkouts without the router
+        ROUTING_SCHEMA_VERSION = "polish_loop_task_routing_v1"
+        classify_task_routing = None  # type: ignore[assignment]
+
 
 LOOP_DIR = Path("/home/openclaw/polish_loop")
 DEFAULT_LEDGER_PATH = LOOP_DIR / "control_plane.sqlite3"
@@ -72,6 +81,8 @@ HEARTBEAT_ONLY_TEXT = frozenset(
 DETECTOR_FORBIDDEN_ACTION_TEXT = frozenset(
     {"send", "sending", "sent", "pay", "payment", "money", "wire", "invoice payment"}
 )
+SIZE_ROUTER_FLAG = "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
+SIZE_ROUTER_FLAG_ON_VALUES = {"1", "true", "yes", "on"}
 
 
 class ControlPlaneError(RuntimeError):
@@ -238,6 +249,83 @@ def _default_task_id(task_type: str, payload: dict[str, Any]) -> str:
             )
             return "heal-" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:20]
     return f"task-{uuid.uuid4().hex}"
+
+
+def size_router_v1_enabled(enabled: bool | None = None) -> bool:
+    if enabled is not None:
+        return bool(enabled)
+    return os.environ.get(SIZE_ROUTER_FLAG, "").strip().lower() in SIZE_ROUTER_FLAG_ON_VALUES
+
+
+def _routing_input_payload(
+    payload: dict[str, Any],
+    *,
+    task_type: str,
+    acceptance_ref: str | dict[str, Any] | None,
+) -> dict[str, Any]:
+    routing_payload = {
+        key: value
+        for key, value in payload.items()
+        if key not in {"routing", "holding_reason"}
+    }
+    routing_payload.setdefault("task_type", task_type)
+    if acceptance_ref is not None and "acceptance_ref" not in routing_payload:
+        routing_payload["acceptance_ref"] = acceptance_ref
+    return routing_payload
+
+
+def _apply_size_routing(
+    payload: dict[str, Any],
+    *,
+    task_type: str,
+    acceptance_ref: str | dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if classify_task_routing is None:
+        raise TaskRejected(f"{SIZE_ROUTER_FLAG} is enabled but task_routing is unavailable")
+    routing = classify_task_routing(
+        _routing_input_payload(payload, task_type=task_type, acceptance_ref=acceptance_ref)
+    )
+    routed_payload = dict(payload)
+    routed_payload["routing"] = routing
+    if not _routing_allows_ready(routing):
+        routed_payload["holding_reason"] = _routing_holding_reason(routing)
+    return routed_payload, routing
+
+
+def _routing_allows_ready(routing: dict[str, Any] | None) -> bool:
+    if not routing:
+        return False
+    return (
+        routing.get("schema_version") == ROUTING_SCHEMA_VERSION
+        and routing.get("readiness") == "ready"
+        and not routing.get("risk_flags")
+        and bool(routing.get("local_model_allowed"))
+    )
+
+
+def _routing_holding_reason(routing: dict[str, Any]) -> str:
+    reason = str(routing.get("holding_reason") or "").strip()
+    if reason:
+        return reason
+    readiness = str(routing.get("readiness") or "unknown")
+    return f"routing_not_ready:{readiness}"
+
+
+def _routing_event_detail(routing: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not routing:
+        return None
+    return {
+        "schema_version": routing.get("schema_version"),
+        "size_class": routing.get("size_class"),
+        "readiness": routing.get("readiness"),
+        "holding_reason": routing.get("holding_reason"),
+        "risk_flags": routing.get("risk_flags", []),
+        "target_runner_tier": routing.get("target_runner_tier"),
+        "minimum_model_tier": routing.get("minimum_model_tier"),
+        "local_model_allowed": bool(routing.get("local_model_allowed")),
+        "cloud_allowed": bool(routing.get("cloud_allowed")),
+        "decomposition_required": bool(routing.get("decomposition_required")),
+    }
 
 
 def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -497,7 +585,20 @@ class ControlPlaneLedger:
         source_norm = source.strip().lower()
         if source_norm == "detector" and _detector_payload_has_forbidden_action(payload):
             raise TaskRejected("detectors cannot emit send, payment, or money work")
-        if requested == "READY" and source_norm in READY_SOURCES:
+        task_id = task_id or _default_task_id(task_type, payload)
+        routing: dict[str, Any] | None = None
+        if size_router_v1_enabled():
+            payload, routing = _apply_size_routing(
+                payload,
+                task_type=task_type,
+                acceptance_ref=acceptance_ref,
+            )
+
+        if (
+            requested == "READY"
+            and source_norm in READY_SOURCES
+            and (routing is None or _routing_allows_ready(routing))
+        ):
             status = "READY"
             dispatchable = 1
             proposed_expires_at = None
@@ -513,7 +614,6 @@ class ControlPlaneLedger:
                 source_norm = "agent_suggestion"
 
         now = iso_now()
-        task_id = task_id or _default_task_id(task_type, payload)
         if isinstance(acceptance_ref, dict):
             acceptance_ref_text = _encode_json(acceptance_ref)
         else:
@@ -558,13 +658,21 @@ class ControlPlaneLedger:
                     )
                     return task_id
                 raise
+            detail = {"requested_status": requested, "dispatchable": bool(dispatchable)}
+            if routing is not None:
+                detail.update(
+                    {
+                        "routing": _routing_event_detail(routing),
+                        "routing_hold": not _routing_allows_ready(routing),
+                    }
+                )
             self._event(
                 conn,
                 task_id=task_id,
                 event_type="TASK_ADMITTED",
                 actor=source_norm,
                 to_status=status,
-                detail={"requested_status": requested, "dispatchable": bool(dispatchable)},
+                detail=detail,
             )
         return task_id
 
@@ -572,6 +680,7 @@ class ControlPlaneLedger:
         source_norm = source.strip().lower()
         if source_norm not in READY_SOURCES:
             raise SourceNotAllowed(f"{source!r} cannot make a task dispatchable")
+        promotion_hold_reason: str | None = None
         with self._tx() as conn:
             row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
             if row is None:
@@ -591,23 +700,70 @@ class ControlPlaneLedger:
                 )
                 raise InvalidTransition("proposal TTL expired")
             now = iso_now()
-            conn.execute(
-                """
-                UPDATE tasks
-                SET status='READY', dispatchable=1, version=version+1, updated_at=?
-                WHERE id=? AND status='PROPOSED'
-                """,
-                (now, task_id),
-            )
-            self._event(
-                conn,
-                task_id=task_id,
-                event_type="TASK_PROMOTED",
-                actor=actor,
-                from_status="PROPOSED",
-                to_status="READY",
-                detail={"source": source_norm},
-            )
+            routing: dict[str, Any] | None = None
+            payload = _decode_json(row["payload"], {})
+            if not isinstance(payload, dict):
+                payload = {}
+            if size_router_v1_enabled():
+                acceptance_ref = _decode_json(row["acceptance_ref"], row["acceptance_ref"])
+                payload, routing = _apply_size_routing(
+                    payload,
+                    task_type=str(row["type"]),
+                    acceptance_ref=acceptance_ref,
+                )
+                if not _routing_allows_ready(routing):
+                    conn.execute(
+                        """
+                        UPDATE tasks
+                        SET payload=?, version=version+1, updated_at=?
+                        WHERE id=? AND status='PROPOSED'
+                        """,
+                        (_encode_json(payload), now, task_id),
+                    )
+                    self._event(
+                        conn,
+                        task_id=task_id,
+                        event_type="TASK_PROMOTION_HELD",
+                        actor=actor,
+                        from_status="PROPOSED",
+                        to_status="PROPOSED",
+                        detail={"source": source_norm, "routing": _routing_event_detail(routing)},
+                    )
+                    promotion_hold_reason = _routing_holding_reason(routing)
+
+            if promotion_hold_reason is None:
+                if routing is None:
+                    conn.execute(
+                        """
+                        UPDATE tasks
+                        SET status='READY', dispatchable=1, version=version+1, updated_at=?
+                        WHERE id=? AND status='PROPOSED'
+                        """,
+                        (now, task_id),
+                    )
+                else:
+                    conn.execute(
+                        """
+                        UPDATE tasks
+                        SET status='READY', dispatchable=1, payload=?, version=version+1, updated_at=?
+                        WHERE id=? AND status='PROPOSED'
+                        """,
+                        (_encode_json(payload), now, task_id),
+                    )
+                detail = {"source": source_norm}
+                if routing is not None:
+                    detail["routing"] = _routing_event_detail(routing)
+                self._event(
+                    conn,
+                    task_id=task_id,
+                    event_type="TASK_PROMOTED",
+                    actor=actor,
+                    from_status="PROPOSED",
+                    to_status="READY",
+                    detail=detail,
+                )
+        if promotion_hold_reason is not None:
+            raise InvalidTransition(promotion_hold_reason)
 
     def transition(
         self,
