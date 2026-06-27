@@ -217,12 +217,12 @@ def test_activation_sprint_reconcile_dispositions_are_catalog_only():
     interpreter = capabilities["interpreter_lm"]
     router = capabilities["polish_loop_size_router_v1"]
 
-    assert frontdoor["gate_stage"] == "intentionally_off"
-    assert "queued_for_repair" in frontdoor["canary_status"]
+    assert frontdoor["gate_stage"] == "canary"
+    assert "recanary" in frontdoor["canary_status"]
     assert "failed 3/3" in frontdoor["reason_if_off"].lower()
     assert "frontdoor_ladder_canary_RESULT.json" in json.dumps(frontdoor["audits"])
     assert frontdoor["activation_allowed_now"] is False
-    assert "frontdoor_model_profile" not in payload["summary"]["ready_for_canary"]
+    assert "frontdoor_model_profile" in payload["summary"]["ready_for_canary"]
 
     assert interpreter["gate_stage"] == "intentionally_off"
     assert "queued_for_repair" in interpreter["canary_status"]

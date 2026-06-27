@@ -1058,7 +1058,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             canary_status="queued_for_recanary; task-019 config remains default-off until Opus contained recanary",
             risk_level="medium",
             owner="Opus",
-            gate_stage="intentionally_off",
+            gate_stage="canary",
             enabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope after repair/recanary evidence",
             disabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0",
             rollback_note="unset OPENCLAW_FRONTDOOR_MODEL_PROFILE; protected_generate falls back to deterministic/non-profile path",
@@ -1070,7 +1070,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ),
             activation_allowed_now=False,
             operator_approval_required=True,
-            reason_if_off="QUEUED_FOR_REPAIR: activation sprint canary failed 3/3 by timeout and a passing recanary is still required",
+            reason_if_off="QUEUED_FOR_CANARY: prior activation-sprint ladder canary failed 3/3 by timeout, but task-014 + Opus re-probe found a working qwen3:8b recanary recipe; a passing contained recanary is still required before any enablement",
             evidence_refs=[
                 "protected_generate.py:_frontdoor_model_profile_flag_enabled",
                 "protected_generate.py:_frontdoor_ollama_options",

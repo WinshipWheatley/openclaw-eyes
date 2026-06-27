@@ -793,7 +793,7 @@
         "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
         "OPENCLAW_FRONTDOOR_MODEL_MAX_GB"
       ],
-      "gate_stage": "intentionally_off",
+      "gate_stage": "canary",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -805,7 +805,7 @@
       "next_required_step": "Opus integrates task-019, then runs contained qwen3:8b recanary with OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope",
       "operator_approval_required": true,
       "owner": "Opus",
-      "reason_if_off": "QUEUED_FOR_REPAIR: activation sprint canary failed 3/3 by timeout and a passing recanary is still required",
+      "reason_if_off": "QUEUED_FOR_CANARY: prior activation-sprint ladder canary failed 3/3 by timeout, but task-014 + Opus re-probe found a working qwen3:8b recanary recipe; a passing contained recanary is still required before any enablement",
       "risk_level": "medium",
       "rollback_note": "unset OPENCLAW_FRONTDOOR_MODEL_PROFILE; protected_generate falls back to deterministic/non-profile path",
       "source_files": [
@@ -2089,7 +2089,6 @@
       "continuity_capsule",
       "external_model_openrouter_path",
       "external_shadow_lm_config",
-      "frontdoor_model_profile",
       "gated_email_send_rail",
       "git_task_guard",
       "hitl_pipeline",
@@ -2115,7 +2114,6 @@
       "cassandra_telegram_delivery",
       "external_model_openrouter_path",
       "external_shadow_lm_config",
-      "frontdoor_model_profile",
       "gated_email_send_rail",
       "git_task_guard",
       "hitl_pipeline",
@@ -2130,6 +2128,7 @@
     ],
     "ready_for_canary": [
       "control_plane_heal_emission",
+      "frontdoor_model_profile",
       "packet_source_sqlite_flip"
     ],
     "total_capabilities": 39,
