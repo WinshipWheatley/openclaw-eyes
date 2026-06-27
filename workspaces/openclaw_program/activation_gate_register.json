@@ -757,6 +757,8 @@
         "/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/04_frontdoor_canary_decision.md",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json",
         "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md"
       ],
       "canary_status": "queued_for_recanary; task-019 config remains default-off until Opus contained recanary",
@@ -764,20 +766,22 @@
       "current_state_if_verifiable": {
         "audit_report": "CODEX front-door integration result reports default-off integration and no live enablement; task-019 adds default-off warm-pin/offload config for future contained recanary",
         "code_default": "off unless OPENCLAW_FRONTDOOR_MODEL_PROFILE is truthy and packet is a Maestro front-door packet",
-        "production": "unknown_not_read_from_env_files_or_services",
-        "summary": "code default off; production state unknown; prior audit says canary remained blocked by load/integrated-state review"
+        "production": "not_enabled_by_this_task; production activation prohibited",
+        "summary": "code default off; activation sprint canary failed 3/3 by timeout; task-014 found a qwen3:8b contained recanary recipe but production remains off"
       },
       "default_state": "off",
       "disabled_by": "OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0",
       "display_name": "Front-door model profile",
-      "enabled_by": "OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope",
+      "enabled_by": "OPENCLAW_FRONTDOOR_MODEL_PROFILE plus operator-approved canary envelope after repair/recanary evidence",
       "evidence_refs": [
         "protected_generate.py:_frontdoor_model_profile_flag_enabled",
         "protected_generate.py:_frontdoor_ollama_options",
         "protected_generate.py:_frontdoor_keep_alive",
         "chief_llm.py:select_frontdoor_model",
         "tests/test_frontdoor_model_profile.py",
-        "tests/test_frontdoor_warmpin_offload.py"
+        "tests/test_frontdoor_warmpin_offload.py",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md"
       ],
       "flag_or_config": [
         "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
@@ -789,7 +793,7 @@
         "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
         "OPENCLAW_FRONTDOOR_MODEL_MAX_GB"
       ],
-      "gate_stage": "canary",
+      "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -801,7 +805,7 @@
       "next_required_step": "Opus integrates task-019, then runs contained qwen3:8b recanary with OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST=qwen3:8b-q4_K_M, OPENCLAW_FRONTDOOR_NUM_CTX=1024, OPENCLAW_FRONTDOOR_NUM_GPU=999, and OPENCLAW_FRONTDOOR_KEEP_ALIVE set only inside the canary envelope",
       "operator_approval_required": true,
       "owner": "Opus",
-      "reason_if_off": "built but canary evidence is incomplete; not production-safe to enable from this register",
+      "reason_if_off": "QUEUED_FOR_REPAIR: activation sprint canary failed 3/3 by timeout and a passing recanary is still required",
       "risk_level": "medium",
       "rollback_note": "unset OPENCLAW_FRONTDOOR_MODEL_PROFILE; protected_generate falls back to deterministic/non-profile path",
       "source_files": [
@@ -952,28 +956,32 @@
       "activation_allowed_now": false,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md",
-        "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md"
+        "/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/02_interpreter_lm_decision.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md"
       ],
-      "canary_status": "not_run",
+      "canary_status": "queued_for_repair; task-013 blocked; front-door model-fit recanary required first",
       "capability_id": "interpreter_lm",
       "current_state_if_verifiable": {
-        "audit_report": "reported built and default-off; only tests enable the flag",
+        "audit_report": "activation sprint records Interpreter-LM as queued for repair; task-013 remains blocked and task-014 produced a front-door recanary recipe",
         "code_default": "off unless OPENCLAW_INTERPRETER_LM is truthy",
-        "production": "unknown_not_read_from_env_files_or_services",
-        "summary": "code default off; production state unknown because production env files/services were not inspected"
+        "production": "not_enabled_by_this_task; production activation prohibited",
+        "summary": "code default off; activation sprint keeps Interpreter-LM queued for repair because processor wiring is blocked and front-door model-fit canary must pass first"
       },
       "default_state": "off",
       "disabled_by": "OPENCLAW_INTERPRETER_LM default 0",
       "display_name": "Interpreter-LM",
-      "enabled_by": "explicit operator approval after audit and canary evidence",
+      "enabled_by": "explicit operator approval after processor wiring repair, front-door canary, audit, and rollback evidence",
       "evidence_refs": [
         "interpreter_lm.py:_interpreter_enabled",
-        "tests/test_continuity_stamp.py:interpreter flag test coverage"
+        "tests/test_continuity_stamp.py:interpreter flag test coverage",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/02_interpreter_lm_decision.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md"
       ],
       "flag_or_config": [
         "OPENCLAW_INTERPRETER_LM"
       ],
-      "gate_stage": "disabled",
+      "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -982,10 +990,10 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "integrated-state audit and bounded canary plan before any live activation",
+      "next_required_step": "unblock task-013 wiring repair, review task-014 model-fit recipe, then run contained Interpreter-LM/front-door canaries before any live activation",
       "operator_approval_required": true,
       "owner": "Opus",
-      "reason_if_off": "built flag remains default-off; no live activation evidence is recorded in this register",
+      "reason_if_off": "QUEUED_FOR_REPAIR: processor wiring is blocked and model-fit/canary evidence is incomplete",
       "risk_level": "medium",
       "rollback_note": "unset OPENCLAW_INTERPRETER_LM or set it to 0; deterministic fallback remains available",
       "source_files": [
@@ -1492,6 +1500,7 @@
         "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
         "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
         "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
+        "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1",
         "OPENCLAW_POLISH_MAX_PARALLEL_LANES",
         "OPENCLAW_POLISH_LANE_WORKER_CMD",
         "OPENCLAW_TEST_MODE",
@@ -1526,7 +1535,8 @@
       "activation_allowed_now": false,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md",
-        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_IMPL_RESULT.md"
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_IMPL_RESULT.md",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md"
       ],
       "canary_status": "synthetic_only; canary required before runtime activation",
       "capability_id": "polish_loop_file_ledger_bridge",
@@ -1543,7 +1553,8 @@
       "evidence_refs": [
         "polish_loop/orchestrator.py:reconcile_file_loop_result_with_ledger",
         "tests/test_polish_loop_file_ledger_reconciliation.py",
-        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md"
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md"
       ],
       "flag_or_config": [
         "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"
@@ -1566,6 +1577,10 @@
       "source_files": [
         "polish_loop/orchestrator.py",
         "polish_loop/control_plane.py"
+      ],
+      "synthetic_proven": true,
+      "synthetic_receipt_refs": [
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md"
       ],
       "tests": [
         "tests/test_polish_loop_file_ledger_reconciliation.py"
@@ -1623,7 +1638,60 @@
     {
       "activation_allowed_now": false,
       "audits": [
-        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md"
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md"
+      ],
+      "canary_status": "planned_synthetic_only; queued_for_repair/integration; canary required before runtime activation",
+      "capability_id": "polish_loop_size_router_v1",
+      "current_state_if_verifiable": {
+        "audit_report": "task-012 queues the router wiring as an intentionally off medium-risk runtime capability",
+        "code_default": "planned off unless OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1 is explicitly truthy after integration",
+        "production": "not_enabled_by_this_task; production activation prohibited",
+        "summary": "planned default-off size/type/risk router record from task-012; catalog-only here and no runtime wiring in this branch"
+      },
+      "default_state": "planned/default-off",
+      "disabled_by": "catalog-only default-off record; runtime branch not integrated here",
+      "display_name": "Polish Loop size/type/risk router v1",
+      "enabled_by": "explicit OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1 only after Opus integration review, synthetic tests, canary, rollback proof, and operator-approved runtime scope",
+      "evidence_refs": [
+        "polish_loop/task_routing.py:classify_task_routing",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md",
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "Opus review/integration of task-012, then separate synthetic/canary authorization if Polish Loop switch criteria otherwise pass",
+      "operator_approval_required": true,
+      "owner": "Opus",
+      "reason_if_off": "INTENTIONALLY_OFF / QUEUED_FOR_REPAIR: planned admission-routing capability is not integrated or canaried in this catalog-only task",
+      "risk_level": "medium",
+      "rollback_note": "leave OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1 unset or set it to 0; Control Plane keeps legacy source-based admission/dispatchability",
+      "source_files": [
+        "activation_gate_register.py",
+        "polish_loop/task_routing.py",
+        "polish_loop/control_plane.py"
+      ],
+      "tests": [
+        "tests/test_activation_gate_register.py",
+        "tests/test_polish_loop_size_routing.py",
+        "tests/test_polish_loop_size_router_wire.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md"
       ],
       "canary_status": "synthetic_only; canary required before runtime activation",
       "capability_id": "polish_loop_task_package_v1",
@@ -1641,7 +1709,8 @@
         "polish_loop/worker_runtime.py:build_task_package_markdown",
         "polish_loop/orchestrator.py:write_phase_c_fix_directive",
         "tests/test_polish_loop_task_package_materialization.py",
-        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md"
+        "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md",
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md"
       ],
       "flag_or_config": [
         "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"
@@ -1664,6 +1733,10 @@
       "source_files": [
         "polish_loop/worker_runtime.py",
         "polish_loop/orchestrator.py"
+      ],
+      "synthetic_proven": true,
+      "synthetic_receipt_refs": [
+        "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md"
       ],
       "tests": [
         "tests/test_polish_loop_task_package_materialization.py"
@@ -1828,6 +1901,7 @@
     "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
     "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
     "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
+    "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1",
     "OPENCLAW_FREEFORM_CLOUD",
     "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
     "OPENCLAW_FRONTDOOR_NUM_PREDICT",
@@ -1905,6 +1979,7 @@
       "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
       "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
       "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
+      "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1",
       "OPENCLAW_FREEFORM_CLOUD",
       "OPENCLAW_FRONTDOOR_REPLY_TIMEOUT",
       "OPENCLAW_FRONTDOOR_NUM_PREDICT",
@@ -2014,6 +2089,7 @@
       "continuity_capsule",
       "external_model_openrouter_path",
       "external_shadow_lm_config",
+      "frontdoor_model_profile",
       "gated_email_send_rail",
       "git_task_guard",
       "hitl_pipeline",
@@ -2026,6 +2102,7 @@
       "polish_loop_factory_mode",
       "polish_loop_file_ledger_bridge",
       "polish_loop_local_builder_bridge",
+      "polish_loop_size_router_v1",
       "polish_loop_task_package_v1",
       "runtime_module_activation_gate",
       "walk_away_autonomy_mode"
@@ -2038,22 +2115,24 @@
       "cassandra_telegram_delivery",
       "external_model_openrouter_path",
       "external_shadow_lm_config",
+      "frontdoor_model_profile",
       "gated_email_send_rail",
       "git_task_guard",
       "hitl_pipeline",
+      "interpreter_lm",
       "lm_consult_spine",
       "model_selection_policy_contract",
       "nemotron_provider",
       "polish_loop_file_ledger_bridge",
+      "polish_loop_size_router_v1",
       "polish_loop_task_package_v1",
       "walk_away_autonomy_mode"
     ],
     "ready_for_canary": [
       "control_plane_heal_emission",
-      "frontdoor_model_profile",
       "packet_source_sqlite_flip"
     ],
-    "total_capabilities": 38,
+    "total_capabilities": 39,
     "unknown_production_state": [
       "action_runtime",
       "active_machinery_classification",
@@ -2064,9 +2143,7 @@
       "continuity_capsule",
       "draft_only_email_adapter",
       "external_model_openrouter_path",
-      "frontdoor_model_profile",
       "gated_email_send_rail",
-      "interpreter_lm",
       "legal_sealed_ingestion",
       "lm_consult_spine",
       "niles_album_evidence_intake_boundary",
@@ -2452,6 +2529,13 @@
         ],
         "status": "found"
       },
+      "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1": {
+        "files": [
+          "activation_gate_register.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
       "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1": {
         "files": [
           "activation_gate_register.py",
@@ -2548,8 +2632,7 @@
       }
     },
     "missing_repo_evidence_files": [
-      "brain_dump_parser.py",
-      "polish_loop/git_task_guard.sh"
+      "tests/test_polish_loop_size_router_wire.py"
     ]
   }
 }

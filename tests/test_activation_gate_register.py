@@ -81,6 +81,7 @@ def test_register_gap_whitelist_names_are_present():
         "HITL_ENABLED",
         "OPENCLAW_ACTION_RUNTIME",
         "OPENCLAW_CONTROL_PLANE_EMIT",
+        "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1",
         "OPENCLAW_OLLAMA_MODEL",
         "OPENCLAW_FRONTDOOR_NUM_CTX",
         "OPENCLAW_FRONTDOOR_NUM_GPU",
@@ -158,6 +159,8 @@ def test_known_flags_are_detected_without_live_env_reads():
     assert "polish_loop/orchestrator.py" in flags["OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"]["files"]
     assert flags["OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"]["status"] == "found"
     assert "polish_loop/worker_runtime.py" in flags["OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"]["files"]
+    assert flags["OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"]["status"] == "found"
+    assert "activation_gate_register.py" in flags["OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"]["files"]
 
     assert payload["policy"]["production_env_files_inspected"] is False
     assert payload["policy"]["systemd_inspected_or_modified"] is False
@@ -190,6 +193,8 @@ def test_file_ledger_bridge_flag_is_registered_as_intentionally_off():
     assert bridge["risk_level"] == "medium"
     assert bridge["activation_allowed_now"] is False
     assert "canary" in bridge["next_required_step"].lower()
+    assert bridge["synthetic_proven"] is True
+    assert "01_polish_loop_synthetic_activation.md" in bridge["synthetic_receipt_refs"][0]
 
 
 def test_task_package_flag_is_registered_as_intentionally_off():
@@ -201,6 +206,34 @@ def test_task_package_flag_is_registered_as_intentionally_off():
     assert package["risk_level"] == "medium"
     assert package["activation_allowed_now"] is False
     assert "canary" in package["next_required_step"].lower()
+    assert package["synthetic_proven"] is True
+    assert "01_polish_loop_synthetic_activation.md" in package["synthetic_receipt_refs"][0]
+
+
+def test_activation_sprint_reconcile_dispositions_are_catalog_only():
+    payload = _payload()
+    capabilities = _capabilities_by_id(payload)
+    frontdoor = capabilities["frontdoor_model_profile"]
+    interpreter = capabilities["interpreter_lm"]
+    router = capabilities["polish_loop_size_router_v1"]
+
+    assert frontdoor["gate_stage"] == "intentionally_off"
+    assert "queued_for_repair" in frontdoor["canary_status"]
+    assert "failed 3/3" in frontdoor["reason_if_off"].lower()
+    assert "frontdoor_ladder_canary_RESULT.json" in json.dumps(frontdoor["audits"])
+    assert frontdoor["activation_allowed_now"] is False
+    assert "frontdoor_model_profile" not in payload["summary"]["ready_for_canary"]
+
+    assert interpreter["gate_stage"] == "intentionally_off"
+    assert "queued_for_repair" in interpreter["canary_status"]
+    assert "task-013" in interpreter["next_required_step"]
+    assert interpreter["activation_allowed_now"] is False
+
+    assert router["flag_or_config"] == ["OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"]
+    assert router["gate_stage"] == "intentionally_off"
+    assert "queued_for_repair" in router["canary_status"]
+    assert router["activation_allowed_now"] is False
+    assert "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1" in capabilities["polish_loop_factory_mode"]["flag_or_config"]
 
 
 def test_unknown_or_unverified_current_state_is_honest():
@@ -215,7 +248,7 @@ def test_unknown_or_unverified_current_state_is_honest():
     assert computer_use["current_state_if_verifiable"]["production"] == "not_applicable_proposed_only"
 
     frontdoor = capabilities["frontdoor_model_profile"]["current_state_if_verifiable"]
-    assert "production state unknown" in frontdoor["summary"]
+    assert "canary failed 3/3" in frontdoor["summary"]
 
 
 def test_frontdoor_warmpin_offload_config_is_registered_for_canary():
