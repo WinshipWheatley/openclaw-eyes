@@ -167,8 +167,21 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         _requester = _pd.get("requester", "Unknown")
         _at = _pd.get("requested_at", "Unknown time")
         _risk = "Irreversible" if _is_hard_t2(_action) else "Recoverable"
+        # ELI5 explainer (bounded local 8b, off the event loop, fail-closed). Gives the
+        # operator a plain-English read of the request above the structured details.
+        _eli5 = ""
+        try:
+            import asyncio as _asyncio
+            from guardian_eli5 import eli5_explain
+            _pkt = {"action": _action, "risk": _risk, "requester": _requester, "requested_at": _at}
+            _eli5 = await _asyncio.get_event_loop().run_in_executor(
+                None, lambda: eli5_explain(_pkt, depth="detailed")
+            )
+        except Exception:  # never break the Why-now path on the explainer
+            _eli5 = ""
         why_text = (
-            f"Why is this approval being requested?\n\n"
+            (f"{_eli5}\n\n———\n" if _eli5 else "")
+            + f"Why is this approval being requested?\n\n"
             f"Action: {_action}\n"
             f"Risk: {_risk}\n"
             f"Requested by: {_requester} at {_at}\n\n"
