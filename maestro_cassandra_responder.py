@@ -721,6 +721,32 @@ def _answer_with_maestro_brain(
             },
         )
 
+    # ── PACKET-DELTA hook (flag-gated OPENCLAW_PACKET_DELTA, default off, FAIL-OPEN) ──
+    # Integration point for cross-turn fact de-dup, keyed on the capsule's
+    # (conversation_id, agent). KEEP OFF on this path — and here's the honest why:
+    #   • The front-door local model is STATELESS: protected_generate builds the prompt
+    #     fresh from this single packet every call and retains nothing between calls.
+    #     So "drop_seen" would STARVE the model of facts it still needs each turn.
+    #   • "prioritize" (the safe default) only reorders; build_frontdoor_prompt then
+    #     re-ranks facts by relevance tier + lexical overlap, using original order only
+    #     as a deep tiebreak — so the reorder is ~a no-op here. The live budgeter is
+    #     already the real bloat control.
+    # Packet-delta's real payoff is for STATEFUL consumers (sessions/agents that retain
+    # prior turns). This hook stays wired (tested, fail-open) for that future; default off.
+    try:
+        from packet_delta import maybe_apply_packet_delta
+
+        _conv_id = getattr(_capsule, "conversation_id", "") if _capsule is not None else ""
+        _delta_agent = getattr(_capsule, "agent_id", "") or "maestro"
+        context_packet, _delta_stats = maybe_apply_packet_delta(
+            context_packet, conversation_id=_conv_id, agent=_delta_agent,
+        )
+        if _delta_stats.get("deduped"):
+            print(f"[maestro] packet-delta: {_delta_stats}", flush=True)
+    except Exception:  # noqa: BLE001 — never break the brain on the delta layer
+        pass
+    # ─────────────────────────────────────────────────────────────────────────
+
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
 
