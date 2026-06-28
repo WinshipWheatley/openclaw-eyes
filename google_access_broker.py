@@ -1053,9 +1053,14 @@ def _ensure_google_libs() -> None:
         pass
     import os
 
+    # Loop guard: venv pythons are usually symlinks to the SAME base binary, so we
+    # compare invocation paths (abspath), not resolved symlinks — and never re-exec twice.
+    if os.environ.get("_OPENCLAW_GBROKER_REEXEC") == "1":
+        return  # already re-exec'd once; let the original ImportError surface
     for cand in ("/home/openclaw/chief_env/bin/python", "/home/openclaw/.openclaw/venv/bin/python"):
-        if os.path.exists(cand) and os.path.realpath(cand) != os.path.realpath(sys.executable):
+        if os.path.exists(cand) and os.path.abspath(cand) != os.path.abspath(sys.executable):
             print(f"[google_broker] re-running under {cand} (has the Google libraries)…", flush=True)
+            os.environ["_OPENCLAW_GBROKER_REEXEC"] = "1"
             os.execv(cand, [cand, os.path.abspath(__file__), *sys.argv[1:]])
     # no suitable venv found — let the original ImportError surface downstream
 
