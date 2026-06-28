@@ -1017,6 +1017,54 @@ def run_auth_flow() -> None:
         sys.exit(1)
 
 
+def _extract_auth_code(resp: str) -> str:
+    """Pull the OAuth `code` out of a pasted redirect URL, or accept a bare code."""
+    resp = resp.strip()
+    if "code=" in resp:
+        from urllib.parse import urlparse, parse_qs
+
+        query = urlparse(resp).query if "://" in resp else resp.split("?", 1)[-1]
+        codes = parse_qs(query).get("code")
+        if codes:
+            return codes[0]
+    return resp
+
+
+def run_auth_flow_manual() -> None:
+    """OAuth that does NOT need the localhost callback to be reachable (robust on WSL2,
+    where the Windows browser can't reach the server inside WSL). Prints the URL; the
+    operator approves, copies the code from the redirected URL — even though the page
+    says 'localhost refused to connect' — and pastes it back here."""
+    if not _CREDS_FILE.exists():
+        print(f"[google_broker] credentials.json not found at {_CREDS_FILE}")
+        sys.exit(1)
+    from google_auth_oauthlib.flow import InstalledAppFlow
+
+    flow = InstalledAppFlow.from_client_secrets_file(str(_CREDS_FILE), _ACTIVE_SCOPES)
+    flow.redirect_uri = "http://localhost:8085/"
+    auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline")
+    print("\n1) Open this URL, pick your account, and APPROVE (keep the Calendar box checked):\n", flush=True)
+    print(auth_url, flush=True)
+    print("\n2) Your browser will land on a page that says 'localhost refused to connect'.", flush=True)
+    print("   That is EXPECTED. Copy the FULL address-bar URL of that page (it contains", flush=True)
+    print("   'code=...') and paste it below, then press Enter.\n", flush=True)
+    resp = input("Paste the redirect URL (or just the code): ").strip()
+    try:
+        flow.fetch_token(code=_extract_auth_code(resp))
+    except Exception as e:  # noqa: BLE001
+        print(f"[google_broker] could not exchange that code: {e}")
+        print("   (Codes are one-time + short-lived — re-run --setup and paste the fresh one.)")
+        sys.exit(1)
+    creds = flow.credentials
+    granted = set(getattr(creds, "granted_scopes", None) or getattr(creds, "scopes", None) or [])
+    if "https://www.googleapis.com/auth/calendar.events" not in granted:
+        print("[google_broker] ⚠️ Calendar was NOT in the grant — re-run --setup and keep Calendar checked.", flush=True)
+    _SECRETS_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    _TOKEN_FILE.write_text(creds.to_json(), encoding="utf-8")
+    _TOKEN_FILE.chmod(0o600)
+    print(f"[google_broker] token saved → {_TOKEN_FILE}", flush=True)
+
+
 def _calendar_selfcheck() -> "tuple[bool, object]":
     """Read-only probe: can we list calendars with the current credentials?
     Returns (ok, calendar_names) on success or (False, reason) on failure."""
@@ -1048,9 +1096,9 @@ def cmd_setup() -> None:
         print("   Calendars:", ", ".join(detail) if detail else "(none visible yet)", flush=True)
         return
     print("Calendar not authorized yet. Starting a one-time consent.", flush=True)
-    print("A Google URL will print below — open it in your browser, pick your account,", flush=True)
-    print("and approve. It returns automatically; there is NO code to copy back.\n", flush=True)
-    run_auth_flow()
+    print("A Google URL will print below — open it, approve (keep Calendar checked), then", flush=True)
+    print("paste the redirect URL back here (works even on WSL where localhost won't connect).\n", flush=True)
+    run_auth_flow_manual()
     print("", flush=True)
     ok, detail = _calendar_selfcheck()
     if ok:
