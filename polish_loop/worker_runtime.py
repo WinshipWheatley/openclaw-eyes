@@ -70,6 +70,7 @@ class WorkerRuntimeConfig:
     worktree: Path | None = None
     branch: str = "unknown"
     model: str = "gemma4:e4b"
+    fallback_model: str = ""
     timeout_seconds: int = 3600
     subprocess_timeout_seconds: int | None = None
     extra_env: dict[str, str] = dataclasses.field(default_factory=dict)
@@ -101,6 +102,7 @@ class WorkerRuntimeConfig:
             ),
             branch=os.environ.get("PHASE_C_BRANCH", "unknown"),
             model=os.environ.get("PHASE_C_BUILDER_MODEL", "gemma4:e4b"),
+            fallback_model=os.environ.get("PHASE_C_BUILDER_FALLBACK_MODEL", "ornith:9b"),
             timeout_seconds=int(os.environ.get("PHASE_C_BUILDER_TIMEOUT", "3600")),
             subprocess_timeout_seconds=(
                 int(os.environ["PHASE_C_WORKER_SUBPROCESS_TIMEOUT"])
@@ -108,6 +110,38 @@ class WorkerRuntimeConfig:
                 else None
             ),
         )
+
+
+def _installed_ollama_models() -> "set[str] | None":
+    """Best-effort set of installed ollama model tags, or None if undeterminable."""
+    import json
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=3) as resp:
+            data = json.loads(resp.read())
+        return {m.get("name") for m in data.get("models", []) if m.get("name")}
+    except Exception:
+        return None
+
+
+def select_builder_model(
+    *,
+    primary: str,
+    fallback: "str | None",
+    attempt_no: int,
+    available_models: "set[str] | None" = None,
+) -> str:
+    """Builder model router. The first attempt uses the fast primary; a retry
+    (attempt_no >= 2 — the primary already failed) escalates to the stronger coder
+    ``fallback`` (e.g. Ornith) to get the task to pass. The fallback is skipped when it
+    is empty, or when availability is known and the fallback is not installed."""
+    fb = (fallback or "").strip()
+    if not fb or int(attempt_no) < 2:
+        return primary
+    if available_models is not None and fb not in available_models:
+        return primary
+    return fb
 
 
 @dataclasses.dataclass(frozen=True)
@@ -369,11 +403,17 @@ def run_local_builder_worker(
     cfg.task_path.write_text(task_markdown, encoding="utf-8")
     cfg.pc_output_path.unlink(missing_ok=True)
 
+    chosen_model = select_builder_model(
+        primary=cfg.model,
+        fallback=cfg.fallback_model,
+        attempt_no=lease.attempt_no,
+        available_models=_installed_ollama_models(),
+    )
     command = [
         cfg.python,
         str(cfg.local_builder_path),
         "--model",
-        cfg.model,
+        chosen_model,
         "--timeout",
         str(cfg.timeout_seconds),
     ]
