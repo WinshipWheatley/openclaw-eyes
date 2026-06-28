@@ -995,8 +995,59 @@ def run_auth_flow() -> None:
         sys.exit(1)
 
 
+def _calendar_selfcheck() -> "tuple[bool, object]":
+    """Read-only probe: can we list calendars with the current credentials?
+    Returns (ok, calendar_names) on success or (False, reason) on failure."""
+    creds = _load_credentials()
+    if creds is None:
+        return False, "no usable credentials yet"
+    try:
+        from googleapiclient.discovery import build
+
+        svc = build("calendar", "v3", credentials=creds)
+        cals = svc.calendarList().list(maxResults=25).execute()
+        names = [c.get("summary") for c in cals.get("items", []) if c.get("summary")]
+        return True, names
+    except Exception as e:  # noqa: BLE001
+        return False, f"{type(e).__name__}: {str(e)[:200]}"
+
+
+def cmd_setup() -> None:
+    """One-shot, foolproof Google Calendar setup: check first, authorize only if
+    needed, then verify and confirm. Safe to run repeatedly."""
+    print("=== OpenClaw Google Calendar setup ===", flush=True)
+    if not _CREDS_FILE.exists():
+        print(f"Missing OAuth client at {_CREDS_FILE} — that file already existed on this box,")
+        print("so if you see this, restore it before continuing.")
+        sys.exit(1)
+    ok, detail = _calendar_selfcheck()
+    if ok:
+        print("✅ Calendar is ALREADY connected — nothing to do.", flush=True)
+        print("   Calendars:", ", ".join(detail) if detail else "(none visible yet)", flush=True)
+        return
+    print("Calendar not authorized yet. Starting a one-time consent.", flush=True)
+    print("A Google URL will print below — open it in your browser, pick your account,", flush=True)
+    print("and approve. It returns automatically; there is NO code to copy back.\n", flush=True)
+    run_auth_flow()
+    print("", flush=True)
+    ok, detail = _calendar_selfcheck()
+    if ok:
+        print("✅ Calendar connected! You're done.", flush=True)
+        print("   Calendars:", ", ".join(detail) if detail else "(none visible yet)", flush=True)
+    else:
+        print("⚠️ Authorized, but the calendar check still failed:", detail, flush=True)
+        print("   If the consent screen had a 'Calendar' checkbox you left unticked,", flush=True)
+        print("   just run this again and tick everything.", flush=True)
+
+
 if __name__ == "__main__":
-    if "--auth" in sys.argv:
+    if "--setup" in sys.argv:
+        cmd_setup()
+    elif "--check" in sys.argv:
+        ok, detail = _calendar_selfcheck()
+        print(("✅ calendar OK: " + ", ".join(detail)) if ok else f"❌ not connected: {detail}")
+        sys.exit(0 if ok else 1)
+    elif "--auth" in sys.argv:
         run_auth_flow()
     elif "--test-policy" in sys.argv:
         import subprocess
@@ -1006,5 +1057,7 @@ if __name__ == "__main__":
         )
     else:
         print("Usage:")
-        print("  python3 google_access_broker.py --auth          run OAuth2 flow")
+        print("  python3 google_access_broker.py --setup         one-shot: check, authorize if needed, verify")
+        print("  python3 google_access_broker.py --check         read-only: is calendar connected?")
+        print("  python3 google_access_broker.py --auth          run OAuth2 flow only")
         print("  python3 google_access_broker.py --test-policy   run policy smoke test")
