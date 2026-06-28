@@ -2188,6 +2188,61 @@ def run_phase_c_once(
     return run_control_plane_once(ledger, owner=owner, dispatch=dispatch, lease_seconds=lease_seconds)
 
 
+def run_phase_c_accept_once(
+    *,
+    ledger_path: Path = DEFAULT_LEDGER_PATH,
+    trusted_repo: "str | Path | None" = None,
+    gate_runner: Callable[..., Any] | None = None,
+    limit: int = 2,
+) -> "dict[str, list[str]]":
+    """Auto-accept: drain VERIFYING tasks through the two-phase green-gate acceptance.
+
+    A task WITH valid acceptance criteria is gated (pass -> DONE, fail -> BLOCKED).
+    A task WITHOUT acceptance criteria is left at VERIFYING as a proposal for review.
+    ``limit`` bounds the number of (expensive) gate runs per call. Reuses the existing,
+    tested ``ledger.decide_acceptance``; one bad task never crashes the drain.
+    """
+    if not _PHASE_C_AVAILABLE or ControlPlaneLedger is None:
+        raise RuntimeError("Phase-C control plane module is unavailable")
+    ledger = ControlPlaneLedger(ledger_path)
+    accepted: list[str] = []
+    blocked: list[str] = []
+    skipped: list[str] = []
+    for task in ledger.list_tasks():
+        if task.get("status") != "VERIFYING":
+            continue
+        if len(accepted) + len(blocked) >= limit:
+            break
+        task_id = task["id"]
+        ref = task.get("acceptance_ref")
+        if isinstance(ref, str):
+            try:
+                ref = json.loads(ref) if ref.strip() else {}
+            except Exception:
+                ref = {}
+        if not isinstance(ref, dict):
+            ref = {}
+        if not (ref.get("acceptance_path") and ref.get("acceptance_sha256")):
+            skipped.append(task_id)  # open proposal — no objective accept criteria
+            continue
+        try:
+            ledger.decide_acceptance(task_id, gate_runner=gate_runner, trusted_repo=trusted_repo)
+        except Exception as exc:  # never let one bad task crash the drain
+            log("WARN", f"phase-c accept error | task={task_id} | {type(exc).__name__}: {exc}")
+            skipped.append(task_id)
+            continue
+        final = ledger.get_task(task_id).get("status")
+        if final == "DONE":
+            accepted.append(task_id)
+        elif final == "BLOCKED":
+            blocked.append(task_id)
+        else:
+            skipped.append(task_id)  # requeued (READY) etc.
+    if accepted or blocked:
+        log("ACTION", f"phase-c accept | accepted={len(accepted)} blocked={len(blocked)} skipped={len(skipped)}")
+    return {"accepted": accepted, "blocked": blocked, "skipped": skipped}
+
+
 def touch_loop_heartbeat(role: str, *, loop_dir: Path = LOOP_DIR) -> Path:
     safe_role = re.sub(r"[^A-Za-z0-9_.-]+", "_", role).strip("._") or "orchestrator"
     path = loop_dir / f"heartbeat-{safe_role}"
@@ -2980,6 +3035,7 @@ def main() -> None:
     parser.add_argument("--submit-lanes",  type=str,            help="Submit orchestrator-approved parallel lane decision JSON")
     parser.add_argument("--lane-status",   action="store_true", help="Print polish-loop parallel lane registry and gate status")
     parser.add_argument("--once",          action="store_true", help="Run one Phase-C ledger event then exit")
+    parser.add_argument("--accept",        action="store_true", help="After dispatch, run the green-gate acceptance drain on VERIFYING tasks (auto-accept)")
     parser.add_argument("--legacy-once",   action="store_true", help="Run one legacy status.json cycle then exit")
     parser.add_argument("--ledger",        type=Path, default=DEFAULT_LEDGER_PATH, help="Phase-C ledger path")
     parser.add_argument("--loop",          action="store_true", help="Deprecated; standing poll loops are disabled")
@@ -3026,6 +3082,13 @@ def main() -> None:
     result = run_phase_c_once(ledger_path=args.ledger)
     if result.dispatched:
         log("STATE", f"phase-c dispatched task={result.task_id}")
+
+    if args.accept:
+        # One gate per invocation: the green gate is a ~25-min full-suite run, and the
+        # cron's flock -n skips overlapping ticks, so bound it to a single acceptance.
+        summary = run_phase_c_accept_once(ledger_path=args.ledger, limit=1)
+        if summary["accepted"] or summary["blocked"]:
+            log("STATE", f"phase-c accept | done={summary['accepted']} blocked={summary['blocked']}")
 
 
 if __name__ == "__main__":
