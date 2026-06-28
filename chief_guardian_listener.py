@@ -333,7 +333,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # parse_reply_code returns ("", error_msg) on any mismatch or format failure.
     decision, error = parse_reply_code(text, _pending_id, options=_options)
     if error:
-        await update.message.reply_text(error)
+        # CHAT-WITH-GUARDIAN: if the message clearly isn't a decision attempt (doesn't
+        # start with the 4-char reply code), treat it as a free-form QUESTION about THIS
+        # pending approval and answer it conversationally (bounded local LM, fail-closed),
+        # then still show how to decide. A malformed decision attempt keeps the strict
+        # hint. This never touches approval semantics.
+        _code = (_pending_id[:4] or "").upper()
+        _ans = ""
+        if _code and not text.strip().upper().startswith(_code):
+            try:
+                import asyncio as _asyncio
+                from chief_approval_brain import _build_eli5_packet, _is_hard_t2
+                from guardian_eli5 import answer_question
+
+                _action = str(_pd.get("action", ""))
+                _pkt = _build_eli5_packet(
+                    _action, _pd.get("approval_context"),
+                    requester=str(_pd.get("requester", "")),
+                    is_irreversible=_is_hard_t2(_action),
+                )
+                _ans = await _asyncio.get_event_loop().run_in_executor(
+                    None, lambda: answer_question(_pkt, text)
+                )
+            except Exception:
+                _ans = ""
+        await update.message.reply_text(f"{_ans}\n\n———\n{error}" if _ans else error)
         return
 
     reply = record_decision(decision, expected_id=_pending_id)
