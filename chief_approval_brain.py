@@ -393,7 +393,11 @@ def resend_pending_request() -> bool:
         action_hash = _compute_hash(action, approval_id, requested_at)
 
     return _send_via_guardian(
-        _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
+        _prepend_eli5(
+            _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
+            action, approval_context,
+            requester=str(data.get("requester", "")), is_irreversible=_is_hard_t2(action),
+        ),
         keyboard=_build_l2_keyboard(approval_id, options, allow_delay=False),
     )
 
@@ -404,6 +408,47 @@ def send_no_pending_confirmation() -> None:
 
 
 # ── Approval message builder ───────────────────────────────────────────────────
+
+def _guardian_eli5_enabled(env: dict | None = None) -> bool:
+    """Concise ELI5 on the initial approval block. Default ON (operator asked for
+    'all of Guardian's messages' to hit the light LM); disable with OPENCLAW_GUARDIAN_ELI5=0."""
+    e = os.environ if env is None else env
+    return str(e.get("OPENCLAW_GUARDIAN_ELI5", "1")).strip().lower() not in ("0", "false", "no", "off", "")
+
+
+def _build_eli5_packet(action: str, approval_context: dict | None, *,
+                       requester: str, is_irreversible: bool) -> dict:
+    """Map a deterministic approval into the small fact packet guardian_eli5 expects."""
+    ctx = approval_context or {}
+    return {
+        "action": ctx.get("action_label") or action,
+        "summary": ctx.get("proposed_send") or ctx.get("subject") or "",
+        "risk": "This cannot be undone." if is_irreversible else "This is recoverable.",
+        "requester": requester or "An agent",
+    }
+
+
+def _prepend_eli5(message: str, action: str, approval_context: dict | None, *,
+                  requester: str, is_irreversible: bool,
+                  env: dict | None = None, eli5_fn=None) -> str:
+    """Prepend a concise plain-English ELI5 lead to the deterministic approval block.
+    Flag-gated (default on) and FAIL-CLOSED: any problem returns the message unchanged so
+    the approval always sends. The 'Why now?' button stays the deeper (detailed) ELI5.
+    The lead only rephrases — Approve/Deny logic remains fully deterministic."""
+    if not _guardian_eli5_enabled(env):
+        return message
+    try:
+        if eli5_fn is None:
+            from guardian_eli5 import eli5_explain as eli5_fn  # type: ignore
+        packet = _build_eli5_packet(action, approval_context, requester=requester,
+                                    is_irreversible=is_irreversible)
+        lead = str(eli5_fn(packet, depth="concise") or "").strip()
+    except Exception:
+        return message
+    if not lead:
+        return message
+    return f"{lead}\n\n———\n{message}"
+
 
 def _build_l2_message(action: str, approval_id: str, action_hash: str,
                       options: int, approval_context: dict | None = None) -> str:
@@ -605,7 +650,10 @@ def request_approval(
         return False
 
     if not _send_via_guardian(
-        _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
+        _prepend_eli5(
+            _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
+            action, approval_context, requester=requester, is_irreversible=_is_hard_t2(action),
+        ),
         keyboard=_build_l2_keyboard(approval_id, options),
     ):
         elapsed = time.time() - start
@@ -669,7 +717,10 @@ def request_approval(
             data["status"] = "pending"
             _save_pending(data)
             if not _send_via_guardian(
-                _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
+                _prepend_eli5(
+                    _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
+                    action, approval_context, requester=requester, is_irreversible=_is_hard_t2(action),
+                ),
                 keyboard=_build_l2_keyboard(approval_id, options, allow_delay=False),
             ):
                 elapsed = time.time() - start

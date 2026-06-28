@@ -106,6 +106,56 @@ class TestGuardianApprovalCards:
         assert "Draft preview:" not in message
         assert "Reply code: ABCD" in message
 
+    def test_eli5_lead_prepended_at_send_time_with_injected_fn(self):
+        import chief_approval_brain as approval_brain
+
+        base = approval_brain._build_l2_message("delete Blue Weather.md", "ABCD1234", "H", 2)
+        out = approval_brain._prepend_eli5(
+            base, "delete Blue Weather.md", None,
+            requester="Cassandra", is_irreversible=True,
+            eli5_fn=lambda packet, depth="concise": "Cassandra wants to delete a note. This can't be undone.",
+            env={},  # default-on
+        )
+        assert out.startswith("Cassandra wants to delete a note.")
+        assert "APPROVAL REQUIRED" in out  # original deterministic block preserved below the lead
+        assert "Reply code: ABCD" in out
+
+    def test_eli5_lead_disabled_by_flag(self):
+        import chief_approval_brain as approval_brain
+
+        base = approval_brain._build_l2_message("delete x", "ABCD1234", "H", 2)
+        out = approval_brain._prepend_eli5(
+            base, "delete x", None, requester="A", is_irreversible=False,
+            eli5_fn=lambda *a, **k: "should not appear",
+            env={"OPENCLAW_GUARDIAN_ELI5": "0"},
+        )
+        assert out == base  # flag off -> untouched, no lead
+
+    def test_eli5_lead_fails_closed_when_model_errors(self):
+        import chief_approval_brain as approval_brain
+
+        base = approval_brain._build_l2_message("delete x", "ABCD1234", "H", 2)
+
+        def _boom(*a, **k):
+            raise RuntimeError("model down")
+
+        out = approval_brain._prepend_eli5(
+            base, "delete x", None, requester="A", is_irreversible=False,
+            eli5_fn=_boom, env={},
+        )
+        assert out == base  # never blocks the approval send
+
+    def test_eli5_packet_maps_context_and_risk(self):
+        import chief_approval_brain as approval_brain
+
+        pkt = approval_brain._build_eli5_packet(
+            "raw action", {"action_label": "send email", "subject": "Re: hi"},
+            requester="Cassandra", is_irreversible=False,
+        )
+        assert pkt["action"] == "send email"  # action_label wins over raw action
+        assert pkt["requester"] == "Cassandra"
+        assert "recoverable" in pkt["risk"].lower()
+
     def test_cassandra_email_send_approval_renders_enriched_card(self):
         import chief_approval_brain as approval_brain
 

@@ -250,6 +250,19 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         status = "[Rejected]"
     await _update(f"{_orig}\n\n{status} {reply}")
 
+    # ── GREEN-CHECK ───────────────────────────────────────────────────────────
+    # After a real Approve/Deny the one-at-a-time approval queue is empty, so send the
+    # operator the "all clear" they actively look for: its ABSENCE means something is
+    # still pending. Guarded so it can never crash the listener.
+    if status in ("[Approved]", "[Denied]") and not has_pending_approval():
+        try:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="✅ All clear — no approvals waiting.",
+            )
+        except Exception:
+            pass
+
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
