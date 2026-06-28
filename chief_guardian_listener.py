@@ -152,6 +152,28 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             await _update(f"{_orig}\n\n[Build approval error: {type(_exc).__name__}]")
         return
 
+    # ── Calendar delete approval (async Guardian-gated delete) ────────────────
+    # Additive: only CALDEL/CALNO reach here. On Approve, fire the broker delete.
+    if decision_token in {"CALDEL", "CALNO"}:
+        try:
+            from calendar_delete_approval import handle_calendar_delete_callback
+
+            _cr = handle_calendar_delete_callback(callback_data)
+            _title = _cr.get("title", "")
+            if _cr["result"] == "deleted":
+                await _update(f"{_orig}\n\n✅ Deleted “{_title}”.")
+            elif _cr["result"] == "denied":
+                await _update(f"{_orig}\n\n🛑 Kept “{_title}” — not deleted.")
+            elif _cr["result"] == "expired":
+                await _update(f"{_orig}\n\n[That delete request expired.]")
+            elif _cr["result"] == "error":
+                await _update(f"{_orig}\n\n[Delete failed: {_cr.get('error', '')}]")
+            else:
+                await _update(f"{_orig}\n\n[No longer actionable.]")
+        except Exception as _exc:  # never crash the Guardian listener
+            await _update(f"{_orig}\n\n[Calendar delete error: {type(_exc).__name__}]")
+        return
+
     from chief_approval_brain import (
         record_decision, has_pending_approval, _load_pending, _save_pending, _is_hard_t2,
     )

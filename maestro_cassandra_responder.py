@@ -303,13 +303,36 @@ def _try_calendar(text: str, forwarded_session: Mapping[str, Any]) -> "MaestroCa
     except Exception:
         return None
     intent = detect_calendar_intent(text)
-    if intent not in ("read", "create"):
+    if intent is None:
         return None
-    try:
-        from google_access_broker import execute as _broker_execute
-        reply = route_calendar(text, agent="maestro", broker_execute=_broker_execute)
-    except Exception:
-        return None
+    if intent == "delete":
+        # Async Guardian-gated delete: parse the event, send the operator an approval,
+        # reply immediately (the listener's CALDEL callback fires the actual delete).
+        try:
+            from calendar_router import _default_parse_event
+            from calendar_delete_approval import request_calendar_delete
+
+            parsed = _default_parse_event(text) or {}
+            if not (parsed.get("title") and parsed.get("start_iso")):
+                reply = "Tell me which event (title and time) and I'll send you a Guardian approval to delete it."
+            else:
+                _res = request_calendar_delete(
+                    {"title": parsed["title"], "start_iso": parsed["start_iso"]}, agent="maestro"
+                )
+                reply = (
+                    f"I've sent you a Guardian approval to delete “{parsed['title']}”. "
+                    "Approve it and I'll remove it."
+                    if _res.get("ok")
+                    else f"I couldn't set that delete up ({_res.get('error', '')})."
+                )
+        except Exception:
+            return None
+    else:
+        try:
+            from google_access_broker import execute as _broker_execute
+            reply = route_calendar(text, agent="maestro", broker_execute=_broker_execute)
+        except Exception:
+            return None
     if not reply:
         return None
     return MaestroCassandraResult(
