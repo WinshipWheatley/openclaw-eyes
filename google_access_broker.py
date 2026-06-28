@@ -1072,12 +1072,19 @@ def _calendar_selfcheck() -> "tuple[bool, object]":
     if creds is None:
         return False, "no usable credentials yet"
     try:
+        from datetime import datetime, timezone
         from googleapiclient.discovery import build
 
         svc = build("calendar", "v3", credentials=creds)
-        cals = svc.calendarList().list(maxResults=25).execute()
-        names = [c.get("summary") for c in cals.get("items", []) if c.get("summary")]
-        return True, names
+        # The calendar.events scope grants EVENT access on 'primary' (it does NOT grant
+        # calendarList.list — that needs a broader scope we deliberately don't request).
+        now = datetime.now(timezone.utc).isoformat()
+        events = svc.events().list(
+            calendarId="primary", timeMin=now, maxResults=3,
+            singleEvents=True, orderBy="startTime",
+        ).execute()
+        titles = [e.get("summary", "(untitled)") for e in events.get("items", [])]
+        return True, titles or ["(calendar reachable — no upcoming events)"]
     except Exception as e:  # noqa: BLE001
         return False, f"{type(e).__name__}: {str(e)[:200]}"
 
