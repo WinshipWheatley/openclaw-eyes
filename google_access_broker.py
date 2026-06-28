@@ -982,14 +982,36 @@ def run_auth_flow() -> None:
     try:
         from google_auth_oauthlib.flow import InstalledAppFlow
         flow = InstalledAppFlow.from_client_secrets_file(str(_CREDS_FILE), _ACTIVE_SCOPES)
-        print("[google_broker] Open this URL in your Windows browser to authorize:", flush=True)
-        print("[google_broker] (waiting on http://localhost:8085/ for the redirect callback)", flush=True)
-        creds = flow.run_local_server(port=8085, open_browser=False)
+        print("[google_broker] A URL will print below. Open it, pick your account, and on the", flush=True)
+        print("[google_broker] permission screen make sure EVERY box is checked — especially", flush=True)
+        print("[google_broker] Google Calendar — then click Continue/Allow.", flush=True)
+        # prompt=consent forces the full granular consent screen every run (so Calendar is
+        # always presented); roll to a free port so a lingering 8085 can't block a retry
+        # (desktop OAuth clients accept http://localhost on any port).
+        creds = None
+        last_err = None
+        for port in (8085, 8086, 8087, 8088, 8089):
+            try:
+                creds = flow.run_local_server(
+                    port=port, open_browser=False,
+                    prompt="consent", access_type="offline",
+                )
+                break
+            except OSError as e:
+                last_err = e
+                print(f"[google_broker] port {port} busy ({e}); trying {port + 1}…", flush=True)
+                continue
+        if creds is None:
+            print(f"[google_broker] could not bind a local callback port: {last_err}")
+            sys.exit(1)
+        granted = set(getattr(creds, "granted_scopes", None) or getattr(creds, "scopes", None) or [])
+        if "https://www.googleapis.com/auth/calendar.events" not in granted:
+            print("[google_broker] ⚠️ Calendar was NOT granted on the consent screen.", flush=True)
+            print("[google_broker]    Re-run --setup and tick the Calendar permission.", flush=True)
         _SECRETS_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
         _TOKEN_FILE.write_text(creds.to_json(), encoding="utf-8")
         _TOKEN_FILE.chmod(0o600)
-        print(f"[google_broker] token saved → {_TOKEN_FILE}")
-        print(f"[google_broker] chmod 600 applied")
+        print(f"[google_broker] token saved → {_TOKEN_FILE}", flush=True)
     except Exception as e:
         print(f"[google_broker] auth flow failed: {e}")
         sys.exit(1)
