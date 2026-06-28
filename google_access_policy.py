@@ -51,12 +51,15 @@ _POLICY: dict[str, dict[str, str | None]] = {
         "cassandra": CLASS_A,
         "chief":     DENIED,
     },
+    # Inbox metadata (subjects/senders/dates) of the operator's OWN account — low risk,
+    # open to the operator's agents so they can read what was sent to winshiplive@gmail.com
+    # (the email-loopback test + agent inbox awareness). Class A (auto-proceed).
     "google.gmail.read.metadata": {
-        "cassandra": CLASS_A,
+        "*":         CLASS_A,
         "chief":     DENIED,
     },
     "google.gmail.unread_count": {
-        "cassandra": CLASS_A,
+        "*":         CLASS_A,
         "chief":     DENIED,
     },
 
@@ -84,9 +87,11 @@ _POLICY: dict[str, dict[str, str | None]] = {
         "*": CLASS_C,
     },
 
-    # ── Future only — not active in any current phase ────────────────────────
+    # Email send: open to the operator's agents (Class C). Safety in self-test mode is
+    # the broker's recipient allowlist (winshiplive@gmail.com only); external sends still
+    # hit the Class C / exact-send approval gate once self-test is graduated off.
     "google.gmail.send": {
-        "cassandra": CLASS_C,
+        "*":         CLASS_C,
         "chief":     DENIED,
     },
 }

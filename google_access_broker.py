@@ -45,6 +45,7 @@ Public API:
 """
 
 import json
+import os
 import sys
 import importlib
 from datetime import datetime, timedelta
@@ -250,6 +251,41 @@ def check_gmail_broker_runtime_dependencies() -> dict:
         "credentials_read": False,
         "google_api_called": False,
     }
+
+
+# ── Gmail SELF-SEND TEST MODE ─────────────────────────────────────────────────
+# Until the operator graduates them, agents may send real email ONLY to the operator's
+# own inbox — the real Gmail send path, but physically impossible to reach anyone else.
+# This breaks the chicken-and-egg: you can watch agents actually send and verify they do
+# the right thing BEFORE trusting external sends. Graduate with OPENCLAW_GMAIL_SEND_SELF_TEST=0
+# (external sends then require the existing Class C / exact-send approval gate).
+_GMAIL_SELF_TEST_RECIPIENTS = frozenset({"winshiplive@gmail.com"})
+
+
+def _gmail_self_test_enabled(env: Mapping[str, Any] | None = None) -> bool:
+    e = os.environ if env is None else env
+    return str(e.get("OPENCLAW_GMAIL_SEND_SELF_TEST", "1")).strip().lower() not in (
+        "0", "false", "no", "off", "")
+
+
+def _gmail_recipient_list(params: Mapping[str, Any]) -> list[str]:
+    out: list[str] = []
+    for key in ("to", "cc", "bcc"):
+        raw = str(params.get(key, "") or "")
+        for addr in raw.replace(";", ",").split(","):
+            a = addr.strip().lower()
+            if a:
+                out.append(a)
+    return out
+
+
+def _gmail_send_recipients_allowed(params: Mapping[str, Any]) -> bool:
+    """True only if EVERY recipient (to/cc/bcc) is an allowlisted self-test address."""
+    recips = _gmail_recipient_list(params)
+    if not recips:
+        return False
+    allow = {a.lower() for a in _GMAIL_SELF_TEST_RECIPIENTS}
+    return all(a in allow for a in recips)
 
 
 def _exact_send_gate_context_verified(
@@ -569,13 +605,17 @@ def _exec_gmail_read_metadata(creds, params: dict) -> dict:
     label IDs, and snippet. Does not access message bodies.
     """
     max_results = params.get("max_results", 10)
+    # Optional Gmail search query (e.g. "subject:OC-LOOPBACK", "from:foo"). Additive:
+    # with no query the behaviour is unchanged (10 most recent INBOX messages).
+    query = str(params.get("query") or params.get("q") or "").strip()
     try:
         from googleapiclient.discovery import build
         service = build("gmail", "v1", credentials=creds)
 
-        list_resp = service.users().messages().list(
-            userId="me", maxResults=max_results, labelIds=["INBOX"]
-        ).execute()
+        _list_kwargs = {"userId": "me", "maxResults": max_results, "labelIds": ["INBOX"]}
+        if query:
+            _list_kwargs["q"] = query
+        list_resp = service.users().messages().list(**_list_kwargs).execute()
         messages_raw = list_resp.get("messages", [])
         if not messages_raw:
             return {"ok": True, "data": [], "error": ""}
@@ -915,6 +955,20 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     # 2. Approval gate (Class B and C only)
     #    Class A reads auto-proceed — gating would make reads unusable.
     exact_send_gate_verified = _exact_send_gate_context_verified(agent, capability, params)
+
+    # Gmail SELF-SEND TEST MODE: in self-test mode google.gmail.send may ONLY reach the
+    # operator's own inbox. A self-only send is safe and skips the heavy Class C / exact-send
+    # gate; any external recipient is blocked outright until the operator graduates it off.
+    _gmail_self_test_send = False
+    if capability == "google.gmail.send" and _gmail_self_test_enabled():
+        if not _gmail_send_recipients_allowed(params):
+            msg = ("gmail self-test mode: agents may only send to "
+                   + ", ".join(sorted(_GMAIL_SELF_TEST_RECIPIENTS))
+                   + " until graduated (set OPENCLAW_GMAIL_SEND_SELF_TEST=0)")
+            _audit(agent, capability, params, False, msg)
+            return {"ok": False, "data": None, "error": msg}
+        _gmail_self_test_send = True
+
     if approval_class == "B":
         action = f"Google broker: {agent} → {capability}"
         if not _request_approval(action, tier=1, approval_context=params.get("approval_context")):
@@ -922,7 +976,7 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
             return {"ok": False, "data": None, "error": "denied at L1 approval gate"}
     elif approval_class == "C":
         action = f"Google broker: {agent} → {capability}"
-        if not exact_send_gate_verified and not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
+        if not exact_send_gate_verified and not _gmail_self_test_send and not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
             _audit(agent, capability, params, False, "denied at L2")
             return {"ok": False, "data": None, "error": "denied at L2 approval gate"}
 

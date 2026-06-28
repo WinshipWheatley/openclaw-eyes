@@ -329,7 +329,7 @@ def _try_calendar(text: str, forwarded_session: Mapping[str, Any]) -> "MaestroCa
             return None
     else:
         try:
-            from google_access_broker import execute as _broker_execute
+            from google_access_broker import call as _broker_execute
             reply = route_calendar(text, agent="maestro", broker_execute=_broker_execute)
         except Exception:
             return None
