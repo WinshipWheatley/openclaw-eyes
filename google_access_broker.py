@@ -69,6 +69,13 @@ _CALENDAR_ALLOWLIST = [
     "4hra0c8ektf0l3jqirb7aim018@group.calendar.google.com",
 ]
 
+# Friendly source-calendar names so brains can show WHICH calendar an event is on
+# when a read spans more than one (answers "can we see different calendars?").
+_CALENDAR_NAMES = {
+    "primary": "Schedule",
+    "4hra0c8ektf0l3jqirb7aim018@group.calendar.google.com": "Availability",
+}
+
 _CALENDAR_TIMEZONE = ZoneInfo("America/New_York")
 
 
@@ -304,7 +311,10 @@ def _exec_calendar_read(creds, params: dict) -> dict:
                     orderBy="startTime",
                     maxResults=50,
                 ).execute()
-                all_events.extend(result.get("items", []))
+                _cal_name = _CALENDAR_NAMES.get(cal_id, cal_id)
+                for _ev in result.get("items", []):
+                    _ev.setdefault("_calendar_name", _cal_name)
+                    all_events.append(_ev)
             except Exception as cal_err:
                 print(f"[google_broker] calendar {cal_id} skipped: {cal_err}", flush=True)
 
