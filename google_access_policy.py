@@ -41,10 +41,9 @@ DENIED  = None  # Access explicitly denied
 
 _POLICY: dict[str, dict[str, str | None]] = {
 
-    # ── Phase 1 active ───────────────────────────────────────────────────────
+    # ── Calendar: ALL agents read + write events freely; DELETE needs Guardian ──
     "google.calendar.read": {
-        "cassandra": CLASS_A,
-        "chief":     DENIED,
+        "*": CLASS_A,   # all agents, auto-proceed (always audit-logged)
     },
 
     # ── Phase 1 placeholder — defined but broker executor not yet wired ──────
@@ -73,10 +72,16 @@ _POLICY: dict[str, dict[str, str | None]] = {
         "chief":     DENIED,
     },
 
-    # ── Phase 2 active: calendar event creation, L1 confirm ──────────────────
+    # Calendar event create/update — free for all agents (reversible). The operator
+    # wants agents to manage the calendar without per-write friction; the safety
+    # boundary is DELETE (irreversible), which is Guardian-gated just below.
     "google.calendar.write": {
-        "cassandra": CLASS_B,
-        "chief":     DENIED,
+        "*": CLASS_A,
+    },
+    # Calendar event DELETE — Class C: each delete fires a tier-2 Guardian approval the
+    # operator must approve/deny. Fails closed (denies) if the approval brain is down.
+    "google.calendar.delete": {
+        "*": CLASS_C,
     },
 
     # ── Future only — not active in any current phase ────────────────────────
@@ -91,27 +96,30 @@ _POLICY: dict[str, dict[str, str | None]] = {
 
 def allowed(agent: str, capability: str) -> bool:
     """True if the agent is permitted to invoke this capability."""
-    cap_entry = _POLICY.get(capability)
-    if cap_entry is None:
-        return False
-    return cap_entry.get(agent.lower()) is not None
+    return get_class(agent, capability) is not None
 
 
 def get_class(agent: str, capability: str) -> str | None:
     """
     Return the approval class for this agent+capability, or None if denied/unknown.
+    An explicit per-agent entry wins; otherwise a wildcard "*" entry applies, so a
+    capability can be granted to every agent at once (and a specific agent can still be
+    explicitly DENIED to override the wildcard).
     """
     cap_entry = _POLICY.get(capability)
     if cap_entry is None:
         return None
-    return cap_entry.get(agent.lower())
+    a = agent.lower()
+    if a in cap_entry:
+        return cap_entry[a]
+    return cap_entry.get("*")
 
 
 def list_allowed(agent: str) -> list[tuple[str, str]]:
     """Return list of (capability, class) pairs permitted for this agent."""
     result = []
-    for cap, agents in _POLICY.items():
-        cls = agents.get(agent.lower())
+    for cap in _POLICY:
+        cls = get_class(agent, cap)  # wildcard-aware
         if cls is not None:
             result.append((cap, cls))
     return result
@@ -125,15 +133,17 @@ if __name__ == "__main__":
         ("cassandra", "google.calendar.read",       True,  CLASS_A),
         ("cassandra", "google.gmail.read.body",     True,  CLASS_B),
         ("cassandra", "google.gmail.draft.create",  True,  CLASS_B),
-        ("cassandra", "google.calendar.write",      True,  CLASS_B),
+        ("cassandra", "google.calendar.write",      True,  CLASS_A),
+        ("maestro",   "google.calendar.write",      True,  CLASS_A),
+        ("niles",     "google.calendar.delete",     True,  CLASS_C),
         ("cassandra", "google.gmail.send",           True,  CLASS_C),
-        ("chief",     "google.calendar.read",       False, DENIED),
+        ("chief",     "google.calendar.read",       True,  CLASS_A),
         ("chief",     "google.gmail.send",          False, DENIED),
         ("Cassandra", "google.calendar.read",       True,  CLASS_A),
-        ("unknown",   "google.calendar.read",       False, DENIED),
+        ("unknown",   "google.calendar.read",       True,  CLASS_A),
         ("cassandra", "google.nonexistent",          False, None),
     ]
-    assert ("google.calendar.write", CLASS_B) not in list_allowed("chief")
+    assert ("google.gmail.send", CLASS_C) not in list_allowed("niles")
     print(f"{'Agent':<12} {'Capability':<35} {'Allowed?':<10} {'Class':<8} {'Pass'}")
     print("-" * 78)
     all_pass = True
