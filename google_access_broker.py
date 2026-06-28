@@ -1040,7 +1040,29 @@ def cmd_setup() -> None:
         print("   just run this again and tick everything.", flush=True)
 
 
+def _ensure_google_libs() -> None:
+    """If the Google client libs aren't importable (e.g. run under the system python),
+    re-exec under the fleet venv that has them, so `python3 google_access_broker.py`
+    just works no matter which interpreter the operator used."""
+    try:
+        import google.oauth2.credentials  # noqa: F401
+        import google_auth_oauthlib.flow  # noqa: F401
+        import googleapiclient.discovery  # noqa: F401
+        return
+    except ImportError:
+        pass
+    import os
+
+    for cand in ("/home/openclaw/chief_env/bin/python", "/home/openclaw/.openclaw/venv/bin/python"):
+        if os.path.exists(cand) and os.path.realpath(cand) != os.path.realpath(sys.executable):
+            print(f"[google_broker] re-running under {cand} (has the Google libraries)…", flush=True)
+            os.execv(cand, [cand, os.path.abspath(__file__), *sys.argv[1:]])
+    # no suitable venv found — let the original ImportError surface downstream
+
+
 if __name__ == "__main__":
+    if any(a in sys.argv for a in ("--setup", "--check", "--auth")):
+        _ensure_google_libs()
     if "--setup" in sys.argv:
         cmd_setup()
     elif "--check" in sys.argv:
