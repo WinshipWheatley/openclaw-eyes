@@ -461,23 +461,23 @@
       "tests": []
     },
     {
-      "activation_allowed_now": false,
+      "activation_allowed_now": true,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md",
         "/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md"
       ],
-      "canary_status": "audit_reported_running_flag_on; not_reverified_by_this_task",
+      "canary_status": "LIVE \u2014 verified on the processor 2026-06-28",
       "capability_id": "continuity_capsule",
       "current_state_if_verifiable": {
-        "audit_report": "activation audit reported maestro-listener continuity flag ON on 2026-06-25",
+        "audit_report": "reconciled 2026-06-28 against the live process env",
         "code_default": "off unless OPENCLAW_CONTINUITY_CAPSULE is truthy",
-        "production": "unknown_not_reverified; audit_reported_maestro_listener_continuity_on",
-        "summary": "code default off; activation audit reported maestro-listener continuity flag ON, but this generator did not inspect systemd or production env"
+        "production": "ENABLED on the processor service; /proc live env confirmed",
+        "summary": "LIVE: OPENCLAW_CONTINUITY_CAPSULE=1 verified on the openclaw-request-response (processor) live process env 2026-06-28 (continuity.conf drop-in); OPENCLAW_PACKET_SOURCE=sqlite also live"
       },
       "default_state": "off",
       "disabled_by": "OPENCLAW_CONTINUITY_CAPSULE default 0",
       "display_name": "Continuity Capsule",
-      "enabled_by": "operator-controlled runtime environment",
+      "enabled_by": "operator-controlled runtime env (continuity.conf drop-in on the processor)",
       "evidence_refs": [
         "maestro_listener.py:_continuity_enabled",
         "tests/test_continuity_stamp.py"
@@ -486,7 +486,7 @@
         "OPENCLAW_CONTINUITY_CAPSULE",
         "OPENCLAW_PACKET_SOURCE"
       ],
-      "gate_stage": "unknown",
+      "gate_stage": "operator_approved_live",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -495,12 +495,12 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "Opus should verify current runtime env without exposing secrets and record whether it remains approved live",
+      "next_required_step": "none \u2014 live and reconciled",
       "operator_approval_required": true,
       "owner": "Opus",
-      "reason_if_off": "current production state was not reverified here; code default is off",
+      "reason_if_off": "LIVE 2026-06-28; if rolled back, continuity ids stop stamping",
       "risk_level": "low",
-      "rollback_note": "unset OPENCLAW_CONTINUITY_CAPSULE or set it to 0 and restart only through approved service-management procedure",
+      "rollback_note": "unset OPENCLAW_CONTINUITY_CAPSULE / set 0, restart the processor",
       "source_files": [
         "maestro_listener.py",
         "maestro_context_packet.py"
@@ -1430,23 +1430,23 @@
       "tests": []
     },
     {
-      "activation_allowed_now": false,
+      "activation_allowed_now": true,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
       ],
-      "canary_status": "queued_for_hybrid_canary",
+      "canary_status": "LIVE (sqlite) \u2014 verified on the processor 2026-06-28",
       "capability_id": "packet_source_sqlite_flip",
       "current_state_if_verifiable": {
-        "audit_report": "OPUS_ACTIVATION_DECISIONS queues packet-source SQLite flip for canary",
+        "audit_report": "reconciled 2026-06-28 against the live process env",
         "code_default": "flat unless OPENCLAW_PACKET_SOURCE selects sqlite or hybrid",
-        "production": "unknown_or_related_live_context_only; this task did not inspect live services",
-        "summary": "standalone activation record for packet-source sqlite/hybrid flip; related continuity context is preserved separately"
+        "production": "ENABLED (sqlite) on the processor service; /proc live env confirmed",
+        "summary": "LIVE: OPENCLAW_PACKET_SOURCE=sqlite verified on the processor live env 2026-06-28 (flip.conf drop-in)"
       },
       "default_state": "flat/default",
-      "disabled_by": "flat default or unset OPENCLAW_PACKET_SOURCE",
+      "disabled_by": "set OPENCLAW_PACKET_SOURCE=flat or unset",
       "display_name": "Packet-source SQLite flip",
-      "enabled_by": "operator-approved hybrid/sqlite packet-source canary with content-diff receipt",
+      "enabled_by": "OPENCLAW_PACKET_SOURCE=sqlite (flip.conf drop-in on the processor)",
       "evidence_refs": [
         "maestro_context_packet.py:OPENCLAW_PACKET_SOURCE",
         "activation_gate_register.py:continuity related runtime context"
@@ -1454,7 +1454,7 @@
       "flag_or_config": [
         "OPENCLAW_PACKET_SOURCE"
       ],
-      "gate_stage": "canary",
+      "gate_stage": "operator_approved_live",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -1463,12 +1463,12 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "run a supervised hybrid packet content-diff canary before production flip",
+      "next_required_step": "none \u2014 live and reconciled",
       "operator_approval_required": true,
       "owner": "Opus",
-      "reason_if_off": "packet content changes need a canary and rollback receipt before activation",
+      "reason_if_off": "LIVE (sqlite) 2026-06-28; if rolled back, reverts to flat packet source",
       "risk_level": "medium",
-      "rollback_note": "set OPENCLAW_PACKET_SOURCE=flat or unset it through approved service configuration",
+      "rollback_note": "set OPENCLAW_PACKET_SOURCE=flat / unset and restart the processor",
       "source_files": [
         "maestro_context_packet.py",
         "activation_gate_register.py"
@@ -2123,7 +2123,9 @@
   "schema_version": "activation_gate_register_v0",
   "summary": {
     "activation_allowed_now": [
+      "continuity_capsule",
       "frontdoor_model_profile",
+      "packet_source_sqlite_flip",
       "polish_loop_local_builder_bridge",
       "polish_loop_task_package_v1"
     ],
@@ -2143,7 +2145,6 @@
       "cassandra_telegram_delivery",
       "claude_agent_hard_block",
       "computer_use_worker_gateway",
-      "continuity_capsule",
       "external_model_openrouter_path",
       "external_shadow_lm_config",
       "gated_email_send_rail",
@@ -2183,8 +2184,7 @@
       "walk_away_autonomy_mode"
     ],
     "ready_for_canary": [
-      "control_plane_heal_emission",
-      "packet_source_sqlite_flip"
+      "control_plane_heal_emission"
     ],
     "total_capabilities": 40,
     "unknown_production_state": [
@@ -2194,14 +2194,12 @@
       "cassandra_telegram_delivery",
       "cassandra_telegram_dryrun_inbox",
       "computer_use_worker_gateway",
-      "continuity_capsule",
       "draft_only_email_adapter",
       "external_model_openrouter_path",
       "gated_email_send_rail",
       "legal_sealed_ingestion",
       "lm_consult_spine",
       "niles_album_evidence_intake_boundary",
-      "packet_source_sqlite_flip",
       "polish_loop_factory_mode",
       "runtime_module_activation_gate"
     ],

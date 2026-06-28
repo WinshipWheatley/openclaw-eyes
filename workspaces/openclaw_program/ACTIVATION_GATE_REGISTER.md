@@ -28,12 +28,12 @@ This register is descriptive only. It does not enable features, edit production 
 
 - Total capabilities registered: `40`
 - Verified enabled/live: none recorded
-- Activation allowed now: `frontdoor_model_profile`, `polish_loop_local_builder_bridge`, `polish_loop_task_package_v1`
-- Ready for canary queue: `control_plane_heal_emission`, `packet_source_sqlite_flip`
+- Activation allowed now: `continuity_capsule`, `frontdoor_model_profile`, `packet_source_sqlite_flip`, `polish_loop_local_builder_bridge`, `polish_loop_task_package_v1`
+- Ready for canary queue: `control_plane_heal_emission`
 - Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 - Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `polish_loop_file_ledger_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
-- Unknown production state: `action_runtime`, `active_machinery_classification`, `agent_package_preview_contract`, `cassandra_telegram_delivery`, `cassandra_telegram_dryrun_inbox`, `computer_use_worker_gateway`, `continuity_capsule`, `draft_only_email_adapter`, `external_model_openrouter_path`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `packet_source_sqlite_flip`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
+- Unknown production state: `action_runtime`, `active_machinery_classification`, `agent_package_preview_contract`, `cassandra_telegram_delivery`, `cassandra_telegram_dryrun_inbox`, `computer_use_worker_gateway`, `draft_only_email_adapter`, `external_model_openrouter_path`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 
 | Capability | Stage | Live production state | Current state | Activation allowed now | Next required step |
 | --- | --- | --- | --- | --- | --- |
@@ -47,7 +47,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Cassandra Telegram dry-run inbox (`cassandra_telegram_dryrun_inbox`) | `dry_run` | `not_applicable` | dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting | no | keep as a synthetic proof source; do not connect to Telegram |
 | Claude agent hard-block (`claude_agent_hard_block`) | `blocked` | `not_applicable` | agent-side Claude calls are hard-blocked and should remain blocked | no | keep permanently blocked unless Opus writes a new human-only design |
 | Computer Use Worker Gateway (`computer_use_worker_gateway`) | `proposed` | `not_applicable` | proposed only; no production flag or built gateway was verified in this branch | no | write a design/proposal before implementation; do not grant desktop/browser authority |
-| Continuity Capsule (`continuity_capsule`) | `unknown` | `not_applicable` | code default off; activation audit reported maestro-listener continuity flag ON, but this generator did not inspect systemd or production env | no | Opus should verify current runtime env without exposing secrets and record whether it remains approved live |
+| Continuity Capsule (`continuity_capsule`) | `operator_approved_live` | `not_applicable` | LIVE: OPENCLAW_CONTINUITY_CAPSULE=1 verified on the openclaw-request-response (processor) live process env 2026-06-28 (continuity.conf drop-in); OPENCLAW_PACKET_SOURCE=sqlite also live | yes | none — live and reconciled |
 | Control-plane heal emission (`control_plane_heal_emission`) | `canary` | `not_applicable` | built detector-to-ledger emission gate remains off pending supervised canary | no | queue a synthetic/supervised canary with temp ledger proof before activation |
 | Draft-only email adapter (`draft_only_email_adapter`) | `synthetic` | `not_applicable` | adapter exists as deterministic local artifact generator; live draft and send authority are false; production wiring unknown | no | wire only a synthetic/operator-review draft lane with receipts; do not create live Gmail/Mail drafts |
 | External model / OpenRouter path (`external_model_openrouter_path`) | `intentionally_off` | `not_applicable` | code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected | no | keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded |
@@ -67,7 +67,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Niles album evidence intake boundary (`niles_album_evidence_intake_boundary`) | `synthetic` | `not_applicable` | metadata-only boundary exists; raw audio, DAW contents, broad drive scans, automation, and mutation are blocked | no | if needed, run only synthetic metadata tests or operator-supplied metadata review |
 | Ollama model defaults (`ollama_model_defaults`) | `operator_approved_live` | `not_applicable` | already-on local model default lane; model-fit repair remains needed for strong/deep references | no | repair strong/deep lane model-fit references before expanding model routing |
 | OpenAI adapter stub (`openai_adapter_stub`) | `blocked` | `not_applicable` | adapter exists only as a hard unavailable stub; no live OpenAI provider path is enabled | no | DEPRECATED_OR_REMOVE_LATER unless Opus queues a credential-safe OpenAI design |
-| Packet-source SQLite flip (`packet_source_sqlite_flip`) | `canary` | `not_applicable` | standalone activation record for packet-source sqlite/hybrid flip; related continuity context is preserved separately | no | run a supervised hybrid packet content-diff canary before production flip |
+| Packet-source SQLite flip (`packet_source_sqlite_flip`) | `operator_approved_live` | `not_applicable` | LIVE: OPENCLAW_PACKET_SOURCE=sqlite verified on the processor live env 2026-06-28 (flip.conf drop-in) | yes | none — live and reconciled |
 | Polish Loop factory mode (`polish_loop_factory_mode`) | `blocked` | `not_applicable` | factory remains NOT_READY; no live loop was run or enabled | no | repair blockers #2 and #3, re-audit all 10 switch criteria, then separately approve activation |
 | Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `not_applicable` | bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger | no | HELD OFF deliberately 2026-06-28: the local-builder bridge (OPENCLAW_POLISH_LOOP_LOCAL_BUILDER) is the chosen closure path, making this legacy file-loop reconciliation redundant; before any future enable, close the nonce-hardening item (task-007: status.json snapshot omits phase_c_lease_nonce) |
 | Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `operator_approved_live` | `not_applicable` | ACTIVATED 2026-06-28: enabled in the polish-loop cron after Opus verification (37 bridge tests + contained end-to-end admit->build->VERIFYING->accept->DONE) | yes | wire auto-acceptance (decide_acceptance/green-gate) so VERIFYING->DONE runs unattended; add a live agent-request entry |
@@ -374,20 +374,20 @@ Live-state evidence:
 
 - Flag/config: `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`
 - Default state: `off`
-- Current state if verifiable: code default off; activation audit reported maestro-listener continuity flag ON, but this generator did not inspect systemd or production env
-- Production state: `unknown_not_reverified; audit_reported_maestro_listener_continuity_on`
+- Current state if verifiable: LIVE: OPENCLAW_CONTINUITY_CAPSULE=1 verified on the openclaw-request-response (processor) live process env 2026-06-28 (continuity.conf drop-in); OPENCLAW_PACKET_SOURCE=sqlite also live
+- Production state: `ENABLED on the processor service; /proc live env confirmed`
 - Live production state: `not_applicable`
-- Gate stage: `unknown`
-- Canary status: `audit_reported_running_flag_on; not_reverified_by_this_task`
+- Gate stage: `operator_approved_live`
+- Canary status: `LIVE — verified on the processor 2026-06-28`
 - Risk level: `low`
 - Owner: `Opus`
-- Activation allowed now: `no`
+- Activation allowed now: `yes`
 - Operator approval required: `yes`
-- Reason if off: current production state was not reverified here; code default is off
-- Enabled by: operator-controlled runtime environment
+- Reason if off: LIVE 2026-06-28; if rolled back, continuity ids stop stamping
+- Enabled by: operator-controlled runtime env (continuity.conf drop-in on the processor)
 - Disabled by: OPENCLAW_CONTINUITY_CAPSULE default 0
-- Rollback: unset OPENCLAW_CONTINUITY_CAPSULE or set it to 0 and restart only through approved service-management procedure
-- Next required step: Opus should verify current runtime env without exposing secrets and record whether it remains approved live
+- Rollback: unset OPENCLAW_CONTINUITY_CAPSULE / set 0, restart the processor
+- Next required step: none — live and reconciled
 - Source files: `maestro_listener.py`, `maestro_context_packet.py`
 - Tests: `tests/test_continuity_stamp.py`, `tests/test_packet_sqlite_flip.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md`
@@ -954,20 +954,20 @@ Live-state evidence:
 
 - Flag/config: `OPENCLAW_PACKET_SOURCE`
 - Default state: `flat/default`
-- Current state if verifiable: standalone activation record for packet-source sqlite/hybrid flip; related continuity context is preserved separately
-- Production state: `unknown_or_related_live_context_only; this task did not inspect live services`
+- Current state if verifiable: LIVE: OPENCLAW_PACKET_SOURCE=sqlite verified on the processor live env 2026-06-28 (flip.conf drop-in)
+- Production state: `ENABLED (sqlite) on the processor service; /proc live env confirmed`
 - Live production state: `not_applicable`
-- Gate stage: `canary`
-- Canary status: `queued_for_hybrid_canary`
+- Gate stage: `operator_approved_live`
+- Canary status: `LIVE (sqlite) — verified on the processor 2026-06-28`
 - Risk level: `medium`
 - Owner: `Opus`
-- Activation allowed now: `no`
+- Activation allowed now: `yes`
 - Operator approval required: `yes`
-- Reason if off: packet content changes need a canary and rollback receipt before activation
-- Enabled by: operator-approved hybrid/sqlite packet-source canary with content-diff receipt
-- Disabled by: flat default or unset OPENCLAW_PACKET_SOURCE
-- Rollback: set OPENCLAW_PACKET_SOURCE=flat or unset it through approved service configuration
-- Next required step: run a supervised hybrid packet content-diff canary before production flip
+- Reason if off: LIVE (sqlite) 2026-06-28; if rolled back, reverts to flat packet source
+- Enabled by: OPENCLAW_PACKET_SOURCE=sqlite (flip.conf drop-in on the processor)
+- Disabled by: set OPENCLAW_PACKET_SOURCE=flat or unset
+- Rollback: set OPENCLAW_PACKET_SOURCE=flat / unset and restart the processor
+- Next required step: none — live and reconciled
 - Source files: `maestro_context_packet.py`, `activation_gate_register.py`
 - Tests: `tests/test_activation_gate_register.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
