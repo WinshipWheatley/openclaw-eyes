@@ -28,12 +28,12 @@ This register is descriptive only. It does not enable features, edit production 
 
 - Total capabilities registered: `40`
 - Verified enabled/live: none recorded
-- Activation allowed now: `frontdoor_model_profile`
+- Activation allowed now: `frontdoor_model_profile`, `polish_loop_local_builder_bridge`, `polish_loop_task_package_v1`
 - Ready for canary queue: `control_plane_heal_emission`, `packet_source_sqlite_flip`
-- Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
-- Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `polish_loop_file_ledger_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
+- Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
+- Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `polish_loop_file_ledger_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
-- Unknown production state: `action_runtime`, `active_machinery_classification`, `agent_package_preview_contract`, `cassandra_telegram_delivery`, `cassandra_telegram_dryrun_inbox`, `computer_use_worker_gateway`, `continuity_capsule`, `draft_only_email_adapter`, `external_model_openrouter_path`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `packet_source_sqlite_flip`, `polish_loop_factory_mode`, `polish_loop_local_builder_bridge`, `runtime_module_activation_gate`
+- Unknown production state: `action_runtime`, `active_machinery_classification`, `agent_package_preview_contract`, `cassandra_telegram_delivery`, `cassandra_telegram_dryrun_inbox`, `computer_use_worker_gateway`, `continuity_capsule`, `draft_only_email_adapter`, `external_model_openrouter_path`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `packet_source_sqlite_flip`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 
 | Capability | Stage | Live production state | Current state | Activation allowed now | Next required step |
 | --- | --- | --- | --- | --- | --- |
@@ -69,11 +69,11 @@ This register is descriptive only. It does not enable features, edit production 
 | OpenAI adapter stub (`openai_adapter_stub`) | `blocked` | `not_applicable` | adapter exists only as a hard unavailable stub; no live OpenAI provider path is enabled | no | DEPRECATED_OR_REMOVE_LATER unless Opus queues a credential-safe OpenAI design |
 | Packet-source SQLite flip (`packet_source_sqlite_flip`) | `canary` | `not_applicable` | standalone activation record for packet-source sqlite/hybrid flip; related continuity context is preserved separately | no | run a supervised hybrid packet content-diff canary before production flip |
 | Polish Loop factory mode (`polish_loop_factory_mode`) | `blocked` | `not_applicable` | factory remains NOT_READY; no live loop was run or enabled | no | repair blockers #2 and #3, re-audit all 10 switch criteria, then separately approve activation |
-| Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `not_applicable` | bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger | no | Opus review of task-003 implementation, then a separate synthetic/canary authorization task if the factory remains otherwise eligible |
-| Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `blocked` | `not_applicable` | candidate built on isolated polish-loop-closure branch; current base branch does not contain the flag; production not enabled | no | Opus review/integration of closure branch, then blockers #2 and #3 and all 10 switch criteria |
+| Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `not_applicable` | bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger | no | HELD OFF deliberately 2026-06-28: the local-builder bridge (OPENCLAW_POLISH_LOOP_LOCAL_BUILDER) is the chosen closure path, making this legacy file-loop reconciliation redundant; before any future enable, close the nonce-hardening item (task-007: status.json snapshot omits phase_c_lease_nonce) |
+| Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `operator_approved_live` | `not_applicable` | ACTIVATED 2026-06-28: enabled in the polish-loop cron after Opus verification (37 bridge tests + contained end-to-end admit->build->VERIFYING->accept->DONE) | yes | wire auto-acceptance (decide_acceptance/green-gate) so VERIFYING->DONE runs unattended; add a live agent-request entry |
 | Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`) | `intentionally_off` | `not_applicable` | planned default-off size/type/risk router record from task-012; catalog-only here and no runtime wiring in this branch | no | Opus review/integration of task-012, then separate synthetic/canary authorization if Polish Loop switch criteria otherwise pass |
 | Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`) | `intentionally_off` | `not_applicable` | size/type/risk routing is built as a default-off candidate to classify ledger tasks before dispatchability | no | Opus review of size-router wiring, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass |
-| Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`) | `intentionally_off` | `not_applicable` | deterministic task-package materialization is built as a default-off candidate for Polish Loop blocker #3 | no | Opus review of blocker #3 implementation, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass |
+| Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`) | `operator_approved_live` | `not_applicable` | ACTIVATED 2026-06-28: enabled in the polish-loop cron alongside the local-builder bridge; materializes the deterministic task package the builder consumes (fail-closed on missing fields) | yes | none for this flag; factory completion tracked under the local-builder bridge (auto-acceptance + agent-request entry) |
 | protected_generate Ollama timeouts (`protected_generate_ollama_timeouts`) | `operator_approved_live` | `not_applicable` | already-on internal timeout knobs with safe defaults; they tune bounded local generation behavior only | no | keep defaults; record any future timeout tuning receipt |
 | Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`) | `blocked` | `not_applicable` | v0 gate always blocks runtime/module activation and claims no runtime health | no | satisfy and record all gate prerequisites before runtime/module activation |
 | Walk-away autonomy mode (`walk_away_autonomy_mode`) | `intentionally_off` | `not_applicable` | built but intentionally off by default; enabling writes an autonomy mode state file | no | do not enable from the register; require an operator-approved autonomy receipt |
@@ -1025,7 +1025,7 @@ Live-state evidence:
 - Enabled by: explicit OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE only after Opus review, synthetic tests, canary, rollback proof, and operator-approved runtime scope
 - Disabled by: default-off flag; production live loop remains prohibited
 - Rollback: unset OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE or set it to 0; revert the bridge branch if synthetic receipts regress
-- Next required step: Opus review of task-003 implementation, then a separate synthetic/canary authorization task if the factory remains otherwise eligible
+- Next required step: HELD OFF deliberately 2026-06-28: the local-builder bridge (OPENCLAW_POLISH_LOOP_LOCAL_BUILDER) is the chosen closure path, making this legacy file-loop reconciliation redundant; before any future enable, close the nonce-hardening item (task-007: status.json snapshot omits phase_c_lease_nonce)
 - Source files: `polish_loop/orchestrator.py`, `polish_loop/control_plane.py`
 - Tests: `tests/test_polish_loop_file_ledger_reconciliation.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_IMPL_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
@@ -1041,20 +1041,20 @@ Live-state evidence:
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`
 - Default state: `candidate default-off; not present in this base branch`
-- Current state if verifiable: candidate built on isolated polish-loop-closure branch; current base branch does not contain the flag; production not enabled
-- Production state: `not_enabled_by_this_task; production_state_unknown_not_read`
+- Current state if verifiable: ACTIVATED 2026-06-28: enabled in the polish-loop cron after Opus verification (37 bridge tests + contained end-to-end admit->build->VERIFYING->accept->DONE)
+- Production state: `ENABLED in crontab via env OPENCLAW_POLISH_LOOP_LOCAL_BUILDER=1 on the */5 orchestrator --once line`
 - Live production state: `not_applicable`
-- Gate stage: `blocked`
-- Canary status: `synthetic_only_on_isolated_branch; no live loop`
+- Gate stage: `operator_approved_live`
+- Canary status: `VERIFIED + ACTIVATED 2026-06-28 (37 tests + contained end-to-end)`
 - Risk level: `high`
 - Owner: `Opus`
-- Activation allowed now: `no`
+- Activation allowed now: `yes`
 - Operator approval required: `yes`
-- Reason if off: blocker #1 candidate exists but factory remains NOT_READY and this base branch lacks the bridge flag
-- Enabled by: explicit OPENCLAW_POLISH_LOOP_LOCAL_BUILDER after Opus integration review, remaining blockers, and switch criteria
-- Disabled by: flag absent/off; live loop prohibited
-- Rollback: leave the flag unset; revert/disable bridge branch before any live dispatch if receipts regress
-- Next required step: Opus review/integration of closure branch, then blockers #2 and #3 and all 10 switch criteria
+- Reason if off: ACTIVATED 2026-06-28; if rolled back, dispatch reverts to writing the FIX directive without running the builder (task stays LEASED)
+- Enabled by: OPENCLAW_POLISH_LOOP_LOCAL_BUILDER=1 in the orchestrator cron, operator keyboard authorization after Opus verification (DONE 2026-06-28)
+- Disabled by: remove the env flag from the crontab orchestrator line
+- Rollback: edit crontab: drop OPENCLAW_POLISH_LOOP_LOCAL_BUILDER=1 from the */5 orchestrator line (backup at scratchpad/crontab.backup.txt); dispatch reverts to orphaned FIX directive (task stays LEASED, no build)
+- Next required step: wire auto-acceptance (decide_acceptance/green-gate) so VERIFYING->DONE runs unattended; add a live agent-request entry
 - Source files: `polish_loop/orchestrator.py`, `polish_loop/worker_runtime.py`, `polish_loop/control_plane.py`
 - Tests: `tests/test_polish_loop_closure_bridge.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
@@ -1128,20 +1128,20 @@ Live-state evidence:
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`
 - Default state: `default-off`
-- Current state if verifiable: deterministic task-package materialization is built as a default-off candidate for Polish Loop blocker #3
-- Production state: `not_enabled_by_this_task; production activation prohibited`
+- Current state if verifiable: ACTIVATED 2026-06-28: enabled in the polish-loop cron alongside the local-builder bridge; materializes the deterministic task package the builder consumes (fail-closed on missing fields)
+- Production state: `ENABLED in crontab via env OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1=1 on the */5 orchestrator --once line`
 - Live production state: `not_applicable`
-- Gate stage: `intentionally_off`
-- Canary status: `synthetic_only; canary required before runtime activation`
+- Gate stage: `operator_approved_live`
+- Canary status: `VERIFIED + ACTIVATED 2026-06-28 (task-package tests + end-to-end)`
 - Risk level: `medium`
 - Owner: `Opus`
-- Activation allowed now: `no`
+- Activation allowed now: `yes`
 - Operator approval required: `yes`
-- Reason if off: changes builder input materialization and Polish Loop remains NOT_READY; canary and Opus/operator approval are required
-- Enabled by: explicit OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1 only after Opus review, synthetic tests, canary, rollback proof, and operator-approved runtime scope
-- Disabled by: default-off flag; legacy task.md/directive materialization remains unchanged when unset
-- Rollback: unset OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1 or set it to 0; legacy task.md/directive materialization remains available
-- Next required step: Opus review of blocker #3 implementation, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass
+- Reason if off: ACTIVATED 2026-06-28; if rolled back, builder falls back to legacy task.md/directive materialization
+- Enabled by: OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1=1 in the orchestrator cron, operator keyboard authorization after Opus verification (DONE 2026-06-28)
+- Disabled by: remove the env flag from the crontab orchestrator line; legacy task.md/directive materialization remains available
+- Rollback: edit crontab: drop OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1=1 (backup at scratchpad/crontab.backup.txt); legacy materialization resumes
+- Next required step: none for this flag; factory completion tracked under the local-builder bridge (auto-acceptance + agent-request entry)
 - Source files: `polish_loop/worker_runtime.py`, `polish_loop/orchestrator.py`
 - Tests: `tests/test_polish_loop_task_package_materialization.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
