@@ -118,6 +118,67 @@ def _default_protected_generate_fn(prompt: str, **kwargs: Any) -> Any:
     return protected_generate(prompt, **kwargs)
 
 
+# ── Fast-lane: direct bounded local 8b for classification ─────────────────────
+# The interpreter's only job is routing + read-model selection — non-PII, no external
+# egress — so it goes straight to the fast front-door 8b (full GPU offload) instead of
+# the slow shared model. Without this, enabling the interpreter reintroduces the 60s
+# timeout. Default ON; OPENCLAW_INTERPRETER_FAST_LANE=0 falls back to protected_generate.
+import os  # noqa: E402
+
+_DEFAULT_INTERPRETER_MODEL = "qwen3:8b-q4_K_M"
+
+
+def _interpreter_model(env: Mapping[str, Any] | None = None) -> str:
+    e = os.environ if env is None else env
+    return str(e.get("OPENCLAW_INTERPRETER_MODEL") or _DEFAULT_INTERPRETER_MODEL).strip()
+
+
+def _interpreter_fast_lane_enabled(env: Mapping[str, Any] | None = None) -> bool:
+    e = os.environ if env is None else env
+    return str(e.get("OPENCLAW_INTERPRETER_FAST_LANE", "1")).strip().lower() not in (
+        "0", "false", "no", "off", "")
+
+
+def _interpreter_timeout(env: Mapping[str, Any] | None = None) -> float:
+    e = os.environ if env is None else env
+    try:
+        return float(e.get("OPENCLAW_INTERPRETER_TIMEOUT", "20"))
+    except Exception:
+        return 20.0
+
+
+def _fast_interpreter_request_body(prompt: str, env: Mapping[str, Any] | None = None) -> dict:
+    return {
+        "model": _interpreter_model(env),
+        "prompt": prompt,
+        "stream": False,
+        "think": False,
+        "keep_alive": "10m",
+        "options": {"num_predict": 220, "num_ctx": 2048, "num_gpu": 999, "temperature": 0},
+    }
+
+
+def _fast_interpreter_generate_fn(prompt: str, **kwargs: Any) -> str:
+    """Bounded local-8b classify call (full GPU offload), no external egress. Returns ""
+    on any problem so interpret_operator_message falls back to deterministic routing."""
+    import json as _json
+    import urllib.request as _url
+
+    body = _json.dumps(_fast_interpreter_request_body(prompt)).encode("utf-8")
+    req = _url.Request("http://127.0.0.1:11434/api/generate", data=body,
+                       headers={"Content-Type": "application/json"})
+    try:
+        with _url.urlopen(req, timeout=_interpreter_timeout()) as resp:
+            return str(_json.loads(resp.read()).get("response", ""))
+    except Exception:
+        return ""
+
+
+def _select_interpreter_generate_fn(env: Mapping[str, Any] | None = None):
+    """Fast-lane (default) when enabled, else the slow protected_generate gate."""
+    return _fast_interpreter_generate_fn if _interpreter_fast_lane_enabled(env) else _default_protected_generate_fn
+
+
 # ---------------------------------------------------------------------------
 # Prompt builder
 # ---------------------------------------------------------------------------
@@ -257,7 +318,7 @@ def interpret_operator_message(
     if not text or not text.strip():
         return InterpretResult(route=ROUTE_UNCERTAIN, reason="empty_text")
 
-    _fn = protected_generate_fn or _default_protected_generate_fn
+    _fn = protected_generate_fn or _select_interpreter_generate_fn()
     if _fn is None:
         return InterpretResult(route=ROUTE_UNCERTAIN, reason="no_protected_generate_fn")
 
