@@ -294,6 +294,42 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
     return ("maestro_brain_freeform", True, "")
 
 
+def _try_calendar(text: str, forwarded_session: Mapping[str, Any]) -> "MaestroCassandraResult | None":
+    """Route a calendar READ/CREATE request to the live Google broker. Returns an answer
+    result, or None to fall through to staging (briefings, delete, or broker unavailable).
+    Delete is Guardian-gated and blocks on approval, so it stays on staging for now."""
+    try:
+        from calendar_router import detect_calendar_intent, route_calendar
+    except Exception:
+        return None
+    intent = detect_calendar_intent(text)
+    if intent not in ("read", "create"):
+        return None
+    try:
+        from google_access_broker import execute as _broker_execute
+        reply = route_calendar(text, agent="maestro", broker_execute=_broker_execute)
+    except Exception:
+        return None
+    if not reply:
+        return None
+    return MaestroCassandraResult(
+        status="ANSWER_READY",
+        intent_class="calendar",
+        allowed_to_call_handle=False,
+        one_line_answer=_one_line_answer(reply),
+        plain_summary=reply,
+        mac_render_hint=MAC_RENDER_HINT,
+        session_forwarded=forwarded_session,
+        machine_proof={
+            **_adapter_machine_proof(handle_called=False),
+            "calendar_broker_called": True,
+            "calendar_intent": intent,
+            "protected_generate_called": False,
+            "external_llm_invoked": False,
+        },
+    )
+
+
 def answer_frontdoor_chat(
     text: str,
     *,
@@ -305,6 +341,10 @@ def answer_frontdoor_chat(
 ) -> MaestroCassandraResult:
     intent_class, allowed, reason = classify_frontdoor_intent(text)
     forwarded_session = filtered_session(session)
+    if intent_class == "calendar_or_briefing":
+        _cal = _try_calendar(text, forwarded_session)
+        if _cal is not None:
+            return _cal
     if not allowed:
         return MaestroCassandraResult(
             status="ROUTE_TO_STAGING",
