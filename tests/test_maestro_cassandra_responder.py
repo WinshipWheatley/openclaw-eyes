@@ -506,7 +506,8 @@ def test_status_capability_missing_index_fails_closed_without_fake_claim(tmp_pat
 
     assert result.status == "ANSWER_READY"
     assert result.allowed_to_call_handle is False
-    assert "don't have that in the current Maestro packet" in result.plain_summary
+    assert "capability index read model is missing" in result.plain_summary
+    assert "Maestro packet" not in result.plain_summary
     assert result.machine_proof["capability_index_used"] is False
     assert result.machine_proof["live_implemented_capability_count"] == 0
 

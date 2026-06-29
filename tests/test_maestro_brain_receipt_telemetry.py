@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +9,7 @@ import pytest
 
 import openclaw_request_processor as processor
 from openclaw_request_processor import OpenClawResponseForMac
-from maestro_cassandra_responder import answer_frontdoor_chat
+from maestro_cassandra_responder import _protected_generate_receipt_machine_proof, answer_frontdoor_chat
 
 
 def _write_minimal_read_models(root: Path) -> dict[str, str]:
@@ -129,6 +130,79 @@ def test_protected_generate_receipt_fields_survive_responder_machine_proof(monke
     assert result.machine_proof["deterministic_fallback_used"] is False
 
 
+def test_missing_protected_generate_model_call_key_defaults_false() -> None:
+    proof = _protected_generate_receipt_machine_proof({"route": "local_ollama_frontdoor"})
+
+    assert proof["model_call_performed"] is False
+
+
+def test_status_capability_brain_path_passes_real_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    import maestro_context_packet
+    import protected_generate
+
+    monkeypatch.setattr(
+        maestro_context_packet,
+        "build_maestro_context_packet",
+        lambda **_: {
+            "packet_id": "packet_cassandra_capability",
+            "source_refs": ("generated/read_models/openclaw_capability_index.json",),
+            "facts": [],
+        },
+    )
+    captured: dict[str, str] = {}
+
+    def fake_protected_generate(text: str, *, context_packet: dict[str, object], agent: str) -> dict[str, object]:
+        captured["agent"] = agent
+        return {
+            "text": f"{agent} can answer from current capability facts.",
+            "receipt": {
+                "model_call_performed": True,
+                "local_model_invoked": True,
+                "external_llm_invoked": False,
+                "route": "local_ollama_frontdoor",
+                "model_selected": "qwen3.5:4b",
+                "model_output_delivered": True,
+            },
+        }
+
+    monkeypatch.setattr(protected_generate, "protected_generate_with_receipt", fake_protected_generate)
+
+    result = answer_frontdoor_chat(
+        "what can you help me with?",
+        agent="cassandra",
+        source_surface="operator_cassandra_chat",
+    )
+
+    assert captured["agent"] == "cassandra"
+    assert "cassandra can answer" in result.plain_summary.lower()
+    assert result.machine_proof["protected_generate_called"] is True
+
+
+def test_non_maestro_status_capability_fallback_does_not_say_maestro_packet() -> None:
+    def fake_fallback(text: str, *, context_packet: dict[str, object]) -> dict[str, object]:
+        return {
+            "text": "I don't have that in the current Maestro packet.",
+            "receipt": {
+                "model_call_performed": False,
+                "local_model_invoked": False,
+                "external_llm_invoked": False,
+                "route": "deterministic_fallback",
+                "deterministic_fallback_used": True,
+            },
+        }
+
+    result = answer_frontdoor_chat(
+        "what can you help me with?",
+        protected_generate_fn=fake_fallback,
+        agent="cassandra",
+        source_surface="operator_cassandra_chat",
+    )
+
+    assert "Maestro packet" not in result.plain_summary
+    assert "Cassandra" in result.plain_summary
+    assert result.machine_proof["model_call_performed"] is False
+
+
 def test_processor_model_fields_mirror_brain_receipt_not_voice_map() -> None:
     proof = {
         "protected_generate_called": True,
@@ -172,5 +246,25 @@ def test_processor_keeps_deterministic_label_when_receipt_says_no_model_call() -
     assert payload["selected_model_id"] == "qwen3:8b-q4_K_M"
     assert payload["selected_worker_type"] == "deterministic_fallback_unreachable"
     assert "deterministic fallback" in payload["model_selection_reason"].lower()
+    assert payload["machine_proof"]["model_call_performed"] is False
+    assert status["machine_proof"]["model_call_performed"] is False
+
+
+def test_controller_lm2_reused_proof_keeps_reuse_telemetry() -> None:
+    proof = {
+        "candidate_source": "lm2_room_backed_worker_structured_output_retry",
+        "selected_model_backend": "LOCAL_OLLAMA",
+        "model_call_performed": False,
+        "headline": "Reused verified proof",
+        "body": "Existing room-backed worker proof was reused.",
+    }
+    response = _chat_response_with_proof(proof)
+    response = replace(response, request_type="OPERATOR_CONTROLLER_EVENT_REQUEST")
+
+    payload, status = processor.build_payloads(response, generated_at="2026-06-29T12:00:00+00:00")
+
+    assert payload["selected_model_backend"] == "LOCAL_OLLAMA"
+    assert payload["selected_worker_type"] == "LOCAL_OLLAMA_REUSED_PROOF_RESPONSE"
+    assert "reused" in payload["model_selection_reason"].lower()
     assert payload["machine_proof"]["model_call_performed"] is False
     assert status["machine_proof"]["model_call_performed"] is False

@@ -175,7 +175,7 @@ def _protected_generate_receipt_machine_proof(receipt: Mapping[str, Any]) -> dic
         or ""
     ).strip()
     proof: dict[str, Any] = {
-        "model_call_performed": bool(receipt.get("model_call_performed", True)),
+        "model_call_performed": bool(receipt.get("model_call_performed", False)),
         "external_llm_invoked": bool(receipt.get("external_llm_invoked", False)),
         "local_model_invoked": bool(receipt.get("local_model_invoked", False)),
         "deterministic_fallback_used": bool(receipt.get("deterministic_fallback_used", False)),
@@ -517,6 +517,7 @@ def answer_frontdoor_chat(
             source_surface=source_surface,
             forwarded_session=forwarded_session,
             protected_generate_fn=protected_generate_fn,
+            agent=agent,
         )
 
     if intent_class == "status_capability_readback":
@@ -626,6 +627,7 @@ def _answer_status_capability_with_brain(
     source_surface: str,
     forwarded_session: Mapping[str, Any],
     protected_generate_fn: ProtectedGenerateFn | None,
+    agent: str = "maestro",
 ) -> MaestroCassandraResult:
     focus = _status_capability_readback_focus(_normalize(text))
     readback = build_truthful_status_capability_answer(session=session, focus=focus)
@@ -688,7 +690,7 @@ def _answer_status_capability_with_brain(
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
 
-        outcome = protected_generate_with_receipt(text, context_packet=context_packet, agent="maestro")
+        outcome = protected_generate_with_receipt(text, context_packet=context_packet, agent=agent)
     else:
         outcome = protected_generate_fn(text, context_packet=context_packet)
 
@@ -707,6 +709,15 @@ def _answer_status_capability_with_brain(
             "local_model_invoked": True,
             "model_call_performed": True,
         }
+    if receipt.get("model_call_performed") is not True:
+        fallback_readback = str(readback.get("plain_summary") or readback.get("one_line_answer") or "").strip()
+        if fallback_readback:
+            agent_label = str(agent or "maestro").strip().capitalize()
+            answer_text = (
+                f"{agent_label} capability/status readback: {fallback_readback}"
+                if agent_label.lower() != "maestro"
+                else fallback_readback
+            )
     answer_text = _strip_internal_state_leaks(answer_text).strip()
     if not answer_text:
         answer_text = str(readback.get("plain_summary") or readback.get("one_line_answer") or "").strip()
