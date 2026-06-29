@@ -476,11 +476,20 @@ def reply_text_from_bridge_response(payload: Mapping[str, Any] | None, *, reques
     return _append_provenance(text or BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
 
 
-# ── Fast "I'm on it" ack ──────────────────────────────────────────────────────
-# When an answer takes longer than the delay, send the operator an acknowledgment so
-# they see it's being worked on (the real answer follows). Fast answers cancel it before
-# it fires. Default ON; fail-safe (a failed ack never blocks the real reply).
-_DEFAULT_FAST_ACK_TEXT = "On it — I'll get back to you when it's done. \U0001F44D"
+# ── Fast "hang on" ack ────────────────────────────────────────────────────────
+# When a reply takes longer than the delay, send a casual acknowledgment so the operator
+# sees it's being worked — the real answer follows. Fast answers cancel it before it
+# fires. Default ON; fail-safe (a failed ack never blocks the real reply).
+# Taste note: NO task-completion framing ("I'll get back to you when it's done") — that
+# reads wrong on a casual message where nothing needs doing. Just a light "hang on".
+# Varied by message content so it isn't the same robotic line every time.
+_FAST_ACK_PHRASES = (
+    "one sec…",
+    "gimme a beat…",
+    "hang tight…",
+    "on it — one moment.",
+    "lemme think on that…",
+)
 
 
 def _fast_ack_enabled(env: Mapping[str, Any] | None = None) -> bool:
@@ -497,9 +506,15 @@ def _fast_ack_delay(env: Mapping[str, Any] | None = None) -> float:
         return 3.0
 
 
-def _fast_ack_text(env: Mapping[str, Any] | None = None) -> str:
+def _fast_ack_text(env: Mapping[str, Any] | None = None, *, message: str = "") -> str:
     e = os.environ if env is None else env
-    return str(e.get("OPENCLAW_FAST_ACK_TEXT") or _DEFAULT_FAST_ACK_TEXT)
+    override = e.get("OPENCLAW_FAST_ACK_TEXT")
+    if override:
+        return str(override)
+    if not message:
+        return _FAST_ACK_PHRASES[0]
+    idx = int(hashlib.sha256(message.encode("utf-8")).hexdigest(), 16) % len(_FAST_ACK_PHRASES)
+    return _FAST_ACK_PHRASES[idx]
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -530,7 +545,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     async def _send_delayed_ack() -> None:
         try:
             await asyncio.sleep(_fast_ack_delay())
-            await update.message.reply_text(_fast_ack_text())
+            await update.message.reply_text(_fast_ack_text(message=text))
         except asyncio.CancelledError:
             raise
         except Exception:
