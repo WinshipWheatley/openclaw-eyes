@@ -299,7 +299,10 @@ def test_build_frontdoor_prompt_over_budget_narrows_and_keeps_selection():
         {"fact_id": "p2", "topic": "agent_presence", "label": "Sync", "value": "sync health green " + big},
         {"fact_id": "g1", "topic": "calendar_day", "label": "Friday", "value": "gig at 8pm " + big},
     ]
-    max_chars = 800  # forces narrowing
+    # Force narrowing while leaving room for the selected fact. The Layer-A grounded
+    # preamble is ~471 chars; this budget keeps the interpreter-selected fact (highest
+    # priority) and drops the lower-priority posture facts — which is what this test asserts.
+    max_chars = 1000
     prompt, manifest = build_frontdoor_prompt(
         _packet(facts), "what does the finance read model say",
         max_chars=max_chars, fact_selection=["openclaw_finance.json"],
@@ -651,7 +654,11 @@ def test_pgwr_real_frontdoor_packet_flag_on_auto_uses_profile_local_path(tmp_pat
     )
     r = outcome.receipt
     assert "You are Maestro" in calls["prompt"]
-    assert "OPERATOR QUESTION:" in calls["prompt"]
+    # Grounded factual path (renamed label as of 836bb4d1: "OPERATOR QUESTION:" ->
+    # "OPERATOR JUST SAID:"); the deterministic packet must still be present so a factual
+    # question is answered from grounding, not routed to the conversational lane.
+    assert "OPERATOR JUST SAID:" in calls["prompt"]
+    assert "DETERMINISTIC PACKET" in calls["prompt"]
     assert calls["kwargs"]["model"] == "qwen3.5:4b"
     assert calls["kwargs"]["task_class"] == "frontdoor_reply"
     assert calls["kwargs"]["think"] is False
