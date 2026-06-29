@@ -476,6 +476,32 @@ def reply_text_from_bridge_response(payload: Mapping[str, Any] | None, *, reques
     return _append_provenance(text or BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
 
 
+# ── Fast "I'm on it" ack ──────────────────────────────────────────────────────
+# When an answer takes longer than the delay, send the operator an acknowledgment so
+# they see it's being worked on (the real answer follows). Fast answers cancel it before
+# it fires. Default ON; fail-safe (a failed ack never blocks the real reply).
+_DEFAULT_FAST_ACK_TEXT = "On it — I'll get back to you when it's done. \U0001F44D"
+
+
+def _fast_ack_enabled(env: Mapping[str, Any] | None = None) -> bool:
+    e = os.environ if env is None else env
+    return str(e.get("OPENCLAW_FAST_ACK", "1")).strip().lower() not in (
+        "0", "false", "no", "off", "")
+
+
+def _fast_ack_delay(env: Mapping[str, Any] | None = None) -> float:
+    e = os.environ if env is None else env
+    try:
+        return max(0.0, float(e.get("OPENCLAW_FAST_ACK_DELAY", "3")))
+    except Exception:
+        return 3.0
+
+
+def _fast_ack_text(env: Mapping[str, Any] | None = None) -> str:
+    e = os.environ if env is None else env
+    return str(e.get("OPENCLAW_FAST_ACK_TEXT") or _DEFAULT_FAST_ACK_TEXT)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.message.text:
         return
@@ -499,12 +525,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     chat_id = update.effective_chat.id if update.effective_chat else auth_id
     message_id = str(getattr(update.message, "message_id", "") or getattr(update, "update_id", "") or _short_hash(text))
     typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
+
+    # Fast "I'm on it" ack — fires only if the answer takes longer than the delay.
+    async def _send_delayed_ack() -> None:
+        try:
+            await asyncio.sleep(_fast_ack_delay())
+            await update.message.reply_text(_fast_ack_text())
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            pass  # a failed ack must never affect the real reply
+
+    ack_task = asyncio.create_task(_send_delayed_ack()) if _fast_ack_enabled() else None
+
     request_id_for_reply: str | None = None
     try:
         request = build_operator_maestro_chat_request(text, message_id=message_id, chat_id=chat_id)
         request_id_for_reply = str(request["request_id"])
         write_bridge_request(request)
         response = await poll_bridge_response(request_id_for_reply)
+        if ack_task is not None:
+            ack_task.cancel()  # answer arrived; if before the delay, the ack is suppressed
         await update.message.reply_text(reply_text_from_bridge_response(response, request_id=request_id_for_reply))
     except Exception as exc:
         print(f"[maestro_listener] bridge error: {exc.__class__.__name__}", flush=True)
@@ -513,10 +554,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
     finally:
         typing_task.cancel()
-        try:
-            await typing_task
-        except asyncio.CancelledError:
-            pass
+        if ack_task is not None:
+            ack_task.cancel()
+        for _t in (typing_task, ack_task):
+            if _t is None:
+                continue
+            try:
+                await _t
+            except asyncio.CancelledError:
+                pass
 
 
 def build_application():
