@@ -710,7 +710,50 @@ def _schedule_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
     return " ".join(matched[:3]) if matched else None
 
 
+# Social/casual messages — greetings, reactions, thanks, "I hear…". They ask for NO fact,
+# so the anti-confab "won't invent it" deflection is wrong for them: there is nothing to
+# invent. They get a warm reply (and the existing reply_pipeline comedy/voice on top).
+# Clarification-metas ("what do you mean") and anything carrying a factual/schedule data
+# request are explicitly NOT social — those still deflect, so grounding stays intact.
+_SOCIAL_INTENT_MARKERS = (
+    "hey", "hello", "yo ", "yo,", "sup", "what's good", "whats good", "good morning",
+    "good evening", "good to hear", "good to see", "howdy", "how's it going",
+    "hows it going", "how are you", "how you doing", "you good", "haha", "lol", "lmao",
+    "nice", "cool", "awesome", "love it", "love that", "that's great", "thats great",
+    "that's awesome", "sweet", "dope", "right on", "thanks", "thank you", "appreciate",
+    "congrats", "amazing", "i hear", "i heard", "heard you", "glad", "proud of",
+)
+_SOCIAL_BACKSTOP_LINES = (
+    "Hey — good to hear from you. What's on your mind?",
+    "Ha, yeah. What do you need?",
+    "I'm around. What're you throwing at me?",
+    "Right here. What's up?",
+)
+
+
+def _is_social_intent(prompt: str) -> bool:
+    low = f" {str(prompt or '').lower().strip()} "
+    if any(c in low for c in ("what do you mean", "what are you saying", "what did you mean")):
+        return False  # clarification-meta must stay honest
+    if _is_schedule_intent(prompt):
+        return False  # carries a calendar/schedule data request
+    if any(q in low for q in ("how much", "how many", "what's the", "whats the",
+                              "where is", "when is", "when's", "who is", "how do i")):
+        return False  # carries a factual data request
+    return any(m in low for m in _SOCIAL_INTENT_MARKERS)
+
+
+def _social_backstop(prompt: str) -> str:
+    idx = int(hashlib.sha256(str(prompt or "").encode("utf-8")).hexdigest(), 16) % len(_SOCIAL_BACKSTOP_LINES)
+    return _SOCIAL_BACKSTOP_LINES[idx]
+
+
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
+    # Pure-social message with no factual/schedule intent: never deflect with "won't invent
+    # it" — there's no fact at stake. (This is the deterministic backstop; with the
+    # conversational preamble the model normally answers these directly.)
+    if _is_social_intent(prompt):
+        return _social_backstop(prompt)
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
 
