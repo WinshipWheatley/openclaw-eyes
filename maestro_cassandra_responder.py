@@ -539,6 +539,7 @@ def answer_frontdoor_chat(
             forwarded_session=forwarded_session,
             protected_generate_fn=protected_generate_fn,
             _capsule=_capsule,
+            agent=agent,
         )
 
     replies = list((handle_fn or _default_handle)(text, forwarded_session))
@@ -662,6 +663,7 @@ def _answer_with_maestro_brain(
     forwarded_session: Mapping[str, Any],
     protected_generate_fn: ProtectedGenerateFn | None,
     _capsule: Any | None = None,
+    agent: str = "maestro",
 ) -> MaestroCassandraResult:
     # ── INTERPRETER-LM fact selection bridge (flag-gated, ADDITIVE) ──────────
     # When OPENCLAW_INTERPRETER_LM is on AND the raw session carries an
