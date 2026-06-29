@@ -752,6 +752,8 @@ def select_frontdoor_model(
     installed: set[str] | None = None,
     sizes: dict[str, float] | None = None,
     available_ram_gb: float | None = None,
+    available_vram_gb: float | None = None,
+    resident_vram_by_model_gb: dict[str, float] | None = None,
     max_gb: float | None = None,
 ) -> tuple[str | None, str]:
     """Pick the LARGEST allowlisted model that is installed AND fits the RAM/size budget.
@@ -781,11 +783,13 @@ def select_frontdoor_model(
     if max_gb <= 0:
         max_gb = _FRONTDOOR_MODEL_MAX_GB_DEFAULT
 
+    budget_gb = max_gb
     if available_ram_gb is not None:
         ram_budget = float(available_ram_gb) - _FRONTDOOR_MODEL_RAM_HEADROOM_GB
-        budget_gb = min(ram_budget, max_gb)
-    else:
-        budget_gb = max_gb
+        budget_gb = min(budget_gb, ram_budget)
+    if available_vram_gb is not None:
+        budget_gb = min(budget_gb, float(available_vram_gb))
+    resident_vram_by_model_gb = dict(resident_vram_by_model_gb or {})
 
     # Walk smallest-first; collect installed candidates that fit the size budget.
     # The size table maps disk-size; a candidate with NO known size cannot be
@@ -800,7 +804,24 @@ def select_frontdoor_model(
         size_gb = sizes.get(candidate)
         if size_gb is None:
             continue
-        if size_gb <= budget_gb:
+        ram_fits = True
+        if available_ram_gb is not None:
+            ram_fits = size_gb <= float(available_ram_gb) - _FRONTDOOR_MODEL_RAM_HEADROOM_GB
+        if candidate in resident_vram_by_model_gb and size_gb <= max_gb and ram_fits:
+            fitting.append(candidate)
+            continue
+        candidate_budget_gb = budget_gb
+        if available_vram_gb is not None:
+            candidate_budget_gb = min(
+                max_gb,
+                float(available_vram_gb) + float(resident_vram_by_model_gb.get(candidate, 0.0)),
+            )
+            if available_ram_gb is not None:
+                candidate_budget_gb = min(
+                    candidate_budget_gb,
+                    float(available_ram_gb) - _FRONTDOOR_MODEL_RAM_HEADROOM_GB,
+                )
+        if size_gb <= candidate_budget_gb:
             fitting.append(candidate)
 
     if not fitting:

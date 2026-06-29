@@ -1070,6 +1070,21 @@ def protected_generate_with_receipt(
     fd_keep_alive = _frontdoor_keep_alive() if front_door_profile else None
     fd_model_max_gb = _frontdoor_model_max_gb() if front_door_profile else None
     fd_model_selected = model_selected
+    fd_resource_probe_fields: dict[str, Any] = {}
+    fd_available_vram_gb: float | None = None
+    fd_available_ram_gb: float | None = None
+    fd_resident_vram_by_model_gb: dict[str, float] = {}
+    if front_door_profile:
+        try:
+            from frontdoor_resource_probe import probe_frontdoor_resources
+
+            _resource_snapshot = probe_frontdoor_resources()
+            fd_resource_probe_fields = _resource_snapshot.to_receipt_fields()
+            fd_available_vram_gb = _resource_snapshot.available_vram_gb
+            fd_available_ram_gb = _resource_snapshot.available_ram_gb
+            fd_resident_vram_by_model_gb = _resource_snapshot.resident_vram_by_model_gb()
+        except Exception as exc:
+            fd_resource_probe_fields = {"resource_probe_errors": [f"probe_exception:{type(exc).__name__}"]}
 
     route = "deterministic_fallback"
     local_invoked = False
@@ -1146,7 +1161,12 @@ def protected_generate_with_receipt(
                             fd_captured_done_reason = "unreachable"
                             route = "grounded_fallback_no_external_model_ollama_unreachable"
                         else:
-                            _model, _reason = select_frontdoor_model(max_gb=fd_model_max_gb)
+                            _model, _reason = select_frontdoor_model(
+                                max_gb=fd_model_max_gb,
+                                available_vram_gb=fd_available_vram_gb,
+                                available_ram_gb=fd_available_ram_gb,
+                                resident_vram_by_model_gb=fd_resident_vram_by_model_gb,
+                            )
                             fd_model_selected = fd_model_selected or _model
                             if not _model:
                                 fd_captured_done_reason = "no_fitting_model"
@@ -1330,6 +1350,7 @@ def protected_generate_with_receipt(
                 "model_output_delivered": fd_model_output_delivered,
                 "delivered_response_source": fd_delivered_response_source,
                 "model_response_metadata": dict(fd_response_metadata),
+                **fd_resource_probe_fields,
             }
         )
         if fd_validation_unavailable:

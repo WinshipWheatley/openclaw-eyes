@@ -599,7 +599,24 @@ def _select_skill_tier(skill: Mapping[str, Any], question: str) -> dict[str, Any
     try:
         from chief_llm import select_frontdoor_model
 
-        model_selected, model_reason = select_frontdoor_model(max_gb=_frontdoor_model_max_gb())
+        available_vram_gb = None
+        available_ram_gb = None
+        resident_vram_by_model_gb: dict[str, float] = {}
+        try:
+            from frontdoor_resource_probe import probe_frontdoor_resources
+
+            resource_snapshot = probe_frontdoor_resources()
+            available_vram_gb = resource_snapshot.available_vram_gb
+            available_ram_gb = resource_snapshot.available_ram_gb
+            resident_vram_by_model_gb = resource_snapshot.resident_vram_by_model_gb()
+        except Exception:
+            pass
+        model_selected, model_reason = select_frontdoor_model(
+            max_gb=_frontdoor_model_max_gb(),
+            available_vram_gb=available_vram_gb,
+            available_ram_gb=available_ram_gb,
+            resident_vram_by_model_gb=resident_vram_by_model_gb,
+        )
     except Exception:
         model_selected, model_reason = None, "frontdoor_selector_unavailable"
 

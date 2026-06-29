@@ -1,0 +1,146 @@
+"""Live front-door resource probe for local model selection.
+
+This module performs only local, non-model checks: GPU memory via nvidia-smi,
+system RAM via /proc/meminfo, and resident Ollama model VRAM via /api/ps.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import json
+from pathlib import Path
+import subprocess
+from typing import Any
+import urllib.request
+
+
+DEFAULT_OLLAMA_PS_URL = "http://localhost:11434/api/ps"
+WSL_NVIDIA_SMI = Path("/usr/lib/wsl/lib/nvidia-smi")
+
+
+@dataclass(frozen=True)
+class FrontdoorResourceSnapshot:
+    available_vram_gb: float | None
+    total_vram_gb: float | None
+    available_ram_gb: float | None
+    resident_models: list[dict[str, Any]]
+    probe_errors: list[str]
+
+    def to_receipt_fields(self) -> dict[str, Any]:
+        return {
+            "resource_probe_available_vram_gb": self.available_vram_gb,
+            "resource_probe_total_vram_gb": self.total_vram_gb,
+            "resource_probe_available_ram_gb": self.available_ram_gb,
+            "resource_probe_resident_models": list(self.resident_models),
+            "resource_probe_errors": list(self.probe_errors),
+        }
+
+    def resident_vram_by_model_gb(self) -> dict[str, float]:
+        by_model: dict[str, float] = {}
+        for model in self.resident_models:
+            name = str(model.get("name") or "").strip()
+            size = model.get("size_vram_gb")
+            if name and isinstance(size, (int, float)):
+                by_model[name] = float(size)
+        return by_model
+
+
+def _round_gb(value: float | None) -> float | None:
+    if value is None:
+        return None
+    return round(float(value), 3)
+
+
+def _nvidia_smi_path() -> str:
+    return WSL_NVIDIA_SMI.as_posix() if WSL_NVIDIA_SMI.exists() else "nvidia-smi"
+
+
+def _read_meminfo() -> str:
+    return Path("/proc/meminfo").read_text(encoding="utf-8")
+
+
+def _parse_mem_available_gb(meminfo: str) -> float | None:
+    for line in str(meminfo or "").splitlines():
+        if not line.startswith("MemAvailable:"):
+            continue
+        parts = line.split()
+        if len(parts) >= 2:
+            try:
+                return _round_gb(float(parts[1]) / (1024 * 1024))
+            except ValueError:
+                return None
+    return None
+
+
+def _probe_gpu_memory(timeout: float) -> tuple[float | None, float | None, list[str]]:
+    errors: list[str] = []
+    try:
+        result = subprocess.run(
+            [
+                _nvidia_smi_path(),
+                "--query-gpu=memory.free,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except Exception as exc:
+        return None, None, [f"nvidia_smi:{type(exc).__name__}"]
+    if result.returncode != 0:
+        errors.append(f"nvidia_smi_exit:{result.returncode}")
+        return None, None, errors
+    first = str(result.stdout or "").strip().splitlines()[0:1]
+    if not first:
+        return None, None, ["nvidia_smi_empty"]
+    try:
+        free_mib, total_mib = [float(part.strip()) for part in first[0].split(",", 1)]
+    except (ValueError, IndexError):
+        return None, None, ["nvidia_smi_parse"]
+    return _round_gb(free_mib / 1024), _round_gb(total_mib / 1024), errors
+
+
+def _probe_ollama_ps(url: str, timeout: float) -> tuple[list[dict[str, Any]], list[str]]:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception as exc:
+        return [], [f"ollama_ps:{type(exc).__name__}"]
+    models = payload.get("models") if isinstance(payload, dict) else []
+    resident: list[dict[str, Any]] = []
+    if not isinstance(models, list):
+        return resident, ["ollama_ps_models_not_list"]
+    for model in models:
+        if not isinstance(model, dict):
+            continue
+        name = str(model.get("name") or model.get("model") or "").strip()
+        size_vram = model.get("size_vram")
+        if not name or not isinstance(size_vram, (int, float)):
+            continue
+        resident.append({"name": name, "size_vram_gb": _round_gb(float(size_vram) / 1e9)})
+    return resident, []
+
+
+def probe_frontdoor_resources(
+    *,
+    ollama_ps_url: str = DEFAULT_OLLAMA_PS_URL,
+    timeout: float = 0.75,
+) -> FrontdoorResourceSnapshot:
+    errors: list[str] = []
+    available_vram_gb, total_vram_gb, gpu_errors = _probe_gpu_memory(timeout)
+    errors.extend(gpu_errors)
+    try:
+        available_ram_gb = _parse_mem_available_gb(_read_meminfo())
+    except Exception as exc:
+        available_ram_gb = None
+        errors.append(f"meminfo:{type(exc).__name__}")
+    resident_models, ps_errors = _probe_ollama_ps(ollama_ps_url, timeout)
+    errors.extend(ps_errors)
+    return FrontdoorResourceSnapshot(
+        available_vram_gb=available_vram_gb,
+        total_vram_gb=total_vram_gb,
+        available_ram_gb=available_ram_gb,
+        resident_models=resident_models,
+        probe_errors=errors,
+    )
