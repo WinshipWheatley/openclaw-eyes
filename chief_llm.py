@@ -756,18 +756,25 @@ def select_frontdoor_model(
     resident_vram_by_model_gb: dict[str, float] | None = None,
     max_gb: float | None = None,
 ) -> tuple[str | None, str]:
-    """Pick the LARGEST allowlisted model that is installed AND fits the RAM/size budget.
+    """Pick the LARGEST allowlisted, installed model that fits the GPU card (and RAM).
 
-    Sizing rule:
-        budget_gb = min(available_ram_gb - headroom(4), OPENCLAW_FRONTDOOR_MODEL_MAX_GB[=12])
-    From the allowlist (smallest-first), keep candidates that are installed and whose
-    on-disk size is <= budget_gb, then return the LARGEST such (best quality within
-    budget). The smallest-first ladder lets callers fall to smaller models at runtime
-    when latency (measured live, not here) misses the budget.
+    Fit rule (operator policy 2026-06-29 -- "fits in the 6GB card -> use it; spill to RAM
+    is fine"):
+        * ``max_gb`` is the card capacity / configured cap. A model fits the card when its
+          on-disk size <= max_gb.
+        * ``available_ram_gb`` - headroom(4) bounds RAM-backed spill.
+        * A model that fits the card AND RAM CAN run (ollama spills overflow to RAM).
+        * Among those, prefer the largest that ALSO fits currently-free VRAM (runs fully on
+          the GPU = fast). If none fit free VRAM, fall back to the largest card-fit and let
+          it spill to RAM rather than returning no model.
+    The smallest-first ladder lets callers fall to smaller models at runtime when latency
+    (measured live, not here) misses the budget.
 
-    Returns (model_or_None, reason). gemma4:26b/31b never appear (not in the allowlist
-    and also excluded by the size budget). installed/sizes/available_ram_gb are
-    injectable for tests; default to live queries.
+    Returns (model_or_None, reason): ``frontdoor_largest_fitting`` (GPU-resident/fast),
+    ``frontdoor_largest_fitting_ram_spill`` (fits the card, spills to RAM), or
+    ``no_fitting_model``. gemma4:26b/31b never appear (not in the allowlist, also too big).
+    installed/sizes/available_ram_gb/available_vram_gb are injectable for tests; default to
+    live queries.
     """
     allowlist = FRONTDOOR_MODEL_ALLOWLIST()
     if installed is None:
@@ -783,52 +790,51 @@ def select_frontdoor_model(
     if max_gb <= 0:
         max_gb = _FRONTDOOR_MODEL_MAX_GB_DEFAULT
 
-    budget_gb = max_gb
+    # ``max_gb`` is the GPU CARD capacity (total VRAM, e.g. 6GB on a 6GB card) AND the
+    # configured size cap: a model fits the card when its on-disk size is <= max_gb.
+    # ``available_ram_gb`` (minus headroom) bounds how much can spill to system RAM.
+    #
+    # A model CAN RUN if it fits the card AND fits RAM -- ollama keeps what fits in VRAM and
+    # spills the remainder to system RAM. It runs FAST (fully GPU-resident, no spill) only if
+    # it ALSO fits in currently-free VRAM. Operator policy (2026-06-29): prefer the fast,
+    # free-VRAM fit for latency, but FALL BACK to a card-fit-with-RAM-spill rather than
+    # refusing to answer. The earlier code gated the fit itself on FREE VRAM, so a tight-VRAM
+    # box returned no_fitting_model and the brain fell to a deterministic dump.
+    ram_budget = None
     if available_ram_gb is not None:
         ram_budget = float(available_ram_gb) - _FRONTDOOR_MODEL_RAM_HEADROOM_GB
-        budget_gb = min(budget_gb, ram_budget)
-    if available_vram_gb is not None:
-        budget_gb = min(budget_gb, float(available_vram_gb))
     resident_vram_by_model_gb = dict(resident_vram_by_model_gb or {})
 
-    # Walk smallest-first; collect installed candidates that fit the size budget.
-    # The size table maps disk-size; a candidate with NO known size cannot be
-    # proven to fit, so it is conservatively excluded from the fitting set.
-    # An EMPTY ``installed`` set means "couldn't enumerate" (mirrors
-    # _ollama_installed_models / resolve_local_model), so the installed filter is
-    # skipped rather than read as "nothing installed".
-    fitting: list[str] = []
+    # Walk smallest-first. A candidate with NO known size cannot be proven to fit, so it is
+    # conservatively excluded. An EMPTY ``installed`` set means "couldn't enumerate" (mirrors
+    # _ollama_installed_models / resolve_local_model), so the installed filter is skipped
+    # rather than read as "nothing installed".
+    card_fitting: list[str] = []  # fits the card (+RAM) -> CAN run, possibly with RAM spill
+    vram_fitting: list[str] = []  # ALSO fits free VRAM (or already resident) -> runs fast
     for candidate in allowlist:
         if installed and candidate not in installed:
             continue
         size_gb = sizes.get(candidate)
         if size_gb is None:
             continue
-        ram_fits = True
-        if available_ram_gb is not None:
-            ram_fits = size_gb <= float(available_ram_gb) - _FRONTDOOR_MODEL_RAM_HEADROOM_GB
-        if candidate in resident_vram_by_model_gb and size_gb <= max_gb and ram_fits:
-            fitting.append(candidate)
-            continue
-        candidate_budget_gb = budget_gb
-        if available_vram_gb is not None:
-            candidate_budget_gb = min(
-                max_gb,
-                float(available_vram_gb) + float(resident_vram_by_model_gb.get(candidate, 0.0)),
-            )
-            if available_ram_gb is not None:
-                candidate_budget_gb = min(
-                    candidate_budget_gb,
-                    float(available_ram_gb) - _FRONTDOOR_MODEL_RAM_HEADROOM_GB,
-                )
-        if size_gb <= candidate_budget_gb:
-            fitting.append(candidate)
+        if size_gb > max_gb:
+            continue  # bigger than the card / configured cap -> cannot run on this GPU
+        if ram_budget is not None and size_gb > ram_budget:
+            continue  # not enough system RAM to back it even with spill
+        card_fitting.append(candidate)
+        resident_gb = float(resident_vram_by_model_gb.get(candidate, 0.0))
+        if resident_gb > 0.0:
+            # Already loaded -> keep it (no reload/evict cost), counts as a GPU-resident fit.
+            vram_fitting.append(candidate)
+        elif available_vram_gb is None or size_gb <= float(available_vram_gb):
+            vram_fitting.append(candidate)
 
-    if not fitting:
-        return None, "no_fitting_model"
-    # allowlist is smallest-first, so the LAST fitting entry is the largest fitting.
-    chosen = fitting[-1]
-    return chosen, "frontdoor_largest_fitting"
+    # allowlist is smallest-first, so the LAST entry is the largest fitting (best quality).
+    if vram_fitting:
+        return vram_fitting[-1], "frontdoor_largest_fitting"
+    if card_fitting:
+        return card_fitting[-1], "frontdoor_largest_fitting_ram_spill"
+    return None, "no_fitting_model"
 
 
 def local_model_candidates(lane: str, *, task_class: str | None = None) -> tuple[str, ...]:

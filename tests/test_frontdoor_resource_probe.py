@@ -64,6 +64,27 @@ def test_select_frontdoor_model_keeps_already_resident_candidate(monkeypatch) ->
     assert reason == "frontdoor_largest_fitting"
 
 
+def test_select_frontdoor_model_spills_to_ram_when_vram_is_tight(monkeypatch) -> None:
+    # Operator policy: a model that fits the VRAM CARD (max_gb) is USED even when currently-free
+    # VRAM is smaller than the model -- ollama spills the overflow to system RAM. The selector
+    # must NOT return no_fitting_model just because free VRAM is tight. Reproduces the live
+    # regression that took the front-door brain down (free VRAM 4.3GB < the 5.2GB pinned model,
+    # 6GB card) so every question fell back to a deterministic readback dump.
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", raising=False)
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", raising=False)
+
+    model, reason = chief_llm.select_frontdoor_model(
+        installed={"qwen3:8b-q4_K_M"},
+        sizes={"qwen3:8b-q4_K_M": 5.2},
+        available_ram_gb=18.0,
+        available_vram_gb=4.3,
+        max_gb=6.0,
+    )
+
+    assert model == "qwen3:8b-q4_K_M"
+    assert reason.startswith("frontdoor_largest_fitting")
+
+
 def test_frontdoor_resource_probe_parses_gpu_ram_and_ollama_ps(monkeypatch) -> None:
     def fake_run(cmd, capture_output=False, text=False, timeout=None, check=False):
         assert "--query-gpu=memory.free,memory.total" in cmd
