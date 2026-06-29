@@ -732,15 +732,12 @@ _SOCIAL_BACKSTOP_LINES = (
 
 
 def _is_social_intent(prompt: str) -> bool:
-    low = f" {str(prompt or '').lower().strip()} "
-    if any(c in low for c in ("what do you mean", "what are you saying", "what did you mean")):
-        return False  # clarification-meta must stay honest
-    if _is_schedule_intent(prompt):
-        return False  # carries a calendar/schedule data request
-    if any(q in low for q in ("how much", "how many", "what's the", "whats the",
-                              "where is", "when is", "when's", "who is", "how do i")):
-        return False  # carries a factual data request
-    return any(m in low for m in _SOCIAL_INTENT_MARKERS)
+    # Shared classifier so the front-door conversational lane and this backstop always agree.
+    try:
+        from social_intent import is_social_intent
+        return is_social_intent(prompt)
+    except Exception:
+        return False
 
 
 def _social_backstop(prompt: str) -> str:
@@ -1034,6 +1031,10 @@ def protected_generate_with_receipt(
     fd_num_predict = num_predict if num_predict is not None else (_frontdoor_num_predict() if front_door_profile else None)
     fd_model_think = model_think if model_think is not None else (False if front_door_profile else None)
     fd_ollama_options = _frontdoor_ollama_options() if front_door_profile else {}
+    # Social conversational lane: raise temperature so casual replies read human and are
+    # never the same. Factual answers keep the default (low-temp, grounded).
+    if front_door_profile and fd_prompt_manifest.get("conversational_lane"):
+        fd_ollama_options = {**fd_ollama_options, "temperature": 0.9, "top_p": 0.95}
     fd_keep_alive = _frontdoor_keep_alive() if front_door_profile else None
     fd_model_max_gb = _frontdoor_model_max_gb() if front_door_profile else None
     fd_model_selected = model_selected

@@ -153,6 +153,32 @@ def build_frontdoor_prompt(
     if max_chars is None:
         max_chars = _env_int("OPENCLAW_FRONTDOOR_PROMPT_MAX_CHARS", _DEFAULT_PROMPT_MAX_CHARS)
 
+    # SOCIAL CONVERSATIONAL LANE: for greetings/reactions/small talk, a heavy grounded
+    # prompt (persona + packet + constraints) makes the small model RECITE system posture
+    # instead of chatting. A lightweight prompt — no facts, no protocol-speak — lets it
+    # actually talk. Factual/schedule/clarification messages fall through to the grounded
+    # path below (grounding intact).
+    try:
+        from social_intent import is_social_intent
+        _social = is_social_intent(message)
+    except Exception:
+        _social = False
+    if _social:
+        convo = (
+            "You are Maestro — the operator's witty, warm right hand. Reply in first person, "
+            "casual and brief like a sharp friend who's good with words. Do NOT mention "
+            "systems, protocols, SEND_HOLD, status, packets, or facts unless the operator "
+            "brings them up. Just talk.\n\n"
+            f"The operator just said: \"{message}\"\n\nMaestro:"
+        )
+        manifest = {
+            "context_facts_kept": 0, "context_facts_dropped": 0, "kept_fact_ids": [],
+            "dropped_fact_ids": [], "prompt_context_chars": 0, "prompt_chars": len(convo),
+            "layer_a_chars": len(convo), "max_chars": max_chars, "layer_b_budget": 0,
+            "over_budget": False, "conversational_lane": True,
+        }
+        return convo, manifest
+
     layer_a = _LAYER_A_PREAMBLE
     layer_a_chars = len(layer_a)
     # Layer A reserve is the smaller of the fixed reserve and the actual preamble size;
@@ -220,10 +246,13 @@ def build_frontdoor_prompt(
 
     prompt = (
         f"{layer_a}\n\n"
-        "DETERMINISTIC PACKET:\n"
+        "DETERMINISTIC PACKET (facts you may use; may be empty):\n"
         f"{layer_b}\n\n"
-        "OPERATOR QUESTION:\n"
-        f"{message}"
+        "OPERATOR JUST SAID:\n"
+        f"{message}\n\n"
+        "Now write Maestro's reply — first person, speaking directly to the operator. "
+        "Do NOT describe or summarize the text above; just respond.\n"
+        "MAESTRO:"
     )
 
     manifest: dict[str, Any] = {
