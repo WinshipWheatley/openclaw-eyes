@@ -192,7 +192,35 @@ def _protected_generate_receipt_machine_proof(receipt: Mapping[str, Any]) -> dic
     fallback_reason = str(receipt.get("model_fallback_reason") or "").strip()
     if fallback_reason:
         proof["model_fallback_reason"] = fallback_reason
+    skills_applied = receipt.get("skills_applied")
+    if isinstance(skills_applied, Sequence) and not isinstance(skills_applied, (str, bytes)):
+        proof["skills_applied"] = [str(skill) for skill in skills_applied if str(skill).strip()]
+    skill_receipts = receipt.get("skill_receipts")
+    if isinstance(skill_receipts, Sequence) and not isinstance(skill_receipts, (str, bytes)):
+        proof["skill_receipts"] = [dict(item) for item in skill_receipts if isinstance(item, Mapping)]
     return proof
+
+
+def _receipt_or_packet_has_skill(
+    skill_id: str,
+    *,
+    receipt: Mapping[str, Any],
+    context_packet: Mapping[str, Any],
+) -> bool:
+    expected = str(skill_id or "").strip()
+    if not expected:
+        return False
+    skills_applied = receipt.get("skills_applied")
+    if isinstance(skills_applied, Sequence) and not isinstance(skills_applied, (str, bytes)):
+        if expected in {str(skill).strip() for skill in skills_applied}:
+            return True
+    for key in ("skill_receipts", "skills"):
+        rows = context_packet.get(key)
+        if isinstance(rows, Sequence) and not isinstance(rows, (str, bytes)):
+            for row in rows:
+                if isinstance(row, Mapping) and str(row.get("skill_id") or "").strip() == expected:
+                    return True
+    return False
 
 
 def _is_conversational_status_capability_prompt(text: str) -> bool:
@@ -967,6 +995,13 @@ def _answer_with_maestro_brain(
             "local_model_invoked": True,
             "model_call_performed": True,
         }
+    if _receipt_or_packet_has_skill("music_law_advisory", receipt=receipt, context_packet=context_packet):
+        try:
+            from chief_musiclaw_brain import _ensure_musiclaw_safety
+
+            answer_text = _ensure_musiclaw_safety(answer_text)
+        except Exception:
+            pass
     answer_text = _strip_internal_state_leaks(answer_text) or (
         "I don't have that in the current Maestro packet."
     )

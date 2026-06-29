@@ -25,6 +25,8 @@ def _continuity_enabled() -> bool:
 
 SCHEMA_VERSION = "maestro_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
+DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/system_catalog.sqlite3")
+DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
 KNOWN_READ_MODELS = (
     "agent_presence.json",
     "openclaw_capability_index.json",
@@ -527,6 +529,164 @@ def _privacy_summary(facts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _system_catalog_path(session: Mapping[str, Any] | None = None) -> Path:
+    if isinstance(session, Mapping):
+        configured = _session_path(session, "system_catalog_path", "openclaw_system_catalog_path")
+        if configured:
+            return Path(configured)
+    configured_env = os.environ.get("OPENCLAW_SYSTEM_CATALOG", "").strip()
+    return Path(configured_env) if configured_env else DEFAULT_SYSTEM_CATALOG_PATH
+
+
+def _matchable_text(value: str) -> str:
+    return " ".join(re.findall(r"[a-z0-9]+", str(value or "").lower()))
+
+
+def _skill_trigger_matches(question: str, trigger: str) -> bool:
+    raw_question = str(question or "").lower()
+    raw_trigger = str(trigger or "").strip().lower()
+    if not raw_question or not raw_trigger:
+        return False
+    if raw_trigger in raw_question:
+        return True
+    normalized_question = _matchable_text(raw_question)
+    normalized_trigger = _matchable_text(raw_trigger)
+    return bool(normalized_trigger and normalized_trigger in normalized_question)
+
+
+def _model_size_hint(model_name: str) -> float | None:
+    match = re.search(r"(\d+(?:\.\d+)?)\s*b\b", str(model_name or "").lower())
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
+def _frontdoor_model_max_gb() -> float:
+    raw = os.environ.get("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", "").strip()
+    if not raw:
+        return DEFAULT_FRONTDOOR_MODEL_MAX_GB
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_FRONTDOOR_MODEL_MAX_GB
+    return value if value > 0 else DEFAULT_FRONTDOOR_MODEL_MAX_GB
+
+
+def _select_skill_tier(skill: Mapping[str, Any], question: str) -> dict[str, Any]:
+    try:
+        from model_router_policy import select_model_class
+
+        model_class = select_model_class(
+            {
+                "request_id": f"skill_tier:{skill.get('skill_id') or skill.get('id')}",
+                "chain_lane": "LM2_ROLE_RESPONSE",
+                "task_type": str(skill.get("capability_needed") or "multi-step-reasoning"),
+                "role": str(skill.get("owner_agent") or "chief"),
+                "risk_level": "medium",
+                "sensitivity_level": "low",
+                "context_size": "small" if len(str(question or "")) < 600 else "large",
+                "requires_structured_output": True,
+                "local_lm_required": True,
+                "package_minimized": True,
+            }
+        )
+    except Exception:
+        model_class = {"selected_model_class": "LOCAL_FALLBACK_MODEL", "selection_reason": "model_router_unavailable"}
+
+    try:
+        from chief_llm import select_frontdoor_model
+
+        model_selected, model_reason = select_frontdoor_model(max_gb=_frontdoor_model_max_gb())
+    except Exception:
+        model_selected, model_reason = None, "frontdoor_selector_unavailable"
+
+    size_hint = _model_size_hint(str(model_selected or ""))
+    selected_tier = "simple" if size_hint is None or size_hint <= 8.0 else "rich"
+    tiers = skill.get("tiers") if isinstance(skill.get("tiers"), Mapping) else {}
+    if selected_tier not in tiers and "simple" in tiers:
+        selected_tier = "simple"
+    if selected_tier not in tiers and "rich" in tiers:
+        selected_tier = "rich"
+
+    return {
+        "selected_tier": selected_tier,
+        "tier_body": str(tiers.get(selected_tier) or ""),
+        "model_selected": model_selected or "",
+        "frontdoor_model_reason": model_reason,
+        "selected_model_class": str(model_class.get("selected_model_class") or ""),
+        "model_class_reason": str(model_class.get("selection_reason") or ""),
+    }
+
+
+def _registered_skill_matches(question: str, session: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
+    try:
+        from skill_loader import load_registered_skills
+
+        registered = load_registered_skills(_system_catalog_path(session))
+    except Exception:
+        return []
+
+    applied: list[dict[str, Any]] = []
+    for skill in registered:
+        triggers = [str(trigger) for trigger in skill.get("triggers", ()) if str(trigger).strip()]
+        matched_triggers = [trigger for trigger in triggers if _skill_trigger_matches(question, trigger)]
+        if not matched_triggers:
+            continue
+        tier = _select_skill_tier(skill, question)
+        skill_id = str(skill.get("skill_id") or skill.get("id") or "")
+        display_name = str(skill.get("name") or skill_id).replace("-", " ").replace("_", " ").title()
+        applied.append(
+            {
+                "skill_id": skill_id,
+                "display_name": display_name,
+                "owner_agent": str(skill.get("owner_agent") or ""),
+                "matched_triggers": matched_triggers,
+                "tools": [str(tool) for tool in skill.get("tools", ()) if str(tool).strip()],
+                "authority": str(skill.get("authority") or ""),
+                "capability_needed": str(skill.get("capability_needed") or ""),
+                "source_path": str(skill.get("source_path") or ""),
+                **tier,
+            }
+        )
+    return applied[:3]
+
+
+def _music_law_skill_facts(applied_skills: Sequence[Mapping[str, Any]], question: str) -> list[dict[str, Any]]:
+    if not any(str(skill.get("skill_id") or "") == "music_law_advisory" for skill in applied_skills):
+        return []
+
+    facts: list[dict[str, Any]] = []
+    try:
+        from chief_musiclaw_brain import MUSIC_LAW_KNOWLEDGE, TEN_FINGERS_CASE
+    except Exception:
+        return facts
+
+    _append_fact(
+        facts,
+        topic="music_law_advisory",
+        label="chief_musiclaw_brain fundamentals",
+        value=MUSIC_LAW_KNOWLEDGE,
+        provenance="chief_musiclaw_brain",
+        source_ref="chief_musiclaw_brain:MUSIC_LAW_KNOWLEDGE",
+        pii_tier="PUBLIC",
+    )
+    lowered = str(question or "").lower()
+    if "ten fingers" in lowered or "log rhythm" in lowered:
+        _append_fact(
+            facts,
+            topic="music_law_advisory",
+            label="chief_musiclaw_brain Ten Fingers context",
+            value=TEN_FINGERS_CASE,
+            provenance="chief_musiclaw_brain",
+            source_ref="chief_musiclaw_brain:TEN_FINGERS_CASE",
+            pii_tier="LIGHT",
+        )
+    return facts
+
+
 # ---------------------------------------------------------------------------
 # SQLite canonical-facts source (DEFAULT-OFF; enabled by OPENCLAW_PACKET_SOURCE)
 # ---------------------------------------------------------------------------
@@ -807,18 +967,39 @@ def build_maestro_context_packet(
                 pass  # fall through to deterministic fact order unchanged
     # ──────────────────────────────────────────────────────────────────────────
 
+    applied_skills = _registered_skill_matches(question, session=session)
+    skill_facts = _music_law_skill_facts(applied_skills, question)
+    if skill_facts:
+        facts = [*facts, *skill_facts]
+    skill_receipts = [
+        {
+            "skill_id": skill["skill_id"],
+            "applied": True,
+            "owner_agent": skill["owner_agent"],
+            "selected_tier": skill["selected_tier"],
+            "authority": skill["authority"],
+            "matched_triggers": list(skill["matched_triggers"]),
+            "model_selected": skill["model_selected"],
+            "selected_model_class": skill["selected_model_class"],
+            "frontdoor_model_reason": skill["frontdoor_model_reason"],
+        }
+        for skill in applied_skills
+    ]
+
     if require_real_truth and (not operator_truth_used or len(read_model_refs) < 2):
         raise MaestroContextPacketError(
             "Maestro context packet requires real truth inputs: operator truth plus generated read models."
         )
 
-    source_refs = tuple(dict.fromkeys([*(fact["source_ref"] for fact in facts), *read_model_refs]))
+    skill_refs = [f"skill:{skill['skill_id']}:{skill['source_path']}" for skill in applied_skills]
+    source_refs = tuple(dict.fromkeys([*(fact["source_ref"] for fact in facts), *read_model_refs, *skill_refs]))
     packet_basis = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "question_hash": hashlib.sha256(str(question or "").encode("utf-8")).hexdigest(),
         "source_refs": source_refs,
         "fact_count": len(facts),
+        "skills_applied": [skill["skill_id"] for skill in applied_skills],
     }
     packet_id = f"maestro_context_packet:{_short_hash(packet_basis)}"
     packet: dict[str, Any] = {
@@ -829,6 +1010,8 @@ def build_maestro_context_packet(
         "source_surface": source_surface,
         "question": _compact(question, limit=300),
         "facts": facts,
+        "skills": applied_skills,
+        "skill_receipts": skill_receipts,
         "actionable": _actionable_sections(facts),
         "privacy": _privacy_summary(facts),
         "bounds": {
@@ -847,6 +1030,8 @@ def build_maestro_context_packet(
             "read_model_root": root.as_posix(),
             "read_model_count": len(read_model_refs),
             "fact_count": len(facts),
+            "skills_applied": [skill["skill_id"] for skill in applied_skills],
+            "skill_receipts": skill_receipts,
             "stub_truth_root_rejected_when_required": require_real_truth,
             **read_model_proof,
         },
@@ -932,6 +1117,7 @@ def build_maestro_context_packet(
 
 def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)]
+    skills = [skill for skill in packet.get("skills", ()) if isinstance(skill, Mapping)]
     actionable = packet.get("actionable") if isinstance(packet.get("actionable"), Mapping) else {}
     bounds = packet.get("bounds") if isinstance(packet.get("bounds"), Mapping) else {}
     lines = [
@@ -948,6 +1134,18 @@ def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
             f"- {fact.get('label')}: {fact.get('value')} "
             f"[tier={tier}; provenance={provenance}; source={source}]"
         )
+    if skills:
+        lines.extend(["", "Applied skills:"])
+        for skill in skills:
+            tier_body = str(skill.get("tier_body") or "").strip()
+            lines.append(
+                f"- {skill.get('display_name') or skill.get('skill_id')} "
+                f"({skill.get('skill_id')}): owner={skill.get('owner_agent')}; "
+                f"tier={skill.get('selected_tier')}; authority={skill.get('authority')}; "
+                f"tools={', '.join(str(tool) for tool in skill.get('tools', ()))}"
+            )
+            if tier_body:
+                lines.append(f"  Instructions: {tier_body}")
     lines.extend(["", "Actionable view:"])
     for title, key in (
         ("Money in/out", "money_in_out"),

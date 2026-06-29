@@ -896,7 +896,12 @@ def _base_receipt(
     tier: str,
 ) -> dict[str, Any]:
     packet = _packet_mapping(context_packet)
-    return {
+    skill_receipts = [
+        dict(receipt)
+        for receipt in packet.get("skill_receipts", ())
+        if isinstance(receipt, Mapping) and receipt.get("applied")
+    ]
+    receipt = {
         "schema_version": "protected_generate_receipt_v0",
         "receipt_id": f"protected_generate:{hashlib.sha256((prompt + _packet_text(context_packet)).encode('utf-8')).hexdigest()[:16]}",
         "generated_at": _utc_now(),
@@ -910,6 +915,14 @@ def _base_receipt(
         "ledger_mutation_allowed": False,
         "raw_values_written_to_audit": False,
     }
+    if skill_receipts:
+        receipt["skills_applied"] = [
+            str(item.get("skill_id") or "")
+            for item in skill_receipts
+            if str(item.get("skill_id") or "").strip()
+        ]
+        receipt["skill_receipts"] = skill_receipts
+    return receipt
 
 
 def _strip_speaker_prefix(text: str, agent: str) -> str:
