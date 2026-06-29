@@ -1,11 +1,19 @@
 
 import argparse
+import hashlib
 import sys
 import subprocess
 import os
+import sqlite3
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from scripts.extract_canonical_facts import extract_markdown_sections
 from business_ops_ledger import init_business_ops_ledger, _query_truth_registry
-from canonical_fact_ingest import ingest_graded_fact
+from canonical_fact_ingest import _PRODUCTION_DB_PATH, _init_fts_tables, ingest_graded_fact
 
 # ---------------------------------------------------------------------------
 # Original 9 allow-listed sources (unchanged)
@@ -135,11 +143,83 @@ def _build_fact_record(fact: dict, metadata: dict, truth_entry: dict | None) -> 
     return record
 
 
+def _is_production_db(db_path: str) -> bool:
+    return str(Path(db_path).expanduser().resolve()) == str(Path(_PRODUCTION_DB_PATH).expanduser().resolve())
+
+
+def replace_stale_doc_section_facts(
+    db_path: str,
+    *,
+    source_file: str,
+    section_heading: str,
+    new_content_hash: str,
+) -> dict:
+    """Remove stale doc-ingested rows for one source/section before re-ingest."""
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _init_fts_tables(conn)
+        rows = conn.execute(
+            """SELECT fact_id, content_hash
+               FROM canonical_facts
+               WHERE source_file = ?
+                 AND section_heading = ?
+                 AND content_hash != ?""",
+            (source_file, section_heading, new_content_hash),
+        ).fetchall()
+        stale_hashes = [row["content_hash"] for row in rows]
+        stale_fact_ids = [row["fact_id"] for row in rows]
+        removed_fts_rows = 0
+        removed_queue_rows = 0
+
+        for chash in stale_hashes:
+            fts_before = conn.execute(
+                "SELECT COUNT(*) FROM fts_canonical_facts WHERE content_hash = ?",
+                (chash,),
+            ).fetchone()[0]
+            queue_before = conn.execute(
+                "SELECT COUNT(*) FROM embedding_work_queue WHERE content_hash = ?",
+                (chash,),
+            ).fetchone()[0]
+            conn.execute("DELETE FROM fts_canonical_facts WHERE content_hash = ?", (chash,))
+            conn.execute("DELETE FROM embedding_work_queue WHERE content_hash = ?", (chash,))
+            removed_fts_rows += int(fts_before)
+            removed_queue_rows += int(queue_before)
+
+        if stale_hashes:
+            marks = ",".join("?" for _ in stale_hashes)
+            conn.execute(f"DELETE FROM canonical_facts WHERE content_hash IN ({marks})", stale_hashes)
+
+        conn.commit()
+        return {
+            "source_file": source_file,
+            "section_heading": section_heading,
+            "removed_facts": stale_fact_ids,
+            "removed_hashes": stale_hashes,
+            "removed_fts_rows": removed_fts_rows,
+            "removed_queue_rows": removed_queue_rows,
+        }
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Ingest a single canonical doc.")
     parser.add_argument("--db", required=True, help="Path to SQLite ledger")
     parser.add_argument("--source", required=True, help="Path to source file")
+    parser.add_argument("--confirm", action="store_true", help="Allow a sanctioned production ledger write.")
     args = parser.parse_args()
+
+    if _is_production_db(args.db) and not args.confirm:
+        print(
+            "SAFETY: production ledger write requires --confirm. "
+            f"Operator-pending command: python3 scripts/ingest_canonical_docs.py --db {args.db} "
+            f"--source {args.source} --confirm"
+        )
+        sys.exit(2)
 
     if args.source not in SOURCE_REGISTRY:
         print(f"Error: Source '{args.source}' is not allowed. Permitted sources: {list(SOURCE_REGISTRY.keys())}")
@@ -179,17 +259,30 @@ def main():
 
     inserted = 0
     skipped = 0
+    replaced = 0
+    removed_stale_facts = []
     for fact in facts:
+        new_content_hash = hashlib.sha256(fact["fact_text"].encode("utf-8")).hexdigest()
+        replacement = replace_stale_doc_section_facts(
+            args.db,
+            source_file=fact["source_file"],
+            section_heading=fact["section_heading"],
+            new_content_hash=new_content_hash,
+        )
+        removed_stale_facts.extend(replacement["removed_facts"])
         record = _build_fact_record(fact, metadata, truth_entry)
-        result = ingest_graded_fact(record, db_path=args.db)
+        result = ingest_graded_fact(record, db_path=args.db, allow_production=args.confirm)
         if result["status"] == "inserted":
             inserted += 1
+        elif result["status"] == "replaced":
+            replaced += 1
         else:
             skipped += 1
 
     print(
         f"Successfully ingested {len(facts)} facts from {args.source}: "
-        f"{inserted} inserted, {skipped} skipped (deduped)."
+        f"{inserted} inserted, {replaced} replaced, {skipped} skipped (deduped), "
+        f"{len(removed_stale_facts)} stale source-section facts removed."
     )
 
 

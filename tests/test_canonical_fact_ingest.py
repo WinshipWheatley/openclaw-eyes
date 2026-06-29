@@ -413,6 +413,66 @@ class TestWidenedMarkdownSources:
         conn.close()
         assert count >= 1
 
+    def test_doc_ingest_replaces_stale_source_section_fact_without_orphan(self, tmp_db):
+        from scripts.ingest_canonical_docs import replace_stale_doc_section_facts
+        from canonical_fact_ingest import _init_fts_tables
+        import hashlib
+        import json
+
+        source = "docs/operations/CASSANDRA_MACHINE_CONTRACT.md"
+        section = "Role"
+        old_text = "Cassandra is Clara Reed."
+        new_text = "Cassandra is Clara Reid."
+        old_hash = hashlib.sha256(old_text.encode("utf-8")).hexdigest()
+        new_hash = hashlib.sha256(new_text.encode("utf-8")).hexdigest()
+
+        conn = sqlite3.connect(tmp_db)
+        _init_fts_tables(conn)
+        conn.execute(
+            """INSERT INTO canonical_facts (
+                fact_id, source_file, section_heading, source_commit, content_hash,
+                fact_text, sensitivity_class, allowed_actors, doc_category,
+                temporal_or_doctrine, truth_status, verification_required
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                "fact_4735dc85", source, section, "old", old_hash, old_text,
+                "operational_canonical", json.dumps(["cassandra"]), "machine_contract",
+                "doctrine_reference", "declared", 1,
+            ),
+        )
+        conn.execute(
+            "INSERT INTO fts_canonical_facts (fact_id, content_hash, fact_text, section_heading, doc_category) VALUES (?, ?, ?, ?, ?)",
+            ("fact_4735dc85", old_hash, old_text, section, "machine_contract"),
+        )
+        conn.execute(
+            "INSERT INTO fts_canonical_facts (fact_id, content_hash, fact_text, section_heading, doc_category) VALUES (?, ?, ?, ?, ?)",
+            ("fact_4735dc85", old_hash, old_text, section, "machine_contract"),
+        )
+        conn.commit()
+        conn.close()
+
+        result = replace_stale_doc_section_facts(
+            tmp_db,
+            source_file=source,
+            section_heading=section,
+            new_content_hash=new_hash,
+        )
+
+        conn = sqlite3.connect(tmp_db)
+        old_fact_count = conn.execute(
+            "SELECT COUNT(*) FROM canonical_facts WHERE fact_id = 'fact_4735dc85'"
+        ).fetchone()[0]
+        old_fts_count = conn.execute(
+            "SELECT COUNT(*) FROM fts_canonical_facts WHERE content_hash = ?",
+            (old_hash,),
+        ).fetchone()[0]
+        conn.close()
+
+        assert result["removed_facts"] == ["fact_4735dc85"]
+        assert result["removed_fts_rows"] == 2
+        assert old_fact_count == 0
+        assert old_fts_count == 0
+
 
 # ---------------------------------------------------------------------------
 # Test 5: Safety — production path guard
