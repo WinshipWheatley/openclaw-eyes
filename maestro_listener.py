@@ -37,6 +37,7 @@ except ModuleNotFoundError:
 DEFAULT_ENV_PATH = Path("/home/openclaw/.chief.env")
 DEFAULT_REQUEST_INBOX = Path("/mnt/e/openclaw/mission_control_capture_requests/inbox")
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
+DEFAULT_IMAGE_INTAKE_DIR = Path("/home/openclaw/state/telegram_image_intake/maestro")
 DEFAULT_RESPONSE_TIMEOUT_S = 45.0
 DEFAULT_RESPONSE_POLL_INTERVAL_S = 0.25
 
@@ -312,6 +313,72 @@ def build_operator_maestro_chat_request(
     return request
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def build_operator_maestro_image_request(
+    image_path: str | Path,
+    *,
+    caption: str,
+    message_id: str,
+    chat_id: int | None,
+    mime_type: str = "image/jpeg",
+    created_at: str | None = None,
+    ocr_fn: Any | None = None,
+) -> dict[str, Any]:
+    image_path = Path(image_path)
+    if ocr_fn is None:
+        from oclaw_doctools import ocr_image
+
+        ocr_fn = ocr_image
+    ocr_result = ocr_fn(image_path)
+    ocr_text = str(ocr_result.get("text") or "").strip() if isinstance(ocr_result, Mapping) else ""
+    caption = str(caption or "").strip()
+    prompt_parts = [
+        caption or "Image received.",
+        "OCR text from the attached image:",
+        ocr_text or "(no OCR text extracted)",
+    ]
+    text = "\n\n".join(part for part in prompt_parts if part)
+    request = build_operator_maestro_chat_request(
+        text,
+        message_id=message_id,
+        chat_id=chat_id,
+        created_at=created_at,
+    )
+    attachment = {
+        "local_path": str(image_path),
+        "sha256": _sha256_file(image_path),
+        "mime": str(mime_type or "image/jpeg"),
+        "caption": caption,
+        "source": "telegram_photo",
+    }
+    request.update(
+        {
+            "image_input_received": True,
+            "attachments": [attachment],
+            "image_ocr": {
+                "method": "tesseract",
+                "ok": bool(isinstance(ocr_result, Mapping) and ocr_result.get("ok") is True),
+                "text": ocr_text,
+                "confidence": str(ocr_result.get("confidence") or "") if isinstance(ocr_result, Mapping) else "",
+                "error": str(ocr_result.get("error") or "") if isinstance(ocr_result, Mapping) else "",
+            },
+            "raw_image_body_shared_with_model": False,
+            "privacy_impact": "operator_image_local_ocr_text_only",
+            "source_text": text,
+            "operator_message": text,
+        }
+    )
+    request["payload_hash"] = _content_hash(request)
+    return request
+
+
 def write_bridge_request(
     request: Mapping[str, Any],
     *,
@@ -580,11 +647,74 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 pass
 
 
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
+    auth_id = authorized_user_id()
+    if not update.effective_user or update.effective_user.id != auth_id:
+        return
+
+    message_id = str(getattr(update.message, "message_id", "") or getattr(update, "update_id", "") or "photo")
+    chat_id = update.effective_chat.id if update.effective_chat else auth_id
+    caption = str(getattr(update.message, "caption", "") or "").strip()
+    media = None
+    mime_type = "image/jpeg"
+    suffix = ".jpg"
+    if getattr(update.message, "photo", None):
+        media = update.message.photo[-1]
+    elif getattr(update.message, "document", None):
+        document = update.message.document
+        media = document
+        mime_type = str(getattr(document, "mime_type", "") or "image/jpeg")
+        if "png" in mime_type:
+            suffix = ".png"
+        elif "webp" in mime_type:
+            suffix = ".webp"
+    if media is None:
+        return
+
+    request_id_for_reply: str | None = None
+    typing_task = asyncio.create_task(_typing_loop(context, chat_id))
+    try:
+        intake_dir = DEFAULT_IMAGE_INTAKE_DIR / _safe_filename_part(message_id)
+        intake_dir.mkdir(parents=True, exist_ok=True)
+        image_path = intake_dir / f"telegram_image{suffix}"
+        telegram_file = await media.get_file()
+        await telegram_file.download_to_drive(str(image_path))
+        request = await asyncio.to_thread(
+            build_operator_maestro_image_request,
+            image_path,
+            caption=caption,
+            message_id=message_id,
+            chat_id=chat_id,
+            mime_type=mime_type,
+        )
+        request_id_for_reply = str(request["request_id"])
+        write_bridge_request(request)
+        response = await poll_bridge_response(request_id_for_reply)
+        await update.message.reply_text(
+            reply_text_from_bridge_response(response, request_id=request_id_for_reply)
+        )
+    except Exception as exc:
+        print(f"[maestro_listener] image bridge error: {exc.__class__.__name__}", flush=True)
+        await update.message.reply_text(
+            reply_text_from_bridge_response(None, request_id=request_id_for_reply or message_id)
+        )
+    finally:
+        typing_task.cancel()
+        try:
+            await typing_task
+        except asyncio.CancelledError:
+            pass
+
+
 def build_application():
     if ApplicationBuilder is None or MessageHandler is None or filters is None:
         raise RuntimeError("python-telegram-bot is required to run maestro_listener.")
     application = ApplicationBuilder().token(maestro_bot_token()).build()
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    image_filter = filters.PHOTO | filters.Document.IMAGE
+    application.add_handler(MessageHandler(image_filter, handle_photo))
     return application
 
 
