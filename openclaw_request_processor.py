@@ -1917,6 +1917,102 @@ def _voice_authorship_fields(response: OpenClawResponseForMac, layered_fields: M
     }
 
 
+def _brain_receipt_for_response(response: OpenClawResponseForMac) -> dict[str, Any]:
+    proof_response = response.proof_to_response if isinstance(response.proof_to_response, Mapping) else {}
+    if proof_response and (
+        proof_response.get("protected_generate_called") is True
+        or "model_call_performed" in proof_response
+        or proof_response.get("protected_generate_route")
+        or proof_response.get("route")
+    ):
+        return dict(proof_response)
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    card = detail.get("dynamic_card_response") if isinstance(detail.get("dynamic_card_response"), Mapping) else {}
+    proof = card.get("proof") if isinstance(card.get("proof"), Mapping) else {}
+    machine_proof = proof.get("machine_proof") if isinstance(proof.get("machine_proof"), Mapping) else {}
+    if machine_proof and (
+        machine_proof.get("protected_generate_called") is True
+        or "model_call_performed" in machine_proof
+        or machine_proof.get("protected_generate_route")
+        or machine_proof.get("route")
+    ):
+        return dict(machine_proof)
+    return {}
+
+
+def _brain_receipt_route(receipt: Mapping[str, Any]) -> str:
+    return str(receipt.get("protected_generate_route") or receipt.get("route") or "").strip()
+
+
+def _brain_receipt_model_id(receipt: Mapping[str, Any]) -> str:
+    return str(
+        receipt.get("protected_generate_model_selected")
+        or receipt.get("model_selected")
+        or receipt.get("model_id")
+        or receipt.get("model")
+        or ""
+    ).strip()
+
+
+def _brain_receipt_model_performed(receipt: Mapping[str, Any]) -> bool:
+    return receipt.get("model_call_performed") is True
+
+
+def _brain_receipt_local_invoked(receipt: Mapping[str, Any]) -> bool:
+    route = _brain_receipt_route(receipt)
+    return bool(receipt.get("local_model_invoked") is True or route.startswith("local_ollama"))
+
+
+def _brain_receipt_external_invoked(receipt: Mapping[str, Any]) -> bool:
+    route = _brain_receipt_route(receipt)
+    return bool(receipt.get("external_llm_invoked") is True or route.startswith("external"))
+
+
+def _model_backend_selection_from_brain_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    if not receipt or (
+        receipt.get("protected_generate_called") is not True
+        and "model_call_performed" not in receipt
+        and not _brain_receipt_route(receipt)
+    ):
+        return {}
+    route = _brain_receipt_route(receipt)
+    model_id = _brain_receipt_model_id(receipt)
+    model_performed = _brain_receipt_model_performed(receipt)
+    if model_performed:
+        if _brain_receipt_local_invoked(receipt):
+            backend = "LOCAL_OLLAMA"
+            budget = "Local Ollama front-door brain answered this turn; no postpaid cloud model credits were used."
+        elif _brain_receipt_external_invoked(receipt):
+            backend = "EXTERNAL_LLM"
+            budget = "External model use must be explicitly gated and budgeted; this field mirrors the protected-generate receipt."
+        else:
+            backend = "PROTECTED_GENERATE"
+            budget = "Protected-generate receipt reported a model answer; backend family was not more specific."
+        return {
+            "selected_model_backend": backend,
+            "selected_model_id": model_id,
+            "selected_worker_type": route or backend,
+            "allowed_tools_plugins": (),
+            "model_selection_reason": (
+                "The protected Maestro/Cassandra brain answered this turn; "
+                f"receipt route={route or 'unknown'}"
+                + (f", model={model_id}." if model_id else ".")
+            ),
+            "credit_budget_policy": budget,
+        }
+    return {
+        "selected_model_backend": "NONE_DETERMINISTIC",
+        "selected_model_id": model_id,
+        "selected_worker_type": route or "PROTECTED_GENERATE_FALLBACK",
+        "allowed_tools_plugins": (),
+        "model_selection_reason": (
+            "The protected-generate receipt reported no delivered model answer; "
+            f"deterministic fallback handled this response (route={route or 'unknown'})."
+        ),
+        "credit_budget_policy": "No model credits used by this deterministic fallback response.",
+    }
+
+
 def _model_backend_selection_fields(
     author: str,
     voice_reason: str,
@@ -1941,6 +2037,11 @@ def _model_backend_selection_fields(
             ),
             "credit_budget_policy": "No new model credits or local runtime call were used; the response cites an existing verified LM2 result.",
         }
+    brain_receipt_fields = _model_backend_selection_from_brain_receipt(
+        _brain_receipt_for_response(response)
+    )
+    if brain_receipt_fields:
+        return brain_receipt_fields
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     interpreter = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     if interpreter:
@@ -5194,6 +5295,7 @@ def _process_maestro_frontdoor_operator_instruction(
         detail_disclosure=detail,
         readback_files=(),
         next_safe_move="Ask Maestro a follow-up if you need more.",
+        proof_to_response=dict(machine_proof),
     )
 
 
@@ -5489,6 +5591,7 @@ def _try_interpreter_brain_divert(
         detail_disclosure=detail,
         readback_files=(),
         next_safe_move="Ask Maestro a follow-up if you need more.",
+        proof_to_response=dict(machine_proof),
     )
 
 
@@ -8107,6 +8210,12 @@ def _machine_proof(
     status: OpenClawRequestProcessorStatus,
 ) -> dict[str, Any]:
     quality_errors = _terminal_quality_errors(response)
+    brain_receipt = _brain_receipt_for_response(response)
+    brain_model_call_performed = _brain_receipt_model_performed(brain_receipt)
+    brain_local_model_invoked = brain_model_call_performed and _brain_receipt_local_invoked(brain_receipt)
+    brain_external_model_invoked = brain_model_call_performed and _brain_receipt_external_invoked(brain_receipt)
+    brain_route = _brain_receipt_route(brain_receipt)
+    brain_model_id = _brain_receipt_model_id(brain_receipt)
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     interpreter_detail = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     workbook_detail = detail.get("client_invoice_workbook_registry") if isinstance(detail.get("client_invoice_workbook_registry"), Mapping) else {}
@@ -8186,7 +8295,12 @@ def _machine_proof(
         "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,
         "file_mutation_performed": False,
-        "model_call_performed": False,
+        "model_call_performed": brain_model_call_performed,
+        "local_model_invoked": brain_local_model_invoked,
+        "external_llm_invoked": brain_external_model_invoked,
+        "protected_generate_route": brain_route,
+        "protected_generate_model_selected": brain_model_id,
+        "deterministic_fallback_used": bool(brain_receipt.get("deterministic_fallback_used") is True) if brain_receipt else False,
         "tool_execution_performed": False,
         "agent_dispatch_performed": False,
         "worker_dispatch_performed": False,
@@ -8311,8 +8425,8 @@ def build_payloads(
             or _completion_receipts_present(response),
             "video_generation_performed": False,
             "image_generation_performed": False,
-            "cloud_model_call_performed": False,
-            "local_model_call_performed": False,
+            "cloud_model_call_performed": bool(status_payload["machine_proof"].get("external_llm_invoked")),
+            "local_model_call_performed": bool(status_payload["machine_proof"].get("local_model_invoked")),
             "visual_playback_performed": False,
             "visual_provider_call_performed": False,
             "response_taste_guardrails_present": True,

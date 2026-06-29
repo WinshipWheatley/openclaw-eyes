@@ -9,6 +9,7 @@ handler through this front-door path.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -112,6 +113,8 @@ def backend_route_for_result(result: MaestroCassandraResult) -> str:
     if result.intent_class == "maestro_brain_freeform":
         return "maestro_cassandra_responder.protected_generate"
     if result.intent_class == "status_capability_readback":
+        if (result.machine_proof or {}).get("protected_generate_called") is True:
+            return "maestro_cassandra_responder.protected_generate.status_capability_context"
         return "maestro_cassandra_responder.truthful_status_capability_readback"
     if result.intent_class == "hermes_truthful_advisory":
         return HERMES_TRUTHFUL_BACKEND_ROUTE
@@ -153,6 +156,57 @@ def result_dict_for_receipt(result: MaestroCassandraResult) -> dict[str, Any]:
     payload = result.to_dict()
     payload["machine_proof"] = machine_proof_for_result(result)
     return payload
+
+
+def _stable_json(payload: Any) -> str:
+    return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
+
+
+def _short_hash_for_packet(*parts: Any) -> str:
+    return hashlib.sha256(_stable_json(parts).encode("utf-8")).hexdigest()[:16]
+
+
+def _protected_generate_receipt_machine_proof(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    route = str(receipt.get("route") or "").strip()
+    model_selected = str(
+        receipt.get("model_selected")
+        or receipt.get("model_id")
+        or receipt.get("model")
+        or ""
+    ).strip()
+    proof: dict[str, Any] = {
+        "model_call_performed": bool(receipt.get("model_call_performed", True)),
+        "external_llm_invoked": bool(receipt.get("external_llm_invoked", False)),
+        "local_model_invoked": bool(receipt.get("local_model_invoked", False)),
+        "deterministic_fallback_used": bool(receipt.get("deterministic_fallback_used", False)),
+        "model_call_attempted": bool(receipt.get("model_call_attempted", False)),
+        "model_output_delivered": bool(receipt.get("model_output_delivered", False)),
+        "delivered_response_source": str(receipt.get("delivered_response_source") or ""),
+    }
+    if route:
+        proof["route"] = route
+        proof["protected_generate_route"] = route
+    if model_selected:
+        proof["model_id"] = model_selected
+        proof["protected_generate_model_selected"] = model_selected
+    fallback_reason = str(receipt.get("model_fallback_reason") or "").strip()
+    if fallback_reason:
+        proof["model_fallback_reason"] = fallback_reason
+    return proof
+
+
+def _is_conversational_status_capability_prompt(text: str) -> bool:
+    capability_phrases = (
+        "what can you help me with",
+        "what can openclaw help me with",
+        "what can you do for me",
+        "what can you do",
+        "what can openclaw do",
+        "what are you capable of",
+        "how can you help",
+        "how can openclaw help",
+    )
+    return any(phrase in text for phrase in capability_phrases)
 def _path_is_under(path: Path, root: Path) -> bool:
     try:
         path.relative_to(root)
@@ -456,6 +510,15 @@ def answer_frontdoor_chat(
             machine_proof=_adapter_machine_proof(handle_called=False),
         )
 
+    if intent_class == "status_capability_readback" and _is_conversational_status_capability_prompt(_normalize(text)):
+        return _answer_status_capability_with_brain(
+            text,
+            session=session,
+            source_surface=source_surface,
+            forwarded_session=forwarded_session,
+            protected_generate_fn=protected_generate_fn,
+        )
+
     if intent_class == "status_capability_readback":
         answer = build_truthful_status_capability_answer(
             session=session,
@@ -553,6 +616,127 @@ def answer_frontdoor_chat(
         mac_render_hint=MAC_RENDER_HINT,
         session_forwarded=forwarded_session,
         machine_proof=_adapter_machine_proof(handle_called=True),
+    )
+
+
+def _answer_status_capability_with_brain(
+    text: str,
+    *,
+    session: Mapping[str, Any] | None,
+    source_surface: str,
+    forwarded_session: Mapping[str, Any],
+    protected_generate_fn: ProtectedGenerateFn | None,
+) -> MaestroCassandraResult:
+    focus = _status_capability_readback_focus(_normalize(text))
+    readback = build_truthful_status_capability_answer(session=session, focus=focus)
+    base_proof = dict(readback["machine_proof"])
+    source_refs = tuple(str(ref) for ref in base_proof.get("source_truth_refs", ()) if str(ref).strip())
+    fact_value = str(readback.get("plain_summary") or readback.get("one_line_answer") or "").strip()
+    fact = {
+        "fact_id": f"status_capability:{_short_hash_for_packet(text, fact_value, source_refs)}",
+        "topic": "status_capability",
+        "label": "Truthful status and capability readback",
+        "value": fact_value,
+        "provenance": "generated_read_model_summary",
+        "source_ref": ", ".join(source_refs) or CAPABILITY_INDEX_READ_MODEL,
+        "pii_tier": "PUBLIC",
+    }
+    try:
+        from maestro_context_packet import build_maestro_context_packet
+
+        context_packet = dict(
+            build_maestro_context_packet(
+                question=text,
+                session=session,
+                source_surface=source_surface,
+                require_real_truth=True,
+            )
+        )
+        facts = [row for row in context_packet.get("facts", ()) if isinstance(row, Mapping)]
+        context_packet["facts"] = [fact, *facts]
+        refs = list(context_packet.get("source_refs", ()))
+        refs.extend(source_refs)
+        context_packet["source_refs"] = tuple(dict.fromkeys(str(ref) for ref in refs if str(ref).strip()))
+        context_packet["packet_text"] = "\n".join(
+            part
+            for part in (
+                str(context_packet.get("packet_text") or "").strip(),
+                "STATUS/CAPABILITY FACTS FOR THIS ANSWER:",
+                fact_value,
+            )
+            if part
+        )
+        context_packet["status_capability_focus"] = focus
+    except Exception:
+        context_packet = {
+            "schema_version": "status_capability_context_packet_v0",
+            "packet_id": f"status_capability_{_short_hash_for_packet(text, fact_value, source_refs)}",
+            "question": text,
+            "source_surface": source_surface,
+            "facts": [fact] if fact_value else [],
+            "source_refs": source_refs,
+            "packet_text": "\n".join(
+                part
+                for part in (
+                    "STATUS/CAPABILITY FACTS FOR THIS ANSWER:",
+                    fact_value,
+                )
+                if part
+            ),
+        }
+
+    if protected_generate_fn is None:
+        from protected_generate import protected_generate_with_receipt
+
+        outcome = protected_generate_with_receipt(text, context_packet=context_packet, agent="maestro")
+    else:
+        outcome = protected_generate_fn(text, context_packet=context_packet)
+
+    if hasattr(outcome, "text") and hasattr(outcome, "receipt"):
+        answer_text = str(outcome.text)
+        receipt = dict(outcome.receipt)
+    elif isinstance(outcome, Mapping):
+        answer_text = str(outcome.get("text") or outcome.get("answer") or "")
+        receipt = dict(outcome.get("receipt") or {})
+    else:
+        answer_text = str(outcome or "")
+        receipt = {
+            "status": "ANSWER_READY",
+            "decision": "INJECTED_PROTECTED_GENERATE",
+            "external_llm_invoked": False,
+            "local_model_invoked": True,
+            "model_call_performed": True,
+        }
+    answer_text = _strip_internal_state_leaks(answer_text).strip()
+    if not answer_text:
+        answer_text = str(readback.get("plain_summary") or readback.get("one_line_answer") or "").strip()
+
+    proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
+    return MaestroCassandraResult(
+        status="ANSWER_READY",
+        intent_class="status_capability_readback",
+        allowed_to_call_handle=False,
+        one_line_answer=_one_line_answer(answer_text),
+        plain_summary=answer_text,
+        mac_render_hint=MAC_RENDER_HINT,
+        session_forwarded=forwarded_session,
+        machine_proof={
+            **_adapter_machine_proof(handle_called=False),
+            **base_proof,
+            **_protected_generate_receipt_machine_proof(receipt),
+            "protected_generate_called": True,
+            "maestro_context_packet_used": True,
+            "context_packet_id": str(context_packet.get("packet_id") or ""),
+            "status_capability_facts_injected": True,
+            "status_capability_readback_performed": False,
+            "status_capability_readback_available_as_facts": True,
+            "source_truth_refs": proof_refs,
+            "protected_generate_receipt_id": str(receipt.get("receipt_id") or ""),
+            "protected_generate_audit_ref": str(receipt.get("audit_ref") or ""),
+            "protected_generate_decision": str(receipt.get("decision") or ""),
+            "send_hold_boundary_visible": True,
+            "claims_trace_to_packet": True,
+        },
     )
 
 
@@ -836,6 +1020,7 @@ def _answer_with_maestro_brain(
         session_forwarded=forwarded_session,
         machine_proof={
             **_adapter_machine_proof(handle_called=False),
+            **_protected_generate_receipt_machine_proof(receipt),
             "protected_generate_called": True,
             "maestro_context_packet_used": True,
             "context_packet_id": str(context_packet.get("packet_id") or ""),
@@ -844,9 +1029,6 @@ def _answer_with_maestro_brain(
             "protected_generate_receipt_id": str(receipt.get("receipt_id") or ""),
             "protected_generate_audit_ref": str(receipt.get("audit_ref") or ""),
             "protected_generate_decision": str(receipt.get("decision") or ""),
-            "model_call_performed": bool(receipt.get("model_call_performed", True)),
-            "external_llm_invoked": bool(receipt.get("external_llm_invoked", False)),
-            "local_model_invoked": bool(receipt.get("local_model_invoked", False)),
             "send_hold_boundary_visible": True,
             "claims_trace_to_packet": True,
             # Interpreter-LM traceability (advisory only — None/empty when off):

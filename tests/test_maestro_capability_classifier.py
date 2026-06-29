@@ -84,7 +84,6 @@ def _write_read_models(root: Path) -> dict[str, str]:
 @pytest.mark.parametrize(
     ("prompt", "expected_text"),
     [
-        ("what can you help me with?", "Bounded request processor"),
         ("who are the agents and what does each do?", "Cassandra"),
         ("what is the system-wide next safe move?", "Review the staged Maestro lane packet"),
         ("give me a status readback", "2 agents are online"),
@@ -108,6 +107,51 @@ def test_natural_status_capability_phrasings_route_to_truthful_readback(
     assert expected_text in result.plain_summary
 
 
+def test_conversational_capability_prompt_uses_brain_with_capability_facts(tmp_path: Path) -> None:
+    session = _write_read_models(tmp_path)
+    captured: dict[str, object] = {}
+
+    def _protected_generate(text: str, *, context_packet: dict[str, object]) -> dict[str, object]:
+        captured["text"] = text
+        captured["context_packet"] = context_packet
+        return {
+            "text": "I can help with bounded request processing and operator status readbacks from the live capability index.",
+            "receipt": {
+                "receipt_id": "receipt_capability_1",
+                "audit_ref": "audit_capability_1",
+                "decision": "ALLOW_TOKENIZED_MODEL_REASONING",
+                "model_call_performed": True,
+                "local_model_invoked": True,
+                "external_llm_invoked": False,
+                "route": "local_ollama_frontdoor",
+                "model_selected": "qwen3:8b-q4_K_M",
+                "deterministic_fallback_used": False,
+            },
+        }
+
+    result = answer_frontdoor_chat(
+        "what can you help me with?",
+        session=session,
+        protected_generate_fn=_protected_generate,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "status_capability_readback"
+    assert result.allowed_to_call_handle is False
+    assert result.machine_proof["protected_generate_called"] is True
+    assert result.machine_proof["status_capability_facts_injected"] is True
+    assert result.machine_proof["model_call_performed"] is True
+    assert result.machine_proof["protected_generate_route"] == "local_ollama_frontdoor"
+    assert result.machine_proof["protected_generate_model_selected"] == "qwen3:8b-q4_K_M"
+    packet = captured["context_packet"]
+    assert isinstance(packet, dict)
+    packet_text = json.dumps(packet)
+    assert "Bounded request processor" in packet_text
+    assert "Operator status readback" in packet_text
+    assert "Browser control" in packet_text
+    assert "live capability index" in result.plain_summary
+
+
 def test_roster_prompt_lists_live_agents_from_agent_presence(tmp_path: Path) -> None:
     session = _write_read_models(tmp_path)
 
@@ -124,7 +168,6 @@ def test_roster_prompt_lists_live_agents_from_agent_presence(tmp_path: Path) -> 
     "prompt",
     [
         "reply to that email and send it",
-        "what's on my calendar today?",
         "give me my morning briefing",
         "send a Gmail to Alex",
         "run the workflow",
@@ -141,6 +184,19 @@ def test_send_calendar_briefing_and_action_phrasings_still_route_to_staging(
     assert result.status == "ROUTE_TO_STAGING"
     assert result.allowed_to_call_handle is False
     assert external_llm_invoked_for_result(result) is False
+    assert result.machine_proof["email_send_performed"] is False
+    assert result.machine_proof["runtime_execution_triggered"] is False
+
+
+def test_calendar_prompt_stays_deterministic_without_brain_or_send(tmp_path: Path) -> None:
+    session = _write_read_models(tmp_path)
+
+    result = answer_frontdoor_chat("what's on my calendar today?", session=session)
+
+    assert result.status in {"ANSWER_READY", "ROUTE_TO_STAGING"}
+    assert result.allowed_to_call_handle is False
+    assert external_llm_invoked_for_result(result) is False
+    assert result.machine_proof.get("protected_generate_called") is not True
     assert result.machine_proof["email_send_performed"] is False
     assert result.machine_proof["runtime_execution_triggered"] is False
 
