@@ -775,6 +775,31 @@ def _answer_with_maestro_brain(
     answer_text = _strip_internal_state_leaks(answer_text) or (
         "I don't have that in the current Maestro packet."
     )
+    # ── SELF-IMPROVEMENT LOOP ─────────────────────────────────────────────────
+    # If the operator just agreed to an improvement the agent recommended last turn, file it
+    # as a REAL build request (-> PROPOSED + Guardian). Otherwise, if they're talking about
+    # the agent / its improvements, record the one concrete gap so a "yeah do it" next turn
+    # files it. Grounded (only curated gaps file) + fail-open.
+    try:
+        _conv_id = getattr(_capsule, "conversation_id", "") if _capsule is not None else ""
+        if _conv_id:
+            from self_improvement_request import maybe_file_on_agreement, record_recommendation
+
+            _filed = maybe_file_on_agreement(_conv_id, text, agent=agent)
+            if _filed and _filed.get("filed"):
+                answer_text = (answer_text.rstrip() +
+                               " — on it; I've put that in, you'll get a Guardian approval to build it.")
+            else:
+                from social_intent import is_self_referential
+
+                if is_self_referential(text):
+                    from self_knowledge import next_improvement
+
+                    _nxt = next_improvement()
+                    if _nxt:
+                        record_recommendation(_conv_id, _nxt["id"])
+    except Exception:
+        pass
     # NOTE: jargon teaching + comedy-as-diagnostic + claim detection were CONSOLIDATED into the
     # single author-aware operator-surface pipeline (_enrich_operator_surface in
     # openclaw_request_processor) so EVERY agent voice gets them on the FINAL operator_message —

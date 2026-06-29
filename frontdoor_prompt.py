@@ -199,12 +199,31 @@ def build_frontdoor_prompt(
     if _social:
         persona = _conversational_persona(agent)
         name = _agent_display_name(agent)
+        # Self-awareness: when the operator is talking ABOUT this agent / its improvements,
+        # give it a grounded note on what recently got better + what would still help, so it
+        # can react genuinely ("yeah that helped — and X would help too"). Rephrased in plain
+        # words, never quoted. Pure small talk gets none of this.
+        self_note = ""
+        try:
+            from social_intent import is_self_referential
+            if is_self_referential(message):
+                from self_knowledge import self_knowledge_hint
+                hint = self_knowledge_hint()
+                if hint:
+                    self_note = (
+                        "\n\n(Background you MAY use — only if it fits, and rephrase in your "
+                        "own plain casual words, never quote it or use technical terms: "
+                        f"{hint} If the operator is noticing or praising an improvement, own it "
+                        "genuinely, and you can mention one thing that would help you next.)"
+                    )
+        except Exception:
+            self_note = ""
         convo = (
             f"You are {persona}. Reply in first person — natural, easy, and short, like "
             "texting a friend back. Keep it low-key: DON'T try hard, skip the forced "
             "metaphors, zingers, and filler. One or two plain sentences is plenty. Don't "
             "mention systems, protocols, SEND_HOLD, status, packets, or facts unless the "
-            "operator brings them up. Just talk like a normal person.\n\n"
+            f"operator brings them up. Just talk like a normal person.{self_note}\n\n"
             f"The operator just said: \"{message}\"\n\n{name}:"
         )
         manifest = {
