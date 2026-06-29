@@ -361,6 +361,7 @@ def answer_frontdoor_chat(
     handle_fn: HandleFn | None = None,
     protected_generate_fn: ProtectedGenerateFn | None = None,
     _capsule: Any | None = None,
+    agent: str = "maestro",
 ) -> MaestroCassandraResult:
     intent_class, allowed, reason = classify_frontdoor_intent(text)
     forwarded_session = filtered_session(session)
@@ -750,7 +751,7 @@ def _answer_with_maestro_brain(
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
 
-        outcome = protected_generate_with_receipt(text, context_packet=context_packet)
+        outcome = protected_generate_with_receipt(text, context_packet=context_packet, agent=agent)
     else:
         outcome = protected_generate_fn(text, context_packet=context_packet)
 
