@@ -5,10 +5,11 @@ Load skill definition files and return deterministic normalized records.
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import fnmatch
 import json
 from pathlib import Path
+import sqlite3
 from typing import Any, Iterable, Sequence
 
 import yaml
@@ -16,6 +17,39 @@ import yaml
 DEFAULT_INCLUDE_PATTERNS = ("*.md", "SKILL.md", "**/SKILL.md")
 DEFAULT_EXCLUDE_PATTERNS: tuple[str, ...] = ()
 REQUIRED_FIELDS = ("name", "description", "content")
+DEFAULT_CATALOG_PATH = Path("/home/openclaw/system_catalog.sqlite3")
+VALID_SKILL_AUTHORITIES = frozenset({"advisory_only", "references_gated_action"})
+REQUIRED_RUNTIME_FIELDS = (
+    "owner_agent",
+    "triggers",
+    "tools",
+    "authority",
+    "capability_needed",
+    "tiers",
+)
+REQUIRED_TIERS = ("simple", "rich")
+
+_SKILLS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS skills (
+    skill_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    owner_agent TEXT NOT NULL,
+    triggers_json TEXT NOT NULL,
+    tools_json TEXT NOT NULL,
+    authority TEXT NOT NULL,
+    capability_needed TEXT NOT NULL,
+    tiers_json TEXT NOT NULL,
+    tier_simple TEXT NOT NULL,
+    tier_rich TEXT NOT NULL,
+    source_path TEXT NOT NULL,
+    content TEXT NOT NULL,
+    validation_status TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_skills_owner_agent ON skills(owner_agent);
+CREATE INDEX IF NOT EXISTS idx_skills_authority ON skills(authority);
+"""
 
 
 class SkillLoaderError(Exception):
@@ -59,6 +93,8 @@ def load_skills(
     include_patterns: Iterable[str] | None = None,
     exclude_patterns: Iterable[str] | None = None,
     strict_mode: bool = False,
+    catalog_path: str | Path | None = None,
+    persist_catalog: bool = False,
 ) -> dict[str, Any]:
     """
     Load skill definition files from a directory or a single file.
@@ -98,7 +134,39 @@ def load_skills(
             _build_result(skills, errors, skipped),
         )
 
-    return _build_result(skills, errors, skipped)
+    result = _build_result(skills, errors, skipped)
+    if catalog_path is None and not persist_catalog:
+        return result
+
+    resolved_catalog_path = Path(catalog_path or DEFAULT_CATALOG_PATH).expanduser()
+    runtime_errors = _runtime_validation_errors(skills, catalog_path=resolved_catalog_path)
+    runtime_failed_paths = {
+        error["path"]
+        for error in runtime_errors
+        if error.get("path") and not str(error.get("path")).startswith("<")
+    }
+    runtime_failed_count = len(runtime_failed_paths) or len(runtime_errors)
+    catalog_written = 0
+    if runtime_errors:
+        result = _build_result(skills, [*errors, *runtime_errors], skipped)
+        result["catalog_path"] = resolved_catalog_path.as_posix()
+        result["summary"]["runtime_validation_failed"] = runtime_failed_count
+        result["summary"]["catalog_written"] = 0
+        if strict_mode:
+            first_reason = runtime_errors[0]["reason"]
+            raise SkillLoaderError(
+                f"skill runtime validation failed for {runtime_failed_count} skill(s): {first_reason}",
+                result,
+            )
+        return result
+
+    if persist_catalog:
+        catalog_written = persist_skills_catalog(skills, catalog_path=resolved_catalog_path)
+
+    result["catalog_path"] = resolved_catalog_path.as_posix()
+    result["summary"]["runtime_validation_failed"] = 0
+    result["summary"]["catalog_written"] = catalog_written
+    return result
 
 
 def _normalize_patterns(
@@ -256,6 +324,260 @@ def _generate_skill_id(relative_path: str, frontmatter: dict[str, Any]) -> str:
     return Path(relative_path).with_suffix("").as_posix().replace("/", ".").strip(".")
 
 
+def _skill_metadata(skill: dict[str, Any]) -> dict[str, Any]:
+    metadata = skill.get("metadata")
+    return dict(metadata) if isinstance(metadata, dict) else {}
+
+
+def _coerce_text_list(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _coerce_tiers(value: Any) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        tier: str(value.get(tier) or "").strip()
+        for tier in REQUIRED_TIERS
+        if str(value.get(tier) or "").strip()
+    }
+
+
+def _runtime_record(skill: dict[str, Any]) -> dict[str, Any]:
+    metadata = _skill_metadata(skill)
+    return {
+        "skill_id": str(skill.get("id") or "").strip(),
+        "name": str(skill.get("name") or "").strip(),
+        "description": str(skill.get("description") or "").strip(),
+        "source_path": str(skill.get("source_path") or "").strip(),
+        "content": str(skill.get("content") or "").strip(),
+        "owner_agent": str(metadata.get("owner_agent") or "").strip().lower(),
+        "triggers": _coerce_text_list(metadata.get("triggers")),
+        "tools": _coerce_text_list(metadata.get("tools")),
+        "authority": str(metadata.get("authority") or "").strip(),
+        "capability_needed": str(metadata.get("capability_needed") or "").strip(),
+        "tiers": _coerce_tiers(metadata.get("tiers")),
+    }
+
+
+def _valid_owner_agents(catalog_path: Path | None = None) -> set[str]:
+    valid: set[str] = set()
+    try:
+        from agent_lane_registry import DEFAULT_AGENT_LANE_SEEDS
+
+        valid.update(seed.agent_id.lower() for seed in DEFAULT_AGENT_LANE_SEEDS)
+    except Exception:
+        pass
+
+    if catalog_path and catalog_path.exists():
+        con: sqlite3.Connection | None = None
+        try:
+            con = sqlite3.connect(f"file:{catalog_path.as_posix()}?mode=ro", uri=True)
+            rows = con.execute("SELECT agent_id FROM agent_lanes").fetchall()
+            valid.update(str(row[0]).lower() for row in rows if row and row[0])
+        except sqlite3.Error:
+            pass
+        finally:
+            if con is not None:
+                con.close()
+    return valid
+
+
+def _valid_runtime_tools() -> set[str]:
+    valid: set[str] = set()
+    try:
+        from openclaw_system_knowledge_registry import ORBIT_BRAIN_ROUTE_RECORDS
+
+        valid.update(
+            str(record.get("brain_id") or "").strip()
+            for record in ORBIT_BRAIN_ROUTE_RECORDS
+            if str(record.get("brain_id") or "").strip()
+        )
+    except Exception:
+        pass
+
+    read_model_root = Path("generated/read_models")
+    if read_model_root.exists():
+        for path in read_model_root.glob("*.json"):
+            valid.add(path.name)
+            valid.add(path.stem)
+    return valid
+
+
+def _runtime_validation_errors(
+    skills: list[dict[str, Any]],
+    *,
+    catalog_path: Path | None,
+) -> list[dict[str, str]]:
+    errors: list[dict[str, str]] = []
+    owner_agents = _valid_owner_agents(catalog_path)
+    tools = _valid_runtime_tools()
+
+    try:
+        from skill_vetter import vet_skills
+
+        vetting = vet_skills(skills, strict_mode=False)
+        for result in vetting.get("results", []):
+            if result.get("status") == "fail":
+                reasons = ",".join(str(reason.get("code") or "") for reason in result.get("reasons", []))
+                errors.append({
+                    "path": str(result.get("skill_id") or "<unknown>"),
+                    "reason": f"VETTER_FAILED:{reasons}",
+                })
+    except Exception as exc:
+        errors.append({"path": "<skill_vetter>", "reason": f"VETTER_ERROR:{type(exc).__name__}"})
+
+    for skill in skills:
+        record = _runtime_record(skill)
+        missing = [
+            field
+            for field in REQUIRED_RUNTIME_FIELDS
+            if not record.get(field)
+        ]
+        if missing:
+            errors.append({
+                "path": record["source_path"] or record["skill_id"] or "<unknown>",
+                "reason": f"MISSING_RUNTIME_FIELDS:{','.join(missing)}",
+            })
+            continue
+
+        missing_tiers = [tier for tier in REQUIRED_TIERS if not record["tiers"].get(tier)]
+        if missing_tiers:
+            errors.append({
+                "path": record["source_path"] or record["skill_id"],
+                "reason": f"MISSING_TIERS:{','.join(missing_tiers)}",
+            })
+
+        if record["authority"] not in VALID_SKILL_AUTHORITIES:
+            errors.append({
+                "path": record["source_path"] or record["skill_id"],
+                "reason": f"INVALID_AUTHORITY:{record['authority']}",
+            })
+
+        if record["owner_agent"] not in owner_agents:
+            errors.append({
+                "path": record["source_path"] or record["skill_id"],
+                "reason": f"UNKNOWN_OWNER_AGENT:{record['owner_agent']}",
+            })
+
+        unknown_tools = [tool for tool in record["tools"] if tool not in tools]
+        if unknown_tools:
+            errors.append({
+                "path": record["source_path"] or record["skill_id"],
+                "reason": f"UNKNOWN_TOOL:{','.join(sorted(unknown_tools))}",
+            })
+
+    return sorted(errors, key=lambda error: (error["path"], error["reason"]))
+
+
+def init_skills_catalog_schema(con: sqlite3.Connection) -> None:
+    con.executescript(_SKILLS_SCHEMA)
+
+
+def persist_skills_catalog(
+    skills: list[dict[str, Any]],
+    *,
+    catalog_path: str | Path = DEFAULT_CATALOG_PATH,
+) -> int:
+    target = Path(catalog_path).expanduser()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(target)
+    try:
+        init_skills_catalog_schema(con)
+        updated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        written = 0
+        for skill in skills:
+            record = _runtime_record(skill)
+            tiers_json = json.dumps(record["tiers"], sort_keys=True, ensure_ascii=True)
+            triggers_json = json.dumps(record["triggers"], sort_keys=True, ensure_ascii=True)
+            tools_json = json.dumps(record["tools"], sort_keys=True, ensure_ascii=True)
+            con.execute(
+                """INSERT OR REPLACE INTO skills(
+                       skill_id, name, description, owner_agent, triggers_json,
+                       tools_json, authority, capability_needed, tiers_json,
+                       tier_simple, tier_rich, source_path, content,
+                       validation_status, updated_at
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    record["skill_id"],
+                    record["name"],
+                    record["description"],
+                    record["owner_agent"],
+                    triggers_json,
+                    tools_json,
+                    record["authority"],
+                    record["capability_needed"],
+                    tiers_json,
+                    record["tiers"]["simple"],
+                    record["tiers"]["rich"],
+                    record["source_path"],
+                    record["content"],
+                    "pass",
+                    updated_at,
+                ),
+            )
+            written += 1
+        con.commit()
+        return written
+    finally:
+        con.close()
+
+
+def load_registered_skills(catalog_path: str | Path = DEFAULT_CATALOG_PATH) -> list[dict[str, Any]]:
+    target = Path(catalog_path).expanduser()
+    if not target.exists():
+        return []
+    con: sqlite3.Connection | None = None
+    try:
+        con = sqlite3.connect(f"file:{target.as_posix()}?mode=ro", uri=True)
+        con.row_factory = sqlite3.Row
+        rows = con.execute(
+            """SELECT skill_id, name, description, owner_agent, triggers_json, tools_json,
+                      authority, capability_needed, tiers_json, source_path, content,
+                      validation_status, updated_at
+               FROM skills
+               WHERE validation_status = 'pass'
+               ORDER BY skill_id"""
+        ).fetchall()
+    except sqlite3.Error:
+        return []
+    finally:
+        if con is not None:
+            con.close()
+
+    skills: list[dict[str, Any]] = []
+    for row in rows:
+        try:
+            triggers = json.loads(row["triggers_json"] or "[]")
+            tools = json.loads(row["tools_json"] or "[]")
+            tiers = json.loads(row["tiers_json"] or "{}")
+        except json.JSONDecodeError:
+            continue
+        skills.append(
+            {
+                "skill_id": row["skill_id"],
+                "id": row["skill_id"],
+                "name": row["name"],
+                "description": row["description"],
+                "owner_agent": row["owner_agent"],
+                "triggers": triggers if isinstance(triggers, list) else [],
+                "tools": tools if isinstance(tools, list) else [],
+                "authority": row["authority"],
+                "capability_needed": row["capability_needed"],
+                "tiers": tiers if isinstance(tiers, dict) else {},
+                "source_path": row["source_path"],
+                "content": row["content"],
+                "validation_status": row["validation_status"],
+                "updated_at": row["updated_at"],
+            }
+        )
+    return skills
+
+
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Load and validate skill definition files.")
     parser.add_argument("skills_path", nargs="?", help="Root directory or file path to scan for skills")
@@ -287,6 +609,18 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         const="true",
         help="Explicit strict mode toggle. Accepts true/false.",
     )
+    parser.add_argument(
+        "--catalog-path",
+        default=None,
+        help="SQLite system catalog path for invocable skill validation/persistence.",
+    )
+    parser.add_argument(
+        "--persist-catalog",
+        "--write-catalog",
+        dest="persist_catalog",
+        action="store_true",
+        help="Persist validated invocable skill records to the system catalog skills table.",
+    )
     return parser
 
 
@@ -305,6 +639,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             include_patterns=args.include_patterns,
             exclude_patterns=args.exclude_patterns,
             strict_mode=strict_mode,
+            catalog_path=args.catalog_path,
+            persist_catalog=args.persist_catalog,
         )
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0
