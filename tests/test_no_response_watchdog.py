@@ -113,6 +113,37 @@ def test_watchdog_suggestion_routes_through_existing_hermes_loop(tmp_path: Path)
     assert filed == ["no_response_maestro"]
 
 
+def test_silent_hermes_request_files_guardian_gated_package(tmp_path: Path) -> None:
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "to_mac"
+    _request(
+        inbox,
+        "mission_control_operator_instruction_request_hermes_telegram_904_ddd.json",
+        lane="telegram_pc_hermes_listener",
+    )
+    filed: list[dict] = []
+
+    result = hermes_observer.run_hermes_fleet_loop(
+        observers=[
+            lambda: watchdog.no_response_observer(
+                inbox=inbox,
+                response_dir=response_dir,
+                now=NOW,
+                timeout_s=180,
+                systemctl_fn=lambda service: "inactive",
+            )
+        ],
+        file_fn=lambda suggestion: filed.append(suggestion) or {"status": "PROPOSED", "approval": "guardian_required"},
+        notify_fn=lambda routed: None,
+        handoff_fn=lambda suggestion, receipt: None,
+        allowed_targets=frozenset({"chief", "guardian"}),
+        state_store=tmp_path / "gap_state.json",
+    )
+
+    assert result["routed_to_chief"] == ["no_response_hermes"]
+    assert filed[0]["id"] == "no_response_hermes"
+
+
 def test_unknown_package_profile_is_registered() -> None:
     from self_improvement_request import compile_self_improvement_package
 
@@ -127,3 +158,20 @@ def test_unknown_package_profile_is_registered() -> None:
 
     assert "no_response_watchdog.py" in package["allowed_files"]
     assert any("tests/test_no_response_watchdog.py" in item for item in package["tests_to_run"])
+
+
+def test_non_maestro_no_response_profiles_are_registered() -> None:
+    from self_improvement_request import compile_self_improvement_package
+
+    for agent in ("hermes", "cassandra", "niles", "chief", "guardian"):
+        package = compile_self_improvement_package(
+            {
+                "id": f"no_response_{agent}",
+                "build_goal": f"Investigate and repair no-response handling for {agent} lane requests.",
+                "evidence": "fixture",
+            },
+            agent="hermes",
+        )
+        assert package["self_improvement_gap_id"] == f"no_response_{agent}"
+        assert "no_response_watchdog.py" in package["allowed_files"]
+        assert "Do not edit crontab, systemd units, production service state, or restart production." in package["forbidden_actions"]

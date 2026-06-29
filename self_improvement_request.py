@@ -254,6 +254,86 @@ _SELF_IMPROVEMENT_PACKAGE_PROFILES: dict[str, dict[str, Any]] = {
 }
 
 
+_NO_RESPONSE_AGENT_FILES: dict[str, list[str]] = {
+    "hermes": [
+        "openclaw_hermes_sidecar.py",
+        "openclaw_hermes_gateway_policy.py",
+        "scripts/run_openclaw_hermes_gateway.py",
+        "tests/test_openclaw_hermes_sidecar.py",
+        "tests/test_openclaw_hermes_gateway_policy.py",
+    ],
+    "cassandra": [
+        "cassandra_listener.py",
+        "cassandra_listener_governed_intake_synthetic_proof.py",
+        "cassandra_listener_governed_shadow.py",
+        "tests/test_cassandra_listener_governed_intake_synthetic_proof.py",
+        "tests/test_cassandra_listener_governed_shadow.py",
+        "tests/test_cassandra_status_wiring.py",
+    ],
+    "niles": [
+        "producer_listener.py",
+        "niles_memory_worker.py",
+        "niles_album_access.py",
+        "tests/test_operator_universal_intake.py",
+        "tests/test_agent_voice_delivery_contracts.py",
+    ],
+    "chief": [
+        "chief_listener.py",
+        "chief_router.py",
+        "chief_approval_brain.py",
+        "tests/test_chief_listener_lifecycle.py",
+        "tests/test_chief_approval_brain.py",
+        "tests/test_chief_nonapproval_routing.py",
+    ],
+    "guardian": [
+        "chief_guardian_listener.py",
+        "chief_guardian_sender.py",
+        "guardian_watchdog.py",
+        "guardian_protected_access_gate_spec.py",
+        "tests/test_guardian_watchdog.py",
+        "tests/test_guardian_protected_access_gate_spec.py",
+    ],
+}
+
+
+def _no_response_profile(agent: str, files: list[str]) -> dict[str, Any]:
+    agent_label = agent.capitalize()
+    shared_files = [
+        "no_response_watchdog.py",
+        "hermes_observer.py",
+        "self_improvement_request.py",
+        "tests/test_no_response_watchdog.py",
+        "tests/test_hermes_observer.py",
+    ]
+    tests = [
+        "/home/openclaw/chief_env/bin/python -m pytest -q tests/test_no_response_watchdog.py tests/test_hermes_observer.py",
+    ]
+    extra_tests = [path for path in files if path.startswith("tests/")]
+    if extra_tests:
+        tests.append("/home/openclaw/chief_env/bin/python -m pytest -q " + " ".join(extra_tests))
+    return {
+        "scope": [
+            f"Use no_response_watchdog evidence to join deposited bridge requests against {agent} response receipts.",
+            f"Diagnose {agent_label} listener/processor service state read-only; do not auto-restart production services.",
+            "Keep any recovery proposal Guardian-gated and preserve per-agent lane attribution.",
+        ],
+        "allowed_files": [*shared_files, *files],
+        "success_criteria": [
+            f"Old unanswered {agent} requests emit a grounded no_response_{agent} suggestion.",
+            "Requests with a matching terminal response or processing marker do not fire.",
+            "The Hermes fleet loop files the suggestion through the existing Chief/Guardian gate without auto-restart or approval bypass.",
+        ],
+        "tests_to_run": tests,
+    }
+
+
+for _agent, _files in _NO_RESPONSE_AGENT_FILES.items():
+    _SELF_IMPROVEMENT_PACKAGE_PROFILES.setdefault(
+        f"no_response_{_agent}",
+        _no_response_profile(_agent, _files),
+    )
+
+
 def _nonempty_package_value(value: Any) -> bool:
     if isinstance(value, str):
         return bool(value.strip())
