@@ -383,6 +383,50 @@ BAD_PHRASE_REPLACEMENTS = (
 
 BAD_PHRASES = tuple(phrase for phrase, _replacement in BAD_PHRASE_REPLACEMENTS)
 
+HUMOR_DEGRADED_TERMS = (
+    "couldn't reach",
+    "could not reach",
+    "can't reach",
+    "cannot reach",
+    "unreachable",
+    "re-run --auth",
+    "rerun --auth",
+    "auth failed",
+    "authentication failed",
+    "authorization failed",
+    "permission denied",
+    "broken",
+    "degraded",
+    "failed",
+    "failure",
+    "error",
+    "errored",
+    "blocked",
+    "not ready",
+    "offline",
+    "crash-loop",
+    "crash loop",
+    "timed out",
+    "timeout",
+    "fallback",
+)
+
+HUMOR_GROUNDING_FAILURE_KEYS = (
+    "grounding_failed",
+    "grounding_violation",
+    "ungrounded_output_blocked",
+    "validation_failed",
+    "role_output_blocked",
+)
+
+HUMOR_AUTO_HEAL_KEYS = (
+    "auto_heal_landed",
+    "auto_healed",
+    "self_heal_landed",
+    "self_heal_completed",
+    "self_heal_succeeded",
+)
+
 AGENT_TASTE_FORBIDDEN = {
     "CHIEF": (
         "you got this",
@@ -1966,6 +2010,136 @@ def _brain_receipt_local_invoked(receipt: Mapping[str, Any]) -> bool:
 def _brain_receipt_external_invoked(receipt: Mapping[str, Any]) -> bool:
     route = _brain_receipt_route(receipt)
     return bool(receipt.get("external_llm_invoked") is True or route.startswith("external"))
+
+
+def _any_truthy_key(mappings: tuple[Mapping[str, Any], ...], keys: tuple[str, ...]) -> bool:
+    for mapping in mappings:
+        for key in keys:
+            if mapping.get(key) is True:
+                return True
+    return False
+
+
+def _humor_health_gate(
+    response: OpenClawResponseForMac,
+    layered_fields: Mapping[str, Any],
+    response_author: str,
+) -> dict[str, Any]:
+    """Return the health receipt that gates conversational comedy.
+
+    This intentionally reads the same protected-generate receipt used for model
+    telemetry. Humor is only a diagnostic signal when the current turn is truly
+    healthy; fallback/error/degraded reports must stay plain.
+    """
+    import operator_surface_guard
+
+    author = str(response_author or "OPENCLAW_SYSTEM").strip().upper() or "OPENCLAW_SYSTEM"
+    receipt = _brain_receipt_for_response(response)
+    route = _brain_receipt_route(receipt)
+    fallback_reason = str(receipt.get("model_fallback_reason") or "").strip()
+    deterministic_fallback_used = bool(receipt.get("deterministic_fallback_used") is True)
+    model_call_performed = _brain_receipt_model_performed(receipt)
+    model_output_delivered_raw = receipt.get("model_output_delivered")
+    model_output_delivered = model_output_delivered_raw is not False
+    model_ok = bool(
+        model_call_performed
+        and model_output_delivered
+        and not deterministic_fallback_used
+        and fallback_reason in {"", "model_ok"}
+    )
+
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    proof_response = response.proof_to_response if isinstance(response.proof_to_response, Mapping) else {}
+    auto_heal_landed = _any_truthy_key((receipt, proof_response, detail), HUMOR_AUTO_HEAL_KEYS)
+    grounding_intact = not _any_truthy_key((receipt, proof_response, detail), HUMOR_GROUNDING_FAILURE_KEYS)
+    if fallback_reason in {"validation_failed", "truncated"}:
+        grounding_intact = False
+
+    health_text = " ".join(
+        str(item or "")
+        for item in (
+            response.operator_headline,
+            response.operator_message,
+            response.why_it_happened,
+            response.how_to_fix,
+            response.blocked_reason,
+            layered_fields.get("headline"),
+            layered_fields.get("one_line_answer"),
+            layered_fields.get("eliwinship"),
+            layered_fields.get("primary_status"),
+            layered_fields.get("primary_blocker"),
+            layered_fields.get("detail_summary"),
+        )
+    )
+    degraded_text_present = _contains_any(health_text, HUMOR_DEGRADED_TERMS)
+    subsystem_functioning = bool(
+        response.internal_status == "RESPONSE_READY"
+        and not str(response.blocked_reason or "").strip()
+        and not degraded_text_present
+    )
+    if auto_heal_landed and response.internal_status == "RESPONSE_READY":
+        subsystem_functioning = True
+
+    agent_humor_rank = operator_surface_guard.FUNNY_RANKING.get(author, 0)
+    agent_allows_humor = agent_humor_rank >= operator_surface_guard.COMEDY_RANK_FLOOR
+
+    suppression_reasons: list[str] = []
+    if str(response.request_type or "").upper() != "CHAT":
+        suppression_reasons.append("non_chat_surface")
+    if not model_ok:
+        if deterministic_fallback_used or "fallback" in route:
+            suppression_reasons.append("deterministic_fallback")
+        else:
+            suppression_reasons.append("model_not_ok")
+    if not grounding_intact:
+        suppression_reasons.append("grounding_not_intact")
+    if not subsystem_functioning:
+        suppression_reasons.append("subsystem_degraded")
+    if not agent_allows_humor:
+        suppression_reasons.append("agent_humor_rank_below_floor")
+
+    health_allows_humor = not suppression_reasons
+    comedy_gate = operator_surface_guard.check_comedy_gate(
+        agent_role=author,
+        error_flags=0 if grounding_intact and subsystem_functioning else 1,
+        process_hung=False,
+        high_risk_context=not health_allows_humor,
+        payload_hash=str(response.source_request_id or layered_fields.get("response_id") or ""),
+    )
+    return {
+        "schema_version": "humor_health_gate_v0",
+        "health_allows_humor": health_allows_humor,
+        "plain_register_required": not health_allows_humor,
+        "suppression_reasons": tuple(dict.fromkeys(suppression_reasons)),
+        "model_ok": model_ok,
+        "model_call_performed": model_call_performed,
+        "model_output_delivered": model_output_delivered,
+        "deterministic_fallback_used": deterministic_fallback_used,
+        "protected_generate_route": route,
+        "model_fallback_reason": fallback_reason,
+        "grounding_intact": grounding_intact,
+        "subsystem_functioning": subsystem_functioning,
+        "subsystem_degraded_terms_present": degraded_text_present,
+        "auto_heal_landed": auto_heal_landed,
+        "response_author": author,
+        "agent_humor_rank": agent_humor_rank,
+        "per_agent_calibration_source": "operator_surface_guard.FUNNY_RANKING",
+        "comedy_gate": {
+            "comedy_eligible": comedy_gate.comedy_eligible,
+            "comedy_hard_locked": comedy_gate.comedy_hard_locked,
+            "kill_switch_reason": comedy_gate.kill_switch_reason,
+            "agent_humor_rank": comedy_gate.agent_humor_rank,
+            "golden_ratio_passed": comedy_gate.golden_ratio_passed,
+            "machine_proof": dict(comedy_gate.machine_proof),
+        },
+        "machine_proof": {
+            "real_brain_receipt_used": bool(receipt),
+            "model_health_read_from_receipt": True,
+            "per_agent_calibration_reused": True,
+            "humor_text_mutation_performed": False,
+            "humor_external_action_performed": False,
+        },
+    }
 
 
 def _model_backend_selection_from_brain_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
@@ -7833,9 +8007,12 @@ def _enrich_operator_surface(
         # Responding agent — the same deterministic routing used for voice authorship.
         try:
             layered = _layered_response_fields(response, created_at=utc_now())
-            author = str(_voice_authorship_fields(response, layered).get("response_author") or "OPENCLAW_SYSTEM")
+            voice_fields = _voice_authorship_fields(response, layered)
+            author = str(voice_fields.get("response_author") or "OPENCLAW_SYSTEM")
+            humor_health_gate = _humor_health_gate(response, layered, author)
         except Exception:
             author = "OPENCLAW_SYSTEM"
+            humor_health_gate = {"health_allows_humor": False}
         agent_id = author.strip().lower() or "openclaw_system"
         # The operator's question — for comedy relevance scoping + claim-detection context.
         question = ""
@@ -7860,6 +8037,7 @@ def _enrich_operator_surface(
             str(response.request_type or "").upper() == "CHAT"
             and not str(getattr(response, "blocked_reason", "") or "").strip()
             and not safety_surface
+            and humor_health_gate.get("health_allows_humor") is True
         )
         from reply_pipeline import apply_reply_pipeline
 
@@ -8357,6 +8535,11 @@ def build_payloads(
     voice_fields = _voice_authorship_fields(response, layered_fields)
     spoken_packet = _enforce_spoken_packet_taste(_spoken_response_packet(response, layered_fields, voice_fields))
     visual_package = _visual_event_package(response, layered_fields, voice_fields)
+    humor_health_gate = _humor_health_gate(
+        response,
+        layered_fields,
+        str(voice_fields.get("response_author") or "OPENCLAW_SYSTEM"),
+    )
     response_payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": RESPONSE_READ_MODEL_ID,
@@ -8368,6 +8551,7 @@ def build_payloads(
         **asdict(response),
         "spoken_response_packet": spoken_packet,
         "visual_event_package": visual_package,
+        "humor_health_gate": humor_health_gate,
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
@@ -8436,6 +8620,15 @@ def build_payloads(
             "bad_phrase_blockers_passed": taste_guardrails["bad_phrase_blockers_passed"],
             "agent_voice_taste_rules_passed": taste_guardrails["agent_voice_rules_passed"],
             "duplicate_sentence_reduction_passed": taste_guardrails["duplicate_sentence_reduction_passed"],
+            "humor_health_gate_present": True,
+            "humor_health_allows_humor": humor_health_gate["health_allows_humor"],
+            "humor_plain_register_required": humor_health_gate["plain_register_required"],
+            "humor_health_model_ok": humor_health_gate["model_ok"],
+            "humor_health_grounding_intact": humor_health_gate["grounding_intact"],
+            "humor_health_subsystem_functioning": humor_health_gate["subsystem_functioning"],
+            "humor_health_auto_heal_landed": humor_health_gate["auto_heal_landed"],
+            "humor_agent_humor_rank": humor_health_gate["agent_humor_rank"],
+            "humor_per_agent_calibration_reused": humor_health_gate["machine_proof"]["per_agent_calibration_reused"],
             "guardian_output_gate_present": True,
             "guardian_output_gate_used": guardian_gate_payload["machine_proof"]["guardian_output_gate_used"],
             "role_output_validator_used": guardian_gate_payload["machine_proof"]["role_output_validator_used"],

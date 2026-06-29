@@ -331,11 +331,36 @@ def test_date_query_answered_deterministically_without_handle():
     assert calls == []
 
 
-def test_status_capability_query_answers_from_read_models_without_handle(tmp_path):
+def test_status_capability_query_routes_read_model_facts_through_brain_without_handle(tmp_path):
     read_model_root = _seed_truthful_status_read_models(tmp_path)
 
     def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
         raise AssertionError("status/capability readback must not call cassandra_brain.handle")
+
+    def protected_generate(text: str, *, context_packet: dict[str, object]) -> dict[str, object]:
+        facts = context_packet["facts"]
+        values = "\n".join(str(fact["value"]) for fact in facts)
+        assert "2 agents are online" in values
+        assert "Bounded request processor" in values
+        assert "Unified status readback" in values
+        return {
+            "text": (
+                "Here is what I can actually see right now: 2 agents are online; "
+                "Bounded request processor is live; Unified status readback is present. "
+                "I cannot claim email send."
+            ),
+            "receipt": {
+                "decision": "ALLOW_TOKENIZED_MODEL_REASONING",
+                "model_call_performed": True,
+                "local_model_invoked": True,
+                "external_llm_invoked": False,
+                "route": "local_ollama_frontdoor",
+                "model_selected": "qwen3:8b-q4_K_M",
+                "model_output_delivered": True,
+                "model_fallback_reason": "model_ok",
+                "deterministic_fallback_used": False,
+            },
+        }
 
     result = maestro.answer_frontdoor_chat(
         "Hermes, what's going on? What can you do now?",
@@ -344,6 +369,7 @@ def test_status_capability_query_answers_from_read_models_without_handle(tmp_pat
             "system_knowledge_repo_root": "/home/openclaw",
         },
         handle_fn=forbidden_handle,
+        protected_generate_fn=protected_generate,
     )
 
     assert result.status == "ANSWER_READY"
@@ -355,6 +381,8 @@ def test_status_capability_query_answers_from_read_models_without_handle(tmp_pat
     assert "I cannot claim email send" in result.plain_summary
     assert result.session_forwarded == {"system_knowledge_repo_root": "/home/openclaw"}
     assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["protected_generate_called"] is True
+    assert result.machine_proof["model_call_performed"] is True
     assert result.machine_proof["capability_index_used"] is True
     assert result.machine_proof["agent_presence_used"] is True
     assert result.machine_proof["chief_status_rail_used"] is True
@@ -478,7 +506,7 @@ def test_status_capability_missing_index_fails_closed_without_fake_claim(tmp_pat
 
     assert result.status == "ANSWER_READY"
     assert result.allowed_to_call_handle is False
-    assert "cannot truthfully list capabilities" in result.plain_summary
+    assert "don't have that in the current Maestro packet" in result.plain_summary
     assert result.machine_proof["capability_index_used"] is False
     assert result.machine_proof["live_implemented_capability_count"] == 0
 
@@ -876,7 +904,7 @@ def test_processor_routes_general_status_query_to_truthful_responder(tmp_path):
     assert responder["machine_proof"]["cassandra_handle_called"] is False
     assert responder["machine_proof"]["capability_index_used"] is True
     assert response.worker_route_refs[0]["backend_route"] == (
-        "maestro_cassandra_responder.truthful_status_capability_readback"
+        "maestro_cassandra_responder.protected_generate.status_capability_context"
     )
 
 
