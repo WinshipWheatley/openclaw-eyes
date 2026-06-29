@@ -215,7 +215,11 @@ TASK:
    - BLOCKED: needs operator approval, is gated, or cannot proceed without a human decision → surfaces block to operator
    - UNCERTAIN: ambiguous or impossible to classify with high confidence → safe deterministic fallback
 
-2. Select the 0-5 most relevant read-models from the list above (by exact filename) that would help answer this message.
+2. Select read-models ONLY when the message CLEARLY needs that specific data to answer
+   (e.g. it asks about gigs, invoices/money, the calendar, agent/system status, work items).
+   For casual conversation, greetings, small talk, acknowledgements, or anything with no
+   clear data need, select NONE — an empty list []. Prefer FEWER; never reach for a
+   tangentially-related model. When in doubt, select none. Hard max 3.
 
 3. Rate your confidence 0.00 to 1.00.
 
