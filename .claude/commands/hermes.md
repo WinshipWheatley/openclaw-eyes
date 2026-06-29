@@ -29,9 +29,11 @@ Hermes' default maintenance posture is:
 - `sidecar_adapter` only when a task names a bounded adapter inspection or
   contract path.
 
-`hermes-gateway.service` may exist, but it should remain stopped if crash-looping
-or policy-unbounded. Do not launch generic Hermes sidecars from stale
-assumptions.
+`hermes-gateway.service` may exist, but it should remain stopped if policy-
+unbounded or crash-looping for an unknown reason. The stale `gateway.pid` crash
+loop was fixed in `sidecars/hermes/gateway/status.py`; when an active task
+explicitly authorizes bounded recovery, diagnose that case as a stale-PID
+cleanup/restart rather than applying the old "leave it stopped" guidance.
 
 ## Files to Inspect
 
@@ -124,7 +126,9 @@ unless the active task explicitly authorizes it.
 
 ## Current Known Caveats
 
-- Hermes gateway may be unsafe to start if crash-looping or policy-unbounded.
+- Hermes gateway may be unsafe to start if crash-looping for an unknown reason
+  or policy-unbounded; stale `gateway.pid` cleanup is a known fixed recovery
+  case when the active task explicitly authorizes runtime recovery.
 - Some `sidecars/hermes/` files look like runnable agent or MCP entry points;
   treat them as off-limits unless explicitly scoped.
 - Read-model inventory can describe sidecar posture without launching it.
