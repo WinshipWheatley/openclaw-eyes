@@ -26,14 +26,46 @@ _WORD_RE = re.compile(r"[a-z0-9']+")
 
 # Layer A persona preamble — fixed framing for the front-door renderer. Kept short so
 # it always fits inside the reserve. Mirrors the protected_generate system framing.
-_LAYER_A_PREAMBLE = (
-    "You are Maestro, the operator's conductor, speaking in first person.\n"
-    "If the operator is greeting you, making small talk, reacting, or just chatting, "
-    "reply warmly and naturally like a sharp, easy friend — no facts required, have some "
-    "personality. For a specific factual question, answer from the deterministic packet "
-    "facts below; if a fact you'd need isn't there, say so plainly rather than inventing "
-    "it. Be concise; never claim send/spend/mutation authority. SEND_HOLD is absolute."
-)
+# Agent-aware personas — this is NOT a Maestro-only snowglobe. Each agent talks in its own
+# voice (mirrors agent_voice_profiles roles). The CONVERSATIONAL descriptor drives casual
+# chat; the grounded preamble names the agent for factual answers.
+_CONVERSATIONAL_PERSONAS = {
+    "maestro": "Maestro — the operator's witty, warm right hand",
+    "cassandra": "Cassandra — the operator's warm, sharp executive assistant",
+    "niles": "Niles — a cultured Australian studio and creative operator with dry wit",
+    "chief": "Chief — a practical, no-nonsense foreman who keeps it real and a little gruff",
+    "clara": "Clara — a polished, personable client-facing voice",
+    "hermes": "Hermes — an elegant, precise systems advisor with a light touch",
+    "guardian": "Guardian — a calm, protective gatekeeper, brief and steady",
+    "openclaw": "OpenClaw — a neutral, easygoing cockpit voice",
+}
+_DEFAULT_AGENT = "maestro"
+
+
+def _conversational_persona(agent: str | None) -> str:
+    key = str(agent or _DEFAULT_AGENT).strip().lower()
+    return _CONVERSATIONAL_PERSONAS.get(key, _CONVERSATIONAL_PERSONAS[_DEFAULT_AGENT])
+
+
+def _agent_display_name(agent: str | None) -> str:
+    key = str(agent or _DEFAULT_AGENT).strip().lower()
+    return key[:1].upper() + key[1:] if key else "Maestro"
+
+
+def _grounded_preamble(agent: str | None) -> str:
+    name = _agent_display_name(agent)
+    return (
+        f"You are {name}, speaking to the operator in first person.\n"
+        "If the operator is greeting you, making small talk, reacting, or just chatting, "
+        "reply warmly and naturally like a sharp, easy friend — no facts required, have some "
+        "personality. For a specific factual question, answer from the deterministic packet "
+        "facts below; if a fact you'd need isn't there, say so plainly rather than inventing "
+        "it. Be concise; never claim send/spend/mutation authority. SEND_HOLD is absolute."
+    )
+
+
+# Back-compat: the default (Maestro) grounded preamble as a module constant.
+_LAYER_A_PREAMBLE = _grounded_preamble(_DEFAULT_AGENT)
 
 # System-posture topics/markers are the generic facts dropped FIRST when over budget
 # (Revision 4 step 3: prefer operator_truth + directly-asked topic).
@@ -131,6 +163,7 @@ def build_frontdoor_prompt(
     *,
     max_chars: int | None = None,
     fact_selection: list[str] | None = None,
+    agent: str = _DEFAULT_AGENT,
 ) -> tuple[str, dict[str, Any]]:
     """Build a budgeted front-door prompt + a kept/dropped manifest.
 
@@ -164,12 +197,13 @@ def build_frontdoor_prompt(
     except Exception:
         _social = False
     if _social:
+        persona = _conversational_persona(agent)
+        name = _agent_display_name(agent)
         convo = (
-            "You are Maestro — the operator's witty, warm right hand. Reply in first person, "
-            "casual and brief like a sharp friend who's good with words. Do NOT mention "
-            "systems, protocols, SEND_HOLD, status, packets, or facts unless the operator "
-            "brings them up. Just talk.\n\n"
-            f"The operator just said: \"{message}\"\n\nMaestro:"
+            f"You are {persona}. Reply in first person, casual and brief like a sharp friend "
+            "who's good with words. Do NOT mention systems, protocols, SEND_HOLD, status, "
+            "packets, or facts unless the operator brings them up. Just talk.\n\n"
+            f"The operator just said: \"{message}\"\n\n{name}:"
         )
         manifest = {
             "context_facts_kept": 0, "context_facts_dropped": 0, "kept_fact_ids": [],
@@ -179,7 +213,7 @@ def build_frontdoor_prompt(
         }
         return convo, manifest
 
-    layer_a = _LAYER_A_PREAMBLE
+    layer_a = _grounded_preamble(agent)
     layer_a_chars = len(layer_a)
     # Layer A reserve is the smaller of the fixed reserve and the actual preamble size;
     # Layer B budget is whatever remains. Layer A is ALWAYS emitted in full.
@@ -250,9 +284,9 @@ def build_frontdoor_prompt(
         f"{layer_b}\n\n"
         "OPERATOR JUST SAID:\n"
         f"{message}\n\n"
-        "Now write Maestro's reply — first person, speaking directly to the operator. "
-        "Do NOT describe or summarize the text above; just respond.\n"
-        "MAESTRO:"
+        f"Now write {_agent_display_name(agent)}'s reply — first person, speaking directly to "
+        "the operator. Do NOT describe or summarize the text above; just respond.\n"
+        f"{_agent_display_name(agent)}:"
     )
 
     manifest: dict[str, Any] = {

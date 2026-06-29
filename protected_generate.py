@@ -723,12 +723,16 @@ _SOCIAL_INTENT_MARKERS = (
     "that's awesome", "sweet", "dope", "right on", "thanks", "thank you", "appreciate",
     "congrats", "amazing", "i hear", "i heard", "heard you", "glad", "proud of",
 )
+# NOT a round-robin: with the conversational lane the MODEL writes casual replies (varied,
+# human). This single line is only the rare model-DOWN backstop — if the operator sees it
+# repeat, the local model was unreachable (a real signal), not canned chat.
 _SOCIAL_BACKSTOP_LINES = (
-    "Hey — good to hear from you. What's on your mind?",
-    "Ha, yeah. What do you need?",
-    "I'm around. What're you throwing at me?",
-    "Right here. What's up?",
+    "Give me a sec — I'm having trouble thinking straight right now. Hit me again in a bit?",
 )
+
+
+def _social_backstop_line() -> str:
+    return _SOCIAL_BACKSTOP_LINES[0]
 
 
 def _is_social_intent(prompt: str) -> bool:
@@ -741,14 +745,13 @@ def _is_social_intent(prompt: str) -> bool:
 
 
 def _social_backstop(prompt: str) -> str:
-    idx = int(hashlib.sha256(str(prompt or "").encode("utf-8")).hexdigest(), 16) % len(_SOCIAL_BACKSTOP_LINES)
-    return _SOCIAL_BACKSTOP_LINES[idx]
+    return _social_backstop_line()
 
 
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
     # Pure-social message with no factual/schedule intent: never deflect with "won't invent
-    # it" — there's no fact at stake. (This is the deterministic backstop; with the
-    # conversational preamble the model normally answers these directly.)
+    # it" — there's no fact at stake. The conversational lane has the MODEL write these; this
+    # single line is only the rare model-down backstop (a repeat = the model was unreachable).
     if _is_social_intent(prompt):
         return _social_backstop(prompt)
     packet = _packet_mapping(context_packet)
@@ -925,6 +928,7 @@ def protected_generate_with_receipt(
     context_facts_kept: int | None = None,
     context_facts_dropped: int | None = None,
     prompt_chars: int | None = None,
+    agent: str = "maestro",
 ) -> ProtectedGenerateOutcome:
     """Generate text through graded PII tokenization and an audit receipt.
 
@@ -1015,6 +1019,7 @@ def protected_generate_with_receipt(
             system_prompt, fd_prompt_manifest = build_frontdoor_prompt(
                 _tokenized_frontdoor_packet(packet, tier, ledger),
                 safe_prompt,
+                agent=agent,
             )
         except Exception:
             fd_prompt_manifest = {}
