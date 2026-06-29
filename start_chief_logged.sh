@@ -1,36 +1,68 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-LOGFILE=/mnt/c/OpenClaw/logs/start_chief_debug.log
+usage() {
+    cat <<'USAGE'
+Usage: start_chief_logged.sh [--dry-run]
 
-mkdir -p /mnt/c/OpenClaw/logs
+Slice 4 contract:
+  no args     Report the refused legacy Chief stack launch. No live action occurs.
+  --dry-run   Report the refused legacy Chief stack launch. No live action occurs.
+  --help      Show this usage.
 
-{
-  echo "===== $(date) ====="
-  echo "start_chief_logged.sh starting"
+No live execution flags are available for this script in Slice 4. Any future
+manual/live behavior belongs to a later explicit ownership decision.
+USAGE
+}
 
-  source ~/chief_env/bin/activate
-  echo "venv activated"
+dry_run=0
+if (($# == 0)); then
+    dry_run=1
+fi
 
-  pkill -f chief_listener.py
-  pkill -f chief_worker.py
-  pkill -f chief_memory_worker.py
-  pkill -f chief_state_worker.py
-  echo "old processes cleared"
+while (($#)); do
+    case "$1" in
+        --dry-run)
+            dry_run=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf 'ERROR: unknown argument: %s\n' "$1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
 
-  nohup python ~/chief_listener.py >> /mnt/c/OpenClaw/logs/listener.out 2>&1 &
-  echo "listener launch attempted"
+report_refusal() {
+    cat <<'REPORT'
+Slice 4 legacy launcher refusal: start_chief_logged.sh
+No live service, process, private environment, or log action was requested or taken.
 
-  nohup python ~/chief_worker.py >> /mnt/c/OpenClaw/logs/worker.out 2>&1 &
-  echo "worker launch attempted"
+Refused historical behavior:
+  - venv activation and credential-dependent startup
+  - pkill of systemd-owned chief_listener/worker/memory_worker/state_worker
+  - unmanaged duplicate (bare-python, nohup) listener/worker startup into listener.out
+  - duplicate getUpdates poller creation that conflicts with the systemd-owned Chief bot
 
-  nohup python ~/chief_memory_worker.py >> /mnt/c/OpenClaw/logs/memory_worker.out 2>&1 &
-  echo "memory worker launch attempted"
+Reason: this launcher overlaps systemd-owned services/listeners/workers (chief-listener,
+chief-worker, chief-memory-worker, chief-state-worker are all `enabled`; user lingering is on,
+so systemd --user is the canonical auto-start). Running it pkills the managed processes and
+relaunches unmanaged duplicates, producing a "terminated by other getUpdates request" conflict
+on the Chief bot. Frozen by docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md.
+Its live/manual future, if any, belongs to a later explicit ownership decision.
+REPORT
+}
 
-  nohup python ~/chief_state_worker.py >> /mnt/c/OpenClaw/logs/state_worker.out 2>&1 &
-  echo "state worker launch attempted"
+if (( dry_run )); then
+    report_refusal
+    exit 0
+fi
 
-  sleep 2
-  ps -ef | grep chief_ | grep -v grep || true
-
-  echo "start_chief_logged.sh done"
-} >> "$LOGFILE" 2>&1
+printf 'ERROR: no live execution mode is available for start_chief_logged.sh in Slice 4.\n' >&2
+usage >&2
+exit 2
