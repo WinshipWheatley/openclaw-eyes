@@ -15,6 +15,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import signal
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,6 +39,7 @@ DEFAULT_ENV_PATH = Path("/home/openclaw/.chief.env")
 DEFAULT_REQUEST_INBOX = Path("/mnt/e/openclaw/mission_control_capture_requests/inbox")
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
 DEFAULT_IMAGE_INTAKE_DIR = Path("/home/openclaw/state/telegram_image_intake/maestro")
+DEFAULT_DEFERRED_IMAGE_MARKER_DIR = Path("/home/openclaw/state/operator_file_metadata_intake/pending_vision")
 DEFAULT_RESPONSE_TIMEOUT_S = 45.0
 DEFAULT_RESPONSE_POLL_INTERVAL_S = 0.25
 
@@ -321,17 +323,179 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def build_operator_maestro_image_request(
+def _which(tool: str) -> str | None:
+    return shutil.which(tool)
+
+
+def _read_json_file(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+_IMAGE_AGENT_SURFACES = {
+    "maestro": {
+        "source_channel": "maestro_listener",
+        "origin_surface": "telegram_pc_maestro_listener",
+        "lane": "telegram_pc_maestro_listener",
+        "active_surface_ref": "operator_maestro_chat",
+        "thread_ref": "operator_maestro_chat",
+        "thread_title": "Maestro",
+        "expected_speaker": "Maestro",
+        "expected_actor": "maestro",
+    },
+    "cassandra": {
+        "source_channel": "cassandra_listener",
+        "origin_surface": "telegram_pc_cassandra_listener",
+        "lane": "telegram_pc_cassandra_listener",
+        "active_surface_ref": "operator_cassandra_chat",
+        "thread_ref": "operator_cassandra_chat",
+        "thread_title": "Cassandra",
+        "expected_speaker": "Cassandra",
+        "expected_actor": "cassandra",
+    },
+    "niles": {
+        "source_channel": "niles_producer_listener",
+        "origin_surface": "telegram_pc_niles_listener",
+        "lane": "telegram_pc_niles_listener",
+        "active_surface_ref": "operator_niles_chat",
+        "thread_ref": "operator_niles_chat",
+        "thread_title": "Niles",
+        "expected_speaker": "Niles",
+        "expected_actor": "niles",
+    },
+    "chief": {
+        "source_channel": "chief_listener",
+        "origin_surface": "telegram_pc_chief_listener",
+        "lane": "telegram_pc_chief_listener",
+        "active_surface_ref": "operator_chief_chat",
+        "thread_ref": "operator_chief_chat",
+        "thread_title": "Chief",
+        "expected_speaker": "Chief",
+        "expected_actor": "chief",
+    },
+    "guardian": {
+        "source_channel": "guardian_listener",
+        "origin_surface": "telegram_pc_guardian_listener",
+        "lane": "telegram_pc_guardian_listener",
+        "active_surface_ref": "operator_guardian_chat",
+        "thread_ref": "operator_guardian_chat",
+        "thread_title": "Guardian",
+        "expected_speaker": "Guardian",
+        "expected_actor": "guardian",
+    },
+}
+
+
+def _retarget_image_request(
+    request: dict[str, Any],
+    *,
+    agent: str,
+    text: str,
+    message_id: str,
+    chat_id: int | None,
+    created_at: str,
+) -> dict[str, Any]:
+    agent = str(agent or "maestro").strip().lower()
+    surface = _IMAGE_AGENT_SURFACES.get(agent, _IMAGE_AGENT_SURFACES["maestro"])
+    if agent == "maestro":
+        return request
+    request_id = f"{agent}_telegram_{_safe_filename_part(str(message_id))}_{_short_hash(agent, text, message_id, created_at)}"
+    request["request_id"] = request_id
+    request["source_request_id"] = request_id
+    request["active_surface_ref"] = surface["active_surface_ref"]
+    request["origin_surface"] = surface["origin_surface"]
+    request["source_channel"] = surface["source_channel"]
+    request["thread_ref"] = surface["thread_ref"]
+    request["current_thread_ref"] = surface["thread_ref"]
+    request["active_entity_ref"] = surface["thread_ref"]
+    request["thread_title"] = surface["thread_title"]
+    request["lane"] = surface["lane"]
+    request["expected_response_provenance"].update(
+        {
+            "speaker": surface["expected_speaker"],
+            "lane": surface["lane"],
+            "actor": surface["expected_actor"],
+            "surface_ref": surface["active_surface_ref"],
+        }
+    )
+    request["message_provenance"].update(
+        {
+            "lane": surface["lane"],
+            "surface_ref": surface["active_surface_ref"],
+        }
+    )
+    request["correlation"].update(
+        {
+            "request_id": request_id,
+            "telegram_message_id": str(message_id),
+            "telegram_chat_ref": f"sha256:{_short_hash('telegram_chat', chat_id)}" if chat_id is not None else "unknown",
+        }
+    )
+    request["idempotency_key"] = f"{surface['source_channel']}:telegram_image:{message_id}:{request['protected_text_hash']}"
+    request["payload_hash"] = _content_hash(request)
+    return request
+
+
+def _deferred_image_marker_path(marker_dir: Path, *, agent: str, image_sha256: str, message_id: str) -> Path:
+    safe_agent = _safe_filename_part(str(agent or "maestro").lower())
+    safe_message = _safe_filename_part(str(message_id or "image"))
+    return Path(marker_dir) / safe_agent / f"{safe_message}_{image_sha256[:16]}.json"
+
+
+def write_deferred_image_marker(
     image_path: str | Path,
     *,
+    agent: str,
+    caption: str,
+    message_id: str,
+    chat_id: int | None,
+    mime_type: str,
+    ocr_result: Mapping[str, Any] | None,
+    marker_dir: Path = DEFAULT_DEFERRED_IMAGE_MARKER_DIR,
+    created_at: str | None = None,
+) -> dict[str, Any]:
+    image_path = Path(image_path)
+    created_at = created_at or utc_now()
+    image_sha256 = _sha256_file(image_path)
+    marker_path = _deferred_image_marker_path(marker_dir, agent=agent, image_sha256=image_sha256, message_id=message_id)
+    marker = {
+        "schema_version": "operator_image_deferred_vision_v0",
+        "status": "pending_vision_reprocess",
+        "agent": str(agent or "maestro").strip().lower(),
+        "local_path": str(image_path),
+        "sha256": image_sha256,
+        "mime": str(mime_type or "image/jpeg"),
+        "caption": str(caption or "").strip(),
+        "message_id": str(message_id),
+        "chat_id": chat_id,
+        "created_at": created_at,
+        "last_ocr_error": str((ocr_result or {}).get("error") or ""),
+        "raw_image_body_shared_with_model": False,
+        "live_attachment_allowed": False,
+        "next_safe_move": "Re-run local OCR later and write a normal bridge request only if text is extracted.",
+    }
+    marker_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text(stable_json(marker), encoding="utf-8")
+    return {"marker": marker, "marker_path": marker_path}
+
+
+def build_operator_image_request(
+    image_path: str | Path,
+    *,
+    agent: str = "maestro",
     caption: str,
     message_id: str,
     chat_id: int | None,
     mime_type: str = "image/jpeg",
     created_at: str | None = None,
     ocr_fn: Any | None = None,
+    deferred_marker_dir: Path = DEFAULT_DEFERRED_IMAGE_MARKER_DIR,
 ) -> dict[str, Any]:
     image_path = Path(image_path)
+    created_at = created_at or utc_now()
     if ocr_fn is None:
         from oclaw_doctools import ocr_image
 
@@ -339,6 +503,34 @@ def build_operator_maestro_image_request(
     ocr_result = ocr_fn(image_path)
     ocr_text = str(ocr_result.get("text") or "").strip() if isinstance(ocr_result, Mapping) else ""
     caption = str(caption or "").strip()
+    if not (isinstance(ocr_result, Mapping) and ocr_result.get("ok") is True and ocr_text):
+        deferred = write_deferred_image_marker(
+            image_path,
+            agent=agent,
+            caption=caption,
+            message_id=message_id,
+            chat_id=chat_id,
+            mime_type=mime_type,
+            ocr_result=ocr_result if isinstance(ocr_result, Mapping) else {},
+            marker_dir=deferred_marker_dir,
+            created_at=created_at,
+        )
+        return {
+            "schema_version": "operator_image_deferred_vision_v0",
+            "image_input_received": True,
+            "image_deferred_for_reprocess": True,
+            "deferred_marker_path": str(deferred["marker_path"]),
+            "operator_reply": "noted — I can't read it yet, I'll reprocess when vision's back.",
+            "image_ocr": {
+                "method": "tesseract",
+                "ok": False,
+                "text": ocr_text,
+                "confidence": str(ocr_result.get("confidence") or "") if isinstance(ocr_result, Mapping) else "",
+                "error": str(ocr_result.get("error") or "") if isinstance(ocr_result, Mapping) else "",
+            },
+            "raw_image_body_shared_with_model": False,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
     prompt_parts = [
         caption or "Image received.",
         "OCR text from the attached image:",
@@ -347,6 +539,14 @@ def build_operator_maestro_image_request(
     text = "\n\n".join(part for part in prompt_parts if part)
     request = build_operator_maestro_chat_request(
         text,
+        message_id=message_id,
+        chat_id=chat_id,
+        created_at=created_at,
+    )
+    request = _retarget_image_request(
+        request,
+        agent=agent,
+        text=text,
         message_id=message_id,
         chat_id=chat_id,
         created_at=created_at,
@@ -377,6 +577,85 @@ def build_operator_maestro_image_request(
     )
     request["payload_hash"] = _content_hash(request)
     return request
+
+
+def build_operator_maestro_image_request(
+    image_path: str | Path,
+    *,
+    caption: str,
+    message_id: str,
+    chat_id: int | None,
+    mime_type: str = "image/jpeg",
+    created_at: str | None = None,
+    ocr_fn: Any | None = None,
+    deferred_marker_dir: Path = DEFAULT_DEFERRED_IMAGE_MARKER_DIR,
+) -> dict[str, Any]:
+    return build_operator_image_request(
+        image_path,
+        agent="maestro",
+        caption=caption,
+        message_id=message_id,
+        chat_id=chat_id,
+        mime_type=mime_type,
+        created_at=created_at,
+        ocr_fn=ocr_fn,
+        deferred_marker_dir=deferred_marker_dir,
+    )
+
+
+def drain_deferred_image_markers(
+    *,
+    marker_dir: Path = DEFAULT_DEFERRED_IMAGE_MARKER_DIR,
+    ocr_fn: Any | None = None,
+    write_request_fn: Any | None = None,
+) -> dict[str, Any]:
+    if ocr_fn is None:
+        from oclaw_doctools import ocr_image
+
+        ocr_fn = ocr_image
+    write_request_fn = write_request_fn or write_bridge_request
+    marker_dir = Path(marker_dir)
+    resolved = 0
+    still_pending = 0
+    failed = 0
+    results: list[dict[str, Any]] = []
+    for marker_path in sorted(marker_dir.glob("*/*.json")):
+        marker = _read_json_file(marker_path)
+        if marker.get("status") != "pending_vision_reprocess":
+            continue
+        image_path = Path(str(marker.get("local_path") or ""))
+        ocr_result = ocr_fn(image_path)
+        ocr_text = str(ocr_result.get("text") or "").strip() if isinstance(ocr_result, Mapping) else ""
+        if not (isinstance(ocr_result, Mapping) and ocr_result.get("ok") is True and ocr_text):
+            marker["last_ocr_error"] = str(ocr_result.get("error") or "") if isinstance(ocr_result, Mapping) else "ocr_result_not_mapping"
+            marker["last_attempt_at"] = utc_now()
+            marker_path.write_text(stable_json(marker), encoding="utf-8")
+            still_pending += 1
+            continue
+        try:
+            request = build_operator_image_request(
+                image_path,
+                agent=str(marker.get("agent") or "maestro"),
+                caption=str(marker.get("caption") or ""),
+                message_id=str(marker.get("message_id") or image_path.stem),
+                chat_id=marker.get("chat_id"),
+                mime_type=str(marker.get("mime") or "image/jpeg"),
+                ocr_fn=lambda _path, _result=ocr_result: _result,
+            )
+            output_path = write_request_fn(request)
+            marker["status"] = "resolved"
+            marker["resolved_at"] = utc_now()
+            marker["resolved_request_id"] = request["request_id"]
+            marker["request_path"] = str(output_path)
+            marker_path.write_text(stable_json(marker), encoding="utf-8")
+            resolved += 1
+            results.append({"marker_path": str(marker_path), "request_id": request["request_id"], "request_path": str(output_path)})
+        except Exception as exc:
+            marker["last_ocr_error"] = f"drain_error:{type(exc).__name__}"
+            marker["last_attempt_at"] = utc_now()
+            marker_path.write_text(stable_json(marker), encoding="utf-8")
+            failed += 1
+    return {"resolved": resolved, "still_pending": still_pending, "failed": failed, "results": results}
 
 
 def write_bridge_request(
@@ -674,7 +953,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     request_id_for_reply: str | None = None
-    typing_task = asyncio.create_task(_typing_loop(context, chat_id))
+    typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
     try:
         intake_dir = DEFAULT_IMAGE_INTAKE_DIR / _safe_filename_part(message_id)
         intake_dir.mkdir(parents=True, exist_ok=True)
@@ -689,6 +968,9 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             chat_id=chat_id,
             mime_type=mime_type,
         )
+        if request.get("image_deferred_for_reprocess"):
+            await update.message.reply_text(str(request.get("operator_reply") or "noted — I can't read it yet, I'll reprocess when vision's back."))
+            return
         request_id_for_reply = str(request["request_id"])
         write_bridge_request(request)
         response = await poll_bridge_response(request_id_for_reply)
