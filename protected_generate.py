@@ -912,6 +912,19 @@ def _base_receipt(
     }
 
 
+def _strip_speaker_prefix(text: str, agent: str) -> str:
+    """Drop a leading '<AgentName>:' label the front-door model sometimes echoes from the
+    prompt's trailing speaker cue (e.g. 'Maestro: hi' -> 'hi'). Only the agent's OWN name is
+    removed, only at the very start, and only when real content remains after it."""
+    s = str(text or "")
+    name = str(agent or "maestro").strip() or "maestro"
+    match = re.match(r"\s*" + re.escape(name) + r"\s*:\s*", s, re.IGNORECASE)
+    if not match:
+        return s
+    remainder = s[match.end():]
+    return remainder if remainder.strip() else s
+
+
 def protected_generate_with_receipt(
     prompt: str,
     *,
@@ -1235,6 +1248,11 @@ def protected_generate_with_receipt(
         raw_output = _fallback_grounded_answer(raw_prompt, context_packet)
 
     text = ledger.rehydrate(raw_output)
+    # Strip a leading "<AgentName>:" the front-door model occasionally echoes from the
+    # prompt's trailing speaker cue. Gated to delivered model output so the legacy path
+    # (and the grounded fallback text) stay byte-identical.
+    if front_door_profile and fd_model_output_delivered:
+        text = _strip_speaker_prefix(text, agent)
     receipt.update(
         {
             "status": "ANSWER_READY",

@@ -758,3 +758,48 @@ def test_pgwr_flag_off_receipt_matches_baseline_schema(tmp_path):
         "deterministic_fallback_used", "safe_prompt_hash", "audit_ref",
     }
     assert set(legacy_off.receipt.keys()) == baseline_keys
+
+
+# ── front-door: strip the echoed agent speaker-label prefix ───────────────────
+def test_pgwr_frontdoor_strips_echoed_agent_speaker_prefix(tmp_path):
+    # The small local model sometimes echoes the prompt's trailing "Maestro:" speaker cue
+    # at the very start of its reply. The delivered answer must not carry that label.
+    outcome = protected_generate_with_receipt(
+        "hey hows it going",
+        context_packet=_FRONTDOOR_PACKET,
+        generator_fn=_gen_returning("Maestro: hey, all good here — what's up?", done_reason="stop"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+    )
+    assert outcome.receipt["model_fallback_reason"] == "model_ok"
+    assert outcome.text == "hey, all good here — what's up?"
+    assert not outcome.text.lower().startswith("maestro:")
+
+
+def test_pgwr_frontdoor_strips_prefix_per_agent(tmp_path):
+    # Agent-aware: a non-Maestro agent's own label is the one stripped.
+    outcome = protected_generate_with_receipt(
+        "yo",
+        context_packet=_FRONTDOOR_PACKET,
+        generator_fn=_gen_returning("Niles: right then, all sorted.", done_reason="stop"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="niles",
+    )
+    assert outcome.text == "right then, all sorted."
+
+
+def test_pgwr_frontdoor_keeps_non_leading_label_intact(tmp_path):
+    # Only a LEADING own-name label is stripped; a mid-sentence mention is untouched.
+    body = "All good — and yeah, Maestro: is just my name."
+    outcome = protected_generate_with_receipt(
+        "hey hows it going",
+        context_packet=_FRONTDOOR_PACKET,
+        generator_fn=_gen_returning(body, done_reason="stop"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+    )
+    assert outcome.text == body
