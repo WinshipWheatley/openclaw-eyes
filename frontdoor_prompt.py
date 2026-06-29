@@ -200,9 +200,11 @@ def build_frontdoor_prompt(
         persona = _conversational_persona(agent)
         name = _agent_display_name(agent)
         convo = (
-            f"You are {persona}. Reply in first person, casual and brief like a sharp friend "
-            "who's good with words. Do NOT mention systems, protocols, SEND_HOLD, status, "
-            "packets, or facts unless the operator brings them up. Just talk.\n\n"
+            f"You are {persona}. Reply in first person — natural, easy, and short, like "
+            "texting a friend back. Keep it low-key: DON'T try hard, skip the forced "
+            "metaphors, zingers, and filler. One or two plain sentences is plenty. Don't "
+            "mention systems, protocols, SEND_HOLD, status, packets, or facts unless the "
+            "operator brings them up. Just talk like a normal person.\n\n"
             f"The operator just said: \"{message}\"\n\n{name}:"
         )
         manifest = {

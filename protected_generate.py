@@ -1039,7 +1039,8 @@ def protected_generate_with_receipt(
     # Social conversational lane: raise temperature so casual replies read human and are
     # never the same. Factual answers keep the default (low-temp, grounded).
     if front_door_profile and fd_prompt_manifest.get("conversational_lane"):
-        fd_ollama_options = {**fd_ollama_options, "temperature": 0.9, "top_p": 0.95}
+        # Enough heat to vary + sound human, not so much it reaches for zingers/metaphors.
+        fd_ollama_options = {**fd_ollama_options, "temperature": 0.7, "top_p": 0.9}
     fd_keep_alive = _frontdoor_keep_alive() if front_door_profile else None
     fd_model_max_gb = _frontdoor_model_max_gb() if front_door_profile else None
     fd_model_selected = model_selected
