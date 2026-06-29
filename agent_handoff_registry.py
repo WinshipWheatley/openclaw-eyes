@@ -48,7 +48,7 @@ REQUIRED_HANDOFF_REFS = (
     "chief_to_guardian_protected_authority",
     "hermes_to_chief_build_packet",
     "niles_to_chief_creative_build_tooling",
-    "clara_to_cassandra_internal_review_state",
+    "cassandra_external_register_internal_review_state",
 )
 
 COMMON_ALLOWED_ACTIONS = (
@@ -161,6 +161,8 @@ def _handoff(
     package_type: str,
     allowed_actions: tuple[str, ...] = (),
     blocked_actions: tuple[str, ...] = (),
+    from_register: str = "",
+    to_register: str = "",
 ) -> dict[str, Any]:
     allowed = tuple(dict.fromkeys((*COMMON_ALLOWED_ACTIONS, *allowed_actions)))
     blocked = tuple(dict.fromkeys((*COMMON_BLOCKED_ACTIONS, *blocked_actions)))
@@ -169,6 +171,8 @@ def _handoff(
         "from_agent": from_agent,
         "to_agent_or_worker": to_agent_or_worker,
         "channel_ref": channel_ref,
+        "from_register": from_register,
+        "to_register": to_register,
         "trigger_condition": trigger_condition,
         "package_type": package_type,
         "allowed_actions": list(allowed),
@@ -274,15 +278,18 @@ def build_handoffs() -> list[dict[str, Any]]:
             blocked_actions=("publish_creative_artifact_from_handoff", "mutate_creative_source_from_handoff"),
         ),
         _handoff(
-            handoff_ref="clara_to_cassandra_internal_review_state",
-            from_agent="clara",
+            handoff_ref="cassandra_external_register_internal_review_state",
+            from_agent="cassandra",
             to_agent_or_worker="cassandra",
             channel_ref="business_development_capital_hilton",
-            trigger_condition="A client-facing draft artifact exists and needs internal review state, follow-up tracking, or correspondence staging.",
-            package_type="external_draft_internal_review_packet",
+            from_register="clara_reid_external",
+            to_register="cassandra_internal",
+            trigger_condition="Cassandra has a Clara Reid client-facing draft artifact that needs internal review state, follow-up tracking, or correspondence staging.",
+            package_type="external_register_internal_review_packet",
             allowed_actions=(
                 "record_draft_review_state",
                 "request_internal_correspondence_followup",
+                "switch_register_without_agent_handoff",
             ),
             blocked_actions=("send_client_draft_from_handoff", "expose_internal_agent_names_to_client"),
         ),
@@ -309,9 +316,9 @@ def build_examples() -> list[dict[str, Any]]:
         {
             "example_ref": "capital_hilton_proposal_accepted",
             "operator_phrase": "Capital Hilton proposal accepted",
-            "route_summary": "Clara draft state hands back to Cassandra for internal review and finance/business-development follow-up packaging.",
+            "route_summary": "Cassandra switches from the Clara Reid external register to the internal register for review and finance/business-development follow-up packaging.",
             "route_path": [
-                "clara_to_cassandra_internal_review_state",
+                "cassandra_external_register_internal_review_state",
                 "cassandra_to_chief_package_needed",
             ],
             "channel_refs": [

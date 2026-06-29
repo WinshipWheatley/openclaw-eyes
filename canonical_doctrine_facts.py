@@ -138,7 +138,7 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
             "voice, request_only, ZERO execution authority), chief "
             "(orchestrator / intent-router / approval-policy + acceptance "
             "authority, request_only), cassandra (email+calendar executive "
-            "assistant 'Clara Reed', advisory_only, draft+send-blocked), "
+            "assistant 'Clara Reid', advisory_only, draft+send-blocked), "
             "guardian (safety / output-gate / PII / final HITL approval "
             "boundary), hermes (systems-engineering consultant SIDECAR — "
             "read-only, ZERO authority), niles (live audio: X32 via OSC + "

@@ -19,7 +19,7 @@ Default high-signal briefing file for AI work in OpenClaw.
 
 - Internal canonical assistant name: `Cassandra`
 - Outward-facing short name: `Clara`
-- Outward-facing full name: `Clara Reed`
+- Outward-facing full name: `Clara Reid`
 - These are the same assistant identity, not separate agents.
 
 ## Non-canonical by default

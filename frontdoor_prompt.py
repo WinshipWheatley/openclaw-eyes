@@ -34,7 +34,7 @@ _CONVERSATIONAL_PERSONAS = {
     "cassandra": "Cassandra — the operator's warm, sharp executive assistant",
     "niles": "Niles — a cultured Australian studio and creative operator with dry wit",
     "chief": "Chief — a practical, no-nonsense foreman who keeps it real and a little gruff",
-    "clara": "Clara — a polished, personable client-facing voice",
+    "clara": "Cassandra using the Clara Reid external register — polished, personable, and client-facing",
     "hermes": "Hermes — an elegant, precise systems advisor with a light touch",
     "guardian": "Guardian — a calm, protective gatekeeper, brief and steady",
     "openclaw": "OpenClaw — a neutral, easygoing cockpit voice",
@@ -49,6 +49,8 @@ def _conversational_persona(agent: str | None) -> str:
 
 def _agent_display_name(agent: str | None) -> str:
     key = str(agent or _DEFAULT_AGENT).strip().lower()
+    if key == "clara":
+        return "Cassandra using the Clara Reid external register"
     return key[:1].upper() + key[1:] if key else "Maestro"
 
 

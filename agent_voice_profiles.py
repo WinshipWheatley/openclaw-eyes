@@ -136,6 +136,10 @@ def build_profiles() -> list[dict[str, Any]]:
     profiles = [
         {
             "speaker_ref": "cassandra",
+            "agent_id": "cassandra",
+            "register_ref": "cassandra_internal",
+            "register_kind": "internal_operator_facing",
+            "external_register_ref": "clara_reid_external",
             "voice_profile_ref": voice_profile_ref_for_speaker("cassandra"),
             "role": "Executive assistant and human-layer continuity voice for intake, correspondence prep, work logs, and relationship-aware follow-up.",
             "speaks_when": [
@@ -407,8 +411,12 @@ def build_profiles() -> list[dict[str, Any]]:
         },
         {
             "speaker_ref": "clara",
+            "agent_id": "cassandra",
+            "register_ref": "clara_reid_external",
+            "register_kind": "external_client_facing",
+            "internal_register_ref": "cassandra_internal",
             "voice_profile_ref": voice_profile_ref_for_speaker("clara"),
-            "role": "External client-facing business voice for proposals, outreach drafts, email drafts, and client-visible summaries.",
+            "role": "Cassandra's Clara Reid external register for proposals, outreach drafts, email drafts, and client-visible summaries.",
             "speaks_when": [
                 "Proposal email draft copy is being prepared.",
                 "Outreach or client-visible correspondence needs polished wording.",

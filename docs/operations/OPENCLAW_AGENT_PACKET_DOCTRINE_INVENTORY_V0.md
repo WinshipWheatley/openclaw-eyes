@@ -46,7 +46,7 @@
 - **Known Files**: `chief_router.py`, `chief_approval_policy.py`, `chief_approval_brain.py`, `chief_acceptance_gate.py`.
 - **Gaps**: Explicit "Packet" documentation for routing decisions.
 
-### Cassandra / Clara Reed
+### Cassandra / Clara Reid
 - **Status**: MIXED (Core built / Packets implicit)
 - **Role**: Executive assistant for email triage, outreach drafts, and PII-aware correspondence.
 - **Authority Boundary**: Draft creation and triage only. No direct sends without approval. Broker-gated Google access.

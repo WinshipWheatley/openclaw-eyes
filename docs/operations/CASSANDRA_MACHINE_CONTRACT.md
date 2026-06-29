@@ -15,7 +15,7 @@
 - **IMPLIED / NOT FORMALIZED**: Behavior exists in code, but the new packet doctrine has not yet named/tested it as a formal packet schema.
 
 ## Role
-Cassandra (Clara Reed) is the executive assistant for OpenClaw Studios, specializing in:
+Cassandra (Clara Reid) is the executive assistant for OpenClaw Studios, specializing in:
 - Correspondence triage and summarization.
 - Outreach drafting and inner-circle relationship management.
 - PII-aware response synthesis.

@@ -78,9 +78,11 @@ def test_required_routes_target_expected_agents_channels_and_workers(tmp_path):
     assert mac["channel_ref"] == "build_mission_control_mac"
     assert "Excel" in mac["trigger_condition"]
 
-    clara = _handoff(read_model, "clara_to_cassandra_internal_review_state")
-    assert clara["from_agent"] == "clara"
+    clara = _handoff(read_model, "cassandra_external_register_internal_review_state")
+    assert clara["from_agent"] == "cassandra"
     assert clara["to_agent_or_worker"] == "cassandra"
+    assert clara["from_register"] == "clara_reid_external"
+    assert clara["to_register"] == "cassandra_internal"
     assert clara["channel_ref"] == "business_development_capital_hilton"
 
 
@@ -97,7 +99,7 @@ def test_examples_encode_required_escalation_paths(tmp_path):
     assert "build_openclaw_backend" in bug["channel_refs"]
 
     proposal = examples["capital_hilton_proposal_accepted"]
-    assert "clara_to_cassandra_internal_review_state" in proposal["route_path"]
+    assert "cassandra_external_register_internal_review_state" in proposal["route_path"]
     assert proposal["terminal_package_type"] == "package_request_handoff_packet"
     assert "does not mark paid" in proposal["authority_note"]
 

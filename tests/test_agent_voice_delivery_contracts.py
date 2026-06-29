@@ -123,3 +123,39 @@ def test_expected_agents_all_covered_by_profiles():
     profile_refs = {p["speaker_ref"] for p in read_model["profiles"]}
     for agent in EXPECTED_VOICES:
         assert agent in profile_refs, f"Agent '{agent}' missing from voice profiles"
+
+
+def test_clara_is_cassandra_external_register_not_separate_agent():
+    import agent_voice_profiles as avp
+    read_model = avp.build_read_model()
+    profiles = {p["speaker_ref"]: p for p in read_model["profiles"]}
+
+    cassandra = profiles["cassandra"]
+    clara = profiles["clara"]
+
+    assert clara["agent_id"] == "cassandra"
+    assert clara["register_ref"] == "clara_reid_external"
+    assert clara["register_kind"] == "external_client_facing"
+    assert clara["internal_register_ref"] == "cassandra_internal"
+    assert clara["authority_boundary"] == cassandra["authority_boundary"]
+
+
+def test_frontdoor_clara_alias_speaks_as_cassandra_external_register():
+    import frontdoor_prompt
+
+    persona = frontdoor_prompt._conversational_persona("clara")
+
+    assert "Cassandra" in persona
+    assert "Clara Reid" in persona
+    assert "external" in persona.lower()
+
+
+def test_no_clara_reed_typo_in_canonical_doctrine():
+    import json
+    import canonical_doctrine_facts as facts
+
+    payload = json.dumps(facts.SHARED_DOCTRINE_FACTS, sort_keys=True)
+
+    stale_spelling = "Clara " + "Reed"
+    assert stale_spelling not in payload
+    assert "Clara Reid" in payload
