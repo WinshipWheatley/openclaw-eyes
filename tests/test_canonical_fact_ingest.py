@@ -165,6 +165,34 @@ class TestDeduplication:
         assert res2["status"] == "inserted"
         assert res1["content_hash"] != res2["content_hash"]
 
+    def test_same_fact_id_changed_text_replaces_old_indexed_row(self, tmp_db):
+        first = ingest_graded_fact(
+            _minimal_record(fact_id="SD-4", fact_text="OpenClaw agent roster: Clara Reed, fin (finance)."),
+            db_path=tmp_db,
+        )
+        second = ingest_graded_fact(
+            _minimal_record(fact_id="SD-4", fact_text="OpenClaw agent roster: Clara Reid."),
+            db_path=tmp_db,
+        )
+
+        conn = sqlite3.connect(tmp_db)
+        facts = conn.execute("SELECT fact_text, content_hash FROM canonical_facts WHERE fact_id = 'SD-4'").fetchall()
+        old_fts = conn.execute(
+            "SELECT COUNT(*) FROM fts_canonical_facts WHERE content_hash = ?",
+            (first["content_hash"],),
+        ).fetchone()[0]
+        new_fts = conn.execute(
+            "SELECT COUNT(*) FROM fts_canonical_facts WHERE content_hash = ?",
+            (second["content_hash"],),
+        ).fetchone()[0]
+        conn.close()
+
+        assert second["status"] == "replaced"
+        assert len(facts) == 1
+        assert facts[0][0] == "OpenClaw agent roster: Clara Reid."
+        assert old_fts == 0
+        assert new_fts == 1
+
     def test_skipped_does_not_duplicate_fts_row(self, tmp_db):
         record = _minimal_record()
         r1 = ingest_graded_fact(record, db_path=tmp_db)

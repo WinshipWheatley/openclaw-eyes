@@ -19,9 +19,14 @@ import argparse
 import json
 import shutil
 import sqlite3
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import canonical_doctrine_facts as cdf
 import model_selection_doctrine_facts as ms
@@ -54,6 +59,7 @@ def _populate(db: str, allow_production: bool) -> dict:
     return {
         "inserted": res["inserted"] + ms_res["inserted"] + nl_res["inserted"],
         "skipped": res["skipped"] + ms_res["skipped"] + nl_res["skipped"],
+        "replaced": res.get("replaced", 0) + ms_res.get("replaced", 0) + nl_res.get("replaced", 0),
         "ungrounded_skipped": res["ungrounded_skipped"] + ms_res["ungrounded_skipped"] + nl_res["ungrounded_skipped"],
         "total": res["total"] + ms_res["total"] + nl_res["total"],
         "results": [*res.get("results", []), *ms_res.get("results", []), *nl_res.get("results", [])],
@@ -106,7 +112,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"target          : {args.db}")
         print(f"canonical_facts : {before} -> {after}  (+{after - before})")
         print(f"doctrine loader : inserted={res['inserted']} skipped={res['skipped']} "
-              f"ungrounded_skipped={res['ungrounded_skipped']}")
+              f"replaced={res.get('replaced', 0)} ungrounded_skipped={res['ungrounded_skipped']}")
         print("To write for real, re-run with --confirm under a one-use operator approval.")
         return 0
 
@@ -116,6 +122,15 @@ def main(argv: list[str] | None = None) -> int:
     res = _populate(args.db, allow_production=True)
     after = _count(args.db)
     inserted_hashes = [r.get("content_hash") for r in res.get("results", []) if r.get("status") == "inserted"]
+    replaced_facts = [
+        {
+            "fact_id": r.get("fact_id"),
+            "old_content_hash": r.get("old_content_hash"),
+            "content_hash": r.get("content_hash"),
+        }
+        for r in res.get("results", [])
+        if r.get("status") == "replaced"
+    ]
     receipt = {
         "action": "populate_real_ledger",
         "db": args.db,
@@ -123,8 +138,10 @@ def main(argv: list[str] | None = None) -> int:
         "canonical_facts_after": after,
         "inserted": res["inserted"],
         "skipped": res["skipped"],
+        "replaced": res.get("replaced", 0),
         "ungrounded_skipped": res["ungrounded_skipped"],
         "inserted_content_hashes": inserted_hashes,
+        "replaced_facts": replaced_facts,
         "source": "canonical_doctrine_facts.SHARED_DOCTRINE_FACTS + model_selection_doctrine_facts.MODEL_SELECTION_DOCTRINE_FACTS + niles_lane_doctrine_facts.NILES_LANE_DOCTRINE_FACTS",
         "written_at_utc": datetime.now(timezone.utc).isoformat(),
     }

@@ -91,6 +91,41 @@ def test_loader_skips_ungrounded(tmp_path: Path, monkeypatch) -> None:
     assert "SD-TEST-UNGROUNDED" in ids
 
 
+def test_doctrine_actor_validator_rejects_phantom_roster_actor(tmp_path: Path) -> None:
+    record = {
+        "fact_id": "SD-TEST-PHANTOM-ACTOR",
+        "fact_text": "OpenClaw agent roster: phantom (finance/invoicing).",
+        "sensitivity_class": "public_canonical",
+        "allowed_actors": ["chief"],
+        "doc_category": "test",
+        "temporal_or_doctrine": "doctrine",
+        "source_file": "agent_lane_registry.py",
+        "section_heading": "test",
+        "source_commit": "HEAD",
+        "provenance": {
+            "source_file": "agent_lane_registry.py",
+            "basis_quote": "AgentLaneSeed",
+            "grounding_status": "GROUNDED",
+        },
+    }
+
+    result = cdf.validate_doctrine_fact_actors(record, db_path=str(tmp_path / "ledger.sqlite"))
+
+    assert result["ok"] is False
+    assert result["unknown_actors"] == ["phantom"]
+
+
+def test_loader_accepts_corrected_roster_without_fin_residue(tmp_path: Path) -> None:
+    db = str(tmp_path / "doctrine_actor_guard.sqlite")
+    result = cdf.load_doctrine_facts(db)
+
+    held = [r for r in result["results"] if r.get("status") == "actor_validation_failed"]
+    sd4 = next(record for record in cdf.SHARED_DOCTRINE_FACTS if record["fact_id"] == "SD-4")
+    assert "fin (" not in sd4["fact_text"].lower()
+    assert result["actor_validation_failed"] == 0
+    assert held == []
+
+
 def test_loaded_doctrine_is_fts_searchable(tmp_path: Path) -> None:
     db = str(tmp_path / "doctrine_fts.sqlite")
     cdf.load_doctrine_facts(db)

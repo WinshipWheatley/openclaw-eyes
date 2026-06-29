@@ -18,6 +18,13 @@ and a reason. These must NOT be ingested until grounded.
 Author: populate-1b build (curated, not LLM-generated).
 """
 
+from __future__ import annotations
+
+import re
+import sqlite3
+from pathlib import Path
+
+from agent_lane_registry import DEFAULT_AGENT_LANE_SEEDS
 from canonical_fact_ingest import ingest_graded_fact
 
 # ---------------------------------------------------------------------------
@@ -142,7 +149,7 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
             "guardian (safety / output-gate / PII / final HITL approval "
             "boundary), hermes (systems-engineering consultant SIDECAR — "
             "read-only, ZERO authority), niles (live audio: X32 via OSC + "
-            "DAW), fin (finance/invoicing/AR/AP/ledger). Maestro answers "
+            "DAW). Maestro answers "
             "roster questions from this fixed self-knowledge, not the LLM."
         ),
         "sensitivity_class": "public_canonical",
@@ -489,6 +496,56 @@ SHARED_DOCTRINE_FACTS: list[dict] = [
 # Loader: ingest all curated doctrine facts via the single door
 # ---------------------------------------------------------------------------
 
+_ROSTER_SENTENCE_RE = re.compile(r"\bagent roster:\s*(.*?)(?:\.\s|$)", re.IGNORECASE | re.DOTALL)
+_ROSTER_ENTRY_RE = re.compile(r"\b([a-z][a-z0-9_]{1,40})\s*\(")
+
+
+def _seed_actor_ids() -> set[str]:
+    return {seed.agent_id.lower() for seed in DEFAULT_AGENT_LANE_SEEDS}
+
+
+def _live_actor_ids(db_path: str | None) -> set[str]:
+    if not db_path or not Path(db_path).exists():
+        return set()
+    con: sqlite3.Connection | None = None
+    try:
+        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        rows = con.execute("SELECT agent_id FROM agent_lanes").fetchall()
+    except sqlite3.Error:
+        return set()
+    finally:
+        if con is not None:
+            con.close()
+    return {str(row[0]).lower() for row in rows if row and row[0]}
+
+
+def _actor_names_from_fact_text(text: str) -> set[str]:
+    names: set[str] = set()
+    for roster_match in _ROSTER_SENTENCE_RE.finditer(text or ""):
+        roster_text = roster_match.group(1)
+        names.update(match.group(1).lower() for match in _ROSTER_ENTRY_RE.finditer(roster_text))
+    return names
+
+
+def validate_doctrine_fact_actors(record: dict, db_path: str | None = None) -> dict:
+    """Validate doctrine actor references against registered agent lanes."""
+    valid_actors = _seed_actor_ids() | _live_actor_ids(db_path)
+    named_actors = {
+        str(actor).lower()
+        for actor in record.get("allowed_actors", [])
+        if str(actor).strip()
+    }
+    named_actors.update(_actor_names_from_fact_text(record.get("fact_text", "")))
+    unknown_actors = sorted(actor for actor in named_actors if actor not in valid_actors)
+    return {
+        "ok": not unknown_actors,
+        "fact_id": record.get("fact_id"),
+        "named_actors": sorted(named_actors),
+        "valid_actors": sorted(valid_actors),
+        "unknown_actors": unknown_actors,
+    }
+
+
 def load_doctrine_facts(db_path: str, allow_production: bool = False) -> dict:
     """
     Ingest all curated shared-doctrine facts via ingest_graded_fact.
@@ -500,7 +557,9 @@ def load_doctrine_facts(db_path: str, allow_production: bool = False) -> dict:
     """
     inserted = 0
     skipped = 0
+    replaced = 0
     ungrounded_skipped = 0
+    actor_validation_failed = 0
     results = []
 
     for record in SHARED_DOCTRINE_FACTS:
@@ -510,6 +569,15 @@ def load_doctrine_facts(db_path: str, allow_production: bool = False) -> dict:
         if record.get("provenance", {}).get("grounding_status") == "UNGROUNDED":
             ungrounded_skipped += 1
             results.append({"status": "ungrounded_skipped", "fact_id": record.get("fact_id")})
+            continue
+        actor_validation = validate_doctrine_fact_actors(record, db_path=db_path)
+        if not actor_validation["ok"]:
+            actor_validation_failed += 1
+            results.append({
+                "status": "actor_validation_failed",
+                "fact_id": record.get("fact_id"),
+                "unknown_actors": actor_validation["unknown_actors"],
+            })
             continue
         # Build a clean record for ingest_graded_fact (strip provenance —
         # it's an audit/review field, not a canonical_facts column)
@@ -533,13 +601,17 @@ def load_doctrine_facts(db_path: str, allow_production: bool = False) -> dict:
 
         if result["status"] == "inserted":
             inserted += 1
+        elif result["status"] == "replaced":
+            replaced += 1
         else:
             skipped += 1
 
     return {
         "inserted": inserted,
         "skipped": skipped,
+        "replaced": replaced,
         "ungrounded_skipped": ungrounded_skipped,
+        "actor_validation_failed": actor_validation_failed,
         "total": len(SHARED_DOCTRINE_FACTS),
         "results": results,
     }

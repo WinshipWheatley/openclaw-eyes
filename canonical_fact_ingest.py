@@ -15,6 +15,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -94,6 +95,23 @@ def _content_hash(fact_text: str) -> str:
     return hashlib.sha256(fact_text.encode("utf-8")).hexdigest()
 
 
+def _validate_record(record: dict[str, Any], fact_text: str) -> None:
+    if not all([record.get("source_file"), record.get("section_heading"), record.get("source_commit")]):
+        raise ValueError("Missing mandatory provenance fields.")
+    allowed_sensitivity = {"public_canonical", "operational_canonical", "non_sensitive"}
+    sensitivity = record.get("sensitivity_class", "operational_canonical")
+    if sensitivity not in allowed_sensitivity:
+        raise ValueError(f"Invalid sensitivity_class: {sensitivity}")
+    pii_patterns = [
+        r"\d{3}-\d{2}-\d{4}",
+        r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",
+        r"\d{3}-\d{3}-\d{4}",
+    ]
+    for pattern in pii_patterns:
+        if re.search(pattern, fact_text):
+            raise ValueError("PII detected in fact_text.")
+
+
 def _fact_exists_by_hash(conn: sqlite3.Connection, chash: str) -> tuple[bool, str | None]:
     """Return (exists, fact_id_or_None)."""
     row = conn.execute(
@@ -103,6 +121,13 @@ def _fact_exists_by_hash(conn: sqlite3.Connection, chash: str) -> tuple[bool, st
     if row:
         return True, row["fact_id"]
     return False, None
+
+
+def _fact_by_id(conn: sqlite3.Connection, fact_id: str) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT fact_id, content_hash FROM canonical_facts WHERE fact_id = ? LIMIT 1",
+        (fact_id,),
+    ).fetchone()
 
 
 def _index_fact(conn: sqlite3.Connection, fact_id: str, chash: str,
@@ -162,6 +187,7 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None, allow
     fact_text = record.get("fact_text", "")
     if not fact_text or not fact_text.strip():
         raise ValueError("record['fact_text'] cannot be empty.")
+    _validate_record(record, fact_text)
 
     chash = _content_hash(fact_text)
 
@@ -178,6 +204,63 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None, allow
             return {"status": "skipped", "fact_id": existing_id, "content_hash": chash}
 
         fact_id = record.get("fact_id") or f"fact_{chash[:12]}"
+        existing_by_id = _fact_by_id(conn, fact_id)
+
+        if existing_by_id and existing_by_id["content_hash"] != chash:
+            old_hash = existing_by_id["content_hash"]
+            conn.execute(
+                """UPDATE canonical_facts
+                   SET source_file = ?,
+                       section_heading = ?,
+                       source_commit = ?,
+                       content_hash = ?,
+                       fact_text = ?,
+                       sensitivity_class = ?,
+                       allowed_actors = ?,
+                       doc_category = ?,
+                       temporal_or_doctrine = ?,
+                       source_description = ?,
+                       truth_source_id = ?,
+                       truth_status = ?,
+                       verification_required = ?,
+                       verification_evidence_id = ?
+                   WHERE fact_id = ?""",
+                (
+                    record["source_file"],
+                    record["section_heading"],
+                    record["source_commit"],
+                    chash,
+                    fact_text,
+                    record.get("sensitivity_class", "operational_canonical"),
+                    json.dumps(record.get("allowed_actors", [])),
+                    record.get("doc_category"),
+                    record.get("temporal_or_doctrine"),
+                    record.get("source_description"),
+                    record.get("truth_source_id"),
+                    record.get("truth_status", "declared"),
+                    record.get("verification_required", 1),
+                    record.get("verification_evidence_id"),
+                    fact_id,
+                ),
+            )
+            conn.execute("DELETE FROM fts_canonical_facts WHERE content_hash = ?", (old_hash,))
+            conn.execute("DELETE FROM embedding_work_queue WHERE content_hash = ?", (old_hash,))
+            _index_fact(
+                conn,
+                fact_id,
+                chash,
+                fact_text,
+                record.get("section_heading", ""),
+                record.get("doc_category"),
+            )
+            _enqueue_embedding(conn, chash, fact_id)
+            conn.commit()
+            return {
+                "status": "replaced",
+                "fact_id": fact_id,
+                "content_hash": chash,
+                "old_content_hash": old_hash,
+            }
 
         # Delegate write + PII validation to the existing low-level function
         record_canonical_fact(

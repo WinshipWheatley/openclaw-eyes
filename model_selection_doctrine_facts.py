@@ -196,6 +196,7 @@ def load_model_selection_doctrine(db_path: str, allow_production: bool = False) 
     """
     inserted = 0
     skipped = 0
+    replaced = 0
     ungrounded_skipped = 0
     results = []
 
@@ -225,12 +226,15 @@ def load_model_selection_doctrine(db_path: str, allow_production: bool = False) 
 
         if result["status"] == "inserted":
             inserted += 1
+        elif result["status"] == "replaced":
+            replaced += 1
         else:
             skipped += 1
 
     return {
         "inserted": inserted,
         "skipped": skipped,
+        "replaced": replaced,
         "ungrounded_skipped": ungrounded_skipped,
         "total": len(MODEL_SELECTION_DOCTRINE_FACTS),
         "results": results,

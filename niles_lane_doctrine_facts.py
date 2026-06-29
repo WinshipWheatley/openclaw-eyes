@@ -134,6 +134,7 @@ def load_niles_lane_doctrine(db_path: str, allow_production: bool = False) -> di
     """
     inserted = 0
     skipped = 0
+    replaced = 0
     ungrounded_skipped = 0
     results = []
 
@@ -163,12 +164,15 @@ def load_niles_lane_doctrine(db_path: str, allow_production: bool = False) -> di
 
         if result["status"] == "inserted":
             inserted += 1
+        elif result["status"] == "replaced":
+            replaced += 1
         else:
             skipped += 1
 
     return {
         "inserted": inserted,
         "skipped": skipped,
+        "replaced": replaced,
         "ungrounded_skipped": ungrounded_skipped,
         "total": len(NILES_LANE_DOCTRINE_FACTS),
         "results": results,

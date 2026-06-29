@@ -7,12 +7,15 @@ the populator dry-run never writes its target; --confirm writes + emits a revers
 from __future__ import annotations
 
 import sqlite3
+import subprocess
 from pathlib import Path
 
 import pytest
 
 import canonical_doctrine_facts as cdf
 import canonical_fact_ingest as cfi
+import model_selection_doctrine_facts as ms
+import niles_lane_doctrine_facts as nl
 from canonical_fact_ingest import ingest_graded_fact, reconcile_fact_index
 from scripts import populate_real_ledger as prl
 
@@ -30,7 +33,12 @@ def _rec(text: str = "Doctrine fact for guard test.") -> dict:
 
 
 def _grounded_count() -> int:
-    return len([f for f in cdf.SHARED_DOCTRINE_FACTS
+    records = [
+        *cdf.SHARED_DOCTRINE_FACTS,
+        *ms.MODEL_SELECTION_DOCTRINE_FACTS,
+        *nl.NILES_LANE_DOCTRINE_FACTS,
+    ]
+    return len([f for f in records
                 if (f.get("provenance") or {}).get("grounding_status") != "UNGROUNDED"])
 
 
@@ -56,6 +64,21 @@ def test_dry_run_does_not_write(tmp_path):
     rc = prl.main(["--db", db])  # no --confirm -> dry run on a temp copy
     assert rc == 0
     assert _count(db) == before  # real target untouched
+
+
+def test_script_cli_runs_from_repo_root(tmp_path):
+    db = str(tmp_path / "ledger.sqlite")
+    reconcile_fact_index(db)
+    result = subprocess.run(
+        ["python3", "scripts/populate_real_ledger.py", "--db", db],
+        cwd=Path(__file__).resolve().parent.parent,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "DRY RUN" in result.stdout
+    assert _count(db) == 0
 
 
 def test_confirm_writes_then_rollback(tmp_path, monkeypatch):
