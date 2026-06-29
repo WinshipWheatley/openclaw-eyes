@@ -211,10 +211,13 @@ def build_frontdoor_prompt(
                 hint = self_knowledge_hint()
                 if hint:
                     self_note = (
-                        "\n\n(Background you MAY use — only if it fits, and rephrase in your "
-                        "own plain casual words, never quote it or use technical terms: "
-                        f"{hint} If the operator is noticing or praising an improvement, own it "
-                        "genuinely, and you can mention one thing that would help you next.)"
+                        "\n\n(Background you MAY use — rephrase in your own plain casual words, "
+                        f"never quote it or use technical terms: {hint} "
+                        "If the operator is noticing or praising an improvement, own it "
+                        "genuinely. Only bring up the 'next thing that would help' if you "
+                        "genuinely sense they'd want it RIGHT NOW — if it doesn't clearly fit "
+                        "the moment, DON'T mention it at all, just reply naturally. Never force "
+                        "a suggestion, and never invent one beyond what's listed.)"
                     )
         except Exception:
             self_note = ""
