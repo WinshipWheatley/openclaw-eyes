@@ -9,17 +9,25 @@ import json
 import argparse
 import sys
 import os
+from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from business_ops_ledger import resolve_business_ops_ledger_path
 
 DEFAULT_DB_PATH = ".openclaw/business_ops/ledger.sqlite"
 
 def get_connection(db_path: str):
-    if not os.path.exists(db_path):
+    resolved_db_path = resolve_business_ops_ledger_path(db_path)
+    if not os.path.exists(resolved_db_path):
         raise FileNotFoundError(f"Ledger database not found at: {db_path}")
 
     # Use uri=True and mode=ro for strict read-only access
-    return sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    return sqlite3.connect(f"file:{Path(resolved_db_path).as_posix()}?mode=ro", uri=True)
 
 def truncate(text: Any, length: int = 50) -> str:
     s = str(text)
