@@ -69,7 +69,7 @@ class WorkerRuntimeConfig:
     repo_root: Path | None = None
     worktree: Path | None = None
     branch: str = "unknown"
-    model: str = "gemma4:e4b"
+    model: str = "ornith:9b"
     fallback_model: str = ""
     timeout_seconds: int = 3600
     subprocess_timeout_seconds: int | None = None
@@ -101,8 +101,8 @@ class WorkerRuntimeConfig:
                 else None
             ),
             branch=os.environ.get("PHASE_C_BRANCH", "unknown"),
-            model=os.environ.get("PHASE_C_BUILDER_MODEL", "gemma4:e4b"),
-            fallback_model=os.environ.get("PHASE_C_BUILDER_FALLBACK_MODEL", "ornith:9b"),
+            model=os.environ.get("PHASE_C_BUILDER_MODEL", "ornith:9b"),
+            fallback_model=os.environ.get("PHASE_C_BUILDER_FALLBACK_MODEL", "mistral-small:latest"),
             timeout_seconds=int(os.environ.get("PHASE_C_BUILDER_TIMEOUT", "3600")),
             subprocess_timeout_seconds=(
                 int(os.environ["PHASE_C_WORKER_SUBPROCESS_TIMEOUT"])
