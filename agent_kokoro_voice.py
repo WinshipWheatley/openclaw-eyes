@@ -74,6 +74,14 @@ def synth_kokoro_wav(
 ) -> bool:
     """Synthesize text to a 24 kHz WAV using Kokoro-82M."""
 
+    # Speech-tailor the text for the EAR at the universal Kokoro chokepoint, so EVERY
+    # agent (agent_voice_sender, cassandra_voice, maestro_voice, the Hermes service) gets
+    # emoji-free, symbol-spoken audio. The text path the operator reads is never touched.
+    try:
+        from speech_render import to_speech_text
+        text = to_speech_text(text)
+    except Exception:
+        pass
     clean = " ".join(str(text or "").split())
     if not clean:
         return False

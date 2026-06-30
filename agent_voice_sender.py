@@ -14,7 +14,8 @@ import requests
 
 import chief_env  # noqa: F401 - loads .chief.env into os.environ when available
 from agent_kokoro_voice import synth_kokoro_wav, voice_for_agent
-from chief_output_utils import tts_clean
+from chief_output_utils import tts_clean  # noqa: F401 - kept for back-compat
+from speech_render import to_speech_text
 
 
 FIRST_CLASS_AGENTS = ("maestro", "cassandra", "chief", "guardian", "niles", "hermes")
@@ -65,7 +66,9 @@ def _speed_for_agent(agent: str) -> float:
 
 def _prepare_text(text: str) -> str:
     try:
-        clean = tts_clean(str(text or ""))
+        # Speech-tailored render (emoji-free, symbols spoken) — voice path only.
+        # The text path the operator reads is never touched by this.
+        clean = to_speech_text(str(text or ""))
     except Exception:
         clean = str(text or "")
     clean = " ".join(clean.split()).strip()

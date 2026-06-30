@@ -22,7 +22,7 @@ Environment variables
   CASSANDRA_LIVE_BACKEND          live lane backend: kokoro (default) or piper
   CASSANDRA_BATCH_BACKEND         batch lane backend: qwen3 (default), kokoro, or piper
   CASSANDRA_VOICE_LOCAL_ONLY      1 allows local engines only; Kokoro is local
-  CASSANDRA_PREMIUM_BACKEND       optional premium backend, disabled by default
+  CASSANDRA_PREMIUM_BACKEND       optional premium backend, kokoro by default
   CASSANDRA_VOICE_MODEL           Piper .onnx path
                                   default: /home/openclaw/piper_voices/en_GB-jenny_dioco-medium.onnx
   CASSANDRA_VOICE_LENGTH_SCALE    Piper: default 1.15
@@ -56,19 +56,18 @@ from pathlib import Path
 from cassandra_mode import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
 import chief_env
-from agent_kokoro_voice import synth_kokoro_wav, voice_for_agent
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
 VOICE_ENABLED  = os.environ.get("CASSANDRA_VOICE", "0") == "1"
-VOICE_LOCAL_ONLY = os.environ.get("CASSANDRA_VOICE_LOCAL_ONLY", "1") != "0"
+VOICE_LOCAL_ONLY = os.environ.get("CASSANDRA_VOICE_LOCAL_ONLY", "0") == "1"
 LIVE_BACKEND   = os.environ.get("CASSANDRA_LIVE_BACKEND",  "kokoro").lower()
 BATCH_BACKEND  = os.environ.get("CASSANDRA_BATCH_BACKEND", "qwen3").lower()
-PREMIUM_BACKEND = os.environ.get("CASSANDRA_PREMIUM_BACKEND", "").lower()
+PREMIUM_BACKEND = os.environ.get("CASSANDRA_PREMIUM_BACKEND", "kokoro").lower()
 ALLOW_WINDOWS_POWERSHELL_PLAYBACK = os.environ.get("CASSANDRA_ALLOW_WINDOWS_POWERSHELL_PLAYBACK", "0") == "1"
 _LOCAL_TTS_BACKENDS = {"piper", "kokoro"}
 
-_KOKORO_VOICE = os.environ.get("CASSANDRA_KOKORO_VOICE", voice_for_agent("cassandra"))
+_KOKORO_VOICE = os.environ.get("CASSANDRA_KOKORO_VOICE", "af_heart")
 _KOKORO_SPEED = os.environ.get("CASSANDRA_KOKORO_SPEED", "0.9")
 
 # Piper-specific (used as fallback in both lanes)
@@ -315,8 +314,6 @@ def _synth_plugin(text: str, backend_name: str, wav_path: Path) -> bool:
         )
         return False
     try:
-        if backend_key == "kokoro":
-            return synth_kokoro_wav(text, _KOKORO_VOICE, wav_path, speed=float(_KOKORO_SPEED))
         from cassandra_tts_backends import get_backend
         backend = get_backend(backend_name)
         return backend.synthesize(text, wav_path)
@@ -421,34 +418,31 @@ def _mirror_reply_wav_to_live_path() -> None:
         print(f"[cassandra_voice] live mirror failed: {e}", flush=True)
 
 
-def _synthesize_live_lane(text: str, wav_path: Path) -> bool:
+def _synthesize_live_lane(text: str, wav_path: Path) -> str:
+    attempted: set[str] = set()
     if PREMIUM_BACKEND:
         print(
             f"[cassandra_voice] live premium lane={PREMIUM_BACKEND} voice={_KOKORO_VOICE} speed={_KOKORO_SPEED}",
             flush=True,
         )
+        attempted.add(PREMIUM_BACKEND)
         ok = _synth_plugin(text, PREMIUM_BACKEND, wav_path)
         if ok:
-            return True
+            return PREMIUM_BACKEND
 
     backend = LIVE_BACKEND if LIVE_BACKEND != "qwen3" else "kokoro"
     if backend == "piper":
         _synth_piper(text, wav_path)
-        return True
+        return "piper"
 
-    ok = _synth_plugin(text, backend, wav_path)
-    if ok:
-        return True
+    if backend not in attempted:
+        ok = _synth_plugin(text, backend, wav_path)
+        if ok:
+            return backend
 
     print("[cassandra_voice] live fallback -> Piper", flush=True)
-    _log_voice_side_effect(
-        "tts_backend_fallback",
-        f"{backend} failed; falling back to Piper",
-        key=f"tts_backend_fallback:{backend}:piper",
-        force=True,
-    )
     _synth_piper(text, wav_path)
-    return True
+    return "piper"
 
 
 # ── Lane runners (called inside daemon threads) ───────────────────────────────
@@ -459,10 +453,10 @@ def _live_sync(text: str) -> None:
     Qwen3 is never used here regardless of LIVE_BACKEND value.
     """
     try:
-        _synthesize_live_lane(text, _WAV_LIVE)
+        backend = _synthesize_live_lane(text, _WAV_LIVE)
         played, reason = _play_wav(_WIN_WAV_LIVE, _WAV_LIVE)
         if played:
-            print(f"[cassandra_voice] live spoke ({len(text)} chars)", flush=True)
+            print(f"[cassandra_voice] live spoke via {backend} ({len(text)} chars)", flush=True)
         else:
             _log_voice_side_effect("playback_degraded", str(reason or "local playback failed"), key="playback_degraded")
     except Exception as e:

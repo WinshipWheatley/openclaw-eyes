@@ -39,8 +39,14 @@ SPEED="${KOKORO_SPEED:-1.05}"
 
 printf '%s' "$TXT" | AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" "$PYV" -c '
 import sys, os, numpy as np, soundfile as sf
+sys.path.insert(0, "/home/openclaw")
 from kokoro import KPipeline
 text = sys.stdin.read()
+try:  # speech-tailor for the ear (emoji-free, symbols spoken) — same render as every agent
+    from speech_render import to_speech_text
+    text = to_speech_text(text)
+except Exception:
+    pass
 pipe = KPipeline(lang_code="a")
 chunks=[a for _,_,a in pipe(text, voice=os.environ["VOICE"], speed=float(os.environ["SPEED"]))]
 if not chunks: sys.exit(3)
