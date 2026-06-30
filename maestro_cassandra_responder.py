@@ -352,6 +352,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("operator_truth_correction", True, "")
     if _is_operator_truth_query_intent(normalized):
         return ("operator_truth_query", True, "")
+    if _is_advisory_interrogative_intent(normalized):
+        return ("maestro_brain_freeform", True, "")
     if _is_send_or_reply_intent(normalized):
         return ("send_reply_email_action", False, "send_reply_email_action_intent_routes_to_staging")
     if _is_inbox_metadata_intent(normalized):
@@ -1735,6 +1737,26 @@ def _is_send_or_reply_intent(text: str) -> bool:
             text,
         )
         and re.search(r"\b(to|back|subject|body|them|him|her|client|contact|recipient|draft|send|reply|forward)\b", text)
+    )
+
+
+def _is_advisory_interrogative_intent(text: str) -> bool:
+    """True for advice-seeking questions that mention send/pay words without requesting an action."""
+    if re.search(r"^\s*(send|reply|respond|forward|email|mail|message|text|draft|pay|submit|approve)\b", text):
+        return False
+    return bool(
+        re.search(
+            r"\b("
+            r"before i (?:send|pay|reply|respond|forward|email|mail|message|text|submit)|"
+            r"what should i (?:check|verify|look for|watch for|do)|"
+            r"what do i need to (?:check|verify|look for|watch for)|"
+            r"how (?:do|should) i (?:check|verify|make sure|avoid|protect|handle)|"
+            r"is it safe to|"
+            r"should i (?:send|pay|reply|respond|forward|email|mail|message|text|submit|approve)|"
+            r"can i safely"
+            r")\b",
+            text,
+        )
     )
 
 

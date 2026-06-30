@@ -8,6 +8,7 @@ import pytest
 from maestro_cassandra_responder import (
     answer_frontdoor_chat,
     build_truthful_status_capability_answer,
+    classify_frontdoor_intent,
     external_llm_invoked_for_result,
 )
 
@@ -186,6 +187,26 @@ def test_send_calendar_briefing_and_action_phrasings_still_route_to_staging(
     assert external_llm_invoked_for_result(result) is False
     assert result.machine_proof["email_send_performed"] is False
     assert result.machine_proof["runtime_execution_triggered"] is False
+
+
+def test_guardian_advisory_payment_question_routes_to_brain_not_staging() -> None:
+    intent_class, allowed_to_call_handle, gate_reason = classify_frontdoor_intent(
+        "Before I send a payment to a brand-new vendor, what should I check first?"
+    )
+
+    assert intent_class == "maestro_brain_freeform"
+    assert allowed_to_call_handle is True
+    assert gate_reason == ""
+
+
+def test_real_payment_send_command_still_routes_to_staging() -> None:
+    intent_class, allowed_to_call_handle, gate_reason = classify_frontdoor_intent(
+        "send a $500 payment to X now"
+    )
+
+    assert intent_class in {"send_reply_email_action", "workflow_or_business_action"}
+    assert allowed_to_call_handle is False
+    assert gate_reason
 
 
 def test_calendar_prompt_stays_deterministic_without_brain_or_send(tmp_path: Path) -> None:

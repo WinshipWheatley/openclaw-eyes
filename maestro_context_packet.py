@@ -7,7 +7,7 @@ small, source-tagged, and safe for a gated model prompt.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import hashlib
 import json
 import os
@@ -38,6 +38,11 @@ KNOWN_READ_MODELS = (
     "cassandra_email_calendar_delta_detangle.json",
     "work_board.json",
     "orchestration_progress.json",
+    "niles_track_registry.json",
+    "niles_album_review_packet.json",
+    "niles_album_matrix_review.json",
+    "niles_album_metadata_intake_packet.json",
+    "reynolds_gig_setup_status.json",
 )
 
 FINANCE_CONTEXT_TERMS = frozenset(
@@ -237,6 +242,37 @@ def _calendar_event_lines(rows: Sequence[Mapping[str, Any]]) -> list[str]:
     return lines
 
 
+_RELATIVE_DATE_TERMS = re.compile(
+    r"\b("
+    r"today|tomorrow|yesterday|"
+    r"next (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|month)|"
+    r"last (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|month)|"
+    r"this (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend|week|month)"
+    r")\b",
+    re.IGNORECASE,
+)
+_ISO_DATE_RE = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
+
+
+def _today_utc() -> date:
+    return datetime.now(timezone.utc).date()
+
+
+def _is_stale_relative_date_truth(text: str, *, today: date | None = None) -> bool:
+    body = str(text or "")
+    if not _RELATIVE_DATE_TERMS.search(body):
+        return False
+    current = today or _today_utc()
+    for match in _ISO_DATE_RE.finditer(body):
+        try:
+            referenced = date.fromisoformat(match.group(1))
+        except ValueError:
+            continue
+        if referenced < current:
+            return True
+    return False
+
+
 def _operator_truth_facts(
     *,
     path: Path | None,
@@ -264,11 +300,14 @@ def _operator_truth_facts(
     for record in records:
         source_ref = str(record.get("source_ref") or path or "operator_truth_store")
         label = str(record.get("label") or record.get("entity_key") or "Operator truth")
+        value = str(record.get("value") or "")
+        if _is_stale_relative_date_truth(f"{label} {value}"):
+            continue
         _append_fact(
             facts,
             topic="operator_truth",
             label=label,
-            value=str(record.get("value") or ""),
+            value=value,
             provenance=str(record.get("provenance") or "operator_corrected"),
             source_ref=source_ref,
             pii_tier=str(record.get("pii_tier") or "LIGHT"),
@@ -481,6 +520,71 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             provenance="generated_read_model",
             source_ref=_display_read_model_ref(root / "orchestration_progress.json"),
             freshness=_freshness(root / "orchestration_progress.json", progress),
+        )
+
+    niles_tracks = payloads.get("niles_track_registry.json", {})
+    tracks = [row for row in niles_tracks.get("tracks", ()) if isinstance(row, Mapping)]
+    if tracks:
+        track_lines: list[str] = []
+        for row in tracks[:8]:
+            title = str(row.get("title") or row.get("track_title") or row.get("name") or "").strip()
+            status = str(row.get("status") or row.get("state") or row.get("note") or "").strip()
+            if title and status:
+                track_lines.append(f"{title} ({status})")
+            elif title:
+                track_lines.append(title)
+        _append_fact(
+            facts,
+            topic="niles_music_context",
+            label="Niles track registry",
+            value=(
+                f"Real track roster available: {bool(niles_tracks.get('real_track_roster_available'))}; "
+                f"track count: {niles_tracks.get('track_count', len(tracks))}. "
+                f"Tracks: {'; '.join(track_lines)}."
+            ),
+            provenance="generated_read_model",
+            source_ref=_display_read_model_ref(root / "niles_track_registry.json"),
+            freshness=_freshness(root / "niles_track_registry.json", niles_tracks),
+        )
+
+    reynolds = payloads.get("reynolds_gig_setup_status.json", {})
+    core = reynolds.get("known_core_facts") if isinstance(reynolds.get("known_core_facts"), Mapping) else {}
+    if core or reynolds:
+        venue = str(core.get("venue_name") or reynolds.get("venue_display_name") or "").strip()
+        gig_date = str(core.get("date") or "").strip()
+        start = str(core.get("start_time") or "").strip()
+        fee = str(core.get("fee_amount") or "").strip()
+        music_lane = ""
+        lanes = reynolds.get("lanes") if isinstance(reynolds.get("lanes"), Mapping) else {}
+        if isinstance(lanes.get("music"), Mapping):
+            music_lane = str(lanes["music"].get("status") or lanes["music"].get("summary") or "").strip()
+        details = [part for part in (venue, gig_date, start and f"start {start}", fee and f"fee ${fee}", music_lane) if part]
+        _append_fact(
+            facts,
+            topic="niles_gig_context",
+            label="Niles gig setup context",
+            value="; ".join(details) or "Reynolds gig setup status read model is present.",
+            provenance="generated_read_model",
+            source_ref=_display_read_model_ref(root / "reynolds_gig_setup_status.json"),
+            freshness=_freshness(root / "reynolds_gig_setup_status.json", reynolds),
+        )
+
+    niles_review = payloads.get("niles_album_review_packet.json", {})
+    if niles_review:
+        blockers = [b for b in niles_review.get("blockers", ()) if isinstance(b, Mapping)]
+        blocker_text = "; ".join(str(b.get("description") or b.get("next_safe_move") or "").strip() for b in blockers[:3])
+        _append_fact(
+            facts,
+            topic="niles_album_context",
+            label="Niles album review posture",
+            value=(
+                f"Album state confirmed: {bool(niles_review.get('album_state_confirmed'))}; "
+                f"evidence sufficient: {bool(niles_review.get('evidence_sufficient_for_album_status'))}. "
+                f"{blocker_text}"
+            ),
+            provenance="generated_read_model",
+            source_ref=_display_read_model_ref(root / "niles_album_review_packet.json"),
+            freshness=_freshness(root / "niles_album_review_packet.json", niles_review),
         )
 
     return facts, refs, proof

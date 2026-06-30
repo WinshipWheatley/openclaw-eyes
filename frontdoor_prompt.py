@@ -56,6 +56,32 @@ def _agent_display_name(agent: str | None) -> str:
 
 def _grounded_preamble(agent: str | None) -> str:
     name = _agent_display_name(agent)
+    key = str(agent or _DEFAULT_AGENT).strip().lower()
+    agent_note = ""
+    if key in {"cassandra", "clara"}:
+        agent_note = (
+            "\nCassandra/Clara finance rule: when the operator describes a new gig, payment, "
+            "or amount that resembles an existing receivable, do not silently merge them. "
+            "Ask whether it is the same receivable or a new gig/payment before treating them "
+            "as one item. If the packet names an existing Coupa/Capital Hilton receivable "
+            "with the same amount, ask directly whether the new gig is that receivable or "
+            "separate money. If no packet fact proves the match, ask whether it is separate "
+            "money or tied to an existing Coupa/Capital Hilton receivable; do not name "
+            "unrelated Niles/Reynolds gigs in this finance ambiguity lane."
+        )
+    elif key == "niles":
+        agent_note = (
+            "\nNiles rule: for music, set, gig, or studio questions, use concrete Niles packet "
+            "facts such as track names, transitions, venues, set constraints, or album posture. "
+            "If any concrete packet fact is present, name at least one of it. Keep it musically "
+            "literate and lightly characterful, not generic inspiration."
+        )
+    elif key == "guardian":
+        agent_note = (
+            "\nGuardian rule: for advisory safety questions, answer with a concise protective "
+            "checklist. Do not stage or imply action unless the operator gave a real imperative "
+            "send/pay/reply/approve command."
+        )
     return (
         f"You are {name}, speaking to the operator in first person.\n"
         "If the operator is greeting you, making small talk, reacting, or just chatting, "
@@ -63,7 +89,26 @@ def _grounded_preamble(agent: str | None) -> str:
         "personality. For a specific factual question, answer from the deterministic packet "
         "facts below; if a fact you'd need isn't there, say so plainly rather than inventing "
         "it. Be concise; never claim send/spend/mutation authority. SEND_HOLD is absolute."
+        f"{agent_note}"
     )
+
+
+def _final_reply_instruction(agent: str | None) -> str:
+    key = str(agent or _DEFAULT_AGENT).strip().lower()
+    if key == "niles":
+        return (
+            "For Niles, if the packet includes a concrete music/gig fact, the first sentence "
+            "must name one of those facts, such as Reynolds Tavern, a track title, a transition, "
+            "or album posture."
+        )
+    if key in {"cassandra", "clara"}:
+        return (
+            "For Cassandra/Clara, if a new money/gig item could be confused with an existing "
+            "receivable, ask the confirmation question before giving tracking advice."
+        )
+    if key == "guardian":
+        return "For Guardian, answer advisory questions as safety advice, not as a staged action."
+    return ""
 
 
 # Back-compat: the default (Maestro) grounded preamble as a module constant.
@@ -149,6 +194,24 @@ def _selection_match(fact: Mapping[str, Any], fact_selection: list[str] | None) 
         # match by read-model filename substring, fact_id, or topic
         if token in ref or token in fid or token == topic:
             return True
+    return False
+
+
+def _agent_relevant_fact(agent: str | None, fact: Mapping[str, Any]) -> bool:
+    key = str(agent or _DEFAULT_AGENT).strip().lower()
+    topic = str(fact.get("topic") or "").strip().lower()
+    ref = _fact_source_ref(fact).lower()
+    blob = f"{fact.get('label') or ''} {fact.get('value') or ''}".lower()
+    if key == "niles":
+        return topic.startswith("niles_") or "niles_" in ref or "reynolds_gig" in ref
+    if key in {"cassandra", "clara"}:
+        if topic.startswith("niles_") or "niles_" in ref or "reynolds_gig" in ref:
+            return False
+        return topic in {"finance", "invoice_status", "email_calendar", "calendar_day"} or any(
+            marker in blob for marker in ("receivable", "invoice", "coupa", "capital hilton")
+        )
+    if key == "guardian":
+        return any(marker in blob for marker in ("safety", "guardian", "approval", "send_hold", "protected"))
     return False
 
 
@@ -261,10 +324,13 @@ def build_frontdoor_prompt(
     for index, fact in enumerate(facts):
         fid = _fact_id(fact, index)
         selected = _selection_match(fact, fact_selection)
+        agent_relevant = _agent_relevant_fact(agent, fact)
         posture = _is_system_posture(fact)
         overlap = _lexical_overlap(fact, terms)
         operator_truth = _is_operator_truth(fact)
         if selected:
+            tier = 0
+        elif agent_relevant:
             tier = 0
         elif posture:
             tier = 3
@@ -310,6 +376,7 @@ def build_frontdoor_prompt(
         f"{layer_b}\n\n"
         "OPERATOR JUST SAID:\n"
         f"{message}\n\n"
+        f"{_final_reply_instruction(agent)}\n\n"
         f"Now write {_agent_display_name(agent)}'s reply — first person, speaking directly to "
         "the operator. Do NOT describe or summarize the text above; just respond.\n"
         f"{_agent_display_name(agent)}:"

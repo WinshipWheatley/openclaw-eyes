@@ -28,11 +28,16 @@ fi
 
 WAV=/mnt/c/OpenClaw/logs/master_voice.wav
 OGG=/mnt/c/OpenClaw/logs/master_voice.ogg
-VOICE="${KOKORO_VOICE:-am_michael}"
-SPEED="${KOKORO_SPEED:-1.05}"
 PYV=/home/openclaw/chief_env/bin/python; [ -x "$PYV" ] || PYV=python3
+AGENT="${KOKORO_AGENT:-${OPENCLAW_AGENT:-${AGENT:-maestro}}}"
+VOICE="${KOKORO_VOICE:-}"
+if [ -z "$VOICE" ]; then
+  VOICE="$(OPENCLAW_VOICE_AGENT="$AGENT" "$PYV" -c 'import os; from agent_kokoro_voice import voice_for_agent; print(voice_for_agent(os.environ["OPENCLAW_VOICE_AGENT"]))')" \
+    || { echo "KOKORO VOICE RESOLUTION FAILED for agent=$AGENT"; exit 2; }
+fi
+SPEED="${KOKORO_SPEED:-1.05}"
 
-printf '%s' "$TXT" | VOICE="$VOICE" SPEED="$SPEED" "$PYV" -c '
+printf '%s' "$TXT" | AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" "$PYV" -c '
 import sys, os, numpy as np, soundfile as sf
 from kokoro import KPipeline
 text = sys.stdin.read()
@@ -40,7 +45,7 @@ pipe = KPipeline(lang_code="a")
 chunks=[a for _,_,a in pipe(text, voice=os.environ["VOICE"], speed=float(os.environ["SPEED"]))]
 if not chunks: sys.exit(3)
 sf.write("/mnt/c/OpenClaw/logs/master_voice.wav", np.concatenate(chunks), 24000)
-print("[kokoro] ok voice=", os.environ["VOICE"], flush=True)
+print("[kokoro] ok agent=", os.environ["AGENT"], "voice=", os.environ["VOICE"], flush=True)
 ' || { echo "KOKORO SYNTH FAILED"; exit 3; }
 
 [ -s "$WAV" ] || { echo "WAV missing"; exit 4; }
