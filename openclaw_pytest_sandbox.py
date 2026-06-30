@@ -79,8 +79,12 @@ class OpenClawPytestSandbox:
         self._original_path_is_file = Path.is_file
         self._original_path_is_dir = Path.is_dir
         self._original_path_mkdir = Path.mkdir
+        self._original_path_unlink = Path.unlink
+        self._original_os_path_exists = os.path.exists
         self._original_os_mkdir = os.mkdir
         self._original_os_makedirs = os.makedirs
+        self._original_os_remove = os.remove
+        self._original_os_unlink = os.unlink
         self._original_os_replace = os.replace
         self._original_os_rename = os.rename
         self._original_socket_create_connection = socket.create_connection
@@ -130,6 +134,9 @@ class OpenClawPytestSandbox:
         def guarded_path_mkdir(target: Path, *args: object, **kwargs: object):
             return sandbox._guarded_path_mkdir(target, *args, **kwargs)
 
+        def guarded_path_unlink(target: Path, *args: object, **kwargs: object):
+            return sandbox._guarded_path_unlink(target, *args, **kwargs)
+
         def guarded_socket_connect(sock: socket.socket, address: object):
             return sandbox._guarded_socket_connect(sock, address)
 
@@ -140,8 +147,12 @@ class OpenClawPytestSandbox:
         Path.is_file = guarded_path_is_file  # type: ignore[method-assign]
         Path.is_dir = guarded_path_is_dir  # type: ignore[method-assign]
         Path.mkdir = guarded_path_mkdir  # type: ignore[method-assign]
+        Path.unlink = guarded_path_unlink  # type: ignore[method-assign]
+        os.path.exists = self._guarded_os_path_exists  # type: ignore[assignment]
         os.mkdir = self._guarded_os_mkdir  # type: ignore[assignment]
         os.makedirs = self._guarded_os_makedirs  # type: ignore[assignment]
+        os.remove = self._guarded_os_remove  # type: ignore[assignment]
+        os.unlink = self._guarded_os_unlink  # type: ignore[assignment]
         os.replace = self._guarded_os_replace  # type: ignore[assignment]
         os.rename = self._guarded_os_rename  # type: ignore[assignment]
         socket.create_connection = self._guarded_create_connection  # type: ignore[assignment]
@@ -282,6 +293,9 @@ class OpenClawPytestSandbox:
         return None
 
     def _mapped_path_for_stat(self, path: Path | None) -> Path | None:
+        tmp_sqlite = self._tmp_sqlite_redirect(path)
+        if tmp_sqlite is not None:
+            return tmp_sqlite
         shadow = self._shadow_path_for_live_path(path)
         if shadow is None:
             return None
@@ -337,6 +351,29 @@ class OpenClawPytestSandbox:
             return self._original_path_mkdir(shadow, *args, **kwargs)
         return self._original_path_mkdir(target, *args, **kwargs)
 
+    def _mapped_path_for_unlink(self, path: Path | None) -> Path | None:
+        tmp_sqlite = self._tmp_sqlite_redirect(path)
+        if tmp_sqlite is not None:
+            return tmp_sqlite
+        shadow = self._shadow_path_for_live_path(path)
+        if shadow is not None:
+            return shadow
+        return None
+
+    def _guarded_path_unlink(self, target: Path, *args: object, **kwargs: object):
+        path = target.resolve(strict=False)
+        mapped = self._mapped_path_for_unlink(path)
+        if mapped is not None:
+            return self._original_path_unlink(mapped, *args, **kwargs)
+        return self._original_path_unlink(target, *args, **kwargs)
+
+    def _guarded_os_path_exists(self, path: object) -> bool:
+        resolved = self._resolved_path(path)
+        mapped = self._mapped_path_for_stat(resolved)
+        if mapped is not None:
+            return self._original_os_path_exists(mapped)
+        return self._original_os_path_exists(path)
+
     def _guarded_os_mkdir(self, path: object, mode: int = 0o777, *args: object, **kwargs: object):
         resolved = self._resolved_path(path)
         shadow = self._shadow_path_for_live_path(resolved)
@@ -355,6 +392,20 @@ class OpenClawPytestSandbox:
         if shadow is not None:
             return self._original_os_makedirs(shadow, mode=mode, exist_ok=exist_ok)
         return self._original_os_makedirs(name, mode=mode, exist_ok=exist_ok)
+
+    def _guarded_os_remove(self, path: object, *args: object, **kwargs: object):
+        resolved = self._resolved_path(path)
+        mapped = self._mapped_path_for_unlink(resolved)
+        if mapped is not None:
+            return self._original_os_remove(mapped, *args, **kwargs)
+        return self._original_os_remove(path, *args, **kwargs)
+
+    def _guarded_os_unlink(self, path: object, *args: object, **kwargs: object):
+        resolved = self._resolved_path(path)
+        mapped = self._mapped_path_for_unlink(resolved)
+        if mapped is not None:
+            return self._original_os_unlink(mapped, *args, **kwargs)
+        return self._original_os_unlink(path, *args, **kwargs)
 
     def _mapped_path_for_mutation(self, path: object) -> object:
         resolved = self._resolved_path(path)
