@@ -407,6 +407,8 @@ class OpenClawPytestSandbox:
         return self._original_os_makedirs(name, mode=mode, exist_ok=exist_ok)
 
     def _guarded_os_remove(self, path: object, *args: object, **kwargs: object):
+        if kwargs.get("dir_fd") is not None:
+            return self._original_os_remove(path, *args, **kwargs)
         resolved = self._resolved_path(path)
         mapped = self._mapped_path_for_unlink(resolved)
         if mapped is not None:
@@ -414,6 +416,8 @@ class OpenClawPytestSandbox:
         return self._original_os_remove(path, *args, **kwargs)
 
     def _guarded_os_unlink(self, path: object, *args: object, **kwargs: object):
+        if kwargs.get("dir_fd") is not None:
+            return self._original_os_unlink(path, *args, **kwargs)
         resolved = self._resolved_path(path)
         mapped = self._mapped_path_for_unlink(resolved)
         if mapped is not None:
