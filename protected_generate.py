@@ -1070,6 +1070,7 @@ def protected_generate_with_receipt(
     fd_keep_alive = _frontdoor_keep_alive() if front_door_profile else None
     fd_model_max_gb = _frontdoor_model_max_gb() if front_door_profile else None
     fd_model_selected = model_selected
+    fd_model_selection_reason: str | None = None
     fd_resource_probe_fields: dict[str, Any] = {}
     fd_available_vram_gb: float | None = None
     fd_available_ram_gb: float | None = None
@@ -1167,6 +1168,7 @@ def protected_generate_with_receipt(
                                 available_ram_gb=fd_available_ram_gb,
                                 resident_vram_by_model_gb=fd_resident_vram_by_model_gb,
                             )
+                            fd_model_selection_reason = _reason
                             fd_model_selected = fd_model_selected or _model
                             if not _model:
                                 fd_captured_done_reason = "no_fitting_model"
@@ -1331,6 +1333,7 @@ def protected_generate_with_receipt(
             {
                 "front_door_profile_used": True,
                 "model_selected": fd_model_selected,
+                "model_selection_reason": fd_model_selection_reason,
                 "prompt_chars": resolved_prompt_chars,
                 "prompt_context_chars": fd_prompt_manifest.get("prompt_context_chars"),
                 "model_elapsed_ms": fd_model_elapsed_ms,

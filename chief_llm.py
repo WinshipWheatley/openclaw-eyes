@@ -874,10 +874,17 @@ def select_frontdoor_model(
         elif available_vram_gb is None or size_gb <= float(available_vram_gb):
             vram_fitting.append(candidate)
 
-    # allowlist is smallest-first, so the LAST entry is the largest fitting (best quality).
+    # allowlist is smallest-first. For the interactive front door, free-VRAM contention
+    # should step down to the smallest local model that can answer instead of selecting
+    # a larger spill candidate and risking the deterministic floor.
     if vram_fitting:
-        return vram_fitting[-1], "frontdoor_largest_fitting"
+        selected = vram_fitting[-1]
+        if available_vram_gb is not None and card_fitting and selected != card_fitting[-1]:
+            return selected, "frontdoor_step_down_vram_contention"
+        return selected, "frontdoor_largest_fitting"
     if card_fitting:
+        if available_vram_gb is not None:
+            return card_fitting[0], "frontdoor_step_down_vram_contention_ram_spill"
         return card_fitting[-1], "frontdoor_largest_fitting_ram_spill"
     return None, "no_fitting_model"
 

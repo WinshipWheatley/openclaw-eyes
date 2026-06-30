@@ -202,6 +202,36 @@ def test_select_frontdoor_smallest_when_only_it_fits(monkeypatch):
     assert reason == "frontdoor_largest_fitting"
 
 
+def test_select_frontdoor_steps_down_when_free_vram_is_tight(monkeypatch):
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", raising=False)
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", raising=False)
+    installed = {"qwen3.5:4b", "qwen3:8b-q4_K_M", "qwen3.5:9b"}
+    model, reason = chief_llm.select_frontdoor_model(
+        installed=installed,
+        sizes=_SIZES,
+        available_ram_gb=16.0,
+        available_vram_gb=4.282,
+        max_gb=6.0,
+    )
+    assert model == "qwen3.5:4b"
+    assert reason == "frontdoor_step_down_vram_contention"
+
+
+def test_select_frontdoor_uses_smallest_card_fit_when_vram_exhausted(monkeypatch):
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", raising=False)
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", raising=False)
+    installed = {"qwen3.5:4b", "qwen3:8b-q4_K_M", "qwen3.5:9b"}
+    model, reason = chief_llm.select_frontdoor_model(
+        installed=installed,
+        sizes=_SIZES,
+        available_ram_gb=16.0,
+        available_vram_gb=0.547,
+        max_gb=6.0,
+    )
+    assert model == "qwen3.5:4b"
+    assert reason == "frontdoor_step_down_vram_contention_ram_spill"
+
+
 # Test 7: nothing fits → (None, "no_fitting_model").
 def test_select_frontdoor_no_fitting_model(monkeypatch):
     monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", raising=False)
@@ -371,6 +401,7 @@ _TELEMETRY_KEYS = {
     "model_fallback_reason", "response_truncated", "context_facts_kept",
     "context_facts_dropped", "prompt_context_chars", "model_call_attempted",
     "model_output_delivered", "delivered_response_source", "model_response_metadata",
+    "model_selection_reason",
 }
 
 
@@ -680,6 +711,61 @@ def test_pgwr_real_frontdoor_packet_flag_on_auto_uses_profile_local_path(tmp_pat
     assert r["delivered_response_source"] == "model"
     assert r["context_facts_kept"] == 1
     assert "Winship is the human operator." in outcome.text
+
+
+def test_pgwr_frontdoor_low_vram_steps_down_and_delivers_model(tmp_path, monkeypatch):
+    import protected_generate as pg
+    import frontdoor_resource_probe as frp
+    from frontdoor_resource_probe import FrontdoorResourceSnapshot
+
+    calls: dict = {}
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", "1")
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_REPLY_TIMEOUT", "25")
+    monkeypatch.setattr(pg, "_live_model_allowed", lambda *a, **k: True)
+    monkeypatch.setattr(chief_llm, "_configured_openrouter_model", lambda: "", raising=False)
+    monkeypatch.setattr(chief_llm, "ollama_is_unreachable", lambda **_k: False, raising=False)
+    monkeypatch.setattr(
+        chief_llm,
+        "_ollama_installed_models",
+        lambda *a, **k: {"qwen3.5:4b", "qwen3:8b-q4_K_M", "qwen3.5:9b"},
+        raising=False,
+    )
+    monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: dict(_SIZES), raising=False)
+    monkeypatch.setattr(
+        frp,
+        "probe_frontdoor_resources",
+        lambda: FrontdoorResourceSnapshot(
+            available_vram_gb=4.282,
+            total_vram_gb=6.0,
+            available_ram_gb=16.0,
+            resident_models=[{"name": "resident-model", "size_vram_gb": 1.7}],
+            probe_errors=[],
+        ),
+    )
+
+    def fake_ollama(prompt, **kwargs):
+        calls["prompt"] = prompt
+        calls["kwargs"] = kwargs
+        return {
+            "text": "Winship is the human operator.",
+            "done_reason": "stop",
+            "elapsed_ms": 42,
+            "response_metadata": {"eval_count": 9},
+        }
+
+    monkeypatch.setattr(chief_llm, "ollama_call", fake_ollama)
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_FRONTDOOR_PACKET,
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=True,
+    )
+    assert calls["kwargs"]["model"] == "qwen3.5:4b"
+    assert outcome.text == "Winship is the human operator."
+    assert outcome.receipt["delivered_response_source"] == "model"
+    assert outcome.receipt["model_fallback_reason"] == "model_ok"
+    assert outcome.receipt["model_selected"] == "qwen3.5:4b"
+    assert outcome.receipt["model_selection_reason"] == "frontdoor_step_down_vram_contention"
 
 
 def test_pgwr_explicit_frontdoor_true_works_with_flag_off(tmp_path, monkeypatch):
