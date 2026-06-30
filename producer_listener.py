@@ -66,6 +66,24 @@ def _queue_for_memory(text: str) -> None:
         pass
 
 
+def _fire_agent_voice(agent: str, text: str, update) -> None:
+    """Fire-and-forget Kokoro voice note (Niles=am_puck), non-blocking + fail-soft.
+    Toggle with OPENCLAW_AGENT_VOICE_NOTES=0."""
+    try:
+        import os
+        import asyncio as _aio
+        import agent_voice_sender
+
+        if os.environ.get("OPENCLAW_AGENT_VOICE_NOTES", "1").strip().lower() not in ("1", "true", "yes"):
+            return
+        chat_id = getattr(getattr(update, "message", None), "chat_id", None)
+        _aio.get_event_loop().run_in_executor(
+            None, lambda: agent_voice_sender.send_agent_voice_note(agent, text, chat_id=chat_id)
+        )
+    except Exception as exc:  # never break a text reply on a voice issue
+        print(f"[producer_listener] {agent} voice note skipped: {exc}", flush=True)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_user or update.effective_user.id != AUTHORIZED_USER_ID:
         return
@@ -93,6 +111,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         result = await _run_producer_intake(text)
         await update.message.reply_text(result)
+        _fire_agent_voice("niles", result, update)
     finally:
         typing_task.cancel()
 

@@ -62,6 +62,24 @@ if not _token:
 BOT_TOKEN = _token
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
 
+def _fire_agent_voice(agent: str, text: str, update) -> None:
+    """Fire-and-forget Kokoro voice note (Guardian=am_onyx), non-blocking + fail-soft.
+    Toggle with OPENCLAW_AGENT_VOICE_NOTES=0."""
+    try:
+        import os
+        import asyncio as _aio
+        import agent_voice_sender
+
+        if os.environ.get("OPENCLAW_AGENT_VOICE_NOTES", "1").strip().lower() not in ("1", "true", "yes"):
+            return
+        chat_id = getattr(getattr(update, "message", None), "chat_id", None)
+        _aio.get_event_loop().run_in_executor(
+            None, lambda: agent_voice_sender.send_agent_voice_note(agent, text, chat_id=chat_id)
+        )
+    except Exception as exc:  # never break a text reply on a voice issue
+        print(f"[chief_guardian_listener] {agent} voice note skipped: {exc}", flush=True)
+
+
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Primary approval path: handle inline button taps.
@@ -358,6 +376,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             except Exception:
                 _ans = ""
         await update.message.reply_text(f"{_ans}\n\n———\n{error}" if _ans else error)
+        if _ans:
+            _fire_agent_voice("guardian", _ans, update)
         return
 
     reply = record_decision(decision, expected_id=_pending_id)
