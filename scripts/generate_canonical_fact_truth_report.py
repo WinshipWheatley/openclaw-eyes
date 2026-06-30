@@ -1,14 +1,16 @@
 import argparse
 import sqlite3
-import os
+from pathlib import Path
 import sys
 
 def run_report(db_path, truth_status=None, source=None, verification_required=None):
-    if not os.path.exists(db_path):
-        print(f"Error: Database not found at {db_path}")
+    uri = f"file:{Path(db_path).as_posix()}?mode=ro"
+    try:
+        conn = sqlite3.connect(uri, uri=True)
+    except sqlite3.OperationalError as e:
+        print(f"Error: Database not found at {db_path}: {e}")
         return
 
-    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
