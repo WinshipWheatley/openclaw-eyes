@@ -31,6 +31,25 @@ There is exactly **ONE knowledge source of truth: the robust SQLite ledger**
 - Renaming/restructuring that updates a source file but NOT the live ledger (a rename must update the
   LIVE ledger via BOTH ingest paths — see the canonical-ledger ingest rule).
 
+## Enforcement — three layers (the reason no one has to be told)
+1. **Test-time gate (BUILT).** The packet contract test fails any builder that doesn't pull from the
+   ledger with provenance — new drift can't *land*.
+2. **Runtime self-heal guard (to build).** At the packet-build chokepoint, if a registered
+   knowledge-builder returns facts without ledger provenance (or from the wrong place), the guard
+   auto-pulls the canonical ledger context for that same question/agent and grafts it in — a live
+   "didn't pull / pulled wrong" becomes "now pulls right." It self-heals AND flags (logs a drift
+   receipt + files a gap); never silently masks; if the ledger can't ground it, it fails HONEST.
+3. **Self-repair loop (to wire — reuses the existing self-improvement loop + Guardian-gated factory).**
+   A *recurring* drift receipt for builder X becomes a build request: "rewrite X to source from the
+   ledger directly AND remove the wrong-source path." → PROPOSED → Guardian BUILDOK → factory builds +
+   tests → lands. Old wrong-source code is kicked, right code goes in, so NEXT time X pulls natively
+   from the right place. The gap **auto-closes only when the runtime guard goes silent for X**
+   (confirmed it now sources correctly on its own) — i.e. the wrong-place-error + right-place-correction
+   stops recurring. Code rewrites stay **Guardian + operator-gated** — never an ungated live auto-edit.
+
+Net: test-gate stops new drift, runtime guard self-corrects live drift, self-repair loop fixes the
+cause and verifies it stopped. The one source of truth becomes structurally unavoidable.
+
 ## Why (operator's words)
 "The system should not be able to divide up where what it knows is what and what it knows it doesn't
 know anywhere but in one thing. That thing may be made of lots of things, but the system has to think of
