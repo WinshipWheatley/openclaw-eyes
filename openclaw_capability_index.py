@@ -17,12 +17,13 @@ import hashlib
 import json
 import sys
 from dataclasses import asdict, dataclass, fields
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
-DEFAULT_GENERATED_AT = "2026-05-25T00:00:00+00:00"
+DEFAULT_GENERATED_AT: str | None = None
 
 SCHEMA_VERSION = "openclaw_capability_index_v0"
 READ_MODEL_ID = "openclaw_capability_index"
@@ -492,6 +493,10 @@ def _content_hash(payload: dict[str, Any]) -> str:
 def _stable_id(prefix: str, *parts: object) -> str:
     digest = hashlib.sha256("\0".join(str(part) for part in parts).encode("utf-8")).hexdigest()
     return f"{prefix}:{digest[:16]}"
+
+
+def _utc_generated_at() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def _present(path: str) -> bool:
@@ -2325,7 +2330,8 @@ def _all_authority_false(
     return authority_profiles_false and candidate_authority_false and boundary_false
 
 
-def build_payload(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
+def build_payload(*, generated_at: str | None = DEFAULT_GENERATED_AT) -> dict[str, Any]:
+    generated_at = generated_at or _utc_generated_at()
     inputs = build_input_requirements()
     outputs = build_output_artifacts()
     capabilities = build_generic_capabilities(inputs, outputs)
@@ -2461,8 +2467,12 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def write_exports(export_root: Path = DEFAULT_EXPORT_ROOT) -> tuple[Path, Path, dict[str, Any]]:
-    payload = build_payload()
+def write_exports(
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    *,
+    generated_at: str | None = DEFAULT_GENERATED_AT,
+) -> tuple[Path, Path, dict[str, Any]]:
+    payload = build_payload(generated_at=generated_at)
     export_root.mkdir(parents=True, exist_ok=True)
     json_path = export_root / JSON_EXPORT_NAME
     operator_path = export_root / OPERATOR_EXPORT_NAME
@@ -2497,9 +2507,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export the OpenClaw portable capability index.")
     parser.add_argument("--format", choices=("json", "summary"), default="json")
     parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
+    parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
     args = parser.parse_args(argv)
 
-    json_path, operator_path, payload = write_exports(Path(args.export_root))
+    json_path, operator_path, payload = write_exports(Path(args.export_root), generated_at=args.generated_at)
     output: dict[str, Any] = payload if args.format == "json" else build_summary(payload, json_path, operator_path)
     sys.stdout.write(stable_json(output))
     return 0

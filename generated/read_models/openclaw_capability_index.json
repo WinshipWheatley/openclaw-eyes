@@ -1053,7 +1053,7 @@
       ]
     }
   ],
-  "generated_at": "2026-05-25T00:00:00+00:00",
+  "generated_at": "2026-06-30T16:45:47+00:00",
   "generic_capabilities": [
     {
       "applicable_task_types": [
@@ -1083,9 +1083,7 @@
         "TENANT_SCOPE_POLICY"
       ],
       "future_gates": [],
-      "generated_readmodels": [
-        "generated/read_models/openclaw_request_processor_status.json"
-      ],
+      "generated_readmodels": [],
       "input_requirements": [
         "input:655fc9e9d18f2a27"
       ],
@@ -1160,9 +1158,7 @@
         "TENANT_SCOPE_POLICY"
       ],
       "future_gates": [],
-      "generated_readmodels": [
-        "generated/read_models/openclaw_request_response_service_status.json"
-      ],
+      "generated_readmodels": [],
       "input_requirements": [
         "input:2f2fd878cdd48c8f"
       ],
@@ -1235,9 +1231,7 @@
         "TENANT_SCOPE_POLICY"
       ],
       "future_gates": [],
-      "generated_readmodels": [
-        "generated/read_models/openclaw_request_response_service_status.json"
-      ],
+      "generated_readmodels": [],
       "input_requirements": [
         "input:5e1dd65e7a5c5593"
       ],
@@ -3668,7 +3662,7 @@
     "agent_dispatch_performed": false,
     "all_live_authority_false": true,
     "candidate_promotion_performed": false,
-    "content_hash": "sha256:98b76b8198cef7455e42916e3ff94a2aaf324b8e022e9557afb37744e55cdde3",
+    "content_hash": "sha256:007efabeee5d3a2d25c9686827f1f4a093cac93f31db5d505f28481c14bf74f8",
     "credential_scan_performed": false,
     "external_system_access_performed": false,
     "generic_capabilities_user_agnostic": true,
@@ -4874,9 +4868,7 @@
             "TENANT_SCOPE_POLICY"
           ],
           "future_gates": [],
-          "generated_readmodels": [
-            "generated/read_models/openclaw_request_processor_status.json"
-          ],
+          "generated_readmodels": [],
           "input_requirements": [
             "input:655fc9e9d18f2a27"
           ],
@@ -4951,9 +4943,7 @@
             "TENANT_SCOPE_POLICY"
           ],
           "future_gates": [],
-          "generated_readmodels": [
-            "generated/read_models/openclaw_request_response_service_status.json"
-          ],
+          "generated_readmodels": [],
           "input_requirements": [
             "input:2f2fd878cdd48c8f"
           ],
@@ -5026,9 +5016,7 @@
             "TENANT_SCOPE_POLICY"
           ],
           "future_gates": [],
-          "generated_readmodels": [
-            "generated/read_models/openclaw_request_response_service_status.json"
-          ],
+          "generated_readmodels": [],
           "input_requirements": [
             "input:5e1dd65e7a5c5593"
           ],

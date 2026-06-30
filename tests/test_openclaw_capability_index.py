@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import openclaw_capability_index as index
@@ -18,6 +19,13 @@ def _profiles(payload):
 
 def _queries(payload):
     return {query["query_id"]: query for query in payload["query_examples"]}
+
+
+def test_default_generated_at_uses_current_utc_day():
+    payload = _payload()
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    assert payload["generated_at"].startswith(today)
 
 
 def test_required_models_exist():
