@@ -262,6 +262,11 @@ class OpenClawPytestSandbox:
         tmp_root = Path("/tmp").resolve(strict=False)
         if not self._is_relative_to(path, tmp_root):
             return None
+        tmpdir = os.environ.get("TMPDIR", "").strip()
+        if tmpdir:
+            tmpdir_path = Path(tmpdir).expanduser().resolve(strict=False)
+            if self._is_relative_to(path, tmpdir_path):
+                return None
         redirect_root = os.environ.get("OPENCLAW_PYTEST_TMP_SQLITE_ROOT", "").strip()
         if not redirect_root:
             return None
