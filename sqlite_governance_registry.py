@@ -567,7 +567,97 @@ CREATE TABLE IF NOT EXISTS registry_metadata (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS knowledge_sqlite_policies (
+  policy_id TEXT PRIMARY KEY,
+  policy_status TEXT NOT NULL,
+  ledger_path TEXT NOT NULL,
+  policy_text TEXT NOT NULL,
+  recorded_at TEXT NOT NULL,
+  writes_require_operator_confirm INTEGER NOT NULL,
+  satellites_retire_after_fold_verify INTEGER NOT NULL,
+  operational_queues_separate_concern INTEGER NOT NULL
+);
 """.strip() + "\n"
+
+
+def record_one_knowledge_ledger_policy(
+    *,
+    registry_sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    ledger_path: Path = Path(".openclaw/business_ops/ledger.sqlite"),
+    confirm: bool = False,
+) -> dict[str, Any]:
+    """Record the one-knowledge-ledger policy in the governance registry.
+
+    Production registry writes are operator-gated; callers get the exact command
+    unless confirm=True is supplied.
+    """
+
+    registry_path = _rooted(registry_sqlite_path)
+    ledger = Path(ledger_path)
+    if not confirm:
+        return {
+            "status": "operator_confirmation_required",
+            "registry_sqlite_path": registry_path.as_posix(),
+            "ledger_path": str(ledger),
+            "operator_command": (
+                "python3 - <<'PY'\n"
+                "from pathlib import Path\n"
+                "from sqlite_governance_registry import record_one_knowledge_ledger_policy\n"
+                "print(record_one_knowledge_ledger_policy(\n"
+                f"    registry_sqlite_path=Path({str(registry_path)!r}),\n"
+                f"    ledger_path=Path({str(ledger)!r}),\n"
+                "    confirm=True,\n"
+                "))\n"
+                "PY"
+            ),
+        }
+
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(registry_path)
+    try:
+        conn.executescript(registry_sqlite_schema())
+        conn.execute(
+            """
+            INSERT INTO knowledge_sqlite_policies (
+              policy_id, policy_status, ledger_path, policy_text, recorded_at,
+              writes_require_operator_confirm, satellites_retire_after_fold_verify,
+              operational_queues_separate_concern
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(policy_id) DO UPDATE SET
+              policy_status=excluded.policy_status,
+              ledger_path=excluded.ledger_path,
+              policy_text=excluded.policy_text,
+              recorded_at=excluded.recorded_at,
+              writes_require_operator_confirm=excluded.writes_require_operator_confirm,
+              satellites_retire_after_fold_verify=excluded.satellites_retire_after_fold_verify,
+              operational_queues_separate_concern=excluded.operational_queues_separate_concern
+            """,
+            (
+                "one_knowledge_ledger",
+                "active",
+                str(ledger),
+                (
+                    "System and multi-repo knowledge writes go to the business-ops "
+                    "ledger. Satellite knowledge SQLite files are folded in only "
+                    "after diff, backup, verification, and operator confirmation. "
+                    "Operational queues remain separate concerns."
+                ),
+                utc_now(),
+                1,
+                1,
+                1,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {
+        "status": "written",
+        "registry_sqlite_path": registry_path.as_posix(),
+        "ledger_path": str(ledger),
+        "policy_id": "one_knowledge_ledger",
+    }
 
 
 def write_registry_sqlite(sqlite_path: Path, read_model: Mapping[str, Any]) -> None:
