@@ -406,9 +406,39 @@ class OpenClawPytestSandbox:
             return self._original_os_makedirs(shadow, mode=mode, exist_ok=exist_ok)
         return self._original_os_makedirs(name, mode=mode, exist_ok=exist_ok)
 
+    def _resolve_dir_fd_path(self, path: object, dir_fd: object) -> Path | None:
+        """Resolve a dir_fd-relative path to an absolute Path so it can be sandbox-mapped.
+        Returns None when it cannot be resolved — callers MUST fail CLOSED on None (never
+        passthrough), so a dir_fd removal can't escape the sandbox unmapped."""
+        try:
+            raw = os.fspath(path)  # type: ignore[arg-type]
+        except TypeError:
+            return None
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8", errors="ignore")
+        candidate = Path(str(raw))
+        if candidate.is_absolute():
+            return self._resolved_path(candidate)  # OS ignores dir_fd for absolute paths
+        try:
+            base = os.readlink(f"/proc/self/fd/{int(dir_fd)}")  # type: ignore[arg-type]
+        except (OSError, ValueError, TypeError):
+            return None
+        return self._resolved_path(Path(base) / candidate)
+
     def _guarded_os_remove(self, path: object, *args: object, **kwargs: object):
         if kwargs.get("dir_fd") is not None:
-            return self._original_os_remove(path, *args, **kwargs)
+            # SECURITY: do NOT passthrough (fail-open). Resolve the dir_fd-relative target,
+            # map it into the sandbox, or refuse (fail CLOSED) if it can't be resolved.
+            resolved = self._resolve_dir_fd_path(path, kwargs.get("dir_fd"))
+            if resolved is None:
+                raise PermissionError(
+                    "openclaw_pytest_sandbox: refusing un-resolvable dir_fd os.remove "
+                    "(sandbox fails CLOSED, not open)"
+                )
+            mapped = self._mapped_path_for_unlink(resolved)
+            if mapped is not None:
+                return self._original_os_remove(mapped)  # sandbox the protected target (absolute)
+            return self._original_os_remove(path, *args, **kwargs)  # unprotected temp: honor dir_fd
         resolved = self._resolved_path(path)
         mapped = self._mapped_path_for_unlink(resolved)
         if mapped is not None:
@@ -417,6 +447,16 @@ class OpenClawPytestSandbox:
 
     def _guarded_os_unlink(self, path: object, *args: object, **kwargs: object):
         if kwargs.get("dir_fd") is not None:
+            # SECURITY: fail CLOSED, never passthrough (see _guarded_os_remove).
+            resolved = self._resolve_dir_fd_path(path, kwargs.get("dir_fd"))
+            if resolved is None:
+                raise PermissionError(
+                    "openclaw_pytest_sandbox: refusing un-resolvable dir_fd os.unlink "
+                    "(sandbox fails CLOSED, not open)"
+                )
+            mapped = self._mapped_path_for_unlink(resolved)
+            if mapped is not None:
+                return self._original_os_unlink(mapped)
             return self._original_os_unlink(path, *args, **kwargs)
         resolved = self._resolved_path(path)
         mapped = self._mapped_path_for_unlink(resolved)
