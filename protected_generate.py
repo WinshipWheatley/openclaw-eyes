@@ -894,8 +894,10 @@ def _base_receipt(
     prompt: str,
     context_packet: Mapping[str, Any] | str | None,
     tier: str,
+    agent: str = "maestro",
 ) -> dict[str, Any]:
     packet = _packet_mapping(context_packet)
+    agent_id = str(agent or "maestro").strip().lower() or "maestro"
     skill_receipts = [
         dict(receipt)
         for receipt in packet.get("skill_receipts", ())
@@ -906,6 +908,7 @@ def _base_receipt(
         "receipt_id": f"protected_generate:{hashlib.sha256((prompt + _packet_text(context_packet)).encode('utf-8')).hexdigest()[:16]}",
         "generated_at": _utc_now(),
         "pii_tier": tier,
+        "agent": agent_id,
         "packet_id": str(packet.get("packet_id") or ""),
         "prompt_hash": _sha256(prompt),
         "packet_hash": _sha256(_packet_text(context_packet)),
@@ -979,7 +982,7 @@ def protected_generate_with_receipt(
     packet = _packet_mapping(context_packet)
     front_door_profile = _frontdoor_profile_active(front_door_profile, context_packet)
     tier = detect_pii_tier(raw_prompt, context_packet)
-    receipt = _base_receipt(prompt=raw_prompt, context_packet=context_packet, tier=tier)
+    receipt = _base_receipt(prompt=raw_prompt, context_packet=context_packet, tier=tier, agent=agent)
 
     if tier == MAX and not _legal_fully_tokenized(raw_prompt, packet):
         receipt.update(

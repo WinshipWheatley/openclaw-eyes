@@ -884,7 +884,7 @@ def test_pgwr_flag_off_receipt_matches_baseline_schema(tmp_path):
     )
     baseline_keys = {
         "schema_version", "receipt_id", "generated_at", "pii_tier", "packet_id",
-        "prompt_hash", "packet_hash", "send_hold_active", "outbound_action_allowed",
+        "agent", "prompt_hash", "packet_hash", "send_hold_active", "outbound_action_allowed",
         "money_movement_allowed", "ledger_mutation_allowed", "raw_values_written_to_audit",
         "status", "decision", "tokenization_applied", "token_count", "raw_values_included",
         "model_call_performed", "external_llm_invoked", "local_model_invoked", "route",

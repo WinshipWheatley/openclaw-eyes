@@ -34,3 +34,28 @@ def test_maestro_system_prompt_includes_perspective_without_new_authority(tmp_pa
     assert "Maestro must never use first-person words to mean Winship" in system_prompt
     assert "Never claim send/spend/mutation authority." in system_prompt
     assert "DETERMINISTIC PACKET:" in system_prompt
+
+
+def test_protected_generate_receipt_includes_agent_default_and_override(tmp_path):
+    def generator(_system_prompt: str, **_kwargs) -> str:
+        return "Grounded answer."
+
+    default_outcome = protected_generate_with_receipt(
+        "Say something grounded.",
+        context_packet={"facts": [{"topic": "status", "label": "Grounded", "value": "Grounded answer."}]},
+        generator_fn=generator,
+        audit_log_path=tmp_path / "default.jsonl",
+        allow_live_model=False,
+    )
+    guardian_outcome = protected_generate_with_receipt(
+        "Say something grounded.",
+        context_packet={"facts": [{"topic": "status", "label": "Grounded", "value": "Grounded answer."}]},
+        generator_fn=generator,
+        audit_log_path=tmp_path / "guardian.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="guardian",
+    )
+
+    assert default_outcome.receipt["agent"] == "maestro"
+    assert guardian_outcome.receipt["agent"] == "guardian"
