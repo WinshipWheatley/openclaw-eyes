@@ -10,11 +10,16 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from ar_expected_receivable_record import ExpectedReceivableRecord
+from ar_gig_record import GigRecord
+from ar_gig_to_cash_store import GigToCashStore
+from ar_invoice_record import InvoiceRecord
 from operator_skill_registry import (
     LOCAL_LOG_SKILL_ACTION_TYPES,
     get_operator_skill,
@@ -1620,6 +1625,334 @@ def _write_read_model(event: Mapping[str, Any], *, read_model_root: str | Path, 
     return path
 
 
+def _g2c_link_table(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS operator_intake_g2c_links (
+            intake_id TEXT NOT NULL,
+            record_type TEXT NOT NULL,
+            record_id TEXT NOT NULL,
+            source_ref TEXT NOT NULL,
+            receipt_ref TEXT NOT NULL,
+            counterparty_ref TEXT NOT NULL,
+            amount_minor_units INTEGER,
+            currency_iso TEXT,
+            due_date_iso TEXT,
+            lifecycle_state TEXT,
+            provenance_json TEXT NOT NULL,
+            PRIMARY KEY (intake_id, record_type, record_id)
+        )
+        """
+    )
+
+
+def _g2c_counterparty_ref(label: str) -> tuple[str, str]:
+    cleaned = _clean_phrase(label)
+    if _mentions_st_annes(cleaned):
+        return "st_annes", "St. Anne's"
+    lowered = cleaned.lower().replace("&", " and ")
+    if "live arts" in lowered:
+        return "live_arts_md", "Live Arts MD"
+    ref = re.sub(r"[^a-z0-9]+", "_", lowered).strip("_")
+    return ref or "unknown_counterparty", cleaned or "Unknown counterparty"
+
+
+def _minor_units_from_amount(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        amount = float(value)
+    except (TypeError, ValueError):
+        return None
+    minor = int(round(amount * 100))
+    return minor if minor > 0 else None
+
+
+def _g2c_stable_id(prefix: str, *parts: Any) -> str:
+    digest = _sha256_text("|".join(str(part) for part in parts if part is not None))[:32]
+    return f"{prefix}:operator_intake:{digest}"
+
+
+def _g2c_receipt_ref(event: Mapping[str, Any], receipt_ref: str) -> str:
+    if receipt_ref:
+        return receipt_ref
+    refs = [str(ref) for ref in event.get("receipt_refs", []) if str(ref)]
+    return refs[0] if refs else f"operator_intake:{event['intake_id']}"
+
+
+def _insert_operator_intake_g2c_link(
+    *,
+    db_path: str | Path,
+    event: Mapping[str, Any],
+    record_type: str,
+    record_id: str,
+    source_ref: str,
+    receipt_ref: str,
+    counterparty_ref: str,
+    amount_minor_units: int | None,
+    currency_iso: str | None,
+    due_date_iso: str | None,
+    lifecycle_state: str | None,
+    provenance: Mapping[str, Any],
+) -> None:
+    with sqlite3.connect(str(db_path)) as conn:
+        _g2c_link_table(conn)
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO operator_intake_g2c_links (
+                intake_id, record_type, record_id, source_ref, receipt_ref,
+                counterparty_ref, amount_minor_units, currency_iso, due_date_iso,
+                lifecycle_state, provenance_json
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(event["intake_id"]),
+                record_type,
+                record_id,
+                source_ref,
+                receipt_ref,
+                counterparty_ref,
+                amount_minor_units,
+                currency_iso,
+                due_date_iso,
+                lifecycle_state,
+                stable_json(dict(provenance)),
+            ),
+        )
+
+
+def _g2c_gig_id_for_intake(db_path: str | Path, intake_id: str) -> str:
+    if not intake_id or not Path(db_path).exists():
+        return ""
+    with sqlite3.connect(str(db_path)) as conn:
+        _g2c_link_table(conn)
+        row = conn.execute(
+            """
+            SELECT record_id
+            FROM operator_intake_g2c_links
+            WHERE intake_id = ? AND record_type = 'GigRecord'
+            ORDER BY rowid DESC
+            LIMIT 1
+            """,
+            (intake_id,),
+        ).fetchone()
+    return str(row[0]) if row else ""
+
+
+def _write_g2c_gig_normalization(
+    event: Mapping[str, Any],
+    *,
+    db_path: str | Path,
+    receipt_ref: str,
+    raw_text_hash: str,
+) -> dict[str, Any]:
+    fields = event["parsed"]["fields"]
+    counterparty_ref, counterparty_name = _g2c_counterparty_ref(str(fields.get("venue") or ""))
+    event_date = str(fields.get("normalized_event_date") or fields.get("event_date") or event.get("normalized_event_date") or "")
+    digest_parts = ("gig", event["intake_id"], counterparty_ref, event_date)
+    gig_id = _g2c_stable_id("gig", *digest_parts)
+    gig = GigRecord(
+        gig_id=gig_id,
+        counterparty_ref=counterparty_ref,
+        counterparty_name=counterparty_name,
+        lifecycle_state="completed",
+        timezone=str(fields.get("operator_local_timezone") or event.get("operator_local_timezone") or DEFAULT_OPERATOR_TIMEZONE),
+        billing_policy_ref=f"operator_intake:{counterparty_ref}:unconfirmed",
+        idempotency_key="operator_intake:gig:" + _sha256_text("|".join(str(part) for part in digest_parts)),
+        scheduled_start_iso=f"{event_date}T00:00:00" if event_date else None,
+        scheduled_end_iso=f"{event_date}T23:59:59" if event_date else None,
+    )
+    with GigToCashStore(str(db_path)) as store:
+        append = store.append(gig)
+    provenance = {
+        "source": "operator_universal_intake",
+        "intake_id": event["intake_id"],
+        "receipt_ref": _g2c_receipt_ref(event, receipt_ref),
+        "raw_text_hash": raw_text_hash,
+        "normalized_event_date": event.get("normalized_event_date", ""),
+        "record_kind": "gig_event_log",
+    }
+    _insert_operator_intake_g2c_link(
+        db_path=db_path,
+        event=event,
+        record_type="GigRecord",
+        record_id=gig.gig_id,
+        source_ref=f"operator_intake:{event['intake_id']}",
+        receipt_ref=_g2c_receipt_ref(event, receipt_ref),
+        counterparty_ref=counterparty_ref,
+        amount_minor_units=None,
+        currency_iso=None,
+        due_date_iso=event_date,
+        lifecycle_state=gig.lifecycle_state,
+        provenance=provenance,
+    )
+    return {
+        "status": "written",
+        "record_type": "GigRecord",
+        "record_id": gig.gig_id,
+        "created": bool(append.created),
+        "counterparty_ref": counterparty_ref,
+        "due_date_iso": event_date,
+        "lifecycle_state": gig.lifecycle_state,
+        "authority_boundary": {
+            "money_movement_performed": False,
+            "invoice_marked_paid": False,
+            "external_ledger_mutated": False,
+        },
+    }
+
+
+def _write_g2c_receivable_normalization(
+    event: Mapping[str, Any],
+    *,
+    db_path: str | Path,
+    receipt_ref: str,
+    raw_text_hash: str,
+) -> dict[str, Any]:
+    fields = event["parsed"]["fields"]
+    amount_minor = _minor_units_from_amount(fields.get("amount"))
+    if amount_minor is None:
+        return {"status": "skipped", "reason": "missing_amount"}
+    payer = str(fields.get("payer") or fields.get("context_label") or "")
+    counterparty_ref, _counterparty_name = _g2c_counterparty_ref(payer)
+    due_date = str(
+        fields.get("normalized_event_date")
+        or fields.get("associated_gig_date")
+        or event.get("normalized_event_date")
+        or event.get("operator_local_date")
+        or ""
+    )
+    currency = str(fields.get("currency") or "USD").upper()
+    associated_gig_intake_id = str(fields.get("associated_gig_intake_id") or "")
+    associated_g2c_gig_id = _g2c_gig_id_for_intake(db_path, associated_gig_intake_id)
+    source_ref = f"gig:{associated_g2c_gig_id}" if associated_g2c_gig_id else f"operator_intake:{event['intake_id']}"
+    stable_parts = ("receivable", event["intake_id"], counterparty_ref, amount_minor, currency, due_date, source_ref)
+    stable = _sha256_text("|".join(str(part) for part in stable_parts))
+    invoice_id = f"inv:operator_intake:{stable[:32]}"
+    invoice_version_id = f"inv_ver:operator_intake:{stable[:32]}"
+    receivable_id = f"recv:operator_intake:{stable[:32]}"
+    receivable_version_id = f"recv_ver:operator_intake:{stable[:32]}"
+    invoice = InvoiceRecord(
+        invoice_id=invoice_id,
+        invoice_version_id=invoice_version_id,
+        counterparty_ref=counterparty_ref,
+        billing_entity_ref="winship_live",
+        lifecycle_state="draft",
+        idempotency_key=f"operator_intake:invoice:{stable}",
+        source_ref=f"operator_intake:{event['intake_id']}",
+        invoice_number=f"OPI-{counterparty_ref}-{due_date}-{stable[:8]}",
+        issue_date_iso=due_date,
+        due_date_iso=due_date,
+        currency_iso=currency,
+        total_minor_units=amount_minor,
+    )
+    receivable = ExpectedReceivableRecord(
+        receivable_id=receivable_id,
+        receivable_version_id=receivable_version_id,
+        invoice_id=invoice.invoice_id,
+        invoice_version_id=invoice.invoice_version_id,
+        counterparty_ref=counterparty_ref,
+        lifecycle_state="satisfied",
+        expected_minor_units=amount_minor,
+        currency_iso=currency,
+        due_date_iso=due_date,
+        recognized_utc_iso=str(event["received_at_utc"]),
+        idempotency_key=f"operator_intake:receivable:{stable}",
+        source_ref=source_ref,
+        resolution_ref=f"operator_intake:{event['intake_id']}:local_income_payment",
+    )
+    with GigToCashStore(str(db_path)) as store:
+        invoice_append = store.append(invoice)
+        receivable_append = store.append(receivable)
+    provenance = {
+        "source": "operator_universal_intake",
+        "intake_id": event["intake_id"],
+        "receipt_ref": _g2c_receipt_ref(event, receipt_ref),
+        "raw_text_hash": raw_text_hash,
+        "normalized_event_date": event.get("normalized_event_date", ""),
+        "record_kind": "income_payment_log",
+        "associated_gig_intake_id": associated_gig_intake_id,
+        "associated_g2c_gig_id": associated_g2c_gig_id,
+        "status_basis": "operator_local_paid_statement",
+        "authority_note": "records-only; no external ledger mutation and no invoice paid marking",
+    }
+    _insert_operator_intake_g2c_link(
+        db_path=db_path,
+        event=event,
+        record_type="InvoiceRecord",
+        record_id=invoice.invoice_id,
+        source_ref=invoice.source_ref,
+        receipt_ref=_g2c_receipt_ref(event, receipt_ref),
+        counterparty_ref=counterparty_ref,
+        amount_minor_units=amount_minor,
+        currency_iso=currency,
+        due_date_iso=due_date,
+        lifecycle_state=invoice.lifecycle_state,
+        provenance=provenance,
+    )
+    _insert_operator_intake_g2c_link(
+        db_path=db_path,
+        event=event,
+        record_type="ExpectedReceivableRecord",
+        record_id=receivable.receivable_id,
+        source_ref=receivable.source_ref,
+        receipt_ref=_g2c_receipt_ref(event, receipt_ref),
+        counterparty_ref=counterparty_ref,
+        amount_minor_units=amount_minor,
+        currency_iso=currency,
+        due_date_iso=due_date,
+        lifecycle_state=receivable.lifecycle_state,
+        provenance=provenance,
+    )
+    return {
+        "status": "written",
+        "record_type": "ExpectedReceivableRecord",
+        "record_id": receivable.receivable_id,
+        "invoice_id": invoice.invoice_id,
+        "invoice_created": bool(invoice_append.created),
+        "receivable_created": bool(receivable_append.created),
+        "counterparty_ref": counterparty_ref,
+        "amount_minor_units": amount_minor,
+        "currency_iso": currency,
+        "due_date_iso": due_date,
+        "lifecycle_state": receivable.lifecycle_state,
+        "source_ref": receivable.source_ref,
+        "authority_boundary": {
+            "money_movement_performed": False,
+            "invoice_marked_paid": False,
+            "external_ledger_mutated": False,
+        },
+    }
+
+
+def _write_g2c_normalization(
+    event: Mapping[str, Any],
+    *,
+    db_path: str | Path | None,
+    receipt_ref: str = "",
+    raw_text_hash: str = "",
+) -> dict[str, Any]:
+    if db_path is None:
+        return {"status": "disabled"}
+    action_type = str(event.get("parsed", {}).get("action_type") or "")
+    if action_type == "gig_event_log":
+        return _write_g2c_gig_normalization(
+            event,
+            db_path=db_path,
+            receipt_ref=receipt_ref,
+            raw_text_hash=raw_text_hash,
+        )
+    if action_type == "income_payment_log":
+        return _write_g2c_receivable_normalization(
+            event,
+            db_path=db_path,
+            receipt_ref=receipt_ref,
+            raw_text_hash=raw_text_hash,
+        )
+    return {"status": "skipped", "reason": "unsupported_action_type"}
+
+
 def process_operator_intake(
     *,
     raw_text: str,
@@ -1631,6 +1964,7 @@ def process_operator_intake(
     receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+    g2c_db_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Create an OPERATOR_INTAKE_EVENT_V0 and write local artifacts when safe."""
 
@@ -1780,6 +2114,13 @@ def process_operator_intake(
                 event["receipts"] = [receipt]
                 event["receipt_refs"] = [receipt_ref]
                 event["watch_desk_items"] = [_build_watch_item(event, receipt_ref)]
+                if g2c_db_path is not None:
+                    event["g2c_normalization"] = _write_g2c_normalization(
+                        event,
+                        db_path=g2c_db_path,
+                        receipt_ref=receipt_ref,
+                        raw_text_hash=text_hash,
+                    )
                 event["safe_actions_taken"] = ["repair_missing_local_receipt_ref"] if safe_action else []
                 event["stop_condition"] = "duplicate_local_receipt_rematerialized"
                 _write_read_model(event, read_model_root=read_model_root, generated_at=created_at)
@@ -1810,6 +2151,13 @@ def process_operator_intake(
         event["receipts"] = [receipt]
         event["receipt_refs"] = [receipt_ref]
         event["watch_desk_items"] = [watch_item]
+        if g2c_db_path is not None:
+            event["g2c_normalization"] = _write_g2c_normalization(
+                event,
+                db_path=g2c_db_path,
+                receipt_ref=receipt_ref,
+                raw_text_hash=text_hash,
+            )
         if approval_required:
             event["stop_condition"] = "guardian_approval_required_local_receipt_written"
         elif should_write_clarification_proof:
@@ -1836,6 +2184,7 @@ def process_operator_intake_batch(
     receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+    g2c_db_path: str | Path | None = None,
 ) -> list[dict[str, Any]]:
     if surface not in SUPPORTED_SURFACES:
         raise ValueError(f"unsupported surface: {surface}")
@@ -1856,6 +2205,7 @@ def process_operator_intake_batch(
             receiving_agent_id=receiving_agent_id,
             read_model_root=read_model_root,
             receipt_root=receipt_root,
+            g2c_db_path=g2c_db_path,
         )
         events.append(event)
         if event["parsed"]["action_type"] == "gig_event_log":
@@ -1985,6 +2335,7 @@ def try_process_surface_operator_intake(
     receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+    g2c_db_path: str | Path | None = None,
 ) -> dict[str, Any] | None:
     candidate = is_universal_operator_intake_candidate(raw_text)
     clarification_candidate = is_operator_intake_clarification_candidate(raw_text)
@@ -2000,6 +2351,7 @@ def try_process_surface_operator_intake(
         receiving_agent_id=receiving_agent_id,
         read_model_root=read_model_root,
         receipt_root=receipt_root,
+        g2c_db_path=g2c_db_path,
     )
     response = _surface_response_from_events(surface=surface, events=events)
     if clarification_candidate and not candidate:
@@ -2016,6 +2368,7 @@ def process_mac_composer_operator_intake(
     session_context: Mapping[str, Any] | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+    g2c_db_path: str | Path | None = None,
 ) -> dict[str, Any]:
     routed = try_process_surface_operator_intake(
         raw_text,
@@ -2027,6 +2380,7 @@ def process_mac_composer_operator_intake(
         receiving_agent_id="mac_composer",
         read_model_root=read_model_root,
         receipt_root=receipt_root,
+        g2c_db_path=g2c_db_path,
     )
     if routed is not None:
         return routed
@@ -2040,6 +2394,7 @@ def process_mac_composer_operator_intake(
         receiving_agent_id="mac_composer",
         read_model_root=read_model_root,
         receipt_root=receipt_root,
+        g2c_db_path=g2c_db_path,
     )
     return {
         "schema_version": "operator_intake_surface_response_v0",
@@ -2213,6 +2568,7 @@ def process_direct_agent_surface_operator_intake(
     session_context: Mapping[str, Any] | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+    g2c_db_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Classify a direct-agent context without pretending unwired agents are live listeners."""
 
@@ -2230,6 +2586,7 @@ def process_direct_agent_surface_operator_intake(
         receiving_agent_id=resolved,
         read_model_root=read_model_root,
         receipt_root=receipt_root,
+        g2c_db_path=g2c_db_path,
     )
     if routed is not None:
         return _augment_direct_response(dict(routed), resolved=resolved, status=status, target=target)
@@ -2244,6 +2601,7 @@ def process_direct_agent_surface_operator_intake(
         receiving_agent_id=resolved,
         read_model_root=read_model_root,
         receipt_root=receipt_root,
+        g2c_db_path=g2c_db_path,
     )
     response = {
         "schema_version": "operator_intake_direct_surface_response_v0",

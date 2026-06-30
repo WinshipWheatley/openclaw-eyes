@@ -1,5 +1,9 @@
 import json
+import sqlite3
 from pathlib import Path
+
+from ar_gig_to_cash_serialization import from_json
+from ar_expected_receivable_record import ExpectedReceivableRecord
 
 from operator_universal_intake import (
     AGENT_LANE_REGISTRY_V0,
@@ -181,6 +185,100 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     assert item["push_class"] == "info"
     assert item["operator_local_date"] == "2026-06-11"
     assert item["normalized_event_date"] == "2026-06-11"
+
+
+def test_income_payment_can_write_structured_g2c_receivable_without_paid_invoice_mutation(tmp_path):
+    g2c_db_path = tmp_path / "g2c.sqlite3"
+
+    result = _process(
+        tmp_path,
+        "I got paid $900 from Live Arts MD.",
+        g2c_db_path=g2c_db_path,
+    )
+
+    assert result["parsed"]["fields"]["invoice_marked_paid"] is False
+    assert result["authority_boundary"]["invoice_marked_paid"] is False
+    assert result["g2c_normalization"]["status"] == "written"
+    assert result["g2c_normalization"]["counterparty_ref"] == "live_arts_md"
+    assert result["g2c_normalization"]["amount_minor_units"] == 90000
+    assert result["g2c_normalization"]["lifecycle_state"] == "satisfied"
+    assert result["g2c_normalization"]["due_date_iso"] == "2026-06-11"
+
+    with sqlite3.connect(g2c_db_path) as conn:
+        rows = conn.execute("SELECT canonical_json FROM expected_receivable_records").fetchall()
+        links = conn.execute(
+            """
+            SELECT intake_id, record_type, counterparty_ref, amount_minor_units,
+                   due_date_iso, lifecycle_state, provenance_json
+            FROM operator_intake_g2c_links
+            WHERE record_type = 'ExpectedReceivableRecord'
+            """
+        ).fetchall()
+
+    assert len(rows) == 1
+    receivable = from_json(rows[0][0])
+    assert isinstance(receivable, ExpectedReceivableRecord)
+    assert receivable.counterparty_ref == "live_arts_md"
+    assert receivable.expected_minor_units == 90000
+    assert receivable.currency_iso == "USD"
+    assert receivable.due_date_iso == "2026-06-11"
+    assert receivable.lifecycle_state == "satisfied"
+    assert receivable.source_ref == f"operator_intake:{result['intake_id']}"
+    assert receivable.resolution_ref == f"operator_intake:{result['intake_id']}:local_income_payment"
+
+    assert len(links) == 1
+    assert links[0][0] == result["intake_id"]
+    assert links[0][2] == "live_arts_md"
+    assert links[0][3] == 90000
+    assert links[0][4] == "2026-06-11"
+    assert links[0][5] == "satisfied"
+    provenance = json.loads(links[0][6])
+    assert provenance["source"] == "operator_universal_intake"
+    assert provenance["raw_text_hash"].startswith("sha256:")
+    assert provenance["receipt_ref"] == result["receipt_refs"][0]
+
+
+def test_st_annes_gig_and_payment_preserve_g2c_provenance(tmp_path):
+    g2c_db_path = tmp_path / "g2c.sqlite3"
+    gig = _process(tmp_path, "I did a St. Anne's gig tonight.", g2c_db_path=g2c_db_path)
+    payment = _process(
+        tmp_path,
+        "I got paid $1250 from St. Anne's.",
+        session_context={"recent_gigs": [gig]},
+        g2c_db_path=g2c_db_path,
+    )
+
+    with sqlite3.connect(g2c_db_path) as conn:
+        gig_links = conn.execute(
+            """
+            SELECT record_id, provenance_json FROM operator_intake_g2c_links
+            WHERE intake_id = ? AND record_type = 'GigRecord'
+            """,
+            (gig["intake_id"],),
+        ).fetchall()
+        receivable_links = conn.execute(
+            """
+            SELECT source_ref, provenance_json FROM operator_intake_g2c_links
+            WHERE intake_id = ? AND record_type = 'ExpectedReceivableRecord'
+            """,
+            (payment["intake_id"],),
+        ).fetchall()
+        receivable_rows = conn.execute("SELECT canonical_json FROM expected_receivable_records").fetchall()
+
+    assert len(gig_links) == 1
+    gig_id = gig_links[0][0]
+    assert gig_id.startswith("gig:operator_intake:")
+    assert len(receivable_links) == 1
+    assert receivable_links[0][0] == f"gig:{gig_id}"
+    provenance = json.loads(receivable_links[0][1])
+    assert provenance["associated_gig_intake_id"] == gig["intake_id"]
+    assert provenance["associated_g2c_gig_id"] == gig_id
+
+    receivable = from_json(receivable_rows[-1][0])
+    assert receivable.counterparty_ref == "st_annes"
+    assert receivable.expected_minor_units == 125000
+    assert receivable.lifecycle_state == "satisfied"
+    assert receivable.source_ref == f"gig:{gig_id}"
 
 
 def test_ambiguous_sign_this_asks_for_referent_and_does_not_mutate(tmp_path):
