@@ -207,20 +207,38 @@ def route_to_chief(suggestion: dict, *, file_fn: Optional[Callable[[dict], Any]]
 # The loop — observe → authorize+route each (file-once lifecycle) → notify.
 # --------------------------------------------------------------------------- #
 def _default_notify_fn(routed: list[dict]) -> None:
-    """Tell the operator, in prose, what Hermes routed this pass. Fail-open."""
+    """Tell the operator, in prose, what Hermes routed AND what got BLOCKED. Operator policy: a block
+    is NEVER silent — you always hear about it and can override. Fail-open."""
     if not routed:
         return
-    built = [r for r in routed if r.get("route") == "chief"]
+    built = [r for r in routed if r.get("route") == "chief" and r.get("allowed")]
     flagged = [r for r in routed if r.get("route") == "guardian"]
+    blocked = [r for r in routed if not r.get("allowed")]
+    parts: list[str] = []
     bits = []
     if built:
         bits.append(f"sent {len(built)} build{'s' if len(built) != 1 else ''} to Chief")
     if flagged:
         bits.append(f"flagged {len(flagged)} for your call (Guardian)")
-    if not bits:
+    if bits:
+        parts.append("Hermes here — watching the fleet, I " + " and ".join(bits) +
+                     ". You'll get a Guardian approval for each build.")
+    if blocked:
+        reasons = "; ".join(
+            f"{r.get('id', 'a suggestion')} "
+            f"({r.get('reason') or r.get('block_reason') or r.get('route') or 'not an allowed route'})"
+            for r in blocked[:3]
+        )
+        more = "" if len(blocked) <= 3 else f" (+{len(blocked) - 3} more)"
+        plural = "s" if len(blocked) != 1 else ""
+        them = "them" if len(blocked) != 1 else "it"
+        parts.append(
+            f"Heads up — I wanted to act on {len(blocked)} thing{plural} but the system blocked "
+            f"{them}: {reasons}{more}. Nothing was hidden from you — say the word and you can override."
+        )
+    if not parts:
         return
-    msg = ("Hermes here — watching the fleet, I " + " and ".join(bits) +
-           ". You'll get a Guardian approval for each build.")
+    msg = " ".join(parts)
     try:
         import subprocess
 
@@ -275,6 +293,7 @@ def run_hermes_fleet_loop(
     resolved: list[str] = []
     skipped: list[str] = []
     routed_receipts: list[dict] = []
+    blocked_receipts: list[dict] = []  # surfaced to the operator too — a block is never silent
 
     def _route(sug: dict, *, is_refile: bool) -> None:
         receipt = route_to_chief(sug, file_fn=file_fn, handoff_fn=handoff_fn,
@@ -282,6 +301,8 @@ def run_hermes_fleet_loop(
         sid = sug["id"]
         if not receipt.get("allowed"):
             blocked.append(sid)
+            receipt.setdefault("id", sid)
+            blocked_receipts.append(receipt)  # keep it so the operator hears about the block
             return
         if receipt.get("route") == "chief" and not receipt.get("filed"):
             failed.append(sid)          # factory down: not marked -> retried next cycle
@@ -319,9 +340,9 @@ def run_hermes_fleet_loop(
             mark_gap(sid, "done", store=store, ts=now)
             resolved.append(sid)
 
-    if routed_receipts:
+    if routed_receipts or blocked_receipts:
         try:
-            notify_fn(routed_receipts)
+            notify_fn(routed_receipts + blocked_receipts)
         except Exception:
             pass
 
