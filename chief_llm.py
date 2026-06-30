@@ -87,6 +87,14 @@ _FRONTDOOR_MODEL_HARD_DENY = frozenset({"gemma4:26b", "gemma4:31b"})
 _FRONTDOOR_MODEL_RAM_HEADROOM_GB = 4.0
 _FRONTDOOR_MODEL_MAX_GB_DEFAULT = 12.0
 
+# Hardware-fit ceiling for ALL local-model lanes (not just the front-door). A model whose
+# on-disk size exceeds this never resolves on this box: gemma4:26b (~19GB) on a 24GB box
+# swaps to ~0.75 tok/s and starves every other local model (it took the front-door brain
+# DOWN -- the briefing scheduler's "strong" lane kept loading it). Default 12GB (VRAM card +
+# a tolerable RAM spill); raised to the GPU card size on bigger rigs; env-overridable.
+_LOCAL_MODEL_MAX_GB_DEFAULT = 12.0
+_LOCAL_MODEL_MAX_GB_ENV = "OPENCLAW_LOCAL_MODEL_MAX_GB"
+
 
 def _ollama_tags_url() -> str:
     return OLLAMA_URL.rsplit("/", 1)[0] + "/tags"
@@ -897,6 +905,89 @@ def local_model_route_reason(
     return "default strong lane for normal user-facing reasoning"
 
 
+def _local_model_size_ceiling_gb() -> float:
+    """Max on-disk size (GB) a local model may have to resolve on this box.
+
+    ``OPENCLAW_LOCAL_MODEL_MAX_GB`` overrides everything. Otherwise the ceiling is the larger of
+    the 12GB default and the GPU card's total VRAM (so a big-GPU rig can still load big models,
+    while this 6GB box caps at 12GB and downshifts away from gemma4:26b/31b). Fail-OPEN to the
+    default if the resource probe is unavailable.
+    """
+    env_val = os.environ.get(_LOCAL_MODEL_MAX_GB_ENV, "").strip()
+    if env_val:
+        try:
+            parsed = float(env_val)
+            if parsed > 0:
+                return parsed
+        except (TypeError, ValueError):
+            pass
+    ceiling = _LOCAL_MODEL_MAX_GB_DEFAULT
+    try:
+        import frontdoor_resource_probe
+
+        snapshot = frontdoor_resource_probe.probe_frontdoor_resources()
+        total_vram = getattr(snapshot, "total_vram_gb", None)
+        if total_vram is not None and float(total_vram) > ceiling:
+            ceiling = float(total_vram)
+    except Exception:  # noqa: BLE001 — never break model resolution on a probe failure
+        pass
+    return ceiling
+
+
+def _largest_fitting_installed_model(
+    candidates: tuple[str, ...],
+    installed: set[str],
+    sizes: dict[str, float],
+    ceiling_gb: float,
+) -> str | None:
+    """First (preference-order) installed candidate whose KNOWN size <= ceiling_gb.
+
+    Candidates are largest-first, so the first match is the largest model that fits. A candidate
+    with no known size cannot be proven to fit and is skipped in favour of a known-fitting one.
+    Returns None when no installed candidate has a known fitting size (caller keeps the legacy
+    first-installed pick — fail OPEN, never block resolution).
+    """
+    for candidate in candidates:
+        if candidate not in installed:
+            continue
+        size_gb = sizes.get(candidate)
+        if size_gb is None:
+            continue
+        if float(size_gb) <= ceiling_gb:
+            return candidate
+    return None
+
+
+def _largest_fitting_installed_overall(
+    installed: set[str],
+    sizes: dict[str, float],
+    ceiling_gb: float,
+    prefer_family: str | None = None,
+) -> str | None:
+    """Largest installed model with KNOWN size <= ceiling_gb, preferring ``prefer_family``.
+
+    Used when a lane's ENTIRE candidate list is oversized (e.g. cassandra_user_reply is only
+    gemma4:26b/31b): rather than fail open to an oversized model that swaps and starves the
+    fleet, downshift to the biggest model that actually fits this box, keeping the lane's family
+    (the part before ':') when a fitting same-family model exists. None when nothing fits.
+    """
+    fitting = sorted(
+        (
+            (float(sizes[model]), model)
+            for model in installed
+            if sizes.get(model) is not None and float(sizes[model]) <= ceiling_gb
+        ),
+        reverse=True,
+    )
+    if not fitting:
+        return None
+    if prefer_family:
+        for _size, model in fitting:
+            if model.split(":", 1)[0] == prefer_family:
+                return model
+    return fitting[0][1]
+
+
 def resolve_local_model(
     prompt: str,
     lane: str | None = None,
@@ -916,6 +1007,24 @@ def resolve_local_model(
     candidates = local_model_candidates(selected_lane, task_class=task_class)
     if not installed:
         return candidates[0], selected_lane
+    # Hardware-fit ceiling (2026-06-29): never resolve to a model too big for this box. The
+    # briefing scheduler's strong/gemma lanes kept loading gemma4:26b (~19GB), which swapped on
+    # this 24GB box and starved the front-door brain (took it DOWN). Downshift to the largest
+    # installed candidate that fits; the smaller lane fallbacks (e.g. gemma4:e4b) exist for
+    # exactly this. Fail OPEN to the legacy first-installed pick when nothing known fits.
+    sizes = _ollama_model_sizes()
+    ceiling_gb = _local_model_size_ceiling_gb()
+    fitted = _largest_fitting_installed_model(candidates, installed, sizes, ceiling_gb)
+    if fitted is not None:
+        return fitted, selected_lane
+    # The lane's whole candidate list is oversized -> downshift to the largest installed model
+    # that fits this box, preferring the lane's model family. Guarantees no oversized model ever
+    # loads (and re-starves the fleet) while a fitting one is installed.
+    family = candidates[0].split(":", 1)[0] if candidates else None
+    overall = _largest_fitting_installed_overall(installed, sizes, ceiling_gb, prefer_family=family)
+    if overall is not None:
+        return overall, selected_lane
+    # Pathological: nothing installed fits the ceiling -> legacy first-installed pick (fail open).
     for candidate in candidates:
         if candidate in installed:
             return candidate, selected_lane
