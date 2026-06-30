@@ -308,6 +308,42 @@ def _mac_review_dispatcher_request(
     return request
 
 
+def test_maestro_cassandra_controller_route_threads_agent_to_frontdoor(tmp_path, monkeypatch):
+    captured: dict[str, str] = {}
+
+    def _stub_answer(text, *, session=None, source_surface="", agent="maestro", **kwargs):
+        captured["agent"] = agent
+        return router.maestro_cassandra_responder.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="Cassandra answer.",
+            plain_summary="Cassandra answer.",
+            machine_proof={"text_response_only": True, "email_send_performed": False},
+        )
+
+    monkeypatch.setattr(router.maestro_cassandra_responder, "answer_frontdoor_chat", _stub_answer)
+    request = _event_request(
+        event_type="chat_goal",
+        world="general",
+        thread="operator_maestro_chat",
+        operator_text="what gigs do I have coming up?",
+        extra_payload={"agent_id": "cassandra"},
+    )
+
+    receipt = router._route_maestro_cassandra_conversation(
+        request,
+        read_model_root=tmp_path,
+        receipt_id="receipt_agent_threading",
+        generated_at=FIXED_NOW,
+        validation={"verification_status": "VERIFIED"},
+    )
+
+    assert receipt is not None
+    assert captured["agent"] == "cassandra"
+    assert receipt["route_status"] == "TEXT_RESPONSE_READY"
+
+
 def _route(tmp_path: Path, request: dict) -> dict:
     read_model_root = _seed_read_models(tmp_path)
     return router.route_controller_event(

@@ -1156,6 +1156,69 @@ def _derive_conversation_id(raw_request: Mapping[str, Any]) -> str:
     return "conv_fallback_" + _short_hash("continuity_fallback", channel, chat_anchor)
 
 
+_FRONTDOOR_AGENT_FIELDS = (
+    "agent",
+    "agent_id",
+    "target_agent",
+    "target_agent_id",
+    "selected_agent",
+    "selected_agent_id",
+    "active_agent",
+    "active_agent_id",
+    "response_agent",
+    "response_agent_id",
+)
+_FRONTDOOR_AGENT_ALIASES = {
+    "maestro": "maestro",
+    "cassandra": "cassandra",
+    "clara": "clara",
+    "clara_reid": "clara",
+    "clara reid": "clara",
+    "chief": "chief",
+    "guardian": "guardian",
+    "niles": "niles",
+    "hermes": "hermes",
+}
+
+
+def _normalize_frontdoor_agent(value: object) -> str:
+    key = str(value or "").strip().lower()
+    if not key:
+        return ""
+    key = key.replace("-", "_")
+    return _FRONTDOOR_AGENT_ALIASES.get(key, "")
+
+
+def _frontdoor_agent_from_mapping(payload: Mapping[str, Any] | None) -> str:
+    if not isinstance(payload, Mapping):
+        return ""
+    for field in _FRONTDOOR_AGENT_FIELDS:
+        agent = _normalize_frontdoor_agent(payload.get(field))
+        if agent:
+            return agent
+    for field in ("context", "current_context", "event", "payload", "session"):
+        nested = payload.get(field)
+        if isinstance(nested, Mapping):
+            agent = _frontdoor_agent_from_mapping(nested)
+            if agent:
+                return agent
+    return ""
+
+
+def _resolved_frontdoor_agent(
+    raw_request: Mapping[str, Any],
+    *,
+    session: Mapping[str, Any] | None = None,
+    _capsule: Any | None = None,
+) -> str:
+    return (
+        _frontdoor_agent_from_mapping(raw_request)
+        or _frontdoor_agent_from_mapping(session)
+        or _normalize_frontdoor_agent(getattr(_capsule, "agent_id", ""))
+        or "maestro"
+    )
+
+
 def _continuity_identity_for_request(raw_request: Mapping[str, Any]) -> dict[str, str]:
     """Build the continuity-identity bundle attached to brain/CHAT responses."""
     conversation_id = _derive_conversation_id(raw_request)
@@ -1185,7 +1248,7 @@ def _continuity_identity_for_request(raw_request: Mapping[str, Any]) -> dict[str
         "conversation_id": conversation_id,
         "turn_id": turn_id,
         "operator_id": operator_id,
-        "agent_id": "maestro",
+        "agent_id": _resolved_frontdoor_agent(raw_request),
         "thread_id": thread_id,
         "conversation_id_source": "minted" if str(raw_request.get("conversation_id") or "").strip() else "fallback",
     }
@@ -5306,12 +5369,14 @@ def _process_maestro_frontdoor_operator_instruction(
     operator_text = maestro_cassandra_responder.operator_text_from_request(raw_request)
     session = maestro_cassandra_responder.session_from_request(raw_request)
     source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
+    agent = _resolved_frontdoor_agent(raw_request, session=session, _capsule=_capsule)
     try:
         result = maestro_cassandra_responder.answer_frontdoor_chat(
             operator_text,
             session=session,
             source_surface=source_surface,
             _capsule=_capsule,
+            agent=agent,
         )
     except TypeError as exc:
         if "source_surface" not in str(exc):
@@ -5579,12 +5644,14 @@ def _try_interpreter_brain_divert(
         augmented_session["interpreter_fact_selection"] = list(interp_result.fact_selection)
 
     source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
+    agent = _resolved_frontdoor_agent(raw_request, session=augmented_session, _capsule=_capsule)
     try:
         result = maestro_cassandra_responder.answer_frontdoor_chat(
             operator_text,
             session=augmented_session,
             source_surface=source_surface,
             _capsule=_capsule,
+            agent=agent,
         )
     except TypeError as exc:
         if "source_surface" not in str(exc):

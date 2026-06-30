@@ -328,6 +328,52 @@ class TestStarvationBugFixedSynthetically:
         req = _starved_workflow_request()
         assert processor._is_maestro_frontdoor_operator_instruction(req) is False
 
+    def test_frontdoor_operator_instruction_threads_agent_to_brain(self, tmp_path, monkeypatch):
+        """The deterministic front-door processor must preserve the requested agent
+        persona instead of letting answer_frontdoor_chat default to Maestro."""
+        captured: dict[str, Any] = {}
+
+        def _stub_answer(text, *, session=None, source_surface="operator_maestro_chat", _capsule=None, agent="maestro", **kw):
+            captured["agent"] = agent
+            return maestro.MaestroCassandraResult(
+                status="ANSWER_READY",
+                intent_class="maestro_brain_freeform",
+                allowed_to_call_handle=False,
+                one_line_answer="Niles answer.",
+                plain_summary="Niles answer.",
+                machine_proof={"text_response_only": True, "email_send_performed": False},
+            )
+
+        monkeypatch.setattr(maestro, "answer_frontdoor_chat", _stub_answer)
+        req = _starved_workflow_request()
+        req["authority_boundary"] = {
+            "email_send_allowed": False,
+            "gmail_read_allowed": False,
+            "browser_allowed": False,
+            "coupa_allowed": False,
+            "submit_allowed": False,
+            "ledger_mutation_allowed": False,
+            "payment_allowed": False,
+            "merge_allowed": False,
+            "push_allowed": False,
+            "worker_execution_allowed": False,
+        }
+        req["agent_id"] = "niles"
+        request_path = tmp_path / "req.json"
+        request_path.write_text(json.dumps(req), encoding="utf-8")
+
+        response = processor._process_maestro_frontdoor_operator_instruction(
+            request_path,
+            req,
+            classification=_workflow_classification(),
+            route_decision={},
+            _capsule=None,
+        )
+
+        assert response is not None
+        assert response.request_type == "CHAT"
+        assert captured["agent"] == "niles"
+
     def test_flag_on_brain_divert_reaches_brain_not_workflow(self, tmp_path, monkeypatch):
         """Flag ON + interpreter mocked BRAIN high-conf → the starved message is
         diverted to the brain (CHAT response), NOT the workflow consumer."""
@@ -398,6 +444,51 @@ class TestStarvationBugFixedSynthetically:
         assert detail["paid_marking_performed"] is False
         assert detail["business_action_performed"] is False
         assert detail["external_actions_locked"] is True
+
+    def test_interpreter_brain_divert_threads_agent_to_brain(self, tmp_path, monkeypatch):
+        """The interpreter divert is also a live brain route and must forward
+        agent identity into the persona renderer."""
+        monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
+
+        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+            return interpreter_lm.InterpretResult(
+                route=interpreter_lm.ROUTE_BRAIN,
+                fact_selection=[],
+                confidence=0.95,
+                reason="guardian advisory",
+            )
+
+        captured: dict[str, Any] = {}
+
+        def _stub_answer(text, *, session=None, source_surface="operator_maestro_chat", _capsule=None, agent="maestro", **kw):
+            captured["agent"] = agent
+            return maestro.MaestroCassandraResult(
+                status="ANSWER_READY",
+                intent_class="maestro_brain_freeform",
+                allowed_to_call_handle=False,
+                one_line_answer="Guardian answer.",
+                plain_summary="Guardian answer.",
+                machine_proof={"text_response_only": True, "email_send_performed": False},
+            )
+
+        monkeypatch.setattr(interpreter_lm, "interpret_operator_message", _mock_interpret)
+        monkeypatch.setattr(maestro, "answer_frontdoor_chat", _stub_answer)
+
+        req = _starved_workflow_request()
+        req["target_agent"] = "guardian"
+        request_path = tmp_path / "req.json"
+        request_path.write_text(json.dumps(req), encoding="utf-8")
+
+        response = processor._try_interpreter_brain_divert(
+            request_path,
+            req,
+            classification=_workflow_classification(),
+            route_decision={},
+            _capsule=None,
+        )
+
+        assert response is not None
+        assert captured["agent"] == "guardian"
 
     def test_flag_off_no_divert_starved_request(self, tmp_path, monkeypatch):
         """Flag OFF → _try_interpreter_brain_divert returns None (deterministic

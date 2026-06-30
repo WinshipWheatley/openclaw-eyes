@@ -574,6 +574,7 @@ def answer_frontdoor_chat(
             forwarded_session=forwarded_session,
             protected_generate_fn=protected_generate_fn,
             _capsule=_capsule,
+            agent=agent,
         )
 
     if intent_class == "hermes_truthful_advisory":
@@ -820,6 +821,7 @@ def _answer_people_query(
     forwarded_session: Mapping[str, Any],
     protected_generate_fn: ProtectedGenerateFn | None,
     _capsule: Any | None = None,
+    agent: str = "maestro",
 ) -> MaestroCassandraResult:
     from operator_truth_store import find_operator_truth_for_text
 
@@ -857,6 +859,7 @@ def _answer_people_query(
         forwarded_session=forwarded_session,
         protected_generate_fn=protected_generate_fn,
         _capsule=_capsule,
+        agent=agent,
     )
     proof = {
         **dict(fallback.machine_proof or {}),
