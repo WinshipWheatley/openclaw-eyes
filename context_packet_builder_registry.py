@@ -53,6 +53,14 @@ REGISTERED_CONTEXT_PACKET_BUILDERS: dict[str, PacketBuilderSpec] = {
         build_function="build_backend_ledger_context_packet",
         adapter="backend",
     ),
+    # The polish-loop builder context is NOT a *_context_packet.py file, so it is registered
+    # explicitly (not auto-discovered) — its system-context still must source from the ledger.
+    "polish_loop_build_packet": PacketBuilderSpec(
+        filename="polish_loop_build_packet",
+        module_name="polish_loop.worker_runtime",
+        build_function="build_polish_loop_build_context_packet",
+        adapter="polish_loop",
+    ),
 }
 
 
@@ -139,6 +147,10 @@ def build_registered_packet(filename: str, *, tmp_path: Path) -> dict[str, Any]:
         import backend_knowledge_packet as mod
 
         return mod.build_backend_ledger_context_packet(question="ledger contract probe")
+    if spec.adapter == "polish_loop":
+        from polish_loop import worker_runtime as mod
+
+        return mod.build_polish_loop_build_context_packet(goal="ledger contract probe")
     raise KeyError(filename)
 
 

@@ -14,7 +14,10 @@ def test_registered_context_packet_builders_match_filesystem() -> None:
 
     assert discovered <= registered
     assert "backend_knowledge_packet.py" in registered
-    assert registered - discovered == {"backend_knowledge_packet.py"}
+    # Registered-but-not-discovered builders (they aren't *_context_packet.py files): the
+    # backend knowledge packet + the polish-loop builder context. Both still ledger-enforced below.
+    assert "polish_loop_build_packet" in registered
+    assert registered - discovered == {"backend_knowledge_packet.py", "polish_loop_build_packet"}
 
 
 def test_registered_context_packet_builders_emit_ledger_provenance(tmp_path: Path) -> None:

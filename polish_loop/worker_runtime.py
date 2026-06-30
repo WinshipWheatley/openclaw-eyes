@@ -231,6 +231,46 @@ def _acceptance_ref_text(value: Any) -> str:
     return str(value)
 
 
+_LEDGER_BUILD_CONTEXT_FACT_LIMIT = 8
+
+
+def build_polish_loop_build_context_packet(
+    *, goal: str = "", db_path: "str | Path | None" = None
+) -> dict[str, Any]:
+    """Ledger-grounded system-context packet for the polish-loop builder.
+
+    Routes the builder's "what already exists / where things live" grounding through the SAME shared
+    business-ops-ledger source the agents use (context_source), so the builder reasons over the real
+    system and every fact carries ledger provenance -- enforced by the context-packet ledger contract.
+    """
+    import context_source
+
+    return context_source.build_ledger_context_packet(
+        question=goal,
+        agent_id="polish_loop_builder",
+        db_path=db_path,
+        limit=_LEDGER_BUILD_CONTEXT_FACT_LIMIT,
+        packet_id_prefix="polish_loop_build_context",
+    )
+
+
+def _render_ledger_system_context(goal: str = "") -> str:
+    """A bounded, ledger-grounded 'System Context' section for the build package (fail-soft)."""
+    try:
+        facts = build_polish_loop_build_context_packet(goal=goal).get("facts") or []
+    except Exception:  # never block a build on a ledger hiccup
+        return "(ledger system-context unavailable; build proceeds without it)"
+    if not facts:
+        return "(no ledger system-context facts matched)"
+    lines = []
+    for fact in facts:
+        label = str(fact.get("label") or fact.get("topic") or "").strip()
+        value = str(fact.get("value") or "").strip()
+        ref = str(fact.get("source_ref") or "")
+        lines.append(f"- {label}: {value}" + (f" (source: {ref})" if ref else ""))
+    return "\n".join(lines)
+
+
 def build_task_package_markdown(
     row: Mapping[str, Any],
     lease: TaskLease,
@@ -295,6 +335,10 @@ def build_task_package_markdown(
         (
             "Production Prohibitions",
             _render_list(_list_value(_payload_value(payload, "production_prohibitions", default=[]))),
+        ),
+        (
+            "System Context (ledger-grounded)",
+            _render_ledger_system_context(str(_payload_value(payload, "goal")).strip()),
         ),
     ]
 
