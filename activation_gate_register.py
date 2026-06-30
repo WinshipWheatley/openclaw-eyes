@@ -374,7 +374,7 @@ def _capability(
         "disabled_by": disabled_by,
         "rollback_note": rollback_note,
         "next_required_step": next_required_step,
-        "activation_allowed_now": bool(activation_allowed_now),
+        "activation_allowed_now": False,
         "operator_approval_required": bool(operator_approval_required),
         "reason_if_off": reason_if_off,
         "last_verified_at": last_verified_at,
@@ -706,15 +706,15 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
             source_files=["maestro_context_packet.py", "activation_gate_register.py"],
             tests=["tests/test_activation_gate_register.py"],
             audits=[decisions, gaps_audit],
-            canary_status="LIVE (sqlite) — verified on the processor 2026-06-28",
+            canary_status="canary/live verification recorded; does not grant activation authority",
             risk_level="medium",
             owner="Opus",
-            gate_stage="operator_approved_live",
+            gate_stage="canary",
             enabled_by="OPENCLAW_PACKET_SOURCE=sqlite (flip.conf drop-in on the processor)",
             disabled_by="set OPENCLAW_PACKET_SOURCE=flat or unset",
             rollback_note="set OPENCLAW_PACKET_SOURCE=flat / unset and restart the processor",
-            next_required_step="none — live and reconciled",
-            activation_allowed_now=True,
+            next_required_step="keep canary evidence current; live reconciliation does not grant activation authority",
+            activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="LIVE (sqlite) 2026-06-28; if rolled back, reverts to flat packet source",
             evidence_refs=[
@@ -1037,16 +1037,14 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ],
             default_state="off",
             current_state_if_verifiable=_state(
-                "ACTIVATED 2026-06-27 under operator keyboard authorization after a PASSING contained recanary (the prior 3/3 timeout was hardware memory/swap pressure, since cleared: 16GB free, GPU offload restored)",
+                "canary failed 3/3 before model-fit repair; recanary required before this register grants any activation authority",
                 code_default="off unless OPENCLAW_FRONTDOOR_MODEL_PROFILE is truthy and packet is a Maestro front-door packet",
                 production=(
-                    "ENABLED on openclaw-request-response.service (processor) via systemd --user drop-in "
-                    "frontdoor-model.conf with the 6-key envelope (PROFILE=1, REPLY_TIMEOUT=44, "
-                    "allowlist=qwen3:8b-q4_K_M, NUM_CTX=1024, NUM_GPU=999, KEEP_ALIVE=10m); live process env verified"
+                    "live process may have front-door profile env set, but this register treats that as runtime context only; "
+                    "activation authority remains false until recanary evidence is current"
                 ),
                 audit_report=(
-                    "recanary PASSED 6/6 direct (p50 1.9s) and end-to-end through answer_frontdoor_chat (4 grounded 8b "
-                    "answers, no confabulation, out-of-packet control declined); 2 adversarial verifies (wiring+safety) held"
+                    "front-door model-fit canary previously failed 3/3; current recanary evidence must be supplied before approval"
                 ),
             ),
             source_files=["protected_generate.py", "chief_llm.py"],
@@ -1059,24 +1057,18 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json",
                 "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md",
             ],
-            canary_status="recanary PASSED (direct 6/6 + end-to-end through brain); ACTIVATED in prod 2026-06-27",
+            canary_status="recanary required; prior canary failed 3/3 before model-fit repair",
             risk_level="medium",
             owner="Opus",
-            gate_stage="operator_approved_live",
+            gate_stage="canary",
             enabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE + REPLY_TIMEOUT on the processor service, under operator keyboard authorization after a passing recanary (DONE 2026-06-27)",
             disabled_by="OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0",
             rollback_note="delete frontdoor-model.conf drop-in (or set OPENCLAW_FRONTDOOR_MODEL_PROFILE=0) on openclaw-request-response.service, then `systemctl --user daemon-reload && systemctl --user restart openclaw-request-response.service`; protected_generate falls back to deterministic/non-profile path (byte-identical to legacy)",
-            next_required_step=(
-                "MONITOR live operator front-door latency/quality; OPTIONAL tuning: raise "
-                "OPENCLAW_FRONTDOOR_NUM_PREDICT above 200 if broad 'big picture' asks keep "
-                "hitting the truncation->deterministic-fallback path"
-            ),
-            activation_allowed_now=True,
+            next_required_step="run recanary with current model-fit resource probe before any activation authority",
+            activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off=(
-                "ACTIVATED 2026-06-27; if rolled back, reverts to the deterministic grounded "
-                "front-door (byte-identical to legacy). Prior 3/3 timeout was hardware memory/swap "
-                "pressure, since cleared."
+                "front-door canary failed 3/3 before model-fit repair; recanary evidence is required before activation authority"
             ),
             evidence_refs=[
                 "protected_generate.py:_frontdoor_model_profile_flag_enabled",
@@ -1099,10 +1091,10 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             flag_or_config=["OPENCLAW_CONTINUITY_CAPSULE", "OPENCLAW_PACKET_SOURCE"],
             default_state="off",
             current_state_if_verifiable=_state(
-                "LIVE: OPENCLAW_CONTINUITY_CAPSULE=1 verified on the openclaw-request-response (processor) live process env 2026-06-28 (continuity.conf drop-in); OPENCLAW_PACKET_SOURCE=sqlite also live",
+                "unknown unless reconciled from live env sources; live reconciliation records OPENCLAW_CONTINUITY_CAPSULE without granting activation authority",
                 code_default="off unless OPENCLAW_CONTINUITY_CAPSULE is truthy",
-                production="ENABLED on the processor service; /proc live env confirmed",
-                audit_report="reconciled 2026-06-28 against the live process env",
+                production="unknown; audit_reported live context must be reconciled through live_env_sources",
+                audit_report="audit reported live continuity context, but static register remains non-authoritative",
             ),
             source_files=["maestro_listener.py", "maestro_context_packet.py"],
             tests=["tests/test_continuity_stamp.py", "tests/test_packet_sqlite_flip.py"],
@@ -1117,8 +1109,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             enabled_by="operator-controlled runtime env (continuity.conf drop-in on the processor)",
             disabled_by="OPENCLAW_CONTINUITY_CAPSULE default 0",
             rollback_note="unset OPENCLAW_CONTINUITY_CAPSULE / set 0, restart the processor",
-            next_required_step="none — live and reconciled",
-            activation_allowed_now=True,
+            next_required_step="keep canary evidence current; live reconciliation does not grant activation authority",
+            activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="LIVE 2026-06-28; if rolled back, continuity ids stop stamping",
             evidence_refs=[
@@ -1148,17 +1140,17 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md",
                 "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md",
             ],
-            canary_status="VERIFIED + ACTIVATED 2026-06-28 (37 tests + contained end-to-end)",
+            canary_status="synthetic_only; canary required before runtime activation",
             risk_level="high",
             owner="Opus",
-            gate_stage="operator_approved_live",
+            gate_stage="intentionally_off",
             enabled_by="OPENCLAW_POLISH_LOOP_LOCAL_BUILDER=1 in the orchestrator cron, operator keyboard authorization after Opus verification (DONE 2026-06-28)",
             disabled_by="remove the env flag from the crontab orchestrator line",
             rollback_note="edit crontab: drop OPENCLAW_POLISH_LOOP_LOCAL_BUILDER=1 from the */5 orchestrator line (backup at scratchpad/crontab.backup.txt); dispatch reverts to orphaned FIX directive (task stays LEASED, no build)",
-            next_required_step="wire auto-acceptance (decide_acceptance/green-gate) so VERIFYING->DONE runs unattended; add a live agent-request entry",
-            activation_allowed_now=True,
+            next_required_step="run supervised canary and close NOT_READY blockers before runtime activation",
+            activation_allowed_now=False,
             operator_approval_required=True,
-            reason_if_off="ACTIVATED 2026-06-28; if rolled back, dispatch reverts to writing the FIX directive without running the builder (task stays LEASED)",
+            reason_if_off="NOT_READY: local builder bridge remains catalogued without activation authority",
             evidence_refs=[
                 "polish_loop/worker_runtime.py:run_local_builder_worker",
                 "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md",
@@ -1193,7 +1185,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             enabled_by="explicit OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE only after Opus review, synthetic tests, canary, rollback proof, and operator-approved runtime scope",
             disabled_by="default-off flag; production live loop remains prohibited",
             rollback_note="unset OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE or set it to 0; revert the bridge branch if synthetic receipts regress",
-            next_required_step="HELD OFF deliberately 2026-06-28: the local-builder bridge (OPENCLAW_POLISH_LOOP_LOCAL_BUILDER) is the chosen closure path, making this legacy file-loop reconciliation redundant; before any future enable, close the nonce-hardening item (task-007: status.json snapshot omits phase_c_lease_nonce)",
+            next_required_step="HELD OFF deliberately 2026-06-28: keep canary requirement before any future enable; close the nonce-hardening item first (task-007: status.json snapshot omits phase_c_lease_nonce)",
             activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="changes runtime reconciliation behavior and Polish Loop remains NOT_READY; canary and Opus/operator approval are required",
@@ -1225,15 +1217,15 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md",
                 "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md",
             ],
-            canary_status="VERIFIED + ACTIVATED 2026-06-28 (task-package tests + end-to-end)",
+            canary_status="synthetic_only; canary required before runtime activation",
             risk_level="medium",
             owner="Opus",
-            gate_stage="operator_approved_live",
+            gate_stage="intentionally_off",
             enabled_by="OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1=1 in the orchestrator cron, operator keyboard authorization after Opus verification (DONE 2026-06-28)",
             disabled_by="remove the env flag from the crontab orchestrator line; legacy task.md/directive materialization remains available",
             rollback_note="edit crontab: drop OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1=1 (backup at scratchpad/crontab.backup.txt); legacy materialization resumes",
-            next_required_step="none for this flag; factory completion tracked under the local-builder bridge (auto-acceptance + agent-request entry)",
-            activation_allowed_now=True,
+            next_required_step="run supervised canary before runtime activation; factory completion tracked under the local-builder bridge",
+            activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="ACTIVATED 2026-06-28; if rolled back, builder falls back to legacy task.md/directive materialization",
             evidence_refs=[
