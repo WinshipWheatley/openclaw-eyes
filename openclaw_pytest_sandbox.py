@@ -363,9 +363,14 @@ class OpenClawPytestSandbox:
     def _guarded_path_unlink(self, target: Path, *args: object, **kwargs: object):
         path = target.resolve(strict=False)
         mapped = self._mapped_path_for_unlink(path)
-        if mapped is not None:
-            return self._original_path_unlink(mapped, *args, **kwargs)
-        return self._original_path_unlink(target, *args, **kwargs)
+        unlink_target = mapped if mapped is not None else target
+        missing_ok = bool(args[0]) if args else bool(kwargs.pop("missing_ok", False))
+        try:
+            return self._original_os_unlink(unlink_target)
+        except FileNotFoundError:
+            if missing_ok:
+                return None
+            raise
 
     def _guarded_os_path_exists(self, path: object) -> bool:
         resolved = self._resolved_path(path)
