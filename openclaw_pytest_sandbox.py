@@ -270,8 +270,11 @@ class OpenClawPytestSandbox:
         redirect_root = os.environ.get("OPENCLAW_PYTEST_TMP_SQLITE_ROOT", "").strip()
         if not redirect_root:
             return None
+        redirect_base = Path(redirect_root).expanduser().resolve(strict=False)
+        if self._is_relative_to(path, redirect_base):
+            return None
         rel = path.relative_to(tmp_root)
-        return Path(redirect_root).expanduser().resolve(strict=False) / rel
+        return redirect_base / rel
 
     def _mapped_path_for_open(self, path: Path | None, *, write_mode: bool) -> Path | None:
         shadow = self._shadow_path_for_live_path(path)

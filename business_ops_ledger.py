@@ -19,7 +19,48 @@ LEDGER_PATH_ENV_VAR = "OPENCLAW_LEDGER_PATH"
 
 def resolve_business_ops_ledger_path(db_path: str | os.PathLike[str] | None = None) -> str:
     """Resolve the business-ops ledger path, honoring the test/session override."""
-    return str(db_path or os.environ.get(LEDGER_PATH_ENV_VAR) or DEFAULT_DB_PATH)
+    path = str(db_path or os.environ.get(LEDGER_PATH_ENV_VAR) or DEFAULT_DB_PATH)
+    return str(resolve_pytest_sqlite_redirect_path(path))
+
+
+def resolve_pytest_sqlite_redirect_path(path: str | os.PathLike[str]) -> Path:
+    """Mirror the pytest tmp-SQLite redirect for child processes.
+
+    The pytest sandbox monkeypatches sqlite3.connect in-process. Some trusted
+    tests also spawn `python3 scripts/...`; those children do not import the
+    sandbox, so scripts need the same env-driven path mapping.
+    """
+    raw = Path(path).expanduser()
+    try:
+        resolved = raw.resolve(strict=False)
+    except OSError:
+        return raw
+    if os.environ.get("OPENCLAW_PYTEST_REDIRECT_TMP_SQLITE") != "1":
+        return raw
+    if resolved.suffix.lower() not in {".sqlite", ".sqlite3", ".db"}:
+        return raw
+    tmp_root = Path("/tmp").resolve(strict=False)
+    try:
+        rel = resolved.relative_to(tmp_root)
+    except ValueError:
+        return raw
+    tmpdir = os.environ.get("TMPDIR", "").strip()
+    if tmpdir:
+        try:
+            resolved.relative_to(Path(tmpdir).expanduser().resolve(strict=False))
+            return raw
+        except ValueError:
+            pass
+    redirect_root = os.environ.get("OPENCLAW_PYTEST_TMP_SQLITE_ROOT", "").strip()
+    if not redirect_root:
+        return raw
+    redirect_base = Path(redirect_root).expanduser().resolve(strict=False)
+    try:
+        resolved.relative_to(redirect_base)
+        return raw
+    except ValueError:
+        pass
+    return redirect_base / rel
 
 
 def _connect_write(path: str):

@@ -12,7 +12,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.extract_canonical_facts import extract_markdown_sections
-from business_ops_ledger import init_business_ops_ledger, _query_truth_registry
+from business_ops_ledger import (
+    init_business_ops_ledger,
+    resolve_business_ops_ledger_path,
+    _query_truth_registry,
+)
 from canonical_fact_ingest import _PRODUCTION_DB_PATH, _init_fts_tables, ingest_graded_fact
 
 # ---------------------------------------------------------------------------
@@ -155,6 +159,7 @@ def replace_stale_doc_section_facts(
     new_content_hash: str,
 ) -> dict:
     """Remove stale doc-ingested rows for one source/section before re-ingest."""
+    db_path = resolve_business_ops_ledger_path(db_path)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     try:
@@ -220,6 +225,7 @@ def main():
             f"--source {args.source} --confirm"
         )
         sys.exit(2)
+    db_path = resolve_business_ops_ledger_path(args.db)
 
     if args.source not in SOURCE_REGISTRY:
         print(f"Error: Source '{args.source}' is not allowed. Permitted sources: {list(SOURCE_REGISTRY.keys())}")
@@ -246,13 +252,13 @@ def main():
     facts = extract_markdown_sections(content, args.source, git_head)
 
     # Init ledger + try to find truth registry entry
-    init_business_ops_ledger(args.db)
+    init_business_ops_ledger(db_path)
 
     truth_entry = None
     registry_data = _query_truth_registry(
         "SELECT * FROM truth_registry_entries WHERE observed_path = ?",
         (args.source,),
-        args.db,
+        db_path,
     )
     if registry_data:
         truth_entry = registry_data[0]
@@ -264,14 +270,14 @@ def main():
     for fact in facts:
         new_content_hash = hashlib.sha256(fact["fact_text"].encode("utf-8")).hexdigest()
         replacement = replace_stale_doc_section_facts(
-            args.db,
+            db_path,
             source_file=fact["source_file"],
             section_heading=fact["section_heading"],
             new_content_hash=new_content_hash,
         )
         removed_stale_facts.extend(replacement["removed_facts"])
         record = _build_fact_record(fact, metadata, truth_entry)
-        result = ingest_graded_fact(record, db_path=args.db, allow_production=args.confirm)
+        result = ingest_graded_fact(record, db_path=db_path, allow_production=args.confirm)
         if result["status"] == "inserted":
             inserted += 1
         elif result["status"] == "replaced":

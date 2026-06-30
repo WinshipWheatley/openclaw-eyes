@@ -2,16 +2,24 @@ import argparse
 import json
 import sqlite3
 import sys
-import os
 from collections import Counter
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from business_ops_ledger import resolve_business_ops_ledger_path
 
 def generate_report(db_path, root_id=None):
-    if not os.path.exists(db_path):
-        print(f"Error: Database not found at {db_path}", file=sys.stderr)
-        return
+    resolved_db_path = resolve_business_ops_ledger_path(db_path)
 
-    uri = f"file:{db_path}?mode=ro"
-    conn = sqlite3.connect(uri, uri=True)
+    uri = f"file:{Path(resolved_db_path).as_posix()}?mode=ro"
+    try:
+        conn = sqlite3.connect(uri, uri=True)
+    except sqlite3.OperationalError as e:
+        print(f"Error: Database not found at {db_path}: {e}", file=sys.stderr)
+        return
     cursor = conn.cursor()
 
     query = "SELECT * FROM file_inventory"
