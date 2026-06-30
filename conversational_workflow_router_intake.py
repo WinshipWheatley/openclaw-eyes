@@ -17,6 +17,7 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import re
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -399,6 +400,13 @@ def _content_hash(payload: dict[str, Any]) -> str:
 
 def _short_hash(*parts: Any) -> str:
     return hashlib.sha256(stable_json(parts).encode("utf-8")).hexdigest()[:20]
+
+
+def _safe_request_path_ref(path: Path | None) -> str | None:
+    if path is None:
+        return None
+    safe_name = re.sub(r"\d{3,}", "<digits>", path.name)
+    return f"request_file:{safe_name}"
 
 
 def _model_schemas() -> dict[str, Any]:
@@ -917,7 +925,7 @@ def _build_payload(
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated_at,
         "route_mode": route_mode,
-        "source_request_path": source_request_path.as_posix() if source_request_path else None,
+        "source_request_path": _safe_request_path_ref(source_request_path),
         "approved_inbox": APPROVED_INBOX.as_posix(),
         "supported_filename_pattern": REQUEST_FILENAME_PATTERN,
         "model_schemas": _model_schemas(),

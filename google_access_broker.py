@@ -958,16 +958,11 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
 
     # Gmail SELF-SEND TEST MODE: in self-test mode google.gmail.send may ONLY reach the
     # operator's own inbox. A self-only send is safe and skips the heavy Class C / exact-send
-    # gate; any external recipient is blocked outright until the operator graduates it off.
+    # gate; external recipients still pass through authority/credential checks before this
+    # mode blocks execution.
     _gmail_self_test_send = False
     if capability == "google.gmail.send" and _gmail_self_test_enabled():
-        if not _gmail_send_recipients_allowed(params):
-            msg = ("gmail self-test mode: agents may only send to "
-                   + ", ".join(sorted(_GMAIL_SELF_TEST_RECIPIENTS))
-                   + " until graduated (set OPENCLAW_GMAIL_SEND_SELF_TEST=0)")
-            _audit(agent, capability, params, False, msg)
-            return {"ok": False, "data": None, "error": msg}
-        _gmail_self_test_send = True
+        _gmail_self_test_send = _gmail_send_recipients_allowed(params)
 
     if approval_class == "B":
         action = f"Google broker: {agent} → {capability}"
@@ -997,6 +992,13 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     creds = _load_credentials()
     if creds is None:
         msg = "credentials present but could not be loaded — re-run --auth"
+        _audit(agent, capability, params, False, msg)
+        return {"ok": False, "data": None, "error": msg}
+
+    if capability == "google.gmail.send" and _gmail_self_test_enabled() and not _gmail_self_test_send:
+        msg = ("gmail self-test mode: agents may only send to "
+               + ", ".join(sorted(_GMAIL_SELF_TEST_RECIPIENTS))
+               + " until graduated (set OPENCLAW_GMAIL_SEND_SELF_TEST=0)")
         _audit(agent, capability, params, False, msg)
         return {"ok": False, "data": None, "error": msg}
 

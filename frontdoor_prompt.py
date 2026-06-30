@@ -355,11 +355,21 @@ def build_frontdoor_prompt(
     #   3 generic system-posture facts (dropped first)
     ranked: list[tuple[tuple[int, int, int], str, str, Mapping[str, Any]]] = []
     pre_dropped_ids: list[str] = []
+    agent_key = str(agent or _DEFAULT_AGENT).strip().lower()
+    message_lower = str(message or "").lower()
+    has_finance_anchor = any(
+        any(marker in f"{fact.get('topic') or ''} {fact.get('label') or ''} {fact.get('value') or ''}".lower()
+            for marker in ("receivable", "coupa", "capital hilton", "invoice", "payment"))
+        for fact in facts
+    )
+    cassandra_money_ambiguity = agent_key in {"cassandra", "clara"} and has_finance_anchor and any(
+        marker in message_lower for marker in ("$", "gig", "payment", "invoice", "receivable", "money", "landed")
+    )
+
     for index, fact in enumerate(facts):
         fid = _fact_id(fact, index)
         selected = _selection_match(fact, fact_selection)
         agent_relevant = _agent_relevant_fact(agent, fact)
-        agent_key = str(agent or _DEFAULT_AGENT).strip().lower()
         topic = str(fact.get("topic") or "").strip().lower()
         ref = _fact_source_ref(fact).lower()
         posture = _is_system_posture(fact)
@@ -369,7 +379,7 @@ def build_frontdoor_prompt(
         if (
             agent_key in {"cassandra", "clara"}
             and not selected
-            and not question_domain
+            and (cassandra_money_ambiguity or not question_domain)
             and (topic.startswith("niles_") or "niles_" in ref or "reynolds_gig" in ref)
         ):
             pre_dropped_ids.append(fid)
