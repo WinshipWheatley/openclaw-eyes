@@ -95,6 +95,34 @@ _FRONTDOOR_MODEL_MAX_GB_DEFAULT = 12.0
 _LOCAL_MODEL_MAX_GB_DEFAULT = 12.0
 _LOCAL_MODEL_MAX_GB_ENV = "OPENCLAW_LOCAL_MODEL_MAX_GB"
 
+# Context-aware fit ceilings (operator policy 2026-06-29): interactive replies must fit the GPU
+# card so they answer in real time; async/background work (briefs, synthesis, agentic code) may
+# spill to RAM for better quality because the operator is not waiting.
+_INTERACTIVE_MODEL_CEILING_GB = 8.0   # qwen3:8b (5.2) / qwen3.5:9b (6.6) / ornith:9b (5.6) fit; gemma4:e4b (9.6) + 14GB reasoners do not
+_ASYNC_MODEL_CEILING_GB = 15.0        # magistral / mistral-small (14) allowed; 17GB+ (gemma4:26b/31b, qwen3.6, nemotron:30b) stay out — they swap-death this 24GB box
+_ASYNC_MODEL_LONG_TIMEOUT_S = 3600    # a slow spilling async model must not be killed mid-generation
+
+# Task classes whose work is background (operator not waiting) -> async ceiling + long timeout.
+_ASYNC_TASK_CLASSES = frozenset({
+    "cassandra_outbound_draft",
+    "cassandra_morning_brief",
+    "cassandra_morning_brief_test",
+    "cassandra_morning_brief_fallback",
+    "cassandra_inbox_summary",
+    "cassandra_extract_classify",
+    "chief_evidence_scan",
+    "chief_evidence_synthesis",
+    "chief_structured_plan",
+    "chief_ambiguous_debug",
+    "chief_agentic_code",
+})
+_ASYNC_LANES = frozenset({"deep", "code_challenger"})
+
+
+def _is_async_workload(task_class: str | None, lane: str | None) -> bool:
+    """True for background work (operator not waiting) -> bigger model + long timeout allowed."""
+    return bool(task_class in _ASYNC_TASK_CLASSES or lane in _ASYNC_LANES)
+
 
 def _ollama_tags_url() -> str:
     return OLLAMA_URL.rsplit("/", 1)[0] + "/tags"
@@ -128,87 +156,96 @@ def ollama_is_unreachable(*, timeout: float = 0.2) -> bool:
         mark_ollama_unreachable()
         return True
 
+# Candidates are PREFERENCE-ordered (best first); resolve_local_model returns the first installed
+# candidate that fits the lane's ceiling. Interactive lanes (fast/strong) stay on card-fitting
+# qwen models for real-time replies; async lanes (deep/code_challenger) may reach bigger models.
 _LANE_CANDIDATES = {
+    # fast = bounded/snappy work -> smallest quick model that fits fully on the card
     "fast": (
+        "qwen3:4b",
+        "qwen3:8b-q4_K_M",
         "nemotron-3-nano:4b",
-        "gemma4:31b",
-        "nemotron-3-nano:30b",
     ),
+    # strong = interactive user-facing reasoning -> qwen3:8b (clean + fully fits), then 4b
     "strong": (
-        "gemma4:31b",
-        "nemotron-3-nano:30b",
-        "qwen2.5-coder:14b",
+        "qwen3:8b-q4_K_M",
+        "qwen3:4b",
+        "qwen3.5:9b",
     ),
+    # deep = heavy async reasoning/synthesis -> reasoners first (spill OK, operator not waiting)
     "deep": (
-        "nemotron-3-nano:30b",
-        "gemma4:31b",
-        "qwen2.5-coder:14b",
+        "magistral:latest",
+        "mistral-small:latest",
+        "qwen3.5:9b",
+        "qwen3:8b-q4_K_M",
     ),
+    # code_challenger = coding/builder work -> the coding specialist that fits the card
     "code_challenger": (
-        "qwen2.5-coder:14b",
+        "ornith:9b",
+        "mistral-small:latest",
     ),
 }
 
+# Preference-ordered per task class. INTERACTIVE (operator waiting) classes stay on card-fitting
+# qwen models for real-time replies; ASYNC classes (see _ASYNC_TASK_CLASSES) may reach bigger
+# reasoners/coders that spill to RAM. gemma4:26b/31b are retired here — they swap-death this box.
 _TASK_CLASS_MODEL_CANDIDATES = {
+    # ── interactive (real-time) ───────────────────────────────────────────────
     "cassandra_user_reply_fast": (
-        "gemma4:e4b",
-        "gemma4:26b",
-        "gemma4:31b",
+        "qwen3:4b",            # 61 tok/s, fully on GPU
+        "qwen3:8b-q4_K_M",
     ),
     "cassandra_user_reply": (
-        "gemma4:26b",
-        "gemma4:31b",
+        "qwen3:8b-q4_K_M",     # cleanest direct replies, fully fits the card
+        "qwen3:4b",
     ),
+    "chief_user_reply": (
+        "qwen3:8b-q4_K_M",
+        "qwen3:4b",
+    ),
+    # ── async (spill OK, operator not waiting) ────────────────────────────────
     "cassandra_outbound_draft": (
-        "gemma4:31b",
-        "gemma4:26b",
+        "qwen3.5:9b",          # best quality that still fits, slower is fine for a draft
+        "qwen3:8b-q4_K_M",
     ),
     "cassandra_morning_brief": (
-        "gemma4:31b",
-        "gemma4:26b",
-        "gemma4:e4b",
+        "qwen3.5:9b",          # near-26b quality without the box-kill (probe-confirmed)
+        "magistral:latest",
+        "qwen3:8b-q4_K_M",
     ),
     "cassandra_morning_brief_test": (
-        "gemma4:e4b",
-        "gemma4:26b",
-        "gemma4:31b",
+        "qwen3:4b",
+        "qwen3:8b-q4_K_M",
     ),
     "cassandra_inbox_summary": (
-        "gemma4:e4b",
-        "gemma4:26b",
-        "gemma4:31b",
+        "qwen3:4b",
+        "qwen3:8b-q4_K_M",
     ),
     "cassandra_extract_classify": (
-        "gemma4:e4b",
-        "gemma4:26b",
-        "gemma4:31b",
+        "qwen3:4b",
+        "qwen3:8b-q4_K_M",
     ),
     "chief_evidence_scan": (
         "nemotron-3-nano:4b",
-        "nemotron-3-nano:30b",
+        "qwen3:4b",
     ),
     "chief_evidence_synthesis": (
-        "nemotron-3-nano:30b",
+        "magistral:latest",    # heavy reasoning; spill OK
         "mistral-small:latest",
-        "magistral:latest",
+        "qwen3.5:9b",
     ),
     "chief_structured_plan": (
-        "mistral-small:latest",
         "magistral:latest",
-        "nemotron-3-nano:30b",
+        "qwen3.5:9b",
+        "mistral-small:latest",
     ),
     "chief_ambiguous_debug": (
         "magistral:latest",
-        "nemotron-3-nano:30b",
         "mistral-small:latest",
     ),
     "chief_agentic_code": (
-        "qwen3.6:latest",
+        "ornith:9b",           # coding specialist, fits the card, fast
         "mistral-small:latest",
-    ),
-    "chief_user_reply": (
-        "gemma4:26b",
-        "gemma4:31b",
     ),
 }
 
@@ -905,13 +942,13 @@ def local_model_route_reason(
     return "default strong lane for normal user-facing reasoning"
 
 
-def _local_model_size_ceiling_gb() -> float:
-    """Max on-disk size (GB) a local model may have to resolve on this box.
+def _local_model_size_ceiling_gb(task_class: str | None = None, lane: str | None = None) -> float:
+    """Max on-disk size (GB) a local model may have to resolve, by workload tier.
 
-    ``OPENCLAW_LOCAL_MODEL_MAX_GB`` overrides everything. Otherwise the ceiling is the larger of
-    the 12GB default and the GPU card's total VRAM (so a big-GPU rig can still load big models,
-    while this 6GB box caps at 12GB and downshifts away from gemma4:26b/31b). Fail-OPEN to the
-    default if the resource probe is unavailable.
+    ``OPENCLAW_LOCAL_MODEL_MAX_GB`` overrides both tiers. Otherwise INTERACTIVE workloads (operator
+    waiting) cap at the card-fit ceiling so replies are real time, while ASYNC/background work
+    (briefs, synthesis, agentic code -- see _is_async_workload) may spill to a larger model because
+    the operator is not waiting. gemma4:26b/31b exceed even the async ceiling (swap-death).
     """
     env_val = os.environ.get(_LOCAL_MODEL_MAX_GB_ENV, "").strip()
     if env_val:
@@ -921,17 +958,25 @@ def _local_model_size_ceiling_gb() -> float:
                 return parsed
         except (TypeError, ValueError):
             pass
-    ceiling = _LOCAL_MODEL_MAX_GB_DEFAULT
-    try:
-        import frontdoor_resource_probe
+    if _is_async_workload(task_class, lane):
+        return _ASYNC_MODEL_CEILING_GB
+    return _INTERACTIVE_MODEL_CEILING_GB
 
-        snapshot = frontdoor_resource_probe.probe_frontdoor_resources()
-        total_vram = getattr(snapshot, "total_vram_gb", None)
-        if total_vram is not None and float(total_vram) > ceiling:
-            ceiling = float(total_vram)
-    except Exception:  # noqa: BLE001 — never break model resolution on a probe failure
-        pass
-    return ceiling
+
+def _effective_model_timeout(timeout: int, model: str, sizes: dict[str, float] | None = None) -> int:
+    """Stretch the timeout for a big (spilling) model so it is not killed mid-generation.
+
+    Operator policy 2026-06-29: "timeouts basically off when a big model gets used." A model whose
+    on-disk size exceeds the interactive card ceiling is necessarily an async/spill model running
+    slowly off CPU -- give it _ASYNC_MODEL_LONG_TIMEOUT_S. Small card-fitting models keep the
+    caller's (short, real-time) timeout.
+    """
+    if sizes is None:
+        sizes = _ollama_model_sizes()
+    size_gb = sizes.get(model)
+    if size_gb is not None and float(size_gb) > _INTERACTIVE_MODEL_CEILING_GB:
+        return max(int(timeout or 0), _ASYNC_MODEL_LONG_TIMEOUT_S)
+    return timeout
 
 
 def _largest_fitting_installed_model(
@@ -1013,7 +1058,7 @@ def resolve_local_model(
     # installed candidate that fits; the smaller lane fallbacks (e.g. gemma4:e4b) exist for
     # exactly this. Fail OPEN to the legacy first-installed pick when nothing known fits.
     sizes = _ollama_model_sizes()
-    ceiling_gb = _local_model_size_ceiling_gb()
+    ceiling_gb = _local_model_size_ceiling_gb(task_class=task_class, lane=selected_lane)
     fitted = _largest_fitting_installed_model(candidates, installed, sizes, ceiling_gb)
     if fitted is not None:
         return fitted, selected_lane
@@ -1158,6 +1203,9 @@ def ollama_call(
     if num_predict is not None:
         merged_options["num_predict"] = num_predict
     for candidate_model in models_to_try:
+        # Operator policy 2026-06-29: a big (spilling) model must not be killed mid-generation ->
+        # stretch its timeout. Small card-fitting models keep the caller's short real-time timeout.
+        effective_timeout = _effective_model_timeout(timeout, candidate_model)
         payload_dict: dict = {
             "model": candidate_model,
             "prompt": prompt,
@@ -1179,7 +1227,7 @@ def ollama_call(
         for attempt in range(attempt_count):
             started = _time.monotonic()
             try:
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                with urllib.request.urlopen(req, timeout=effective_timeout) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     result = data.get("response", "").strip()
                     done_reason = data.get("done_reason")
@@ -1192,7 +1240,7 @@ def ollama_call(
                         "model": candidate_model,
                         "task_class": task_class,
                         "lane": selected_lane,
-                        "timeout": timeout,
+                        "timeout": effective_timeout,
                         "duration_ms": duration_ms,
                         "elapsed_ms": duration_ms,
                         "done_reason": done_reason,

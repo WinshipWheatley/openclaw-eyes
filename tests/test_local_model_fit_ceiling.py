@@ -33,7 +33,7 @@ def test_resolve_local_model_downshifts_oversized_briefing(monkeypatch) -> None:
     # front-door brain DOWN. With a 12GB ceiling it must downshift to the fitting fallback.
     monkeypatch.setattr(chief_llm, "_ollama_installed_models", lambda *a, **k: {"gemma4:26b", "gemma4:e4b"})
     monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: {"gemma4:26b": 19.0, "gemma4:e4b": 3.0})
-    monkeypatch.setattr(chief_llm, "_local_model_size_ceiling_gb", lambda: 12.0)
+    monkeypatch.setattr(chief_llm, "_local_model_size_ceiling_gb", lambda *a, **k: 12.0)
     model, _lane = chief_llm.resolve_local_model("write the morning brief", task_class="cassandra_morning_brief")
     assert model == "gemma4:e4b"
 
@@ -61,16 +61,17 @@ def test_resolve_local_model_global_fallback_when_all_listed_oversized(monkeypat
         chief_llm, "_ollama_model_sizes",
         lambda *a, **k: {"gemma4:26b": 18.0, "gemma4:31b": 20.0, "gemma4:e4b": 9.6, "qwen3.5:9b": 6.6},
     )
-    monkeypatch.setattr(chief_llm, "_local_model_size_ceiling_gb", lambda: 12.0)
+    monkeypatch.setattr(chief_llm, "_local_model_size_ceiling_gb", lambda *a, **k: 12.0)
     model, _lane = chief_llm.resolve_local_model("hey cassandra", task_class="cassandra_user_reply")
     assert model == "gemma4:e4b"
 
 
 def test_resolve_local_model_keeps_legacy_when_no_fitting_known(monkeypatch) -> None:
-    # Fail-open: if no installed candidate has a known fitting size, keep the legacy first-installed
-    # pick rather than returning nothing.
-    monkeypatch.setattr(chief_llm, "_ollama_installed_models", lambda *a, **k: {"gemma4:26b"})
-    monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: {"gemma4:26b": 19.0})
-    monkeypatch.setattr(chief_llm, "_local_model_size_ceiling_gb", lambda: 12.0)
-    model, _lane = chief_llm.resolve_local_model("write the morning brief", task_class="cassandra_morning_brief")
-    assert model == "gemma4:26b"
+    # Fail-open: when the ONLY installed candidate is oversized (nothing fits the ceiling), keep
+    # that legacy pick rather than returning nothing. chief_evidence_synthesis lists magistral(14GB)
+    # first; with only magistral installed and a 12GB ceiling, nothing fits -> fail open to magistral.
+    monkeypatch.setattr(chief_llm, "_ollama_installed_models", lambda *a, **k: {"magistral:latest"})
+    monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: {"magistral:latest": 14.0})
+    monkeypatch.setattr(chief_llm, "_local_model_size_ceiling_gb", lambda *a, **k: 12.0)
+    model, _lane = chief_llm.resolve_local_model("synthesize the evidence", task_class="chief_evidence_synthesis")
+    assert model == "magistral:latest"

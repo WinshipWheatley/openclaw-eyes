@@ -242,9 +242,9 @@ def test_resolve_local_model_frontdoor_profile(monkeypatch):
 
 def test_resolve_local_model_chief_user_reply_untouched(monkeypatch):
     # chief_user_reply must NOT be repointed to the frontdoor ladder.
-    monkeypatch.setattr(chief_llm, "_ollama_installed_models", lambda *a, **k: {"gemma4:26b", "gemma4:31b"})
+    monkeypatch.setattr(chief_llm, "_ollama_installed_models", lambda *a, **k: {"qwen3:8b-q4_K_M", "qwen3:4b"})
     model, lane = chief_llm.resolve_local_model("hi", task_class="chief_user_reply")
-    assert model == "gemma4:26b"
+    assert model == "qwen3:8b-q4_K_M"
     assert lane == "strong"
 
 
