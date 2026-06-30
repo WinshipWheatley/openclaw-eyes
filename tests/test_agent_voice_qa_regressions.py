@@ -66,20 +66,28 @@ def test_cassandra_prompt_requires_confirming_new_gig_amount_vs_existing_receiva
                 "topic": "finance",
                 "label": "Existing receivable",
                 "value": "Capital Hilton/Coupa has an existing $2000 receivable due 2026-07-01.",
-            }
+            },
+            {
+                "fact_id": "unrelated_live_arts_truth",
+                "topic": "operator_truth",
+                "label": "Live Arts MD",
+                "value": "Live Arts MD has unrelated audio/video tech invoice notes.",
+            },
         ]
     }
     prompt, _manifest = build_frontdoor_prompt(
         packet,
         "I just landed a $2000 gig next month. What should I be tracking?",
         agent="cassandra",
-        max_chars=2600,
+        max_chars=1700,
     )
 
     assert "same receivable" in prompt.lower()
     assert "new gig" in prompt.lower()
     assert "ask" in prompt.lower() or "confirm" in prompt.lower()
     assert "Capital Hilton/Coupa" in prompt
+    assert "Live Arts MD has unrelated" not in prompt
+    assert "Reynolds Tavern" not in prompt
 
 
 def test_niles_packet_includes_existing_music_read_models(tmp_path: Path) -> None:

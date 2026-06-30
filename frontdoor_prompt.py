@@ -208,7 +208,7 @@ def _agent_relevant_fact(agent: str | None, fact: Mapping[str, Any]) -> bool:
         if topic.startswith("niles_") or "niles_" in ref or "reynolds_gig" in ref:
             return False
         return topic in {"finance", "invoice_status", "email_calendar", "calendar_day"} or any(
-            marker in blob for marker in ("receivable", "invoice", "coupa", "capital hilton")
+            marker in blob for marker in ("receivable", "coupa", "capital hilton")
         )
     if key == "guardian":
         return any(marker in blob for marker in ("safety", "guardian", "approval", "send_hold", "protected"))
@@ -321,20 +321,43 @@ def build_frontdoor_prompt(
     #   2 other non-posture facts
     #   3 generic system-posture facts (dropped first)
     ranked: list[tuple[tuple[int, int, int], str, str, Mapping[str, Any]]] = []
+    pre_dropped_ids: list[str] = []
     for index, fact in enumerate(facts):
         fid = _fact_id(fact, index)
         selected = _selection_match(fact, fact_selection)
         agent_relevant = _agent_relevant_fact(agent, fact)
+        agent_key = str(agent or _DEFAULT_AGENT).strip().lower()
+        topic = str(fact.get("topic") or "").strip().lower()
+        ref = _fact_source_ref(fact).lower()
         posture = _is_system_posture(fact)
         overlap = _lexical_overlap(fact, terms)
         operator_truth = _is_operator_truth(fact)
+        if (
+            agent_key in {"cassandra", "clara"}
+            and not selected
+            and (topic.startswith("niles_") or "niles_" in ref or "reynolds_gig" in ref)
+        ):
+            pre_dropped_ids.append(fid)
+            continue
+        if (
+            operator_truth
+            and agent_key in {"cassandra", "clara", "niles"}
+            and not selected
+            and not agent_relevant
+            and overlap <= 0
+        ):
+            pre_dropped_ids.append(fid)
+            continue
+        operator_truth_high = operator_truth and (
+            agent_key not in {"cassandra", "clara", "niles"} or overlap > 0 or agent_relevant
+        )
         if selected:
             tier = 0
         elif agent_relevant:
             tier = 0
         elif posture:
             tier = 3
-        elif operator_truth or overlap > 0:
+        elif operator_truth_high or overlap > 0:
             tier = 1
         else:
             tier = 2
@@ -346,7 +369,7 @@ def build_frontdoor_prompt(
     ranked.sort(key=lambda item: item[0])
 
     kept_ids: list[str] = []
-    dropped_ids: list[str] = []
+    dropped_ids: list[str] = list(pre_dropped_ids)
     kept_lines: list[str] = []
     used_chars = 0
     # over_budget reflects BUDGET narrowing only — a non-empty fact that could not fit.
