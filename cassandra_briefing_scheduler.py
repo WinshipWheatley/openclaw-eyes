@@ -37,7 +37,7 @@ from cassandra_briefing_brain import (
     briefing_voice_text,
 )
 from cassandra_sender import send_operator_brief
-from maestro_voice import speak_and_send_operator_brief_voice  # Maestro voices the operator brief
+from cassandra_voice import speak_and_send_operator_brief_voice  # Cassandra voices her own brief (af_heart)
 from cassandra_no_send_reload_guard import (
     briefing_delivery_blocked,
     is_internal_brief_carveout_enabled,
