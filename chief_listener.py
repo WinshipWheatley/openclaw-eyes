@@ -33,9 +33,28 @@ async def _telegram_typing_loop(bot, chat_id: int | None) -> None:
         await asyncio.sleep(4.0)
 
 
+def _fire_agent_voice(agent: str, text: str, update: Update) -> None:
+    """Fire-and-forget: synth+send the agent's Kokoro voice note (bm_george for Chief) WITHOUT
+    blocking the event loop or letting a TTS/Telegram hiccup break the text reply. Toggle with
+    OPENCLAW_AGENT_VOICE_NOTES=0."""
+    try:
+        import os
+        import agent_voice_sender
+
+        if os.environ.get("OPENCLAW_AGENT_VOICE_NOTES", "1").strip().lower() not in ("1", "true", "yes"):
+            return
+        chat_id = getattr(getattr(update, "message", None), "chat_id", None)
+        asyncio.get_event_loop().run_in_executor(
+            None, lambda: agent_voice_sender.send_agent_voice_note(agent, text, chat_id=chat_id)
+        )
+    except Exception as exc:  # never break a text reply on a voice issue
+        print(f"[chief_listener] voice note skipped: {exc}", flush=True)
+
+
 async def _send_reply(update: Update, text: str) -> None:
-    """Send a tts_clean-normalized plain-text reply."""
+    """Send a tts_clean-normalized plain-text reply, plus Chief's Kokoro voice note (fail-soft)."""
     await update.message.reply_text(tts_clean(text))
+    _fire_agent_voice("chief", text, update)
 
 
 async def _resume_interrupted_task(update: Update) -> None:
