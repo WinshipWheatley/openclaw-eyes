@@ -120,6 +120,100 @@ def test_runner_patch_preserves_unauthorized_flow() -> None:
     assert asyncio.run(GatewayRunner()._handle_message(event)) == "original unauthorized handling"
 
 
+class _Platform:  # hashable (real Platform is an enum used as a dict key)
+    value = "telegram"
+
+
+def _telegram_event(chat_id: str = "chat1"):
+    platform = _Platform()
+    return SimpleNamespace(source=SimpleNamespace(platform=platform, chat_id=chat_id)), platform
+
+
+def _voice_runner_cls():
+    # A minimal stand-in for GatewayRunner with the real voice-decision semantics.
+    class GatewayRunner:
+        def __init__(self):
+            self._voice_mode = {}
+            self.adapters = {}
+
+        def _voice_key(self, platform, chat_id):
+            return f"{platform.value}:{chat_id}"
+
+        def _should_send_voice_reply(self, event, response, agent_messages, already_sent=False):
+            key = self._voice_key(event.source.platform, event.source.chat_id)
+            return self._voice_mode.get(key, "off") == "all"
+
+        async def _send_voice_reply(self, event, text):
+            self.edge_fallback_called = True  # the original (edge-tts) path
+
+    return GatewayRunner
+
+
+def test_hermes_voice_defaults_on_for_unconfigured_chat() -> None:
+    runner_cls = _voice_runner_cls()
+    policy._install_hermes_voice_patch(runner_cls)
+    runner = runner_cls()
+    event, _ = _telegram_event()
+
+    # never configured -> should default to speaking
+    assert runner._should_send_voice_reply(event, "hi", []) is True
+
+
+def test_hermes_voice_respects_explicit_off() -> None:
+    runner_cls = _voice_runner_cls()
+    policy._install_hermes_voice_patch(runner_cls)
+    runner = runner_cls()
+    event, platform = _telegram_event()
+    runner._voice_mode[runner._voice_key(platform, "chat1")] = "off"  # operator did /voice off
+
+    assert runner._should_send_voice_reply(event, "hi", []) is False  # override preserved
+
+
+def test_hermes_voice_uses_kokoro_service_and_sends_through_adapter(tmp_path, monkeypatch) -> None:
+    import kokoro_voice_client
+
+    audio = tmp_path / "voice.ogg"
+    audio.write_bytes(b"OggSfake")
+    monkeypatch.setattr(kokoro_voice_client, "synthesize_remote", lambda text, **kw: str(audio))
+
+    sent = {}
+
+    class Adapter:
+        async def send_voice(self, chat_id, audio_path):
+            sent["chat_id"] = chat_id
+            sent["audio_path"] = audio_path
+
+    runner_cls = _voice_runner_cls()
+    policy._install_hermes_voice_patch(runner_cls)
+    runner = runner_cls()
+    event, platform = _telegram_event()
+    runner.adapters[platform] = Adapter()
+
+    asyncio.run(runner._send_voice_reply(event, "hello there"))
+
+    assert sent == {"chat_id": "chat1", "audio_path": str(audio)}
+    assert not getattr(runner, "edge_fallback_called", False)  # Kokoro path used, not edge-tts
+    assert not audio.exists()  # temp audio cleaned up after send
+
+
+def test_hermes_voice_falls_back_to_edge_when_service_down(monkeypatch) -> None:
+    import kokoro_voice_client
+    monkeypatch.setattr(kokoro_voice_client, "synthesize_remote", lambda text, **kw: None)  # service down
+
+    class Adapter:
+        async def send_voice(self, chat_id, audio_path):
+            raise AssertionError("must not send when synth failed")
+
+    runner_cls = _voice_runner_cls()
+    policy._install_hermes_voice_patch(runner_cls)
+    runner = runner_cls()
+    event, platform = _telegram_event()
+    runner.adapters[platform] = Adapter()
+
+    asyncio.run(runner._send_voice_reply(event, "hello there"))
+    assert runner.edge_fallback_called is True  # never silent — original path ran
+
+
 def test_send_patch_sanitizes_busy_status_before_delivery() -> None:
     class BaseAdapter:
         async def _send_with_retry(self, *args, **kwargs):

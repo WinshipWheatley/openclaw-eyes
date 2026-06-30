@@ -205,6 +205,72 @@ def _event_is_authorized_for_intercept(runner: Any, event: Any) -> bool:
     return False
 
 
+def _install_hermes_voice_patch(runner_cls: Any) -> None:
+    """Give the conversational Hermes the fleet Kokoro voice (am_echo), on by default.
+
+    Two patches on GatewayRunner:
+      * ``_should_send_voice_reply`` — default a chat that has never set a voice mode to
+        "all", so Hermes speaks by default. An explicit ``/voice off`` persists as a real
+        key and still wins (operator override is preserved).
+      * ``_send_voice_reply`` — synthesize via the warm localhost Kokoro service and send
+        through the gateway's OWN Telegram adapter (one voice note per reply, same engine
+        and voice as the other five agents). Any failure — service down, synth error —
+        falls back to the original edge-tts path, so a voice outage never silences Hermes.
+    """
+
+    if getattr(runner_cls, "_openclaw_hermes_voice_patch", False):
+        return
+
+    original_should = getattr(runner_cls, "_should_send_voice_reply", None)
+    if callable(original_should):
+
+        def _openclaw_should_send_voice_reply(self: Any, event: Any, response: Any,
+                                              agent_messages: Any, already_sent: bool = False) -> Any:
+            try:
+                modes = getattr(self, "_voice_mode", None)
+                if isinstance(modes, dict):
+                    key = self._voice_key(event.source.platform, event.source.chat_id)
+                    if key not in modes:
+                        modes[key] = "all"  # default-on; explicit /voice off persists and wins
+            except Exception:
+                pass
+            return original_should(self, event, response, agent_messages, already_sent=already_sent)
+
+        runner_cls._should_send_voice_reply = _openclaw_should_send_voice_reply
+
+    original_send_voice = getattr(runner_cls, "_send_voice_reply", None)
+    if callable(original_send_voice):
+
+        async def _openclaw_send_voice_reply(self: Any, event: Any, text: str) -> Any:
+            import asyncio
+            import os
+
+            try:
+                platform = getattr(getattr(event, "source", None), "platform", None)
+                if getattr(platform, "value", "") == "telegram":
+                    adapter = self.adapters.get(platform) if hasattr(self, "adapters") else None
+                    if adapter is not None and hasattr(adapter, "send_voice"):
+                        import kokoro_voice_client
+
+                        path = await asyncio.to_thread(kokoro_voice_client.synthesize_remote, text)
+                        if path and os.path.isfile(path):
+                            try:
+                                await adapter.send_voice(chat_id=event.source.chat_id, audio_path=path)
+                            finally:
+                                try:
+                                    os.unlink(path)
+                                except Exception:
+                                    pass
+                            return None
+            except Exception:
+                pass
+            return await original_send_voice(self, event, text)
+
+        runner_cls._send_voice_reply = _openclaw_send_voice_reply
+
+    runner_cls._openclaw_hermes_voice_patch = True
+
+
 def install_gateway_policy_patch(*, gateway_run_module: Any | None = None, base_adapter_cls: type | None = None) -> bool:
     """Patch Hermes GatewayRunner after the ignored runtime is importable."""
 
@@ -227,6 +293,8 @@ def install_gateway_policy_patch(*, gateway_run_module: Any | None = None, base_
 
         runner_cls._handle_message = _openclaw_handle_message
         runner_cls._openclaw_truthful_gateway_patch = True
+
+    _install_hermes_voice_patch(runner_cls)
 
     if base_adapter_cls is None:
         try:

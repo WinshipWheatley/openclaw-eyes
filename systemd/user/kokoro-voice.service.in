@@ -1,0 +1,20 @@
+[Unit]
+Description=OpenClaw Kokoro Voice Service (warm TTS synth, shared by the Hermes gateway)
+PartOf=openclaw-stack.target
+# Cap restarts so a persistent failure enters 'failed' instead of looping.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=@REPO_ROOT@
+Restart=always
+RestartSec=5
+# Hold the warm KPipeline on CPU so it never competes with ollama for the ~6GB VRAM
+# (the contention the operator flagged). Kokoro is small; CPU synth is ~1-2s warm.
+Environment=CUDA_VISIBLE_DEVICES=
+Environment=OPENCLAW_KOKORO_VOICE_PORT=8771
+ExecStart=/bin/bash -lc 'mkdir -p /mnt/c/OpenClaw/logs && source @REPO_ROOT@/.chief.env && exec @REPO_ROOT@/chief_env/bin/python -u @REPO_ROOT@/kokoro_voice_service.py >> /mnt/c/OpenClaw/logs/kokoro_voice.out 2>&1'
+
+[Install]
+WantedBy=openclaw-stack.target
