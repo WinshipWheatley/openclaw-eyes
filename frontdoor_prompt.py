@@ -129,6 +129,20 @@ _SYSTEM_POSTURE_MARKERS = (
     "capability index",
 )
 _OPERATOR_TRUTH_TOPICS = frozenset({"operator_truth"})
+_QUESTION_DOMAIN_FACT_MARKERS = {
+    "gig": (
+        ("gig", "gigs", "show", "shows", "booking", "performance", "venue", "set", "calendar"),
+        ("gig", "gigs", "reynolds", "tavern", "booking", "performance", "venue", "set", "calendar"),
+    ),
+    "invoice": (
+        ("invoice", "invoices", "receivable", "receivables", "payment", "paid", "owed", "owes", "coupa"),
+        ("invoice", "receivable", "payment", "paid", "owed", "owes", "coupa", "capital hilton"),
+    ),
+    "approval": (
+        ("approval", "approve", "approvals", "guardian", "send_hold", "send hold", "gate", "proof"),
+        ("approval", "approve", "guardian", "send_hold", "send hold", "gate", "proof", "protected"),
+    ),
+}
 
 
 def _env_int(name: str, default: int) -> int:
@@ -212,6 +226,25 @@ def _agent_relevant_fact(agent: str | None, fact: Mapping[str, Any]) -> bool:
         )
     if key == "guardian":
         return any(marker in blob for marker in ("safety", "guardian", "approval", "send_hold", "protected"))
+    return False
+
+
+def _question_domain_fact(message: str, fact: Mapping[str, Any]) -> bool:
+    question = str(message or "").lower()
+    blob = " ".join(
+        str(value or "")
+        for value in (
+            fact.get("topic"),
+            fact.get("label"),
+            fact.get("value"),
+            _fact_source_ref(fact),
+        )
+    ).lower()
+    for question_markers, fact_markers in _QUESTION_DOMAIN_FACT_MARKERS.values():
+        if any(marker in question for marker in question_markers) and any(
+            marker in blob for marker in fact_markers
+        ):
+            return True
     return False
 
 
@@ -332,9 +365,11 @@ def build_frontdoor_prompt(
         posture = _is_system_posture(fact)
         overlap = _lexical_overlap(fact, terms)
         operator_truth = _is_operator_truth(fact)
+        question_domain = _question_domain_fact(message, fact)
         if (
             agent_key in {"cassandra", "clara"}
             and not selected
+            and not question_domain
             and (topic.startswith("niles_") or "niles_" in ref or "reynolds_gig" in ref)
         ):
             pre_dropped_ids.append(fid)
@@ -354,6 +389,8 @@ def build_frontdoor_prompt(
         if selected:
             tier = 0
         elif agent_relevant:
+            tier = 0
+        elif question_domain:
             tier = 0
         elif posture:
             tier = 3

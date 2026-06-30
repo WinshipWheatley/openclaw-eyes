@@ -372,6 +372,56 @@ def test_build_frontdoor_prompt_empty_facts_do_not_set_over_budget():
     assert manifest["over_budget"] is False  # NOT budget pressure — just an empty fact
 
 
+@pytest.mark.parametrize(
+    ("agent", "question", "fact"),
+    [
+        (
+            "cassandra",
+            "what gigs do I have coming up?",
+            {
+                "fact_id": "gig_reynolds",
+                "topic": "niles_reynolds_gig",
+                "label": "Reynolds Tavern gig",
+                "value": "Reynolds Tavern is scheduled for 2026-06-27 at 19:00 for $250.",
+                "source_ref": "generated/read_models/niles_reynolds_gig.json",
+            },
+        ),
+        (
+            "maestro",
+            "what invoices are open?",
+            {
+                "fact_id": "invoice_capital_hilton",
+                "topic": "invoice_status",
+                "label": "Capital Hilton invoice",
+                "value": "Capital Hilton has an open Coupa invoice awaiting payment.",
+                "source_ref": "generated/read_models/openclaw_finance.json",
+            },
+        ),
+        (
+            "guardian",
+            "what approvals are required before I send this?",
+            {
+                "fact_id": "approval_send_hold",
+                "topic": "approval_gate",
+                "label": "SEND_HOLD approval",
+                "value": "Guardian approval is required before any protected send action.",
+                "source_ref": "generated/read_models/approval_gate.json",
+            },
+        ),
+    ],
+)
+def test_build_frontdoor_prompt_keeps_question_domain_fact_for_agent(agent, question, fact):
+    prompt, manifest = build_frontdoor_prompt(
+        _packet([fact]),
+        question,
+        max_chars=2200,
+        agent=agent,
+    )
+    assert fact["fact_id"] in manifest["kept_fact_ids"]
+    assert fact["fact_id"] not in manifest["dropped_fact_ids"]
+    assert str(fact["label"]) in prompt
+
+
 # ── protected_generate_with_receipt: classification + telemetry ───────────────
 
 _PACKET = {
