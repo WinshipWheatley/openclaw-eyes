@@ -87,7 +87,10 @@ def fold_plan(satellite: Path, ledger: Path, prefix: str, skip: set[str]) -> dic
 def fold(satellite: Path, ledger: Path, prefix: str, skip: set[str]) -> dict:
     folded_at = _utc_now()
     src = sqlite3.connect(f"file:{satellite}?mode=ro", uri=True)
-    dst = sqlite3.connect(ledger)
+    # The ledger is written LIVE by the running system. Wait for its lock instead of failing
+    # immediately (default 5s) — the fold writes its own knowledge_* tables, never the live tables.
+    dst = sqlite3.connect(ledger, timeout=60)
+    dst.execute("PRAGMA busy_timeout=60000")
     written = {}
     try:
         for t in _tables(src):
