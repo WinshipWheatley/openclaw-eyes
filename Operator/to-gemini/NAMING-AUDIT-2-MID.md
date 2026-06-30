@@ -17,6 +17,17 @@ don't repeat it. If it's missing, do pass 1's landscape briefly first, then proc
 "SQLite is going to drive packet generators with all sorts of stuff that might confuse me, my local
 agents, and CLIs." This pass maps the SUBSYSTEM names so we can see exactly where that confusion lives.
 
+## Ground truth + side-benefit (applies to ALL 3 naming passes)
+- **Ground truth is the REAL repos — filesystem + git — NOT the SQLite ledger/system_catalog.** The
+  ledger is a DERIVED inventory and may be stale/incomplete. Especially here, where you inventory the
+  SQLite stores: do NOT mistake "what the ledger says exists" for "what exists on disk." Verify store
+  contents against the real files/schema, and FLAG every divergence between the ledger/catalog's
+  inventory and reality.
+- **Side-benefit capture (separate section):** (a) **Ledger gaps** — real on-disk stores/read-models/
+  packet-generators the ledger/system_catalog does NOT know about; (b) carry the **detailed
+  repo/component map** forward (path → component → purpose → proposed canonical name) for later
+  ingestion into the ledger with the new naming.
+
 ## Pass 2 scope — subsystem inventory + naming
 1. **SQLite stores.** Inventory the real `.sqlite`/`.sqlite3` stores and what each DRIVES. Anchor on:
    the robust ledger `/home/openclaw/.openclaw/business_ops/ledger.sqlite` (and its `knowledge_*`

@@ -17,6 +17,19 @@ that risk confusing him, his local agents, and CLIs. We want ONE canonical namin
 3 passes (this is HIGH level; mid + detail follow). Renames are a LATER, surgical, operator-gated
 effort — this map informs WHAT is worth renaming, not a rename itself.
 
+## Ground truth + side-benefit (applies to ALL 3 naming passes)
+- **Ground truth is the REAL repos — filesystem + git — NOT the SQLite ledger/system_catalog.** The
+  ledger is a DERIVED inventory and may be stale or incomplete. Use the actual files/dirs/git as the
+  source of truth; treat the ledger/catalog as a CLAIM to VERIFY, not the answer. Wherever the
+  ledger/system_catalog disagrees with what's actually on disk, FLAG the divergence explicitly.
+- **Side-benefit capture (record as you dig, in a separate section of your result):**
+  (a) **Ledger gaps** — anything real on the filesystem/repos that the ledger / system_catalog does
+      NOT know about (files, components, stores, scripts that "should be known"). List them so we can
+      feed them back into the ledger after naming.
+  (b) **Detailed repo/component map** — build toward a reusable map (path → component → purpose →
+      proposed canonical name) that can later be ingested into the ledger WITH the new naming
+      conventions. (High level here; pass 3 makes it detailed.)
+
 ## Pass 1 scope — the macro landscape only (don't go into tables/columns/functions yet)
 1. **Repos + worktrees — definitive enumeration.** How many real git repos/worktrees exist on this
    box and what each is. Use `git worktree list`, `git -C <path> rev-parse --show-toplevel`, and look

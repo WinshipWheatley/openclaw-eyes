@@ -12,6 +12,16 @@ AGY-PC-Gemini, READ-ONLY (see `Operator/PROMPT-FOR-AGY-PC-GEMINI-WORKER.md`). MA
 ## Prereq
 **Read `Operator/from-gemini/NAMING-AUDIT-2-MID-RESULT.md` FIRST** (and the HIGH result). Build on them.
 
+## Ground truth + side-benefit (applies to ALL 3 naming passes)
+- **Ground truth is the REAL repos — filesystem + git — NOT the SQLite ledger/system_catalog.** Verify
+  granular names against the actual source files/schema; flag where the ledger/catalog's names diverge
+  from what's on disk.
+- **Side-benefit capture (separate section):** (a) **Ledger gaps** — real granular items (tables,
+  scripts, env vars, agent-ids) the ledger/system_catalog does NOT track but should; (b) finalize the
+  **detailed repo/component map** (path → component → purpose → proposed canonical name) so it can be
+  ingested into the ledger WITH the adopted naming standard — i.e. after we converge naming, the
+  ledger gets both the new conventions AND this fuller map.
+
 ## Pass 3 scope — the granular names agents + CLIs actually trip on
 1. **Ledger schema names.** Representative `knowledge_*` + operational TABLE names and notable COLUMN
    names in the ledger + the packet-driving stores. Flag inconsistent prefixes/casing/abbreviations.
