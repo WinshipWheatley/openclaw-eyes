@@ -704,6 +704,43 @@ def _music_law_skill_facts(applied_skills: Sequence[Mapping[str, Any]], question
     return facts
 
 
+def _skill_answer_scope_facts(applied_skills: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """A leading directive that scopes a skill-matched advisory answer.
+
+    A weak front-door model, handed the full deterministic packet, will weave the operator's
+    unrelated finance/payment/gig facts into an advisory KNOWLEDGE answer (observed live:
+    a music-law reply that bled in "all paid up with St Annes Live Arts"). Placed FIRST so the
+    model reads it before the noise, this directive tells the model to answer only from the
+    advisory knowledge and to leave the operator's business facts out unless the question asks
+    for them. Skill-gated: empty when no skill matched (byte-identical default path).
+    """
+    if not applied_skills:
+        return []
+    labels = sorted(
+        {str(skill.get("skill_id") or "").replace("_", " ").strip() for skill in applied_skills if skill.get("skill_id")}
+    )
+    scope = ("/".join(label for label in labels if label) or "advisory") + " knowledge"
+    directive = (
+        f"ANSWER SCOPE - this is a {scope} question. Answer it directly and conversationally using "
+        "ONLY the advisory knowledge provided below. This is general information, not legal or "
+        "financial advice - say so, and flag when a real professional (e.g. an entertainment "
+        "lawyer) is needed. Do NOT state, restate, or reference the operator's finances, payment "
+        "status, invoices, receivables, gigs, or calendar in this answer unless the question "
+        "explicitly asks about them."
+    )
+    facts: list[dict[str, Any]] = []
+    _append_fact(
+        facts,
+        topic="answer_scope",
+        label="answer scope directive",
+        value=directive,
+        provenance="skill_answer_scope",
+        source_ref="skill_answer_scope_directive",
+        pii_tier="PUBLIC",
+    )
+    return facts
+
+
 # ---------------------------------------------------------------------------
 # SQLite canonical-facts source (DEFAULT-OFF; enabled by OPENCLAW_PACKET_SOURCE)
 # ---------------------------------------------------------------------------
@@ -987,7 +1024,17 @@ def build_maestro_context_packet(
     applied_skills = _registered_skill_matches(question, session=session)
     skill_facts = _music_law_skill_facts(applied_skills, question)
     if skill_facts:
-        facts = [*facts, *skill_facts]
+        # Context-bleed fix (2026-06-29): a skill-matched advisory KNOWLEDGE question must be
+        # answered FROM the skill knowledge -- not by weaving in the operator's unrelated
+        # finance/payment/gig facts (observed live: "all paid up with St Annes Live Arts" bled
+        # into a music-law reply). (1) Lead the packet with a scope directive; (2) elevate the
+        # skill knowledge AHEAD of the bulky read-model facts so a weak front-door model meets it
+        # before the noise and it never slips past the facts[:30] cap in
+        # format_maestro_context_packet. Operator-truth keeps its precedence (still ahead of the
+        # read models); the directive de-scopes the unrelated truth facts at answer time.
+        scope_facts = _skill_answer_scope_facts(applied_skills)
+        _lead = len(facts) - len(read_model_facts)
+        facts = [*scope_facts, *facts[:_lead], *skill_facts, *facts[_lead:]]
     skill_receipts = [
         {
             "skill_id": skill["skill_id"],

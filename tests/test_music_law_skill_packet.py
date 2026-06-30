@@ -79,6 +79,52 @@ def test_music_law_skill_attaches_simple_tier_to_maestro_packet(tmp_path: Path, 
     assert packet["bounds"]["outbound_send_allowed"] is False
 
 
+def test_music_law_packet_leads_with_scope_directive_and_elevates_skill(tmp_path: Path, monkeypatch) -> None:
+    # Root-cause regression (2026-06-29 context-bleed): a music-law KNOWLEDGE question's packet
+    # carried the operator's finance/payment truth (St Annes "all paid up", invoices) AHEAD of the
+    # music-law knowledge (dead last), and the weak 8b wove "all paid up ... live arts" into the
+    # legal answer. The packet must (1) LEAD with a scope directive telling the model to answer
+    # only from the skill knowledge and not reference operator finances/gigs unless asked, and
+    # (2) ELEVATE the music-law knowledge ahead of the bulky read-model facts.
+    catalog_path = tmp_path / "system_catalog.sqlite3"
+    read_model_root = tmp_path / "read_models"
+    truth_path = tmp_path / "truth.json"
+    _seed_skill_catalog(catalog_path)
+    _seed_minimal_read_models(read_model_root)
+    upsert_operator_truth(
+        "st_annes",
+        "I'm actually all paid up with St Annes Live Arts; more invoices still to go.",
+        source_surface="test_context_bleed",
+        path=truth_path,
+    )
+    monkeypatch.setenv("OPENCLAW_SYSTEM_CATALOG", catalog_path.as_posix())
+
+    packet = build_maestro_context_packet(
+        question=QUESTION,
+        source_surface="operator_maestro_chat",
+        read_model_root=read_model_root,
+        operator_truth_store_path=truth_path,
+        require_real_truth=False,
+    )
+    facts = packet["facts"]
+
+    # (1) packet LEADS with a scope directive that de-scopes operator finances
+    assert facts[0].get("topic") == "answer_scope"
+    directive = facts[0].get("value", "").lower()
+    assert "music" in directive and "advisory" in directive
+    assert any(w in directive for w in ("finance", "payment", "invoice", "receivable"))
+    assert "unless" in directive  # "...unless the question explicitly asks about them"
+    assert "answer scope" in packet["packet_text"].lower()
+
+    # (2) the music-law knowledge is ELEVATED ahead of the bulky read-model facts
+    def first_index(pred):
+        return next((i for i, fact in enumerate(facts) if pred(fact)), 10_000)
+
+    skill_idx = first_index(lambda f: f.get("topic") == "music_law_advisory")
+    rm_idx = first_index(lambda f: "read_models" in (f.get("source_ref") or ""))
+    assert skill_idx < rm_idx, f"skill fact (idx {skill_idx}) must precede read-model facts (idx {rm_idx})"
+
+
 def test_protected_generate_receipt_records_applied_skill(tmp_path: Path) -> None:
     packet = {
         "schema_version": "maestro_context_packet_v0",
