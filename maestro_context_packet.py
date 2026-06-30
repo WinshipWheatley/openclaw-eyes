@@ -16,6 +16,8 @@ import re
 import sqlite3
 from typing import Any, Mapping, Sequence
 
+from context_source import annotate_facts_with_ledger_provenance, ledger_machine_proof
+
 
 # ── Conversation-continuity flag (ADDITIVE, default OFF) ──────────────────────
 def _continuity_enabled() -> bool:
@@ -25,7 +27,7 @@ def _continuity_enabled() -> bool:
 
 SCHEMA_VERSION = "maestro_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
-DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/system_catalog.sqlite3")
+DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
 KNOWN_READ_MODELS = (
     "agent_presence.json",
@@ -273,6 +275,23 @@ def _is_stale_relative_date_truth(text: str, *, today: date | None = None) -> bo
     return False
 
 
+def _strip_stale_relative_date_truth(text: str, *, today: date | None = None) -> str:
+    body = str(text or "").strip()
+    if not _is_stale_relative_date_truth(body, today=today):
+        return body
+    clauses = [part.strip() for part in re.split(r";\s*", body) if part.strip()]
+    if len(clauses) <= 1:
+        return ""
+    kept = [
+        clause
+        for clause in clauses
+        if not _is_stale_relative_date_truth(clause, today=today)
+    ]
+    if not kept:
+        return ""
+    return "; ".join(kept).rstrip(".") + "."
+
+
 def _operator_truth_facts(
     *,
     path: Path | None,
@@ -300,8 +319,8 @@ def _operator_truth_facts(
     for record in records:
         source_ref = str(record.get("source_ref") or path or "operator_truth_store")
         label = str(record.get("label") or record.get("entity_key") or "Operator truth")
-        value = str(record.get("value") or "")
-        if _is_stale_relative_date_truth(f"{label} {value}"):
+        value = _strip_stale_relative_date_truth(str(record.get("value") or ""))
+        if not value or _is_stale_relative_date_truth(f"{label} {value}"):
             continue
         _append_fact(
             facts,
@@ -1154,13 +1173,27 @@ def build_maestro_context_packet(
         for skill in applied_skills
     ]
 
+    facts = annotate_facts_with_ledger_provenance(
+        facts,
+        builder_name="maestro_context_packet.build_maestro_context_packet",
+    )
+
     if require_real_truth and (not operator_truth_used or len(read_model_refs) < 2):
         raise MaestroContextPacketError(
             "Maestro context packet requires real truth inputs: operator truth plus generated read models."
         )
 
     skill_refs = [f"skill:{skill['skill_id']}:{skill['source_path']}" for skill in applied_skills]
-    source_refs = tuple(dict.fromkeys([*(fact["source_ref"] for fact in facts), *read_model_refs, *skill_refs]))
+    source_refs = tuple(
+        dict.fromkeys(
+            [
+                *(fact["source_ref"] for fact in facts),
+                *(str(fact.get("ledger_source_ref") or "") for fact in facts if fact.get("ledger_source_ref")),
+                *read_model_refs,
+                *skill_refs,
+            ]
+        )
+    )
     packet_basis = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -1201,6 +1234,10 @@ def build_maestro_context_packet(
             "skills_applied": [skill["skill_id"] for skill in applied_skills],
             "skill_receipts": skill_receipts,
             "stub_truth_root_rejected_when_required": require_real_truth,
+            **ledger_machine_proof(
+                builder_name="maestro_context_packet.build_maestro_context_packet",
+                facts=facts,
+            ),
             **read_model_proof,
         },
     }

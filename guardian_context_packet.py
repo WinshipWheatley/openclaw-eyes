@@ -23,6 +23,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from context_source import annotate_facts_with_ledger_provenance, ledger_machine_proof
+
 SCHEMA_VERSION = "guardian_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 
@@ -438,7 +440,20 @@ def build_guardian_context_packet(
             },
         )
 
-    source_refs = tuple(dict.fromkeys([*(f["source_ref"] for f in facts), *refs]))
+    facts = annotate_facts_with_ledger_provenance(
+        facts,
+        builder_name="guardian_context_packet.build_guardian_context_packet",
+    )
+
+    source_refs = tuple(
+        dict.fromkeys(
+            [
+                *(f["source_ref"] for f in facts),
+                *(str(f.get("ledger_source_ref") or "") for f in facts if f.get("ledger_source_ref")),
+                *refs,
+            ]
+        )
+    )
     basis = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -470,6 +485,10 @@ def build_guardian_context_packet(
             "read_model_root": str(root),
             "fact_count": len(facts),
             "approval_posture_read_model_present": posture_present,
+            **ledger_machine_proof(
+                builder_name="guardian_context_packet.build_guardian_context_packet",
+                facts=facts,
+            ),
             **proof,
         },
         "packet_text": format_guardian_context_packet(

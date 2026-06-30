@@ -1352,3 +1352,23 @@ def assemble_agent_context_export(
         selections=tuple(selections),
         omissions=tuple(omissions),
     )
+
+
+def build_backend_ledger_context_packet(
+    *,
+    question: str = "",
+    agent_id: str = "backend",
+    db_path: str | None = None,
+    limit: int = 12,
+) -> dict[str, Any]:
+    """Build the backend knowledge packet from the shared ledger context source."""
+
+    from context_source import build_ledger_context_packet
+
+    return build_ledger_context_packet(
+        question=question,
+        agent_id=agent_id,
+        db_path=db_path,
+        limit=limit,
+        packet_id_prefix="backend_knowledge_packet",
+    )

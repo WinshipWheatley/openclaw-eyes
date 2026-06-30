@@ -19,6 +19,11 @@ from typing import Any
 from business_ops_ledger import DEFAULT_DB_PATH
 from capital_hilton_invoice_packet import CAPITAL_HILTON_PACKET_ID
 from cassandra_chief_memory_authority import init_cassandra_chief_memory_authority_schema
+from context_source import (
+    annotate_facts_with_ledger_provenance,
+    build_ledger_context_facts,
+    ledger_machine_proof,
+)
 from finance_invoice_evidence_packet import init_finance_invoice_evidence_packet_schema
 
 
@@ -622,10 +627,16 @@ def build_cassandra_clara_fact_packet(
     db_path: str | Path | None = None,
     artifact_root: str | Path = DEFAULT_ARTIFACT_ROOT,
     generated_at: str | None = None,
+    write_artifacts: bool = True,
+    allow_schema_init: bool = True,
 ) -> dict[str, Any]:
-    path = init_finance_invoice_evidence_packet_schema(db_path or DEFAULT_DB_PATH)
-    init_cassandra_chief_memory_authority_schema(path)
-    conn = sqlite3.connect(path)
+    if allow_schema_init:
+        path = init_finance_invoice_evidence_packet_schema(db_path or DEFAULT_DB_PATH)
+        init_cassandra_chief_memory_authority_schema(path)
+        conn = sqlite3.connect(path)
+    else:
+        path = str(db_path or DEFAULT_DB_PATH)
+        conn = sqlite3.connect(f"file:{Path(path).as_posix()}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     try:
         facts = _load_governed_facts(conn)
@@ -640,6 +651,19 @@ def build_cassandra_clara_fact_packet(
     missing_required = [item for item in required_status if not item["present"]]
     usable = not missing_required
     packet_kind = "capital_hilton_review_packet" if usable else "capital_hilton_missing_facts_packet"
+    facts = annotate_facts_with_ledger_provenance(
+        facts,
+        builder_name="cassandra_clara_fact_packet.build_cassandra_clara_fact_packet",
+        db_path=path,
+    )
+    ledger_facts = build_ledger_context_facts(
+        question=TARGET_WORKFLOW,
+        agent_id=INTERNAL_AGENT,
+        db_path=path,
+        limit=6,
+    )
+    packet_facts = [*ledger_facts, *facts]
+
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at or utc_now(),
@@ -662,6 +686,7 @@ def build_cassandra_clara_fact_packet(
         "required_fact_status": required_status,
         "missing_required_fields": missing_required,
         "invoice_facts_used": invoice_facts_used,
+        "facts": packet_facts,
         "governed_facts": facts,
         "contact_candidates": contacts,
         "receivable_posture": receivable_posture,
@@ -681,8 +706,13 @@ def build_cassandra_clara_fact_packet(
             if usable
             else "Capital Hilton Governed Fact Intake v1"
         ),
+        "machine_proof": ledger_machine_proof(
+            builder_name="cassandra_clara_fact_packet.build_cassandra_clara_fact_packet",
+            facts=packet_facts,
+            db_path=path,
+        ),
     }
-    artifacts = _write_artifacts(payload, artifact_root)
+    artifacts = _write_artifacts(payload, artifact_root) if write_artifacts else {}
     payload["artifact_root"] = _display_path(_rooted_path(artifact_root))
     payload["artifacts"] = artifacts
     return payload

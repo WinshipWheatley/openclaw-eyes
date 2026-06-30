@@ -133,7 +133,7 @@ def test_maestro_context_packet_uses_operator_truth_and_read_models(monkeypatch,
     assert "St Anne's" in text
     assert "All paid up" in text
     assert "Live Arts MD owes" in text
-    assert "2026-06-26" in text
+    assert "2026-06-26" not in text
     assert "generated/read_models/agent_presence.json" in packet["source_refs"]
     assert packet["machine_proof"]["operator_truth_store_used"] is True
     assert packet["machine_proof"]["read_model_count"] >= 4

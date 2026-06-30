@@ -29,6 +29,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from context_source import annotate_facts_with_ledger_provenance, ledger_machine_proof
+
 SCHEMA_VERSION = "hermes_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 
@@ -663,8 +665,19 @@ def build_hermes_context_packet(
     # lane bounds first, then gateway posture, then advisory contract, then read-models.
     facts = [*route_facts, *gateway_facts, *advisory_facts, *rm_facts]
 
+    facts = annotate_facts_with_ledger_provenance(
+        facts,
+        builder_name="hermes_context_packet.build_hermes_context_packet",
+    )
+
     source_refs = tuple(
-        dict.fromkeys([*(f["source_ref"] for f in facts), *rm_refs])
+        dict.fromkeys(
+            [
+                *(f["source_ref"] for f in facts),
+                *(str(f.get("ledger_source_ref") or "") for f in facts if f.get("ledger_source_ref")),
+                *rm_refs,
+            ]
+        )
     )
     basis = {
         "schema_version": SCHEMA_VERSION,
@@ -693,6 +706,10 @@ def build_hermes_context_packet(
             "fact_count": len(facts),
             "read_model_count": len(rm_refs),
             "authority_flags_verified": dict(bounds),
+            **ledger_machine_proof(
+                builder_name="hermes_context_packet.build_hermes_context_packet",
+                facts=facts,
+            ),
             **proof,
         },
         "packet_text": format_hermes_context_packet(
