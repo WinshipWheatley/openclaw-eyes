@@ -17,7 +17,10 @@ import yaml
 DEFAULT_INCLUDE_PATTERNS = ("*.md", "SKILL.md", "**/SKILL.md")
 DEFAULT_EXCLUDE_PATTERNS: tuple[str, ...] = ()
 REQUIRED_FIELDS = ("name", "description", "content")
-DEFAULT_CATALOG_PATH = Path("/home/openclaw/system_catalog.sqlite3")
+# Skills live in the ONE robust knowledge ledger (the standalone system_catalog.sqlite3 was a
+# satellite, folded + archived 2026-06-30). A no-arg load/persist must hit the ledger, not the
+# archived path (which broke live skill matching when it was missed during the first fold).
+DEFAULT_CATALOG_PATH = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 VALID_SKILL_AUTHORITIES = frozenset({"advisory_only", "references_gated_action"})
 REQUIRED_RUNTIME_FIELDS = (
     "owner_agent",
