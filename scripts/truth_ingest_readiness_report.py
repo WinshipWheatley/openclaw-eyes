@@ -1,24 +1,20 @@
 import argparse
 import sys
 import sqlite3
-import os
+from pathlib import Path
 from scripts.ingest_canonical_docs import SOURCE_REGISTRY
 
 def get_db_connection(db_path):
-    """Returns a read-only database connection if possible."""
-    try:
-        # mode=ro requires URI=True
-        return sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-    except sqlite3.OperationalError:
-        # Fallback for environments where URI mode might be restricted
-        return sqlite3.connect(db_path)
+    """Return a read-only database connection."""
+    return sqlite3.connect(f"file:{Path(db_path).as_posix()}?mode=ro", uri=True)
 
 def generate_report(db_path):
-    if not os.path.exists(db_path):
-        print(f"Error: Database not found at {db_path}")
+    try:
+        conn = get_db_connection(db_path)
+    except sqlite3.OperationalError as e:
+        print(f"Error: Database not found at {db_path}: {e}")
         return False
 
-    conn = get_db_connection(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
