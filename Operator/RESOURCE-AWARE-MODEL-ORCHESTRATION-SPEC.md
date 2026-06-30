@@ -59,6 +59,30 @@ cascade — **harness → right-model-called/fits → deployment → fix LAST** 
 verdict, and only file the root-cause build request after the first three are cleared.
 **Reuse:** `self_monitor` / the self-improvement loop's diagnosis step.
 
+## Component 5 — Build Lifecycle Governance (provenance + quality grade + anti-amnesia)
+**The question:** how does the system know it (or Codex/operator) built a thing, grade whether it's
+cancer / shit / almost-works / works-great, and never forget it, never rebuild it, never fail to USE
+it when it should?
+**Cancer firewall (real + demonstrated):** nothing bad lands autonomously — build agents are ISOLATED
+(worktree, own branch, can't touch prod), the factory is Guardian-gated + the operator approves every
+build (BUILDOK), and the clean-room GREEN-GATE proves it from committed state before anything reaches
+main. Demonstrated 2026-06-30: the green-gate caught 316 clean-room failures and BLOCKED the promotion.
+A runaway can propose garbage but cannot LAND it.
+**Build:**
+- **Provenance — one registry.** Every build, by ANY builder (autonomous factory, Codex, operator),
+  logged ONCE in the ledger (who/when/why/what-changed). Today the factory logs its own builds
+  (control-plane receipts) but Codex/operator-driven builds aren't uniformly in one place, and git
+  author doesn't distinguish them. Make the ledger the canonical build registry.
+- **Quality grade.** One grade per logged build, derived from the gates that already exist — tests +
+  the proof harness (candidate EVIDENCE, not self-report) + green-gate + Gemini audit + per-agent
+  sanity. cancer/shit/almost/great becomes a recorded score, not a vibe.
+- **Anti-amnesia = the same 3-layer enforcement.** The registry knows it's built (can't be rebuilt —
+  reuse-first becomes structural); a runtime guard detects a built capability that SHOULD be used but
+  isn't and routes to it; the self-repair loop fixes the wiring. This is the operator's "that thing
+  never can not be used when it should" — the activation register made ENFORCED, not just tracked.
+**Reuse:** polish-loop control plane + receipts, the proof harness (`submit_candidate_evidence` /
+`record_failure`), green-gate, build-agent isolation, the activation register, gap-state dedup.
+
 ---
 
 ## How it hangs together
