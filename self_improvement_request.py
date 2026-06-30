@@ -154,6 +154,47 @@ _SELF_IMPROVEMENT_PACKAGE_PROFILES: dict[str, dict[str, Any]] = {
             "/home/openclaw/chief_env/bin/python -m pytest -q tests/test_frontdoor_model_profile.py tests/test_maestro_cassandra_responder.py tests/test_self_monitor.py",
         ],
     },
+    "responses_slow": {
+        "scope": [
+            "Use self_monitor latency evidence + front-door receipts to find why replies are slow (>30% of replies).",
+            "Propose a bounded latency fix in the listed files only (model fit, timeout, or fast-ack staging).",
+            "Do NOT auto-restart production services; propose a reviewable change, do not act.",
+        ],
+        "allowed_files": [
+            "maestro_listener.py",
+            "self_monitor.py",
+            "chief_llm.py",
+            "tests/test_self_monitor.py",
+        ],
+        "success_criteria": [
+            "The dominant slow-reply source is identified with self_monitor evidence.",
+            "A bounded latency improvement is proposed, or a narrower blocked finding is documented with evidence.",
+            "No production service is auto-restarted; the proposal stays reviewable and Guardian/operator-gated.",
+        ],
+        "tests_to_run": [
+            "/home/openclaw/chief_env/bin/python -m pytest -q tests/test_self_monitor.py",
+        ],
+    },
+    "fleet_sync_degraded": {
+        "scope": [
+            "Read-only diagnosis of the degraded fleet-sync signal from generated/read_models/sync_health.json.",
+            "Identify the stalled sync source in evidence; do NOT restart or mutate any production service.",
+            "Any recovery action is a Guardian-gated proposal, never auto-applied.",
+        ],
+        "allowed_files": [
+            "no_response_watchdog.py",
+            "hermes_observer.py",
+            "tests/test_hermes_observer.py",
+        ],
+        "success_criteria": [
+            "The stalled sync source is identified in evidence.",
+            "No production service is auto-restarted.",
+            "The recovery proposal is Guardian-gated.",
+        ],
+        "tests_to_run": [
+            "/home/openclaw/chief_env/bin/python -m pytest -q tests/test_hermes_observer.py",
+        ],
+    },
     "agent_voices_cross_board": {
         "scope": [
             "Trace the conversational reply surfaces that already call the front-door brain.",
