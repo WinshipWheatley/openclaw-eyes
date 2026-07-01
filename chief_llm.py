@@ -879,8 +879,15 @@ def select_frontdoor_model(
     # a larger spill candidate and risking the deterministic floor.
     if vram_fitting:
         selected = vram_fitting[-1]
-        return selected, "frontdoor_largest_fitting"
+        reason = (
+            "frontdoor_step_down_vram_contention"
+            if card_fitting and selected != card_fitting[-1]
+            else "frontdoor_largest_fitting"
+        )
+        return selected, reason
     if card_fitting:
+        if available_vram_gb is not None:
+            return card_fitting[0], "frontdoor_step_down_vram_contention_ram_spill"
         return card_fitting[-1], "frontdoor_largest_fitting_ram_spill"
     return None, "no_fitting_model"
 

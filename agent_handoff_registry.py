@@ -48,6 +48,7 @@ REQUIRED_HANDOFF_REFS = (
     "chief_to_guardian_protected_authority",
     "hermes_to_chief_build_packet",
     "niles_to_chief_creative_build_tooling",
+    "clara_to_cassandra_internal_review_state",
     "cassandra_external_register_internal_review_state",
 )
 
@@ -278,6 +279,22 @@ def build_handoffs() -> list[dict[str, Any]]:
             blocked_actions=("publish_creative_artifact_from_handoff", "mutate_creative_source_from_handoff"),
         ),
         _handoff(
+            handoff_ref="clara_to_cassandra_internal_review_state",
+            from_agent="cassandra",
+            to_agent_or_worker="cassandra",
+            channel_ref="business_development_capital_hilton",
+            from_register="clara_reid_external",
+            to_register="cassandra_internal",
+            trigger_condition="Cassandra has a Clara Reid client-facing draft artifact that needs internal review state, follow-up tracking, or correspondence staging.",
+            package_type="external_register_internal_review_packet",
+            allowed_actions=(
+                "record_draft_review_state",
+                "request_internal_correspondence_followup",
+                "switch_register_without_agent_handoff",
+            ),
+            blocked_actions=("send_client_draft_from_handoff", "expose_internal_agent_names_to_client"),
+        ),
+        _handoff(
             handoff_ref="cassandra_external_register_internal_review_state",
             from_agent="cassandra",
             to_agent_or_worker="cassandra",
@@ -318,6 +335,7 @@ def build_examples() -> list[dict[str, Any]]:
             "operator_phrase": "Capital Hilton proposal accepted",
             "route_summary": "Cassandra switches from the Clara Reid external register to the internal register for review and finance/business-development follow-up packaging.",
             "route_path": [
+                "clara_to_cassandra_internal_review_state",
                 "cassandra_external_register_internal_review_state",
                 "cassandra_to_chief_package_needed",
             ],

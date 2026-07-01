@@ -599,8 +599,6 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
     packet_status = (
         "ready_for_review_from_governed_operator_metadata"
         if metadata_consumed
-        else "partial_track_registry_only_operator_metadata_still_needed"
-        if track_posture["real_track_roster_available"]
         else "blocked_needs_governed_album_evidence"
     )
     payload = {

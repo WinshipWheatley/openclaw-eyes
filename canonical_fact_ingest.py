@@ -181,6 +181,8 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None, allow
     Returns:
         {'status': 'inserted'|'skipped', 'fact_id': str, 'content_hash': str}
     """
+    requested_path = str(db_path or os.environ.get("OPENCLAW_LEDGER_PATH") or _PRODUCTION_DB_PATH)
+    _guard_production_path(requested_path, allow_production=allow_production)
     path = resolve_business_ops_ledger_path(db_path)
     _guard_production_path(path, allow_production=allow_production)
 
@@ -314,6 +316,8 @@ def reconcile_fact_index(db_path: str | None = None, allow_production: bool = Fa
     Returns:
         {'back_filled': int, 'already_indexed': int, 'embedding_queued': int}
     """
+    requested_path = str(db_path or os.environ.get("OPENCLAW_LEDGER_PATH") or _PRODUCTION_DB_PATH)
+    _guard_production_path(requested_path, allow_production=allow_production)
     path = resolve_business_ops_ledger_path(db_path)
     _guard_production_path(path, allow_production=allow_production)
 

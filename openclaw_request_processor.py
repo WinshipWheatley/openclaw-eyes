@@ -1983,7 +1983,13 @@ def _initial_response_author(response: OpenClawResponseForMac, layered_fields: M
         return "CHIEF", "verified payment evidence intake status"
     if response.request_type in {"LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL"}:
         return "OPENCLAW_SYSTEM", "local surface result intake status"
-    if response.request_type == "CHAT" and str(layered_fields.get("response_kind") or "") == "CHAT_READBACK":
+    if (
+        response.request_type == "CHAT"
+        and str(layered_fields.get("response_kind") or "") == "CHAT_READBACK"
+        and isinstance(detail, Mapping)
+        and bool(detail.get("router_readback_ref"))
+        and bool(detail.get("card_mirror_ref"))
+    ):
         return "OPENCLAW_SYSTEM", "deterministic chat readback status"
     if _is_capital_hilton_status_response(response):
         return "CHIEF", "finance workflow status / readiness / blocker summary"
