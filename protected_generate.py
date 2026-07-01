@@ -981,8 +981,31 @@ def protected_generate_with_receipt(
     raw_prompt = str(prompt or "").strip()
     packet = _packet_mapping(context_packet)
     front_door_profile = _frontdoor_profile_active(front_door_profile, context_packet)
+    if front_door_profile:
+        try:
+            from context_source import ensure_packet_ledger_grounded
+
+            context_packet = ensure_packet_ledger_grounded(
+                packet,
+                builder_name="protected_generate.frontdoor",
+                question=raw_prompt,
+                agent_id=agent,
+            )
+            packet = _packet_mapping(context_packet)
+        except Exception as exc:
+            repaired_packet = dict(packet)
+            repaired_packet["runtime_ledger_guard"] = {
+                "status": "ledger_runtime_guard_error",
+                "builder_name": "protected_generate.frontdoor",
+                "error_type": type(exc).__name__,
+            }
+            context_packet = repaired_packet
+            packet = _packet_mapping(context_packet)
     tier = detect_pii_tier(raw_prompt, context_packet)
     receipt = _base_receipt(prompt=raw_prompt, context_packet=context_packet, tier=tier, agent=agent)
+    guard_info = packet.get("runtime_ledger_guard")
+    if isinstance(guard_info, Mapping):
+        receipt["ledger_runtime_guard"] = dict(guard_info)
 
     if tier == MAX and not _legal_fully_tokenized(raw_prompt, packet):
         receipt.update(

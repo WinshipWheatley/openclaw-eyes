@@ -79,3 +79,70 @@ def test_runtime_guard_noops_for_already_grounded_packet(tmp_path: Path) -> None
 
     assert guarded == packet
     assert not drift_log.exists()
+
+
+def test_frontdoor_protected_generate_invokes_runtime_ledger_guard(monkeypatch, tmp_path: Path) -> None:
+    import context_source
+    import protected_generate
+
+    called: dict[str, object] = {}
+
+    def fake_guard(packet, *, builder_name, question, agent_id, **_kwargs):
+        called["builder_name"] = builder_name
+        called["question"] = question
+        called["agent_id"] = agent_id
+        fact = context_source.make_ledger_fact(
+            topic="runtime_guard",
+            label="Guarded front door fact",
+            value="The front door packet was repaired from the ledger.",
+            source_table="canonical_facts",
+            source_id="guarded",
+            db_path=tmp_path / "ledger.sqlite",
+        )
+        repaired = dict(packet)
+        repaired["facts"] = [fact]
+        repaired["source_refs"] = [fact["source_ref"]]
+        repaired["runtime_ledger_guard"] = {"status": "ledger_runtime_repair_applied"}
+        return repaired
+
+    captured: dict[str, str] = {}
+
+    def fake_generator(prompt, *, context_packet=None, **_kwargs):
+        captured["prompt"] = prompt
+        captured["context_packet"] = str(context_packet or "")
+        return "The packet was repaired."
+
+    monkeypatch.setattr(context_source, "ensure_packet_ledger_grounded", fake_guard)
+
+    packet = {
+        "schema_version": "maestro_context_packet_v0",
+        "packet_id": "maestro_context_packet:bad",
+        "facts": [
+            {
+                "fact_id": "sidecar_fact",
+                "label": "Wrong-source fact",
+                "value": "This should not reach the front-door prompt as trusted context.",
+                "source_ref": "system_catalog.sqlite3#facts:sidecar_fact",
+            }
+        ],
+        "source_refs": ["system_catalog.sqlite3#facts:sidecar_fact"],
+    }
+
+    outcome = protected_generate.protected_generate_with_receipt(
+        "what is the grounded answer?",
+        context_packet=packet,
+        generator_fn=fake_generator,
+        front_door_profile=True,
+        allow_live_model=False,
+        agent="cassandra",
+    )
+
+    assert outcome.status == "ANSWER_READY"
+    assert called == {
+        "builder_name": "protected_generate.frontdoor",
+        "question": "what is the grounded answer?",
+        "agent_id": "cassandra",
+    }
+    assert "The front door packet was repaired from the ledger." in captured["prompt"]
+    assert "This should not reach" not in captured["prompt"]
+    assert outcome.receipt["ledger_runtime_guard"]["status"] == "ledger_runtime_repair_applied"
