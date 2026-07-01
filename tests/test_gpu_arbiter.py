@@ -78,3 +78,16 @@ def test_heartbeat_extends_lease(tmp_path):
 
     assert result["status"] == "heartbeat_recorded"
     assert result["expires_at"] == "2026-07-01T12:02:30+00:00"
+
+
+def test_same_holder_reacquire_renews_existing_lease(tmp_path):
+    arbiter = GPUArbiter(tmp_path / "control.sqlite3")
+    acquired = arbiter.acquire("build", "builder-1", now=_t("2026-07-01T12:00:00"), ttl_seconds=60)
+
+    renewed = arbiter.acquire("build", "builder-1", now=_t("2026-07-01T12:00:30"), ttl_seconds=180)
+    current = arbiter.current()
+
+    assert renewed["status"] == "heartbeat_recorded"
+    assert current is not None
+    assert current["lease_nonce"] == acquired["lease_nonce"]
+    assert current["expires_at"] == renewed["expires_at"]
