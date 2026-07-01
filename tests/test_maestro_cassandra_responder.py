@@ -640,9 +640,7 @@ def test_processor_routes_general_status_query_to_truthful_responder(tmp_path):
     assert responder["allowed_to_call_handle"] is False
     assert responder["machine_proof"]["cassandra_handle_called"] is False
     assert responder["machine_proof"]["capability_index_used"] is True
-    assert response.worker_route_refs[0]["backend_route"] == (
-        "maestro_cassandra_responder.truthful_status_capability_readback"
-    )
+    assert response.worker_route_refs[0]["backend_route"] == "maestro_cassandra_responder.protected_generate.status_capability_context"
 
 
 def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, tmp_path):
