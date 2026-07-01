@@ -1209,7 +1209,7 @@ def _ensure_google_libs() -> None:
 
 
 if __name__ == "__main__":
-    if any(a in sys.argv for a in ("--setup", "--check", "--auth")):
+    if any(a in sys.argv for a in ("--setup", "--check", "--auth", "--auth-manual")):
         _ensure_google_libs()
     if "--setup" in sys.argv:
         cmd_setup()
@@ -1217,6 +1217,8 @@ if __name__ == "__main__":
         ok, detail = _calendar_selfcheck()
         print(("✅ calendar OK: " + ", ".join(detail)) if ok else f"❌ not connected: {detail}")
         sys.exit(0 if ok else 1)
+    elif "--auth-manual" in sys.argv:
+        run_auth_flow_manual()
     elif "--auth" in sys.argv:
         run_auth_flow()
     elif "--test-policy" in sys.argv:
@@ -1229,5 +1231,6 @@ if __name__ == "__main__":
         print("Usage:")
         print("  python3 google_access_broker.py --setup         one-shot: check, authorize if needed, verify")
         print("  python3 google_access_broker.py --check         read-only: is calendar connected?")
-        print("  python3 google_access_broker.py --auth          run OAuth2 flow only")
+        print("  python3 google_access_broker.py --auth          run OAuth2 flow only (local-server callback)")
+        print("  python3 google_access_broker.py --auth-manual   OAuth2 paste-the-code flow (WSL-safe, no localhost callback)")
         print("  python3 google_access_broker.py --test-policy   run policy smoke test")

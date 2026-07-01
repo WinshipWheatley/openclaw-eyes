@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = REPO_ROOT / "scripts" / "install_hermes_gateway_service.sh"
 TEMPLATE = REPO_ROOT / "systemd" / "user" / "hermes-gateway.service.in"
+PRESTART_HELPER = REPO_ROOT / "scripts" / "hermes_prestart_kill.py"
 STACK_INSTALLER = REPO_ROOT / "scripts" / "install_openclaw_stack.sh"
 LEGACY_LAUNCHERS = (
     REPO_ROOT / "scripts" / "start_all.sh",
@@ -111,6 +113,30 @@ def test_template_enforces_gateway_sidecar_contract():
     assert "provider" not in source.lower()
     assert "gmail" not in source.lower()
     assert "telegram" in source.lower()
+
+
+def test_template_prestart_helper_is_committed_and_pid_targeted():
+    source = _template_text()
+    assert "ExecStartPre=-/usr/bin/python3 @REPO_ROOT@/scripts/hermes_prestart_kill.py" in source
+
+    result = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "scripts/hermes_prestart_kill.py"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    helper = PRESTART_HELPER.read_text(encoding="utf-8")
+    assert 'TARGET_MARKER = "run_openclaw_hermes_gateway.py"' in helper
+    assert "gateway.pid" in helper
+    assert "TARGET_MARKER not in cmdline" in helper
+    assert "os.kill(pid, signal.SIGTERM)" in helper
+    assert "subprocess." not in helper
+    assert "os.system" not in helper
+    assert "pgrep(" not in helper
+    assert "pkill(" not in helper
 
 
 def test_stack_installer_and_legacy_launchers_remain_out_of_scope():

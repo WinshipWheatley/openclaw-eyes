@@ -1,7 +1,10 @@
 import sys
+from pathlib import Path
 
 
 sys.path.insert(0, "/home/openclaw")
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 GMAIL_CAPABILITIES = (
@@ -139,3 +142,12 @@ def test_broker_does_not_gate_class_a_gmail_unread_or_metadata_before_credential
         assert "Google credentials not configured" in result["error"]
 
     assert approval_calls == []
+
+
+def test_manual_oauth_cli_flag_is_wired_without_replacing_local_server_auth():
+    source = (ROOT / "google_access_broker.py").read_text(encoding="utf-8")
+
+    assert '"--auth-manual"' in source
+    assert "elif \"--auth-manual\" in sys.argv:\n        run_auth_flow_manual()" in source
+    assert "elif \"--auth\" in sys.argv:\n        run_auth_flow()" in source
+    assert "OAuth2 paste-the-code flow (WSL-safe, no localhost callback)" in source

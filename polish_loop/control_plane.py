@@ -35,10 +35,12 @@ except ImportError:  # pragma: no cover - exercised by legacy sys.path imports
         classify_task_routing = None  # type: ignore[assignment]
 
 
-LOOP_DIR = Path("/home/openclaw/polish_loop")
+_MODULE_LOOP_DIR = Path(__file__).resolve().parent
+LOOP_DIR = Path(os.environ.get("OPENCLAW_POLISH_LOOP_DIR", str(_MODULE_LOOP_DIR)))
 DEFAULT_LEDGER_PATH = LOOP_DIR / "control_plane.sqlite3"
 DEFAULT_GREEN_GATE = Path("/home/openclaw/scripts/green_gate.sh")
 DEFAULT_AUTO_HEAL_STATE = Path("/home/openclaw/mac_eyes/loop_auto_heal_state.json")
+INGEST_POLICY_PATH = LOOP_DIR / "ingest_policy.json"
 
 READY_SOURCES = frozenset({"human_intent", "detector", "approved_followup"})
 AGENT_ONLY_PROPOSED_SOURCES = frozenset(
@@ -83,6 +85,29 @@ DETECTOR_FORBIDDEN_ACTION_TEXT = frozenset(
 )
 SIZE_ROUTER_FLAG = "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
 SIZE_ROUTER_FLAG_ON_VALUES = {"1", "true", "yes", "on"}
+
+
+def _load_ingest_policies(policy_path: Path = INGEST_POLICY_PATH) -> list[dict[str, Any]]:
+    try:
+        data = json.loads(policy_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001 - ingestion must fail closed on policy loss/corruption.
+        raise RuntimeError(f"Ingestion failed closed: missing or malformed {policy_path.name}: {exc}") from exc
+
+    policies = data.get("policies") if isinstance(data, dict) else None
+    if not isinstance(policies, list):
+        raise RuntimeError(f"Ingestion failed closed: missing or malformed {policy_path.name}: policies must be a list")
+    return [policy for policy in policies if isinstance(policy, dict)]
+
+
+def _ingest_policy_block_reason(queue_name: str, task_id: str) -> str | None:
+    for policy in _load_ingest_policies():
+        match = policy.get("match", {})
+        if not isinstance(match, dict):
+            continue
+        task_ids = match.get("task_ids", [])
+        if match.get("queue") == queue_name and task_id in task_ids:
+            return str(policy.get("reason") or "Blocked by ingest_policy.json")
+    return None
 
 
 class ControlPlaneError(RuntimeError):
@@ -582,10 +607,23 @@ class ControlPlaneLedger:
         if _payload_is_heartbeat_only(task_type, payload):
             raise TaskRejected("heartbeat/alive/nothing-to-do payloads are not tasks")
 
+        # Canonical API mutation sandbox policy check
+        queue_name = None
+        if isinstance(acceptance_ref, dict) and "queue" in acceptance_ref:
+            queue_name = acceptance_ref["queue"]
+        elif "queue_ref" in payload:
+            queue_name = Path(payload["queue_ref"]).name
+
+        task_id = task_id or _default_task_id(task_type, payload)
+
+        if queue_name:
+            reason = _ingest_policy_block_reason(str(queue_name), task_id)
+            if reason:
+                raise TaskRejected(f"Policy Blocked: {reason}")
+
         source_norm = source.strip().lower()
         if source_norm == "detector" and _detector_payload_has_forbidden_action(payload):
             raise TaskRejected("detectors cannot emit send, payment, or money work")
-        task_id = task_id or _default_task_id(task_type, payload)
         routing: dict[str, Any] | None = None
         if size_router_v1_enabled():
             payload, routing = _apply_size_routing(

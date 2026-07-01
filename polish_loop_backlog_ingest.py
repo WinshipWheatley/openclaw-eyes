@@ -65,6 +65,18 @@ def existing_backlog_ids(ledger_path: Path) -> set[str]:
 def ingest(queue_path: Path, ledger_path: Path, *, dry_run: bool) -> dict:
     items = parse_batch(queue_path)
     have = existing_backlog_ids(ledger_path)
+
+    from polish_loop.control_plane import _ingest_policy_block_reason
+
+    final_items = []
+    for it in items:
+        reason = _ingest_policy_block_reason(queue_path.name, it["task_id"])
+        if reason:
+            print(f"[POLICY-BLOCK] Skipping {it['task_id']}: {reason}")
+            continue
+        final_items.append(it)
+
+    items = final_items
     to_admit = [it for it in items if it["task_id"] not in have]
     skipped = [it for it in items if it["task_id"] in have]
 

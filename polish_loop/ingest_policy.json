@@ -1,0 +1,13 @@
+{
+  "policies": [
+    {
+      "match": {
+        "queue": "MASTER-WORK-QUEUE.md",
+        "task_ids": ["backlog-084", "backlog-085", "backlog-086", "backlog-087", "backlog-088"]
+      },
+      "action": "BLOCK",
+      "reason": "Gig-to-Cash Roadmap Collision: AR read-models must wait for authoritative Evidence Registry schemas (T005-T017) and must not be JSON-as-authority.",
+      "unblock_condition": "Tasks 084-088 must NEVER automatically unblock. They require an explicit, manually reviewed unblock action (removing this policy) ONLY after T005-T017 and authoritative AR schemas are complete."
+    }
+  ]
+}
