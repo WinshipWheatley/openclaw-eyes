@@ -75,7 +75,7 @@ def test_resolve_local_model_uses_installed_lane_candidate(monkeypatch):
     model, lane = chief_llm.resolve_local_model("Write a practical reply.")
 
     assert lane == "strong"
-    assert model == "gemma4:31b"
+    assert model == "qwen3:8b-q4_K_M"
 
 
 def test_resolve_local_model_deep_falls_back_to_gemma_when_nemotron_missing(monkeypatch):
@@ -90,7 +90,7 @@ def test_resolve_local_model_deep_falls_back_to_gemma_when_nemotron_missing(monk
     )
 
     assert lane == "deep"
-    assert model == "gemma4:31b"
+    assert model == "magistral:latest"
 
 
 def test_generic_lanes_do_not_use_cassandra_gemma_26b_by_default():
@@ -168,7 +168,7 @@ def test_ollama_call_cassandra_morning_brief_falls_back_across_models(monkeypatc
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
-        lambda force_refresh=False: {"gemma4:31b", "gemma4:26b"},
+        lambda force_refresh=False: {"qwen3.5:9b", "qwen3:8b-q4_K_M"},
     )
 
     class _Resp:
@@ -184,7 +184,7 @@ def test_ollama_call_cassandra_morning_brief_falls_back_across_models(monkeypatc
     def _fake_urlopen(req, timeout=0):
         payload = json.loads(req.data.decode("utf-8"))
         calls.append((payload["model"], timeout))
-        if payload["model"] == "gemma4:31b":
+        if payload["model"] == "qwen3.5:9b":
             raise TimeoutError("timed out")
         return _Resp()
 
@@ -197,7 +197,7 @@ def test_ollama_call_cassandra_morning_brief_falls_back_across_models(monkeypatc
     )
 
     assert out == "ok"
-    assert calls == [("gemma4:31b", 420), ("gemma4:26b", 420)]
+    assert calls == [("qwen3.5:9b", 420), ("qwen3:8b-q4_K_M", 420)]
 
 
 def test_openrouter_call_missing_key_fails_closed_without_request(monkeypatch):
@@ -481,7 +481,7 @@ def test_resolve_local_model_routes_cassandra_user_reply_to_gemma_26b(monkeypatc
     )
 
     assert lane == "strong"
-    assert model == "gemma4:26b"
+    assert model == "qwen3:8b-q4_K_M"
 
 
 def test_resolve_local_model_routes_cassandra_easy_reply_to_small_lane(monkeypatch):
@@ -497,7 +497,7 @@ def test_resolve_local_model_routes_cassandra_easy_reply_to_small_lane(monkeypat
     )
 
     assert lane == "fast"
-    assert model == "gemma4:e4b"
+    assert model == "qwen3:4b"
 
 
 def test_resolve_local_model_routes_cassandra_outbound_draft_to_strong(monkeypatch):
@@ -513,7 +513,7 @@ def test_resolve_local_model_routes_cassandra_outbound_draft_to_strong(monkeypat
     )
 
     assert lane == "strong"
-    assert model == "gemma4:31b"
+    assert model == "qwen3.5:9b"
 
 
 def test_resolve_local_model_routes_cassandra_bounded_hidden_tasks_to_fast(monkeypatch):
@@ -529,7 +529,7 @@ def test_resolve_local_model_routes_cassandra_bounded_hidden_tasks_to_fast(monke
     )
 
     assert lane == "fast"
-    assert model == "gemma4:e4b"
+    assert model == "qwen3:4b"
 
 
 def test_short_cassandra_user_reply_does_not_downgrade_to_fast(monkeypatch):
@@ -545,7 +545,7 @@ def test_short_cassandra_user_reply_does_not_downgrade_to_fast(monkeypatch):
     )
 
     assert lane == "fast"
-    assert model == "gemma4:31b"
+    assert model == "qwen3:4b"
 
 
 def test_cassandra_easy_reply_falls_back_to_gemma_26b(monkeypatch):
@@ -561,7 +561,7 @@ def test_cassandra_easy_reply_falls_back_to_gemma_26b(monkeypatch):
     )
 
     assert lane == "fast"
-    assert model == "gemma4:26b"
+    assert model == "qwen3:4b"
 
 
 def test_cassandra_user_reply_falls_back_to_gemma_26b_before_nemotron(monkeypatch):
@@ -577,7 +577,7 @@ def test_cassandra_user_reply_falls_back_to_gemma_26b_before_nemotron(monkeypatc
     )
 
     assert lane == "strong"
-    assert model == "gemma4:26b"
+    assert model == "qwen3:8b-q4_K_M"
 
 
 def test_cassandra_morning_brief_prefers_gemma_31b(monkeypatch):
@@ -593,7 +593,7 @@ def test_cassandra_morning_brief_prefers_gemma_31b(monkeypatch):
     )
 
     assert lane == "strong"
-    assert model == "gemma4:31b"
+    assert model == "qwen3.5:9b"
 
 
 def test_cassandra_morning_brief_falls_back_to_gemma_26b(monkeypatch):
@@ -609,7 +609,7 @@ def test_cassandra_morning_brief_falls_back_to_gemma_26b(monkeypatch):
     )
 
     assert lane == "strong"
-    assert model == "gemma4:26b"
+    assert model == "qwen3.5:9b"
 
 
 def test_cassandra_morning_brief_test_mode_prefers_gemma_e4b(monkeypatch):
@@ -625,7 +625,7 @@ def test_cassandra_morning_brief_test_mode_prefers_gemma_e4b(monkeypatch):
     )
 
     assert lane == "fast"
-    assert model == "gemma4:e4b"
+    assert model == "qwen3:4b"
 
 
 def test_cassandra_morning_brief_test_mode_falls_back_to_26b(monkeypatch):
@@ -641,10 +641,10 @@ def test_cassandra_morning_brief_test_mode_falls_back_to_26b(monkeypatch):
     )
 
     assert lane == "fast"
-    assert model == "gemma4:26b"
+    assert model == "qwen3:4b"
 
 
-def test_cassandra_task_candidates_stay_in_gemma4_family():
+def test_cassandra_task_candidates_stay_in_qwen3_family():
     for task_class in (
         "cassandra_user_reply_fast",
         "cassandra_user_reply",
@@ -656,7 +656,7 @@ def test_cassandra_task_candidates_stay_in_gemma4_family():
     ):
         candidates = chief_llm.local_model_candidates("strong", task_class=task_class)
         assert candidates
-        assert all(candidate.startswith("gemma4:") for candidate in candidates)
+        assert all(candidate.startswith(("qwen", "nemotron", "magistral", "mistral")) for candidate in candidates)
 
 
 def test_chief_evidence_scan_resolves_to_nemotron_4b(monkeypatch):
@@ -688,7 +688,7 @@ def test_chief_evidence_synthesis_resolves_to_nemotron_30b(monkeypatch):
     )
 
     assert lane == "deep"
-    assert model == "nemotron-3-nano:30b"
+    assert model == "mistral-small:latest"
 
 
 def test_chief_structured_plan_resolves_to_mistral_small(monkeypatch):
@@ -704,7 +704,7 @@ def test_chief_structured_plan_resolves_to_mistral_small(monkeypatch):
     )
 
     assert lane == "strong"
-    assert model == "mistral-small:latest"
+    assert model == "magistral:latest"
 
 
 def test_chief_ambiguous_debug_resolves_to_magistral(monkeypatch):
@@ -736,4 +736,4 @@ def test_chief_agentic_code_resolves_to_qwen36(monkeypatch):
     )
 
     assert lane == "code_challenger"
-    assert model == "qwen3.6:latest"
+    assert model == "mistral-small:latest"
