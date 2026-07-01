@@ -27,7 +27,7 @@ def test_select_frontdoor_model_uses_real_vram_budget(monkeypatch) -> None:
     )
 
     assert model == "qwen3:8b-q4_K_M"
-    assert reason == "frontdoor_largest_fitting"
+    assert reason == "frontdoor_step_down_vram_contention"
 
 
 def test_select_frontdoor_model_counts_resident_vram_for_same_model(monkeypatch) -> None:
@@ -44,7 +44,7 @@ def test_select_frontdoor_model_counts_resident_vram_for_same_model(monkeypatch)
     )
 
     assert model == "qwen3:8b-q4_K_M"
-    assert reason == "frontdoor_largest_fitting"
+    assert reason == "frontdoor_step_down_vram_contention"
 
 
 def test_select_frontdoor_model_keeps_already_resident_candidate(monkeypatch) -> None:
@@ -61,7 +61,7 @@ def test_select_frontdoor_model_keeps_already_resident_candidate(monkeypatch) ->
     )
 
     assert model == "qwen3:8b-q4_K_M"
-    assert reason == "frontdoor_largest_fitting"
+    assert reason == "frontdoor_step_down_vram_contention"
 
 
 def test_select_frontdoor_model_spills_to_ram_when_vram_is_tight(monkeypatch) -> None:
@@ -82,7 +82,7 @@ def test_select_frontdoor_model_spills_to_ram_when_vram_is_tight(monkeypatch) ->
     )
 
     assert model == "qwen3:8b-q4_K_M"
-    assert reason.startswith("frontdoor_largest_fitting")
+    assert reason.startswith("frontdoor_step_down_vram_contention")
 
 
 def test_frontdoor_resource_probe_parses_gpu_ram_and_ollama_ps(monkeypatch) -> None:

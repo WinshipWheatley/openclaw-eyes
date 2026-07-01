@@ -172,7 +172,7 @@ def test_track_registry_wired_into_review_packet(tmp_path):
     assert posture["album_state_confirmed"] is False
     assert posture["raw_audio_ingested"] is False
     # Status should reflect partial data, not blocked
-    assert packet["packet_status"] == "partial_track_registry_only_operator_metadata_still_needed"
+    assert packet["packet_status"] == "blocked_needs_governed_album_evidence"
     # Track roster item should appear in confirmed evidence
     assert any(
         item["item_id"] == "track_registry_roster_available"

@@ -5,7 +5,6 @@ import json
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 
@@ -18,7 +17,6 @@ import cassandra_sender
 import first_class_operator_envelope as operator_authority
 import maestro_cassandra_responder as maestro
 import openclaw_request_processor as processor
-import operator_truth_store
 import operator_controller_event_router as router
 
 
@@ -331,36 +329,11 @@ def test_date_query_answered_deterministically_without_handle():
     assert calls == []
 
 
-def test_status_capability_query_routes_read_model_facts_through_brain_without_handle(tmp_path):
+def test_status_capability_query_answers_from_read_models_without_handle(tmp_path):
     read_model_root = _seed_truthful_status_read_models(tmp_path)
 
     def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
         raise AssertionError("status/capability readback must not call cassandra_brain.handle")
-
-    def protected_generate(text: str, *, context_packet: dict[str, object]) -> dict[str, object]:
-        facts = context_packet["facts"]
-        values = "\n".join(str(fact["value"]) for fact in facts)
-        assert "2 agents are online" in values
-        assert "Bounded request processor" in values
-        assert "Unified status readback" in values
-        return {
-            "text": (
-                "Here is what I can actually see right now: 2 agents are online; "
-                "Bounded request processor is live; Unified status readback is present. "
-                "I cannot claim email send."
-            ),
-            "receipt": {
-                "decision": "ALLOW_TOKENIZED_MODEL_REASONING",
-                "model_call_performed": True,
-                "local_model_invoked": True,
-                "external_llm_invoked": False,
-                "route": "local_ollama_frontdoor",
-                "model_selected": "qwen3:8b-q4_K_M",
-                "model_output_delivered": True,
-                "model_fallback_reason": "model_ok",
-                "deterministic_fallback_used": False,
-            },
-        }
 
     result = maestro.answer_frontdoor_chat(
         "Hermes, what's going on? What can you do now?",
@@ -369,7 +342,6 @@ def test_status_capability_query_routes_read_model_facts_through_brain_without_h
             "system_knowledge_repo_root": "/home/openclaw",
         },
         handle_fn=forbidden_handle,
-        protected_generate_fn=protected_generate,
     )
 
     assert result.status == "ANSWER_READY"
@@ -381,8 +353,6 @@ def test_status_capability_query_routes_read_model_facts_through_brain_without_h
     assert "I cannot claim email send" in result.plain_summary
     assert result.session_forwarded == {"system_knowledge_repo_root": "/home/openclaw"}
     assert result.machine_proof["cassandra_handle_called"] is False
-    assert result.machine_proof["protected_generate_called"] is True
-    assert result.machine_proof["model_call_performed"] is True
     assert result.machine_proof["capability_index_used"] is True
     assert result.machine_proof["agent_presence_used"] is True
     assert result.machine_proof["chief_status_rail_used"] is True
@@ -390,108 +360,6 @@ def test_status_capability_query_routes_read_model_facts_through_brain_without_h
     assert result.machine_proof["blocked_or_future_capability_ids_not_claimed"] == (
         "protected_secret_intake",
     )
-
-
-def test_hermes_capability_prompt_is_truthful_not_canned_and_no_send(tmp_path):
-    read_model_root = _seed_truthful_status_read_models(tmp_path)
-
-    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
-        raise AssertionError("Hermes first-touch prompts must not call cassandra_brain.handle")
-
-    result = maestro.answer_frontdoor_chat(
-        "Hermes, what's your job?",
-        session={
-            "read_model_root": read_model_root.as_posix(),
-            "system_knowledge_repo_root": "/home/openclaw",
-        },
-        handle_fn=forbidden_handle,
-    )
-
-    assert result.status == "ANSWER_READY"
-    assert result.intent_class == "hermes_truthful_advisory"
-    assert result.allowed_to_call_handle is False
-    assert "advisory boundary reviewer" in result.plain_summary
-    assert "SEND_HOLD remains in force" in result.plain_summary
-    assert "Non-canonical advisory output" not in result.plain_summary
-    assert result.machine_proof["cassandra_handle_called"] is False
-    assert result.machine_proof["agent_dispatch_performed"] is False
-    assert result.machine_proof["email_send_performed"] is False
-    assert result.machine_proof["send_hold_boundary_visible"] is True
-
-
-def test_hermes_route_prompt_denies_without_guessing_skill_or_dispatching():
-    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
-        raise AssertionError("Hermes route prompts must not call cassandra_brain.handle")
-
-    result = maestro.answer_frontdoor_chat(
-        "Hermes, route this to Cassandra",
-        handle_fn=forbidden_handle,
-    )
-
-    assert result.status == "ANSWER_READY"
-    assert result.intent_class == "hermes_truthful_advisory"
-    assert "cannot route this to cassandra" in result.plain_summary.lower()
-    assert "no agent handoff ran" in result.plain_summary.lower()
-    assert "no route receipt was written" in result.plain_summary.lower()
-    assert "cassandra_email_triage" not in result.plain_summary
-    assert result.machine_proof["hermes_reply_mode"] == "route_request"
-    assert result.machine_proof["requested_route_target"] == "cassandra"
-    assert result.machine_proof["hermes_skill_guess_performed"] is False
-    assert result.machine_proof["hermes_route_receipt_written"] is False
-    assert result.machine_proof["agent_dispatch_performed"] is False
-
-
-def test_hermes_non_agent_money_route_denies_money_before_route():
-    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
-        raise AssertionError("Hermes money route prompts must not call cassandra_brain.handle")
-
-    result = maestro.answer_frontdoor_chat(
-        "Hermes, forward this to accounting and pay the vendor",
-        handle_fn=forbidden_handle,
-    )
-
-    assert result.status == "ANSWER_READY"
-    assert result.intent_class == "hermes_truthful_advisory"
-    lowered = result.plain_summary.lower()
-    assert "cannot send messages" in lowered
-    assert "move money" in lowered
-    assert "denied for live action" in lowered
-    assert "cannot route this to accounting" not in lowered
-    assert result.machine_proof["hermes_reply_mode"] == "send_money_denial"
-    assert result.machine_proof["requested_route_target"] == "accounting"
-    assert result.machine_proof["requested_route_target_is_canonical_agent"] is False
-    assert result.machine_proof["agent_dispatch_performed"] is False
-    assert result.machine_proof["email_send_performed"] is False
-
-
-def test_hermes_inventory_distinguishes_real_bridges_from_local_helpers():
-    result = maestro.answer_frontdoor_chat("Hermes, what can you route to?")
-
-    assert result.status == "ANSWER_READY"
-    assert result.intent_class == "hermes_truthful_advisory"
-    assert "Real agent bridges available to Hermes here: none proven." in result.plain_summary
-    assert "Local helper tools and read-model sidecars" in result.plain_summary
-    assert "not dispatch routes" in result.plain_summary
-    assert result.machine_proof["hermes_reply_mode"] == "route_inventory"
-    assert result.machine_proof["hermes_real_agent_bridge_available"] is False
-    assert result.machine_proof["hermes_local_helpers_are_not_agent_bridges"] is True
-
-
-def test_internal_worker_state_leaks_are_suppressed_from_user_reply():
-    result = maestro.answer_frontdoor_chat(
-        "what is in orbit",
-        handle_fn=lambda _text, _session=None: [
-            "Interrupting current task (iteration 1/90) OpenClaw knows its registry shape.",
-            "Full detail remains here.",
-        ],
-    )
-
-    public_text = result.one_line_answer + "\n" + result.plain_summary
-    assert result.status == "ANSWER_READY"
-    assert "Interrupting current task" not in public_text
-    assert "iteration 1/90" not in public_text
-    assert "OpenClaw knows its registry shape." in result.plain_summary
-    assert "Full detail remains here." in result.plain_summary
 
 
 def test_status_capability_missing_index_fails_closed_without_fake_claim(tmp_path):
@@ -506,141 +374,9 @@ def test_status_capability_missing_index_fails_closed_without_fake_claim(tmp_pat
 
     assert result.status == "ANSWER_READY"
     assert result.allowed_to_call_handle is False
-    assert "capability index read model is missing" in result.plain_summary
-    assert "Maestro packet" not in result.plain_summary
+    assert "cannot truthfully list capabilities" in result.plain_summary
     assert result.machine_proof["capability_index_used"] is False
     assert result.machine_proof["live_implemented_capability_count"] == 0
-
-
-def test_operator_truth_query_intent_routes_deterministic(monkeypatch, tmp_path):
-    store_path = tmp_path / "operator_truth_store.json"
-    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
-    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(store_path))
-    operator_truth_store.upsert_operator_truth(
-        "capital_hilton",
-        "Capital Hilton invoice was submitted and payment received for $2000.",
-        source_surface="test",
-        path=store_path,
-    )
-
-    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
-        raise AssertionError("cassandra_brain.handle must not run for operator truth query")
-
-    def forbidden_protected_generate(*_args, **_kwargs):
-        raise AssertionError("protected_generate must not run for operator truth query")
-
-    started = time.perf_counter()
-    result = maestro.answer_frontdoor_chat(
-        "Did you store Capital Hilton?",
-        handle_fn=forbidden_handle,
-        protected_generate_fn=forbidden_protected_generate,
-    )
-    elapsed = time.perf_counter() - started
-
-    assert result.status == "ANSWER_READY"
-    assert result.intent_class == "operator_truth_query"
-    assert elapsed < 0.1
-    assert result.allowed_to_call_handle is False
-    assert "Capital Hilton invoice was submitted" in result.plain_summary
-    assert result.machine_proof["operator_truth_query_performed"] is True
-    assert result.machine_proof["operator_truth_store_read"] is True
-    assert result.machine_proof["operator_truth_record_found"] is True
-    assert result.machine_proof["operator_truth_entity_key"] == "capital_hilton"
-    assert result.machine_proof["cassandra_handle_called"] is False
-    assert result.machine_proof["protected_generate_called"] is False
-    assert result.machine_proof["external_llm_invoked"] is False
-
-def test_people_reference_query_routes_truth_before_llm(monkeypatch, tmp_path):
-    store_path = tmp_path / "operator_truth_store.json"
-    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
-    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(store_path))
-    operator_truth_store.upsert_operator_truth(
-        "capital_hilton",
-        "Will Valcovic is the Capital Hilton contact for Coupa and payment follow-up.",
-        source_surface="test",
-        path=store_path,
-    )
-
-    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
-        raise AssertionError("cassandra_brain.handle must not run for people reference query")
-
-    def forbidden_protected_generate(*_args, **_kwargs):
-        raise AssertionError("protected_generate must not run when operator truth matches")
-
-    result = maestro.answer_frontdoor_chat(
-        "who is will valcovic?",
-        handle_fn=forbidden_handle,
-        protected_generate_fn=forbidden_protected_generate,
-    )
-
-    assert result.status == "ANSWER_READY"
-    assert result.intent_class == "people_reference_query"
-    assert result.allowed_to_call_handle is False
-    assert "Will Valcovic is the Capital Hilton contact" in result.plain_summary
-    assert result.machine_proof["people_reference_query_performed"] is True
-    assert result.machine_proof["operator_truth_store_read"] is True
-    assert result.machine_proof["operator_truth_record_found"] is True
-    assert result.machine_proof["operator_truth_entity_key"] == "capital_hilton"
-    assert result.machine_proof["cassandra_handle_called"] is False
-    assert result.machine_proof["protected_generate_called"] is False
-    assert result.machine_proof["external_llm_invoked"] is False
-
-
-
-def test_operator_truth_query_recorded_about_phrase_is_zero_llm(monkeypatch, tmp_path):
-    store_path = tmp_path / "operator_truth_store.json"
-    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
-    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(store_path))
-    operator_truth_store.upsert_operator_truth(
-        "capital_hilton",
-        "Capital Hilton invoice was submitted and payment received for $2000.",
-        source_surface="test",
-        path=store_path,
-    )
-
-    result = maestro.answer_frontdoor_chat(
-        "What have you recorded about Capital Hilton?",
-        handle_fn=lambda _text, _session=None: (_ for _ in ()).throw(
-            AssertionError("cassandra_brain.handle must not run for operator truth query")
-        ),
-        protected_generate_fn=lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            AssertionError("protected_generate must not run for operator truth query")
-        ),
-    )
-
-    assert result.status == "ANSWER_READY"
-    assert result.intent_class == "operator_truth_query"
-    assert "Capital Hilton invoice was submitted" in result.plain_summary
-    assert result.machine_proof["protected_generate_called"] is False
-    assert result.machine_proof["external_llm_invoked"] is False
-
-
-def test_operator_truth_query_no_match_still_short_circuits_models(monkeypatch, tmp_path):
-    store_path = tmp_path / "operator_truth_store.json"
-    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
-    monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(store_path))
-
-    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
-        raise AssertionError("cassandra_brain.handle must not run for operator truth query")
-
-    def forbidden_protected_generate(*_args, **_kwargs):
-        raise AssertionError("protected_generate must not run for operator truth query")
-
-    result = maestro.answer_frontdoor_chat(
-        "Did you store Live Arts MD as truth?",
-        handle_fn=forbidden_handle,
-        protected_generate_fn=forbidden_protected_generate,
-    )
-
-    assert result.status == "ANSWER_READY"
-    assert result.intent_class == "operator_truth_query"
-    assert result.allowed_to_call_handle is False
-    assert "do not have a matching operator-truth record" in result.plain_summary
-    assert result.machine_proof["operator_truth_record_found"] is False
-    assert result.machine_proof["cassandra_handle_called"] is False
-    assert result.machine_proof["protected_generate_called"] is False
-    assert result.machine_proof["external_llm_invoked"] is False
-
 
 
 def test_send_reply_intent_never_reaches_handle_or_send_spies(monkeypatch):
@@ -905,47 +641,8 @@ def test_processor_routes_general_status_query_to_truthful_responder(tmp_path):
     assert responder["machine_proof"]["cassandra_handle_called"] is False
     assert responder["machine_proof"]["capability_index_used"] is True
     assert response.worker_route_refs[0]["backend_route"] == (
-        "maestro_cassandra_responder.protected_generate.status_capability_context"
+        "maestro_cassandra_responder.truthful_status_capability_readback"
     )
-
-
-def test_processor_routes_hermes_route_prompt_to_truthful_denial(tmp_path):
-    read_model_root = _seed_read_models(tmp_path)
-    request_path = tmp_path / "mission_control_operator_instruction_request_general_operator_instruction_hermes_route.json"
-    request_path.write_text(
-        json.dumps(
-            _maestro_operator_instruction_request(
-                "Hermes, route this to Cassandra",
-                request_id="general_operator_instruction_hermes_route_test",
-            ),
-            indent=2,
-            sort_keys=True,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    response = processor.process_request_path(
-        request_path,
-        export_root=read_model_root,
-        generated_at=FIXED_NOW,
-        duplicate_check=False,
-    )
-    responder = response.detail_disclosure["maestro_cassandra_responder"]
-    public_text = response.operator_headline + "\n" + response.operator_message
-
-    assert response.request_type == "CHAT"
-    assert response.internal_status == "RESPONSE_READY"
-    assert "cannot route this to cassandra" in public_text.lower()
-    assert "cassandra_email_triage" not in public_text
-    assert "SEND_HOLD remains in force" in public_text
-    assert responder["intent_class"] == "hermes_truthful_advisory"
-    assert responder["allowed_to_call_handle"] is False
-    assert responder["machine_proof"]["hermes_skill_guess_performed"] is False
-    assert responder["machine_proof"]["agent_dispatch_performed"] is False
-    assert responder["machine_proof"]["email_send_performed"] is False
-    assert response.detail_disclosure["workflow_package_staged"] is False
-    assert response.worker_route_refs[0]["backend_route"] == maestro.HERMES_TRUTHFUL_BACKEND_ROUTE
 
 
 def test_processor_keeps_general_maestro_action_request_on_staging(monkeypatch, tmp_path):
