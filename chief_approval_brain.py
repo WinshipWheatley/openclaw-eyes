@@ -331,12 +331,19 @@ def _compute_hash(action: str, approval_id: str, requested_at: str) -> str:
 
 
 def _verify_hash(action: str, approval_id: str, requested_at: str, stored_hash: str) -> bool:
-    """Verify the action hash. Returns True if hash matches or if hashing is disabled."""
-    if not stored_hash:
-        return True  # Hashing not configured — pass through
+    """Verify the action hash.
+
+    Legacy compatibility is allowed only when hashing is fully disabled and the
+    pending record has no hash. Any partial state (secret configured but hash
+    missing, or stored hash present but secret unavailable) fails closed.
+    """
     expected = _compute_hash(action, approval_id, requested_at)
+    if not expected and not stored_hash:
+        return True  # Hashing intentionally disabled.
     if not expected:
-        return True  # Secret not set on this call — pass through
+        return False  # Cannot verify a stored hash without the secret.
+    if not stored_hash:
+        return False  # Secret is configured, so the pending hash is required.
     return _hmac_mod.compare_digest(expected, stored_hash)
 
 
@@ -691,7 +698,7 @@ def request_approval(
             # → this block never executes. Mismatch means the pending file was
             # modified after the approval request was written.
             stored_hash = data.get("hash", "")
-            if stored_hash and not _verify_hash(action, approval_id, requested_at, stored_hash):
+            if not _verify_hash(action, approval_id, requested_at, stored_hash):
                 print(f"[approval] DENIED: hash mismatch on approval {approval_id}. "
                       "Pending file may have been tampered with.", flush=True)
                 _dual_write_chief_approval_decision(data, "NO")

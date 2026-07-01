@@ -674,6 +674,26 @@ def test_pgwr_frontdoor_validation_failed(tmp_path):
     assert r["model_output_delivered"] is False
 
 
+def test_pgwr_frontdoor_validator_unavailable_fails_closed_for_stop(tmp_path, monkeypatch):
+    import protected_generate as pg
+
+    monkeypatch.setattr(pg, "_stage1_validate", lambda _text: (True, False, ()))
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_PACKET,
+        generator_fn=_gen_returning("Winship is the operator.", done_reason="stop"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+    )
+    r = outcome.receipt
+    assert r["model_fallback_reason"] == "validation_unavailable"
+    assert r["validation_unavailable"] is True
+    assert r["model_output_delivered"] is False
+    assert r["delivered_response_source"] == "grounded_fallback"
+    assert "Winship is the operator." not in outcome.text
+
+
 def test_pgwr_real_frontdoor_packet_flag_off_uses_legacy_path(tmp_path, monkeypatch):
     calls: dict = {}
     monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", raising=False)

@@ -518,6 +518,7 @@ TASK_QUEUE_DIR = Path("/home/openclaw/polish_loop/tasks")
 ARCHIVE_DIR = Path("/home/openclaw/polish_loop/archive")
 
 CLOUD_CAPABLE_RUNNERS = {"aider", "codex", "gemini"}
+LOCAL_HEADROOM_EXEMPT_RUNNERS = {"ollama"}
 CLOUD_ALLOWED_CLASSIFICATIONS = set(EXTERNAL_MODEL_SAFE_CLASSIFICATIONS)
 
 # Keywords that signal sensitive data requiring local-only processing
@@ -722,20 +723,33 @@ def _check_headroom_policy(runner: str, tier: str, task_meta: dict) -> dict:
     Returns:
         {"allow": bool, "reason": str, "headroom_state": dict}
 
-    When headroom data is unavailable for a provider, returns allow=True
-    with reason="headroom_unknown_passthrough". The system never blocks
-    a runner solely because headroom data is missing.
+    Missing or errored headroom data is a fail-closed condition for cloud or
+    hybrid runners: skip that runner and let selection fall back to an approved
+    local path. Local runners are exempt because they do not consume provider
+    quota/headroom.
     """
+
+    def _headroom_unavailable(provenance: str, detail: str) -> dict:
+        if runner in LOCAL_HEADROOM_EXEMPT_RUNNERS:
+            return {
+                "allow": True,
+                "reason": f"headroom_not_applicable: {runner} (local)",
+                "headroom_state": {"provenance": "not_applicable"},
+            }
+        return {
+            "allow": False,
+            "reason": f"headroom_unavailable_fail_closed: {runner} ({detail})",
+            "headroom_state": {"provenance": provenance},
+        }
+
     try:
         policy = _load_headroom_policy()
         if not policy:
-            return {"allow": True, "reason": "headroom_check_error_passthrough",
-                    "headroom_state": {"provenance": "policy_missing"}}
+            return _headroom_unavailable("policy_missing", "policy missing")
 
         provider_policy = policy.get("providers", {}).get(runner)
         if provider_policy is None:
-            return {"allow": True, "reason": f"headroom_unknown: {runner} (not in policy)",
-                    "headroom_state": {"provenance": "unavailable"}}
+            return _headroom_unavailable("policy_missing_provider", "provider not in policy")
 
         # Passthrough / always-allow policies
         runner_policy_type = provider_policy.get("policy", "")
@@ -753,14 +767,11 @@ def _check_headroom_policy(runner: str, tier: str, task_meta: dict) -> dict:
             from cost_truth_surface import get_headroom
             headroom = get_headroom()
         except Exception:
-            return {"allow": True, "reason": "headroom_check_error_passthrough",
-                    "headroom_state": {"provenance": "error"}}
+            return _headroom_unavailable("error", "headroom probe error")
 
         provider_headroom = headroom.get(runner, {})
         if not provider_headroom.get("available", False):
-            return {"allow": True,
-                    "reason": f"headroom_unknown: {runner} (passthrough)",
-                    "headroom_state": {"provenance": "unavailable"}}
+            return _headroom_unavailable("unavailable", "provider headroom unavailable")
 
         # Real headroom data available — check each rate limit window
         rate_limits = provider_headroom.get("rate_limits", {})
@@ -817,8 +828,7 @@ def _check_headroom_policy(runner: str, tier: str, task_meta: dict) -> dict:
         return {"allow": True, "reason": reason, "headroom_state": provider_headroom}
 
     except Exception:
-        return {"allow": True, "reason": "headroom_check_error_passthrough",
-                "headroom_state": {"provenance": "error"}}
+        return _headroom_unavailable("error", "headroom policy error")
 
 
 def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
@@ -829,7 +839,7 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
     """Pick the best available runner for a task tier, budget-aware + rotation.
 
     Returns (runner_name, model, reason_fragment, budget_override_or_None).
-    Falls back to codex if registry unavailable.
+    Falls back to local builder if registry/budget/headroom state cannot be proven safe.
     """
     if model_prefs is None:
         model_prefs = PREFERRED_MODELS
@@ -837,16 +847,16 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
         blocked_runners = AUTONOMOUS_BLOCKED_RUNNERS
     budget_override = None
 
+    def _free_local(reason: str) -> tuple[str, str, str, Optional[float]]:
+        return ("ollama", "chief-fast:latest", reason, 0)
+
     # Step 0: Cloud admission gate. Sensitive and unclassified tasks stay local.
     if not task_meta:
-        return ("ollama", "chief-fast:latest",
-                "cloud metadata missing — local-only required", 0)
+        return _free_local("cloud metadata missing — local-only required")
     if task_meta and _task_is_sensitive(task_meta):
-        return ("ollama", "chief-fast:latest",
-                "sensitive data — local-only required", 0)
+        return _free_local("sensitive data — local-only required")
     if task_meta and not _task_allows_cloud(task_meta):
-        return ("ollama", "chief-fast:latest",
-                "cloud not explicitly allowed — local-only required", 0)
+        return _free_local("cloud not explicitly allowed — local-only required")
 
     # Step 1: Get registry ranking
     ranked_runners = []
@@ -854,16 +864,16 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
         import runner_registry
         ranked_runners = runner_registry.get_runners_for_task(tier)
     except Exception:
-        pass
+        return _free_local("runner registry unavailable — fail-closed local fallback")
 
     if not ranked_runners:
         model = model_prefs.get(tier, "sonnet")
-        return ("codex", model, "fallback — registry unavailable", None)
+        return _free_local(f"runner registry empty — fail-closed local fallback (not {model})")
 
     # Step 1b: Filter out autonomously-blocked runners (e.g. claude)
     ranked_runners = [r for r in ranked_runners if r.name not in blocked_runners]
     if not ranked_runners:
-        return ("codex", "default", "all candidates blocked by runner policy", None)
+        return _free_local("all candidates blocked by runner policy — fail-closed local fallback")
 
     # Step 2: Apply ratio-based rotation for standard tier
     ranked_runners = _apply_rotation(ranked_runners, tier, task_text)
@@ -922,7 +932,7 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
         return ("ollama", "qwen2.5-coder:14b", "all paid runners over budget — free local fallback", 0)
 
     except ImportError:
-        pass  # budget_tracker not available — skip budget checks
+        return _free_local("budget tracker unavailable — fail-closed local fallback")
 
     # No budget tracker — use registry ranking without budget awareness
     best = ranked_runners[0]
@@ -954,11 +964,20 @@ def _build_invoke_cmd(runner_name: str, profile: dict, prompt_file: str) -> str:
     effort = profile.get("effort", "high")
     budget = profile.get("budget", 2.0)
 
+    def _local_builder_cmd() -> str:
+        return (
+            f'setsid timeout {timeout} python3 /home/openclaw/polish_loop/local_builder.py '
+            f'--model {model} --timeout {timeout}'
+        )
+
     if runner_name == "codex":
         return f'setsid timeout {timeout} codex exec --sandbox workspace-write - < "{prompt_file}"'
 
     if runner_name == "gemini":
         return f'setsid timeout {timeout} gemini --prompt "$(cat {prompt_file})" --yolo --output-format text'
+
+    if runner_name == "ollama":
+        return _local_builder_cmd()
 
     # Try to get invoke_pattern from registry
     invoke_pattern = None
@@ -983,14 +1002,16 @@ def _build_invoke_cmd(runner_name: str, profile: dict, prompt_file: str) -> str:
         )
         return cmd
 
-    # Hardcoded fallback patterns — codex is the default autonomous builder
+    # Hardcoded fallback patterns.
     if runner_name == "codex":
         return f'setsid timeout {timeout} codex exec --sandbox workspace-write - < "{prompt_file}"'
     elif runner_name == "gemini":
         return f'setsid timeout {timeout} gemini --prompt "$(cat {prompt_file})" --yolo --output-format text'
+    elif runner_name == "ollama":
+        return _local_builder_cmd()
     else:
-        # Unexpected runner — use codex as safe default (claude blocked from autonomous use)
-        return f'setsid timeout {timeout} codex exec --sandbox workspace-write - < "{prompt_file}"'
+        # Unexpected runner — fail closed to the local builder, not a cloud tool.
+        return _local_builder_cmd()
 
 
 def main():

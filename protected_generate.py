@@ -1283,6 +1283,10 @@ def protected_generate_with_receipt(
                 else:
                     fd_fallback_reason = "truncated"
                     fd_response_truncated = True
+            elif not available:
+                # Stage-1 is the front-door machine-contract leak control. If it cannot
+                # run, do not fail open by delivering unchecked model text.
+                fd_fallback_reason = "validation_unavailable"
             elif not passed:
                 fd_fallback_reason = "validation_failed"
             else:

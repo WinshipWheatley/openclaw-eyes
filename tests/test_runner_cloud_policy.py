@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import sys
+import builtins
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -253,6 +254,87 @@ def test_unclassified_local_failure_does_not_silently_fallback_to_cloud(monkeypa
     fallback_runner = runner_registry.get_fallback_runner("ollama", task_type="standard")
 
     assert fallback_runner is None or fallback_runner not in CLOUD_CAPABLE_RUNNERS
+
+
+def test_runner_registry_unavailable_fails_closed_to_local(monkeypatch, runner_policy_context):
+    def registry_down(_task_type):
+        raise RuntimeError("registry unavailable")
+
+    monkeypatch.setattr(runner_registry, "get_runners_for_task", registry_down)
+
+    runner, _model, reason, budget = runner_profiles._pick_runner(
+        "standard",
+        task_meta={"data_classification": "synthetic_public", "cloud_allowed": "true"},
+        blocked_runners=set(),
+    )
+
+    assert runner == "ollama"
+    assert budget == 0
+    assert "registry unavailable" in reason
+
+
+def test_empty_runner_registry_fails_closed_to_local(monkeypatch, runner_policy_context):
+    monkeypatch.setattr(runner_registry, "get_runners_for_task", lambda _task_type: [])
+
+    runner, _model, reason, budget = runner_profiles._pick_runner(
+        "standard",
+        task_meta={"data_classification": "synthetic_public", "cloud_allowed": "true"},
+        blocked_runners=set(),
+    )
+
+    assert runner == "ollama"
+    assert budget == 0
+    assert "registry empty" in reason
+
+
+def test_budget_tracker_unavailable_fails_closed_to_local(monkeypatch, runner_policy_context):
+    real_import = builtins.__import__
+
+    def guarded_import(name, *args, **kwargs):
+        if name == "budget_tracker":
+            raise ImportError("budget tracker unavailable")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+
+    runner, _model, reason, budget = runner_profiles._pick_runner(
+        "standard",
+        task_meta={"data_classification": "synthetic_public", "cloud_allowed": "true"},
+        blocked_runners=set(),
+    )
+
+    assert runner == "ollama"
+    assert budget == 0
+    assert "budget tracker unavailable" in reason
+
+
+def test_unknown_invoke_command_fails_closed_to_local_builder(monkeypatch, runner_policy_context):
+    monkeypatch.setattr(runner_registry, "get_runner", lambda _name: None)
+
+    cmd = runner_profiles._build_invoke_cmd(
+        "unexpected-cloudish-runner",
+        {"timeout": 120, "model": "chief-fast:latest", "effort": "low", "budget": 0},
+        "/tmp/task.md",
+    )
+
+    assert "polish_loop/local_builder.py" in cmd
+    assert "codex exec" not in cmd
+
+
+def test_ollama_invoke_command_has_hardcoded_local_fallback(monkeypatch, runner_policy_context):
+    def registry_down(_name):
+        raise RuntimeError("registry down")
+
+    monkeypatch.setattr(runner_registry, "get_runner", registry_down)
+
+    cmd = runner_profiles._build_invoke_cmd(
+        "ollama",
+        {"timeout": 120, "model": "chief-fast:latest", "effort": "low", "budget": 0},
+        "/tmp/task.md",
+    )
+
+    assert "polish_loop/local_builder.py" in cmd
+    assert "codex exec" not in cmd
 
 
 def test_cloud_runner_selection_static_surface_is_policy_wrapped():
