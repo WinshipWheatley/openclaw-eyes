@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -19,6 +20,9 @@ from business_ops_ledger import resolve_business_ops_ledger_path
 
 LEDGER_SOURCE_OF_TRUTH = "business_ops_ledger"
 DEFAULT_FACT_LIMIT = 12
+DEFAULT_LEDGER_DRIFT_RECEIPT_PATH = Path(
+    "/home/openclaw/.openclaw/business_ops/ledger_runtime_drift_receipts.jsonl"
+)
 DENY_SENSITIVITY_FRAGMENTS = (
     "secret",
     "credential",
@@ -527,16 +531,167 @@ def ledger_machine_proof(
     }
 
 
+def _packet_facts(packet: Mapping[str, Any]) -> list[dict[str, Any]]:
+    values = packet.get("facts")
+    if not isinstance(values, list):
+        return []
+    return [dict(value) for value in values if isinstance(value, Mapping)]
+
+
+def _receipt_safe_source_refs(packet: Mapping[str, Any], facts: Iterable[Mapping[str, Any]]) -> list[str]:
+    refs: list[str] = []
+    raw_refs = packet.get("source_refs")
+    if isinstance(raw_refs, list):
+        refs.extend(str(ref) for ref in raw_refs if ref)
+    refs.extend(source_refs_from_facts(facts))
+    out: list[str] = []
+    for ref in refs:
+        if ref and ref not in out:
+            out.append(ref)
+    return out
+
+
+def record_ledger_drift_receipt(
+    *,
+    builder_name: str,
+    packet_id: str,
+    agent_id: str,
+    status: str,
+    original_fact_count: int,
+    repair_fact_count: int,
+    original_source_refs: Sequence[str],
+    repair_source_refs: Sequence[str],
+    drift_log_path: str | Path = DEFAULT_LEDGER_DRIFT_RECEIPT_PATH,
+) -> dict[str, Any]:
+    """Append a metadata-only receipt for a runtime ledger grounding repair."""
+    receipt = {
+        "schema_version": "ledger_runtime_drift_receipt_v0",
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+        "builder_name": builder_name,
+        "packet_id": packet_id,
+        "agent_id": agent_id,
+        "status": status,
+        "source_of_truth": LEDGER_SOURCE_OF_TRUTH,
+        "original_fact_count": int(original_fact_count),
+        "repair_fact_count": int(repair_fact_count),
+        "original_source_refs": list(original_source_refs),
+        "repair_source_refs": list(repair_source_refs),
+    }
+    path = Path(drift_log_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(receipt, sort_keys=True, ensure_ascii=True) + "\n")
+    return receipt
+
+
+def ensure_packet_ledger_grounded(
+    packet: Mapping[str, Any],
+    *,
+    builder_name: str,
+    question: str = "",
+    agent_id: str = "",
+    db_path: str | Path | None = None,
+    limit: int = DEFAULT_FACT_LIMIT,
+    drift_log_path: str | Path = DEFAULT_LEDGER_DRIFT_RECEIPT_PATH,
+) -> dict[str, Any]:
+    """Runtime guard: repair ungrounded packets from the one ledger and flag the drift.
+
+    This is the runtime sibling of the context-packet contract test. A healthy packet is
+    returned unchanged. If the active fact set is empty or lacks ledger provenance, the
+    active facts are replaced with canonical ledger facts for the same question/agent. The
+    ungrounded facts are retained only as metadata counts/ids, so downstream consumers see
+    ledger-grounded facts instead of a mixed trusted/untrusted fact set.
+    """
+    fact_list = _packet_facts(packet)
+    if fact_list and facts_have_ledger_provenance(fact_list):
+        return dict(packet)
+
+    packet_id = str(packet.get("packet_id") or f"{builder_name}:unknown")
+    resolved_agent_id = str(agent_id or packet.get("agent_id") or "")
+    resolved_question = str(question or packet.get("question") or "")
+    original_source_refs = _receipt_safe_source_refs(packet, fact_list)
+    repair_packet = build_ledger_context_packet(
+        question=resolved_question,
+        agent_id=resolved_agent_id,
+        db_path=db_path,
+        limit=limit,
+        packet_id_prefix=f"{builder_name}_ledger_runtime_repair",
+    )
+    repair_facts = _packet_facts(repair_packet)
+    if not repair_facts:
+        repair_facts = [
+            make_ledger_fact(
+                topic="ledger_status",
+                label="Ledger returned no eligible context",
+                value=(
+                    "The runtime ledger guard fired, but the business-ops ledger returned "
+                    "no eligible facts for this question and agent."
+                ),
+                source_table="ledger_status",
+                source_id="no_eligible_context",
+                db_path=db_path,
+            )
+        ]
+    repair_source_refs = source_refs_from_facts(repair_facts)
+
+    receipt = record_ledger_drift_receipt(
+        builder_name=builder_name,
+        packet_id=packet_id,
+        agent_id=resolved_agent_id,
+        status="ledger_runtime_repair_applied",
+        original_fact_count=len(fact_list),
+        repair_fact_count=len(repair_facts),
+        original_source_refs=original_source_refs,
+        repair_source_refs=repair_source_refs,
+        drift_log_path=drift_log_path,
+    )
+
+    machine_proof = dict(packet.get("machine_proof") if isinstance(packet.get("machine_proof"), Mapping) else {})
+    machine_proof.update(
+        ledger_machine_proof(
+            builder_name=builder_name,
+            facts=repair_facts,
+            db_path=db_path,
+        )
+    )
+    machine_proof.update(
+        {
+            "ledger_runtime_guard_fired": True,
+            "ledger_runtime_repair_status": "ledger_runtime_repair_applied",
+            "original_facts_have_ledger_provenance": facts_have_ledger_provenance(fact_list),
+            "original_fact_count": len(fact_list),
+            "repair_fact_count": len(repair_facts),
+        }
+    )
+
+    repaired = dict(packet)
+    repaired["facts"] = repair_facts
+    repaired["source_refs"] = repair_source_refs
+    repaired["machine_proof"] = machine_proof
+    repaired["runtime_ledger_guard"] = {
+        "status": "ledger_runtime_repair_applied",
+        "builder_name": builder_name,
+        "source_of_truth": LEDGER_SOURCE_OF_TRUTH,
+        "original_fact_count": len(fact_list),
+        "repair_fact_count": len(repair_facts),
+        "original_fact_ids": [str(fact.get("fact_id") or "") for fact in fact_list if fact.get("fact_id")],
+        "receipt": receipt,
+    }
+    return repaired
+
+
 __all__ = [
     "LEDGER_SOURCE_OF_TRUTH",
     "annotate_facts_with_ledger_provenance",
     "build_ledger_context_facts",
     "build_ledger_context_packet",
+    "ensure_packet_ledger_grounded",
     "facts_have_ledger_provenance",
     "ledger_machine_proof",
     "ledger_source_ref",
     "make_ledger_fact",
     "make_ledger_provenance",
+    "record_ledger_drift_receipt",
     "resolve_ledger_path",
     "source_refs_from_facts",
 ]
