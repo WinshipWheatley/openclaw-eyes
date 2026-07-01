@@ -592,7 +592,7 @@ def ensure_packet_ledger_grounded(
     agent_id: str = "",
     db_path: str | Path | None = None,
     limit: int = DEFAULT_FACT_LIMIT,
-    drift_log_path: str | Path = DEFAULT_LEDGER_DRIFT_RECEIPT_PATH,
+    drift_log_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Runtime guard: repair ungrounded packets from the one ledger and flag the drift.
 
@@ -634,17 +634,32 @@ def ensure_packet_ledger_grounded(
         ]
     repair_source_refs = source_refs_from_facts(repair_facts)
 
-    receipt = record_ledger_drift_receipt(
-        builder_name=builder_name,
-        packet_id=packet_id,
-        agent_id=resolved_agent_id,
-        status="ledger_runtime_repair_applied",
-        original_fact_count=len(fact_list),
-        repair_fact_count=len(repair_facts),
-        original_source_refs=original_source_refs,
-        repair_source_refs=repair_source_refs,
-        drift_log_path=drift_log_path,
-    )
+    receipt = {
+        "schema_version": "ledger_runtime_drift_receipt_v0",
+        "builder_name": builder_name,
+        "packet_id": packet_id,
+        "agent_id": resolved_agent_id,
+        "status": "ledger_runtime_repair_applied",
+        "source_of_truth": LEDGER_SOURCE_OF_TRUTH,
+        "original_fact_count": len(fact_list),
+        "repair_fact_count": len(repair_facts),
+        "original_source_refs": original_source_refs,
+        "repair_source_refs": repair_source_refs,
+        "drift_log_written": False,
+    }
+    if drift_log_path is not None:
+        receipt = record_ledger_drift_receipt(
+            builder_name=builder_name,
+            packet_id=packet_id,
+            agent_id=resolved_agent_id,
+            status="ledger_runtime_repair_applied",
+            original_fact_count=len(fact_list),
+            repair_fact_count=len(repair_facts),
+            original_source_refs=original_source_refs,
+            repair_source_refs=repair_source_refs,
+            drift_log_path=drift_log_path,
+        )
+        receipt["drift_log_written"] = True
 
     machine_proof = dict(packet.get("machine_proof") if isinstance(packet.get("machine_proof"), Mapping) else {})
     machine_proof.update(

@@ -161,9 +161,7 @@ def improvement_gaps() -> list[dict]:
     return [dict(g) for g in _IMPROVEMENT_GAPS]
 
 
-def detected_problems_as_gaps() -> list[dict]:
-    """Live self-monitor findings turned into fileable gaps — REAL problems the agent
-    recognized in its own behaviour. These take priority over the curated list."""
+def _detected_self_monitor_gaps() -> list[dict]:
     try:
         from self_monitor import self_check
 
@@ -174,6 +172,24 @@ def detected_problems_as_gaps() -> list[dict]:
         ]
     except Exception:
         return []
+
+
+def _detected_ledger_drift_gaps() -> list[dict]:
+    try:
+        from ledger_drift_monitor import detect_ledger_source_drift_gaps
+
+        return detect_ledger_source_drift_gaps()
+    except Exception:
+        return []
+
+
+def detected_problems_as_gaps() -> list[dict]:
+    """Live self-monitor findings turned into fileable gaps.
+
+    REAL problems only: self-monitor findings plus runtime one-ledger guard drift. These
+    take priority over the curated list and flow through the normal Guardian-gated factory.
+    """
+    return [*_detected_self_monitor_gaps(), *_detected_ledger_drift_gaps()]
 
 
 def next_improvement() -> dict | None:

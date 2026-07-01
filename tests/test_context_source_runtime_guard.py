@@ -146,3 +146,25 @@ def test_frontdoor_protected_generate_invokes_runtime_ledger_guard(monkeypatch, 
     assert "The front door packet was repaired from the ledger." in captured["prompt"]
     assert "This should not reach" not in captured["prompt"]
     assert outcome.receipt["ledger_runtime_guard"]["status"] == "ledger_runtime_repair_applied"
+
+
+def test_runtime_guard_does_not_write_default_drift_log_without_explicit_path(
+    monkeypatch, tmp_path: Path
+) -> None:
+    import context_source
+
+    default_log = tmp_path / "default-drift.jsonl"
+    monkeypatch.setattr(context_source, "DEFAULT_LEDGER_DRIFT_RECEIPT_PATH", default_log)
+
+    repaired = context_source.ensure_packet_ledger_grounded(
+        {
+            "packet_id": "bad_packet",
+            "facts": [{"fact_id": "bad", "value": "wrong", "source_ref": "wrong.sqlite"}],
+            "source_refs": ["wrong.sqlite"],
+        },
+        builder_name="test_default_log",
+        db_path=tmp_path / "ledger.sqlite",
+    )
+
+    assert repaired["runtime_ledger_guard"]["receipt"]["drift_log_written"] is False
+    assert not default_log.exists()

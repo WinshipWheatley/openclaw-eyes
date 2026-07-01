@@ -154,6 +154,40 @@ _SELF_IMPROVEMENT_PACKAGE_PROFILES: dict[str, dict[str, Any]] = {
             "/home/openclaw/chief_env/bin/python -m pytest -q tests/test_frontdoor_model_profile.py tests/test_maestro_cassandra_responder.py tests/test_self_monitor.py",
         ],
     },
+    "ledger_source_drift": {
+        "scope": [
+            "Use runtime ledger drift receipts/audit evidence to identify the packet path that returned empty, unprovenanced, or wrong-source facts.",
+            "Rewrite the source path to pull from context_source/the business-ops ledger directly; keep the runtime guard as a fail-closed backup, not the normal path.",
+            "Do not weaken the ledger provenance contract or remove the drift receipt; fix the root wrong-source path so the guard stops firing.",
+        ],
+        "allowed_files": [
+            "context_source.py",
+            "protected_generate.py",
+            "frontdoor_prompt.py",
+            "maestro_context_packet.py",
+            "cassandra_context_packet.py",
+            "hermes_context_packet.py",
+            "guardian_context_packet.py",
+            "backend_knowledge_packet.py",
+            "cassandra_clara_fact_packet.py",
+            "context_packet_builder_registry.py",
+            "ledger_drift_monitor.py",
+            "self_knowledge.py",
+            "self_improvement_request.py",
+            "tests/test_context_source_runtime_guard.py",
+            "tests/test_context_packet_ledger_contract.py",
+            "tests/test_ledger_drift_monitor.py",
+        ],
+        "success_criteria": [
+            "The specific builder/path named in the drift evidence emits ledger-provenanced facts without relying on runtime repair.",
+            "The runtime guard remains active and still logs/receipts drift when a future builder fails provenance.",
+            "The ledger contract test still fails any registered packet builder that bypasses the ledger.",
+            "Synthetic/manual guard probes are ignored by the drift monitor and do not file repair work.",
+        ],
+        "tests_to_run": [
+            "/home/openclaw/chief_env/bin/python -m pytest -q tests/test_context_source_runtime_guard.py tests/test_context_packet_ledger_contract.py tests/test_ledger_drift_monitor.py",
+        ],
+    },
     "responses_slow": {
         "scope": [
             "Use self_monitor latency evidence + front-door receipts to find why replies are slow (>30% of replies).",
@@ -295,6 +329,15 @@ _SELF_IMPROVEMENT_PACKAGE_PROFILES: dict[str, dict[str, Any]] = {
 }
 
 
+def _package_profile_for_gap(gap_id: str) -> tuple[str, dict[str, Any] | None]:
+    profile = _SELF_IMPROVEMENT_PACKAGE_PROFILES.get(gap_id)
+    if profile is not None:
+        return gap_id, profile
+    if gap_id.startswith("ledger_source_drift:"):
+        return "ledger_source_drift", _SELF_IMPROVEMENT_PACKAGE_PROFILES.get("ledger_source_drift")
+    return gap_id, None
+
+
 _NO_RESPONSE_AGENT_FILES: dict[str, list[str]] = {
     "hermes": [
         "openclaw_hermes_sidecar.py",
@@ -407,7 +450,7 @@ def compile_self_improvement_package(gap: dict, *, agent: str = "maestro") -> di
     gap_id = str(gap.get("id") or "").strip()
     if not gap_id:
         raise SelfImprovementPackageError("self-improvement gap is missing id")
-    profile = _SELF_IMPROVEMENT_PACKAGE_PROFILES.get(gap_id)
+    profile_id, profile = _package_profile_for_gap(gap_id)
     if profile is None:
         raise SelfImprovementPackageError(f"no bounded package profile for gap {gap_id!r}")
     goal = str(gap.get("build_goal") or "").strip()
@@ -451,7 +494,7 @@ def compile_self_improvement_package(gap: dict, *, agent: str = "maestro") -> di
             "No production restarts, cron edits, systemd edits, real sends, money movement, or secret access.",
         ],
         "package_compiler": "self_improvement_request.compile_self_improvement_package",
-        "package_profile": gap_id,
+        "package_profile": profile_id,
     }
     missing = [
         field for field in _TASK_PACKAGE_REQUIRED_PAYLOAD_FIELDS
