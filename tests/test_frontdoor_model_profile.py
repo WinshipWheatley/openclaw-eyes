@@ -14,6 +14,7 @@ from contextlib import contextmanager
 import pytest
 
 import chief_llm
+from context_source import make_ledger_provenance
 from frontdoor_prompt import build_frontdoor_prompt
 from protected_generate import protected_generate_with_receipt
 
@@ -318,6 +319,54 @@ def test_build_frontdoor_prompt_under_budget_keeps_all():
     assert manifest["prompt_chars"] <= 2200 + manifest["layer_a_chars"]
 
 
+def test_build_frontdoor_prompt_marks_stale_fact_freshness(monkeypatch):
+    monkeypatch.setenv("OPENCLAW_TODAY", "2026-07-01")
+    facts = [
+        {
+            "fact_id": "stale_payment",
+            "topic": "finance",
+            "label": "Capital Hilton payment",
+            "value": "The payment was expected soon.",
+            "freshness": {"as_of": "2026-06-10T09:00:00Z"},
+        }
+    ]
+
+    prompt, manifest = build_frontdoor_prompt(
+        _packet(facts),
+        "what is the current payment status?",
+        max_chars=2200,
+    )
+
+    assert "as of 2026-06-10" in prompt
+    assert "about 3 weeks old" in prompt
+    assert "stale-needs-refresh" in prompt
+    assert "Do not present stale facts as current" in prompt
+    assert manifest["stale_fact_ids"] == ["stale_payment"]
+
+
+def test_build_frontdoor_prompt_recent_fact_is_not_stale(monkeypatch):
+    monkeypatch.setenv("OPENCLAW_TODAY", "2026-07-01")
+    facts = [
+        {
+            "fact_id": "fresh_payment",
+            "topic": "finance",
+            "label": "Capital Hilton payment",
+            "value": "The payment was expected soon.",
+            "freshness": {"as_of": "2026-06-30T09:00:00Z"},
+        }
+    ]
+
+    prompt, manifest = build_frontdoor_prompt(
+        _packet(facts),
+        "what is the current payment status?",
+        max_chars=2200,
+    )
+
+    assert "as of 2026-06-30" in prompt
+    assert "stale-needs-refresh" not in prompt
+    assert manifest["stale_fact_ids"] == []
+
+
 # Test 10 + 11: over budget → narrowed ≤ max_chars; fact_selection retained;
 # Layer A reserve always present; manifest records kept/dropped; OUTPUT not truncated.
 def test_build_frontdoor_prompt_over_budget_narrows_and_keeps_selection():
@@ -497,6 +546,40 @@ def test_pgwr_frontdoor_stop_complete_model_ok(tmp_path):
     assert r["delivered_response_source"] == "model"
     assert _TELEMETRY_KEYS.issubset(r.keys())
     assert "Winship is the operator." in outcome.text
+
+
+def test_pgwr_frontdoor_receipt_records_stale_fact_ids(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENCLAW_TODAY", "2026-07-01")
+    import protected_generate as pg
+
+    monkeypatch.setattr(pg, "_stage1_validate", lambda _text: (True, True, ()))
+    packet = _packet(
+        [
+            {
+                "fact_id": "stale_payment",
+                "topic": "finance",
+                "label": "Capital Hilton payment",
+                "value": "The payment was expected soon.",
+                "freshness": {"as_of": "2026-06-10T09:00:00Z"},
+                "ledger_provenance": make_ledger_provenance(
+                    source_table="canonical_facts",
+                    source_id="stale_payment",
+                    db_path="test-ledger.sqlite",
+                ),
+            }
+        ]
+    )
+
+    outcome = protected_generate_with_receipt(
+        "What is the current payment status?",
+        context_packet=packet,
+        generator_fn=_gen_returning("As of June 10, it was expected soon.", done_reason="stop"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+    )
+
+    assert outcome.receipt["stale_fact_ids"] == ["stale_payment"]
 
 
 # Test 13: done_reason=length but complete+validated utterance → model_ok, not truncated.

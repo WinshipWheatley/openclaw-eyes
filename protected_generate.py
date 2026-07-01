@@ -1379,6 +1379,7 @@ def protected_generate_with_receipt(
                 "response_truncated": fd_response_truncated,
                 "context_facts_kept": resolved_kept,
                 "context_facts_dropped": resolved_dropped,
+                "stale_fact_ids": list(fd_prompt_manifest.get("stale_fact_ids") or []),
                 "model_call_attempted": fd_model_call_attempted,
                 "model_output_delivered": fd_model_output_delivered,
                 "delivered_response_source": fd_delivered_response_source,

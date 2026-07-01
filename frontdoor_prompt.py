@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import date
 from typing import Any, Mapping
 
 
@@ -23,6 +24,8 @@ _LAYER_A_RESERVE_CHARS = 800
 _DEFAULT_PROMPT_MAX_CHARS = 2200
 
 _WORD_RE = re.compile(r"[a-z0-9']+")
+_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+_STALE_FACT_DAYS = 14
 
 # Layer A persona preamble — fixed framing for the front-door renderer. Kept short so
 # it always fits inside the reserve. Mirrors the protected_generate system framing.
@@ -88,7 +91,8 @@ def _grounded_preamble(agent: str | None) -> str:
         "reply warmly and naturally like a sharp, easy friend — no facts required, have some "
         "personality. For a specific factual question, answer from the deterministic packet "
         "facts below; if a fact you'd need isn't there, say so plainly rather than inventing "
-        "it. Be concise; never claim send/spend/mutation authority. SEND_HOLD is absolute."
+        "it. Do not present stale facts as current; say \"as of...\" or \"needs refresh.\" "
+        "Be concise; never claim send/spend/mutation authority. SEND_HOLD is absolute."
         f"{agent_note}"
     )
 
@@ -178,7 +182,70 @@ def _fact_source_ref(fact: Mapping[str, Any]) -> str:
 def _fact_text(fact: Mapping[str, Any]) -> str:
     parts = [str(fact.get(key) or "") for key in ("label", "value")]
     body = ": ".join(part for part in parts if part).strip()
-    return body or str(fact.get("value") or "").strip()
+    body = body or str(fact.get("value") or "").strip()
+    note, _stale = _fact_freshness_note(fact)
+    return f"{body} {note}".strip() if note else body
+
+
+def _today() -> date:
+    raw = os.environ.get("OPENCLAW_TODAY", "").strip()
+    parsed = _parse_date(raw)
+    return parsed or date.today()
+
+
+def _parse_date(raw: str) -> date | None:
+    match = _DATE_RE.search(str(raw or ""))
+    if not match:
+        return None
+    try:
+        return date.fromisoformat(match.group(1))
+    except ValueError:
+        return None
+
+
+def _fact_freshness_as_of(fact: Mapping[str, Any]) -> str:
+    freshness = fact.get("freshness")
+    if isinstance(freshness, Mapping):
+        for key in ("as_of", "updated_at", "generated_at", "observed_at"):
+            value = freshness.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    for key in ("freshness_as_of", "as_of", "updated_at", "generated_at", "observed_at"):
+        value = fact.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _age_phrase(days: int) -> str:
+    if days < 0:
+        return "future-dated"
+    if days == 0:
+        return "today"
+    if days == 1:
+        return "1 day old"
+    if days < 14:
+        return f"{days} days old"
+    weeks = max(2, round(days / 7))
+    if weeks == 1:
+        return "about 1 week old"
+    return f"about {weeks} weeks old"
+
+
+def _fact_freshness_note(fact: Mapping[str, Any]) -> tuple[str, bool]:
+    as_of_raw = _fact_freshness_as_of(fact)
+    if not as_of_raw:
+        return "", False
+    as_of_date = _parse_date(as_of_raw)
+    if as_of_date is None:
+        return f"[freshness: as of {as_of_raw}; date-unparsed]", False
+    age_days = (_today() - as_of_date).days
+    stale = age_days >= _STALE_FACT_DAYS
+    status = "stale-needs-refresh" if stale else "current-enough"
+    return (
+        f"[freshness: as of {as_of_date.isoformat()}; {_age_phrase(age_days)}; {status}]",
+        stale,
+    )
 
 
 def _is_system_posture(fact: Mapping[str, Any]) -> bool:
@@ -329,9 +396,9 @@ def build_frontdoor_prompt(
         )
         manifest = {
             "context_facts_kept": 0, "context_facts_dropped": 0, "kept_fact_ids": [],
-            "dropped_fact_ids": [], "prompt_context_chars": 0, "prompt_chars": len(convo),
-            "layer_a_chars": len(convo), "max_chars": max_chars, "layer_b_budget": 0,
-            "over_budget": False, "conversational_lane": True,
+            "dropped_fact_ids": [], "stale_fact_ids": [], "prompt_context_chars": 0,
+            "prompt_chars": len(convo), "layer_a_chars": len(convo), "max_chars": max_chars,
+            "layer_b_budget": 0, "over_budget": False, "conversational_lane": True,
         }
         return convo, manifest
 
@@ -417,6 +484,7 @@ def build_frontdoor_prompt(
 
     kept_ids: list[str] = []
     dropped_ids: list[str] = list(pre_dropped_ids)
+    stale_fact_ids: list[str] = []
     kept_lines: list[str] = []
     used_chars = 0
     # over_budget reflects BUDGET narrowing only — a non-empty fact that could not fit.
@@ -432,6 +500,9 @@ def build_frontdoor_prompt(
         if used_chars + addition <= layer_b_budget:
             kept_lines.append(line)
             kept_ids.append(fid)
+            _note, stale = _fact_freshness_note(_fact)
+            if stale:
+                stale_fact_ids.append(fid)
             used_chars += addition
         else:
             dropped_ids.append(fid)
@@ -457,6 +528,7 @@ def build_frontdoor_prompt(
         "context_facts_dropped": len(dropped_ids),
         "kept_fact_ids": kept_ids,
         "dropped_fact_ids": dropped_ids,
+        "stale_fact_ids": stale_fact_ids,
         "prompt_context_chars": prompt_context_chars,
         "prompt_chars": len(prompt),
         "layer_a_chars": layer_a_chars,
