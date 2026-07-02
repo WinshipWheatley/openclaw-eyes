@@ -1276,3 +1276,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_frontdoor_model_profile.py
 !tests/test_frontdoor_warmpin_offload.py
 !tests/test_interactive_timeout_not_deep_floored.py
+!tests/test_ledger_guard_fail_closed.py

@@ -981,6 +981,7 @@ def protected_generate_with_receipt(
     raw_prompt = str(prompt or "").strip()
     packet = _packet_mapping(context_packet)
     front_door_profile = _frontdoor_profile_active(front_door_profile, context_packet)
+    fd_ledger_guard_failed = False
     if front_door_profile:
         try:
             from context_source import ensure_packet_ledger_grounded
@@ -993,6 +994,10 @@ def protected_generate_with_receipt(
             )
             packet = _packet_mapping(context_packet)
         except Exception as exc:
+            # Fail CLOSED: an unverifiable packet must not feed a live model
+            # answer. The flag below short-circuits model/generator invocation
+            # and routes to the deterministic grounded fallback.
+            fd_ledger_guard_failed = True
             repaired_packet = dict(packet)
             repaired_packet["runtime_ledger_guard"] = {
                 "status": "ledger_runtime_guard_error",
@@ -1135,7 +1140,11 @@ def protected_generate_with_receipt(
     fd_model_output_delivered = False
     fd_delivered_response_source = "grounded_fallback"
     fd_call_started = _now_ms()
-    if generator_fn is not None:
+    if generator_fn is not None and front_door_profile and fd_ledger_guard_failed:
+        # Ledger guard errored: never generate from the unverified packet.
+        route = "deterministic_fallback_ledger_guard_error"
+        fd_captured_done_reason = "ledger_guard_error"
+    elif generator_fn is not None:
         route = "injected_generator"
         local_invoked = True
         fd_model_call_attempted = bool(front_door_profile)
@@ -1178,7 +1187,12 @@ def protected_generate_with_receipt(
         if not raw_output:
             try:
                 if front_door_profile:
-                    if fd_interactive_timeout_s is None:
+                    if fd_ledger_guard_failed:
+                        # Ledger guard errored: fail closed to the deterministic
+                        # grounded fallback without invoking any model.
+                        fd_captured_done_reason = "ledger_guard_error"
+                        route = "deterministic_fallback_ledger_guard_error"
+                    elif fd_interactive_timeout_s is None:
                         route = "deterministic_fallback_frontdoor_timeout_unset"
                     else:
                         from chief_llm import ollama_is_unreachable, select_frontdoor_model
@@ -1256,6 +1270,10 @@ def protected_generate_with_receipt(
         elif dr_lower == "no_fitting_model":
             # Caller (the selector) found no allowlisted model that fits the box.
             fd_fallback_reason = "no_fitting_model"
+        elif dr_lower == "ledger_guard_error":
+            # Runtime ledger guard errored; the packet could not be verified, so
+            # no model answer was produced (fail-closed).
+            fd_fallback_reason = "ledger_guard_error"
         elif dr_lower == "unreachable" or ollama_unreachable_shortcircuit:
             fd_fallback_reason = "unreachable"
         elif not model_was_invoked:

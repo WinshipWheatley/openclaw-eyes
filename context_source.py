@@ -225,14 +225,20 @@ def annotate_facts_with_ledger_provenance(
     return out
 
 
+def fact_has_ledger_provenance(fact: Mapping[str, Any]) -> bool:
+    provenance = fact.get("ledger_provenance")
+    if not isinstance(provenance, Mapping):
+        return False
+    if provenance.get("source_of_truth") != LEDGER_SOURCE_OF_TRUTH:
+        return False
+    if not provenance.get("ledger_path"):
+        return False
+    return True
+
+
 def facts_have_ledger_provenance(facts: Iterable[Mapping[str, Any]]) -> bool:
     for fact in facts:
-        provenance = fact.get("ledger_provenance")
-        if not isinstance(provenance, Mapping):
-            return False
-        if provenance.get("source_of_truth") != LEDGER_SOURCE_OF_TRUTH:
-            return False
-        if not provenance.get("ledger_path"):
+        if not fact_has_ledger_provenance(fact):
             return False
     return True
 
@@ -472,6 +478,20 @@ def build_ledger_context_facts(
         _append_agent_lane_facts(conn, facts, db_path=db_path, limit=limit)
         _append_repo_root_facts(conn, facts, db_path=db_path, limit=limit)
         _append_corpus_path_facts(conn, facts, db_path=db_path, limit=limit)
+    except sqlite3.Error:
+        # A locked/failing ledger mid-query (live cron folds write while listeners
+        # read) must degrade to the same honest fail-closed fact as a failed open,
+        # not raise into callers who would then answer from unverified packets.
+        return [
+            make_ledger_fact(
+                topic="ledger_status",
+                label="Ledger unavailable",
+                value="The business-ops ledger could not be read; packet facts must fail closed.",
+                source_table="ledger_status",
+                source_id="unavailable",
+                db_path=db_path,
+            )
+        ]
     finally:
         conn.close()
     return facts[:limit]
@@ -610,28 +630,42 @@ def ensure_packet_ledger_grounded(
     resolved_agent_id = str(agent_id or packet.get("agent_id") or "")
     resolved_question = str(question or packet.get("question") or "")
     original_source_refs = _receipt_safe_source_refs(packet, fact_list)
-    repair_packet = build_ledger_context_packet(
-        question=resolved_question,
-        agent_id=resolved_agent_id,
-        db_path=db_path,
-        limit=limit,
-        packet_id_prefix=f"{builder_name}_ledger_runtime_repair",
-    )
-    repair_facts = _packet_facts(repair_packet)
-    if not repair_facts:
-        repair_facts = [
-            make_ledger_fact(
-                topic="ledger_status",
-                label="Ledger returned no eligible context",
-                value=(
-                    "The runtime ledger guard fired, but the business-ops ledger returned "
-                    "no eligible facts for this question and agent."
-                ),
-                source_table="ledger_status",
-                source_id="no_eligible_context",
-                db_path=db_path,
-            )
-        ]
+    grounded_facts = [dict(fact) for fact in fact_list if fact_has_ledger_provenance(fact)]
+    dropped_fact_ids = [
+        str(fact.get("fact_id") or "")
+        for fact in fact_list
+        if not fact_has_ledger_provenance(fact) and fact.get("fact_id")
+    ]
+    if grounded_facts:
+        # Partial repair: keep the already-grounded (topically relevant) facts and
+        # drop only the unprovenanced ones. Replacing the whole set with generic
+        # ledger rows would trade relevant grounded context for irrelevant facts.
+        repair_status = "ledger_runtime_partial_repair"
+        repair_facts = grounded_facts
+    else:
+        repair_status = "ledger_runtime_repair_applied"
+        repair_packet = build_ledger_context_packet(
+            question=resolved_question,
+            agent_id=resolved_agent_id,
+            db_path=db_path,
+            limit=limit,
+            packet_id_prefix=f"{builder_name}_ledger_runtime_repair",
+        )
+        repair_facts = _packet_facts(repair_packet)
+        if not repair_facts:
+            repair_facts = [
+                make_ledger_fact(
+                    topic="ledger_status",
+                    label="Ledger returned no eligible context",
+                    value=(
+                        "The runtime ledger guard fired, but the business-ops ledger returned "
+                        "no eligible facts for this question and agent."
+                    ),
+                    source_table="ledger_status",
+                    source_id="no_eligible_context",
+                    db_path=db_path,
+                )
+            ]
     repair_source_refs = source_refs_from_facts(repair_facts)
 
     receipt = {
@@ -639,7 +673,7 @@ def ensure_packet_ledger_grounded(
         "builder_name": builder_name,
         "packet_id": packet_id,
         "agent_id": resolved_agent_id,
-        "status": "ledger_runtime_repair_applied",
+        "status": repair_status,
         "source_of_truth": LEDGER_SOURCE_OF_TRUTH,
         "original_fact_count": len(fact_list),
         "repair_fact_count": len(repair_facts),
@@ -652,7 +686,7 @@ def ensure_packet_ledger_grounded(
             builder_name=builder_name,
             packet_id=packet_id,
             agent_id=resolved_agent_id,
-            status="ledger_runtime_repair_applied",
+            status=repair_status,
             original_fact_count=len(fact_list),
             repair_fact_count=len(repair_facts),
             original_source_refs=original_source_refs,
@@ -672,7 +706,7 @@ def ensure_packet_ledger_grounded(
     machine_proof.update(
         {
             "ledger_runtime_guard_fired": True,
-            "ledger_runtime_repair_status": "ledger_runtime_repair_applied",
+            "ledger_runtime_repair_status": repair_status,
             "original_facts_have_ledger_provenance": facts_have_ledger_provenance(fact_list),
             "original_fact_count": len(fact_list),
             "repair_fact_count": len(repair_facts),
@@ -684,12 +718,13 @@ def ensure_packet_ledger_grounded(
     repaired["source_refs"] = repair_source_refs
     repaired["machine_proof"] = machine_proof
     repaired["runtime_ledger_guard"] = {
-        "status": "ledger_runtime_repair_applied",
+        "status": repair_status,
         "builder_name": builder_name,
         "source_of_truth": LEDGER_SOURCE_OF_TRUTH,
         "original_fact_count": len(fact_list),
         "repair_fact_count": len(repair_facts),
         "original_fact_ids": [str(fact.get("fact_id") or "") for fact in fact_list if fact.get("fact_id")],
+        "dropped_fact_ids": dropped_fact_ids,
         "receipt": receipt,
     }
     return repaired
