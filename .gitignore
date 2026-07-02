@@ -154,6 +154,7 @@
 !openclaw_lm_consult_spine.py
 !openclaw_api_server.py
 !openclaw_system_knowledge_registry.py
+!markdown_knowledge_query.py
 !openclaw_external_registry_materializer.py
 !openclaw_event_bridge_contract.py
 !openclaw_event_bridge_adapter.py
@@ -1071,6 +1072,7 @@
 !scripts/export_openclaw_hermes_sidecar.py
 !scripts/run_openclaw_hermes_gateway.py
 !scripts/export_openclaw_system_knowledge_registry.py
+!scripts/query_markdown_work.py
 !scripts/check_skill_metadata.py
 !scripts/import_external_system_knowledge_registry.py
 !scripts/land_reynolds_gig.py
@@ -1085,6 +1087,7 @@
 !tests/test_chief_test_harness_cross_off_receipt_contract.py
 !tests/test_capital_hilton_protected_proof_intake.py
 !tests/test_markdown_atlas_scope_expansion.py
+!tests/test_markdown_knowledge_query.py
 !tests/test_capital_hilton_answer_candidate_receipt.py
 !tests/test_capital_hilton_protected_reference_placeholder.py
 !tests/test_capital_hilton_proof_resolution_batch_manifest.py
