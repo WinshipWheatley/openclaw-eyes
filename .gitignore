@@ -507,6 +507,12 @@
 !polish_loop/pc4_heal_emitter.py
 !polish_loop/tasks/
 !polish_loop/tasks/*.md
+!polish_loop/model_unload_adapter.py
+!polish_loop/build_lifecycle_registry.py
+!tests/test_model_unload_adapter.py
+!tests/test_build_lifecycle_registry.py
+!tests/test_worker_runtime_resource_aware_wiring.py
+!tests/test_orchestrator_deferral_receipt.py
 !tests/
 !tests/fixtures/
 !tests/fixtures/skills/
