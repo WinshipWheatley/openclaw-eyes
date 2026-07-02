@@ -1316,3 +1316,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_team_grounded_fallback.py
 !tests/test_niles_taste_dna.py
 !tests/test_team_roster_intent.py
+!tests/test_maestro_listener_voice.py
