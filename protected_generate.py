@@ -235,6 +235,57 @@ def _frontdoor_num_predict() -> int:
     return _int_env("OPENCLAW_FRONTDOOR_NUM_PREDICT", DEFAULT_FRONTDOOR_NUM_PREDICT)
 
 
+# ── Front-door interactive GPU lease (P5 resource orchestration) ──────────────
+# The lease is ADVISORY for answering: it exists so builders defer/preempt off
+# the shared 6GB card while the operator waits on a reply. Arbiter failure or a
+# denial must therefore never block the answer path — it is a performance
+# control, not a safety control.
+DEFAULT_GPU_LEASE_DB = "/home/openclaw/.openclaw/polish_loop/gpu_leases.sqlite"
+_FRONTDOOR_GPU_LEASE_TTL_S = 180
+
+
+def _acquire_frontdoor_gpu_lease(agent: str | None) -> dict[str, Any]:
+    raw = os.environ.get("OPENCLAW_GPU_LEASE_DB", "").strip()
+    if raw.lower() in {"0", "off", "disabled"}:
+        return {"status": "disabled", "released": False}
+    path = raw or DEFAULT_GPU_LEASE_DB
+    try:
+        from polish_loop.gpu_arbiter import GPUArbiter
+
+        arbiter = GPUArbiter(path)
+        lease = arbiter.acquire(
+            "interactive",
+            f"frontdoor:{str(agent or 'unknown').strip() or 'unknown'}",
+            ttl_seconds=_FRONTDOOR_GPU_LEASE_TTL_S,
+        )
+        status = str(lease.get("status") or "unknown")
+        summary: dict[str, Any] = {"status": status, "released": False}
+        if status.startswith("acquired"):
+            summary["_arbiter"] = arbiter
+            summary["_holder_id"] = str(lease.get("holder_id") or "")
+            summary["_nonce"] = str(lease.get("lease_nonce") or "")
+            if lease.get("preempted_holder_id"):
+                summary["preempted_holder_id"] = lease.get("preempted_holder_id")
+        else:
+            summary["reason"] = lease.get("reason")
+        return summary
+    except Exception as exc:
+        return {"status": "arbiter_error", "error_type": type(exc).__name__, "released": False}
+
+
+def _release_frontdoor_gpu_lease(lease: dict[str, Any]) -> None:
+    arbiter = lease.pop("_arbiter", None)
+    holder_id = str(lease.pop("_holder_id", "") or "")
+    nonce = str(lease.pop("_nonce", "") or "")
+    if arbiter is None or not nonce:
+        return
+    try:
+        result = arbiter.release(holder_id, nonce)
+        lease["released"] = str(result.get("status") or "") == "released"
+    except Exception:
+        lease["released"] = False
+
+
 def _frontdoor_optional_int_env(name: str) -> int | None:
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
@@ -1139,6 +1190,7 @@ def protected_generate_with_receipt(
     fd_model_call_attempted = False
     fd_model_output_delivered = False
     fd_delivered_response_source = "grounded_fallback"
+    fd_gpu_lease: dict[str, Any] | None = None
     fd_call_started = _now_ms()
     if generator_fn is not None and front_door_profile and fd_ledger_guard_failed:
         # Ledger guard errored: never generate from the unverified packet.
@@ -1216,18 +1268,22 @@ def protected_generate_with_receipt(
                             else:
                                 fd_model_call_attempted = True
                                 _started = _now_ms()
-                                _result = _call_local_ollama(
-                                    system_prompt,
-                                    timeout=fd_interactive_timeout_s,
-                                    attempts=1,
-                                    model=_model,
-                                    task_class="frontdoor_reply",
-                                    think=fd_model_think,
-                                    num_predict=fd_num_predict,
-                                    options=fd_ollama_options,
-                                    keep_alive=fd_keep_alive,
-                                    return_metadata=True,
-                                )
+                                fd_gpu_lease = _acquire_frontdoor_gpu_lease(agent)
+                                try:
+                                    _result = _call_local_ollama(
+                                        system_prompt,
+                                        timeout=fd_interactive_timeout_s,
+                                        attempts=1,
+                                        model=_model,
+                                        task_class="frontdoor_reply",
+                                        think=fd_model_think,
+                                        num_predict=fd_num_predict,
+                                        options=fd_ollama_options,
+                                        keep_alive=fd_keep_alive,
+                                        return_metadata=True,
+                                    )
+                                finally:
+                                    _release_frontdoor_gpu_lease(fd_gpu_lease)
                                 raw_output, _captured, _elapsed, _metadata = _model_result_tuple(_result)
                                 if _captured is not None:
                                     fd_captured_done_reason = _captured
@@ -1409,6 +1465,10 @@ def protected_generate_with_receipt(
             receipt["validation_unavailable"] = True
         if fd_validation_reasons:
             receipt["validation_reasons"] = list(fd_validation_reasons)
+        if fd_gpu_lease is not None:
+            receipt["gpu_lease"] = {
+                key: value for key, value in fd_gpu_lease.items() if not str(key).startswith("_")
+            }
     audit_ref = _write_audit(receipt, audit_log_path)
     receipt["audit_ref"] = audit_ref
     return ProtectedGenerateOutcome(status="ANSWER_READY", text=text, receipt=receipt)
