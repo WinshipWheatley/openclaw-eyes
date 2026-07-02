@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenClaw read-model auto-refresh every 30 minutes
+Documentation=file://@REPO_ROOT@/Operator/CODEX-FRESHNESS-AWARENESS-RESULT.md
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=30min
+AccuracySec=1min
+Persistent=true
+Unit=openclaw-read-model-auto-refresh.service
+
+[Install]
+WantedBy=timers.target
