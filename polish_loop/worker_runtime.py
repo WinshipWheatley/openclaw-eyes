@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -33,8 +34,37 @@ except ImportError:  # pragma: no cover - script import from polish_loop/
         iso_now,
     )
 
+try:  # pragma: no cover - package import
+    from .gpu_arbiter import DEFAULT_TTL_SECONDS as GPU_DEFAULT_TTL_SECONDS
+    from .gpu_arbiter import GPUArbiter
+except ImportError:  # pragma: no cover - script import from polish_loop/
+    from gpu_arbiter import DEFAULT_TTL_SECONDS as GPU_DEFAULT_TTL_SECONDS  # type: ignore
+    from gpu_arbiter import GPUArbiter  # type: ignore
+
+try:  # pragma: no cover - package import
+    from .capability_availability_router import route_build_capability
+except ImportError:  # pragma: no cover - script import from polish_loop/
+    from capability_availability_router import route_build_capability  # type: ignore
+
+try:  # pragma: no cover - package import
+    from .model_unload_adapter import DEFAULT_OLLAMA_BASE_URL, unload_model
+except ImportError:  # pragma: no cover - script import from polish_loop/
+    from model_unload_adapter import DEFAULT_OLLAMA_BASE_URL, unload_model  # type: ignore
+
+try:  # pragma: no cover - package import
+    from .build_lifecycle_registry import BuildLifecycleRegistry
+except ImportError:  # pragma: no cover - script import from polish_loop/
+    from build_lifecycle_registry import BuildLifecycleRegistry  # type: ignore
+
 
 _SAFE_ID_RE = re.compile(r"[^A-Za-z0-9_.-]+")
+# Real, absolute defaults for the standalone/production entry point
+# (WorkerRuntimeConfig.from_env()). Tests always construct WorkerRuntimeConfig
+# directly with a tmp_path-scoped loop_dir, so lease_db_path/lifecycle_db_path stay
+# None there and resolve underneath that tmp_path instead -- see
+# _resolve_lease_db_path()/_resolve_lifecycle_db_path() below.
+DEFAULT_GPU_LEASE_DB_PATH = Path("/home/openclaw/.openclaw/polish_loop/gpu_leases.sqlite")
+DEFAULT_BUILD_LIFECYCLE_DB_PATH = Path("/home/openclaw/.openclaw/polish_loop/build_lifecycle.sqlite")
 TASK_PACKAGE_FLAG = "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"
 TASK_PACKAGE_FLAG_ON_VALUES = {"1", "true", "yes", "on"}
 TASK_PACKAGE_SCHEMA_VERSION = "polish_loop_task_package_v1"
@@ -74,6 +104,28 @@ class WorkerRuntimeConfig:
     timeout_seconds: int = 3600
     subprocess_timeout_seconds: int | None = None
     extra_env: dict[str, str] = dataclasses.field(default_factory=dict)
+    # Resource-aware GPU lease + build lifecycle provenance wiring. Left as None by
+    # default (rather than defaulting to a real /home/openclaw path) so that any
+    # config built directly -- which is what every existing test does -- resolves
+    # these underneath loop_dir instead of touching real machine state. Only
+    # from_env() (the true production entry point) resolves to the real default
+    # paths above.
+    lease_db_path: Path | None = None
+    lifecycle_db_path: Path | None = None
+    gpu_lease_ttl_seconds: int = GPU_DEFAULT_TTL_SECONDS
+    gpu_heartbeat_interval_seconds: float = 120.0
+    gpu_holder_id: str | None = None
+    model_unload_base_url: str = DEFAULT_OLLAMA_BASE_URL
+
+    def resolved_lease_db_path(self) -> Path:
+        return Path(self.lease_db_path) if self.lease_db_path is not None else self.loop_dir / "gpu_leases.sqlite"
+
+    def resolved_lifecycle_db_path(self) -> Path:
+        return (
+            Path(self.lifecycle_db_path)
+            if self.lifecycle_db_path is not None
+            else self.loop_dir / "build_lifecycle.sqlite"
+        )
 
     @classmethod
     def from_env(cls) -> "WorkerRuntimeConfig":
@@ -108,6 +160,21 @@ class WorkerRuntimeConfig:
                 int(os.environ["PHASE_C_WORKER_SUBPROCESS_TIMEOUT"])
                 if os.environ.get("PHASE_C_WORKER_SUBPROCESS_TIMEOUT")
                 else None
+            ),
+            lease_db_path=Path(
+                os.environ.get("PHASE_C_GPU_LEASE_DB", str(DEFAULT_GPU_LEASE_DB_PATH))
+            ),
+            lifecycle_db_path=Path(
+                os.environ.get("PHASE_C_BUILD_LIFECYCLE_DB", str(DEFAULT_BUILD_LIFECYCLE_DB_PATH))
+            ),
+            gpu_lease_ttl_seconds=int(
+                os.environ.get("PHASE_C_GPU_LEASE_TTL", str(GPU_DEFAULT_TTL_SECONDS))
+            ),
+            gpu_heartbeat_interval_seconds=float(
+                os.environ.get("PHASE_C_GPU_HEARTBEAT_INTERVAL", "120")
+            ),
+            model_unload_base_url=os.environ.get(
+                "PHASE_C_MODEL_UNLOAD_BASE_URL", DEFAULT_OLLAMA_BASE_URL
             ),
         )
 
@@ -147,13 +214,20 @@ def select_builder_model(
 @dataclasses.dataclass(frozen=True)
 class WorkerRuntimeResult:
     task_id: str
-    exit_code: int
+    exit_code: int | None
     submitted_candidate: bool
     failure_recorded: bool
     artifact_path: Path
     pc_output_path: Path
     fingerprint: str | None = None
     task_md_path: Path | None = None
+    # Honest resource-aware deferral: neither a success nor a failure. The local
+    # model was never invoked because route_build_capability() or the GPU arbiter
+    # said not to (interactive session active, or the lease was contended). Callers
+    # must not record this as a builder failure -- see
+    # orchestrator._record_local_builder_result()'s early deferred check.
+    deferred: bool = False
+    defer_reason: str | None = None
 
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
@@ -465,6 +539,129 @@ def run_local_builder_worker(
         cfg.artifact_dir
         / f"worker_runtime_{_safe_id(lease.task_id)}_attempt_{lease.attempt_no}.json"
     )
+
+    # --- Resource-aware GPU routing + leasing -------------------------------
+    #
+    # Before invoking a local model, ask the capability/availability router
+    # whether this is even a good time to run (policy-level: defers while an
+    # interactive GPU lease is active), then actually acquire a "build" GPU
+    # lease (mechanism-level: catches races the router's snapshot read can't
+    # see, e.g. another concurrent build already holding it). Both layers
+    # honor "defer" by NOT invoking the model and NOT touching the ledger's
+    # task/lease state -- the live lease is left exactly as claim_task() left
+    # it, so it will either be retried by the caller or reclaimed by
+    # ControlPlaneLedger.recover_expired_leases() when it naturally expires.
+    # Every routing/leasing decision is recorded in the Build Lifecycle
+    # Registry, including deferrals and denials, so the trail is honest even
+    # when no build actually happened.
+    build_unit_id = f"{lease.task_id}:{lease.attempt_no}"
+    lifecycle = BuildLifecycleRegistry(cfg.resolved_lifecycle_db_path())
+    lifecycle.record(
+        build_unit_id,
+        "requested",
+        task_id=lease.task_id,
+        attempt_no=lease.attempt_no,
+        detail={"owner": lease.owner, "model": chosen_model},
+    )
+
+    lease_db_path = cfg.resolved_lease_db_path()
+    routing_decision = route_build_capability(
+        "",
+        lease_db_path=lease_db_path,
+        local_model=(chosen_model, "worker_runtime_selected_model"),
+    )
+    if routing_decision.get("status") == "defer":
+        defer_reason = str(routing_decision.get("decision_reason") or "defer")
+        lifecycle.record(
+            build_unit_id,
+            "deferred",
+            task_id=lease.task_id,
+            attempt_no=lease.attempt_no,
+            reason=defer_reason,
+            detail=routing_decision,
+        )
+        return WorkerRuntimeResult(
+            task_id=lease.task_id,
+            exit_code=None,
+            submitted_candidate=False,
+            failure_recorded=False,
+            artifact_path=artifact_path,
+            pc_output_path=cfg.pc_output_path,
+            task_md_path=cfg.task_path,
+            deferred=True,
+            defer_reason=defer_reason,
+        )
+    lifecycle.record(
+        build_unit_id,
+        "routed",
+        task_id=lease.task_id,
+        attempt_no=lease.attempt_no,
+        reason=str(routing_decision.get("decision_reason") or ""),
+        detail=routing_decision,
+    )
+
+    arbiter = GPUArbiter(lease_db_path)
+    gpu_holder_id = cfg.gpu_holder_id or f"polish_loop_build:{lease.owner}:{build_unit_id}"
+    gpu_lease = arbiter.acquire("build", gpu_holder_id, ttl_seconds=cfg.gpu_lease_ttl_seconds)
+
+    if gpu_lease.get("status") == "denied":
+        defer_reason = f"gpu_lease_{gpu_lease.get('reason') or 'denied'}"
+        lifecycle.record(
+            build_unit_id,
+            "lease_denied",
+            task_id=lease.task_id,
+            attempt_no=lease.attempt_no,
+            reason=str(gpu_lease.get("reason") or ""),
+            detail=gpu_lease,
+        )
+        return WorkerRuntimeResult(
+            task_id=lease.task_id,
+            exit_code=None,
+            submitted_candidate=False,
+            failure_recorded=False,
+            artifact_path=artifact_path,
+            pc_output_path=cfg.pc_output_path,
+            task_md_path=cfg.task_path,
+            deferred=True,
+            defer_reason=defer_reason,
+        )
+
+    # Defensive: per the current arbiter policy a "build" acquire never carries
+    # preemption_required itself (only an interactive acquire that preempts a
+    # build does), but honor the flag generically and unconditionally in case
+    # that policy widens later -- a builder that is told it preempted/should
+    # yield unloads its own model before proceeding rather than assuming it
+    # can never apply to itself.
+    if gpu_lease.get("preemption_required") or gpu_lease.get("recommended_keep_alive") == "0":
+        unload_model(chosen_model, base_url=cfg.model_unload_base_url)
+
+    lifecycle.record(
+        build_unit_id,
+        "leased",
+        task_id=lease.task_id,
+        attempt_no=lease.attempt_no,
+        detail=gpu_lease,
+    )
+
+    gpu_lease_nonce = str(gpu_lease.get("lease_nonce") or "")
+    stop_heartbeat = threading.Event()
+    was_preempted = threading.Event()
+
+    def _heartbeat_loop() -> None:
+        while not stop_heartbeat.wait(cfg.gpu_heartbeat_interval_seconds):
+            beat = arbiter.heartbeat(gpu_holder_id, gpu_lease_nonce, ttl_seconds=cfg.gpu_lease_ttl_seconds)
+            if beat.get("status") != "heartbeat_recorded":
+                was_preempted.set()
+                try:
+                    unload_model(chosen_model, base_url=cfg.model_unload_base_url)
+                except Exception:  # noqa: BLE001 - never let cleanup crash the build
+                    pass
+                break
+
+    heartbeat_thread = threading.Thread(target=_heartbeat_loop, daemon=True)
+    heartbeat_thread.start()
+    lifecycle.record(build_unit_id, "running", task_id=lease.task_id, attempt_no=lease.attempt_no)
+
     env = os.environ.copy()
     env.update(cfg.extra_env)
     env.update(
@@ -481,51 +678,78 @@ def run_local_builder_worker(
     timeout = cfg.subprocess_timeout_seconds or max(cfg.timeout_seconds + 30, 30)
 
     try:
-        completed = runner(
-            command,
-            cwd=str(cfg.loop_dir.parent),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
-        )
-        exit_code = int(completed.returncode)
-        stdout = completed.stdout or ""
-        stderr = completed.stderr or ""
-    except FileNotFoundError as exc:
-        exit_code = 127
-        stdout = ""
-        stderr = str(exc)
-        _write_artifact(
-            artifact_path,
-            lease=lease,
-            command=command,
-            exit_code=exit_code,
-            stdout=stdout,
-            stderr=stderr,
-            pc_output_path=cfg.pc_output_path,
-            detail={"failed_to_start": True},
-        )
-        ledger.record_failed_to_start(
-            lease.task_id,
-            actor=lease.owner,
-            detail={"reason": "local_builder_missing", "error": stderr},
-        )
-        return WorkerRuntimeResult(
+        try:
+            completed = runner(
+                command,
+                cwd=str(cfg.loop_dir.parent),
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            exit_code = int(completed.returncode)
+            stdout = completed.stdout or ""
+            stderr = completed.stderr or ""
+        except FileNotFoundError as exc:
+            exit_code = 127
+            stdout = ""
+            stderr = str(exc)
+            _write_artifact(
+                artifact_path,
+                lease=lease,
+                command=command,
+                exit_code=exit_code,
+                stdout=stdout,
+                stderr=stderr,
+                pc_output_path=cfg.pc_output_path,
+                detail={"failed_to_start": True},
+            )
+            ledger.record_failed_to_start(
+                lease.task_id,
+                actor=lease.owner,
+                detail={"reason": "local_builder_missing", "error": stderr},
+            )
+            lifecycle.record(
+                build_unit_id,
+                "failed",
+                task_id=lease.task_id,
+                attempt_no=lease.attempt_no,
+                reason="local_builder_missing",
+            )
+            return WorkerRuntimeResult(
+                task_id=lease.task_id,
+                exit_code=exit_code,
+                submitted_candidate=False,
+                failure_recorded=True,
+                artifact_path=artifact_path,
+                pc_output_path=cfg.pc_output_path,
+                fingerprint="worker_runtime_failed_to_start",
+                task_md_path=cfg.task_path,
+            )
+        except subprocess.TimeoutExpired as exc:
+            exit_code = 124
+            stdout = exc.stdout or ""
+            stderr = (exc.stderr or "") + "\nworker runtime timed out"
+    finally:
+        stop_heartbeat.set()
+        heartbeat_thread.join(timeout=max(cfg.gpu_heartbeat_interval_seconds, 1.0) + 5.0)
+        release_result = arbiter.release(gpu_holder_id, gpu_lease_nonce)
+        lifecycle.record(
+            build_unit_id,
+            "released",
             task_id=lease.task_id,
-            exit_code=exit_code,
-            submitted_candidate=False,
-            failure_recorded=True,
-            artifact_path=artifact_path,
-            pc_output_path=cfg.pc_output_path,
-            fingerprint="worker_runtime_failed_to_start",
-            task_md_path=cfg.task_path,
+            attempt_no=lease.attempt_no,
+            detail={"release_result": release_result, "preempted": was_preempted.is_set()},
         )
-    except subprocess.TimeoutExpired as exc:
-        exit_code = 124
-        stdout = exc.stdout or ""
-        stderr = (exc.stderr or "") + "\nworker runtime timed out"
+        if was_preempted.is_set():
+            lifecycle.record(
+                build_unit_id,
+                "preempted",
+                task_id=lease.task_id,
+                attempt_no=lease.attempt_no,
+                reason="gpu_lease_preempted_mid_run",
+            )
 
     _write_artifact(
         artifact_path,
@@ -552,6 +776,7 @@ def run_local_builder_worker(
                 "attempt_no": lease.attempt_no,
             },
         )
+        lifecycle.record(build_unit_id, "verified", task_id=lease.task_id, attempt_no=lease.attempt_no)
         return WorkerRuntimeResult(
             task_id=lease.task_id,
             exit_code=exit_code,
@@ -580,6 +805,9 @@ def run_local_builder_worker(
             "exit_code": exit_code,
             "attempt_no": lease.attempt_no,
         },
+    )
+    lifecycle.record(
+        build_unit_id, "failed", task_id=lease.task_id, attempt_no=lease.attempt_no, reason=fingerprint
     )
     return WorkerRuntimeResult(
         task_id=lease.task_id,
