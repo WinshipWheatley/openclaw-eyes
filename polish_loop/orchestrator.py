@@ -1843,6 +1843,36 @@ def _record_local_builder_result(
     exit_code = _builder_exit_code(result)
     submitted = bool(_builder_result_field(result, "submitted_candidate", False))
     failure_recorded = bool(_builder_result_field(result, "failure_recorded", False))
+    deferred = bool(_builder_result_field(result, "deferred", False))
+
+    if deferred:
+        # Resource-aware honesty: the worker runtime decided not to run the local
+        # model at all (route_build_capability() said defer, or the GPU lease
+        # acquire was denied). This is neither a success nor a failure, so it must
+        # not fall through to the generic "record_failure" branch below -- that
+        # would misfile a capacity defer as a builder failure and pollute the
+        # task's failure_fingerprint/attempt bookkeeping. Deliberately leave the
+        # ledger's task/lease row untouched; the live lease will either be retried
+        # by the caller or reclaimed by ControlPlaneLedger.recover_expired_leases()
+        # once it naturally expires. The Build Lifecycle Registry already carries
+        # the full honest trail for this build unit (worker_runtime.py records
+        # "deferred"/"lease_denied" there).
+        defer_reason = str(_builder_result_field(result, "defer_reason", "") or "capacity_unavailable")
+        log(
+            "EVIDENCE",
+            f"phase-c local builder deferred (not a failure) | task={lease.task_id} | reason={defer_reason}",
+        )
+        return LocalBuilderDispatchReceipt(
+            task_id=lease.task_id,
+            directive_path=str(directive_path) if directive_path else None,
+            builder_invoked=False,
+            ledger_recorded=False,
+            status=f"deferred_{defer_reason}",
+            exit_code=exit_code,
+            artifact_path=_builder_path_field(result, "artifact_path"),
+            pc_output_path=_builder_path_field(result, "pc_output_path"),
+        )
+
     row = _task_row_or_none(ledger, lease.task_id)
 
     if submitted and row is not None and row.get("status") == "VERIFYING":
