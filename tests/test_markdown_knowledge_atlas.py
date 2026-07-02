@@ -20,10 +20,7 @@ def _write(path: Path, text: str = "# Fixture\n") -> None:
 def _fixture_root(tmp_path: Path) -> Path:
     root = tmp_path / "openclaw"
     root.mkdir()
-    _write(
-        root / "OPENCLAW_RUNTIME.md",
-        "# Runtime\n\nSEND_HOLD is absolute for external sends.\n\n## Current Work\n\nRuntime gate work stays branch-only.\n",
-    )
+    _write(root / "OPENCLAW_RUNTIME.md", "# Runtime\n")
     _write(root / "USER.md", "# User\n")
     _write(root / "CORE_ARCHITECTURE_PRINCIPLES.md", "# Architecture\n")
     _write(root / "AGENTS.md", "# Adapter\n")
@@ -118,8 +115,6 @@ def test_schema_initializes_markdown_namespace(tmp_path):
         "markdown_atlas_runs",
         "markdown_documents",
         "markdown_document_classifications",
-        "markdown_document_bodies",
-        "markdown_document_sections",
         "markdown_document_links",
         "markdown_document_reorg_candidates",
         "markdown_document_supersession",
@@ -151,20 +146,6 @@ def test_build_is_idempotent_and_links_to_corpus_paths(tmp_path):
     assert result.document_count == second.document_count
     assert _row(db_path, "SELECT COUNT(*) AS count FROM markdown_atlas_runs")["count"] == 1
     assert _row(db_path, "SELECT COUNT(*) AS count FROM markdown_documents")["count"] == result.document_count
-    assert _row(db_path, "SELECT COUNT(*) AS count FROM markdown_document_bodies")["count"] > 0
-    assert _row(db_path, "SELECT COUNT(*) AS count FROM markdown_document_sections")["count"] > 0
-    fact_count = _row(
-        db_path,
-        "SELECT COUNT(*) AS count FROM canonical_facts WHERE doc_category = 'markdown_knowledge_atlas'",
-    )["count"]
-    build_markdown_knowledge_atlas(db_path=db_path, run_id="markdown_fixture")
-    assert (
-        _row(
-            db_path,
-            "SELECT COUNT(*) AS count FROM canonical_facts WHERE doc_category = 'markdown_knowledge_atlas'",
-        )["count"]
-        == fact_count
-    )
     assert (
         _row(
             db_path,
@@ -271,73 +252,6 @@ def test_reports_work(tmp_path, capsys):
     assert "Markdown Knowledge Atlas v0 - agent-retrievable" in out
 
 
-def test_safe_markdown_bodies_sections_and_ledger_rows_are_ingested(tmp_path):
-    db_path, _, _ = _build(tmp_path)
-
-    doc = _doc(db_path, "OPENCLAW_RUNTIME.md")
-    assert doc["body_read"] == 1
-    assert doc["raw_body_stored"] == 1
-
-    run = _row(db_path, "SELECT body_read, raw_body_stored FROM markdown_atlas_runs")
-    assert run["body_read"] == 1
-    assert run["raw_body_stored"] == 1
-
-    body = _row(
-        db_path,
-        """
-SELECT body_text, body_char_count, body_line_count
-FROM markdown_document_bodies
-WHERE markdown_document_id = ?
-""",
-        (doc["markdown_document_id"],),
-    )
-    assert "SEND_HOLD is absolute" in body["body_text"]
-    assert body["body_char_count"] == len(body["body_text"])
-    assert body["body_line_count"] >= 4
-
-    sections = _rows(
-        db_path,
-        """
-SELECT heading, heading_path_json, section_text, canonical_fact_id
-FROM markdown_document_sections
-WHERE markdown_document_id = ?
-ORDER BY section_ordinal
-""",
-        (doc["markdown_document_id"],),
-    )
-    assert [row["heading"] for row in sections] == ["Runtime", "Current Work"]
-    assert "SEND_HOLD is absolute" in sections[0]["section_text"]
-    assert sections[0]["canonical_fact_id"]
-    assert sections[1]["canonical_fact_id"]
-
-    fact = _row(
-        db_path,
-        """
-SELECT source_file, section_heading, truth_status, verification_required
-FROM canonical_facts
-WHERE fact_id = ?
-""",
-        (sections[0]["canonical_fact_id"],),
-    )
-    assert fact["source_file"] == "OPENCLAW_RUNTIME.md"
-    assert fact["section_heading"] == "Runtime"
-    assert fact["truth_status"] == "candidate_from_markdown_section"
-    assert fact["verification_required"] == 1
-
-    inventory = _row(
-        db_path,
-        """
-SELECT file_name, extension, file_type_guess, ingest_eligibility
-FROM file_inventory
-WHERE relative_path = 'OPENCLAW_RUNTIME.md'
-""",
-    )
-    assert inventory["file_name"] == "OPENCLAW_RUNTIME.md"
-    assert inventory["extension"] == ".md"
-    assert inventory["file_type_guess"] == "markdown"
-    assert inventory["ingest_eligibility"] == "eligible_metadata_only"
-
-
 def test_markdown_atlas_has_no_external_or_destructive_behavior():
     source = Path("markdown_knowledge_atlas.py").read_text(encoding="utf-8")
 
@@ -360,4 +274,5 @@ def test_markdown_atlas_has_no_external_or_destructive_behavior():
     )
     for token in forbidden:
         assert token not in source
+    assert "read_text(" not in source
     assert "open(" not in source
