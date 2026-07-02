@@ -342,6 +342,62 @@ def _ledger_resolution_for_text(text: str) -> dict[str, Any]:
         return {"status": "NO_LEDGER_REFERENCE", "processing_allowed": False, "action_allowed": False}
 
 
+_TEAM_ROSTER_AGENT_IDS = ("maestro", "chief", "cassandra", "guardian", "niles", "hermes")
+
+
+def _is_team_roster_intent(text: str) -> bool:
+    # The roster/org-chart is enumerable truth — never let the model freestyle it.
+    lowered = text
+    if "roster" in lowered:
+        return True
+    team_ref = ("my team" in lowered or "the team" in lowered or "on my team" in lowered
+                or "my agents" in lowered or "what agents" in lowered or "which agents" in lowered
+                or "who does what" in lowered)
+    if team_ref:
+        return True
+    return False
+
+
+def build_team_roster_answer(text: str) -> dict[str, Any]:
+    """Deterministic team roster from agent_lane_registry seeds (the same source
+    that authors doctrine SD-4). The model must never invent teammates."""
+    try:
+        from agent_lane_registry import DEFAULT_AGENT_LANE_SEEDS
+        by_id = {s.agent_id: s for s in DEFAULT_AGENT_LANE_SEEDS}
+    except Exception:
+        by_id = {}
+    lines = []
+    for agent_id in _TEAM_ROSTER_AGENT_IDS:
+        seed = by_id.get(agent_id)
+        if seed is None:
+            continue
+        summary = str(getattr(seed, "role_summary", "") or "").split(". ")[0].rstrip(".")
+        label = str(getattr(seed, "lane_label", "") or "")
+        lines.append(f"- {seed.display_name} ({label}): {summary}.")
+    if len(lines) < 4:
+        # Fail closed to the doctrinal roster rather than a partial/confabulated one.
+        lines = [
+            "- Maestro (Operator Front Door): your main point of contact; understands intent and routes.",
+            "- Chief (System Orchestration): coordinates work, plans, and system repair.",
+            "- Cassandra / Clara Reid (Business Ops & Comms): money, invoices, client follow-up.",
+            "- Guardian (Safety & Security): approvals, privacy, and the final safety boundary.",
+            "- Niles (Music & Art Production): your producer/engineer/creative partner.",
+            "- Hermes (Advisory Synthesis): observes the system and advises; no direct authority.",
+        ]
+    plain = "Your team is six agents:\n" + "\n".join(lines)
+    one_line = "Your team: Maestro (front door), Chief (orchestration), Cassandra/Clara (business & money), Guardian (safety), Niles (music), Hermes (advisory)."
+    return {
+        "one_line_answer": one_line,
+        "plain_summary": plain,
+        "machine_proof": {
+            "team_roster_deterministic": True,
+            "team_roster_source": "agent_lane_registry_seeds",
+            "model_call_performed": False,
+            "agent_count": len(_TEAM_ROSTER_AGENT_IDS),
+        },
+    }
+
+
 def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
     normalized = _normalize(text)
     if not normalized:
@@ -371,6 +427,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("date_awareness", True, "")
     if _is_status_capability_intent(normalized):
         return ("status_capability_readback", True, "")
+    if _is_team_roster_intent(normalized):
+        return ("team_roster", True, "")
     if _is_people_intent(normalized):
         return ("people_reference_query", True, "")
     if _is_system_knowledge_intent(normalized):
@@ -555,6 +613,19 @@ def answer_frontdoor_chat(
             session=session,
             focus=_status_capability_readback_focus(_normalize(text)),
         )
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=answer["one_line_answer"],
+            plain_summary=answer["plain_summary"],
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
+        )
+
+    if intent_class == "team_roster":
+        answer = build_team_roster_answer(text)
         return MaestroCassandraResult(
             status="ANSWER_READY",
             intent_class=intent_class,
