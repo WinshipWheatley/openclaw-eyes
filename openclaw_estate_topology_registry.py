@@ -769,6 +769,39 @@ def source_of_truth_areas(reference_resolver_payload: dict[str, Any]) -> tuple[d
             ownership_rule="/mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth.",
             notes="Mac bridge permission failures are represented as partial access on the Mac bridge path.",
         ),
+        _source_area(
+            area_id="codex_desktop_control_surface",
+            display_name="Codex-desktop control surface",
+            owner_repo_key="split",
+            primary_working_copy_id="pc_openclaw_eyes_backend",
+            secondary_working_copy_id="mac_mission_control_app",
+            owner_classification="SPLIT_PC_MAC_CONTROL_SURFACE",
+            status="PARTIAL",
+            ownership_rule=(
+                "Codex-desktop is explicitly a PC and Mac operator/developer surface; do not model it as Mac-only."
+            ),
+            notes=(
+                "PC Codex operates against /home/openclaw. Mac Codex/Desktop remains a Mac-local surface; "
+                "cross-machine work uses file bridge/SSH packets, not cross-machine imports."
+            ),
+        ),
+        _source_area(
+            area_id="niles_live_engineer_x32",
+            display_name="Niles live engineer X32 subsystem",
+            owner_repo_key="openclaw-eyes",
+            primary_working_copy_id="pc_openclaw_eyes_backend",
+            secondary_working_copy_id="mac_openclaw_runtime",
+            owner_classification="PC_RESIDENT_AGENT_WITH_MAC_SSH_CONTROL_PATH",
+            status="PARTIAL",
+            ownership_rule=(
+                "Niles is PC-resident for the X32 control model and may use SSH to reach the live show Mac when a "
+                "Mac-side handoff is explicitly required."
+            ),
+            notes=(
+                "Durable X32 specs live in specs/niles-music/. Emulator verification is required before live rack "
+                "control; this registry does not grant hardware, DAW, send, deploy, or restart authority."
+            ),
+        ),
     )
 
 
