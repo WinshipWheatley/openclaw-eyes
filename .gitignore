@@ -24,6 +24,9 @@
 #   *_token.json                  — any token file
 
 !chief_listener.py
+!CHIEF_DELETION_NOTEBOOK.md
+!chief_gate_harness.py
+!chief_gate_verdicts.json
 !chief_router.py
 !chief_nonapproval_responder.py
 !chief_compose.py
@@ -911,6 +914,7 @@
 !tests/test_operator_action_event_journal.py
 !tests/test_operator_action_inbox.py
 !tests/test_operator_universal_intake.py
+!tests/test_chief_gate_harness.py
 !tests/test_capital_hilton_business_development_proposal.py
 !tests/test_capital_hilton_actionable_review_packet.py
 !tests/test_capital_hilton_review_packet_approval.py
