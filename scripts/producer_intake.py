@@ -111,6 +111,24 @@ def main():
     parser.add_argument("--explain", action="store_true")
     args = parser.parse_args()
 
+    # Deterministic X32-lane routing (trust-tier-1: files/planning only, hardware
+    # gated). Fails open: any non-X32 ask or error falls through to the legacy path.
+    if args.human_only:
+        try:
+            import sys as _sys
+            from pathlib import Path as _Path
+            _root = str(_Path(__file__).resolve().parents[1])
+            if _root not in _sys.path:
+                _sys.path.insert(0, _root)
+            from niles_x32_capability import maybe_handle_x32
+
+            x32 = maybe_handle_x32(args.text)
+        except Exception:
+            x32 = None
+        if x32 is not None:
+            print(x32["reply"])
+            return
+
     producer_input = build_producer_input(args.text)
     review = run_review(producer_input)
     tool_packet = generate_tool_intent_packet(args.text, producer_input)

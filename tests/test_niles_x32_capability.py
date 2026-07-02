@@ -1,0 +1,114 @@
+"""Niles X32 lane capability — deterministic intake routing (trust-tier-1).
+
+The capability must: route X32/show-prep asks to the salvaged X32 slice
+(showprofile / scene_corpus / topology grounding), stay file-and-planning only
+(hardware gated: no sockets unless explicitly allowed), fail open into the
+legacy producer template path, and never steal ordinary production questions.
+"""
+
+from pathlib import Path
+
+import niles_x32_capability as cap
+
+
+INPUT_LIST_TEXT = """Here's the input list for Saturday:
+1. Kick
+2. Snare Top
+3. Bass DI
+4. Gtr Amp L
+5. Lead Vox
+"""
+
+
+def test_detect_setup_intent():
+    assert cap.detect_x32_intent("Set up the X32 flow for the show") == "x32_setup"
+    assert cap.detect_x32_intent("prep the desk for soundcheck") == "x32_setup"
+
+
+def test_detect_show_profile_intent_from_input_list():
+    assert cap.detect_x32_intent(INPUT_LIST_TEXT) == "show_profile"
+    assert cap.detect_x32_intent("build the show profile from the stage plot") == "show_profile"
+
+
+def test_detect_scene_corpus_and_status():
+    assert cap.detect_x32_intent("analyze the scene corpus") == "scene_corpus"
+    assert cap.detect_x32_intent("is the X32 connected?") == "x32_status"
+
+
+def test_ordinary_production_questions_are_not_stolen():
+    assert cap.detect_x32_intent("the chorus is boring but spacious, help") is None
+    assert cap.detect_x32_intent("make this hit harder in logic") is None
+    assert cap.detect_x32_intent("I'm ready to record vocals") is None
+
+
+def test_show_profile_builds_scene_artifact(tmp_path: Path):
+    result = cap.maybe_handle_x32(INPUT_LIST_TEXT, show_profile_dir=tmp_path)
+    assert result is not None and result["handled"] is True
+    assert result["intent"] == "show_profile"
+    assert result["artifacts"], "expected a generated .scn artifact"
+    scn = Path(result["artifacts"][0])
+    assert scn.exists() and scn.suffix == ".scn"
+    content = scn.read_text(encoding="utf-8")
+    assert "Kick" in content and "Lead Vox" in content
+    assert "Kick" in result["reply"] or "5" in result["reply"]
+    assert result["hardware_gated"] is True
+
+
+def test_show_profile_without_list_asks_for_it(tmp_path: Path):
+    result = cap.maybe_handle_x32("build me a show profile", show_profile_dir=tmp_path)
+    assert result["handled"] is True
+    assert not result["artifacts"]
+    assert "input list" in result["reply"].lower()
+
+
+def test_setup_reply_grounded_and_gated():
+    called = {"n": 0}
+
+    def forbidden_factory(*a, **k):
+        called["n"] += 1
+        raise AssertionError("controller must not be constructed at tier-1")
+
+    result = cap.maybe_handle_x32(
+        "set up the X32 flow", controller_factory=forbidden_factory
+    )
+    assert result["handled"] is True
+    assert result["hardware_gated"] is True
+    assert "10023" in result["reply"]
+    assert called["n"] == 0
+
+
+def test_status_is_honestly_gated_without_network():
+    result = cap.maybe_handle_x32("is the x32 connected?")
+    assert result["handled"] is True
+    assert result["hardware_gated"] is True
+    assert "emulator" in result["reply"].lower() or "gated" in result["reply"].lower()
+
+
+def test_scene_corpus_honest_when_missing(tmp_path: Path):
+    result = cap.maybe_handle_x32(
+        "analyze the scene corpus", scene_corpus_dir=tmp_path / "nope"
+    )
+    assert result["handled"] is True
+    assert "no scene" in result["reply"].lower() or "not found" in result["reply"].lower()
+
+
+def test_maybe_handle_never_raises(monkeypatch):
+    monkeypatch.setattr(cap, "detect_x32_intent", lambda text: (_ for _ in ()).throw(RuntimeError("boom")))
+    assert cap.maybe_handle_x32("set up the x32") is None
+
+
+def test_producer_intake_routes_x32_and_preserves_legacy(tmp_path: Path, monkeypatch, capsys):
+    import sys
+    monkeypatch.setattr(sys, "argv", ["producer_intake.py", "--text", "Set up the X32 flow", "--human-only"])
+    monkeypatch.setenv("NILES_SHOW_PROFILE_DIR", str(tmp_path))
+    import importlib
+    import scripts.producer_intake as intake
+    importlib.reload(intake)
+    intake.main()
+    out = capsys.readouterr().out
+    assert "10023" in out
+
+    monkeypatch.setattr(sys, "argv", ["producer_intake.py", "--text", "the chorus is boring but spacious", "--human-only"])
+    intake.main()
+    out = capsys.readouterr().out
+    assert "arrival point" in out  # legacy template answer preserved

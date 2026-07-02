@@ -1308,3 +1308,5 @@ generated/system_knowledge/*.sqlite
 !tests/test_run_self_knowledge_scheduled_crawl.py
 !systemd/user/self-knowledge-crawl.service.in
 !systemd/user/self-knowledge-crawl.timer.in
+!niles_x32_capability.py
+!tests/test_niles_x32_capability.py
