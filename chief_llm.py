@@ -1145,7 +1145,13 @@ def ollama_call(
     selected_lane = lane
     models_to_try: tuple[str, ...]
     if model is not None:
-        if model == OLLAMA_MODEL_DEEP:
+        # The deep floor protects a genuinely BIG deep model from being killed
+        # mid-generation. After the 2026-06-29 retiering OLLAMA_MODEL_DEEP can be
+        # the SAME card-fit model as the interactive lane; flooring on name
+        # equality alone stretched every 44s front-door call to 300s. Only floor
+        # when deep is a distinct model from the standard interactive one — the
+        # size-aware _effective_model_timeout still stretches real spill models.
+        if model == OLLAMA_MODEL_DEEP and OLLAMA_MODEL_DEEP != OLLAMA_MODEL:
             timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
         models_to_try = (model,)
     else:
