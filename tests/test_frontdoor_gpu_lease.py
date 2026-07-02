@@ -112,3 +112,25 @@ def test_frontdoor_answers_when_arbiter_unavailable(tmp_path: Path, monkeypatch)
     # The answer path must be unaffected by an arbiter failure.
     assert outcome.receipt["model_fallback_reason"] == "model_ok"
     assert outcome.receipt["model_output_delivered"] is True
+
+
+def test_frontdoor_lease_disabled_in_test_mode_without_explicit_db(tmp_path: Path, monkeypatch):
+    """Suite runs (OPENCLAW_TEST_MODE=1) must never write the fleet-shared lease
+    path — regression for cross-test leakage caught by
+    test_lease_and_lifecycle_dbs_default_under_loop_dir_not_real_home."""
+    seen = _wire_live_frontdoor(monkeypatch, tmp_path / "unused.sqlite")
+    monkeypatch.delenv("OPENCLAW_GPU_LEASE_DB", raising=False)
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+
+    outcome = pg.protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_PACKET,
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=True,
+        front_door_profile=True,
+        agent="maestro",
+    )
+
+    assert outcome.receipt["gpu_lease"]["status"] == "disabled_test_mode"
+    assert outcome.receipt["model_fallback_reason"] == "model_ok"
+    assert not Path("/home/openclaw/.openclaw/polish_loop/gpu_leases.sqlite").exists()

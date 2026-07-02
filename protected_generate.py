@@ -248,6 +248,10 @@ def _acquire_frontdoor_gpu_lease(agent: str | None) -> dict[str, Any]:
     raw = os.environ.get("OPENCLAW_GPU_LEASE_DB", "").strip()
     if raw.lower() in {"0", "off", "disabled"}:
         return {"status": "disabled", "released": False}
+    if not raw and os.environ.get("OPENCLAW_TEST_MODE", "").strip() == "1":
+        # Test runs must never touch the fleet-shared lease DB path; a test that
+        # wants lease behavior points OPENCLAW_GPU_LEASE_DB at a tmp file.
+        return {"status": "disabled_test_mode", "released": False}
     path = raw or DEFAULT_GPU_LEASE_DB
     try:
         from polish_loop.gpu_arbiter import GPUArbiter
