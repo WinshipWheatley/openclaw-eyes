@@ -79,8 +79,10 @@ def test_required_routes_target_expected_agents_channels_and_workers(tmp_path):
     assert "Excel" in mac["trigger_condition"]
 
     clara = _handoff(read_model, "clara_to_cassandra_internal_review_state")
-    assert clara["from_agent"] == "clara"
+    assert clara["from_agent"] == "cassandra"
     assert clara["to_agent_or_worker"] == "cassandra"
+    assert clara["from_register"] == "clara_reid_external"
+    assert clara["to_register"] == "cassandra_internal"
     assert clara["channel_ref"] == "business_development_capital_hilton"
 
 
