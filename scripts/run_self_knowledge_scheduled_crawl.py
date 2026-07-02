@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -29,13 +30,14 @@ if str(ROOT) not in sys.path:
 
 from self_knowledge_scheduler import run_scheduled_crawl  # noqa: E402
 
-# Placeholder, self-knowledge-engine-scoped lease/state DB locations. The
-# fleet-wide GPU arbiter lease path (if/when interactive sessions actually
-# write leases here) is owned by a different workstream — point
-# --lease-db-path at that path once it exists so this crawl truly yields to
-# interactive use; until then this defaults to its own isolated file, which
-# GPUArbiter creates empty (no lease => never defers).
-DEFAULT_LEASE_DB = ROOT / ".openclaw" / "self_knowledge" / "gpu_leases.sqlite"
+# Fleet-shared GPU arbiter lease DB: the interactive front door
+# (protected_generate) acquires leases here, so a scheduled crawl genuinely
+# yields to a live operator reply. OPENCLAW_GPU_LEASE_DB overrides, mirroring
+# the front-door wiring.
+DEFAULT_LEASE_DB = Path(
+    os.environ.get("OPENCLAW_GPU_LEASE_DB", "").strip()
+    or str(ROOT / ".openclaw" / "polish_loop" / "gpu_leases.sqlite")
+)
 DEFAULT_STATE_DB = ROOT / ".openclaw" / "self_knowledge" / "crawl_state.sqlite"
 
 
