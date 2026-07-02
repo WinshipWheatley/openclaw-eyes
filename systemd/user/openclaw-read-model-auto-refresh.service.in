@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenClaw read-model auto-refresh (audits and repairs stale packet read-model sources)
+Documentation=file://@REPO_ROOT@/Operator/CODEX-FRESHNESS-AWARENESS-RESULT.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=@PYTHON@ @REPO_ROOT@/read_model_auto_refresh.py --once --format summary
+StandardOutput=append:%h/.local/state/openclaw/logs/openclaw-read-model-auto-refresh.log
+StandardError=append:%h/.local/state/openclaw/logs/openclaw-read-model-auto-refresh.log
+NoNewPrivileges=true
