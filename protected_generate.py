@@ -841,10 +841,46 @@ def _finance_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
     return " ".join(matched[:3]) if matched else None
 
 
+_TEAM_INTENT_MARKERS = (
+    "my team", "the team", "who's on", "whos on", "roster", "my agents",
+    "what agents", "which agents", "who handles", "who does what", "each of them",
+)
+_TEAM_AGENT_IDS = ("maestro", "chief", "cassandra", "guardian", "niles", "hermes")
+
+
+def _is_team_intent(prompt: str) -> bool:
+    lowered = str(prompt or "").lower()
+    return any(marker in lowered for marker in _TEAM_INTENT_MARKERS)
+
+
+def _team_grounded_answer() -> str | None:
+    """Deterministic roster from agent_lane_registry seeds — the org chart is
+    enumerable truth; never let a model freestyle it (stress-test 2026-07-02)."""
+    try:
+        from agent_lane_registry import DEFAULT_AGENT_LANE_SEEDS
+    except Exception:
+        return None
+    by_id = {seed.agent_id: seed for seed in DEFAULT_AGENT_LANE_SEEDS}
+    lines = []
+    for agent_id in _TEAM_AGENT_IDS:
+        seed = by_id.get(agent_id)
+        if seed is None:
+            continue
+        summary = str(seed.role_summary or "").split(". ")[0].rstrip(".")
+        lines.append(f"{seed.display_name} ({seed.lane_label}): {summary}.")
+    if len(lines) < 4:
+        return None
+    return "Your team: " + " ".join(lines)
+
+
 def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
     # Pure-social message with no factual/schedule intent: never deflect with "won't invent
     # it" — there's no fact at stake. The conversational lane has the MODEL write these; this
     # single line is only the rare model-down backstop (a repeat = the model was unreachable).
+    if _is_team_intent(prompt):
+        team = _team_grounded_answer()
+        if team:
+            return team
     if _is_social_intent(prompt):
         return _social_backstop(prompt)
     packet = _packet_mapping(context_packet)

@@ -1313,3 +1313,4 @@ generated/system_knowledge/*.sqlite
 !guardian_approval_notifier.py
 !tests/test_guardian_approval_notifier.py
 !tests/test_system_question_finance_inference.py
+!tests/test_team_grounded_fallback.py
