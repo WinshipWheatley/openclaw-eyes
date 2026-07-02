@@ -863,6 +863,26 @@ def _fast_ack_text(env: Mapping[str, Any] | None = None, *, message: str = "") -
     return _FAST_ACK_PHRASES[idx]
 
 
+def _fire_maestro_voice(text: str, chat_id: int | str | None) -> None:
+    """Fire-and-forget Maestro Kokoro voice note (am_michael), non-blocking + fail-soft.
+    Mirrors the producer/cassandra/chief listeners, which already voice their replies;
+    the Maestro listener was the one reply path never wired for it. Toggle with
+    OPENCLAW_AGENT_VOICE_NOTES=0."""
+    try:
+        if os.environ.get("OPENCLAW_AGENT_VOICE_NOTES", "1").strip().lower() not in ("1", "true", "yes"):
+            return
+        body = str(text or "").strip()
+        if not body:
+            return
+        import agent_voice_sender
+
+        asyncio.get_event_loop().run_in_executor(
+            None, lambda: agent_voice_sender.send_agent_voice_note("maestro", body, chat_id=chat_id)
+        )
+    except Exception as exc:  # a voice issue must never break the text reply
+        print(f"[maestro_listener] maestro voice note skipped: {exc.__class__.__name__}", flush=True)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.message.text:
         return
@@ -907,7 +927,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         response = await poll_bridge_response(request_id_for_reply)
         if ack_task is not None:
             ack_task.cancel()  # answer arrived; if before the delay, the ack is suppressed
-        await update.message.reply_text(reply_text_from_bridge_response(response, request_id=request_id_for_reply))
+        _maestro_reply = reply_text_from_bridge_response(response, request_id=request_id_for_reply)
+        await update.message.reply_text(_maestro_reply)
+        _fire_maestro_voice(_maestro_reply, chat_id)
     except Exception as exc:
         print(f"[maestro_listener] bridge error: {exc.__class__.__name__}", flush=True)
         await update.message.reply_text(
@@ -974,9 +996,9 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         request_id_for_reply = str(request["request_id"])
         write_bridge_request(request)
         response = await poll_bridge_response(request_id_for_reply)
-        await update.message.reply_text(
-            reply_text_from_bridge_response(response, request_id=request_id_for_reply)
-        )
+        _maestro_photo_reply = reply_text_from_bridge_response(response, request_id=request_id_for_reply)
+        await update.message.reply_text(_maestro_photo_reply)
+        _fire_maestro_voice(_maestro_photo_reply, chat_id)
     except Exception as exc:
         print(f"[maestro_listener] image bridge error: {exc.__class__.__name__}", flush=True)
         await update.message.reply_text(
