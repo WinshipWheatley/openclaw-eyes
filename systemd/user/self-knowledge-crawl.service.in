@@ -1,0 +1,9 @@
+[Unit]
+Description=OpenClaw perpetual self-knowledge engine: scheduled incremental crawl
+Documentation=file://@REPO_ROOT@/Operator/CODEX-SELF-KNOWLEDGE-ENGINE-RESULT.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=@PYTHON@ @REPO_ROOT@/scripts/run_self_knowledge_scheduled_crawl.py

@@ -1278,3 +1278,17 @@ generated/system_knowledge/*.sqlite
 !tests/test_interactive_timeout_not_deep_floored.py
 !tests/test_ledger_guard_fail_closed.py
 !tests/test_frontdoor_gpu_lease.py
+
+# Perpetual self-knowledge engine daemonization (P2 wiring, fable/wiring-p2)
+!self_knowledge_ledger_gap_writer.py
+!tests/test_self_knowledge_ledger_gap_writer.py
+!self_knowledge_crawl_state.py
+!tests/test_self_knowledge_crawl_state.py
+!self_knowledge_system_enumerators.py
+!tests/test_self_knowledge_system_enumerators.py
+!self_knowledge_scheduler.py
+!tests/test_self_knowledge_scheduler.py
+!scripts/run_self_knowledge_scheduled_crawl.py
+!tests/test_run_self_knowledge_scheduled_crawl.py
+!systemd/user/self-knowledge-crawl.service.in
+!systemd/user/self-knowledge-crawl.timer.in
