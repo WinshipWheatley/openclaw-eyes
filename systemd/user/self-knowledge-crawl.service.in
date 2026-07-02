@@ -6,4 +6,7 @@ Documentation=file://@REPO_ROOT@/Operator/CODEX-SELF-KNOWLEDGE-ENGINE-RESULT.md
 Type=oneshot
 WorkingDirectory=@REPO_ROOT@
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=@PYTHON@ @REPO_ROOT@/scripts/run_self_knowledge_scheduled_crawl.py
+# Bounded per pass (seed doctrine: bounded crawl budget); incremental state
+# means successive 15-min passes sweep the rest without re-hashing unchanged trees.
+TimeoutStartSec=600
+ExecStart=@PYTHON@ @REPO_ROOT@/scripts/run_self_knowledge_scheduled_crawl.py --max-files 5000
