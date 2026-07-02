@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the Guardian approval notifier sweep every 2 minutes
+
+[Timer]
+OnBootSec=120
+OnUnitActiveSec=120
+AccuracySec=30
+Persistent=false
+Unit=guardian-approval-notifier.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=OpenClaw Guardian approval notifier: push every pending approval to operator Telegram
+Documentation=file://@REPO_ROOT@/guardian_approval_notifier.py
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+TimeoutStartSec=120
+ExecStart=/bin/bash -lc 'source /home/openclaw/.chief.env && exec @PYTHON@ @REPO_ROOT@/guardian_approval_notifier.py --once'
