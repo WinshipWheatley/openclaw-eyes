@@ -72,6 +72,36 @@ def generate_tool_intent_packet(text, producer_input):
         "no_execution_without_approval": True
     }
 
+_TASTE_DNA_MARKERS = ("taste", "music dna", "our dna", "my dna", "pillars", "archetype",
+                      "my sound", "what are we going for", "what am i going for")
+
+
+def get_taste_dna_response():
+    """Answer taste/DNA asks FROM the archetype doc (docs/producer/PRODUCER_ARCHETYPE.md)
+    — the operator's music DNA is written truth, never LM freestyle."""
+    from pathlib import Path as _Path
+    doc = _Path(__file__).resolve().parents[1] / "docs" / "producer" / "PRODUCER_ARCHETYPE.md"
+    try:
+        text = doc.read_text(encoding="utf-8")
+    except Exception:
+        return None
+    import re as _re
+    pillars = _re.findall(r"^\d+\. \*\*(.+?)\*\*: (.+)$", text, _re.MULTILINE)
+    if not pillars:
+        return None
+    lines = ["Niles: Our DNA, straight from the book — six pillars:"]
+    for name, desc in pillars:
+        lines.append(f"- {name}: {desc.split('. ')[0].rstrip('.')}.")
+    lines.append("And the golden rule: references are for EXTRACTING the why (that kick EQ, "
+                 "that vocal space) — we never mimic an artist. Synthesis, not imitation.")
+    return "\n".join(lines)
+
+
+def is_taste_dna_question(text):
+    lowered = str(text or "").lower()
+    return any(marker in lowered for marker in _TASTE_DNA_MARKERS)
+
+
 def get_niles_response(text, producer_input):
     text_l = text.lower()
 
@@ -96,6 +126,10 @@ def get_niles_response(text, producer_input):
 
 def generate_human_response(producer_input, review, tool_packet=None):
     text = producer_input["user_intent"]
+    if is_taste_dna_question(text):
+        dna = get_taste_dna_response()
+        if dna:
+            return dna
     lines = []
     lines.append("Niles: " + get_niles_response(text, producer_input))
     if tool_packet:
