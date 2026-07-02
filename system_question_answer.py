@@ -212,6 +212,30 @@ def is_contextual_question(question: str) -> bool:
     return any(pattern in text for pattern in CONTEXTUAL_QUESTION_PATTERNS)
 
 
+_PAYMENT_TERMS = ("pay", "paid", "payment", "owe", "owes", "owed", "invoice", "money", "check", "deposit")
+_CLIENT_LANES = (
+    (("capital hilton", "hilton"), ("finance", "capital_hilton")),
+    (("st. anne", "st anne", "st annes"), ("finance", "st_annes")),
+)
+
+
+def infer_lane_from_question(question: str) -> tuple[str, str]:
+    """Derive (world_ref, thread_ref) from question CONTENT for cold asks.
+
+    A question that names a known finance client and asks about money must reach
+    that client's contextual answer even when the conversation carries no
+    world/thread refs (stress-test finding 2026-07-02: "Did Capital Hilton pay
+    me?" dead-ended in _unknown_answer).
+    """
+    text = str(question or "").lower()
+    if not any(term in text for term in _PAYMENT_TERMS):
+        return ("", "")
+    for names, lane in _CLIENT_LANES:
+        if any(name in text for name in names):
+            return lane
+    return ("", "")
+
+
 def _load_json_file(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -740,10 +764,13 @@ def contextual_answer_for_lane(
     *,
     current_world_ref: str = "",
     current_thread_ref: str = "",
+    content_inferred: bool = False,
 ) -> dict[str, Any] | None:
     world_ref = str(current_world_ref or "").strip()
     thread_ref = str(current_thread_ref or "").strip()
-    if not is_contextual_question(question) or not world_ref or not thread_ref:
+    if not world_ref or not thread_ref:
+        return None
+    if not content_inferred and not is_contextual_question(question):
         return None
     if world_ref in {"unknown", "none"} or thread_ref in {"unknown", "none"}:
         return None
@@ -1697,6 +1724,31 @@ def answer_system_question(
         return _proof_answer(question, sources)
 
     speaker_ref, voice_mode = speaker_for_question(question)
+    # Content-inferred lane rescue (stress-test finding 2026-07-02): a cold
+    # question that NAMES a finance client and asks about money reaches that
+    # client's contextual answer instead of the dead end.
+    inferred_world, inferred_thread = infer_lane_from_question(question)
+    if inferred_world:
+        rescued = contextual_answer_for_lane(
+            question,
+            sources,
+            current_world_ref=inferred_world,
+            current_thread_ref=inferred_thread,
+            content_inferred=True,
+        )
+        if rescued is not None:
+            rescued["contextual_route"] = {
+                "contextual_question_detected": False,
+                "current_world_ref": inferred_world,
+                "current_thread_ref": inferred_thread,
+                "source_priority": "content_inferred_lane",
+                "fallback_used": True,
+                "lane_inferred_from_content": True,
+            }
+            rescued["machine_proof"]["contextual_lane_answer_used"] = True
+            rescued["machine_proof"]["package_staged"] = False
+            rescued["machine_proof"]["diagnostic_queue_routed"] = False
+            return rescued
     return _unknown_answer(question, speaker_ref, voice_mode)
 
 

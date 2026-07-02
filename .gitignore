@@ -1312,3 +1312,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_niles_x32_capability.py
 !guardian_approval_notifier.py
 !tests/test_guardian_approval_notifier.py
+!tests/test_system_question_finance_inference.py
