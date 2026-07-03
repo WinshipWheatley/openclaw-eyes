@@ -139,6 +139,58 @@ def _load_shadow_pending(ledger_path: Path) -> list[dict[str, Any]]:
     return pending
 
 
+DEFAULT_BOARD_DB = Path("/home/openclaw/.openclaw/guardian/approval_board_state.sqlite")
+
+
+def _pending_for_board(pending_file: Path, ledger_path: Path) -> list[dict[str, Any]]:
+    """Assemble the current pending-approval set in the shape the board humanizer expects.
+    supersede_key groups approvals so a changed re-issue retires the older one."""
+    out: list[dict[str, Any]] = []
+    chief = _load_chief_pending(pending_file)
+    if chief is not None:
+        ctx = chief.get("approval_context") if isinstance(chief.get("approval_context"), dict) else {}
+        action = str(chief.get("action") or "")
+        out.append({
+            "id": str(chief.get("id")),
+            "requester": str(chief.get("requester") or "the system"),
+            "tier": chief.get("tier"),
+            "action": action,
+            "approval_context": ctx,
+            # same requester+action-intent re-issued => supersede the prior one
+            "supersede_key": f"chief:{chief.get('requester')}:{action[:40]}",
+        })
+    for shadow in _load_shadow_pending(ledger_path):
+        aid = shadow.get("approval_id") or ""
+        if not aid or any(o["id"] == aid for o in out):
+            continue
+        out.append({
+            "id": aid,
+            "requester": "the system",
+            "source_surface_id": shadow.get("surface", ""),
+            "action_summary_label": shadow.get("label", "Approval request"),
+            "risk_tier": shadow.get("tier", ""),
+            "supersede_key": f"{shadow.get('surface')}:{str(shadow.get('label'))[:40]}",
+        })
+    return out
+
+
+def run_board(
+    *,
+    pending_file: str | Path = DEFAULT_PENDING_FILE,
+    ledger_path: str | Path = DEFAULT_LEDGER,
+    board_db: str | Path = DEFAULT_BOARD_DB,
+    ops: Any | None = None,
+) -> dict[str, Any]:
+    """Reconcile the human-readable Guardian approval BOARD (humanized messages + buttons,
+    green checkmark when clear, stale/superseded retired). This is the timer entry point."""
+    from guardian_approval_board import sync_board
+    if ops is None:
+        from guardian_telegram_ops import GuardianTelegramOps
+        ops = GuardianTelegramOps()
+    pending = _pending_for_board(Path(pending_file), Path(ledger_path))
+    return sync_board(pending, ops=ops, state_db=board_db)
+
+
 def _default_sender(message: str, reply_markup: dict | None = None) -> None:
     from chief_guardian_sender import send_approval
 
@@ -211,13 +263,17 @@ def run_once(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Sweep pending approvals to operator Telegram.")
     parser.add_argument("--once", action="store_true", help="run one sweep (timer entry point)")
+    parser.add_argument("--board", action="store_true", help="reconcile the human approval board (humanized + checkmark + supersede)")
     parser.add_argument("--pending-file", default=str(DEFAULT_PENDING_FILE))
     parser.add_argument("--ledger", default=str(DEFAULT_LEDGER))
     parser.add_argument("--state-db", default=str(DEFAULT_STATE_DB))
     args = parser.parse_args(argv)
-    summary = run_once(
-        pending_file=args.pending_file, ledger_path=args.ledger, state_db=args.state_db
-    )
+    if getattr(args, "board", False):
+        summary = run_board(pending_file=args.pending_file, ledger_path=args.ledger)
+    else:
+        summary = run_once(
+            pending_file=args.pending_file, ledger_path=args.ledger, state_db=args.state_db
+        )
     print(json.dumps(summary))
     return 0
 

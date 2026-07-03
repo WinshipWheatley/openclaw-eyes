@@ -1326,3 +1326,9 @@ generated/system_knowledge/*.sqlite
 !bank_email_reconcile.py
 !tests/test_bank_email_reconcile.py
 !tests/test_speech_ref_tag_strip.py
+!guardian_approval_humanizer.py
+!guardian_approval_board.py
+!guardian_telegram_ops.py
+!tests/test_guardian_approval_humanizer.py
+!tests/test_guardian_approval_board.py
+!tests/test_guardian_notifier_board_integration.py
