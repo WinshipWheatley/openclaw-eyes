@@ -860,18 +860,23 @@ def _exec_gmail_send(creds, params: dict) -> dict:
     attachments = [str(a) for a in (attachments or []) if str(a).strip()]
     expected_digests = params.get("attachment_sha256") or []
     _attachment_blobs: list[tuple[bytes, str]] = []
-    for _i, _a in enumerate(attachments):
+    for _a in attachments:
         try:
-            _data, _name = _read_validated_attachment(_a)
+            _data, _name = _read_validated_attachment(_a)  # PDF / allowlist / size / TOCTOU checks
         except _AttachmentError as _exc:
             return {"ok": False, "data": None, "error": f"attachment rejected: {_exc}"}
-        # Integrity: the attachment must match the sha256 that was bound into the approved payload,
-        # so a benign-body approval cannot carry a swapped-in attachment the operator never saw.
-        if _i < len(expected_digests) and expected_digests[_i]:
-            if hashlib.sha256(_data).hexdigest() != str(expected_digests[_i]):
-                return {"ok": False, "data": None,
-                        "error": "attachment rejected: content does not match the approved attachment"}
         _attachment_blobs.append((_data, _name))
+    # Integrity is FAIL-CLOSED (strict parity): once the files are valid, EVERY attachment MUST carry
+    # a non-empty approved sha256 that matches its bytes. A caller cannot skip the check by omitting
+    # the digests, and cannot swap/add an attachment the operator never approved.
+    if attachments and (len(expected_digests) != len(attachments)
+                        or not all(str(_d).strip() for _d in expected_digests)):
+        return {"ok": False, "data": None,
+                "error": "attachment rejected: each attachment must carry an approved sha256"}
+    for _i, (_data, _name) in enumerate(_attachment_blobs):
+        if hashlib.sha256(_data).hexdigest() != str(expected_digests[_i]):
+            return {"ok": False, "data": None,
+                    "error": "attachment rejected: content does not match the approved attachment"}
 
     try:
         import base64

@@ -2,6 +2,7 @@
 from the allowlisted invoices dir), fail-closed, and gated by the same send path as text email."""
 
 import base64
+import hashlib
 import google_access_broker as broker
 
 
@@ -27,9 +28,10 @@ def _mock_gmail(monkeypatch, sink):
 def test_pdf_attachment_from_allowlisted_dir_is_attached(tmp_path, monkeypatch):
     d, f = _pdf(tmp_path); monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(d))
     sink = {}; _mock_gmail(monkeypatch, sink)
+    digest = hashlib.sha256(f.read_bytes()).hexdigest()
     res = broker._exec_gmail_send(object(), {
         "to": "winshiplive@gmail.com", "subject": "Invoice", "body": "See attached.",
-        "attachments": [str(f)],
+        "attachments": [str(f)], "attachment_sha256": [digest],
     })
     assert res["ok"] is True
     raw = base64.urlsafe_b64decode(sink["raw"]).decode("utf-8", "replace")
@@ -100,8 +102,10 @@ def test_test_mode_redirect_preserves_attachment(tmp_path, monkeypatch):
     monkeypatch.setattr(broker, "_resolve_broker_run_mode", lambda: ("test_dry_run", "run-1"))
     sent = {}
     monkeypatch.setattr(broker, "_exec_gmail_send", lambda creds, params: sent.update(params) or {"ok": True, "data": {}})
+    _dg = hashlib.sha256(f.read_bytes()).hexdigest()
     res = broker.call("cassandra", "google.gmail.send",
-                      {"to": "attorney@example.com", "subject": "Invoice", "body": "pay", "attachments": [str(f)]})
+                      {"to": "attorney@example.com", "subject": "Invoice", "body": "pay",
+                       "attachments": [str(f)], "attachment_sha256": [_dg]})
     assert res["ok"] is True
     assert sent["to"] == "winshiplive@gmail.com"      # redirected
     assert sent["attachments"] == [str(f)]            # attachment preserved through the redirect
@@ -150,3 +154,13 @@ def test_executor_binds_attachment_into_hash(tmp_path, monkeypatch):
                                      attachment_path=str(f))
     assert seen[0]["approval_context"]["payload_hash"] != seen[1]["approval_context"]["payload_hash"]
     assert seen[1]["attachment_sha256"]  # digest passed through
+
+
+def test_attachment_without_approved_digest_is_rejected_fail_closed(tmp_path, monkeypatch):
+    # The opt-in bypass Gemini found: attachments present but NO approved sha256 must be refused.
+    d, f = _pdf(tmp_path); monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(d))
+    sink = {}; _mock_gmail(monkeypatch, sink)
+    res = broker._exec_gmail_send(object(), {"to": "winshiplive@gmail.com", "subject": "x", "body": "y",
+                                             "attachments": [str(f)], "attachment_sha256": []})
+    assert res["ok"] is False and "sha256" in res["error"].lower()
+    assert "raw" not in sink
