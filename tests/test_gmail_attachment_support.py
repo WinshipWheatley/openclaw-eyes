@@ -105,3 +105,48 @@ def test_test_mode_redirect_preserves_attachment(tmp_path, monkeypatch):
     assert res["ok"] is True
     assert sent["to"] == "winshiplive@gmail.com"      # redirected
     assert sent["attachments"] == [str(f)]            # attachment preserved through the redirect
+
+
+def test_symlink_attachment_rejected(tmp_path, monkeypatch):
+    # TOCTOU/symlink: a .pdf symlink inside the allowlist pointing outside must be refused (O_NOFOLLOW).
+    d, _ = _pdf(tmp_path); monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(d))
+    secret = tmp_path / "secret.pdf"; secret.write_bytes(b"%PDF secret creds")
+    link = d / "link.pdf"; link.symlink_to(secret)
+    sink = {}; _mock_gmail(monkeypatch, sink)
+    res = broker._exec_gmail_send(object(), {"to": "x@y.com", "subject": "x", "body": "y",
+                                             "attachments": [str(link)]})
+    assert res["ok"] is False and "attachment" in res["error"].lower()
+    assert "raw" not in sink
+
+
+def test_broker_rejects_digest_mismatch(tmp_path, monkeypatch):
+    # integrity: an attachment whose content != the approved sha256 is refused.
+    d, f = _pdf(tmp_path); monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(d))
+    sink = {}; _mock_gmail(monkeypatch, sink)
+    res = broker._exec_gmail_send(object(), {"to": "winshiplive@gmail.com", "subject": "x", "body": "y",
+                                             "attachments": [str(f)], "attachment_sha256": ["00" * 32]})
+    assert res["ok"] is False and "match" in res["error"].lower()
+    assert "raw" not in sink
+
+
+def test_oversize_attachment_rejected(tmp_path, monkeypatch):
+    d, _ = _pdf(tmp_path); monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(d))
+    monkeypatch.setattr(broker, "_MAX_ATTACHMENT_BYTES", 16)
+    big = d / "big.pdf"; big.write_bytes(b"%PDF-1.4" + b"x" * 200)
+    res = broker._exec_gmail_send(object(), {"to": "x@y.com", "subject": "x", "body": "y",
+                                             "attachments": [str(big)]})
+    assert res["ok"] is False and ("size" in res["error"].lower() or "limit" in res["error"].lower())
+
+
+def test_executor_binds_attachment_into_hash(tmp_path, monkeypatch):
+    # the payload hash (request_id) differs once an attachment is present -> approval covers it.
+    import email_send_executor as ese
+    d, f = _pdf(tmp_path); monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(d))
+    seen = []
+    monkeypatch.setattr("google_access_broker.call",
+                        lambda a, c, params: seen.append(params) or {"ok": True, "data": {}})
+    ese.send_email_via_google_broker(to="winshiplive@gmail.com", subject="Invoice", body="hi")
+    ese.send_email_via_google_broker(to="winshiplive@gmail.com", subject="Invoice", body="hi",
+                                     attachment_path=str(f))
+    assert seen[0]["approval_context"]["payload_hash"] != seen[1]["approval_context"]["payload_hash"]
+    assert seen[1]["attachment_sha256"]  # digest passed through
