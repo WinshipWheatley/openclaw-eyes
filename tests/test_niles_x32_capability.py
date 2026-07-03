@@ -35,6 +35,27 @@ def test_detect_scene_corpus_and_status():
     assert cap.detect_x32_intent("is the X32 connected?") == "x32_status"
 
 
+def test_rig_knowledge_question_routes_to_kb_not_generic_setup():
+    assert cap.detect_x32_intent("what channel is the DL16 stagebox on?") == "rig_knowledge"
+    result = cap.maybe_handle_x32("what channel is the DL16 stagebox on?")
+    assert result is not None and result["handled"] is True
+    assert result["intent"] == "rig_knowledge"
+    assert result["hardware_gated"] is True
+    reply = result["reply"].lower()
+    assert "rig kb" in reply
+    assert "stage" in reply or "aes50" in reply
+    assert "x32 flow" not in reply
+
+
+def test_unknown_rig_fact_is_honest_not_fabricated():
+    result = cap.maybe_handle_x32("what patch is the fog machine on?")
+    assert result is not None and result["handled"] is True
+    assert result["intent"] == "rig_knowledge"
+    reply = result["reply"].lower()
+    assert "i don't have that in the rig kb" in reply
+    assert "fog machine is on" not in reply
+
+
 def test_ordinary_production_questions_are_not_stolen():
     assert cap.detect_x32_intent("the chorus is boring but spacious, help") is None
     assert cap.detect_x32_intent("make this hit harder in logic") is None
