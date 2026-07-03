@@ -20,6 +20,7 @@ from zoneinfo import ZoneInfo
 import ar_counterparty_contact_operations as ar_ops
 import authority_secret_custody as custody
 from approval_gate_convergence import convergence_for_surface
+from authority_gate import ensure_send_hold_sentinel
 from email_send_executor import DEFAULT_SEND_HOLD_PATH
 import mac_local_action_bridge
 
@@ -2349,6 +2350,8 @@ def run_exact_send_operator_action_routeback(
     live_transport_enabled: bool = True,
     live_db_execution_policy: str = EXACT_SEND_LIVE_DB_POLICY_FRESH_EXACT_APPROVAL_ONLY,
     send_hold_path: Path | str = DEFAULT_SEND_HOLD_PATH,
+    send_hold_alert_sink: Any = None,
+    send_hold_missing_is_tamper: bool = False,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     """Route an approved HITL exact-send action into Cassandra's exact-send gate."""
@@ -2422,7 +2425,11 @@ def run_exact_send_operator_action_routeback(
         return refused("request_id_idempotency_mismatch")
     if route_back.get("type") != "cassandra_exact_send_executor":
         return refused("route_back_not_cassandra_exact_send_executor")
-    if Path(send_hold_path).is_file():
+    if ensure_send_hold_sentinel(
+        send_hold_path,
+        alert_sink=send_hold_alert_sink,
+        missing_is_tamper=send_hold_missing_is_tamper,
+    ).send_hold_active:
         return refused("send_hold_active")
 
     approval_decision = build_exact_send_approval_decision_from_operator_action(

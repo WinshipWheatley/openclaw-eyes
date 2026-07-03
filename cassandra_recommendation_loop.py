@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import hitl_action_service
+from authority_gate import ensure_send_hold_sentinel
 from business_ops_ledger import init_business_ops_ledger, record_receipt, resolve_business_ops_ledger_path
 
 
@@ -824,7 +825,7 @@ def _outcome_from_row(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def _send_hold_active(send_hold_path: str | Path) -> bool:
-    return Path(send_hold_path).is_file()
+    return ensure_send_hold_sentinel(send_hold_path).send_hold_active
 
 
 def _is_send_like_action(action_type: str) -> bool:
