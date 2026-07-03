@@ -341,6 +341,19 @@ def build_email_send_executor(
     return _executor
 
 
+def _executor_in_test_mode(run_mode: str | None = None) -> bool:
+    """True if the current run mode is a test mode. Fail-safe: PRODUCTION on any error, so a real
+    send is never mistaken for a test. An explicit run_mode arg wins (for callers/tests)."""
+    mode = run_mode
+    if not mode:
+        try:
+            from global_run_mode_context import resolve_run_mode_context, DEFAULT_SQLITE_PATH, PRODUCTION
+            mode = str(resolve_run_mode_context(DEFAULT_SQLITE_PATH, {}).get("run_mode") or PRODUCTION)
+        except Exception:
+            mode = "production"
+    return str(mode) in ("test_live", "test_dry_run")
+
+
 def execute_email_send_packet(
     *,
     packet_id: str,
@@ -350,6 +363,7 @@ def execute_email_send_packet(
     email_sender: Callable[..., Any] | None = None,
     outbound_payload: Mapping[str, Any] | None = None,
     preview_only: bool = False,
+    run_mode: str | None = None,
 ) -> ExecutionReceipt:
     """Execute or preview a gated email-send packet.
 
@@ -398,7 +412,7 @@ def execute_email_send_packet(
             db_path=db_path,
             meta={"approval_state": state},
         )
-    if Path(send_hold_path).is_file():
+    if Path(send_hold_path).is_file() and not _executor_in_test_mode(run_mode):
         return _blocked_receipt(
             packet_id=packet_id,
             detail="SEND_HOLD is active. Email send is blocked; nothing was sent.",
