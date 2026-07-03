@@ -16,6 +16,7 @@ Run:
 from __future__ import annotations
 
 import os
+import stat
 import tempfile
 from pathlib import Path
 
@@ -101,6 +102,7 @@ class TestAuthorityGate:
         from authority_gate import decide, Verdict
 
         absent_path = tmp_path / "no_such_hold.md"  # does not exist
+        alerts = []
         db = str(tmp_path / "ledger.db")
 
         decision = decide(
@@ -108,9 +110,126 @@ class TestAuthorityGate:
             conversation_id="conv-hitl",
             surface="email_send",
             send_hold_path=str(absent_path),
+            send_hold_alert_sink=alerts.append,
             db_path=db,
         )
         assert decision.verdict == Verdict.HITL_REQUIRED
+        assert absent_path.exists() is False
+        assert alerts == []
+
+    def test_observed_send_hold_removed_by_operator_stays_off_without_recreate(
+        self, tmp_path: Path
+    ) -> None:
+        """Removing an observed-active sentinel remains the legitimate operator-lift path."""
+        from authority_gate import decide, Verdict
+
+        send_hold = tmp_path / "SEND_HOLD.md"
+        send_hold.write_text("hold active\n", encoding="utf-8")
+        send_hold.chmod(0o600)
+        alerts = []
+        db = str(tmp_path / "ledger.db")
+
+        first = decide(
+            "email_send",
+            conversation_id="conv-observed",
+            surface="email_send",
+            send_hold_path=str(send_hold),
+            db_path=db,
+            send_hold_alert_sink=alerts.append,
+        )
+        assert first.verdict == Verdict.DENY
+        assert alerts == []
+
+        send_hold.unlink()
+        second = decide(
+            "email_send",
+            conversation_id="conv-operator-lift",
+            surface="email_send",
+            send_hold_path=str(send_hold),
+            db_path=db,
+            send_hold_alert_sink=alerts.append,
+        )
+
+        assert second.verdict == Verdict.HITL_REQUIRED
+        assert send_hold.exists() is False
+        assert alerts == []
+
+    def test_missing_send_hold_with_tamper_expectation_fails_closed_and_alerts(
+        self, tmp_path: Path
+    ) -> None:
+        """Callers with an external active-hold expectation can fail closed on vanish."""
+        from authority_gate import decide, Verdict
+
+        send_hold = tmp_path / "SEND_HOLD.md"
+        alerts = []
+        db = str(tmp_path / "ledger.db")
+
+        decision = decide(
+            "email_send",
+            conversation_id="conv-vanished",
+            surface="email_send",
+            send_hold_path=str(send_hold),
+            db_path=db,
+            send_hold_alert_sink=alerts.append,
+            send_hold_missing_is_tamper=True,
+        )
+
+        assert decision.verdict == Verdict.DENY
+        assert send_hold.is_file()
+        assert stat.S_IMODE(send_hold.stat().st_mode) in {0o600, 0o640}
+        assert len(alerts) == 1
+        assert alerts[0]["alert_type"] == "send_hold_sentinel_vanished"
+        assert alerts[0]["send_hold_active"] is True
+        assert alerts[0]["fail_closed"] is True
+
+    def test_world_writable_send_hold_sentinel_fails_closed_and_alerts(self, tmp_path: Path) -> None:
+        """World-writable SEND_HOLD sentinel is tightened, alerted, and treated as held."""
+        from authority_gate import decide, Verdict
+
+        send_hold = tmp_path / "SEND_HOLD.md"
+        send_hold.write_text("hold active but perms are loose\n", encoding="utf-8")
+        send_hold.chmod(0o666)
+        alerts = []
+        db = str(tmp_path / "ledger.db")
+
+        decision = decide(
+            "email_send",
+            conversation_id="conv-world-writable",
+            surface="email_send",
+            send_hold_path=str(send_hold),
+            db_path=db,
+            send_hold_alert_sink=alerts.append,
+        )
+
+        assert decision.verdict == Verdict.DENY
+        assert stat.S_IMODE(send_hold.stat().st_mode) & 0o002 == 0
+        assert len(alerts) == 1
+        assert alerts[0]["alert_type"] == "send_hold_sentinel_world_writable"
+        assert alerts[0]["send_hold_active"] is True
+        assert alerts[0]["fail_closed"] is True
+
+    def test_tight_send_hold_sentinel_stays_quiet_and_blocks_as_before(self, tmp_path: Path) -> None:
+        """Tight SEND_HOLD sentinel blocks sends without alert noise."""
+        from authority_gate import decide, Verdict
+
+        send_hold = tmp_path / "SEND_HOLD.md"
+        send_hold.write_text("hold active\n", encoding="utf-8")
+        send_hold.chmod(0o600)
+        alerts = []
+        db = str(tmp_path / "ledger.db")
+
+        decision = decide(
+            "email_send",
+            conversation_id="conv-tight",
+            surface="email_send",
+            send_hold_path=str(send_hold),
+            db_path=db,
+            send_hold_alert_sink=alerts.append,
+        )
+
+        assert decision.verdict == Verdict.DENY
+        assert "SEND_HOLD is active" in decision.reason
+        assert alerts == []
 
     def test_every_decision_recorded_to_ledger(self, tmp_path: Path) -> None:
         """Every gate decision writes to the ledger (receipt ref is non-None)."""

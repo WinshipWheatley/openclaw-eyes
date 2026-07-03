@@ -10,12 +10,19 @@ Flag gate
 _action_runtime_enabled() reads OPENCLAW_ACTION_RUNTIME (env, default "0").
 When OFF the module is importable and all functions are callable, but the live
 execution path in action_runtime.py will never reach decide() because the
-synthetic executor is never registered.  decide() itself is stateless and
-flag-agnostic — it is pure/deterministic and records to the ledger regardless.
+synthetic executor is never registered.  decide() itself is flag-agnostic and
+records to the ledger regardless; for send surfaces it also validates the
+SEND_HOLD sentinel before returning a decision.
 
 SEND_HOLD behaviour
 -------------------
-Any surface in _SEND_SURFACES is DENY when the SEND_HOLD file exists.
+Any surface in _SEND_SURFACES is DENY when the SEND_HOLD file exists. A
+sentinel that has unsafe permissions, cannot be stat()ed, or is not a regular
+file fails closed and emits an alert. Callers that have an external reason to
+expect SEND_HOLD to be active can opt into treating a missing sentinel as
+tamper/vanish.
+An absent sentinel without that explicit expectation is treated as the operator's
+deliberate SEND_HOLD-off state and is not recreated.
 
 Allow-list (this slice)
 -----------------------
@@ -26,16 +33,21 @@ return HITL_REQUIRED or DENY — never ALLOW from this gate.
 
 from __future__ import annotations
 
+import logging
 import os
+import stat
 import uuid
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 DEFAULT_SEND_HOLD_PATH: Path = Path("/mnt/e/openclaw/orchestration/SEND_HOLD.md")
+SEND_HOLD_SENTINEL_TIGHT_MODE = 0o600
+SEND_HOLD_SENTINEL_ALLOWED_MODES: frozenset[int] = frozenset({0o600, 0o640})
+SEND_HOLD_SENTINEL_ALERT_SCHEMA = "SEND_HOLD_SENTINEL_ALERT_V0"
 
 # Surfaces that are DENY when SEND_HOLD is present.
 _SEND_SURFACES: frozenset[str] = frozenset(
@@ -91,6 +103,231 @@ class AuthorityDecision:
     surface: str = ""
     conversation_id: str = ""
     package_id: str = ""
+
+
+@dataclass(frozen=True)
+class SendHoldSentinelState:
+    send_hold_active: bool
+    fail_closed: bool
+    path: str
+    reason: str
+    mode: str | None = None
+    alert_type: str | None = None
+    self_healed: bool = False
+    chmod_attempted: bool = False
+    chmod_succeeded: bool | None = None
+
+
+def _mode_text(mode: int | None) -> str | None:
+    if mode is None:
+        return None
+    return f"0o{mode:03o}"
+
+
+def _emit_send_hold_sentinel_alert(
+    *,
+    alert_type: str,
+    path: Path,
+    summary: str,
+    observed_mode: int | None,
+    alert_sink: Callable[[dict[str, Any]], Any] | None,
+    self_healed: bool = False,
+    chmod_attempted: bool = False,
+    chmod_succeeded: bool | None = None,
+    error: str | None = None,
+) -> None:
+    alert = {
+        "schema_version": SEND_HOLD_SENTINEL_ALERT_SCHEMA,
+        "alert_type": alert_type,
+        "severity": "critical",
+        "summary": summary,
+        "send_hold_path": str(path),
+        "observed_mode": _mode_text(observed_mode),
+        "send_hold_active": True,
+        "fail_closed": True,
+        "self_healed": bool(self_healed),
+        "chmod_attempted": bool(chmod_attempted),
+        "chmod_succeeded": chmod_succeeded,
+    }
+    if error:
+        alert["error"] = error
+
+    if alert_sink is not None:
+        try:
+            alert_sink(dict(alert))
+            return
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "SEND_HOLD sentinel alert sink failed for %s: %s",
+                path,
+                exc,
+            )
+    logging.getLogger(__name__).warning("%s", summary)
+
+
+def _recreate_send_hold_sentinel(path: Path) -> tuple[bool, int | None, str | None]:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, SEND_HOLD_SENTINEL_TIGHT_MODE)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write("SEND_HOLD self-healed vanished sentinel; external sends remain blocked.\n")
+        try:
+            path.chmod(SEND_HOLD_SENTINEL_TIGHT_MODE)
+        except OSError:
+            pass
+        return True, stat.S_IMODE(path.stat().st_mode), None
+    except FileExistsError:
+        return True, None, None
+    except OSError as exc:
+        return False, None, str(exc)
+
+
+def ensure_send_hold_sentinel(
+    send_hold_path: str | Path = DEFAULT_SEND_HOLD_PATH,
+    *,
+    alert_sink: Callable[[dict[str, Any]], Any] | None = None,
+    missing_is_tamper: bool = False,
+) -> SendHoldSentinelState:
+    """Read and harden the SEND_HOLD sentinel without trapping deliberate lifts.
+
+    Missing is the operator-lifted state unless a caller explicitly supplies an
+    external expectation that absence is tamper/vanish.
+    """
+
+    path = Path(send_hold_path)
+
+    if not path.exists():
+        if not missing_is_tamper:
+            return SendHoldSentinelState(
+                send_hold_active=False,
+                fail_closed=False,
+                path=str(path),
+                reason=f"SEND_HOLD sentinel absent ({path}); hold is not active.",
+            )
+
+        self_healed, observed_mode, error = _recreate_send_hold_sentinel(path)
+        summary = (
+            "SEND_HOLD sentinel is missing despite an active-hold expectation; external sends remain held fail-closed."
+            if self_healed
+            else "SEND_HOLD sentinel is missing despite an active-hold expectation and could not be recreated; external sends remain held fail-closed."
+        )
+        chmod_succeeded = (
+            observed_mode in SEND_HOLD_SENTINEL_ALLOWED_MODES
+            if self_healed and observed_mode is not None
+            else None
+        )
+        _emit_send_hold_sentinel_alert(
+            alert_type="send_hold_sentinel_vanished",
+            path=path,
+            summary=summary,
+            observed_mode=observed_mode,
+            alert_sink=alert_sink,
+            self_healed=self_healed,
+            chmod_attempted=self_healed,
+            chmod_succeeded=chmod_succeeded,
+            error=error,
+        )
+        return SendHoldSentinelState(
+            send_hold_active=True,
+            fail_closed=True,
+            path=str(path),
+            reason=summary,
+            mode=_mode_text(observed_mode),
+            alert_type="send_hold_sentinel_vanished",
+            self_healed=self_healed,
+            chmod_attempted=self_healed,
+            chmod_succeeded=chmod_succeeded,
+        )
+
+    try:
+        current_stat = path.stat()
+    except OSError as exc:
+        summary = "SEND_HOLD sentinel could not be stat()ed; external sends remain held fail-closed."
+        _emit_send_hold_sentinel_alert(
+            alert_type="send_hold_sentinel_stat_failed",
+            path=path,
+            summary=summary,
+            observed_mode=None,
+            alert_sink=alert_sink,
+            error=str(exc),
+        )
+        return SendHoldSentinelState(
+            send_hold_active=True,
+            fail_closed=True,
+            path=str(path),
+            reason=summary,
+            alert_type="send_hold_sentinel_stat_failed",
+        )
+
+    observed_mode = stat.S_IMODE(current_stat.st_mode)
+    if not path.is_file():
+        summary = "SEND_HOLD sentinel path is not a regular file; external sends remain held fail-closed."
+        _emit_send_hold_sentinel_alert(
+            alert_type="send_hold_sentinel_invalid_type",
+            path=path,
+            summary=summary,
+            observed_mode=observed_mode,
+            alert_sink=alert_sink,
+        )
+        return SendHoldSentinelState(
+            send_hold_active=True,
+            fail_closed=True,
+            path=str(path),
+            reason=summary,
+            mode=_mode_text(observed_mode),
+            alert_type="send_hold_sentinel_invalid_type",
+        )
+
+    original_mode = observed_mode
+    world_writable = bool(original_mode & 0o002)
+    chmod_attempted = False
+    chmod_succeeded: bool | None = None
+    chmod_error: str | None = None
+
+    if observed_mode not in SEND_HOLD_SENTINEL_ALLOWED_MODES:
+        chmod_attempted = True
+        try:
+            path.chmod(SEND_HOLD_SENTINEL_TIGHT_MODE)
+            observed_mode = stat.S_IMODE(path.stat().st_mode)
+            chmod_succeeded = observed_mode in SEND_HOLD_SENTINEL_ALLOWED_MODES
+        except OSError as exc:
+            chmod_succeeded = False
+            chmod_error = str(exc)
+
+    alert_type: str | None = None
+    summary: str | None = None
+    if world_writable:
+        alert_type = "send_hold_sentinel_world_writable"
+        summary = "SEND_HOLD sentinel was world-writable; external sends remain held fail-closed."
+    elif chmod_attempted and chmod_succeeded is False:
+        alert_type = "send_hold_sentinel_chmod_failed"
+        summary = "SEND_HOLD sentinel permissions could not be tightened; external sends remain held fail-closed."
+
+    if alert_type and summary:
+        _emit_send_hold_sentinel_alert(
+            alert_type=alert_type,
+            path=path,
+            summary=summary,
+            observed_mode=original_mode,
+            alert_sink=alert_sink,
+            chmod_attempted=chmod_attempted,
+            chmod_succeeded=chmod_succeeded,
+            error=chmod_error,
+        )
+        reason = summary
+    else:
+        reason = f"SEND_HOLD is active ({path})."
+
+    return SendHoldSentinelState(
+        send_hold_active=True,
+        fail_closed=True,
+        path=str(path),
+        reason=reason,
+        mode=_mode_text(observed_mode),
+        alert_type=alert_type,
+        chmod_attempted=chmod_attempted,
+        chmod_succeeded=chmod_succeeded,
+    )
 
 
 # ── Ledger recording ──────────────────────────────────────────────────────────
@@ -150,6 +387,8 @@ def decide(
     surface: str = "",
     *,
     send_hold_path: str | Path = DEFAULT_SEND_HOLD_PATH,
+    send_hold_alert_sink: Callable[[dict[str, Any]], Any] | None = None,
+    send_hold_missing_is_tamper: bool = False,
     db_path: str | None = None,
 ) -> AuthorityDecision:
     """
@@ -228,15 +467,21 @@ def decide(
 
     # ── SEND_HOLD check (highest priority for send surfaces) ─────────────────
     #
-    # Mirrors the pattern in email_send_executor.py ~line 401:
-    #   if Path(send_hold_path).is_file(): → block
-    #
-    # Any surface in _SEND_SURFACES is DENY when the sentinel file exists.
+    # Missing with explicit tamper expectation or tampered sentinel state is held.
 
-    if resolved_surface in _SEND_SURFACES and Path(send_hold_path).is_file():
+    if resolved_surface in _SEND_SURFACES:
+        send_hold_state = ensure_send_hold_sentinel(
+            send_hold_path,
+            alert_sink=send_hold_alert_sink,
+            missing_is_tamper=send_hold_missing_is_tamper,
+        )
+    else:
+        send_hold_state = None
+
+    if send_hold_state and send_hold_state.send_hold_active:
         verdict = Verdict.DENY
         reason = (
-            f"SEND_HOLD is active ({send_hold_path}). "
+            f"{send_hold_state.reason} "
             f"Surface '{resolved_surface}' is blocked; nothing was sent."
         )
         ref = _record_gate_decision(

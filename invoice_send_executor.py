@@ -17,6 +17,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from authority_gate import ensure_send_hold_sentinel
 from business_ops_ledger import DEFAULT_DB_PATH, append_side_effect, init_business_ops_ledger
 from compose_contract import ExecutionReceipt
 
@@ -200,6 +201,8 @@ def execute_invoice_send_packet(
     db_path: str | None = None,
     expected_packet_hash: str | None = None,
     send_hold_path: str | Path = DEFAULT_SEND_HOLD_PATH,
+    send_hold_alert_sink: Callable[[dict[str, Any]], Any] | None = None,
+    send_hold_missing_is_tamper: bool = False,
     square_environment: str = "sandbox",
     delivery_mode: str = INVOICE_DELIVERY_MODE_SQUARE_SANDBOX,
     rendered_pdf_path: str | Path | None = None,
@@ -264,7 +267,11 @@ def execute_invoice_send_packet(
             db_path=db_path,
             meta={"approval_state": state},
         )
-    if Path(send_hold_path).is_file():
+    if ensure_send_hold_sentinel(
+        send_hold_path,
+        alert_sink=send_hold_alert_sink,
+        missing_is_tamper=send_hold_missing_is_tamper,
+    ).send_hold_active:
         return _receipt(
             packet_id=packet_id,
             ok=False,

@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from authority_gate import ensure_send_hold_sentinel
 from business_ops_ledger import append_side_effect, init_business_ops_ledger
 from compose_contract import ExecutionReceipt
 
@@ -326,6 +327,8 @@ def _provider_external_ref(result: Any) -> str | None:
 def build_email_send_executor(
     *,
     send_hold_path: str | Path = DEFAULT_SEND_HOLD_PATH,
+    send_hold_alert_sink: Callable[[dict[str, Any]], Any] | None = None,
+    send_hold_missing_is_tamper: bool = False,
     email_sender: Callable[..., Any] | None = None,
     outbound_payload: Mapping[str, Any] | None = None,
     preview_only: bool = False,
@@ -343,6 +346,8 @@ def build_email_send_executor(
             db_path=db_path,
             expected_packet_hash=expected_packet_hash,
             send_hold_path=send_hold_path,
+            send_hold_alert_sink=send_hold_alert_sink,
+            send_hold_missing_is_tamper=send_hold_missing_is_tamper,
             email_sender=email_sender,
             outbound_payload=outbound_payload,
             preview_only=preview_only,
@@ -370,6 +375,8 @@ def execute_email_send_packet(
     db_path: str | None = None,
     expected_packet_hash: str | None = None,
     send_hold_path: str | Path = DEFAULT_SEND_HOLD_PATH,
+    send_hold_alert_sink: Callable[[dict[str, Any]], Any] | None = None,
+    send_hold_missing_is_tamper: bool = False,
     email_sender: Callable[..., Any] | None = None,
     outbound_payload: Mapping[str, Any] | None = None,
     preview_only: bool = False,
@@ -422,7 +429,12 @@ def execute_email_send_packet(
             db_path=db_path,
             meta={"approval_state": state},
         )
-    if Path(send_hold_path).is_file() and not _executor_in_test_mode(run_mode):
+    send_hold_state = ensure_send_hold_sentinel(
+        send_hold_path,
+        alert_sink=send_hold_alert_sink,
+        missing_is_tamper=send_hold_missing_is_tamper,
+    )
+    if send_hold_state.send_hold_active and not _executor_in_test_mode(run_mode):
         return _blocked_receipt(
             packet_id=packet_id,
             detail="SEND_HOLD is active. Email send is blocked; nothing was sent.",
