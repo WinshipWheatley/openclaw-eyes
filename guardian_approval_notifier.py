@@ -159,18 +159,12 @@ def _pending_for_board(pending_file: Path, ledger_path: Path) -> list[dict[str, 
             # same requester+action-intent re-issued => supersede the prior one
             "supersede_key": f"chief:{chief.get('requester')}:{action[:40]}",
         })
-    for shadow in _load_shadow_pending(ledger_path):
-        aid = shadow.get("approval_id") or ""
-        if not aid or any(o["id"] == aid for o in out):
-            continue
-        out.append({
-            "id": aid,
-            "requester": "the system",
-            "source_surface_id": shadow.get("surface", ""),
-            "action_summary_label": shadow.get("label", "Approval request"),
-            "risk_tier": shadow.get("tier", ""),
-            "supersede_key": f"{shadow.get('surface')}:{str(shadow.get('label'))[:40]}",
-        })
+    # NOTE: guardian_hitl "*_shadow_created" records are OBSERVATIONAL dual-writes of legacy
+    # approvals — they have NO live YES/NO executor (record_decision validates against the
+    # chief pending file, which these are not in). Surfacing them on the board would give the
+    # operator dead approve/deny buttons. So the board carries only ACTIONABLE approvals: the
+    # chief single-flight pending file (real YES/NO), plus (future) build-PROPOSED tasks.
+    del ledger_path  # observational shadows intentionally excluded from the actionable board
     return out
 
 
