@@ -41,9 +41,12 @@ DENIED  = None  # Access explicitly denied
 
 _POLICY: dict[str, dict[str, str | None]] = {
 
-    # ── Calendar: ALL agents read + write events freely; DELETE needs Guardian ──
+    # ── Calendar: named scheduler agents read + write; DELETE needs Guardian ──
     "google.calendar.read": {
-        "*": CLASS_A,   # all agents, auto-proceed (always audit-logged)
+        "cassandra": CLASS_A,
+        "niles":     CLASS_A,
+        "maestro":   CLASS_A,
+        "chief":     CLASS_A,
     },
 
     # ── Phase 1 placeholder — defined but broker executor not yet wired ──────
@@ -52,14 +55,13 @@ _POLICY: dict[str, dict[str, str | None]] = {
         "chief":     DENIED,
     },
     # Inbox metadata (subjects/senders/dates) of the operator's OWN account — low risk,
-    # open to the operator's agents so they can read what was sent to winshiplive@gmail.com
-    # (the email-loopback test + agent inbox awareness). Class A (auto-proceed).
+    # available to Cassandra for inbox awareness. Class A (auto-proceed).
     "google.gmail.read.metadata": {
-        "*":         CLASS_A,
+        "cassandra": CLASS_A,
         "chief":     DENIED,
     },
     "google.gmail.unread_count": {
-        "*":         CLASS_A,
+        "cassandra": CLASS_A,
         "chief":     DENIED,
     },
 
@@ -79,19 +81,25 @@ _POLICY: dict[str, dict[str, str | None]] = {
     # wants agents to manage the calendar without per-write friction; the safety
     # boundary is DELETE (irreversible), which is Guardian-gated just below.
     "google.calendar.write": {
-        "*": CLASS_A,
+        "cassandra": CLASS_A,
+        "niles":     CLASS_A,
+        "maestro":   CLASS_A,
+        "chief":     CLASS_A,
     },
     # Calendar event DELETE — Class C: each delete fires a tier-2 Guardian approval the
     # operator must approve/deny. Fails closed (denies) if the approval brain is down.
     "google.calendar.delete": {
-        "*": CLASS_C,
+        "cassandra": CLASS_C,
+        "niles":     CLASS_C,
+        "maestro":   CLASS_C,
+        "chief":     CLASS_C,
     },
 
-    # Email send: open to the operator's agents (Class C). Safety in self-test mode is
-    # the broker's recipient allowlist (winshiplive@gmail.com only); external sends still
-    # hit the Class C / exact-send approval gate once self-test is graduated off.
+    # Email send: Cassandra only (Class C). Safety in self-test mode is the broker's
+    # recipient allowlist (winshiplive@gmail.com only); external sends still hit the
+    # Class C / exact-send approval gate once self-test is graduated off.
     "google.gmail.send": {
-        "*":         CLASS_C,
+        "cassandra": CLASS_C,
         "chief":     DENIED,
     },
 }
@@ -107,17 +115,12 @@ def allowed(agent: str, capability: str) -> bool:
 def get_class(agent: str, capability: str) -> str | None:
     """
     Return the approval class for this agent+capability, or None if denied/unknown.
-    An explicit per-agent entry wins; otherwise a wildcard "*" entry applies, so a
-    capability can be granted to every agent at once (and a specific agent can still be
-    explicitly DENIED to override the wildcard).
+    Capabilities enumerate permitted agents explicitly; unlisted agents fail closed.
     """
     cap_entry = _POLICY.get(capability)
     if cap_entry is None:
         return None
-    a = agent.lower()
-    if a in cap_entry:
-        return cap_entry[a]
-    return cap_entry.get("*")
+    return cap_entry.get(agent.lower())
 
 
 def list_allowed(agent: str) -> list[tuple[str, str]]:
@@ -145,7 +148,7 @@ if __name__ == "__main__":
         ("chief",     "google.calendar.read",       True,  CLASS_A),
         ("chief",     "google.gmail.send",          False, DENIED),
         ("Cassandra", "google.calendar.read",       True,  CLASS_A),
-        ("unknown",   "google.calendar.read",       True,  CLASS_A),
+        ("unknown",   "google.calendar.read",       False, DENIED),
         ("cassandra", "google.nonexistent",          False, None),
     ]
     assert ("google.gmail.send", CLASS_C) not in list_allowed("niles")
