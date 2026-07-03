@@ -257,14 +257,15 @@ def send_email_via_google_broker(
     approval_state: Mapping[str, Any] | None = None,
     packet_id: str = "",
 ) -> dict[str, Any]:
-    """Invoke the central Google broker for a plain-text Gmail send."""
+    """Invoke the central Google broker for a Gmail send (optionally with a PDF attachment)."""
 
+    attachments: list[str] = []
     if attachment_path:
-        return {
-            "ok": False,
-            "data": None,
-            "error": "Gmail broker send does not support attachments; use the invoice Square rail",
-        }
+        from google_access_broker import _validate_attachment
+        _ok, _err = _validate_attachment(str(attachment_path))
+        if not _ok:
+            return {"ok": False, "data": None, "error": f"attachment rejected: {_err}"}
+        attachments = [str(attachment_path)]
     payload = normalize_email_outbound_payload(
         {"to": to, "subject": subject, "body": body, "attachment_path": None}
     )
@@ -281,18 +282,17 @@ def send_email_via_google_broker(
     }
     from google_access_broker import call
 
-    return call(
-        "cassandra",
-        "google.gmail.send",
-        {
-            "to": payload["to"],
-            "subject": payload["subject"],
-            "body": payload["body"],
-            "exact_send_request_id": request_id,
-            "idempotency_key": request_id,
-            "approval_context": approval_context,
-        },
-    )
+    _send_params = {
+        "to": payload["to"],
+        "subject": payload["subject"],
+        "body": payload["body"],
+        "exact_send_request_id": request_id,
+        "idempotency_key": request_id,
+        "approval_context": approval_context,
+    }
+    if attachments:
+        _send_params["attachments"] = attachments
+    return call("cassandra", "google.gmail.send", _send_params)
 
 
 def _provider_result_ok(result: Any) -> bool:

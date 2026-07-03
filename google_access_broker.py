@@ -774,6 +774,36 @@ def _exec_contacts_read(creds, params: dict) -> dict:
         return {"ok": False, "data": None, "error": str(e)}
 
 
+def _attachment_allowed_roots() -> list[Path]:
+    roots = [Path(os.environ.get("OPENCLAW_INVOICES_DIR", "/home/openclaw/state/invoices"))]
+    extra = os.environ.get("OPENCLAW_ATTACHMENT_ALLOWED_DIRS", "")
+    roots += [Path(r) for r in extra.split(":") if r.strip()]
+    out = []
+    for r in roots:
+        try:
+            out.append(r.resolve())
+        except Exception:
+            pass
+    return out
+
+
+def _validate_attachment(path: str) -> tuple[bool, str]:
+    """Attachments are bounded to prevent exfil: a PDF that exists inside an allowlisted dir
+    (default the invoices dir). Path is resolved first so traversal can't escape. Fail-closed."""
+    try:
+        p = Path(path).resolve()
+    except Exception:
+        return False, "attachment path invalid"
+    if not p.is_file():
+        return False, "attachment not found"
+    if p.suffix.lower() != ".pdf":
+        return False, "attachment must be a PDF"
+    roots = _attachment_allowed_roots()
+    if not any(p == r or r in p.parents for r in roots):
+        return False, "attachment is outside the allowlisted invoices directory"
+    return True, ""
+
+
 def _exec_gmail_send(creds, params: dict) -> dict:
     """
     Send an email via the Gmail API.
@@ -800,6 +830,15 @@ def _exec_gmail_send(creds, params: dict) -> dict:
     if not to or not subject or not body:
         return {"ok": False, "data": None, "error": "to, subject, and body are all required"}
 
+    attachments = params.get("attachments")
+    if not attachments and params.get("attachment_path"):
+        attachments = [params["attachment_path"]]
+    attachments = [str(a) for a in (attachments or []) if str(a).strip()]
+    for _a in attachments:
+        _ok, _err = _validate_attachment(_a)
+        if not _ok:
+            return {"ok": False, "data": None, "error": f"attachment rejected: {_err}"}
+
     try:
         import base64
         from email.mime.text import MIMEText
@@ -807,7 +846,18 @@ def _exec_gmail_send(creds, params: dict) -> dict:
 
         service = build("gmail", "v1", credentials=creds)
 
-        msg = MIMEText(body, "plain", "utf-8")
+        if attachments:
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.application import MIMEApplication
+            msg = MIMEMultipart()
+            msg.attach(MIMEText(body, "plain", "utf-8"))
+            for _a in attachments:
+                _p = Path(_a)
+                _part = MIMEApplication(_p.read_bytes(), _subtype="pdf")
+                _part.add_header("Content-Disposition", "attachment", filename=_p.name)
+                msg.attach(_part)
+        else:
+            msg = MIMEText(body, "plain", "utf-8")
         msg["to"]      = to
         if cc:
             msg["cc"] = cc
