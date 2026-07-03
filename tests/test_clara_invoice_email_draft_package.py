@@ -3,6 +3,141 @@ import invoice_review_bundle
 import live_arts_md_invoice_review_bundle
 
 
+def _st_annes_invoice_data():
+    return {
+        "client_name": "St. Anne's",
+        "line_items": (
+            {"event": "Wedding ceremony", "date": "June 6, 2026", "amount": 125},
+            {"event": "Community recital", "date": "June 13, 2026", "amount": 125},
+        ),
+        "total": 250,
+        "attachment_filename": "St_Annes_June_2026_invoice.pdf",
+    }
+
+
+def test_general_client_invoice_body_is_human_and_guard_clean():
+    body = drafts.build_general_client_invoice_body(
+        _st_annes_invoice_data(),
+        {"name": "Draper", "email": "draper@example.com"},
+    )
+
+    assert "Hi Draper," in body
+    assert "St. Anne's" in body
+    assert "Wedding ceremony" in body
+    assert "June 6, 2026" in body
+    assert "Community recital" in body
+    assert "June 13, 2026" in body
+    assert "$125.00" in body
+    assert "$250.00" in body
+    assert "attached" in body.lower()
+    assert "PDF" in body
+    assert body.endswith("Best,\nClara Reid")
+    assert "Executive Assistant" not in body
+    assert drafts.body_contains_backend_status_language(body) is False
+    lowered = body.lower()
+    for term in drafts.CLIENT_FACING_FORBIDDEN_TERMS:
+        assert term not in lowered
+
+
+def test_general_client_invoice_body_uses_neutral_greeting_without_contact_name():
+    body = drafts.build_general_client_invoice_body(
+        _st_annes_invoice_data(),
+        {"email": "billing@example.com"},
+    )
+
+    assert body.startswith("Hello,\n\n")
+    assert "billing@example.com" not in body
+
+
+def test_client_without_specific_recipe_routes_to_general_body_not_placeholder():
+    recipient_package = drafts._recipient_package(  # type: ignore[attr-defined]
+        (
+            drafts._recipient(  # type: ignore[attr-defined]
+                "Draper",
+                "primary_invoice_contact",
+                "to",
+                confirmed=True,
+            ),
+        )
+    )
+
+    draft = drafts.build_clara_invoice_email_draft_package(
+        client_ref="st_annes",
+        workflow_ref="st_annes_invoice_workflow",
+        client_display_name="St. Anne's",
+        recipient_package=recipient_package,
+        attachment_ready=True,
+        attachment_refs=("artifact_ref:st_annes_invoice_pdf",),
+        invoice_period_label="June 2026 services",
+        supplier_portal_required=False,
+        first_contact_intro_required=False,
+        present_receipts=("clara_email_draft_receipt",),
+        invoice_data=_st_annes_invoice_data(),
+        contact={"name": "Draper", "email": "draper@example.com"},
+    )
+
+    assert draft["draft_status"] == drafts.FINAL_DRAFT_READY_FOR_APPROVAL
+    assert draft["client_facing_draft_ready_for_approval"]["ready"] is True
+    assert draft["client_facing_draft_ready_for_approval"]["body"] == draft["body"]
+    assert draft["to_recipients"][0]["email"] == "draper@example.com"
+    assert "Wedding ceremony" in draft["body"]
+    assert "Community recital" in draft["body"]
+    assert "St_Annes_June_2026_invoice.pdf" in draft["body"]
+    assert "[Name]" not in draft["body"]
+    assert "Invoice attachment: [confirmed invoice attachment]" not in draft["body"]
+    assert "Work covered: [confirmed invoice period or dates]" not in draft["body"]
+    assert drafts.body_contains_backend_status_language(draft["body"]) is False
+
+
+def test_existing_capital_hilton_ready_body_recipe_unchanged():
+    ready = drafts.build_clara_invoice_email_draft_package(
+        client_ref="capital_hilton",
+        workflow_ref="capital_hilton_invoice_workflow",
+        client_display_name="Capital Hilton",
+        recipient_package=drafts.capital_hilton_recipient_package(confirmed=True),
+        attachment_ready=True,
+        attachment_refs=("artifact_ref:linked_excel",),
+        invoice_period_label="May 2026",
+        invoice_dates_covered=("May 1, 2026", "May 8, 2026"),
+        supplier_portal_required=True,
+        supplier_portal_provider="COUPA",
+        portal_submission_status="SUBMITTED_RECEIPT_CONFIRMED",
+        first_contact_intro_required=False,
+        present_receipts=("clara_email_draft_receipt",),
+    )
+
+    assert ready["body"] == (
+        "Hi Annette,\n\n"
+        "Attached is the Excel invoice for your records covering May 1, 2026, May 8, 2026.\n"
+        "The matching invoice has been submitted through the Coupa supplier portal.\n\n"
+        "Best,\n"
+        "Clara Reid"
+    )
+
+
+def test_existing_live_arts_ready_body_recipe_unchanged():
+    ready = drafts.build_clara_invoice_email_draft_package(
+        client_ref="live_arts_md",
+        workflow_ref="live_arts_md_invoice_workflow",
+        client_display_name="Live Arts MD",
+        recipient_package=drafts.live_arts_md_recipient_package(confirmed=True),
+        attachment_ready=True,
+        attachment_refs=("artifact_ref:live_arts_invoice",),
+        invoice_period_label="June 2026 Speaker Rental",
+        supplier_portal_required=False,
+        first_contact_intro_required=True,
+        present_receipts=("clara_email_draft_receipt",),
+    )
+
+    assert ready["body"] == (
+        "Hi Dane - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\n"
+        "Attached is Winship's invoice for June 2026 Speaker Rental.\n"
+        "Please let us know if anything else is needed for processing.\n\n"
+        "Best,\n"
+        "Clara Reid"
+    )
+
+
 def test_capital_hilton_draft_does_not_claim_coupa_submission_without_receipt():
     payload = invoice_review_bundle.build_capital_hilton_bundle()
     draft = payload["clara_invoice_email_draft_package"]
