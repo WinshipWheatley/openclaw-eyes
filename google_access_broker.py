@@ -919,6 +919,7 @@ from workflow_test_mode import (  # noqa: E402
     resolve_send_disposition,
     apply_test_mode_send,
     is_send_class_capability,
+    PROCEED,
     BLOCK_SEND_HOLD,
     TEST_REDIRECT_FLAG,
 )
@@ -935,10 +936,14 @@ def _broker_send_hold_active() -> bool:
         return True  # fail-closed
 
 
-def _resolve_broker_run_mode(params: Mapping[str, Any]) -> tuple[str, str]:
+def _resolve_broker_run_mode() -> tuple[str, str]:
+    """Resolve run-mode from the TRUSTED backend state ONLY. Never from caller-supplied params —
+    a send's authorization (approval-skip + redirect) must not be flippable by request input.
+    Test mode is a deliberate operator/Chief activation (persisted run-mode state). Fail-safe:
+    PRODUCTION on any error, so a real send is never mistaken for a test."""
     try:
         from global_run_mode_context import resolve_run_mode_context, DEFAULT_SQLITE_PATH, PRODUCTION
-        ctx = resolve_run_mode_context(DEFAULT_SQLITE_PATH, params if isinstance(params, Mapping) else {})
+        ctx = resolve_run_mode_context(DEFAULT_SQLITE_PATH, {})  # empty request: no caller-influenced hint
         return str(ctx.get("run_mode") or PRODUCTION), str(ctx.get("test_run_id") or "")
     except Exception:
         return "production", ""
@@ -1009,12 +1014,17 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     if capability == "google.gmail.send" and _gmail_self_test_enabled():
         _gmail_self_test_send = _gmail_send_recipients_allowed(params)
 
-    # Workflow Test Mode: a test-mode send is a safe redirected-to-operator send, so (like a
-    # self-send) it skips the approval gate. Resolve once; fail-safe to PRODUCTION.
-    _wtm_run_mode, _wtm_test_run_id = (
-        _resolve_broker_run_mode(params) if is_send_class_capability(capability) else ("production", "")
+    # Workflow Test Mode: resolve run-mode from the TRUSTED backend state (not params) and compute
+    # the send disposition ONCE. The approval-skip is derived from the SAME decision as the redirect,
+    # so a test-mode send can never skip approval without also being redirected+flagged.
+    _wtm_run_mode, _wtm_test_run_id = _resolve_broker_run_mode() if is_send_class_capability(capability) else ("production", "")
+    _wtm_disposition = (
+        resolve_send_disposition(
+            run_mode=_wtm_run_mode, send_hold_active=_broker_send_hold_active(), is_send_class=True,
+        )
+        if is_send_class_capability(capability) else PROCEED
     )
-    _wtm_test_send = is_send_class_capability(capability) and _wtm_run_mode in ("test_live", "test_dry_run")
+    _wtm_test_send = _wtm_disposition == TEST_REDIRECT_FLAG
 
     if approval_class == "B":
         action = f"Google broker: {agent} → {capability}"
@@ -1047,19 +1057,23 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         _audit(agent, capability, params, False, msg)
         return {"ok": False, "data": None, "error": msg}
 
-    # SEND_HOLD gear-shift at the last gate before the provider send.
+    # SEND_HOLD gear-shift at the last gate before the provider send (reuses the single decision).
     if is_send_class_capability(capability):
-        _disposition = resolve_send_disposition(
-            run_mode=_wtm_run_mode, send_hold_active=_broker_send_hold_active(), is_send_class=True,
-        )
-        if _disposition == BLOCK_SEND_HOLD:
+        if _wtm_disposition == BLOCK_SEND_HOLD:
             msg = "SEND_HOLD is active — broker refuses the send (kill-switch enforced at the broker)."
             _audit(agent, capability, params, False, msg)
             return {"ok": False, "data": {"send_hold_active": True}, "error": msg}
-        if _disposition == TEST_REDIRECT_FLAG:
+        if _wtm_disposition == TEST_REDIRECT_FLAG:
+            _operator_inbox = _operator_test_inbox()
             params = apply_test_mode_send(
-                params, operator_inbox=_operator_test_inbox(), test_run_id=_wtm_test_run_id or "adhoc",
+                params, operator_inbox=_operator_inbox, test_run_id=_wtm_test_run_id or "adhoc",
             )
+            # PART B invariant: a test-mode send that skipped approval MUST have been redirected to
+            # the operator's own inbox before it can proceed. If the redirect did not take, refuse.
+            if str(params.get("to") or "") != _operator_inbox:
+                msg = "test-mode send refused: redirect to operator inbox was not applied."
+                _audit(agent, capability, params, False, msg)
+                return {"ok": False, "data": None, "error": msg}
             _gmail_self_test_send = _gmail_send_recipients_allowed(params)
             _audit(agent, capability, params, True, f"workflow_test_mode_redirect_flag:{_wtm_test_run_id}")
 
