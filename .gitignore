@@ -1315,6 +1315,8 @@ generated/system_knowledge/*.sqlite
 !systemd/user/self-knowledge-crawl.timer.in
 !niles_x32_capability.py
 !tests/test_niles_x32_capability.py
+!niles_stage_plot_ingest.py
+!tests/test_niles_stage_plot_ingest.py
 !guardian_approval_notifier.py
 !tests/test_guardian_approval_notifier.py
 !tests/test_system_question_finance_inference.py

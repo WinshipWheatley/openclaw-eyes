@@ -16,7 +16,7 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from showprofile import build_scene, parse_input_list
 
@@ -121,6 +121,52 @@ def _handle_show_profile(text: str, show_profile_dir: Path) -> dict[str, Any]:
         "Review it, then we load it at the desk — emulator check first, per the house rule."
     )
     return _result("show_profile", "\n".join(lines), [str(out_path)])
+
+
+def handle_stage_plot_email(
+    payload: Mapping[str, Any] | str,
+    *,
+    show_profile_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Build a tier-1 review artifact from an already-received stage-plot email."""
+
+    from niles_stage_plot_ingest import build_show_profile_from_email
+
+    profile = build_show_profile_from_email(payload)
+    if len(profile.channels) < 2:
+        return _result(
+            "show_profile_email",
+            "Niles: I can see the stage-plot email, but I need at least two numbered "
+            "inputs before I build a reviewable X32 scene.",
+        )
+
+    base = Path(show_profile_dir or os.environ.get("NILES_SHOW_PROFILE_DIR", "") or DEFAULT_SHOW_PROFILE_DIR)
+    base.mkdir(parents=True, exist_ok=True)
+    out_path = base / f"{_slug(profile.subject or profile.channels[0]['name'])}-{len(profile.channels)}ch-{time.strftime('%Y%m%d-%H%M%S')}.scn"
+    out_path.write_text(profile.scene_text, encoding="utf-8")
+
+    by_cat: dict[str, int] = {}
+    for channel in profile.channels:
+        category = str(channel.get("category") or "other")
+        by_cat[category] = by_cat.get(category, 0) + 1
+
+    lines = [
+        f"Niles: Built the show profile from the stage-plot email — {len(profile.channels)} channels "
+        f"({', '.join(f'{v} {k}' for k, v in sorted(by_cat.items()))}).",
+        f"Scene file ready for review: {out_path}",
+    ]
+    if profile.monitor_notes:
+        lines.append(
+            "Monitor notes captured for review, not applied to the scene: "
+            + " | ".join(profile.monitor_notes)
+        )
+    if profile.unparsed_lines:
+        lines.append(
+            "Unknown email lines left for human review: "
+            + " | ".join(profile.unparsed_lines)
+        )
+    lines.append("Tier-1 only: no mailbox read, no email send, no socket, no live desk load.")
+    return _result("show_profile_email", "\n".join(lines), [str(out_path)])
 
 
 def _handle_scene_corpus(scene_corpus_dir: Path) -> dict[str, Any]:
@@ -270,4 +316,4 @@ def maybe_handle_x32(
         return None
 
 
-__all__ = ["detect_x32_intent", "maybe_handle_x32", "X32_OSC_PORT"]
+__all__ = ["detect_x32_intent", "handle_stage_plot_email", "maybe_handle_x32", "X32_OSC_PORT"]
