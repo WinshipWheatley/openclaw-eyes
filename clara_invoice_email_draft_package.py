@@ -305,17 +305,241 @@ def _live_arts_md_target_blueprint(
     }
 
 
-def _generic_target_blueprint(
+def _clean_text(value: Any) -> str:
+    return " ".join(str(value or "").strip().split())
+
+
+def _first_present(mapping: Mapping[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = mapping.get(key)
+        if value is not None and _clean_text(value):
+            return value
+    return None
+
+
+def _format_money(value: Any) -> str | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return f"${value:,.2f}"
+    text = _clean_text(value)
+    if not text:
+        return None
+    if text.startswith("$"):
+        try:
+            number = float(text[1:].replace(",", ""))
+        except ValueError:
+            return text
+        return f"${number:,.2f}"
+    try:
+        number = float(text.replace(",", ""))
+    except ValueError:
+        return text
+    return f"${number:,.2f}"
+
+
+def _money_number(value: Any) -> float | None:
+    if value is None or value == "" or isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    text = _clean_text(value).replace("$", "").replace(",", "")
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _natural_join(items: tuple[str, ...]) -> str:
+    if not items:
+        return "the listed work"
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
+
+
+def _line_items_from_invoice_data(invoice_data: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
+    raw_items = _first_present(invoice_data, "line_items", "items", "charges", "events") or ()
+    if isinstance(raw_items, Mapping):
+        raw_items = (raw_items,)
+    items: list[dict[str, Any]] = []
+    iterable_items = raw_items if isinstance(raw_items, (list, tuple)) else ()
+    for raw_item in iterable_items:
+        if not isinstance(raw_item, Mapping):
+            continue
+        event = _first_present(raw_item, "event", "description", "service", "work", "name", "title", "item", "label")
+        date = _first_present(raw_item, "date", "event_date", "service_date", "performed_on", "performance_date")
+        amount = _first_present(raw_item, "amount", "total", "subtotal", "price", "fee")
+        if event or date or amount is not None:
+            items.append({"event": event, "date": date, "amount": amount})
+    return tuple(items)
+
+
+def _format_line_item(item: Mapping[str, Any]) -> str:
+    event = _clean_text(item.get("event"))
+    date = _clean_text(item.get("date"))
+    amount = _format_money(item.get("amount"))
+    description = event or "service"
+    if date:
+        description = f"{description} on {date}"
+    if amount:
+        description = f"{description} ({amount})"
+    return description
+
+
+def _invoice_total(invoice_data: Mapping[str, Any], line_items: tuple[Mapping[str, Any], ...]) -> str | None:
+    total = _first_present(invoice_data, "total", "total_amount", "invoice_total", "balance_due", "amount_due", "amount")
+    if total is not None:
+        return _format_money(total)
+    amounts = [_money_number(item.get("amount")) for item in line_items]
+    numeric_amounts = [amount for amount in amounts if amount is not None]
+    if numeric_amounts and len(numeric_amounts) == len(line_items):
+        return _format_money(sum(numeric_amounts))
+    return None
+
+
+def _contact_greeting(contact: Mapping[str, Any] | None) -> str:
+    if not contact:
+        return "Hello,"
+    name = _first_present(contact, "first_name", "given_name", "name", "display_name", "recipient_name")
+    if not name:
+        return "Hello,"
+    name_text = _clean_text(name)
+    if not name_text or "@" in name_text:
+        return "Hello,"
+    return f"Hi {name_text.split()[0]},"
+
+
+def _general_contact_from_recipient_package(
+    recipient_package: Mapping[str, Any],
+    contact: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if contact:
+        return dict(contact)
+    recipients = tuple(recipient_package.get("to_recipients", ())) + tuple(recipient_package.get("cc_recipients", ()))
+    for recipient in recipients:
+        if not isinstance(recipient, Mapping):
+            continue
+        name = _first_present(recipient, "display_name", "name", "recipient_name", "label")
+        email = _first_present(recipient, "email")
+        if name or email:
+            return {"name": name, "email": email}
+    return {}
+
+
+def _general_recipient_package_with_contact(
+    recipient_package: Mapping[str, Any],
+    invoice_data: Mapping[str, Any],
+    contact: Mapping[str, Any],
+) -> dict[str, Any]:
+    email = _first_present(contact, "email", "email_address", "recipient_email", "to_email")
+    if not email:
+        email = _first_present(invoice_data, "recipient_email", "to_email", "contact_email", "billing_contact_email")
+    name = _first_present(contact, "name", "display_name", "recipient_name", "first_name", "given_name")
+    if not name:
+        name = _first_present(invoice_data, "recipient_name", "contact_name", "billing_contact_name")
+    if not email and not name:
+        return dict(recipient_package)
+
+    to_recipients = [dict(item) for item in recipient_package.get("to_recipients", ()) if isinstance(item, Mapping)]
+    cc_recipients = [dict(item) for item in recipient_package.get("cc_recipients", ()) if isinstance(item, Mapping)]
+    if to_recipients:
+        primary = dict(to_recipients[0])
+        if email and not primary.get("email"):
+            primary["email"] = _clean_text(email)
+            primary["email_status"] = "KNOWN_OPERATOR_PROVIDED"
+            primary["email_invented"] = False
+        if name and not primary.get("display_name"):
+            primary["display_name"] = _clean_text(name)
+        to_recipients[0] = primary
+    else:
+        confirmed = recipient_package.get("recipient_confirmation_status") == "CONFIRMED_BY_RECEIPT"
+        to_recipients.append(
+            _recipient(
+                _clean_text(name) or "Invoice contact",
+                "primary_invoice_contact",
+                "to",
+                email=_clean_text(email) or None,
+                confirmed=confirmed,
+            )
+        )
+    return _recipient_package(tuple(to_recipients + cc_recipients))
+
+
+def _general_invoice_data_from_package_args(
     *,
     client_display_name: str,
+    attachment_ready: bool,
+    invoice_period_label: str | None,
+    invoice_dates_covered: tuple[str, ...],
+    invoice_data: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    data = dict(invoice_data or {})
+    data.setdefault("client_name", client_display_name)
+    data.setdefault("attachment_ready", attachment_ready)
+    if not _line_items_from_invoice_data(data):
+        if invoice_dates_covered:
+            label = invoice_period_label or "invoice work"
+            data["line_items"] = tuple({"event": label, "date": date} for date in invoice_dates_covered)
+        elif invoice_period_label:
+            data["line_items"] = ({"event": invoice_period_label},)
+    return data
+
+
+def build_general_client_invoice_body(invoice_data: Mapping[str, Any], contact: Mapping[str, Any] | None) -> str:
+    """Build a reusable Clara invoice email body for clients without bespoke recipes."""
+    client_name = _clean_text(
+        _first_present(invoice_data, "client_name", "client_display_name", "client", "customer_name")
+    ) or "your organization"
+    line_items = _line_items_from_invoice_data(invoice_data)
+    covered = _natural_join(tuple(_format_line_item(item) for item in line_items))
+    total = _invoice_total(invoice_data, line_items)
+    attachment_filename = _clean_text(
+        _first_present(invoice_data, "attachment_filename", "pdf_filename", "attachment_name", "invoice_pdf_filename")
+    )
+    attachment_ready = invoice_data.get("attachment_ready", True) is not False
+
+    lines = [_contact_greeting(contact), ""]
+    if attachment_ready:
+        attachment_label = f" ({attachment_filename})" if attachment_filename else ""
+        lines.append(f"Attached is Winship's invoice PDF{attachment_label} for {client_name}, covering {covered}.")
+    else:
+        lines.append(f"I have Winship's invoice for {client_name} covering {covered}.")
+    if total:
+        lines.append(f"The total due is {total}.")
+    lines.append("Please let us know if anything else is needed for processing.")
+    lines.extend(("", "Best,", "Clara Reid"))
+    body = "\n".join(lines)
+    if body_contains_backend_status_language(body):
+        raise ValueError("Generated client-facing invoice body contains forbidden status language.")
+    return body
+
+
+def _general_target_blueprint(
+    *,
     subject: str,
+    body_template: str,
+    line_items_present: bool,
+    attachment_ready: bool,
     missing_prerequisites: tuple[str, ...],
 ) -> dict[str, Any]:
-    body_template = (
-        f"Hi [Name] - I'm Clara Reid, helping Winship keep the {client_display_name} invoice organized.\n\n"
-        "Invoice attachment: [confirmed invoice attachment].\n"
-        "Work covered: [confirmed invoice period or dates].\n\n"
-        "Best,\nClara Reid"
+    gated_claims = (
+        {
+            "claim_ref": "general_client_invoice_pdf_attached",
+            "claim": "Invoice PDF is attached.",
+            "allowed": attachment_ready,
+            "required_receipt": "invoice_attachment_confirmed_receipt",
+        },
+        {
+            "claim_ref": "general_client_invoice_line_items",
+            "claim": "Invoice line items, period, or dates are stated.",
+            "allowed": line_items_present,
+            "required_receipt": "invoice_line_items_or_period_confirmed_receipt",
+        },
     )
     return {
         "status": TARGET_BLUEPRINT_NOT_SEND_READY if missing_prerequisites else FINAL_DRAFT_READY_FOR_APPROVAL,
@@ -323,7 +547,7 @@ def _generic_target_blueprint(
         "subject_template": subject,
         "body_template": body_template,
         "unresolved_slots": tuple(missing_prerequisites),
-        "gated_claims": (),
+        "gated_claims": gated_claims,
         "send_ready": False,
     }
 
@@ -374,14 +598,33 @@ def build_clara_invoice_email_draft_package(
     first_contact_intro_policy_ref: str | None = None,
     proof_refs: tuple[str, ...] = (),
     present_receipts: set[str] | tuple[str, ...] | list[str] = (),
+    invoice_data: Mapping[str, Any] | None = None,
+    contact: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     receipts = {str(item) for item in present_receipts}
-    recipients_confirmed = recipient_package.get("recipient_confirmation_status") == "CONFIRMED_BY_RECEIPT"
     clara_receipt_present = "clara_email_draft_receipt" in receipts
     portal_status = portal_submission_status or "NOT_REQUIRED_BY_RECIPE"
     dates = tuple(str(item) for item in invoice_dates_covered if str(item).strip())
+    general_invoice_data = None
+    general_contact = None
+    effective_recipient_package = recipient_package
+    if client_ref not in {"capital_hilton", "live_arts_md"}:
+        general_invoice_data = _general_invoice_data_from_package_args(
+            client_display_name=client_display_name,
+            attachment_ready=attachment_ready,
+            invoice_period_label=invoice_period_label,
+            invoice_dates_covered=dates,
+            invoice_data=invoice_data,
+        )
+        general_contact = _general_contact_from_recipient_package(recipient_package, contact)
+        effective_recipient_package = _general_recipient_package_with_contact(
+            recipient_package,
+            general_invoice_data,
+            general_contact,
+        )
+    recipients_confirmed = effective_recipient_package.get("recipient_confirmation_status") == "CONFIRMED_BY_RECEIPT"
     missing = _missing_prerequisites(
-        recipient_package=recipient_package,
+        recipient_package=effective_recipient_package,
         attachment_ready=attachment_ready,
         invoice_period_label=invoice_period_label,
         invoice_dates_covered=dates,
@@ -423,15 +666,14 @@ def build_clara_invoice_email_draft_package(
             subject=subject,
         )
     else:
-        body = (
-            f"Hi [Name] - I'm Clara Reid, helping Winship keep the {client_display_name} invoice organized.\n\n"
-            "Invoice attachment: [confirmed invoice attachment].\n"
-            "Work covered: [confirmed invoice period or dates].\n\n"
-            "Best,\nClara Reid"
-        )
-        target_blueprint = _generic_target_blueprint(
-            client_display_name=client_display_name,
+        assert general_invoice_data is not None
+        assert general_contact is not None
+        body = build_general_client_invoice_body(general_invoice_data, general_contact)
+        target_blueprint = _general_target_blueprint(
             subject=subject,
+            body_template=body,
+            line_items_present=bool(_line_items_from_invoice_data(general_invoice_data)),
+            attachment_ready=attachment_ready,
             missing_prerequisites=missing,
         )
     send_ready = not missing
@@ -472,9 +714,9 @@ def build_clara_invoice_email_draft_package(
         "target_client_email_blueprint": target_blueprint,
         "client_facing_draft_ready_for_approval": client_facing_ready,
         "sent_email": sent_email,
-        "to_recipients": tuple(recipient_package.get("to_recipients", ())),
-        "cc_recipients": tuple(recipient_package.get("cc_recipients", ())),
-        "recipient_confirmation_status": recipient_package.get("recipient_confirmation_status", "CANDIDATE_UNCONFIRMED"),
+        "to_recipients": tuple(effective_recipient_package.get("to_recipients", ())),
+        "cc_recipients": tuple(effective_recipient_package.get("cc_recipients", ())),
+        "recipient_confirmation_status": effective_recipient_package.get("recipient_confirmation_status", "CANDIDATE_UNCONFIRMED"),
         "recipient_email_invented": False,
         "attachment_refs": tuple(attachment_refs) if attachment_ready else (),
         "attachment_ready": attachment_ready,
