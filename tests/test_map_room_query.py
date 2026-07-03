@@ -1,5 +1,115 @@
+import sqlite3
+
 import pytest
-from map_room_query import lookup_file_territory, map_room_query_status
+from map_room_query import lookup_file_territory, map_room_query_status, query_map_room
+
+
+def _registry_db(tmp_path):
+    db_path = tmp_path / "registry.sqlite"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        create table system_component (
+            component_id text primary key,
+            display_name text not null,
+            component_type text not null,
+            evidence_status text not null,
+            evidence_paths_json text not null,
+            summary text not null,
+            authority_boundary text not null
+        );
+        create table capability (
+            capability_id text primary key,
+            component_id text not null,
+            capability_name text not null,
+            evidence_status text not null,
+            evidence_basis text not null,
+            boundary text not null
+        );
+        create table known_unknown (
+            unknown_id text primary key,
+            subject text not null,
+            unknown_status text not null,
+            reason text not null,
+            next_safe_check text not null
+        );
+        """
+    )
+    conn.execute(
+        "insert into system_component values (?,?,?,?,?,?,?)",
+        (
+            "cassandra",
+            "Cassandra",
+            "operator_agent",
+            "CONFIRMED_LOCAL",
+            '["cassandra_listener.py"]',
+            "Operator communications and guided review.",
+            "No send without gates.",
+        ),
+    )
+    conn.execute(
+        "insert into capability values (?,?,?,?,?,?)",
+        (
+            "cap_map_room_query",
+            "cassandra",
+            "Map Room Query",
+            "CONFIRMED_LOCAL",
+            "tests fixture",
+            "read-only",
+        ),
+    )
+    conn.execute(
+        "insert into known_unknown values (?,?,?,?,?)",
+        (
+            "unknown_live_ledger_shape",
+            "Business ledger shape",
+            "EXPECTED_TABLES_MISSING",
+            "The live ledger table coverage is incomplete in this fixture.",
+            "Check the live registry read-only.",
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return db_path
+
+
+def test_query_map_room_components_from_tmp_sqlite_registry(tmp_path):
+    answer = query_map_room("what components exist?", sqlite_path=_registry_db(tmp_path))
+
+    assert answer["status"] == "ok"
+    assert answer["answer_type"] == "components"
+    assert answer["authority_boundary"]["read_only"] is True
+    assert answer["authority_boundary"]["runtime_mutation"] is False
+    assert answer["items"] == [
+        {
+            "component_id": "cassandra",
+            "display_name": "Cassandra",
+            "component_type": "operator_agent",
+            "evidence_status": "CONFIRMED_LOCAL",
+            "summary": "Operator communications and guided review.",
+            "authority_boundary": "No send without gates.",
+        }
+    ]
+
+
+def test_query_map_room_known_unknowns_from_tmp_sqlite_registry(tmp_path):
+    answer = query_map_room("what known unknowns are recorded?", sqlite_path=_registry_db(tmp_path))
+
+    assert answer["status"] == "ok"
+    assert answer["answer_type"] == "known_unknowns"
+    assert answer["items"][0]["unknown_id"] == "unknown_live_ledger_shape"
+    assert "incomplete" in answer["items"][0]["reason"]
+
+
+def test_query_map_room_missing_or_empty_registry_fails_closed(tmp_path):
+    empty_db = tmp_path / "empty.sqlite"
+    sqlite3.connect(empty_db).close()
+
+    answer = query_map_room("what components exist?", sqlite_path=empty_db)
+
+    assert answer["status"] == "unavailable"
+    assert answer["items"] == []
+    assert "unavailable" in answer["summary"].lower()
 
 def test_status_report_read_only():
     status = map_room_query_status()

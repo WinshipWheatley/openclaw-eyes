@@ -1,7 +1,8 @@
 import json
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 @dataclass
 class FileTerritoryLookup:
@@ -16,6 +17,104 @@ class FileTerritoryLookup:
     manual_review_required: bool
 
 REVIEW_JSON_PATH = Path("reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json")
+SYSTEM_REGISTRY_SQLITE_PATH = Path("generated/system_knowledge/openclaw_system_knowledge_registry.sqlite")
+
+_COMPONENT_COLUMNS = (
+    "component_id",
+    "display_name",
+    "component_type",
+    "evidence_status",
+    "summary",
+    "authority_boundary",
+)
+_CAPABILITY_COLUMNS = (
+    "capability_id",
+    "component_id",
+    "capability_name",
+    "evidence_status",
+    "evidence_basis",
+    "boundary",
+)
+_KNOWN_UNKNOWN_COLUMNS = (
+    "unknown_id",
+    "subject",
+    "unknown_status",
+    "reason",
+    "next_safe_check",
+)
+
+
+def _authority_boundary() -> dict[str, bool]:
+    return {
+        "read_only": True,
+        "runtime_mutation": False,
+        "model_call": False,
+        "external_call": False,
+        "business_action": False,
+    }
+
+
+def _unavailable(question: str, sqlite_path: Path, reason: str) -> dict[str, Any]:
+    return {
+        "status": "unavailable",
+        "query": question,
+        "answer_type": "unavailable",
+        "summary": f"Map-room registry unavailable: {reason}.",
+        "items": [],
+        "source_refs": {"sqlite_path": str(sqlite_path)},
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def _answer_kind(question: str) -> tuple[str, str, tuple[str, ...]]:
+    text = str(question or "").lower()
+    if any(term in text for term in ("unknown", "missing", "doesn't know", "does not know", "not know")):
+        return "known_unknowns", "known_unknown", _KNOWN_UNKNOWN_COLUMNS
+    if "capability" in text or "capabilities" in text:
+        return "capabilities", "capability", _CAPABILITY_COLUMNS
+    return "components", "system_component", _COMPONENT_COLUMNS
+
+
+def _read_registry_rows(sqlite_path: Path, table: str, columns: tuple[str, ...]) -> list[dict[str, Any]] | None:
+    if not sqlite_path.is_file():
+        return None
+    uri = f"file:{sqlite_path.as_posix()}?mode=ro"
+    column_sql = ", ".join(columns)
+    try:
+        with sqlite3.connect(uri, uri=True) as conn:
+            conn.row_factory = sqlite3.Row
+            table_exists = conn.execute(
+                "select 1 from sqlite_master where type = 'table' and name = ?",
+                (table,),
+            ).fetchone()
+            if table_exists is None:
+                return None
+            rows = conn.execute(f"select {column_sql} from {table} order by 1").fetchall()
+    except sqlite3.Error:
+        return None
+    return [dict(row) for row in rows]
+
+
+def query_map_room(
+    question: str,
+    *,
+    sqlite_path: str | Path = SYSTEM_REGISTRY_SQLITE_PATH,
+) -> dict[str, Any]:
+    """Answer system-shape questions from the SQLite registry, read-only."""
+    db_path = Path(sqlite_path)
+    answer_type, table, columns = _answer_kind(question)
+    rows = _read_registry_rows(db_path, table, columns)
+    if not rows:
+        return _unavailable(str(question), db_path, f"no readable rows for {table}")
+    return {
+        "status": "ok",
+        "query": question,
+        "answer_type": answer_type,
+        "summary": f"{len(rows)} {answer_type.replace('_', ' ')} row(s) returned from the system knowledge registry.",
+        "items": rows,
+        "source_refs": {"sqlite_path": str(db_path), "table": table},
+        "authority_boundary": _authority_boundary(),
+    }
 
 def _load_review_data() -> dict:
     if REVIEW_JSON_PATH.exists():
