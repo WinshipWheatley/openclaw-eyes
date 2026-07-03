@@ -24,10 +24,15 @@ CLI:
     python3 chief_guardian_sender.py "message"
 """
 
+import logging
 import os
 import requests
 
 import chief_env
+from secret_log_redaction import redact_secrets
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class GuardianConfigurationError(RuntimeError):
@@ -75,8 +80,13 @@ def send_approval(message: str, reply_markup: dict | None = None) -> None:
     payload: dict = {"chat_id": chat_id, "text": message}
     if reply_markup is not None:
         payload["reply_markup"] = reply_markup
-    response = requests.post(url, json=payload, timeout=15)
-    response.raise_for_status()
+    try:
+        response = requests.post(url, json=payload, timeout=15)
+        response.raise_for_status()
+    except Exception as exc:
+        safe_message = redact_secrets(str(exc))
+        LOGGER.warning("Guardian approval send failed: %s", safe_message)
+        raise RuntimeError(safe_message) from None
 
 
 if __name__ == "__main__":

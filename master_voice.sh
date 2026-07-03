@@ -29,6 +29,10 @@ fi
 WAV=/mnt/c/OpenClaw/logs/master_voice.wav
 OGG=/mnt/c/OpenClaw/logs/master_voice.ogg
 PYV=/home/openclaw/chief_env/bin/python; [ -x "$PYV" ] || PYV=python3
+redact_with_python() {
+  "$PYV" -c 'import sys; sys.path.insert(0, "/home/openclaw"); from secret_log_redaction import redact_secrets; sys.stdout.write(redact_secrets(sys.stdin.read()))' 2>/dev/null \
+    || printf '<redaction unavailable>'
+}
 AGENT="${KOKORO_AGENT:-${OPENCLAW_AGENT:-${AGENT:-maestro}}}"
 VOICE="${KOKORO_VOICE:-}"
 if [ -z "$VOICE" ]; then
@@ -75,15 +79,31 @@ else
   CAP="$(printf '%s\n%s' "$PROV" "🎧 voice note — full text below ⬇️")"; LONG=1
 fi
 
-curl -sS "${API}/sendVoice" \
-  -F chat_id="$CHAT" \
-  -F voice="@${OGG};type=audio/ogg" \
-  --form-string caption="$CAP" \
-  | "$PYV" -c 'import json,sys; d=json.load(sys.stdin); print("voice sent ok:", d.get("ok"), "| msg:", (d.get("result") or {}).get("message_id"), "| err:", d.get("description"))'
+VOICE_RESPONSE="$(mktemp)"
+VOICE_CURL_ERR="$(
+  curl -sS "${API}/sendVoice" \
+    -F chat_id="$CHAT" \
+    -F voice="@${OGG};type=audio/ogg" \
+    --form-string caption="$CAP" \
+    --output "$VOICE_RESPONSE" \
+    2>&1
+)"
+VOICE_CURL_STATUS=$?
+if [ "$VOICE_CURL_STATUS" -ne 0 ]; then
+  printf 'voice send FAILED: ' >&2
+  printf '%s' "$VOICE_CURL_ERR" | redact_with_python >&2
+  printf '\n' >&2
+  rm -f "$VOICE_RESPONSE"
+  exit 7
+fi
+"$PYV" -c 'import json,sys; d=json.load(sys.stdin); print("voice sent ok:", d.get("ok"), "| msg:", (d.get("result") or {}).get("message_id"), "| err:", d.get("description"))' < "$VOICE_RESPONSE"
+rm -f "$VOICE_RESPONSE"
 
 if [ "$LONG" = "1" ]; then
   printf '%s' "$TXT" | "$PYV" -c '
 import sys, os, json, urllib.request, urllib.parse
+sys.path.insert(0, "/home/openclaw")
+from secret_log_redaction import redact_secrets
 txt=sys.stdin.read().strip(); api=os.environ["API"]; chat=os.environ["CHAT"]; LIM=3900
 chunks=[]
 while txt:
@@ -99,6 +119,6 @@ for i,c in enumerate(chunks):
         r=urllib.request.urlopen(api+"/sendMessage",data=data,timeout=20)
         d=json.load(r); print(f"text {i+1}/{len(chunks)} ok:",d.get("ok"),"| err:",d.get("description"))
     except Exception as e:
-        print(f"text {i+1} FAILED:",e)
+        print(f"text {i+1} FAILED:",redact_secrets(str(e)))
 '
 fi
