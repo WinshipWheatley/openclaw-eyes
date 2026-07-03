@@ -1334,3 +1334,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_guardian_approval_humanizer.py
 !tests/test_guardian_approval_board.py
 !tests/test_guardian_notifier_board_integration.py
+!tests/test_guardian_board_actionable_only.py
