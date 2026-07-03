@@ -695,9 +695,11 @@
 !scripts/generate_operator_status.py
 !scripts/green_gate.sh
 !scripts/pre-push.hook
+!scripts/openclaw_fleet_autoscaler.py
 !scripts/probe_capability_heartbeat.py
 !scripts/export_capability_heartbeat_read_model.py
 !tests/test_green_gate_script.py
+!tests/test_openclaw_fleet_autoscaler.py
 !tests/test_capability_heartbeat_probe.py
 !tests/test_capability_heartbeat_export.py
 !scripts/generate_agent_context.py
