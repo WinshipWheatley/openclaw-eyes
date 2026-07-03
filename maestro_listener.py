@@ -948,6 +948,47 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 pass
 
 
+def _ocr_read_document(image_path) -> dict | None:
+    """Local OCR pre-read of a snapped document (checks etc.). Fail-soft: returns None on
+    any error so the normal image path is never broken. Operator ask 2026-07-03: the SYSTEM
+    should read the check, not just store it."""
+    try:
+        import document_ocr_intake as _ocr
+        result = _ocr.read_document(image_path)
+        if result.get("status") == "read" and result.get("doc_type") == "check":
+            return result
+    except Exception as exc:
+        print(f"[maestro_listener] ocr pre-read skipped: {exc.__class__.__name__}", flush=True)
+    return None
+
+
+def _capture_check_evidence(result: dict, image_path, caption: str) -> None:
+    """Write a governed payment-evidence record from OCR facts. Never posts to the ledger
+    (money-write stays gated); this is evidence intake only. Fail-soft."""
+    try:
+        import json as _json
+        import document_ocr_intake as _ocr
+        from datetime import datetime, timezone
+        c = result.get("check", {})
+        stamp = _now_utc_compact() if "_now_utc_compact" in globals() else ""
+        ev_dir = Path("/home/openclaw/Operator/finance-evidence")
+        ev_dir.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "captured_by": "maestro_listener.ocr_intake",
+            "source": "operator_telegram_photo",
+            "image_path": str(image_path),
+            "caption": caption,
+            "ledger_posted": False,
+            "note": "OCR evidence only; ledger money-write remains gated + operator-approved.",
+            "check_facts": c,
+            "operator_summary": _ocr.summarize_for_operator(result),
+        }
+        out = ev_dir / f"ocr_check_evidence_{_safe_filename_part(str(image_path).split('/')[-2] or 'doc')}.json"
+        out.write_text(_json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception as exc:
+        print(f"[maestro_listener] check evidence capture skipped: {exc.__class__.__name__}", flush=True)
+
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
@@ -982,6 +1023,16 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         image_path = intake_dir / f"telegram_image{suffix}"
         telegram_file = await media.get_file()
         await telegram_file.download_to_drive(str(image_path))
+        # Local OCR pre-read: if it's a check/financial doc, the SYSTEM reads it (not just stores it).
+        _ocr_result = await asyncio.to_thread(_ocr_read_document, image_path)
+        _ocr_summary = ""
+        if _ocr_result is not None:
+            await asyncio.to_thread(_capture_check_evidence, _ocr_result, image_path, caption)
+            try:
+                import document_ocr_intake as _ocr_mod
+                _ocr_summary = _ocr_mod.summarize_for_operator(_ocr_result)
+            except Exception:
+                _ocr_summary = ""
         request = await asyncio.to_thread(
             build_operator_maestro_image_request,
             image_path,
@@ -997,6 +1048,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         write_bridge_request(request)
         response = await poll_bridge_response(request_id_for_reply)
         _maestro_photo_reply = reply_text_from_bridge_response(response, request_id=request_id_for_reply)
+        if _ocr_summary:
+            _maestro_photo_reply = _ocr_summary + "\n\n" + _maestro_photo_reply
         await update.message.reply_text(_maestro_photo_reply)
         _fire_maestro_voice(_maestro_photo_reply, chat_id)
     except Exception as exc:

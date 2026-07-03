@@ -1320,3 +1320,6 @@ generated/system_knowledge/*.sqlite
 !secure_drop.py
 !tests/test_secure_drop.py
 !scripts/secure_drop_popup.sh
+!document_ocr_intake.py
+!tests/test_document_ocr_intake.py
+!tests/fixtures/check_ocr.txt
