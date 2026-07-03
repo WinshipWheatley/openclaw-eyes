@@ -1317,3 +1317,6 @@ generated/system_knowledge/*.sqlite
 !tests/test_niles_taste_dna.py
 !tests/test_team_roster_intent.py
 !tests/test_maestro_listener_voice.py
+!secure_drop.py
+!tests/test_secure_drop.py
+!scripts/secure_drop_popup.sh
