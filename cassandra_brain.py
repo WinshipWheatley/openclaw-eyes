@@ -5863,6 +5863,74 @@ _MONTH_MAP = {
     "september": "09", "october": "10", "november": "11", "december": "12",
 }
 
+_INVOICE_LINE_ITEM_PATTERN = re.compile(
+    r"(?P<description>[A-Za-z][^;$\n]{1,80}?)"
+    r"\s+(?:on\s+)?"
+    r"(?P<date>"
+    r"\d{4}-\d{2}-\d{2}"
+    r"|\d{1,2}/\d{1,2}/\d{4}"
+    r"|(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}"
+    r")"
+    r"\s+\$?\s*(?P<amount>\d[\d,]*(?:\.\d{1,2})?)",
+    re.I,
+)
+
+
+def _normalize_invoice_date(value: str) -> str:
+    value = value.strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return value
+    if re.fullmatch(r"\d{1,2}/\d{1,2}/\d{4}", value):
+        month, day, year = value.split("/")
+        return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+    m = re.fullmatch(
+        r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})",
+        value,
+        re.I,
+    )
+    if m:
+        month = _MONTH_MAP[m.group(1).lower()]
+        day = m.group(2).zfill(2)
+        return f"{datetime.now().year}-{month}-{day}"
+    return value
+
+
+def _extract_invoice_client_name(text: str) -> str | None:
+    st_annes = re.search(r"\b(?:for|to)\s+St\.?\s+Anne'?s\b", text, re.I)
+    if st_annes:
+        return "St. Anne's"
+
+    m = re.search(
+        r"\b(?:for|to)\s+([A-Z][a-zA-Z'.&-]+(?:\s+[A-Z][a-zA-Z'.&-]+){0,3})",
+        text,
+    )
+    if m:
+        return m.group(1).strip(" .,:;")
+    return None
+
+
+def _extract_invoice_line_items(text: str) -> list[dict[str, Any]]:
+    m = re.search(r"\bline items?\b[:\s-]*(.+)", text, re.I)
+    candidate = m.group(1) if m else text.split(":", 1)[1] if ":" in text else text
+    line_items: list[dict[str, Any]] = []
+
+    for match in _INVOICE_LINE_ITEM_PATTERN.finditer(candidate):
+        description = re.sub(
+            r"^(?:\s|,|;|-|and\b|plus\b)+",
+            "",
+            match.group("description").strip(),
+            flags=re.I,
+        ).strip(" ,;:-")
+        if not description:
+            continue
+        line_items.append({
+            "description": description,
+            "service_date": _normalize_invoice_date(match.group("date")),
+            "amount": float(match.group("amount").replace(",", "")),
+        })
+
+    return line_items if len(line_items) > 1 else []
+
 
 def _detect_invoice_intent(text: str) -> bool:
     """Return True if any invoice intent pattern matches."""
@@ -5879,10 +5947,7 @@ def _parse_invoice_details(text: str) -> dict | None:
     t = text
 
     # client_name: "for [Name]" or "to [Name]"
-    client_name = None
-    m = re.search(r"\b(?:for|to)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){0,3})", t)
-    if m:
-        client_name = m.group(1).strip()
+    client_name = _extract_invoice_client_name(t)
 
     # project_desc: look for "for [desc]" — prefer descriptions that look like events
     project_desc = ""
@@ -5894,15 +5959,22 @@ def _parse_invoice_details(text: str) -> dict | None:
         # If it looks like a name (titlecase, 1-3 words) use it as desc too
         project_desc = candidate
 
+    line_items = _extract_invoice_line_items(t)
+    if line_items:
+        project_desc = "; ".join(item["description"] for item in line_items)
+
     # amount_total: "$NNN" or "NNN dollars" or "NNN bucks"
     amount_total = None
-    m3 = re.search(r"\$\s*(\d[\d,]*(?:\.\d{1,2})?)", t)
-    if m3:
-        amount_total = float(m3.group(1).replace(",", ""))
+    if line_items:
+        amount_total = sum(float(item["amount"]) for item in line_items)
     else:
-        m3b = re.search(r"\b(\d[\d,]*(?:\.\d{1,2})?)\s+(?:dollars?|bucks?)\b", t, re.I)
-        if m3b:
-            amount_total = float(m3b.group(1).replace(",", ""))
+        m3 = re.search(r"\$\s*(\d[\d,]*(?:\.\d{1,2})?)", t)
+        if m3:
+            amount_total = float(m3.group(1).replace(",", ""))
+        else:
+            m3b = re.search(r"\b(\d[\d,]*(?:\.\d{1,2})?)\s+(?:dollars?|bucks?)\b", t, re.I)
+            if m3b:
+                amount_total = float(m3b.group(1).replace(",", ""))
 
     # deposit_paid: "deposit" followed by an amount
     deposit_paid = 0.0
@@ -5912,32 +5984,38 @@ def _parse_invoice_details(text: str) -> dict | None:
 
     # service_date: YYYY-MM-DD, MM/DD/YYYY, or "Month DD"
     service_date = "TBD"
-    m5 = _INVOICE_DATE_PATTERNS[0].search(t)
-    if m5:
-        service_date = m5.group(1)
+    if line_items:
+        service_date = str(line_items[0]["service_date"])
     else:
-        m5b = _INVOICE_DATE_PATTERNS[1].search(t)
-        if m5b:
-            parts = m5b.group(1).split("/")
-            service_date = f"{parts[2]}-{parts[0].zfill(2)}-{parts[1].zfill(2)}"
+        m5 = _INVOICE_DATE_PATTERNS[0].search(t)
+        if m5:
+            service_date = m5.group(1)
         else:
-            m5c = _INVOICE_DATE_PATTERNS[2].search(t)
-            if m5c:
-                month = _MONTH_MAP[m5c.group(1).lower()]
-                day   = m5c.group(2).zfill(2)
-                year  = datetime.now().year
-                service_date = f"{year}-{month}-{day}"
+            m5b = _INVOICE_DATE_PATTERNS[1].search(t)
+            if m5b:
+                parts = m5b.group(1).split("/")
+                service_date = f"{parts[2]}-{parts[0].zfill(2)}-{parts[1].zfill(2)}"
+            else:
+                m5c = _INVOICE_DATE_PATTERNS[2].search(t)
+                if m5c:
+                    month = _MONTH_MAP[m5c.group(1).lower()]
+                    day   = m5c.group(2).zfill(2)
+                    year  = datetime.now().year
+                    service_date = f"{year}-{month}-{day}"
 
     if client_name is None or amount_total is None:
         return None
 
-    return {
+    details = {
         "client_name":  client_name,
         "project_desc": project_desc or f"Services for {client_name}",
         "amount_total": amount_total,
         "deposit_paid": deposit_paid,
         "service_date": service_date,
     }
+    if line_items:
+        details["line_items"] = line_items
+    return details
 
 
 def _handle_create_invoice(text: str, state: dict) -> str | None:
@@ -5983,6 +6061,8 @@ def _handle_create_invoice(text: str, state: dict) -> str | None:
             "deposit_paid":   deposit_paid,
             "balance_due":    balance_due,
         }
+        if parsed.get("line_items"):
+            data["line_items"] = parsed["line_items"]
 
         pdf_path = generate_invoice_pdf(data)
         data["pdf_path"] = pdf_path
