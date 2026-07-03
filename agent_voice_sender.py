@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 import os
 from pathlib import Path
 import shutil
@@ -15,12 +16,14 @@ import requests
 import chief_env  # noqa: F401 - loads .chief.env into os.environ when available
 from agent_kokoro_voice import synth_kokoro_wav, voice_for_agent
 from chief_output_utils import tts_clean  # noqa: F401 - kept for back-compat
+from secret_log_redaction import redact_secrets
 from speech_render import to_speech_text
 
 
 FIRST_CLASS_AGENTS = ("maestro", "cassandra", "chief", "guardian", "niles", "hermes")
 DEFAULT_WAV_DIR = Path("/mnt/c/OpenClaw/logs")
 MAX_AGENT_VOICE_CHARS = 800
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -149,6 +152,10 @@ def _send_telegram_voice_note(agent: str, audio_path: str, *, chat_id: str | int
             )
         response.raise_for_status()
         return target_chat
+    except Exception as exc:
+        safe_message = redact_secrets(str(exc))
+        LOGGER.warning("Telegram voice send failed for %s: %s", agent, safe_message)
+        raise RuntimeError(safe_message) from None
     finally:
         if ogg_path and os.path.exists(ogg_path):
             try:
@@ -188,6 +195,8 @@ def send_agent_voice_note(
             token_env=token_env,
         )
     except Exception as exc:
+        safe_message = redact_secrets(str(exc))
+        LOGGER.warning("Agent voice delivery failed for %s: %s", receipt.agent, safe_message)
         return AgentVoiceReceipt(
             receipt.agent,
             receipt.voice,
@@ -195,7 +204,7 @@ def send_agent_voice_note(
             True,
             sent=False,
             chat_id=str(chat_id) if chat_id is not None else None,
-            error=str(exc),
+            error=safe_message,
         )
 
 
