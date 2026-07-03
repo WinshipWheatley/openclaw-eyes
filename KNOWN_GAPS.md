@@ -48,7 +48,7 @@ _Generated: 2026-03-17 | Based on actual repo audit — reflects real state, not
 6. `source ~/chief_env/bin/activate && python3 /home/openclaw/google_access_broker.py --auth`
 7. `chmod 600 /home/openclaw/.google-secrets/token.json`
 
-**After manual steps:** Return to Claude Code — Phase 3 live wiring (uncomment executor, refactor _fetch_events, live test, retire legacy auth) must run in a Claude Code session.
+**After manual steps:** Return to the MASTER/operator path for Phase 3 live wiring. Worker lanes must not handle Google credentials or run broker auth directly.
 
 ---
 
@@ -57,7 +57,7 @@ _Generated: 2026-03-17 | Based on actual repo audit — reflects real state, not
 **Files:** `chief_email_brain.py`, `chief_sms_brain.py`
 **State:** `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `TWILIO_*` env vars not present in `.chief.env` (confirmed by env dependency table)
 **Impact:** Email/SMS brains operate in draft-only mode. Drafts are logged but not sent.
-**Fix path:** Add credentials to `/home/openclaw/.chief.env` when live sending is needed.
+**Fix path:** MASTER/operator-only: add credentials to `/home/openclaw/.chief.env` when live sending is needed, and keep SEND_HOLD in force until explicitly lifted. Worker lanes must not inspect, print, or modify those credentials.
 
 ---
 
