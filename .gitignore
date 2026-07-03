@@ -1345,3 +1345,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_guardian_board_actionable_only.py
 !workflow_test_mode.py
 !tests/test_workflow_test_mode_disposition.py
+!tests/test_broker_workflow_test_mode_wiring.py

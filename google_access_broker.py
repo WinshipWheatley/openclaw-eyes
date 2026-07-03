@@ -910,6 +910,51 @@ def _exec_not_implemented(capability: str) -> dict:
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
+# ── Workflow Test Mode / SEND_HOLD gear-shift (Phase 1) ───────────────────────
+# The broker is the LAST gate before the Google API call. It consults ONE policy
+# (workflow_test_mode): PRODUCTION+SEND_HOLD => refuse; TEST mode => redirect the send to the
+# operator's own inbox + flag it (the safe channel). Fail-safe: run-mode unknown => PRODUCTION;
+# SEND_HOLD unreadable => treated as active (fail-closed).
+from workflow_test_mode import (  # noqa: E402
+    resolve_send_disposition,
+    apply_test_mode_send,
+    is_send_class_capability,
+    BLOCK_SEND_HOLD,
+    TEST_REDIRECT_FLAG,
+)
+
+
+def _broker_send_hold_active() -> bool:
+    try:
+        override = os.environ.get("OPENCLAW_SEND_HOLD_PATH")
+        if override:
+            return Path(override).is_file()
+        from email_send_executor import DEFAULT_SEND_HOLD_PATH
+        return Path(DEFAULT_SEND_HOLD_PATH).is_file()
+    except Exception:
+        return True  # fail-closed
+
+
+def _resolve_broker_run_mode(params: Mapping[str, Any]) -> tuple[str, str]:
+    try:
+        from global_run_mode_context import resolve_run_mode_context, DEFAULT_SQLITE_PATH, PRODUCTION
+        ctx = resolve_run_mode_context(DEFAULT_SQLITE_PATH, params if isinstance(params, Mapping) else {})
+        return str(ctx.get("run_mode") or PRODUCTION), str(ctx.get("test_run_id") or "")
+    except Exception:
+        return "production", ""
+
+
+def _operator_test_inbox() -> str:
+    try:
+        from cassandra_email_config import get_review_inbox
+        inbox = get_review_inbox()
+        if inbox:
+            return inbox
+    except Exception:
+        pass
+    return sorted(_GMAIL_SELF_TEST_RECIPIENTS)[0]
+
+
 def call(agent: str, capability: str, params: dict | None = None) -> dict:
     """
     Request Google API access on behalf of an agent.
@@ -964,6 +1009,13 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     if capability == "google.gmail.send" and _gmail_self_test_enabled():
         _gmail_self_test_send = _gmail_send_recipients_allowed(params)
 
+    # Workflow Test Mode: a test-mode send is a safe redirected-to-operator send, so (like a
+    # self-send) it skips the approval gate. Resolve once; fail-safe to PRODUCTION.
+    _wtm_run_mode, _wtm_test_run_id = (
+        _resolve_broker_run_mode(params) if is_send_class_capability(capability) else ("production", "")
+    )
+    _wtm_test_send = is_send_class_capability(capability) and _wtm_run_mode in ("test_live", "test_dry_run")
+
     if approval_class == "B":
         action = f"Google broker: {agent} → {capability}"
         if not _request_approval(action, tier=1, approval_context=params.get("approval_context")):
@@ -971,7 +1023,7 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
             return {"ok": False, "data": None, "error": "denied at L1 approval gate"}
     elif approval_class == "C":
         action = f"Google broker: {agent} → {capability}"
-        if not exact_send_gate_verified and not _gmail_self_test_send and not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
+        if not exact_send_gate_verified and not _gmail_self_test_send and not _wtm_test_send and not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
             _audit(agent, capability, params, False, "denied at L2")
             return {"ok": False, "data": None, "error": "denied at L2 approval gate"}
 
@@ -994,6 +1046,22 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         msg = "credentials present but could not be loaded — re-run --auth"
         _audit(agent, capability, params, False, msg)
         return {"ok": False, "data": None, "error": msg}
+
+    # SEND_HOLD gear-shift at the last gate before the provider send.
+    if is_send_class_capability(capability):
+        _disposition = resolve_send_disposition(
+            run_mode=_wtm_run_mode, send_hold_active=_broker_send_hold_active(), is_send_class=True,
+        )
+        if _disposition == BLOCK_SEND_HOLD:
+            msg = "SEND_HOLD is active — broker refuses the send (kill-switch enforced at the broker)."
+            _audit(agent, capability, params, False, msg)
+            return {"ok": False, "data": {"send_hold_active": True}, "error": msg}
+        if _disposition == TEST_REDIRECT_FLAG:
+            params = apply_test_mode_send(
+                params, operator_inbox=_operator_test_inbox(), test_run_id=_wtm_test_run_id or "adhoc",
+            )
+            _gmail_self_test_send = _gmail_send_recipients_allowed(params)
+            _audit(agent, capability, params, True, f"workflow_test_mode_redirect_flag:{_wtm_test_run_id}")
 
     if capability == "google.gmail.send" and _gmail_self_test_enabled() and not _gmail_self_test_send:
         msg = ("gmail self-test mode: agents may only send to "
