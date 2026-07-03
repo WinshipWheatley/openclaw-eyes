@@ -2,6 +2,9 @@
 !/.gitignore
 !/requirements-gmail-readonly.txt
 !/requirements-openclaw-api.txt
+!/requirements-dev.txt
+!/requirements.lock
+!/tests/test_dependency_hash_lock.py
 
 # ALLOWLIST MODEL: everything is blocked by * above.
 # Only explicitly listed !file entries are tracked.

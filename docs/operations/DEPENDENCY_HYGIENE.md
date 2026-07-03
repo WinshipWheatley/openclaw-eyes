@@ -34,3 +34,14 @@ Circular imports (A imports B, B imports A) are strictly prohibited.
 ## 5. Execution vs. Transport
 
 - **No Decisions in Transport**: Modules responsible for delivery (`cassandra_sender.py`, `cassandra_voice.py`) must NOT make logical decisions about whether to send a message. All gating (focus mode, approval check) must happen in the Brain/Scheduler layer BEFORE calling the transport module.
+
+## 6. Hash-Locked Installs
+
+- `requirements.lock` is the supply-chain-hardened install surface for the tracked Python requirement inputs.
+- Install from it with hash verification enabled:
+
+```bash
+python -m pip install --require-hashes -r requirements.lock
+```
+
+- Regenerate it only from the existing requirement inputs and the current resolved environment, using hash generation enabled. Do not silently upgrade or downgrade dependency versions during lock refreshes.
