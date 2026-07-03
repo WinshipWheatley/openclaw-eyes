@@ -15,6 +15,32 @@ GMAIL_CAPABILITIES = (
     "google.gmail.send",
 )
 
+CALENDAR_SCHEDULER_AGENTS = ("cassandra", "niles", "maestro", "chief")
+
+
+def test_policy_has_no_wildcard_agent_grants():
+    import google_access_policy as policy
+
+    for capability, agent_policy in policy._POLICY.items():
+        assert "*" not in agent_policy, f"{capability} must enumerate agents explicitly"
+
+
+def test_unknown_agents_fail_closed_for_google_capabilities():
+    import google_access_policy as policy
+
+    for capability in policy._POLICY:
+        assert policy.allowed("unknown", capability) is False
+        assert policy.get_class("unknown", capability) is policy.DENIED
+
+
+def test_calendar_read_write_stays_broad_for_scheduler_agents_delete_guardian_gated():
+    import google_access_policy as policy
+
+    for agent in CALENDAR_SCHEDULER_AGENTS:
+        assert policy.get_class(agent, "google.calendar.read") == policy.CLASS_A
+        assert policy.get_class(agent, "google.calendar.write") == policy.CLASS_A
+        assert policy.get_class(agent, "google.calendar.delete") == policy.CLASS_C
+
 
 def test_cassandra_gmail_authority_classes_match_intended_policy():
     import google_access_policy as policy
