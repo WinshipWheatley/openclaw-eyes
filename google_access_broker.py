@@ -45,7 +45,9 @@ Public API:
 """
 
 import json
+import hashlib
 import os
+import stat as _stat
 import sys
 import importlib
 from datetime import datetime, timedelta
@@ -774,6 +776,58 @@ def _exec_contacts_read(creds, params: dict) -> dict:
         return {"ok": False, "data": None, "error": str(e)}
 
 
+def _attachment_allowed_roots() -> list[Path]:
+    roots = [Path(os.environ.get("OPENCLAW_INVOICES_DIR", "/home/openclaw/state/invoices"))]
+    extra = os.environ.get("OPENCLAW_ATTACHMENT_ALLOWED_DIRS", "")
+    roots += [Path(r) for r in extra.split(":") if r.strip()]
+    out = []
+    for r in roots:
+        try:
+            out.append(r.resolve())
+        except Exception:
+            pass
+    return out
+
+
+_MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024  # Gmail's attachment ceiling; also a DoS/OOM bound.
+
+
+class _AttachmentError(Exception):
+    """Raised when an attachment fails the bounded, TOCTOU-safe read."""
+
+
+def _read_validated_attachment(path: str) -> tuple[bytes, str]:
+    """TOCTOU-safe: open the fd ONCE with O_NOFOLLOW, fstat it (regular file + size bound), verify
+    THAT fd's real path is a .pdf under the allowlisted invoices dir, then read from the SAME fd.
+    The bytes returned are exactly what was validated — no re-open, no re-resolve, so a swap
+    between check and use cannot substitute a different file. Raises _AttachmentError on anything off."""
+    try:
+        fd = os.open(str(path), os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError as exc:
+        raise _AttachmentError(f"attachment not readable ({exc.__class__.__name__})")
+    try:
+        st = os.fstat(fd)
+        if not _stat.S_ISREG(st.st_mode):
+            raise _AttachmentError("attachment is not a regular file")
+        if st.st_size > _MAX_ATTACHMENT_BYTES:
+            raise _AttachmentError("attachment exceeds the 25MB size limit")
+        try:
+            real = Path(os.readlink(f"/proc/self/fd/{fd}")).resolve()
+        except OSError:
+            real = Path(str(path)).resolve()
+        if real.suffix.lower() != ".pdf":
+            raise _AttachmentError("attachment must be a PDF")
+        roots = _attachment_allowed_roots()
+        if not any(real == r or r in real.parents for r in roots):
+            raise _AttachmentError("attachment is outside the allowlisted invoices directory")
+        data = os.read(fd, st.st_size)
+        if len(data) != st.st_size:
+            raise _AttachmentError("attachment changed during read")
+        return data, real.name
+    finally:
+        os.close(fd)
+
+
 def _exec_gmail_send(creds, params: dict) -> dict:
     """
     Send an email via the Gmail API.
@@ -800,6 +854,30 @@ def _exec_gmail_send(creds, params: dict) -> dict:
     if not to or not subject or not body:
         return {"ok": False, "data": None, "error": "to, subject, and body are all required"}
 
+    attachments = params.get("attachments")
+    if not attachments and params.get("attachment_path"):
+        attachments = [params["attachment_path"]]
+    attachments = [str(a) for a in (attachments or []) if str(a).strip()]
+    expected_digests = params.get("attachment_sha256") or []
+    _attachment_blobs: list[tuple[bytes, str]] = []
+    for _a in attachments:
+        try:
+            _data, _name = _read_validated_attachment(_a)  # PDF / allowlist / size / TOCTOU checks
+        except _AttachmentError as _exc:
+            return {"ok": False, "data": None, "error": f"attachment rejected: {_exc}"}
+        _attachment_blobs.append((_data, _name))
+    # Integrity is FAIL-CLOSED (strict parity): once the files are valid, EVERY attachment MUST carry
+    # a non-empty approved sha256 that matches its bytes. A caller cannot skip the check by omitting
+    # the digests, and cannot swap/add an attachment the operator never approved.
+    if attachments and (len(expected_digests) != len(attachments)
+                        or not all(str(_d).strip() for _d in expected_digests)):
+        return {"ok": False, "data": None,
+                "error": "attachment rejected: each attachment must carry an approved sha256"}
+    for _i, (_data, _name) in enumerate(_attachment_blobs):
+        if hashlib.sha256(_data).hexdigest() != str(expected_digests[_i]):
+            return {"ok": False, "data": None,
+                    "error": "attachment rejected: content does not match the approved attachment"}
+
     try:
         import base64
         from email.mime.text import MIMEText
@@ -807,7 +885,17 @@ def _exec_gmail_send(creds, params: dict) -> dict:
 
         service = build("gmail", "v1", credentials=creds)
 
-        msg = MIMEText(body, "plain", "utf-8")
+        if attachments:
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.application import MIMEApplication
+            msg = MIMEMultipart()
+            msg.attach(MIMEText(body, "plain", "utf-8"))
+            for _blob, _name in _attachment_blobs:
+                _part = MIMEApplication(_blob, _subtype="pdf")
+                _part.add_header("Content-Disposition", "attachment", filename=_name)
+                msg.attach(_part)
+        else:
+            msg = MIMEText(body, "plain", "utf-8")
         msg["to"]      = to
         if cc:
             msg["cc"] = cc

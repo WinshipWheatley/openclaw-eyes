@@ -257,23 +257,33 @@ def send_email_via_google_broker(
     approval_state: Mapping[str, Any] | None = None,
     packet_id: str = "",
 ) -> dict[str, Any]:
-    """Invoke the central Google broker for a plain-text Gmail send."""
+    """Invoke the central Google broker for a Gmail send (optionally with a PDF attachment)."""
 
+    attachments: list[str] = []
+    attachment_digests: list[str] = []
     if attachment_path:
-        return {
-            "ok": False,
-            "data": None,
-            "error": "Gmail broker send does not support attachments; use the invoice Square rail",
-        }
+        from google_access_broker import _read_validated_attachment, _AttachmentError
+        try:
+            _data, _ = _read_validated_attachment(str(attachment_path))
+        except _AttachmentError as _exc:
+            return {"ok": False, "data": None, "error": f"attachment rejected: {_exc}"}
+        attachments = [str(attachment_path)]
+        attachment_digests = [hashlib.sha256(_data).hexdigest()]
     payload = normalize_email_outbound_payload(
         {"to": to, "subject": subject, "body": body, "attachment_path": None}
     )
-    request_id = packet_id or f"email_send:{_payload_hash(payload)}"
+    _base_hash = _payload_hash(payload)
+    # Bind the attachment content into the approved hash, so an approved benign body can NEVER
+    # carry a swapped-in attachment the operator never saw (the hash changes with the attachment).
+    _bound_hash = _base_hash if not attachment_digests else hashlib.sha256(
+        ("|".join([_base_hash, *attachment_digests])).encode("utf-8")
+    ).hexdigest()
+    request_id = packet_id or f"email_send:{_bound_hash}"
     approval_context = {
         "exact_send_gate": True,
         "request_id": request_id,
         "idempotency_key": request_id,
-        "payload_hash": _payload_hash(payload),
+        "payload_hash": _bound_hash,
         "authority_refs": [
             str((approval_state or {}).get("packet_hash") or "agent_work_packet_g3")
         ],
@@ -281,18 +291,18 @@ def send_email_via_google_broker(
     }
     from google_access_broker import call
 
-    return call(
-        "cassandra",
-        "google.gmail.send",
-        {
-            "to": payload["to"],
-            "subject": payload["subject"],
-            "body": payload["body"],
-            "exact_send_request_id": request_id,
-            "idempotency_key": request_id,
-            "approval_context": approval_context,
-        },
-    )
+    _send_params = {
+        "to": payload["to"],
+        "subject": payload["subject"],
+        "body": payload["body"],
+        "exact_send_request_id": request_id,
+        "idempotency_key": request_id,
+        "approval_context": approval_context,
+    }
+    if attachments:
+        _send_params["attachments"] = attachments
+        _send_params["attachment_sha256"] = attachment_digests
+    return call("cassandra", "google.gmail.send", _send_params)
 
 
 def _provider_result_ok(result: Any) -> bool:

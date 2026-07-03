@@ -1347,3 +1347,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_workflow_test_mode_disposition.py
 !tests/test_broker_workflow_test_mode_wiring.py
 !tests/test_executor_test_mode_send_hold.py
+!tests/test_gmail_attachment_support.py
