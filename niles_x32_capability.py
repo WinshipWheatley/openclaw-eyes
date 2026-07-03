@@ -28,6 +28,22 @@ _DESK_MARKERS = ("x32", "the desk", "mixer", "soundcheck", "monitor desk")
 _SETUP_MARKERS = ("set up", "setup", "prep", "flow", "configure", "get ready", "ready")
 _STATUS_MARKERS = ("connected", "status", "online", "reachable", "reach", "check the")
 _PROFILE_MARKERS = ("input list", "stage plot", "show profile", "patch list")
+_RIG_KB_MARKERS = (
+    "rig",
+    "routing",
+    "route",
+    "gear",
+    "channel",
+    "channels",
+    "stagebox",
+    "stage box",
+    "dl16",
+    "dl32",
+    "aes50",
+    "patch",
+    "monitor routing",
+    "iem",
+)
 
 
 def _parsed_channels(text: str) -> list[dict[str, Any]]:
@@ -46,6 +62,8 @@ def detect_x32_intent(text: str) -> str | None:
         return "show_profile"
     if "scene corpus" in lowered or "analyze the scenes" in lowered or "foundational profile" in lowered:
         return "scene_corpus"
+    if any(marker in lowered for marker in _RIG_KB_MARKERS):
+        return "rig_knowledge"
     has_desk = any(marker in lowered for marker in _DESK_MARKERS)
     if not has_desk:
         return None
@@ -127,6 +145,71 @@ def _handle_scene_corpus(scene_corpus_dir: Path) -> dict[str, Any]:
     )
 
 
+def _device_blob(device: Any) -> str:
+    fields = (
+        getattr(device, "device_id", ""),
+        getattr(device, "manufacturer", ""),
+        getattr(device, "model_name", ""),
+        getattr(device, "role", ""),
+        getattr(device, "gig_role", ""),
+        getattr(device, "notes", ""),
+    )
+    return " ".join(str(field).lower() for field in fields)
+
+
+def _handle_rig_knowledge(text: str) -> dict[str, Any]:
+    from niles_rig_kb import device_summary_lines, seed_devices, x32_control_summary_lines
+
+    lowered = str(text or "").lower()
+    devices = seed_devices()
+
+    if any(term in lowered for term in ("stagebox", "stage box", "dl16", "dl32", "aes50")):
+        stage_devices = [device for device in devices if any(term in _device_blob(device) for term in ("stage", "dl16", "dl32", "aes50"))]
+        if stage_devices:
+            lines = ["Niles: Rig KB has this stagebox context:"]
+            for device in stage_devices:
+                lines.append(
+                    f"- {device.manufacturer} {device.model_name}: {device.role}; {device.notes}"
+                )
+            if "channel" in lowered or "patch" in lowered:
+                lines.append(
+                    "I don't have a specific stagebox channel/patch assignment in the rig KB yet; "
+                    "the grounded fact is AES50 stage I/O context, not a channel number."
+                )
+            return _result("rig_knowledge", "\n".join(lines))
+
+    if "monitor" in lowered or "iem" in lowered or "routing" in lowered or "route" in lowered:
+        monitor_devices = [device for device in devices if "monitor" in _device_blob(device) or "iem" in _device_blob(device)]
+        if monitor_devices:
+            lines = ["Niles: Rig KB monitor-routing context:"]
+            for device in monitor_devices:
+                lines.append(
+                    f"- {device.manufacturer} {device.model_name}: {device.role}; {device.notes}"
+                )
+            lines.append("No autonomous hardware control: this stays planning/knowledge only.")
+            return _result("rig_knowledge", "\n".join(lines))
+
+    if any(term in lowered for term in ("osc", "port", "control", "x32")):
+        return _result(
+            "rig_knowledge",
+            "Niles: Rig KB X32 control context:\n"
+            + "\n".join(f"- {line}" for line in x32_control_summary_lines()),
+        )
+
+    if "gear" in lowered or "what do i have" in lowered:
+        return _result(
+            "rig_knowledge",
+            "Niles: Rig KB gear context:\n"
+            + "\n".join(f"- {line}" for line in device_summary_lines()),
+        )
+
+    return _result(
+        "rig_knowledge",
+        "Niles: I don't have that in the rig KB. I won't invent rig details; "
+        "add the patch, channel assignment, or gear fact and I'll answer from it.",
+    )
+
+
 def _handle_setup() -> dict[str, Any]:
     reply = (
         "Niles: X32 flow, here's where we stand.\n"
@@ -178,6 +261,8 @@ def maybe_handle_x32(
         if intent == "scene_corpus":
             base = Path(scene_corpus_dir or os.environ.get("NILES_SCENE_CORPUS_DIR", "") or DEFAULT_SCENE_CORPUS_DIR)
             return _handle_scene_corpus(base)
+        if intent == "rig_knowledge":
+            return _handle_rig_knowledge(text)
         if intent == "x32_status":
             return _handle_status(allow_network, controller_factory)
         return _handle_setup()
