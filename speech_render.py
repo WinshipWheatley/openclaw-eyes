@@ -38,6 +38,14 @@ _URL = re.compile(r"https?://\S+", flags=re.IGNORECASE)
 # $1,234 or $1,234.56  -> spoken dollars (and cents only when non-zero)
 _CURRENCY = re.compile(r"\$\s?([0-9][0-9,]*)(?:\.([0-9]{2}))?")
 _ARROW = re.compile(r"\s*(?:->|→|⟶)\s*")
+# Machine provenance / correlation tags like "[Maestro-native reply - ref 734:573e5b]" or
+# "[ref 12:abc123]" belong in the TEXT the operator reads, but are noise spoken aloud.
+# Match a bracketed block that carries a machine-ref signature (an "-native reply" label or
+# a "ref <id:hash>" token) — ordinary brackets and the word "reference" are left alone.
+_MACHINE_REF_TAG = re.compile(
+    r"\s*\[[^\]]*?(?:native reply|\bref\s+[0-9A-Za-z]+:[0-9A-Za-z]+)[^\]]*?\]",
+    flags=re.IGNORECASE,
+)
 
 
 def _currency_repl(m: re.Match) -> str:
@@ -54,7 +62,8 @@ def to_speech_text(text: str | None, *, agent: str | None = None) -> str:
     per-agent spoken styling but does not change v1 (universal) behavior."""
     if not text:
         return ""
-    s = tts_clean(str(text))            # markdown layer (reused)
+    s = _MACHINE_REF_TAG.sub("", str(text))   # drop machine ref/provenance tags before speaking
+    s = tts_clean(s)                    # markdown layer (reused)
     s = _URL.sub("link", s)             # bare URLs -> "link"
     s = _ARROW.sub(" to ", s)           # PROPOSED → READY -> "PROPOSED to READY"
     s = _CURRENCY.sub(_currency_repl, s)

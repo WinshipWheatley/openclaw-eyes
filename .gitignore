@@ -1323,3 +1323,6 @@ generated/system_knowledge/*.sqlite
 !document_ocr_intake.py
 !tests/test_document_ocr_intake.py
 !tests/fixtures/check_ocr.txt
+!bank_email_reconcile.py
+!tests/test_bank_email_reconcile.py
+!tests/test_speech_ref_tag_strip.py
