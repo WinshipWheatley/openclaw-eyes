@@ -310,13 +310,38 @@ class RealCockpitOps:
             return {"ok": False, "error": str(exc)}
 
     def apply_edit(self, invoice_data, instruction):
-        # Deterministic edit parsing lands via Codex task 20 (parse_invoice_edit); until then, ack + hold.
         try:
-            from invoice_preview_format import parse_invoice_edit  # task 20 (optional)
-            edit = parse_invoice_edit(instruction, invoice_data)
-            return {"ok": True, "edit": edit}
-        except Exception:
-            return {"ok": True, "note": "edit noted; awaiting the structured edit parser (task 20)"}
+            os.environ.setdefault("OPENCLAW_INVOICES_DIR", "/home/openclaw/state/invoices")
+            import invoice_generator
+            from invoice_line_edit import apply_invoice_edit
+
+            invoice_generator.INVOICES_DIR = Path(os.environ["OPENCLAW_INVOICES_DIR"])
+            invoice_generator.TRACKER_DIR = Path(
+                os.environ.get("OPENCLAW_INVOICE_TRACKER_DIR", str(invoice_generator.TRACKER_DIR))
+            )
+            edited = apply_invoice_edit(invoice_data or {}, instruction)
+            edit_meta = edited.get("invoice_edit") or {}
+            if edit_meta.get("status") != "applied":
+                return {
+                    "ok": True,
+                    "changed": False,
+                    "invoice_data": invoice_data,
+                    "note": edit_meta.get("note") or "Couldn't parse that invoice edit.",
+                }
+            pdf = invoice_generator.generate_invoice_pdf(edited)
+            edited["attachment_filename"] = Path(pdf).name
+            digest = hashlib.sha256(Path(pdf).read_bytes()).hexdigest()
+            os.environ["OPENCLAW_ATTACHMENT_ALLOWED_DIRS"] = str(Path(pdf).parent)
+            return {
+                "ok": True,
+                "changed": True,
+                "invoice_data": edited,
+                "pdf_path": str(pdf),
+                "attachment_sha256": digest,
+                "edit": edit_meta,
+            }
+        except Exception as exc:
+            return {"ok": False, "changed": False, "error": str(exc)}
 
     def send_email(self, *, to, attachment, attachment_sha256, invoice_data, mode):
         try:

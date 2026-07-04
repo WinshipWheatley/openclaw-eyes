@@ -58,7 +58,29 @@ def handle_invoice_cockpit_message(text: str, *, ops: Any, store: Any) -> dict[s
     else:
         state, actions = wf.handle_reply(session, text)
 
-    results = ex.execute_actions(actions, ops)
+    results: list[dict[str, Any]] = []
+    for action in actions:
+        if action.get("kind") == wf.APPLY_EDIT:
+            result = ops.apply_edit(state.get("invoice_data"), action.get("instruction"))
+            results.append(result)
+            if result.get("ok") and result.get("changed") and isinstance(result.get("invoice_data"), dict):
+                state["invoice_data"] = result["invoice_data"]
+                state["client_email"] = str(result["invoice_data"].get("client_email") or state.get("client_email") or "")
+                if result.get("pdf_path"):
+                    state["pdf_path"] = result["pdf_path"]
+                if result.get("attachment_sha256"):
+                    state["attachment_sha256"] = result["attachment_sha256"]
+                results.append(
+                    ops.telegram_pdf(
+                        state.get("pdf_path"),
+                        "Updated invoice preview. Reply with any change, or 'looks good' to draft it.",
+                    )
+                )
+            else:
+                note = result.get("note") or result.get("error") or "I couldn't parse that edit. Please say what line, date, and amount to change."
+                results.append(ops.telegram_message(note))
+            continue
+        results.append(ex.execute_action(action, ops))
     if state.get("stage") in (wf.SENT, wf.CANCELLED):
         store.clear()
     else:
