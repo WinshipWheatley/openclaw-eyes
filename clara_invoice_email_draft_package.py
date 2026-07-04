@@ -317,13 +317,22 @@ def _first_present(mapping: Mapping[str, Any], *keys: str) -> Any:
     return None
 
 
-def _format_money(value: Any) -> str | None:
+def _amounts_are_minor_units(line_items: tuple[Mapping[str, Any], ...]) -> bool:
+    """Mirror invoice_generator: all line-item amounts are ints >= 1000 => cents (minor units)."""
+    amounts = [item.get("amount") for item in line_items]
+    return bool(amounts) and all(
+        isinstance(a, int) and not isinstance(a, bool) and abs(a) >= 1000 for a in amounts
+    )
+
+
+def _format_money(value: Any, *, minor_units: bool = False) -> str | None:
     if value is None or value == "":
         return None
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):
-        return f"${value:,.2f}"
+        number = (value / 100) if minor_units else float(value)
+        return f"${number:,.2f}"
     text = _clean_text(value)
     if not text:
         return None
@@ -379,10 +388,10 @@ def _line_items_from_invoice_data(invoice_data: Mapping[str, Any]) -> tuple[dict
     return tuple(items)
 
 
-def _format_line_item(item: Mapping[str, Any]) -> str:
+def _format_line_item(item: Mapping[str, Any], *, minor_units: bool = False) -> str:
     event = _clean_text(item.get("event"))
     date = _clean_text(item.get("date"))
-    amount = _format_money(item.get("amount"))
+    amount = _format_money(item.get("amount"), minor_units=minor_units)
     description = event or "service"
     if date:
         description = f"{description} on {date}"
@@ -391,14 +400,15 @@ def _format_line_item(item: Mapping[str, Any]) -> str:
     return description
 
 
-def _invoice_total(invoice_data: Mapping[str, Any], line_items: tuple[Mapping[str, Any], ...]) -> str | None:
-    total = _first_present(invoice_data, "total", "total_amount", "invoice_total", "balance_due", "amount_due", "amount")
+def _invoice_total(invoice_data: Mapping[str, Any], line_items: tuple[Mapping[str, Any], ...], *, minor_units: bool = False) -> str | None:
+    total = _first_present(invoice_data, "total", "total_amount", "invoice_total", "balance_due", "amount_due", "amount_total", "amount")
     if total is not None:
-        return _format_money(total)
+        total_minor = minor_units and isinstance(total, int) and not isinstance(total, bool) and abs(total) >= 1000
+        return _format_money(total, minor_units=total_minor)
     amounts = [_money_number(item.get("amount")) for item in line_items]
     numeric_amounts = [amount for amount in amounts if amount is not None]
     if numeric_amounts and len(numeric_amounts) == len(line_items):
-        return _format_money(sum(numeric_amounts))
+        return _format_money(sum(numeric_amounts), minor_units=minor_units)
     return None
 
 
@@ -496,8 +506,9 @@ def build_general_client_invoice_body(invoice_data: Mapping[str, Any], contact: 
         _first_present(invoice_data, "client_name", "client_display_name", "client", "customer_name")
     ) or "your organization"
     line_items = _line_items_from_invoice_data(invoice_data)
-    covered = _natural_join(tuple(_format_line_item(item) for item in line_items))
-    total = _invoice_total(invoice_data, line_items)
+    minor_units = _amounts_are_minor_units(line_items)
+    covered = _natural_join(tuple(_format_line_item(item, minor_units=minor_units) for item in line_items))
+    total = _invoice_total(invoice_data, line_items, minor_units=minor_units)
     attachment_filename = _clean_text(
         _first_present(invoice_data, "attachment_filename", "pdf_filename", "attachment_name", "invoice_pdf_filename")
     )
