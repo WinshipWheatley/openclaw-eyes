@@ -14,8 +14,10 @@ import invoice_send_workflow as wf
 import invoice_cockpit_executor as ex
 
 # "send the St Anne's invoice", "email the Capital Hilton invoice", "invoice for Draper" ...
+# Must be an IMPERATIVE command ("send the St Anne's invoice"), not a casual mention or a question.
+# Verb-first, no '?' before "invoice", so "did they email us the invoice?" does NOT trigger.
 _TRIGGER = re.compile(
-    r"\b(?:send|email|invoice)\b.*\binvoice\b|\binvoice\b.*\b(?:send|email|to|for)\b",
+    r"^\s*(?:please\s+|hey[, ]+|ok(?:ay)?[, ]+)?(?:send|e-?mail|generate|prepare|create|draft|make)\b[^?\n]{0,60}\binvoice\b",
     re.IGNORECASE,
 )
 

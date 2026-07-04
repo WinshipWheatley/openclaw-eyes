@@ -62,3 +62,12 @@ def test_cancel_clears_active_session():
     assert store.load() is not None
     r = cs.handle_invoice_cockpit_message("nevermind, cancel", ops=ops, store=store)
     assert r["stage"] == "cancelled" and store.load() is None
+
+
+def test_trigger_is_imperative_only_not_casual_mentions():
+    assert cs._detect_invoice_trigger("send the St Anne's invoice") is not None
+    assert cs._detect_invoice_trigger("email the St Anne's invoice to Draper") is not None
+    # casual mentions / questions must NOT trigger the cockpit
+    for casual in ("did they email us the invoice?", "what's the invoice status",
+                   "the invoice looks wrong", "I paid the invoice already", "check the invoice folder"):
+        assert cs._detect_invoice_trigger(casual) is None, casual
