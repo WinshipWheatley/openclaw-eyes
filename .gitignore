@@ -178,6 +178,8 @@
 !invoice_generator.py
 !st_annes_invoice_status.py
 !tests/test_invoice_cockpit_ops.py
+!capital_hilton_payment_ingest.py
+!tests/test_capital_hilton_payment_ingest.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
