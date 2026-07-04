@@ -12,11 +12,212 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
 DEFAULT_SESSION_PATH = Path("/home/openclaw/state/invoice_cockpit/session.json")
+DEFAULT_REAL_INVOICE_INCOMING_DIR = Path("/home/openclaw/state/invoice_cockpit/incoming")
+REAL_INVOICE_SCHEMA_VERSION = "ST_ANNES_JUNE_INVOICE_V0"
 _ALLOWLISTED_INBOX = "winshiplive@gmail.com"
+
+
+def _client_slug(value: str) -> str:
+    text = str(value or "").lower().replace("'", "")
+    return re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+
+
+def _incoming_dir() -> Path:
+    return Path(os.environ.get("OPENCLAW_INVOICE_COCKPIT_INCOMING_DIR") or DEFAULT_REAL_INVOICE_INCOMING_DIR)
+
+
+def _read_json(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _receipt_matches_client(receipt: dict[str, Any], *, client: str, receipt_path: Path) -> bool:
+    wanted = _client_slug(client)
+    candidates = (
+        receipt_path.stem,
+        receipt.get("client_ref"),
+        receipt.get("client"),
+        receipt.get("client_name"),
+        receipt.get("customer_name"),
+    )
+    return wanted in {_client_slug(str(candidate or "")) for candidate in candidates}
+
+
+def _receipt_candidates(client: str) -> list[Path]:
+    incoming = _incoming_dir()
+    if not incoming.is_dir():
+        return []
+    slug = _client_slug(client)
+    candidates: list[Path] = []
+    direct = incoming / f"{slug}.json"
+    if direct.is_file():
+        candidates.append(direct)
+    for path in sorted(incoming.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True):
+        if path not in candidates:
+            candidates.append(path)
+    return candidates
+
+
+def _first_present(source: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = source.get(key)
+        if value not in (None, "", []):
+            return value
+    return None
+
+
+def _amount_units(receipt: dict[str, Any]) -> str:
+    units = str(receipt.get("amount_units") or receipt.get("currency_units") or "dollars").strip().lower()
+    if units in {"cent", "cents", "minor", "minor_unit", "minor_units"}:
+        return "cents"
+    return "dollars"
+
+
+def _coerce_amount(value: Any, *, amount_units: str) -> int | float:
+    if value is None or isinstance(value, bool):
+        return 0
+    if amount_units == "cents":
+        return int(round(float(value)))
+    numeric = float(value)
+    return int(numeric) if numeric.is_integer() else numeric
+
+
+def _line_items_from_receipt(receipt: dict[str, Any], *, amount_units: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    raw_items = receipt.get("line_items") or receipt.get("items") or []
+    if not isinstance(raw_items, list):
+        return items
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        if amount_units == "cents":
+            amount = _first_present(raw, "amount_minor_units", "amount_cents", "amount")
+        else:
+            amount = _first_present(raw, "amount", "amount_dollars", "total", "line_total")
+        items.append(
+            {
+                "description": str(
+                    _first_present(raw, "description", "service_label", "event", "label")
+                    or "Invoice line item"
+                ),
+                "service_date": str(_first_present(raw, "service_date", "date") or ""),
+                "amount": _coerce_amount(amount, amount_units=amount_units),
+            }
+        )
+    return items
+
+
+def _total_from_receipt(
+    receipt: dict[str, Any],
+    line_items: list[dict[str, Any]],
+    *,
+    amount_units: str,
+) -> int | float:
+    if amount_units == "cents":
+        total = _first_present(receipt, "total_minor_units", "total_cents", "total", "amount_total")
+    else:
+        total = _first_present(receipt, "total", "amount_total", "invoice_total", "total_amount", "amount_due")
+    if total is not None:
+        return _coerce_amount(total, amount_units=amount_units)
+    return sum(item["amount"] for item in line_items)
+
+
+def _pdf_path_from_receipt(receipt: dict[str, Any], receipt_path: Path) -> Path | None:
+    raw_path = _first_present(
+        receipt,
+        "rendered_pdf_path",
+        "pdf_path",
+        "rendered_pdf",
+        "source_pdf_path",
+    )
+    if raw_path:
+        pdf_path = Path(str(raw_path))
+        if not pdf_path.is_absolute():
+            pdf_path = receipt_path.parent / pdf_path
+        if pdf_path.is_file():
+            return pdf_path
+    same_stem = receipt_path.with_suffix(".pdf")
+    return same_stem if same_stem.is_file() else None
+
+
+def _real_invoice_from_receipt(
+    *,
+    client: str,
+    receipt: dict[str, Any],
+    receipt_path: Path,
+    pdf_path: Path,
+) -> dict[str, Any]:
+    amount_units = _amount_units(receipt)
+    line_items = _line_items_from_receipt(receipt, amount_units=amount_units)
+    amount_total = _total_from_receipt(receipt, line_items, amount_units=amount_units)
+    deposit_paid = _coerce_amount(
+        _first_present(receipt, "deposit_paid", "deposit", "deposit_amount") or 0,
+        amount_units=amount_units,
+    )
+    balance_due = _first_present(receipt, "balance_due", "amount_due")
+    balance_due = (
+        _coerce_amount(balance_due, amount_units=amount_units)
+        if balance_due is not None
+        else max(amount_total - deposit_paid, 0)
+    )
+    project_desc = str(
+        _first_present(receipt, "project_desc", "description", "invoice_period_label")
+        or "; ".join(item["description"] for item in line_items)
+        or f"{client} invoice"
+    )
+    service_date = str(
+        _first_present(receipt, "service_date", "invoice_period")
+        or (line_items[0]["service_date"] if line_items else "")
+    )
+    return {
+        "invoice_number": str(_first_present(receipt, "invoice_number", "invoice_id") or ""),
+        "client_name": str(_first_present(receipt, "client_name", "customer_name") or client),
+        "client_email": str(_first_present(receipt, "client_email", "email") or "unknown"),
+        "project_desc": project_desc,
+        "service_date": service_date,
+        "issue_date": str(_first_present(receipt, "issue_date", "issue_date_iso", "invoice_date") or ""),
+        "net_terms": str(_first_present(receipt, "net_terms", "terms") or "Due on Receipt"),
+        "amount_total": amount_total,
+        "deposit_paid": deposit_paid,
+        "balance_due": balance_due,
+        "line_items": line_items,
+        "amount_units": amount_units,
+        "line_item_source": "codex_mac_invoice_receipt",
+        "real_invoice_receipt_path": str(receipt_path),
+        "rendered_pdf_path": str(pdf_path),
+        "source_schema_version": str(receipt.get("schema_version") or ""),
+    }
+
+
+def _load_real_invoice_receipt(client: str) -> tuple[dict[str, Any], Path] | None:
+    for receipt_path in _receipt_candidates(client):
+        receipt = _read_json(receipt_path)
+        if receipt is None:
+            continue
+        if receipt.get("schema_version") != REAL_INVOICE_SCHEMA_VERSION:
+            continue
+        if not _receipt_matches_client(receipt, client=client, receipt_path=receipt_path):
+            continue
+        pdf_path = _pdf_path_from_receipt(receipt, receipt_path)
+        if pdf_path is None:
+            continue
+        data = _real_invoice_from_receipt(
+            client=client,
+            receipt=receipt,
+            receipt_path=receipt_path,
+            pdf_path=pdf_path,
+        )
+        if data["invoice_number"]:
+            return data, pdf_path
+    return None
 
 
 class JsonSessionStore:
@@ -60,13 +261,25 @@ class RealCockpitOps:
     def __init__(self, contact_name: str = ""):
         self.contact_name = contact_name
 
-    # -- invoice preparation (fallback generator; Codex-Mac real invoice plugs in here later) --
+    # -- invoice preparation: real Codex-Mac receipt first, fallback generator second --
     def prepare_invoice(self, client: str):
+        real_invoice = _load_real_invoice_receipt(client)
+        if real_invoice is not None:
+            data, pdf = real_invoice
+            data["attachment_filename"] = pdf.name
+            digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
+            os.environ["OPENCLAW_ATTACHMENT_ALLOWED_DIRS"] = str(pdf.parent)
+            return data, str(pdf), digest
+
         os.environ.setdefault("OPENCLAW_INVOICES_DIR", "/home/openclaw/state/invoices")
-        from invoice_generator import build_st_annes_invoice_data, generate_invoice_pdf, get_next_invoice_number
-        data = build_st_annes_invoice_data()  # St Anne's fallback; other clients extend later
-        data["invoice_number"] = get_next_invoice_number()
-        pdf = generate_invoice_pdf(data)
+        import invoice_generator
+        invoice_generator.INVOICES_DIR = Path(os.environ["OPENCLAW_INVOICES_DIR"])
+        invoice_generator.TRACKER_DIR = Path(
+            os.environ.get("OPENCLAW_INVOICE_TRACKER_DIR", str(invoice_generator.TRACKER_DIR))
+        )
+        data = invoice_generator.build_st_annes_invoice_data()  # St Anne's fallback; other clients extend later
+        data["invoice_number"] = invoice_generator.get_next_invoice_number()
+        pdf = invoice_generator.generate_invoice_pdf(data)
         data["attachment_filename"] = Path(pdf).name
         digest = hashlib.sha256(Path(pdf).read_bytes()).hexdigest()
         os.environ["OPENCLAW_ATTACHMENT_ALLOWED_DIRS"] = str(Path(pdf).parent)
@@ -133,4 +346,10 @@ class RealCockpitOps:
             return {"ok": False, "error": str(exc)}
 
 
-__all__ = ["RealCockpitOps", "JsonSessionStore", "DEFAULT_SESSION_PATH"]
+__all__ = [
+    "DEFAULT_REAL_INVOICE_INCOMING_DIR",
+    "DEFAULT_SESSION_PATH",
+    "JsonSessionStore",
+    "REAL_INVOICE_SCHEMA_VERSION",
+    "RealCockpitOps",
+]
