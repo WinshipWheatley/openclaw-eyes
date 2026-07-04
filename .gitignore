@@ -794,6 +794,8 @@
 !tests/test_working_context_packets.py
 !scripts/query_context_packets.py
 !tests/test_context_packet_retrieval.py
+!fleet_temporal_anchor.py
+!tests/test_fleet_temporal_anchor.py
 !scripts/check_runtime_activation_gate.py
 !tests/test_runtime_activation_gate.py
 !activation_gate_register.py
