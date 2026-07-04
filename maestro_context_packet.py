@@ -17,6 +17,7 @@ import sqlite3
 from typing import Any, Mapping, Sequence
 
 from context_source import annotate_facts_with_ledger_provenance, ledger_machine_proof
+from fleet_temporal_anchor import temporal_anchor_text
 
 
 # ── Conversation-continuity flag (ADDITIVE, default OFF) ──────────────────────
@@ -1328,6 +1329,7 @@ def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
     lines = [
         f"MAESTRO_CONTEXT_PACKET {packet.get('packet_id', '')}",
         f"Generated: {packet.get('generated_at', '')}",
+        temporal_anchor_text(),
         "",
         "Grounded facts:",
     ]

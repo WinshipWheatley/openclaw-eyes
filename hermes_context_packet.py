@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from context_source import annotate_facts_with_ledger_provenance, ledger_machine_proof
+from fleet_temporal_anchor import temporal_anchor_text
 
 SCHEMA_VERSION = "hermes_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
@@ -729,6 +730,7 @@ def format_hermes_context_packet(packet: Mapping[str, Any]) -> str:
     lines = [
         f"HERMES_CONTEXT_PACKET {packet.get('packet_id', '')}",
         f"Generated: {packet.get('generated_at', '')}",
+        temporal_anchor_text(),
         "",
         "Grounded facts:",
     ]
