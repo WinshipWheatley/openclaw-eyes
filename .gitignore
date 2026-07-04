@@ -177,6 +177,8 @@
 !simple_invoice_event_bridge_rail_registry.py
 !invoice_generator.py
 !st_annes_invoice_status.py
+!capital_hilton_payment_ingest.py
+!tests/test_capital_hilton_payment_ingest.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
