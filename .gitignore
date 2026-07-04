@@ -1356,3 +1356,5 @@ generated/system_knowledge/*.sqlite
 !tests/test_invoice_send_workflow.py
 !invoice_cockpit_executor.py
 !tests/test_invoice_cockpit_executor.py
+!invoice_cockpit_session.py
+!tests/test_invoice_cockpit_session.py
