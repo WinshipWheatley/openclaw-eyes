@@ -177,6 +177,9 @@
 !simple_invoice_event_bridge_rail_registry.py
 !invoice_generator.py
 !st_annes_invoice_status.py
+!invoice_line_edit.py
+!tests/test_invoice_line_edit.py
+!tests/test_invoice_cockpit_line_item_edits.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md

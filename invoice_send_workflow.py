@@ -86,7 +86,7 @@ def handle_reply(state: dict, text: str) -> tuple[dict, list[dict]]:
     # An explicit edit / rejection always returns to invoice review — never mid-send.
     if intent == "edit":
         state["stage"] = AWAITING_INVOICE_APPROVAL
-        return state, [{"kind": APPLY_EDIT, "instruction": text}, _preview_action(state)]
+        return state, [{"kind": APPLY_EDIT, "instruction": text, "invoice_data": state.get("invoice_data")}]
     if intent == "reject":
         state["stage"] = AWAITING_INVOICE_APPROVAL
         return state, [{"kind": SEND_MESSAGE, "text": "Okay — back to the invoice. What should change?"},
