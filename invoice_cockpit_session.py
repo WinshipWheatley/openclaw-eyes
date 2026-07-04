@@ -36,6 +36,14 @@ def _detect_invoice_trigger(text: str) -> str | None:
 
 def handle_invoice_cockpit_message(text: str, *, ops: Any, store: Any) -> dict[str, Any]:
     session = store.load()
+    # Cancel escape: an active session must never trap the operator's chat.
+    if session is not None and re.search(r"\b(cancel|nevermind|never mind|forget it|stop the invoice|quit)\b", str(text or ""), re.IGNORECASE):
+        store.clear()
+        try:
+            ops.telegram_message("Okay — cancelled the invoice flow. Nothing was sent.")
+        except Exception:
+            pass
+        return {"handled": True, "stage": "cancelled"}
     if session is None:
         client = _detect_invoice_trigger(text)
         if not client:
@@ -49,7 +57,7 @@ def handle_invoice_cockpit_message(text: str, *, ops: Any, store: Any) -> dict[s
         state, actions = wf.handle_reply(session, text)
 
     results = ex.execute_actions(actions, ops)
-    if state.get("stage") == wf.SENT:
+    if state.get("stage") in (wf.SENT, wf.CANCELLED):
         store.clear()
     else:
         store.save(state)

@@ -21,6 +21,7 @@ AWAITING_INVOICE_APPROVAL = "awaiting_invoice_approval"
 AWAITING_SEND_APPROVAL = "awaiting_send_approval"
 AWAITING_TEST_CONFIRM = "awaiting_test_confirm"
 SENT = "sent"
+CANCELLED = "cancelled"
 
 # Action kinds (the caller executes these)
 SEND_INVOICE_PREVIEW = "send_invoice_preview"      # PDF + "approve or tell me what's wrong"
@@ -55,7 +56,9 @@ def _classify(text: str) -> str:
     # send-real is the most specific — check first so "looks great, send the real one" reads correctly
     if ("real" in t and "send" in t) or "for real" in t:
         return "send_real"
-    if any(k in t for k in (" wrong", "incorrect", "not right", "isn't right", " cancel", " stop ",
+    if any(k in t for k in (" cancel", "nevermind", "never mind", "forget it", " quit ", "stop the invoice")):
+        return "cancel"
+    if any(k in t for k in (" wrong", "incorrect", "not right", "isn't right", " stop ",
                             "amount is off", " is off", " nope ", " no that")):
         return "reject"
     if any(k in t for k in ("add ", "change ", "remove ", " fix ", "update ", "should be",
@@ -75,6 +78,9 @@ def handle_reply(state: dict, text: str) -> tuple[dict, list[dict]]:
     """Advance the workflow given the operator's Telegram reply. Returns (new_state, actions)."""
     intent = _classify(text)
     stage = state.get("stage")
+    if intent == "cancel":
+        state["stage"] = CANCELLED
+        return state, [{"kind": SEND_MESSAGE, "text": "Okay — cancelled the invoice flow. Nothing was sent."}]
     email = state.get("client_email") or str((state.get("invoice_data") or {}).get("client_email") or "")
 
     # An explicit edit / rejection always returns to invoice review — never mid-send.
@@ -115,7 +121,7 @@ def handle_reply(state: dict, text: str) -> tuple[dict, list[dict]]:
 
 
 __all__ = [
-    "AWAITING_INVOICE_APPROVAL", "AWAITING_SEND_APPROVAL", "AWAITING_TEST_CONFIRM", "SENT",
+    "AWAITING_INVOICE_APPROVAL", "AWAITING_SEND_APPROVAL", "AWAITING_TEST_CONFIRM", "SENT", "CANCELLED",
     "SEND_INVOICE_PREVIEW", "APPLY_EDIT", "SEND_DRAFT_AND_APPROVAL", "TEST_SEND", "REAL_SEND",
     "ASK_CLARIFY", "SEND_MESSAGE", "start_invoice_send", "handle_reply",
 ]
