@@ -1354,3 +1354,5 @@ generated/system_knowledge/*.sqlite
 !tests/test_gmail_attachment_support.py
 !invoice_send_workflow.py
 !tests/test_invoice_send_workflow.py
+!invoice_cockpit_executor.py
+!tests/test_invoice_cockpit_executor.py
