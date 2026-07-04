@@ -244,7 +244,25 @@ def _lightweight_recovery_reply(text: str) -> list[str] | None:
     return None
 
 
+def _try_invoice_cockpit(text: str) -> bool:
+    """IB-3 invoice cockpit intercept. Returns True if the cockpit handled the message (it sends its
+    own Telegram replies). Fail-OPEN: any error => False => normal Cassandra routing continues."""
+    try:
+        from invoice_cockpit_session import handle_invoice_cockpit_message
+        from invoice_cockpit_ops import RealCockpitOps, JsonSessionStore
+        result = handle_invoice_cockpit_message(
+            text, ops=RealCockpitOps(contact_name=""), store=JsonSessionStore()
+        )
+        return bool(result.get("handled"))
+    except Exception:
+        return False
+
+
 async def _run_cassandra_handle_async(text: str, session_meta: dict) -> list[str]:
+    # IB-3: the invoice-send cockpit intercepts an invoice trigger or an active invoice session and
+    # drives it via Telegram itself; on handle, no further Cassandra reply is needed. Fail-open.
+    if await asyncio.to_thread(_try_invoice_cockpit, text):
+        return []
     return await asyncio.to_thread(cassandra_handle, text, session_meta)
 
 

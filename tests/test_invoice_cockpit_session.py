@@ -54,3 +54,11 @@ def test_reply_without_active_session_and_no_trigger_is_ignored():
     store, ops = FakeStore(), FakeOps()
     r = cs.handle_invoice_cockpit_message("approve", ops=ops, store=store)
     assert r["handled"] is False
+
+
+def test_cancel_clears_active_session():
+    store, ops = FakeStore(), FakeOps()
+    cs.handle_invoice_cockpit_message("send the St Anne's invoice", ops=ops, store=store)
+    assert store.load() is not None
+    r = cs.handle_invoice_cockpit_message("nevermind, cancel", ops=ops, store=store)
+    assert r["stage"] == "cancelled" and store.load() is None
