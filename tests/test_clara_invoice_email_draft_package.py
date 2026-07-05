@@ -351,6 +351,7 @@ def test_live_arts_draft_does_not_claim_attachment_if_not_ready():
 
     assert draft["attachment_ready"] is False
     assert "Attached is" not in draft["body"]
+    assert "confirmed Live Arts MD invoice" in draft["body"]
     assert "is on its way to you" in draft["body"]
 
 
