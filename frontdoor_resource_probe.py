@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import subprocess
-from typing import Any
+from typing import Any, Mapping
 import urllib.request
 
 
@@ -43,6 +43,28 @@ class FrontdoorResourceSnapshot:
             if name and isinstance(size, (int, float)):
                 by_model[name] = float(size)
         return by_model
+
+    def gpu_fraction_by_model(self, sizes: Mapping[str, Any]) -> dict[str, float]:
+        return gpu_fraction_by_model(self.resident_vram_by_model_gb(), sizes)
+
+
+def gpu_fraction_by_model(
+    resident_vram_by_model_gb: Mapping[str, Any],
+    sizes: Mapping[str, Any],
+) -> dict[str, float]:
+    """Return {model: resident_vram_gb / on_disk_size_gb}, clamped to 0..1."""
+
+    fractions: dict[str, float] = {}
+    for model, size_gb in dict(sizes or {}).items():
+        name = str(model or "").strip()
+        if not name or not isinstance(size_gb, (int, float)) or float(size_gb) <= 0:
+            continue
+        resident_gb = resident_vram_by_model_gb.get(name, 0.0) if resident_vram_by_model_gb else 0.0
+        if not isinstance(resident_gb, (int, float)):
+            resident_gb = 0.0
+        fraction = float(resident_gb) / float(size_gb)
+        fractions[name] = round(max(0.0, min(1.0, fraction)), 3)
+    return fractions
 
 
 def _round_gb(value: float | None) -> float | None:
