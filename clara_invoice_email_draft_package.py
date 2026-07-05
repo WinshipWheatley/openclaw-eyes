@@ -614,21 +614,21 @@ def build_general_client_invoice_body(
     else:
         if total and coverage and not covered_has_amounts:
             lines.append(
-                f"I hope this note finds you well. Winship's invoice for {client_name}, covering {coverage} ({total}), "
+                f"I hope this note finds you well. Winship's confirmed {client_name} invoice, covering {coverage} ({total}), "
                 "is on its way to you."
             )
         elif coverage:
             lines.append(
-                f"I hope this note finds you well. Winship's invoice for {client_name}, covering {coverage}, "
+                f"I hope this note finds you well. Winship's confirmed {client_name} invoice, covering {coverage}, "
                 "is on its way to you."
             )
         elif total:
             lines.append(
-                f"I hope this note finds you well. Winship's invoice for {client_name}, totaling {total}, "
+                f"I hope this note finds you well. Winship's confirmed {client_name} invoice, totaling {total}, "
                 "is on its way to you."
             )
         else:
-            lines.append(f"I hope this note finds you well. Winship's invoice for {client_name} is on its way to you.")
+            lines.append(f"I hope this note finds you well. Winship's confirmed {client_name} invoice is on its way to you.")
     portal_provider = _clean_text(invoice_data.get("supplier_portal_provider"))
     if portal_provider and invoice_data.get("portal_submission_status") == "SUBMITTED_RECEIPT_CONFIRMED":
         lines.append(

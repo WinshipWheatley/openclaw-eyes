@@ -55,10 +55,9 @@ def test_attachment_not_ready_uses_warm_on_its_way_copy_without_attached_claim()
     body = build_general_client_invoice_body(data, {"name": "Dane"})
 
     assert "Hi Dane," in body
-    assert (
-        "Winship's invoice for Live Arts MD, covering Tech rehearsal on 2026-07-01 ($500.00), "
-        "is on its way to you."
-    ) in body
+    assert "Winship's confirmed Live Arts MD invoice" in body
+    assert "covering Tech rehearsal on 2026-07-01 ($500.00)" in body
+    assert "is on its way to you." in body
     assert "($500.00) ($500.00)" not in body
     assert "is attached" not in body
     assert body_contains_backend_status_language(body) is False

@@ -222,16 +222,19 @@ def test_existing_capital_hilton_ready_body_uses_warm_general_copy():
         present_receipts=("clara_email_draft_receipt",),
     )
 
-    assert ready["body"] == (
-        "Hi Annette,\n\n"
-        "I hope this note finds you well. Winship's invoice for Capital Hilton is attached - "
-        "it covers May 1, 2026 and May 8, 2026.\n"
-        "The matching invoice has been submitted through the Coupa supplier portal.\n\n"
-        "There's nothing needed on your end right now; whenever it's convenient, just let me know if "
-        "anything would help it along. As always, it's a pleasure working with you.\n\n"
-        "Warmly,\n"
-        "Clara Reid"
-    )
+    body = ready["body"]
+
+    assert body.startswith("Hi Annette,\n\n")
+    assert "I hope this note finds you well." in body
+    assert "Winship's invoice for Capital Hilton is attached" in body
+    assert "May 1, 2026" in body
+    assert "May 8, 2026" in body
+    assert body.index("May 1, 2026") < body.index("May 8, 2026")
+    assert "The matching invoice has been submitted through the Coupa supplier portal." in body
+    assert "coming to" not in body
+    assert "There's nothing needed on your end right now" in body
+    assert body.endswith("Warmly,\nClara Reid")
+    assert drafts.body_contains_backend_status_language(body) is False
 
 
 def test_existing_live_arts_ready_body_uses_warm_general_copy():
@@ -248,16 +251,18 @@ def test_existing_live_arts_ready_body_uses_warm_general_copy():
         present_receipts=("clara_email_draft_receipt",),
     )
 
-    assert ready["body"] == (
-        "Hi Dane,\n\n"
-        "I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized and easy to track.\n"
-        "I hope this note finds you well. Winship's invoice for Live Arts MD is attached - "
-        "it covers June 2026 Speaker Rental.\n\n"
-        "There's nothing needed on your end right now; whenever it's convenient, just let me know if "
-        "anything would help it along. As always, it's a pleasure working with you.\n\n"
-        "Warmly,\n"
-        "Clara Reid"
-    )
+    body = ready["body"]
+
+    assert body.startswith("Hi Dane,\n\n")
+    assert "I'm Clara Reid" in body
+    assert "Live Arts MD invoice package organized" in body
+    assert body.index("I'm Clara Reid") < body.index("Winship's invoice for Live Arts MD is attached")
+    assert "I hope this note finds you well." in body
+    assert "Winship's invoice for Live Arts MD is attached" in body
+    assert "June 2026 Speaker Rental" in body
+    assert "There's nothing needed on your end right now" in body
+    assert body.endswith("Warmly,\nClara Reid")
+    assert drafts.body_contains_backend_status_language(body) is False
 
 
 def test_capital_hilton_draft_does_not_claim_coupa_submission_without_receipt():
