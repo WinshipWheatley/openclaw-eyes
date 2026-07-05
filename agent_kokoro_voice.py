@@ -7,6 +7,7 @@ messages, start listeners, call external APIs, or mutate runtime state.
 from __future__ import annotations
 
 import os
+import re
 import threading
 from pathlib import Path
 from typing import Any, Iterable
@@ -14,6 +15,9 @@ from typing import Any, Iterable
 
 KOKORO_SAMPLE_RATE = 24000
 DEFAULT_KOKORO_LANG = "a"
+DEFAULT_TARGET_RMS = 0.12
+DEFAULT_PEAK_CEILING = 0.98
+DEFAULT_MAX_LOUDNESS_GAIN = 3.0
 
 AGENT_KOKORO_VOICES = {
     "maestro": "am_michael",
@@ -22,6 +26,10 @@ AGENT_KOKORO_VOICES = {
     "guardian": "am_onyx",
     "niles": "am_puck",
     "hermes": "am_echo",
+}
+
+KOKORO_PRONUNCIATION_LEXICON = {
+    "Live": "lyve",
 }
 
 _PIPELINES: dict[str, Any] = {}
@@ -34,6 +42,26 @@ def voice_for_agent(agent_ref: str) -> str:
 
     key = str(agent_ref or "").strip().lower()
     return AGENT_KOKORO_VOICES[key]
+
+
+def apply_pronunciation_lexicon(
+    text: str | None,
+    lexicon: dict[str, str] | None = None,
+) -> str:
+    """Apply durable Kokoro pronunciation respellings before synthesis."""
+
+    rendered = str(text or "")
+    for source, replacement in (lexicon or KOKORO_PRONUNCIATION_LEXICON).items():
+        source_text = str(source or "").strip()
+        replacement_text = str(replacement or "").strip()
+        if not source_text or not replacement_text:
+            continue
+        rendered = re.sub(
+            rf"(?<!\w){re.escape(source_text)}(?!\w)",
+            replacement_text,
+            rendered,
+        )
+    return rendered
 
 
 def _load_pipeline(lang_code: str) -> Any:
@@ -57,11 +85,56 @@ def _combine_audio_chunks(chunks: Iterable[Any]) -> Any:
     return np.concatenate(arrays).astype(np.float32)
 
 
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def normalize_loudness(
+    audio: Any,
+    *,
+    target_rms: float | None = None,
+    peak_ceiling: float | None = None,
+    max_gain: float | None = None,
+) -> Any:
+    """Raise quiet output RMS with one clean gain stage, never clipping."""
+
+    import numpy as np
+
+    arr = np.asarray(audio, dtype=np.float32)
+    if arr.size == 0:
+        return arr
+    arr = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32, copy=False)
+    rms = float(np.sqrt(np.mean(np.square(arr, dtype=np.float32), dtype=np.float64)))
+    peak = float(np.max(np.abs(arr)))
+    if rms <= 0.0 or peak <= 0.0:
+        return arr
+
+    resolved_target = float(target_rms if target_rms is not None else _env_float("OPENCLAW_KOKORO_TARGET_RMS", DEFAULT_TARGET_RMS))
+    resolved_ceiling = float(peak_ceiling if peak_ceiling is not None else _env_float("OPENCLAW_KOKORO_PEAK_CEILING", DEFAULT_PEAK_CEILING))
+    resolved_max_gain = float(max_gain if max_gain is not None else _env_float("OPENCLAW_KOKORO_MAX_GAIN", DEFAULT_MAX_LOUDNESS_GAIN))
+    if resolved_target <= 0.0 or resolved_ceiling <= 0.0 or resolved_max_gain <= 1.0:
+        return arr
+
+    desired_gain = resolved_target / rms
+    peak_limited_gain = resolved_ceiling / peak
+    gain = min(desired_gain, peak_limited_gain, resolved_max_gain)
+    if gain <= 1.0:
+        return arr
+    return (arr * gain).astype(np.float32)
+
+
 def _write_wav(path: Path, audio: Any, sample_rate: int) -> None:
     import soundfile as sf
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    sf.write(str(path), audio, sample_rate, subtype="PCM_16")
+    sf.write(str(path), normalize_loudness(audio), sample_rate, subtype="PCM_16")
 
 
 def synth_kokoro_wav(
@@ -82,6 +155,7 @@ def synth_kokoro_wav(
         text = to_speech_text(text)
     except Exception:
         pass
+    text = apply_pronunciation_lexicon(text)
     clean = " ".join(str(text or "").split())
     if not clean:
         return False
