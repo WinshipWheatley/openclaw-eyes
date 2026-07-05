@@ -125,6 +125,30 @@ def test_hard_deny_control_and_secret_requests_are_refused():
         assert "hard-denied" in result["reason"], req
 
 
+def test_money_movement_requests_are_hard_denied_even_when_catalog_shape_is_plausible():
+    hard_denied = [
+        {"need": "money_move", "entity": "bank", "reason": "Need authority."},
+        {"need": "move_money", "entity": "bank", "reason": "Need authority."},
+        {"need": "transfer_funds", "entity": "vendor", "reason": "Need authority."},
+        {
+            "need": "ledger_fact_by_topic",
+            "entity": "invoice_doctrine",
+            "reason": "Pay the vendor now.",
+        },
+        {
+            "need": "payment",
+            "entity": "st_annes",
+            "reason": "Need to disburse by wire.",
+        },
+    ]
+
+    for req in hard_denied:
+        result = validate_request(req, caller_pii_tier="MAX", source=_source())
+        assert result["allowed"] is False, req
+        assert result["fetch"] is None, req
+        assert "hard-denied" in result["reason"], req
+
+
 def test_validate_requests_caps_at_three_and_denies_extras():
     req = {"need": "client_model", "entity": "st_annes", "reason": "Need client model."}
     results = validate_requests([req, req, req, req], caller_pii_tier="PUBLIC", source=_source())

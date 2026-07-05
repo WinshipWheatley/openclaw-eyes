@@ -40,9 +40,20 @@ _HARD_DENY_TERMS = (
     "secrets",
     "token",
     "tokens",
+    "money_move",
+    "moneymove",
+    "move_money",
+    "movemoney",
     "money_move_authority",
     "moneymoveauthority",
     "money movement authority",
+    "transfer_funds",
+    "transferfunds",
+    "transfer funds",
+    "payment",
+    "pay",
+    "wire",
+    "disburse",
     "move funds",
     "send hold bypass",
     "gate bypass",
@@ -59,9 +70,18 @@ _CONTROLISH_CATALOG_NEEDS = frozenset(
         "legal_body",
         "credentials",
         "secrets",
+        "money_move",
+        "move_money",
+        "transfer_funds",
+        "payment",
+        "pay",
+        "wire",
+        "disburse",
         "money_move_authority",
     }
 )
+
+_WORD_BOUNDARY_HARD_DENY_TERMS = frozenset({"payment", "pay", "wire", "disburse"})
 
 _ACTION_KEYS = frozenset(
     {
@@ -208,6 +228,11 @@ def _hard_deny_reason(req: Mapping[str, Any], need: str) -> str | None:
     compact = _compact_request_text(req)
     for term in _HARD_DENY_TERMS:
         term_text = term.casefold()
+        if term_text in _WORD_BOUNDARY_HARD_DENY_TERMS:
+            pattern = rf"(?<![a-z0-9_]){re.escape(term_text)}(?![a-z0-9_])"
+            if re.search(pattern, text):
+                return f"hard-denied control/bypass request: {term}"
+            continue
         term_compact = re.sub(r"[^a-z0-9]", "", term_text)
         if term_text in text or (term_compact and term_compact in compact):
             return f"hard-denied control/bypass request: {term}"
