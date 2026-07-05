@@ -14,6 +14,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Callable, Mapping
 
+import interpreter_lm
 from contacts_registry import ContactsRegistry
 from fleet_temporal_anchor import temporal_anchor_text
 from invoice_line_edit import apply_invoice_edit
@@ -50,6 +51,27 @@ MONTHS = {
     "november": 11,
     "dec": 12,
     "december": 12,
+}
+
+WEEKDAYS = {
+    "mon": 0,
+    "monday": 0,
+    "tue": 1,
+    "tues": 1,
+    "tuesday": 1,
+    "wed": 2,
+    "weds": 2,
+    "wednesday": 2,
+    "thu": 3,
+    "thur": 3,
+    "thurs": 3,
+    "thursday": 3,
+    "fri": 4,
+    "friday": 4,
+    "sat": 5,
+    "saturday": 5,
+    "sun": 6,
+    "sunday": 6,
 }
 
 
@@ -143,15 +165,88 @@ def interpret_capture_gig(message: str) -> CapturedGigIntent:
     )
 
 
+def _intent_from_interpreter_result(raw: Any, message: str) -> CapturedGigIntent | None:
+    if isinstance(raw, CapturedGigIntent):
+        return raw
+    if isinstance(raw, interpreter_lm.InterpretResult):
+        if not raw.is_high_confidence_capture_gig():
+            return None
+        return CapturedGigIntent(
+            contact_hint=raw.contact,
+            description=raw.description,
+            date_text=raw.date,
+            message_amount=_extract_message_amount(message),
+        )
+    if not isinstance(raw, Mapping):
+        return None
+    data = dict(raw)
+    if {"contact_hint", "description", "date_text"} <= set(data):
+        return CapturedGigIntent(
+            contact_hint=str(data.get("contact_hint") or ""),
+            description=str(data.get("description") or ""),
+            date_text=str(data.get("date_text") or ""),
+            message_amount=data.get("message_amount") or _extract_message_amount(message),
+        )
+    intent_label = str(data.get("intent") or "").strip().lower().replace("-", "_").replace(" ", "_")
+    intent = (
+        interpreter_lm.CAPTURE_GIG_INTENT
+        if intent_label in {interpreter_lm.CAPTURE_GIG_INTENT, "gig_capture", "add_gig", "calendar_gig"}
+        else intent_label
+    )
+    result = interpreter_lm.InterpretResult(
+        route=str(data.get("route") or interpreter_lm.ROUTE_WORKFLOW).upper(),
+        confidence=float(data.get("confidence") or 0.0),
+        reason=str(data.get("reason") or ""),
+        intent=intent,
+        contact=str(data.get("contact") or data.get("contact_hint") or data.get("who") or ""),
+        description=str(data.get("description") or data.get("gig_description") or data.get("service") or ""),
+        date=str(data.get("date") or data.get("date_text") or data.get("service_date") or data.get("when") or ""),
+    )
+    if not result.is_high_confidence_capture_gig():
+        return None
+    return CapturedGigIntent(
+        contact_hint=result.contact,
+        description=result.description,
+        date_text=result.date,
+        message_amount=_extract_message_amount(message),
+    )
+
+
+def _interpret_capture_gig_primary(
+    message: str,
+    *,
+    interpreter: Callable[[str], Any] | None = None,
+) -> CapturedGigIntent:
+    lm_interpreter = interpreter
+    if lm_interpreter is None and interpreter_lm._interpreter_enabled():
+        lm_interpreter = interpreter_lm.interpret_operator_message
+    if lm_interpreter is not None:
+        try:
+            intent = _intent_from_interpreter_result(lm_interpreter(message), message)
+            if intent is not None:
+                return intent
+        except Exception:
+            pass
+    return interpret_capture_gig(message)
+
+
 def _resolve_date(date_text: str, *, now: datetime | None = None) -> str:
     anchor = (now or datetime.now()).date()
-    text = _clean(date_text).lower().rstrip(".")
+    text = _clean(date_text).lower().replace("nxt", "next").rstrip(".")
     if text == "today":
         return anchor.isoformat()
     if text == "tomorrow":
         return (anchor + timedelta(days=1)).isoformat()
     if text == "yesterday":
         return (anchor - timedelta(days=1)).isoformat()
+    weekday_names = "|".join(sorted(WEEKDAYS, key=len, reverse=True))
+    weekday = re.search(rf"\b(?:next|this)\s+({weekday_names})\b", text, flags=re.IGNORECASE)
+    if weekday:
+        target = WEEKDAYS[weekday.group(1).lower()]
+        delta = (target - anchor.weekday()) % 7
+        if delta == 0 or text.startswith("next "):
+            delta = delta or 7
+        return (anchor + timedelta(days=delta)).isoformat()
     iso = re.search(r"\b(20\d{2})-(\d{1,2})-(\d{1,2})\b", text)
     if iso:
         return date(int(iso.group(1)), int(iso.group(2)), int(iso.group(3))).isoformat()
@@ -162,6 +257,18 @@ def _resolve_date(date_text: str, *, now: datetime | None = None) -> str:
         flags=re.IGNORECASE,
     )
     if not match:
+        day_only = re.search(r"\b(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)\b", text)
+        if day_only:
+            day = int(day_only.group(1))
+            year = anchor.year
+            month = anchor.month
+            resolved = date(year, month, day)
+            if resolved < anchor:
+                if month == 12:
+                    resolved = date(year + 1, 1, day)
+                else:
+                    resolved = date(year, month + 1, day)
+            return resolved.isoformat()
         raise ValueError("Could not resolve gig date.")
     month = MONTHS[match.group(1).lower().rstrip(".")]
     day = int(match.group(2))
@@ -255,10 +362,8 @@ def capture_gig(
     registry = contacts_registry or ContactsRegistry()
     models = client_models or DEFAULT_CLIENT_MODELS
     invoice_store = invoice_store or MemoryInvoiceStore()
-    interpret = interpreter or interpret_capture_gig
     try:
-        raw_intent = interpret(message)
-        intent = raw_intent if isinstance(raw_intent, CapturedGigIntent) else CapturedGigIntent(**dict(raw_intent))
+        intent = _interpret_capture_gig_primary(message, interpreter=interpreter)
         service_date = _resolve_date(intent.date_text, now=now)
     except Exception as exc:
         return {
