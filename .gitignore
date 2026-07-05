@@ -1370,4 +1370,6 @@ generated/system_knowledge/*.sqlite
 !invoice_cockpit_session.py
 !tests/test_invoice_cockpit_session.py
 !invoice_cockpit_ops.py
+!packet_request_gate.py
+!tests/test_packet_request_gate.py
 !tests/test_clara_invoice_minor_units.py
