@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -106,6 +107,34 @@ def test_second_run_is_incremental(tmp_path):
     )
     assert second["status"] == "completed"
     assert second["files_visited"] == 0
+
+
+def test_scheduled_crawl_can_confirm_write_gap_rows_to_injected_ledger(tmp_path):
+    root = tmp_path / "repo"
+    _make_tree(root)
+    lease_db = tmp_path / "leases.sqlite"
+    state_db = tmp_path / "state.sqlite"
+    ledger = tmp_path / "ledger.sqlite"
+    with sqlite3.connect(ledger) as conn:
+        conn.execute("CREATE TABLE file_inventory (path TEXT)")
+
+    result = run_scheduled_crawl(
+        root,
+        lease_db_path=lease_db,
+        state_db_path=state_db,
+        ledger_path=ledger,
+        confirm_ledger_write=True,
+        now=_t("2026-07-01T12:00:00"),
+    )
+
+    assert result["status"] == "completed"
+    assert result["ledger_gap_write"]["status"] == "written"
+    assert result["activation_record"]["ledger_write_confirmed"] is True
+    with sqlite3.connect(ledger) as conn:
+        rows = conn.execute(
+            "SELECT subject FROM knowledge_sysknow_known_unknown ORDER BY subject"
+        ).fetchall()
+    assert [row[0] for row in rows] == ["a.py", "b.py"]
 
 
 def _state_row_count(state_db: Path) -> int:
