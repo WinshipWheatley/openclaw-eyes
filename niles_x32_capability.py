@@ -5,19 +5,23 @@ reviewable .scn show profile (showprofile), the scene corpus can be analyzed
 read-only (scene_corpus), and setup asks get topology-grounded guidance.
 
 Authority boundary (openclaw_estate_topology_registry, niles_live_engineer_x32):
-emulator verification comes before live rack control — so this module NEVER
-opens a socket. ``controller_factory``/``allow_network`` exist only so a future
-tier-graduated caller can pass an emulator-verified controller explicitly.
+emulator verification comes before live rack control. This module may open a
+socket only when given an explicit x32_fake emulator endpoint; real rack control
+stays refused until the operator grants a later tier.
 """
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import re
+import socket
 import time
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from osc_codec import decode as osc_decode
+from osc_codec import encode as osc_encode
 from showprofile import build_scene, parse_input_list
 
 X32_OSC_PORT = 10023  # X32/M32 OSC protocol port (specs/niles-music)
@@ -28,6 +32,46 @@ _DESK_MARKERS = ("x32", "the desk", "mixer", "soundcheck", "monitor desk")
 _SETUP_MARKERS = ("set up", "setup", "prep", "flow", "configure", "get ready", "ready")
 _STATUS_MARKERS = ("connected", "status", "online", "reachable", "reach", "check the")
 _PROFILE_MARKERS = ("input list", "stage plot", "show profile", "patch list")
+_LIVE_MIX_ACTION_MARKERS = (
+    "bring up",
+    "turn up",
+    "raise",
+    "pull down",
+    "bring down",
+    "turn down",
+    "lower",
+    "set",
+    "mute",
+    "unmute",
+    "boost",
+    "add",
+    "cut",
+    "compress",
+    "comp",
+    "threshold",
+    "eq",
+    "fader",
+)
+_EQ_BANDS = (
+    ("high mid", 3),
+    ("hi mid", 3),
+    ("low mid", 2),
+    ("lo mid", 2),
+    ("high", 4),
+    ("hi", 4),
+    ("low", 1),
+    ("lo", 1),
+    ("mid", 2),
+)
+_LIVE_MIX_LABELS = {
+    "kick": 1,
+    "snare": 2,
+    "bass": 3,
+    "lead vox": 5,
+    "lead vocal": 5,
+    "vocal": 5,
+    "vox": 5,
+}
 _RIG_KB_MARKERS = (
     "rig",
     "routing",
@@ -45,6 +89,8 @@ _RIG_KB_MARKERS = (
     "iem",
 )
 
+_OSC_TIMEOUT_S = 0.6
+
 
 def _parsed_channels(text: str) -> list[dict[str, Any]]:
     try:
@@ -53,8 +99,265 @@ def _parsed_channels(text: str) -> list[dict[str, Any]]:
         return []
 
 
+def _parse_live_mix_intent(text: str) -> dict[str, Any] | None:
+    lowered = " " + str(text or "").lower() + " "
+    if not any(marker in lowered for marker in _LIVE_MIX_ACTION_MARKERS):
+        return None
+
+    label = ""
+    channel = None
+    channel_match = re.search(r"\b(?:channel|ch)\s*(\d{1,2})\b", lowered)
+    if channel_match:
+        channel = int(channel_match.group(1))
+        label = f"channel {channel}"
+    else:
+        for name, number in sorted(_LIVE_MIX_LABELS.items(), key=lambda item: len(item[0]), reverse=True):
+            if re.search(rf"\b{re.escape(name)}\b", lowered):
+                channel = number
+                label = name
+                break
+    if channel is None or not (1 <= channel <= 32):
+        return None
+
+    if re.search(r"\bunmute\b", lowered):
+        return {"action": "unmute", "channel": channel, "label": label or f"channel {channel}", "osc_value": 1}
+    if re.search(r"\bmute\b", lowered):
+        return {"action": "mute", "channel": channel, "label": label or f"channel {channel}", "osc_value": 0}
+
+    db_match = re.search(r"(-?\d+(?:\.\d+)?)\s*d\s*b\b", lowered)
+    if "eq" in lowered:
+        band = next(
+            ((band_name, band_number) for band_name, band_number in _EQ_BANDS if band_name in lowered),
+            ("mid", 2),
+        )
+        gain_db = float(db_match.group(1)) if db_match else 1.0
+        if gain_db > 0 and any(term in lowered for term in (" cut ", "pull down", "bring down", "turn down", "lower", "down a bit")):
+            gain_db = -gain_db
+        return {
+            "action": "eq",
+            "channel": channel,
+            "label": label or f"channel {channel}",
+            "band": band[0],
+            "band_number": band[1],
+            "gain_db": max(-15.0, min(15.0, gain_db)),
+        }
+
+    if "comp" in lowered or "compress" in lowered:
+        threshold_db = float(db_match.group(1)) if db_match else -18.0
+        return {
+            "action": "comp",
+            "channel": channel,
+            "label": label or f"channel {channel}",
+            "threshold_db": max(-60.0, min(0.0, threshold_db)),
+        }
+
+    if db_match:
+        fader_db = float(db_match.group(1))
+    elif any(term in lowered for term in ("bring up", "turn up", "raise", "up a bit", "a bit")):
+        fader_db = -6.0
+    elif any(term in lowered for term in ("pull down", "bring down", "turn down", "lower", "down a bit")):
+        fader_db = -12.0
+    elif "fader" in lowered or "set" in lowered:
+        fader_db = -6.0
+    else:
+        return None
+    return {
+        "action": "fader",
+        "channel": channel,
+        "label": label or f"channel {channel}",
+        "fader_db": max(-90.0, min(10.0, fader_db)),
+    }
+
+
+def _db_to_osc_value(db_value: float) -> float:
+    return round((max(-90.0, min(10.0, db_value)) + 90.0) / 100.0, 6)
+
+
+def _channel_prefix(channel: int) -> str:
+    return f"/ch/{channel:02d}"
+
+
+def _send_osc_and_query(endpoint: tuple[str, int], address: str, args: list[Any]) -> list[Any]:
+    host, port = endpoint
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.settimeout(_OSC_TIMEOUT_S)
+        sock.sendto(osc_encode(address, *args), (host, port))
+        sock.sendto(osc_encode(address), (host, port))
+        data, _peer = sock.recvfrom(65535)
+    reply_address, reply_args = osc_decode(data)
+    if reply_address != address:
+        raise RuntimeError(f"unexpected OSC reply address: {reply_address}")
+    return reply_args
+
+
+def _format_db(db_value: float) -> str:
+    return f"{db_value:g}"
+
+
+def _is_loopback_endpoint(endpoint: tuple[str, int]) -> bool:
+    host, _port = endpoint
+    normalized = str(host or "").strip().lower()
+    if normalized == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(normalized).is_loopback
+    except ValueError:
+        return False
+
+
+def _live_mix_refusal(reply: str, live_hardware_control_allowed: bool) -> dict[str, Any]:
+    return {
+        "handled": True,
+        "intent": "live_mix",
+        "reply": reply,
+        "artifacts": [],
+        "hardware_gated": True,
+        "target": "real_console_refused",
+        "live_hardware_control_allowed": bool(live_hardware_control_allowed),
+        "osc_messages": [],
+        "proof": {},
+    }
+
+
+def _handle_live_mix(
+    text: str,
+    *,
+    emulator_endpoint: tuple[str, int] | None,
+    live_hardware_control_allowed: bool,
+) -> dict[str, Any]:
+    intent = _parse_live_mix_intent(text)
+    if intent is None:
+        return _result(
+            "live_mix",
+            "Niles: I can do live-mix moves in the emulator, but I need a channel/source and a move.",
+        )
+    if emulator_endpoint is None:
+        return _live_mix_refusal(
+            (
+                "Niles: real X32 hardware control is still gated. Give me the x32_fake "
+                "emulator endpoint and I'll prove the move there first."
+            ),
+            live_hardware_control_allowed,
+        )
+    if not _is_loopback_endpoint(emulator_endpoint):
+        return _live_mix_refusal(
+            (
+                "Niles: emulator endpoint must be loopback for this trust tier; "
+                "real X32 hardware control is still gated."
+            ),
+            live_hardware_control_allowed,
+        )
+
+    channel = int(intent["channel"])
+    if intent["action"] in {"mute", "unmute"}:
+        address = f"{_channel_prefix(channel)}/mix/on"
+        value = int(intent["osc_value"])
+        observed = _send_osc_and_query(emulator_endpoint, address, [value])
+        muted = observed == [0]
+        proof = {
+            "action": "mute" if muted else "unmute",
+            "channel": channel,
+            "label": str(intent["label"]),
+            "muted": muted,
+            "osc_value": int(observed[0]) if observed else value,
+        }
+        state_phrase = "muted" if muted else "unmuted"
+        return {
+            "handled": True,
+            "intent": "live_mix",
+            "reply": f"Niles: emulator proof — {proof['label']} {state_phrase}.",
+            "artifacts": [],
+            "hardware_gated": True,
+            "target": "emulator",
+            "live_hardware_control_allowed": False,
+            "osc_messages": [{"address": address, "args": [value]}],
+            "proof": proof,
+        }
+
+    if intent["action"] == "eq":
+        gain_db = float(intent["gain_db"])
+        address = f"{_channel_prefix(channel)}/eq/{int(intent['band_number'])}/g"
+        observed = _send_osc_and_query(emulator_endpoint, address, [gain_db])
+        observed_value = float(observed[0]) if observed else gain_db
+        proof = {
+            "action": "eq",
+            "band": str(intent["band"]),
+            "channel": channel,
+            "gain_db": gain_db,
+            "label": str(intent["label"]),
+            "osc_value": observed_value,
+        }
+        return {
+            "handled": True,
+            "intent": "live_mix",
+            "reply": (
+                f"Niles: emulator proof — channel {channel} {proof['band']} eq "
+                f"now at {_format_db(gain_db)} dB."
+            ),
+            "artifacts": [],
+            "hardware_gated": True,
+            "target": "emulator",
+            "live_hardware_control_allowed": False,
+            "osc_messages": [{"address": address, "args": [observed_value]}],
+            "proof": proof,
+        }
+
+    if intent["action"] == "comp":
+        threshold_db = float(intent["threshold_db"])
+        address = f"{_channel_prefix(channel)}/dyn/thr"
+        observed = _send_osc_and_query(emulator_endpoint, address, [threshold_db])
+        observed_value = float(observed[0]) if observed else threshold_db
+        proof = {
+            "action": "comp",
+            "channel": channel,
+            "label": str(intent["label"]),
+            "threshold_db": threshold_db,
+            "osc_value": observed_value,
+        }
+        return {
+            "handled": True,
+            "intent": "live_mix",
+            "reply": (
+                f"Niles: emulator proof — channel {channel} comp threshold "
+                f"now at {_format_db(threshold_db)} dB."
+            ),
+            "artifacts": [],
+            "hardware_gated": True,
+            "target": "emulator",
+            "live_hardware_control_allowed": False,
+            "osc_messages": [{"address": address, "args": [observed_value]}],
+            "proof": proof,
+        }
+
+    fader_db = float(intent["fader_db"])
+    osc_value = _db_to_osc_value(fader_db)
+    address = f"{_channel_prefix(channel)}/mix/fader"
+    observed = _send_osc_and_query(emulator_endpoint, address, [osc_value])
+    observed_value = float(observed[0]) if observed else osc_value
+    proof = {
+        "action": "fader",
+        "channel": channel,
+        "label": str(intent["label"]),
+        "fader_db": fader_db,
+        "osc_value": observed_value,
+    }
+    return {
+        "handled": True,
+        "intent": "live_mix",
+        "reply": f"Niles: emulator proof — channel {channel} fader now at {_format_db(fader_db)} dB.",
+        "artifacts": [],
+        "hardware_gated": True,
+        "target": "emulator",
+        "live_hardware_control_allowed": False,
+        "osc_messages": [{"address": address, "args": [observed_value]}],
+        "proof": proof,
+    }
+
+
 def detect_x32_intent(text: str) -> str | None:
     lowered = " " + str(text or "").lower() + " "
+    if _parse_live_mix_intent(text) is not None:
+        return "live_mix"
     if any(marker in lowered for marker in _PROFILE_MARKERS):
         return "show_profile"
     channels = _parsed_channels(text)
@@ -294,6 +597,8 @@ def maybe_handle_x32(
     scene_corpus_dir: str | Path | None = None,
     controller_factory: Callable[..., Any] | None = None,
     allow_network: bool = False,
+    emulator_endpoint: tuple[str, int] | None = None,
+    live_hardware_control_allowed: bool = False,
 ) -> dict[str, Any] | None:
     """Detect + handle an X32-lane ask. Returns None (fail-open to the legacy
     producer path) when the ask isn't X32 or anything errors."""
@@ -309,6 +614,12 @@ def maybe_handle_x32(
             return _handle_scene_corpus(base)
         if intent == "rig_knowledge":
             return _handle_rig_knowledge(text)
+        if intent == "live_mix":
+            return _handle_live_mix(
+                text,
+                emulator_endpoint=emulator_endpoint,
+                live_hardware_control_allowed=live_hardware_control_allowed,
+            )
         if intent == "x32_status":
             return _handle_status(allow_network, controller_factory)
         return _handle_setup()
