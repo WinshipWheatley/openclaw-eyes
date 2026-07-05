@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import interpreter_lm
 from contacts_registry import ContactsRegistry
 from gig_capture import capture_gig
 
@@ -97,6 +98,101 @@ def test_clear_date_adds_calendar_event_and_invoice_line(tmp_path: Path) -> None
     }
     assert "event added" in result["confirmation"].lower()
     assert "invoice line added" in result["confirmation"].lower()
+
+
+def test_lm_primary_parse_handles_typo_reordered_message_regex_misses(tmp_path: Path) -> None:
+    calendar = FakeCalendarRouter()
+    invoices = FakeInvoiceStore()
+    calls: list[str] = []
+
+    def _lm_interpreter(message: str):
+        calls.append(message)
+        return interpreter_lm.InterpretResult(
+            route=interpreter_lm.ROUTE_WORKFLOW,
+            confidence=0.94,
+            intent=interpreter_lm.CAPTURE_GIG_INTENT,
+            contact="Dane",
+            description="Sound",
+            date="nxt thurs",
+            reason="fuzzy gig capture",
+        )
+
+    result = capture_gig(
+        "dane wants me on sound nxt thurs",
+        contacts_registry=_registry(tmp_path),
+        calendar_router=calendar,
+        invoice_store=invoices,
+        client_models=_client_models(),
+        interpreter=_lm_interpreter,
+        now=datetime(2026, 7, 5, 12, 0),
+    )
+
+    assert calls == ["dane wants me on sound nxt thurs"]
+    assert result["status"] == "captured"
+    assert result["client_slug"] == "live-arts-md"
+    assert result["service_date"] == "2026-07-09"
+    assert calendar.added[-1]["description"] == "Sound"
+    assert invoices.saved[-1][1]["line_items"][-1] == {
+        "description": "Sound",
+        "service_date": "2026-07-09",
+        "amount": 500,
+    }
+
+
+def test_lm_down_falls_back_to_safe_regex_parser(tmp_path: Path) -> None:
+    calendar = FakeCalendarRouter()
+    invoices = FakeInvoiceStore()
+
+    def _down_interpreter(message: str):
+        raise RuntimeError("lm unavailable")
+
+    result = capture_gig(
+        "Dane asked me to do Tech rehearsal on July 12",
+        contacts_registry=_registry(tmp_path),
+        calendar_router=calendar,
+        invoice_store=invoices,
+        client_models=_client_models(),
+        interpreter=_down_interpreter,
+        now=datetime(2026, 7, 5, 12, 0),
+    )
+
+    assert result["status"] == "captured"
+    assert result["client_slug"] == "live-arts-md"
+    assert result["service_date"] == "2026-07-12"
+    assert invoices.saved[-1][1]["line_items"][-1]["description"] == "Tech rehearsal"
+
+
+def test_lm_primary_parse_dual_contact_still_asks_without_mutating(tmp_path: Path) -> None:
+    calendar = FakeCalendarRouter()
+    invoices = FakeInvoiceStore()
+
+    def _lm_interpreter(message: str):
+        return interpreter_lm.InterpretResult(
+            route=interpreter_lm.ROUTE_WORKFLOW,
+            confidence=0.91,
+            intent=interpreter_lm.CAPTURE_GIG_INTENT,
+            contact="Draper",
+            description="Wedding ceremony",
+            date="the 27th",
+            reason="dual contact fuzzy gig capture",
+        )
+
+    result = capture_gig(
+        "got a wedding for st annes the 27th",
+        contacts_registry=_registry(tmp_path),
+        calendar_router=calendar,
+        invoice_store=invoices,
+        client_models=_client_models(),
+        interpreter=_lm_interpreter,
+        now=datetime(2026, 7, 5, 12, 0),
+    )
+
+    assert result["status"] == "needs_client_clarify"
+    assert result["contact"]["id"] == "draper-carter"
+    assert result["client_options"] == ("live-arts-md", "st-annes")
+    assert result["parsed"] == {"description": "Wedding ceremony", "service_date": "2026-07-27"}
+    assert calendar.added == []
+    assert invoices.saved == []
 
 
 def test_calendar_conflict_surfaces_existing_event_and_still_adds_invoice_line(tmp_path: Path) -> None:

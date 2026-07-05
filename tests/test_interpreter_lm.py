@@ -40,6 +40,9 @@ def _make_mock_pg_fn(
     *,
     intent: str = "",
     client: str = "",
+    contact: str = "",
+    description: str = "",
+    date: str = "",
 ):
     """Return a mock protected_generate_fn that emits a valid interpreter JSON."""
     payload = {
@@ -49,6 +52,9 @@ def _make_mock_pg_fn(
         "reason": reason,
         "intent": intent,
         "client": client,
+        "contact": contact,
+        "description": description,
+        "date": date,
     }
     raw_json = json.dumps(payload)
 
@@ -189,6 +195,54 @@ class TestInterpretOperatorMessage:
             "Reynolds Tavern",
         ):
             assert forbidden not in source
+
+    def test_capture_gig_intent_contract_extracts_required_fields(self):
+        from interpreter_lm import CAPTURE_GIG_INTENT, ROUTE_WORKFLOW, interpret_operator_message
+
+        fn = _make_mock_pg_fn(
+            ROUTE_WORKFLOW,
+            [],
+            0.93,
+            intent="capture_gig",
+            contact="Dane",
+            description="sound",
+            date="nxt thurs",
+        )
+        result = interpret_operator_message("dane wants me on sound nxt thurs", protected_generate_fn=fn)
+
+        assert result.intent == CAPTURE_GIG_INTENT
+        assert result.contact == "Dane"
+        assert result.description == "sound"
+        assert result.date == "nxt thurs"
+        assert result.is_high_confidence_capture_gig() is True
+
+    def test_capture_gig_intent_is_low_confidence_without_required_fields(self):
+        from interpreter_lm import CAPTURE_GIG_INTENT, ROUTE_WORKFLOW, interpret_operator_message
+
+        fn = _make_mock_pg_fn(
+            ROUTE_WORKFLOW,
+            [],
+            0.95,
+            intent="gig_capture",
+            contact="Dane",
+            description="sound",
+            date="",
+        )
+        result = interpret_operator_message("dane wants me on sound", protected_generate_fn=fn)
+
+        assert result.intent == CAPTURE_GIG_INTENT
+        assert result.is_high_confidence_capture_gig() is False
+
+    def test_interpreter_prompt_includes_capture_gig_contract_and_temporal_anchor(self):
+        import interpreter_lm
+
+        prompt = interpreter_lm._build_interpreter_prompt("got a wedding for st annes the 27th")
+
+        assert "capture_gig" in prompt
+        assert '"contact"' in prompt
+        assert '"description"' in prompt
+        assert '"date"' in prompt
+        assert "TEMPORAL ANCHOR" in prompt
 
     def test_uncertain_route(self):
         """Mock returns UNCERTAIN → not a brain divert."""
@@ -476,7 +530,17 @@ class TestNoAuthorityEscalation:
         from interpreter_lm import InterpretResult
 
         field_names = {f.name for f in dataclasses.fields(InterpretResult)}
-        expected = {"route", "fact_selection", "confidence", "reason", "intent", "client"}
+        expected = {
+            "route",
+            "fact_selection",
+            "confidence",
+            "reason",
+            "intent",
+            "client",
+            "contact",
+            "description",
+            "date",
+        }
         assert field_names == expected, (
             f"InterpretResult must have exactly {expected} fields. Got: {field_names}"
         )
@@ -676,7 +740,17 @@ class TestActionRoute:
 
         result = InterpretResult(route=ROUTE_ACTION, fact_selection=[], confidence=0.9, reason="send invoice")
         field_names = {f.name for f in dataclasses.fields(result)}
-        expected = {"route", "fact_selection", "confidence", "reason", "intent", "client"}
+        expected = {
+            "route",
+            "fact_selection",
+            "confidence",
+            "reason",
+            "intent",
+            "client",
+            "contact",
+            "description",
+            "date",
+        }
         assert field_names == expected
 
         for forbidden in ("authority", "allow", "send", "action_execute", "authorize", "deny", "execute"):
