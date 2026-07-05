@@ -186,6 +186,8 @@
 !tests/test_reminders_and_followup_capability.py
 !contacts_registry.py
 !tests/test_contacts_registry.py
+!gig_capture.py
+!tests/test_gig_capture.py
 !invoice_line_edit.py
 !tests/test_invoice_line_edit.py
 !tests/test_invoice_cockpit_line_item_edits.py
