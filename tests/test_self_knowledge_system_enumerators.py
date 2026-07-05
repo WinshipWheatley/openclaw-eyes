@@ -324,3 +324,16 @@ def test_system_inventory_graph_answers_resolutions_and_traversal(tmp_path):
     assert "machine:pc" in reachable
     assert f"openclaw_instance:{worktree.resolve()}" in reachable
     assert "service:pc:kokoro-voice.service" in reachable
+    instance_deep = sen.query_system_inventory(
+        graph,
+        resolution="deep",
+        node_id=f"openclaw_instance:{worktree.resolve()}",
+    )
+    assert "service:pc:kokoro-voice.service" in {
+        node["id"] for node in instance_deep["neighbors"]
+    }
+    assert {
+        "source": f"openclaw_instance:{worktree.resolve()}",
+        "target": "service:pc:kokoro-voice.service",
+        "relation": "depends-on",
+    } in graph["edges"]
