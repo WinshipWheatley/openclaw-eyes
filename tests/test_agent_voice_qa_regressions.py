@@ -189,3 +189,10 @@ def test_master_voice_shell_resolves_agent_voice_without_maestro_fallback() -> N
     assert "voice_for_agent" in source
     assert "KOKORO_AGENT" in source
     assert ":-am_michael" not in source
+
+
+def test_master_voice_shell_uses_shared_pronunciation_and_loudness_helpers() -> None:
+    source = Path("master_voice.sh").read_text(encoding="utf-8")
+
+    assert "apply_pronunciation_lexicon" in source
+    assert "normalize_loudness" in source
