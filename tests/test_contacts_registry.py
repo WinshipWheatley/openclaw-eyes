@@ -77,6 +77,18 @@ def test_lookup_by_id_name_alias_and_business_email(tmp_path: Path) -> None:
     assert by_id["role"] == "intermediary"
 
 
+def test_lookup_by_secondary_seed_emails(tmp_path: Path) -> None:
+    registry = ContactsRegistry(str(tmp_path / "contacts.sqlite3"))
+
+    glenn = registry.get_contact("glennmortoro@gmail.com")
+    dane = registry.get_contact("execdir@cysomusic.org")
+
+    assert glenn["id"] == "glenn-mortoro"
+    assert glenn["emails"] == ("treasurer@stannes-annapolis.org", "glennmortoro@gmail.com")
+    assert dane["id"] == "dane-krich"
+    assert dane["emails"] == ("dane@liveartsmd.org", "execdir@cysomusic.org")
+
+
 def test_get_contacts_for_client_live_arts_returns_human_business_contacts(tmp_path: Path) -> None:
     registry = ContactsRegistry(str(tmp_path / "contacts.sqlite3"))
 
