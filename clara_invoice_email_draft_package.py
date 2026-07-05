@@ -567,7 +567,12 @@ def _general_invoice_data_from_package_args(
     return data
 
 
-def build_general_client_invoice_body(invoice_data: Mapping[str, Any], contact: Mapping[str, Any] | None) -> str:
+def build_general_client_invoice_body(
+    invoice_data: Mapping[str, Any],
+    contact: Mapping[str, Any] | None,
+    *,
+    first_contact_intro_required: bool | None = None,
+) -> str:
     """Build a reusable Clara invoice email body for clients without bespoke recipes."""
     client_name = _clean_text(
         _first_present(invoice_data, "client_name", "client_display_name", "client", "customer_name")
@@ -583,8 +588,17 @@ def build_general_client_invoice_body(invoice_data: Mapping[str, Any], contact: 
         _first_present(invoice_data, "attachment_filename", "pdf_filename", "attachment_name", "invoice_pdf_filename")
     )
     attachment_ready = invoice_data.get("attachment_ready", True) is not False
+    include_intro = (
+        bool(first_contact_intro_required)
+        if first_contact_intro_required is not None
+        else invoice_data.get("first_contact_intro_required") is True
+    )
 
     lines = [_contact_greeting(contact), ""]
+    if include_intro:
+        lines.append(
+            f"I'm Clara Reid, helping Winship keep the {client_name} invoice package organized and easy to track."
+        )
     if attachment_ready:
         attachment_label = f" ({attachment_filename})" if attachment_filename else ""
         if total:
@@ -766,7 +780,11 @@ def build_clara_invoice_email_draft_package(
         clara_draft_receipt_present=clara_receipt_present,
     )
     subject = _safe_subject(client_display_name, invoice_period_label)
-    body = build_general_client_invoice_body(general_invoice_data, general_contact)
+    body = build_general_client_invoice_body(
+        general_invoice_data,
+        general_contact,
+        first_contact_intro_required=first_contact_intro_required,
+    )
     line_items_present = bool(_line_items_from_invoice_data(general_invoice_data))
     target_blueprint = _general_target_blueprint(
         subject=subject,
