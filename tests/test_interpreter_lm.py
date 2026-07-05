@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 import types
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -31,13 +32,23 @@ from unittest.mock import MagicMock, patch
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_mock_pg_fn(route: str, fact_selection: list[str], confidence: float, reason: str = "ok"):
+def _make_mock_pg_fn(
+    route: str,
+    fact_selection: list[str],
+    confidence: float,
+    reason: str = "ok",
+    *,
+    intent: str = "",
+    client: str = "",
+):
     """Return a mock protected_generate_fn that emits a valid interpreter JSON."""
     payload = {
         "route": route,
         "fact_selection": fact_selection,
         "confidence": confidence,
         "reason": reason,
+        "intent": intent,
+        "client": client,
     }
     raw_json = json.dumps(payload)
 
@@ -80,6 +91,104 @@ class TestInterpretOperatorMessage:
 
         assert result.route == ROUTE_WORKFLOW
         assert result.is_high_confidence_brain() is False
+
+    def test_invoice_send_intent_contract_resolves_client_slug(self):
+        from interpreter_lm import interpret_operator_message, ROUTE_WORKFLOW
+
+        fn = _make_mock_pg_fn(
+            ROUTE_WORKFLOW,
+            [],
+            0.93,
+            intent="invoice_send",
+            client="St. Anne's",
+        )
+        result = interpret_operator_message("send the right invoice", protected_generate_fn=fn)
+
+        assert result.route == ROUTE_WORKFLOW
+        assert result.intent == "invoice_send"
+        assert result.client == "st-annes"
+        assert result.confidence == 0.93
+        assert result.is_high_confidence_invoice_send() is True
+
+    def test_invoice_send_contract_rejects_placeholder_client(self):
+        from interpreter_lm import interpret_operator_message, ROUTE_WORKFLOW
+
+        fn = _make_mock_pg_fn(
+            ROUTE_WORKFLOW,
+            [],
+            0.93,
+            intent="invoice_send",
+            client="right",
+        )
+        result = interpret_operator_message("send the right invoice", protected_generate_fn=fn)
+
+        assert result.intent == "invoice_send"
+        assert result.client == ""
+
+    def test_invoice_send_contract_resolves_synthetic_registry_client(self, monkeypatch):
+        import interpreter_lm
+        from interpreter_lm import interpret_operator_message, ROUTE_WORKFLOW
+
+        monkeypatch.setattr(
+            interpreter_lm,
+            "_invoice_client_registry",
+            lambda: {
+                "north_star": {
+                    "client_ref": "north_star",
+                    "client_display_name": "North Star Venue",
+                    "aliases": ("north star", "north star club", "star venue"),
+                }
+            },
+        )
+        fn = _make_mock_pg_fn(
+            ROUTE_WORKFLOW,
+            [],
+            0.93,
+            intent="invoice_send",
+            client="star venue",
+        )
+        result = interpret_operator_message("send the North Star invoice", protected_generate_fn=fn)
+
+        assert result.intent == "invoice_send"
+        assert result.client == "north-star"
+
+    def test_interpreter_prompt_uses_registry_clients(self, monkeypatch):
+        import interpreter_lm
+
+        monkeypatch.setattr(
+            interpreter_lm,
+            "_invoice_client_registry",
+            lambda: {
+                "north_star": {
+                    "client_ref": "north_star",
+                    "client_display_name": "North Star Venue",
+                    "aliases": ("north star", "north star club"),
+                }
+            },
+        )
+
+        prompt = interpreter_lm._build_interpreter_prompt("send the North Star invoice")
+
+        assert "north-star" in prompt
+        assert "north star club" in prompt
+        assert "st-annes" not in prompt
+
+    def test_interpreter_source_has_no_hardcoded_invoice_clients(self):
+        import interpreter_lm
+
+        source = Path(interpreter_lm.__file__).read_text(encoding="utf-8")
+
+        for forbidden in (
+            "st-annes",
+            "capital-hilton",
+            "live-arts-md",
+            "reynolds-tavern",
+            "St. Anne",
+            "Capital Hilton",
+            "Live Arts",
+            "Reynolds Tavern",
+        ):
+            assert forbidden not in source
 
     def test_uncertain_route(self):
         """Mock returns UNCERTAIN → not a brain divert."""
@@ -362,12 +471,12 @@ class TestNoAuthorityEscalation:
     """The interpreter result must never carry or imply authority effects."""
 
     def test_interpret_result_dataclass_fields(self):
-        """InterpretResult fields: route, fact_selection, confidence, reason only."""
+        """InterpretResult fields remain pure data with no authority payload."""
         import dataclasses
         from interpreter_lm import InterpretResult
 
         field_names = {f.name for f in dataclasses.fields(InterpretResult)}
-        expected = {"route", "fact_selection", "confidence", "reason"}
+        expected = {"route", "fact_selection", "confidence", "reason", "intent", "client"}
         assert field_names == expected, (
             f"InterpretResult must have exactly {expected} fields. Got: {field_names}"
         )
@@ -567,7 +676,7 @@ class TestActionRoute:
 
         result = InterpretResult(route=ROUTE_ACTION, fact_selection=[], confidence=0.9, reason="send invoice")
         field_names = {f.name for f in dataclasses.fields(result)}
-        expected = {"route", "fact_selection", "confidence", "reason"}
+        expected = {"route", "fact_selection", "confidence", "reason", "intent", "client"}
         assert field_names == expected
 
         for forbidden in ("authority", "allow", "send", "action_execute", "authorize", "deny", "execute"):

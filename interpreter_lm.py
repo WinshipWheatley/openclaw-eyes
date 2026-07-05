@@ -60,6 +60,137 @@ HIGH_CONFIDENCE_THRESHOLD = 0.75
 
 _VALID_ROUTES = {ROUTE_BRAIN, ROUTE_WORKFLOW, ROUTE_ACTION, ROUTE_BLOCKED, ROUTE_UNCERTAIN}
 
+INVOICE_SEND_INTENT = "invoice_send"
+
+_PLACEHOLDER_INVOICE_CLIENTS = {
+    "",
+    "right",
+    "correct",
+    "one",
+    "the one",
+    "that one",
+    "this one",
+    "it",
+    "them",
+    "client",
+    "the client",
+    "invoice",
+    "the invoice",
+    "unknown",
+    "unsure",
+    "ambiguous",
+    "tbd",
+    "n a",
+    "na",
+    "none",
+    "null",
+}
+
+
+def _normalize_label(value: Any) -> str:
+    text = str(value or "").strip().lower().replace("’", "'")
+    text = text.replace("'", "")
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", text)).strip()
+
+
+def _normalize_interpreter_intent(value: Any) -> str:
+    label = _normalize_label(value).replace(" ", "_")
+    if label in {INVOICE_SEND_INTENT, "send_invoice", "invoice_email", "email_invoice"}:
+        return INVOICE_SEND_INTENT
+    return ""
+
+
+def _invoice_client_registry() -> Mapping[str, Mapping[str, Any]]:
+    try:
+        from invoice_cockpit_client_registry import DEFAULT_CLARA_INVOICE_CLIENT_REGISTRY
+    except Exception:
+        return {}
+    return DEFAULT_CLARA_INVOICE_CLIENT_REGISTRY
+
+
+def _client_slug(value: Any) -> str:
+    text = str(value or "").strip().lower().replace("_", "-")
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+
+
+def _model_aliases(model: Mapping[str, Any]) -> tuple[Any, ...]:
+    aliases = model.get("aliases") or model.get("alias") or ()
+    if isinstance(aliases, str):
+        return (aliases,)
+    if isinstance(aliases, (list, tuple, set)):
+        return tuple(aliases)
+    return ()
+
+
+def _invoice_client_entries() -> tuple[dict[str, Any], ...]:
+    entries: list[dict[str, Any]] = []
+    for key, model in _invoice_client_registry().items():
+        if not isinstance(model, Mapping):
+            continue
+        client_ref = model.get("client_ref") or key
+        slug = _client_slug(client_ref)
+        if not slug:
+            continue
+        display_name = model.get("client_display_name") or model.get("display_name") or model.get("client_name")
+        candidates = (
+            slug,
+            client_ref,
+            display_name,
+            model.get("client"),
+            model.get("customer_name"),
+            *_model_aliases(model),
+        )
+        match_labels = frozenset(_normalize_label(item) for item in candidates if _normalize_label(item))
+        entries.append(
+            {
+                "slug": slug,
+                "display_name": str(display_name or client_ref),
+                "aliases": tuple(str(item) for item in _model_aliases(model) if str(item).strip()),
+                "match_labels": match_labels,
+            }
+        )
+    return tuple(entries)
+
+
+def _normalize_invoice_client(value: Any) -> str:
+    label = _normalize_label(value)
+    if label in _PLACEHOLDER_INVOICE_CLIENTS:
+        return ""
+    for entry in _invoice_client_entries():
+        if label in entry["match_labels"]:
+            return str(entry["slug"])
+    return ""
+
+
+def _invoice_client_prompt_lines() -> str:
+    lines: list[str] = []
+    for entry in _invoice_client_entries():
+        alias_text = ", ".join(entry["aliases"][:6])
+        if alias_text:
+            lines.append(f'     "{entry["slug"]}" ({entry["display_name"]}; aliases: {alias_text})')
+        else:
+            lines.append(f'     "{entry["slug"]}" ({entry["display_name"]})')
+    if not lines:
+        return "     No invoice client registry is loaded; leave client empty."
+    return "\n".join(lines)
+
+
+def _invoice_client_slug_contract() -> str:
+    slugs = tuple(entry["slug"] for entry in _invoice_client_entries())
+    if not slugs:
+        return "<registry-client-slug|>"
+    return "<" + "|".join(slugs) + "|>"
+
+
+def normalize_invoice_client_slug(value: Any) -> str:
+    """Return a known invoice client slug, or empty string when unresolved."""
+    return _normalize_invoice_client(value)
+
+
+def is_invoice_client_placeholder(value: Any) -> bool:
+    """Return True for literal placeholder words that must not become a client."""
+    return _normalize_label(value) in _PLACEHOLDER_INVOICE_CLIENTS
+
 
 @dataclass(frozen=True)
 class InterpretResult:
@@ -84,6 +215,8 @@ class InterpretResult:
     fact_selection: list[str] = field(default_factory=list)
     confidence: float = 0.0
     reason: str = ""
+    intent: str = ""
+    client: str = ""
 
     def is_high_confidence_brain(self) -> bool:
         """True when the interpreter is confident the message is conversational."""
@@ -101,6 +234,10 @@ class InterpretResult:
     def is_high_confidence_blocked(self) -> bool:
         """True when the interpreter classifies this as blocked/needs approval, with high confidence."""
         return self.route == ROUTE_BLOCKED and self.confidence >= HIGH_CONFIDENCE_THRESHOLD
+
+    def is_high_confidence_invoice_send(self) -> bool:
+        """True when the interpreter confidently resolved an invoice-send intent."""
+        return self.intent == INVOICE_SEND_INTENT and self.confidence >= HIGH_CONFIDENCE_THRESHOLD
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +336,8 @@ _KNOWN_READ_MODELS = (
 
 def _build_interpreter_prompt(text: str) -> str:
     read_models_list = "\n".join(f"  - {m}" for m in _KNOWN_READ_MODELS)
+    invoice_clients_list = _invoice_client_prompt_lines()
+    invoice_client_contract = _invoice_client_slug_contract()
     return f"""You are the Maestro Interpreter LM.  Your ONLY job is to classify the operator's message and select relevant read-models.
 
 OPERATOR MESSAGE:
@@ -223,12 +362,25 @@ TASK:
 
 3. Rate your confidence 0.00 to 1.00.
 
+4. If the operator is asking to prepare, generate, draft, email, or send a client invoice, set:
+   - "intent": "invoice_send"
+   - "client": one canonical slug from the invoice client registry below.
+   Resolve natural names and aliases to the matching registry slug. If the wording says
+   only "the right invoice", "that one", "the invoice", or another placeholder, leave
+   "client" empty unless the available context clearly resolves it. Questions like
+   "did they pay the invoice?" are NOT invoice_send intents.
+
+INVOICE CLIENT REGISTRY:
+{invoice_clients_list}
+
 Respond ONLY with valid JSON, no prose, no markdown fences:
 {{
   "route": "<BRAIN|WORKFLOW|ACTION|BLOCKED|UNCERTAIN>",
   "fact_selection": ["<filename>", ...],
   "confidence": <float 0.0-1.0>,
-  "reason": "<one sentence>"
+  "reason": "<one sentence>",
+  "intent": "<invoice_send|>",
+  "client": "{invoice_client_contract}"
 }}"""
 
 
@@ -277,12 +429,21 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
         confidence = 0.0
 
     reason = str(payload.get("reason") or "").strip()[:500]
+    intent = _normalize_interpreter_intent(payload.get("intent"))
+    client = _normalize_invoice_client(
+        payload.get("client")
+        or payload.get("client_slug")
+        or payload.get("client_id")
+        or payload.get("invoice_client")
+    )
 
     return InterpretResult(
         route=raw_route,
         fact_selection=fact_selection,
         confidence=confidence,
         reason=reason,
+        intent=intent,
+        client=client,
     )
 
 

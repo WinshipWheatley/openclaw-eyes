@@ -27,10 +27,11 @@ class EditingOps:
         self.calls = []
 
     def prepare_invoice(self, client):
+        client_name = client.get("display_name") if isinstance(client, dict) else client
         return (
             {
                 "invoice_number": "WL-2026-0001",
-                "client_name": client,
+                "client_name": client_name,
                 "client_email": "client@example.com",
                 "project_desc": "Wedding",
                 "service_date": "2026-06-14",
@@ -84,7 +85,9 @@ def test_edit_reply_updates_session_and_repreviews_new_pdf() -> None:
     store = FakeStore()
     ops = EditingOps()
 
-    cs.handle_invoice_cockpit_message("send the Any Client invoice", ops=ops, store=store)
+    started = cs.handle_invoice_cockpit_message("send the St Anne's invoice", ops=ops, store=store)
+    assert started["stage"] == wf.AWAITING_INVOICE_APPROVAL
+
     result = cs.handle_invoice_cockpit_message(
         "add Church service on 2026-06-21 at $125",
         ops=ops,
