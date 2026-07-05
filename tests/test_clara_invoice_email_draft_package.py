@@ -31,7 +31,10 @@ def test_general_client_invoice_body_is_human_and_guard_clean():
     assert "$250.00" in body
     assert "attached" in body.lower()
     assert "PDF" in body
-    assert body.endswith("Best,\nClara Reid")
+    assert "I hope this note finds you well." in body
+    assert "coming to $250.00" in body
+    assert "There's nothing needed on your end right now" in body
+    assert body.endswith("Warmly,\nClara Reid")
     assert "Executive Assistant" not in body
     assert drafts.body_contains_backend_status_language(body) is False
     lowered = body.lower()
@@ -89,7 +92,88 @@ def test_client_without_specific_recipe_routes_to_general_body_not_placeholder()
     assert drafts.body_contains_backend_status_language(draft["body"]) is False
 
 
-def test_existing_capital_hilton_ready_body_recipe_unchanged():
+def test_synthetic_registry_client_routes_to_warm_general_body_without_code_change():
+    registry = {
+        "north_star_venue": {
+            "client_ref": "north_star_venue",
+            "client_display_name": "North Star Venue",
+            "recipients": (
+                {
+                    "display_name": "Mira Sol",
+                    "role": "primary_invoice_contact",
+                    "lane": "to",
+                    "email": "mira@example.com",
+                },
+            ),
+        },
+    }
+    draft = drafts.build_clara_invoice_email_draft_package(
+        client_ref="north_star_venue",
+        workflow_ref="north_star_invoice_workflow",
+        client_display_name="North Star Venue",
+        recipient_package=drafts._recipient_package(()),  # type: ignore[attr-defined]
+        attachment_ready=True,
+        attachment_refs=("artifact_ref:north_star_invoice_pdf",),
+        invoice_period_label="July 2026 production support",
+        supplier_portal_required=False,
+        first_contact_intro_required=False,
+        present_receipts=("clara_email_draft_receipt",),
+        invoice_data={
+            "client_name": "North Star Venue",
+            "attachment_filename": "North_Star_July_2026.pdf",
+            "line_items": (
+                {"description": "Production support", "date": "2026-07-02", "amount": 500.0},
+            ),
+            "amount_total": 500.0,
+        },
+        client_registry=registry,
+    )
+
+    assert draft["draft_status"] == drafts.FINAL_DRAFT_READY_FOR_APPROVAL
+    assert draft["client_facing_draft_ready_for_approval"]["ready"] is True
+    assert draft["to_recipients"][0]["display_name"] == "Mira Sol"
+    assert draft["to_recipients"][0]["email"] == "mira@example.com"
+    assert "Hi Mira," in draft["body"]
+    assert "I hope this note finds you well." in draft["body"]
+    assert "Winship's invoice for North Star Venue is attached (North_Star_July_2026.pdf)" in draft["body"]
+    assert "coming to $500.00" in draft["body"]
+    assert "Warmly,\nClara Reid" in draft["body"]
+    assert "Please let us know if anything else is needed for processing." not in draft["body"]
+    assert drafts.body_contains_backend_status_language(draft["body"]) is False
+
+
+def test_registered_clients_use_general_warm_body_not_per_client_body_recipes():
+    source = drafts.__loader__.get_source(drafts.__name__)  # type: ignore[union-attr]
+
+    assert "def _capital_hilton_body" not in source
+    assert "def _live_arts_md_body" not in source
+    assert 'client_ref == "capital_hilton"' not in source
+    assert 'client_ref == "live_arts_md"' not in source
+
+    capital = drafts.build_clara_invoice_email_draft_package(
+        client_ref="capital_hilton",
+        workflow_ref="capital_hilton_invoice_workflow",
+        client_display_name="Capital Hilton",
+        recipient_package=drafts.capital_hilton_recipient_package(confirmed=True),
+        attachment_ready=True,
+        attachment_refs=("artifact_ref:linked_excel",),
+        invoice_period_label="May 2026",
+        invoice_dates_covered=("May 1, 2026", "May 8, 2026"),
+        supplier_portal_required=True,
+        supplier_portal_provider="COUPA",
+        portal_submission_status="SUBMITTED_RECEIPT_CONFIRMED",
+        first_contact_intro_required=False,
+        present_receipts=("clara_email_draft_receipt",),
+    )
+
+    assert "I hope this note finds you well." in capital["body"]
+    assert "Winship's invoice for Capital Hilton is attached" in capital["body"]
+    assert "coming to" not in capital["body"]
+    assert "The matching invoice has been submitted through the Coupa supplier portal." in capital["body"]
+    assert capital["body"].endswith("Warmly,\nClara Reid")
+
+
+def test_existing_capital_hilton_ready_body_uses_warm_general_copy():
     ready = drafts.build_clara_invoice_email_draft_package(
         client_ref="capital_hilton",
         workflow_ref="capital_hilton_invoice_workflow",
@@ -108,14 +192,17 @@ def test_existing_capital_hilton_ready_body_recipe_unchanged():
 
     assert ready["body"] == (
         "Hi Annette,\n\n"
-        "Attached is the Excel invoice for your records covering May 1, 2026, May 8, 2026.\n"
+        "I hope this note finds you well. Winship's invoice for Capital Hilton is attached - "
+        "it covers May 1, 2026 and May 8, 2026.\n"
         "The matching invoice has been submitted through the Coupa supplier portal.\n\n"
-        "Best,\n"
+        "There's nothing needed on your end right now; we'll keep things moving from here, "
+        "and Winship can take care of payment whenever it's convenient.\n\n"
+        "Warmly,\n"
         "Clara Reid"
     )
 
 
-def test_existing_live_arts_ready_body_recipe_unchanged():
+def test_existing_live_arts_ready_body_uses_warm_general_copy():
     ready = drafts.build_clara_invoice_email_draft_package(
         client_ref="live_arts_md",
         workflow_ref="live_arts_md_invoice_workflow",
@@ -130,10 +217,12 @@ def test_existing_live_arts_ready_body_recipe_unchanged():
     )
 
     assert ready["body"] == (
-        "Hi Dane - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\n"
-        "Attached is Winship's invoice for June 2026 Speaker Rental.\n"
-        "Please let us know if anything else is needed for processing.\n\n"
-        "Best,\n"
+        "Hi Dane,\n\n"
+        "I hope this note finds you well. Winship's invoice for Live Arts MD is attached - "
+        "it covers June 2026 Speaker Rental.\n\n"
+        "There's nothing needed on your end right now; we'll keep things moving from here, "
+        "and Winship can take care of payment whenever it's convenient.\n\n"
+        "Warmly,\n"
         "Clara Reid"
     )
 
@@ -300,5 +389,5 @@ def test_send_ready_draft_can_claim_attachment_only_when_ready():
 
     assert ready["draft_status"] == drafts.FINAL_DRAFT_READY_FOR_APPROVAL
     assert ready["client_facing_draft_ready_for_approval"]["ready"] is True
-    assert "Attached is Winship's invoice for June 2026 Speaker Rental." in ready["body"]
-    assert "Attached is" in ready["client_facing_draft_ready_for_approval"]["body"]
+    assert "Winship's invoice for Live Arts MD is attached" in ready["body"]
+    assert "I hope this note finds you well." in ready["client_facing_draft_ready_for_approval"]["body"]

@@ -1,7 +1,10 @@
 """The Clara invoice draft must render minor-unit (cents) amounts correctly — a live test-mode
 send once showed $25,000 for a $250 invoice because the drafter read cents as dollars."""
 
-from clara_invoice_email_draft_package import build_general_client_invoice_body
+from clara_invoice_email_draft_package import (
+    body_contains_backend_status_language,
+    build_general_client_invoice_body,
+)
 
 
 def _st_annes_data():
@@ -21,6 +24,14 @@ def test_minor_units_amounts_render_as_dollars():
     assert "$125.00" in body            # each event, not $12,500
     assert "$250.00" in body            # total, not $25,000
     assert "$12,500" not in body and "$25,000" not in body
+    assert "I hope this note finds you well." in body
+    assert "Winship's invoice for St. Anne's is attached (St_Annes.pdf)" in body
+    assert "coming to $250.00" in body
+    assert "There's nothing needed on your end right now" in body
+    assert "Warmly,\nClara Reid" in body
+    assert "The total due is" not in body
+    assert "Please let us know if anything else is needed for processing." not in body
+    assert body_contains_backend_status_language(body) is False
 
 
 def test_dollar_amounts_unchanged():
@@ -28,3 +39,41 @@ def test_dollar_amounts_unchanged():
     data = {"client_name": "X", "line_items": [{"description": "Gig", "date": "2026-07-01", "amount": 500.0}]}
     body = build_general_client_invoice_body(data, None)
     assert "$500.00" in body and "$5.00" not in body
+
+
+def test_attachment_not_ready_uses_warm_on_its_way_copy_without_attached_claim():
+    data = {
+        "client_name": "Live Arts MD",
+        "attachment_ready": False,
+        "line_items": [
+            {"description": "Tech rehearsal", "date": "2026-07-01", "amount": 500.0},
+        ],
+        "amount_total": 500.0,
+    }
+
+    body = build_general_client_invoice_body(data, {"name": "Dane"})
+
+    assert "Hi Dane," in body
+    assert (
+        "Winship's invoice for Live Arts MD, covering Tech rehearsal on 2026-07-01 ($500.00), "
+        "is on its way to you."
+    ) in body
+    assert "($500.00) ($500.00)" not in body
+    assert "is attached" not in body
+    assert body_contains_backend_status_language(body) is False
+
+
+def test_attachment_ready_without_filename_omits_parenthetical():
+    data = {
+        "client_name": "Harbor Light",
+        "line_items": [
+            {"description": "Sound support", "date": "2026-07-02", "amount": 350.0},
+        ],
+        "amount_total": 350.0,
+    }
+
+    body = build_general_client_invoice_body(data, {"name": "Mira"})
+
+    assert "is attached (" not in body
+    assert "Winship's invoice for Harbor Light is attached" in body
+    assert "coming to $350.00" in body
