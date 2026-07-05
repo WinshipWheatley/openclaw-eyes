@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from typing import Any, Mapping
 
 
@@ -41,6 +42,84 @@ CLIENT_ALIAS_READINESS = {
     }
 }
 
+DEFAULT_CLARA_INVOICE_CLIENT_REGISTRY = {
+    "capital_hilton": {
+        "client_ref": "capital_hilton",
+        "client_display_name": "Capital Hilton",
+        "supplier_portal_required": True,
+        "supplier_portal_provider": "COUPA",
+        "recipients": (
+            {"display_name": "Annette", "role": "finance_primary", "lane": "to"},
+            {"display_name": "Chyna", "role": "finance_secondary", "lane": "cc"},
+            {"display_name": "Will", "role": "relationship_contact", "lane": "cc"},
+        ),
+        "gated_claims": (
+            {
+                "claim_ref": "capital_hilton_excel_invoice_attached",
+                "claim": "Excel invoice is attached for Annette's records.",
+                "allowed_when": "attachment_ready",
+                "required_receipt": "invoice_attachment_confirmed_receipt",
+            },
+            {
+                "claim_ref": "capital_hilton_invoice_period_dates",
+                "claim": "Invoice period or performance dates are stated.",
+                "allowed_when": "invoice_period_or_dates",
+                "required_receipt": "invoice_period_confirmed_receipt",
+            },
+            {
+                "claim_ref": "capital_hilton_portal_submission",
+                "claim": "Supplier portal invoice has been submitted.",
+                "allowed_when": "portal_submitted",
+                "required_receipt": "portal_invoice_submission_receipt",
+                "supplier_portal_provider": "COUPA",
+            },
+        ),
+    },
+    "live_arts_md": {
+        "client_ref": "live_arts_md",
+        "client_display_name": "Live Arts MD",
+        "recipients": (
+            {"display_name": "Dane", "role": "primary_invoice_contact", "lane": "to"},
+            {"display_name": "Draper", "role": "cc_candidate", "lane": "cc"},
+            {"display_name": "Earnie", "role": "cc_candidate", "lane": "cc"},
+            {
+                "display_name": "Winship",
+                "role": "operator_copy",
+                "lane": "cc",
+                "email": "winshiplive@gmail.com",
+                "proof_ref": "operator_known_email:winshiplive@gmail.com",
+            },
+        ),
+        "gated_claims": (
+            {
+                "claim_ref": "live_arts_md_invoice_attached",
+                "claim": "Invoice is attached.",
+                "allowed_when": "attachment_ready",
+                "required_receipt": "invoice_attachment_confirmed_receipt",
+            },
+            {
+                "claim_ref": "live_arts_md_invoice_period_or_work_type",
+                "claim": "Invoice period or work type is stated.",
+                "allowed_when": "invoice_period_or_dates",
+                "required_receipt": "live_arts_md_invoice_candidate_selected_receipt",
+            },
+        ),
+    },
+    "st_annes": {
+        "client_ref": "st_annes",
+        "client_display_name": "St. Anne's",
+        "recipients": (
+            {
+                "display_name": "Draper Carter",
+                "role": "primary_invoice_contact",
+                "lane": "to",
+                "email": "draper.carter@gmail.com",
+                "proof_ref": "operator_known_email:draper.carter@gmail.com",
+            },
+        ),
+    },
+}
+
 CLIENT_FACING_FORBIDDEN_TERMS = (
     "draft path prepared",
     "guardian validated outputs",
@@ -57,6 +136,11 @@ CLIENT_FACING_FORBIDDEN_TERMS = (
     "i'm preparing",
     "backend",
     "proof ui",
+)
+
+_WARM_NO_ACTION_LINE = (
+    "There's nothing needed on your end right now; whenever it's convenient, just let me know if "
+    "anything would help it along. As always, it's a pleasure working with you."
 )
 
 
@@ -90,29 +174,19 @@ def _recipient(
 
 
 def capital_hilton_recipient_package(*, confirmed: bool = False) -> dict[str, Any]:
-    recipients = (
-        _recipient("Annette", "finance_primary", "to", confirmed=confirmed),
-        _recipient("Chyna", "finance_secondary", "cc", confirmed=confirmed),
-        _recipient("Will", "relationship_contact", "cc", confirmed=confirmed),
+    return _recipient_package_from_client_record(
+        DEFAULT_CLARA_INVOICE_CLIENT_REGISTRY["capital_hilton"],
+        {},
+        confirmed=confirmed,
     )
-    return _recipient_package(recipients)
 
 
 def live_arts_md_recipient_package(*, confirmed: bool = False) -> dict[str, Any]:
-    recipients = (
-        _recipient("Dane", "primary_invoice_contact", "to", confirmed=confirmed),
-        _recipient("Draper", "cc_candidate", "cc", confirmed=confirmed),
-        _recipient("Earnie", "cc_candidate", "cc", confirmed=confirmed),
-        _recipient(
-            "Winship",
-            "operator_copy",
-            "cc",
-            email="winshiplive@gmail.com",
-            confirmed=confirmed,
-            proof_ref="operator_known_email:winshiplive@gmail.com",
-        ),
+    return _recipient_package_from_client_record(
+        DEFAULT_CLARA_INVOICE_CLIENT_REGISTRY["live_arts_md"],
+        {},
+        confirmed=confirmed,
     )
-    return _recipient_package(recipients)
 
 
 def _recipient_package(recipients: tuple[dict[str, Any], ...]) -> dict[str, Any]:
@@ -135,176 +209,6 @@ def _safe_subject(client_display_name: str, invoice_period_label: str | None) ->
     return f"{client_display_name} invoice{suffix}"
 
 
-def _intro_line(
-    *,
-    first_contact_intro_required: bool,
-    recipient_name: str,
-    client_display_name: str,
-    supplier_portal_provider: str | None,
-) -> str:
-    if not first_contact_intro_required:
-        return f"Hi {recipient_name},"
-    if supplier_portal_provider == "COUPA":
-        return (
-            f"Hi {recipient_name} - I'm Clara Reid, helping Winship keep the "
-            f"{client_display_name} invoice details organized."
-        )
-    return (
-        f"Hi {recipient_name} - I'm Clara Reid, helping Winship keep the "
-        f"{client_display_name} invoice package organized."
-    )
-
-
-def _capital_hilton_body(
-    *,
-    first_contact_intro_required: bool,
-    attachment_ready: bool,
-    invoice_period_label: str | None,
-    invoice_dates_covered: tuple[str, ...],
-    portal_submission_status: str,
-) -> str:
-    lines = [_intro_line(
-        first_contact_intro_required=first_contact_intro_required,
-        recipient_name="Annette",
-        client_display_name="Capital Hilton",
-        supplier_portal_provider="COUPA",
-    ), ""]
-    if attachment_ready:
-        if invoice_dates_covered:
-            covered = ", ".join(invoice_dates_covered)
-            lines.append(f"Attached is the Excel invoice for your records covering {covered}.")
-        elif invoice_period_label:
-            lines.append(f"Attached is the Excel invoice for your records for {invoice_period_label}.")
-        else:
-            lines.append("Attached is the Excel invoice for your records.")
-    else:
-        lines.append("Invoice attachment: [confirmed Excel invoice for Annette's records].")
-        lines.append("Period covered: [confirmed Capital Hilton invoice dates or period].")
-    if portal_submission_status == "SUBMITTED_RECEIPT_CONFIRMED":
-        lines.append("The matching invoice has been submitted through the Coupa supplier portal.")
-    lines.extend(("", "Best,", "Clara Reid"))
-    return "\n".join(lines)
-
-
-def _live_arts_md_body(
-    *,
-    first_contact_intro_required: bool,
-    attachment_ready: bool,
-    invoice_period_label: str | None,
-    invoice_dates_covered: tuple[str, ...],
-) -> str:
-    lines = [_intro_line(
-        first_contact_intro_required=first_contact_intro_required,
-        recipient_name="Dane",
-        client_display_name="Live Arts MD",
-        supplier_portal_provider=None,
-    ), ""]
-    if attachment_ready:
-        if invoice_dates_covered:
-            covered = ", ".join(invoice_dates_covered)
-            lines.append(f"Attached is Winship's invoice covering {covered}.")
-        elif invoice_period_label:
-            lines.append(f"Attached is Winship's invoice for {invoice_period_label}.")
-        else:
-            lines.append("Attached is Winship's invoice.")
-        lines.append("Please let us know if anything else is needed for processing.")
-    else:
-        lines.append("Invoice attachment: [confirmed Live Arts MD invoice].")
-        lines.append("Work covered: [selected invoice period or work type].")
-        lines.append("Recipient action: [review and process the confirmed invoice].")
-    lines.extend(("", "Best,", "Clara Reid"))
-    return "\n".join(lines)
-
-
-def _capital_hilton_target_blueprint(
-    *,
-    first_contact_intro_required: bool,
-    invoice_period_label: str | None,
-    invoice_dates_covered: tuple[str, ...],
-    portal_submission_status: str,
-    attachment_ready: bool,
-    missing_prerequisites: tuple[str, ...],
-    subject: str,
-) -> dict[str, Any]:
-    body_template = _capital_hilton_body(
-        first_contact_intro_required=first_contact_intro_required,
-        attachment_ready=attachment_ready,
-        invoice_period_label=invoice_period_label,
-        invoice_dates_covered=invoice_dates_covered,
-        portal_submission_status=portal_submission_status,
-    )
-    gated_claims = [
-        {
-            "claim_ref": "capital_hilton_excel_invoice_attached",
-            "claim": "Excel invoice is attached for Annette's records.",
-            "allowed": attachment_ready,
-            "required_receipt": "invoice_attachment_confirmed_receipt",
-        },
-        {
-            "claim_ref": "capital_hilton_invoice_period_dates",
-            "claim": "Invoice period or performance dates are stated.",
-            "allowed": bool(invoice_period_label or invoice_dates_covered),
-            "required_receipt": "invoice_period_confirmed_receipt",
-        },
-        {
-            "claim_ref": "capital_hilton_portal_submission",
-            "claim": "Supplier portal invoice has been submitted.",
-            "allowed": portal_submission_status == "SUBMITTED_RECEIPT_CONFIRMED",
-            "required_receipt": "portal_invoice_submission_receipt",
-            "supplier_portal_provider": "COUPA",
-        },
-    ]
-    return {
-        "status": TARGET_BLUEPRINT_NOT_SEND_READY if missing_prerequisites else FINAL_DRAFT_READY_FOR_APPROVAL,
-        "purpose": "Target final client email blueprint with gated claims.",
-        "subject_template": subject,
-        "body_template": body_template,
-        "unresolved_slots": tuple(missing_prerequisites),
-        "gated_claims": tuple(gated_claims),
-        "send_ready": False,
-    }
-
-
-def _live_arts_md_target_blueprint(
-    *,
-    first_contact_intro_required: bool,
-    invoice_period_label: str | None,
-    invoice_dates_covered: tuple[str, ...],
-    attachment_ready: bool,
-    missing_prerequisites: tuple[str, ...],
-    subject: str,
-) -> dict[str, Any]:
-    body_template = _live_arts_md_body(
-        first_contact_intro_required=first_contact_intro_required,
-        attachment_ready=attachment_ready,
-        invoice_period_label=invoice_period_label,
-        invoice_dates_covered=invoice_dates_covered,
-    )
-    gated_claims = (
-        {
-            "claim_ref": "live_arts_md_invoice_attached",
-            "claim": "Invoice is attached.",
-            "allowed": attachment_ready,
-            "required_receipt": "invoice_attachment_confirmed_receipt",
-        },
-        {
-            "claim_ref": "live_arts_md_invoice_period_or_work_type",
-            "claim": "Invoice period or work type is stated.",
-            "allowed": bool(invoice_period_label or invoice_dates_covered),
-            "required_receipt": "live_arts_md_invoice_candidate_selected_receipt",
-        },
-    )
-    return {
-        "status": TARGET_BLUEPRINT_NOT_SEND_READY if missing_prerequisites else FINAL_DRAFT_READY_FOR_APPROVAL,
-        "purpose": "Target final client email blueprint with gated claims.",
-        "subject_template": subject,
-        "body_template": body_template,
-        "unresolved_slots": tuple(missing_prerequisites),
-        "gated_claims": gated_claims,
-        "send_ready": False,
-    }
-
-
 def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
 
@@ -315,6 +219,156 @@ def _first_present(mapping: Mapping[str, Any], *keys: str) -> Any:
         if value is not None and _clean_text(value):
             return value
     return None
+
+
+def _client_registry_key(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", _clean_text(value).lower()).strip("_")
+
+
+def _client_record_from_registry(
+    *,
+    client_ref: str,
+    client_display_name: str,
+    client_record: Mapping[str, Any] | None,
+    client_registry: Mapping[str, Mapping[str, Any]] | None,
+) -> dict[str, Any]:
+    if client_record:
+        return dict(client_record)
+
+    registry: dict[str, Mapping[str, Any]] = dict(DEFAULT_CLARA_INVOICE_CLIENT_REGISTRY)
+    if client_registry:
+        registry.update({str(key): value for key, value in client_registry.items()})
+
+    lookup_keys = {
+        _client_registry_key(client_ref),
+        _client_registry_key(client_display_name),
+        str(client_ref),
+        str(client_display_name),
+    }
+    for key, record in registry.items():
+        record_keys = {
+            _client_registry_key(key),
+            _client_registry_key(record.get("client_ref")),
+            _client_registry_key(record.get("client_display_name")),
+        }
+        record_keys.update(_client_registry_key(alias) for alias in record.get("aliases", ()))
+        if lookup_keys & record_keys:
+            return dict(record)
+    return {}
+
+
+def _record_recipients(record: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
+    recipients = record.get("recipients") or record.get("contacts") or record.get("client_specific_contacts") or ()
+    if isinstance(recipients, Mapping):
+        recipients = (recipients,)
+    if not isinstance(recipients, (list, tuple)):
+        return ()
+    return tuple(item for item in recipients if isinstance(item, Mapping))
+
+
+def _recipient_package_from_client_record(
+    record: Mapping[str, Any],
+    fallback_package: Mapping[str, Any],
+    *,
+    confirmed: bool = False,
+) -> dict[str, Any]:
+    raw_recipients = _record_recipients(record)
+    if not raw_recipients:
+        return dict(fallback_package)
+
+    fallback_confirmed = fallback_package.get("recipient_confirmation_status") == "CONFIRMED_BY_RECEIPT"
+    record_confirmed = record.get("recipient_confirmation_status") == "CONFIRMED_BY_RECEIPT"
+    package_confirmed = confirmed or fallback_confirmed or record_confirmed
+    recipients: list[dict[str, Any]] = []
+    for index, raw in enumerate(raw_recipients):
+        name = _first_present(raw, "display_name", "name", "recipient_name", "label")
+        if not name:
+            continue
+        role = _clean_text(_first_present(raw, "role", "contact_role")) or "primary_invoice_contact"
+        lane = _clean_text(_first_present(raw, "lane", "recipient_lane", "delivery_lane")) or ("to" if index == 0 else "cc")
+        email = _first_present(raw, "email", "email_address", "recipient_email", "to_email")
+        proof_ref = _first_present(raw, "proof_ref", "receipt_ref", "source_ref")
+        item_confirmed = package_confirmed or raw.get("confirmation_status") == "CONFIRMED_BY_RECEIPT" or raw.get("status") == "CONFIRMED_BY_RECEIPT"
+        recipients.append(
+            _recipient(
+                _clean_text(name),
+                role,
+                "to" if lane not in {"to", "cc"} else lane,
+                email=_clean_text(email) or None,
+                confirmed=item_confirmed,
+                proof_ref=_clean_text(proof_ref) or None,
+            )
+        )
+    if not recipients:
+        return dict(fallback_package)
+    return _recipient_package(tuple(recipients))
+
+
+def _contact_from_client_record(
+    record: Mapping[str, Any],
+    recipient_package: Mapping[str, Any],
+    contact: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if contact:
+        return dict(contact)
+    draft_template = record.get("draft_template") if isinstance(record.get("draft_template"), Mapping) else {}
+    greeting_name = _first_present(draft_template, "greeting_name", "recipient_name")
+    if greeting_name:
+        return {"name": greeting_name}
+    recipients = tuple(recipient_package.get("to_recipients", ())) + tuple(recipient_package.get("cc_recipients", ()))
+    for recipient in recipients:
+        if not isinstance(recipient, Mapping):
+            continue
+        name = _first_present(recipient, "display_name", "name", "recipient_name", "label")
+        email = _first_present(recipient, "email")
+        if name or email:
+            return {"name": name, "email": email}
+    return {}
+
+
+def _format_template(template: str, context: Mapping[str, Any]) -> str:
+    class _SafeContext(dict):
+        def __missing__(self, key):
+            return ""
+
+    safe_context = _SafeContext({key: "" if value is None else value for key, value in context.items()})
+    return template.format_map(safe_context)
+
+
+def _resolved_gated_claims(
+    record: Mapping[str, Any],
+    *,
+    attachment_ready: bool,
+    line_items_present: bool,
+    invoice_period_label: str | None,
+    invoice_dates_covered: tuple[str, ...],
+    portal_submission_status: str | None,
+) -> tuple[dict[str, Any], ...] | None:
+    raw_claims = record.get("gated_claims")
+    if not isinstance(raw_claims, (list, tuple)):
+        draft_template = record.get("draft_template") if isinstance(record.get("draft_template"), Mapping) else {}
+        raw_claims = draft_template.get("gated_claims")
+    if not isinstance(raw_claims, (list, tuple)):
+        return None
+
+    claims: list[dict[str, Any]] = []
+    for raw in raw_claims:
+        if not isinstance(raw, Mapping):
+            continue
+        claim = dict(raw)
+        allowed_when = claim.pop("allowed_when", None)
+        if allowed_when == "attachment_ready":
+            claim["allowed"] = attachment_ready
+        elif allowed_when == "line_items_present":
+            claim["allowed"] = line_items_present
+        elif allowed_when == "invoice_period_or_dates":
+            claim["allowed"] = bool(invoice_period_label or invoice_dates_covered)
+        elif allowed_when == "portal_submitted":
+            claim["allowed"] = portal_submission_status == "SUBMITTED_RECEIPT_CONFIRMED"
+        else:
+            claim["allowed"] = bool(claim.get("allowed", False))
+        claims.append(claim)
+    return tuple(claims)
 
 
 def _amounts_are_minor_units(line_items: tuple[Mapping[str, Any], ...]) -> bool:
@@ -369,6 +423,12 @@ def _natural_join(items: tuple[str, ...]) -> str:
     if len(items) == 2:
         return f"{items[0]} and {items[1]}"
     return f"{', '.join(items[:-1])}, and {items[-1]}"
+
+
+def _supplier_portal_display_name(provider: str) -> str:
+    if provider.upper() == "COUPA":
+        return "Coupa"
+    return provider
 
 
 def _line_items_from_invoice_data(invoice_data: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
@@ -487,11 +547,18 @@ def _general_invoice_data_from_package_args(
     invoice_period_label: str | None,
     invoice_dates_covered: tuple[str, ...],
     invoice_data: Mapping[str, Any] | None,
+    supplier_portal_provider: str | None = None,
+    portal_submission_status: str | None = None,
 ) -> dict[str, Any]:
     data = dict(invoice_data or {})
     data.setdefault("client_name", client_display_name)
     data.setdefault("attachment_ready", attachment_ready)
+    data.setdefault("invoice_period_label", invoice_period_label)
+    data.setdefault("invoice_dates_covered", invoice_dates_covered)
+    data.setdefault("supplier_portal_provider", supplier_portal_provider)
+    data.setdefault("portal_submission_status", portal_submission_status)
     if not _line_items_from_invoice_data(data):
+        data.setdefault("coverage_label", _natural_join(invoice_dates_covered) if invoice_dates_covered else invoice_period_label)
         if invoice_dates_covered:
             label = invoice_period_label or "invoice work"
             data["line_items"] = tuple({"event": label, "date": date} for date in invoice_dates_covered)
@@ -508,6 +575,9 @@ def build_general_client_invoice_body(invoice_data: Mapping[str, Any], contact: 
     line_items = _line_items_from_invoice_data(invoice_data)
     minor_units = _amounts_are_minor_units(line_items)
     covered = _natural_join(tuple(_format_line_item(item, minor_units=minor_units) for item in line_items))
+    covered_has_amounts = any(item.get("amount") is not None for item in line_items)
+    coverage_label = _clean_text(invoice_data.get("coverage_label"))
+    coverage = coverage_label or (covered if line_items else _clean_text(invoice_data.get("invoice_period_label")) or covered)
     total = _invoice_total(invoice_data, line_items, minor_units=minor_units)
     attachment_filename = _clean_text(
         _first_present(invoice_data, "attachment_filename", "pdf_filename", "attachment_name", "invoice_pdf_filename")
@@ -517,13 +587,47 @@ def build_general_client_invoice_body(invoice_data: Mapping[str, Any], contact: 
     lines = [_contact_greeting(contact), ""]
     if attachment_ready:
         attachment_label = f" ({attachment_filename})" if attachment_filename else ""
-        lines.append(f"Attached is Winship's invoice PDF{attachment_label} for {client_name}, covering {covered}.")
+        if total:
+            lines.append(
+                f"I hope this note finds you well. Winship's invoice for {client_name} is attached{attachment_label} - "
+                f"it covers {coverage}, coming to {total}."
+            )
+        else:
+            lines.append(
+                f"I hope this note finds you well. Winship's invoice for {client_name} is attached{attachment_label} - "
+                f"it covers {coverage}."
+            )
     else:
-        lines.append(f"I have Winship's invoice for {client_name} covering {covered}.")
-    if total:
-        lines.append(f"The total due is {total}.")
-    lines.append("Please let us know if anything else is needed for processing.")
-    lines.extend(("", "Best,", "Clara Reid"))
+        if total and coverage and not covered_has_amounts:
+            lines.append(
+                f"I hope this note finds you well. Winship's invoice for {client_name}, covering {coverage} ({total}), "
+                "is on its way to you."
+            )
+        elif coverage:
+            lines.append(
+                f"I hope this note finds you well. Winship's invoice for {client_name}, covering {coverage}, "
+                "is on its way to you."
+            )
+        elif total:
+            lines.append(
+                f"I hope this note finds you well. Winship's invoice for {client_name}, totaling {total}, "
+                "is on its way to you."
+            )
+        else:
+            lines.append(f"I hope this note finds you well. Winship's invoice for {client_name} is on its way to you.")
+    portal_provider = _clean_text(invoice_data.get("supplier_portal_provider"))
+    if portal_provider and invoice_data.get("portal_submission_status") == "SUBMITTED_RECEIPT_CONFIRMED":
+        lines.append(
+            f"The matching invoice has been submitted through the "
+            f"{_supplier_portal_display_name(portal_provider)} supplier portal."
+        )
+    lines.extend((
+        "",
+        _WARM_NO_ACTION_LINE,
+        "",
+        "Warmly,",
+        "Clara Reid",
+    ))
     body = "\n".join(lines)
     if body_contains_backend_status_language(body):
         raise ValueError("Generated client-facing invoice body contains forbidden status language.")
@@ -537,8 +641,9 @@ def _general_target_blueprint(
     line_items_present: bool,
     attachment_ready: bool,
     missing_prerequisites: tuple[str, ...],
+    gated_claims: tuple[dict[str, Any], ...] | None = None,
 ) -> dict[str, Any]:
-    gated_claims = (
+    resolved_claims = gated_claims or (
         {
             "claim_ref": "general_client_invoice_pdf_attached",
             "claim": "Invoice PDF is attached.",
@@ -558,7 +663,7 @@ def _general_target_blueprint(
         "subject_template": subject,
         "body_template": body_template,
         "unresolved_slots": tuple(missing_prerequisites),
-        "gated_claims": gated_claims,
+        "gated_claims": resolved_claims,
         "send_ready": False,
     }
 
@@ -611,28 +716,45 @@ def build_clara_invoice_email_draft_package(
     present_receipts: set[str] | tuple[str, ...] | list[str] = (),
     invoice_data: Mapping[str, Any] | None = None,
     contact: Mapping[str, Any] | None = None,
+    client_record: Mapping[str, Any] | None = None,
+    client_registry: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     receipts = {str(item) for item in present_receipts}
     clara_receipt_present = "clara_email_draft_receipt" in receipts
+    record = _client_record_from_registry(
+        client_ref=client_ref,
+        client_display_name=client_display_name,
+        client_record=client_record,
+        client_registry=client_registry,
+    )
+    record_display_name = _first_present(record, "client_display_name", "display_name", "name")
+    if record_display_name:
+        client_display_name = _clean_text(record_display_name)
+    if record.get("supplier_portal_required") is True:
+        supplier_portal_required = True
+    supplier_portal_provider = supplier_portal_provider or _first_present(
+        record,
+        "supplier_portal_provider",
+        "portal_provider",
+    )
     portal_status = portal_submission_status or "NOT_REQUIRED_BY_RECIPE"
     dates = tuple(str(item) for item in invoice_dates_covered if str(item).strip())
-    general_invoice_data = None
-    general_contact = None
-    effective_recipient_package = recipient_package
-    if client_ref not in {"capital_hilton", "live_arts_md"}:
-        general_invoice_data = _general_invoice_data_from_package_args(
-            client_display_name=client_display_name,
-            attachment_ready=attachment_ready,
-            invoice_period_label=invoice_period_label,
-            invoice_dates_covered=dates,
-            invoice_data=invoice_data,
-        )
-        general_contact = _general_contact_from_recipient_package(recipient_package, contact)
-        effective_recipient_package = _general_recipient_package_with_contact(
-            recipient_package,
-            general_invoice_data,
-            general_contact,
-        )
+    effective_recipient_package = _recipient_package_from_client_record(record, recipient_package)
+    general_invoice_data = _general_invoice_data_from_package_args(
+        client_display_name=client_display_name,
+        attachment_ready=attachment_ready,
+        invoice_period_label=invoice_period_label,
+        invoice_dates_covered=dates,
+        invoice_data=invoice_data,
+        supplier_portal_provider=supplier_portal_provider,
+        portal_submission_status=portal_status,
+    )
+    general_contact = _contact_from_client_record(record, effective_recipient_package, contact)
+    effective_recipient_package = _general_recipient_package_with_contact(
+        effective_recipient_package,
+        general_invoice_data,
+        general_contact,
+    )
     recipients_confirmed = effective_recipient_package.get("recipient_confirmation_status") == "CONFIRMED_BY_RECEIPT"
     missing = _missing_prerequisites(
         recipient_package=effective_recipient_package,
@@ -644,49 +766,23 @@ def build_clara_invoice_email_draft_package(
         clara_draft_receipt_present=clara_receipt_present,
     )
     subject = _safe_subject(client_display_name, invoice_period_label)
-    if client_ref == "capital_hilton":
-        body = _capital_hilton_body(
-            first_contact_intro_required=first_contact_intro_required,
+    body = build_general_client_invoice_body(general_invoice_data, general_contact)
+    line_items_present = bool(_line_items_from_invoice_data(general_invoice_data))
+    target_blueprint = _general_target_blueprint(
+        subject=subject,
+        body_template=body,
+        line_items_present=line_items_present,
+        attachment_ready=attachment_ready,
+        missing_prerequisites=missing,
+        gated_claims=_resolved_gated_claims(
+            record,
             attachment_ready=attachment_ready,
+            line_items_present=line_items_present,
             invoice_period_label=invoice_period_label,
             invoice_dates_covered=dates,
             portal_submission_status=portal_status,
-        )
-        target_blueprint = _capital_hilton_target_blueprint(
-            first_contact_intro_required=first_contact_intro_required,
-            invoice_period_label=invoice_period_label,
-            invoice_dates_covered=dates,
-            portal_submission_status=portal_status,
-            attachment_ready=attachment_ready,
-            missing_prerequisites=missing,
-            subject=subject,
-        )
-    elif client_ref == "live_arts_md":
-        body = _live_arts_md_body(
-            first_contact_intro_required=first_contact_intro_required,
-            attachment_ready=attachment_ready,
-            invoice_period_label=invoice_period_label,
-            invoice_dates_covered=dates,
-        )
-        target_blueprint = _live_arts_md_target_blueprint(
-            first_contact_intro_required=first_contact_intro_required,
-            invoice_period_label=invoice_period_label,
-            invoice_dates_covered=dates,
-            attachment_ready=attachment_ready,
-            missing_prerequisites=missing,
-            subject=subject,
-        )
-    else:
-        assert general_invoice_data is not None
-        assert general_contact is not None
-        body = build_general_client_invoice_body(general_invoice_data, general_contact)
-        target_blueprint = _general_target_blueprint(
-            subject=subject,
-            body_template=body,
-            line_items_present=bool(_line_items_from_invoice_data(general_invoice_data)),
-            attachment_ready=attachment_ready,
-            missing_prerequisites=missing,
-        )
+        ),
+    )
     send_ready = not missing
     draft_status = FINAL_DRAFT_READY_FOR_APPROVAL if send_ready else DRAFT_PREVIEW_NOT_SEND_READY
     if not recipients_confirmed or not attachment_ready:
