@@ -1,4 +1,5 @@
 import json
+import logging
 import sqlite3
 from pathlib import Path
 
@@ -84,6 +85,59 @@ FROM agent_lane_registry_runs
 WHERE run_id = 'agent_lane_fixture'
 """,
     ) == (0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+
+def test_old_agent_lanes_schema_is_migrated_before_seed_insert(tmp_path, caplog):
+    db_path = tmp_path / "ledger.sqlite"
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """
+CREATE TABLE agent_lanes (
+  agent_id TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL,
+  lane_id TEXT NOT NULL UNIQUE,
+  lane_label TEXT NOT NULL,
+  status TEXT NOT NULL,
+  authority_level TEXT NOT NULL,
+  role_summary TEXT NOT NULL,
+  can_execute INTEGER NOT NULL DEFAULT 0,
+  can_bypass_approval INTEGER NOT NULL DEFAULT 0,
+  can_read_no_go_raw INTEGER NOT NULL DEFAULT 0,
+  can_call_network INTEGER NOT NULL DEFAULT 0,
+  can_run_tools INTEGER NOT NULL DEFAULT 0,
+  can_call_models INTEGER NOT NULL DEFAULT 0,
+  runtime_authority INTEGER NOT NULL DEFAULT 0,
+  client_deployment_authority INTEGER NOT NULL DEFAULT 0,
+  notes TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  run_id TEXT NOT NULL
+)
+""".strip()
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    caplog.set_level(logging.INFO, logger="agent_lane_registry")
+    result = seed_agent_lane_registry(db_path=db_path, run_id="agent_lane_fixture")
+
+    columns = {row[1] for row in _rows(db_path, "PRAGMA table_info(agent_lanes)")}
+    cassandra = _row(
+        db_path,
+        """
+SELECT telegram_bot_username, telegram_display_name
+FROM agent_lanes
+WHERE agent_id = 'cassandra'
+""",
+    )
+
+    assert result.agent_count == len(DEFAULT_AGENT_LANE_SEEDS)
+    assert {"telegram_bot_username", "telegram_display_name"} <= columns
+    assert cassandra == ("@openclaw_cassandra_bot", "Clara Reid")
+    assert "healed agent_lanes.telegram_bot_username" in caplog.text
+    assert "healed agent_lanes.telegram_display_name" in caplog.text
 
 
 def test_required_agents_worlds_and_aliases_exist(tmp_path):
