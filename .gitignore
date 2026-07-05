@@ -184,6 +184,8 @@
 !reminders_store.py
 !client_followup_watch.py
 !tests/test_reminders_and_followup_capability.py
+!contacts_registry.py
+!tests/test_contacts_registry.py
 !invoice_line_edit.py
 !tests/test_invoice_line_edit.py
 !tests/test_invoice_cockpit_line_item_edits.py
