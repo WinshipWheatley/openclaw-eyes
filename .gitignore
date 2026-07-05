@@ -61,6 +61,7 @@
 !chief_album_brain_legacy.py
 !chief_llm.py
 !frontdoor_prompt.py
+!frontdoor_latency_budget.py
 !chief_marketing_brain.py
 !chief_approval_brain.py
 !chief_reporter_brain.py
@@ -1313,6 +1314,7 @@ generated/system_knowledge/*.sqlite
 !tests/test_t016_synthetic_e2e.py
 !tests/test_t017_operator_approval_gate.py
 !tests/test_frontdoor_model_profile.py
+!tests/test_frontdoor_latency_budget.py
 !tests/test_frontdoor_warmpin_offload.py
 !tests/test_interactive_timeout_not_deep_floored.py
 !tests/test_ledger_guard_fail_closed.py
