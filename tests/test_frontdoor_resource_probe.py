@@ -123,3 +123,40 @@ def test_frontdoor_resource_probe_parses_gpu_ram_and_ollama_ps(monkeypatch) -> N
     assert snapshot.available_ram_gb == 20.0
     assert snapshot.resident_models == [{"name": "qwen3:8b-q4_K_M", "size_vram_gb": 4.6}]
     assert snapshot.to_receipt_fields()["resource_probe_available_vram_gb"] == 5.0
+
+
+def test_gpu_fraction_by_model_derives_residency_from_on_disk_size() -> None:
+    snapshot = frontdoor_resource_probe.FrontdoorResourceSnapshot(
+        available_vram_gb=1.0,
+        total_vram_gb=6.0,
+        available_ram_gb=16.0,
+        resident_models=[
+            {"name": "fully-resident", "size_vram_gb": 6.0},
+            {"name": "half-resident", "size_vram_gb": 2.5},
+            {"name": "overreported", "size_vram_gb": 7.0},
+        ],
+        probe_errors=[],
+    )
+
+    sizes = {
+        "fully-resident": 6.0,
+        "half-resident": 5.0,
+        "overreported": 5.0,
+        "cold": 4.0,
+        "unknown-size": None,
+    }
+
+    assert snapshot.gpu_fraction_by_model(sizes) == {
+        "fully-resident": 1.0,
+        "half-resident": 0.5,
+        "overreported": 1.0,
+        "cold": 0.0,
+    }
+    assert frontdoor_resource_probe.gpu_fraction_by_model(
+        snapshot.resident_vram_by_model_gb(), sizes
+    ) == {
+        "fully-resident": 1.0,
+        "half-resident": 0.5,
+        "overreported": 1.0,
+        "cold": 0.0,
+    }
