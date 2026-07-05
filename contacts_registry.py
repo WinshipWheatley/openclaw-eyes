@@ -36,7 +36,7 @@ DEFAULT_CONTACT_SEEDS: tuple[ContactSeed, ...] = (
     ContactSeed(
         id="glenn-mortoro",
         name="Glenn Mortoro",
-        emails=("treasurer@stannes-annapolis.org",),
+        emails=("treasurer@stannes-annapolis.org", "glennmortoro@gmail.com"),
         connected_clients=("st-annes",),
         role="treasurer/forward-to",
         aliases=("Glen Mortoro", "Glenn", "Glen", "treasurer", "St. Anne's treasurer"),
@@ -68,7 +68,7 @@ DEFAULT_CONTACT_SEEDS: tuple[ContactSeed, ...] = (
     ContactSeed(
         id="dane-krich",
         name="Dane Krich",
-        emails=("dane@liveartsmd.org",),
+        emails=("dane@liveartsmd.org", "execdir@cysomusic.org"),
         connected_clients=("live-arts-md",),
         role="GM",
         aliases=("Dane", "Dane Krich"),
