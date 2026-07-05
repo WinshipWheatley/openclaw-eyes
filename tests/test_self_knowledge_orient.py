@@ -211,11 +211,13 @@ def test_bootstrap_doc_and_first_look_pointers_are_discoverable() -> None:
     bootstrap = (root / "SELF-ORIENT.md").read_text(encoding="utf-8")
     agents = (root / "AGENTS.md").read_text(encoding="utf-8")
     runtime = (root / "OPENCLAW_RUNTIME.md").read_text(encoding="utf-8")
+    ai_context = (root / "docs" / "_ai" / "AI_WORKING_CONTEXT.md").read_text(encoding="utf-8")
 
     assert "python -m self_knowledge_orient --level high" in bootstrap
     assert "single source" in bootstrap.lower()
     assert "SELF-ORIENT.md" in agents
     assert "self_knowledge_orient" in runtime
+    assert "SELF-ORIENT.md" in ai_context
 
 
 def test_source_has_no_network_endpoint_or_external_model_path() -> None:

@@ -6,6 +6,8 @@ Default high-signal briefing file for AI work in OpenClaw.
 
 - Canonical docs root: `/home/openclaw/docs/`
 - Runtime law: [`OPENCLAW_RUNTIME.md`](/home/openclaw/OPENCLAW_RUNTIME.md)
+- Self-orientation: [`SELF-ORIENT.md`](/home/openclaw/SELF-ORIENT.md) points authorized local agents to
+  `python -m self_knowledge_orient --level high` before broad system work.
 - Canonical doctrine:
   [`docs/doctrine/OpenClaw_Architecture_and_Naming_Doctrine.md`](/home/openclaw/docs/doctrine/OpenClaw_Architecture_and_Naming_Doctrine.md)
 
@@ -44,6 +46,7 @@ Default high-signal briefing file for AI work in OpenClaw.
 ## Default read order
 
 1. Read this file.
-2. Read [`BUILD_INTENT.md`](/home/openclaw/docs/_ai/BUILD_INTENT.md).
-3. Read the relevant canonical doc in `docs/`.
-4. Read runtime evidence only if the task needs live truth.
+2. Read [`SELF-ORIENT.md`](/home/openclaw/SELF-ORIENT.md) for the authorized local orientation command.
+3. Read [`BUILD_INTENT.md`](/home/openclaw/docs/_ai/BUILD_INTENT.md).
+4. Read the relevant canonical doc in `docs/`.
+5. Read runtime evidence only if the task needs live truth.
