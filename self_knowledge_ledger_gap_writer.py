@@ -70,6 +70,20 @@ GRAPH_EDGE_COLUMNS = (
     "_fold_source",
     "_fold_at",
 )
+ACTIVATION_TABLE = "feedback_activation_records"
+ACTIVATION_COLUMNS = (
+    "activation_ref",
+    "activation_state",
+    "root",
+    "scheduled_runtime_installed_by_this_call",
+    "ledger_path",
+    "ledger_write_confirmed",
+    "inventory_graph_write_confirmed",
+    "last_verified_at",
+    "payload_json",
+    "_fold_source",
+    "_fold_at",
+)
 
 
 def _utc_now_stamp() -> str:
@@ -196,6 +210,92 @@ def _graph_fold_source(graph: Mapping[str, Any]) -> str:
 
 def _stable_json(payload: Any) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def build_activation_record_write_plan(record: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(record)
+    activation_ref = str(payload.get("activation_ref") or "self_knowledge_scheduled_crawl:unknown")
+    fold_source = f"self_knowledge_activation:{activation_ref}"
+    fold_at = _utc_now_iso()
+    row = {
+        "activation_ref": activation_ref,
+        "activation_state": str(payload.get("activation_state") or "unknown"),
+        "root": str(payload.get("root") or ""),
+        "scheduled_runtime_installed_by_this_call": 1
+        if payload.get("scheduled_runtime_installed_by_this_call")
+        else 0,
+        "ledger_path": payload.get("ledger_path"),
+        "ledger_write_confirmed": 1 if payload.get("ledger_write_confirmed") else 0,
+        "inventory_graph_write_confirmed": 1
+        if payload.get("inventory_graph_write_confirmed")
+        else 0,
+        "last_verified_at": payload.get("last_verified_at"),
+        "payload_json": _stable_json(payload),
+        "_fold_source": fold_source,
+        "_fold_at": fold_at,
+    }
+    return {
+        "table": ACTIVATION_TABLE,
+        "fold_source": fold_source,
+        "row": row,
+    }
+
+
+def _ensure_activation_table(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        f'CREATE TABLE IF NOT EXISTS "{ACTIVATION_TABLE}" ('
+        "activation_ref TEXT PRIMARY KEY, activation_state TEXT NOT NULL, root TEXT, "
+        "scheduled_runtime_installed_by_this_call INTEGER NOT NULL, ledger_path TEXT, "
+        "ledger_write_confirmed INTEGER NOT NULL, inventory_graph_write_confirmed INTEGER NOT NULL, "
+        "last_verified_at TEXT, payload_json TEXT NOT NULL, _fold_source TEXT NOT NULL, _fold_at TEXT NOT NULL)"
+    )
+
+
+def write_activation_record_to_ledger(
+    record: Mapping[str, Any],
+    ledger_path: str | Path,
+    *,
+    confirm: bool = False,
+) -> dict[str, Any]:
+    """Fold one scheduled self-knowledge activation record into an injectable ledger."""
+
+    plan = build_activation_record_write_plan(record)
+    if not confirm:
+        return {"status": "dry_run", "plan": plan}
+
+    ledger = Path(ledger_path)
+    if not ledger.exists():
+        return {"status": "ledger_unavailable", "plan": plan}
+
+    try:
+        backup_path = backup_ledger(ledger)
+    except (OSError, RuntimeError) as exc:
+        return {"status": "backup_verification_failed", "reason": str(exc), "plan": plan}
+
+    with sqlite3.connect(ledger) as conn:
+        _ensure_activation_table(conn)
+        cols = ", ".join(ACTIVATION_COLUMNS)
+        placeholders = ", ".join("?" for _ in ACTIVATION_COLUMNS)
+        updates = ", ".join(
+            f"{column}=excluded.{column}"
+            for column in ACTIVATION_COLUMNS
+            if column != "activation_ref"
+        )
+        row = plan["row"]
+        conn.execute(
+            f'INSERT INTO "{ACTIVATION_TABLE}" ({cols}) VALUES ({placeholders}) '
+            f"ON CONFLICT(activation_ref) DO UPDATE SET {updates}",
+            tuple(row.get(column) for column in ACTIVATION_COLUMNS),
+        )
+        conn.commit()
+
+    return {
+        "status": "written",
+        "backup_path": str(backup_path),
+        "table": ACTIVATION_TABLE,
+        "activation_ref": plan["row"]["activation_ref"],
+        "fold_source": plan["fold_source"],
+    }
 
 
 def build_inventory_graph_write_plan(graph: Mapping[str, Any]) -> dict[str, Any]:
@@ -386,10 +486,13 @@ __all__ = [
     "GAP_COLUMNS",
     "GRAPH_EDGE_TABLE",
     "GRAPH_NODE_TABLE",
+    "ACTIVATION_TABLE",
     "backup_ledger",
+    "build_activation_record_write_plan",
     "build_gap_write_plan",
     "build_inventory_graph_write_plan",
     "query_inventory_graph_from_ledger",
+    "write_activation_record_to_ledger",
     "write_gaps_to_ledger",
     "write_inventory_graph_to_ledger",
 ]

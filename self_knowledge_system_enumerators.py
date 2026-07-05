@@ -540,6 +540,7 @@ def build_system_inventory_graph(system_state: Mapping[str, Any], *, owner_scope
         _add_node(nodes, worktree_id, "worktree", **fields)
         _add_edge(edges, machine_id, worktree_id, "contains")
         if repo_id:
+            _add_edge(edges, repo_id, worktree_id, "contains")
             _add_edge(edges, worktree_id, repo_id, "branch-of")
 
     for row in (system_state.get("openclaw_states") or {}).get("rows", ()):
@@ -571,6 +572,9 @@ def build_system_inventory_graph(system_state: Mapping[str, Any], *, owner_scope
         service_id = f"service:{owner_scope}:{unit}"
         _add_node(nodes, service_id, "service", owner_scope=owner_scope, activation_state=row.get("active"), **dict(row))
         _add_edge(edges, machine_id, service_id, "runs")
+        for instance_id, node in nodes.items():
+            if node.get("kind") == "openclaw_instance":
+                _add_edge(edges, instance_id, service_id, "depends-on")
 
     return {
         "schema_version": "self_knowledge_inventory_graph_v1",

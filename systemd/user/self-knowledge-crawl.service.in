@@ -9,4 +9,4 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 # Bounded per pass (seed doctrine: bounded crawl budget); incremental state
 # means successive 15-min passes sweep the rest without re-hashing unchanged trees.
 TimeoutStartSec=600
-ExecStart=@PYTHON@ @REPO_ROOT@/scripts/run_self_knowledge_scheduled_crawl.py --max-files 5000
+ExecStart=@PYTHON@ @REPO_ROOT@/scripts/run_self_knowledge_scheduled_crawl.py --max-files 5000 --ledger-path @REPO_ROOT@/.openclaw/business_ops/ledger.sqlite --confirm-ledger-write --write-inventory-graph --write-activation-record
