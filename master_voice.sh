@@ -45,16 +45,18 @@ printf '%s' "$TXT" | AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" "$PYV" -c '
 import sys, os, numpy as np, soundfile as sf
 sys.path.insert(0, "/home/openclaw")
 from kokoro import KPipeline
+from agent_kokoro_voice import apply_pronunciation_lexicon, normalize_loudness
 text = sys.stdin.read()
 try:  # speech-tailor for the ear (emoji-free, symbols spoken) — same render as every agent
     from speech_render import to_speech_text
     text = to_speech_text(text)
 except Exception:
     pass
+text = apply_pronunciation_lexicon(text)
 pipe = KPipeline(lang_code="a")
 chunks=[a for _,_,a in pipe(text, voice=os.environ["VOICE"], speed=float(os.environ["SPEED"]))]
 if not chunks: sys.exit(3)
-sf.write("/mnt/c/OpenClaw/logs/master_voice.wav", np.concatenate(chunks), 24000)
+sf.write("/mnt/c/OpenClaw/logs/master_voice.wav", normalize_loudness(np.concatenate(chunks)), 24000)
 print("[kokoro] ok agent=", os.environ["AGENT"], "voice=", os.environ["VOICE"], flush=True)
 ' || { echo "KOKORO SYNTH FAILED"; exit 3; }
 
