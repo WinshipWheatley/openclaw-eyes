@@ -9,6 +9,7 @@ legacy producer template path, and never steal ordinary production questions.
 from pathlib import Path
 
 import niles_x32_capability as cap
+from x32_fake import X32Fake
 
 
 INPUT_LIST_TEXT = """Here's the input list for Saturday:
@@ -103,6 +104,69 @@ def test_status_is_honestly_gated_without_network():
     assert result["handled"] is True
     assert result["hardware_gated"] is True
     assert "emulator" in result["reply"].lower() or "gated" in result["reply"].lower()
+
+
+def test_fuzzy_live_mix_fader_move_hits_emulator_and_returns_proof():
+    fake = X32Fake().start()
+    try:
+        result = cap.maybe_handle_x32(
+            "bring up channel 3 a bit",
+            emulator_endpoint=(fake.host, fake.port),
+        )
+
+        assert result is not None and result["handled"] is True
+        assert result["intent"] == "live_mix"
+        assert result["target"] == "emulator"
+        assert result["hardware_gated"] is True
+        assert result["live_hardware_control_allowed"] is False
+        assert result["osc_messages"] == [
+            {"address": "/ch/03/mix/fader", "args": [result["proof"]["osc_value"]]}
+        ]
+        assert fake.state["/ch/03/mix/fader"] == [result["proof"]["osc_value"]]
+        assert result["proof"]["channel"] == 3
+        assert result["proof"]["fader_db"] == -6.0
+        assert "channel 3 fader now at -6 dB" in result["reply"].lower()
+    finally:
+        fake.stop()
+
+
+def test_fuzzy_live_mix_mute_named_source_hits_emulator_and_returns_proof():
+    fake = X32Fake().start()
+    try:
+        result = cap.maybe_handle_x32(
+            "mute the kick",
+            emulator_endpoint=(fake.host, fake.port),
+        )
+
+        assert result is not None and result["handled"] is True
+        assert result["intent"] == "live_mix"
+        assert fake.state["/ch/01/mix/on"] == [0]
+        assert result["proof"] == {
+            "action": "mute",
+            "channel": 1,
+            "label": "kick",
+            "muted": True,
+            "osc_value": 0,
+        }
+        assert "kick muted" in result["reply"].lower()
+    finally:
+        fake.stop()
+
+
+def test_live_mix_real_console_path_refused_without_emulator():
+    result = cap.maybe_handle_x32(
+        "set channel 3 fader to -6 dB",
+        emulator_endpoint=None,
+        live_hardware_control_allowed=False,
+    )
+
+    assert result is not None and result["handled"] is True
+    assert result["intent"] == "live_mix"
+    assert result["target"] == "real_console_refused"
+    assert result["hardware_gated"] is True
+    assert result["live_hardware_control_allowed"] is False
+    assert result["osc_messages"] == []
+    assert "real x32 hardware control is still gated" in result["reply"].lower()
 
 
 def test_scene_corpus_honest_when_missing(tmp_path: Path):
