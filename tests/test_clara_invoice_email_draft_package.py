@@ -146,6 +146,34 @@ def test_synthetic_registry_client_routes_to_warm_general_body_without_code_chan
     assert drafts.body_contains_backend_status_language(draft["body"]) is False
 
 
+def test_first_contact_intro_required_is_param_driven_for_general_clients():
+    draft = drafts.build_clara_invoice_email_draft_package(
+        client_ref="north_star_venue",
+        workflow_ref="north_star_invoice_workflow",
+        client_display_name="North Star Venue",
+        recipient_package=drafts._recipient_package(  # type: ignore[attr-defined]
+            (
+                drafts._recipient(  # type: ignore[attr-defined]
+                    "Mira Sol",
+                    "primary_invoice_contact",
+                    "to",
+                    confirmed=True,
+                ),
+            )
+        ),
+        attachment_ready=True,
+        attachment_refs=("artifact_ref:north_star_invoice_pdf",),
+        invoice_period_label="July 2026 production support",
+        supplier_portal_required=False,
+        first_contact_intro_required=True,
+        present_receipts=("clara_email_draft_receipt",),
+    )
+
+    assert "I'm Clara Reid" in draft["body"]
+    assert "North Star Venue invoice package organized" in draft["body"]
+    assert draft["body"].index("I'm Clara Reid") < draft["body"].index("Winship's invoice")
+
+
 def test_registered_clients_use_general_warm_body_not_per_client_body_recipes():
     source = drafts.__loader__.get_source(drafts.__name__)  # type: ignore[union-attr]
 
@@ -222,6 +250,7 @@ def test_existing_live_arts_ready_body_uses_warm_general_copy():
 
     assert ready["body"] == (
         "Hi Dane,\n\n"
+        "I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized and easy to track.\n"
         "I hope this note finds you well. Winship's invoice for Live Arts MD is attached - "
         "it covers June 2026 Speaker Rental.\n\n"
         "There's nothing needed on your end right now; whenever it's convenient, just let me know if "
