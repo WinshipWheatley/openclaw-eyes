@@ -1321,6 +1321,9 @@ generated/system_knowledge/*.sqlite
 !tests/test_frontdoor_gpu_lease.py
 
 # Perpetual self-knowledge engine daemonization (P2 wiring, fable/wiring-p2)
+!SELF-ORIENT.md
+!self_knowledge_orient.py
+!tests/test_self_knowledge_orient.py
 !self_knowledge_ledger_gap_writer.py
 !tests/test_self_knowledge_ledger_gap_writer.py
 !self_knowledge_crawl_state.py

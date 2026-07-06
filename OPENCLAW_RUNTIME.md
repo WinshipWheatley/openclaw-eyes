@@ -23,6 +23,8 @@ Build OpenClaw for safety, power, economy, and bounded agentic execution.
 ## Execution Rules
 
 - Inspect real state before editing.
+- For vague system-level work, read `SELF-ORIENT.md` and, when inside an authorized local runtime context,
+  run `python -m self_knowledge_orient --level high` before acting from the system map.
 - Use inspect -> plan -> act -> verify for meaningful work.
 - For architecture, tooling, workflow, or cost-sensitive decisions, present 3 approaches with tradeoffs and recommend one before committing.
 - For straightforward bounded tasks, act without babysitting after a short inspection.
