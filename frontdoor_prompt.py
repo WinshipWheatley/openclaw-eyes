@@ -97,9 +97,68 @@ def _grounded_preamble(agent: str | None) -> str:
     )
 
 
-def _final_reply_instruction(agent: str | None) -> str:
+def _is_niles_audio_advice_request(agent: str | None, message: str) -> bool:
+    key = str(agent or _DEFAULT_AGENT).strip().lower()
+    if key != "niles":
+        return False
+    message_lower = str(message or "").lower()
+    return any(marker in message_lower for marker in _NILES_AUDIO_ADVICE_MARKERS)
+
+
+def _fact_blob(fact: Mapping[str, Any]) -> str:
+    return " ".join(
+        str(value or "")
+        for value in (
+            fact.get("fact_id"),
+            fact.get("id"),
+            fact.get("topic"),
+            fact.get("label"),
+            fact.get("value"),
+            _fact_source_ref(fact),
+        )
+    ).lower()
+
+
+def _is_audio_domain_fact(fact: Mapping[str, Any]) -> bool:
+    blob = _fact_blob(fact)
+    return any(marker in blob for marker in _AUDIO_DOMAIN_FACT_MARKERS)
+
+
+def _niles_audio_advice_facts() -> list[dict[str, Any]]:
+    try:
+        import niles_rig_kb
+
+        lines = (
+            *niles_rig_kb.x32_control_summary_lines(),
+            *niles_rig_kb.x32_vocal_channel_advice_lines(),
+        )
+    except Exception:
+        lines = (
+            "X32 vocal channel advice: start with gain, HPF, light compression, EQ shaping, and careful monitor sends.",
+            "This is advice only; no hardware, OSC, MIDI, DAW, or live execution is authorized.",
+        )
+    return [
+        {
+            "fact_id": "niles_audio_advice:x32_vocal_channel",
+            "topic": "niles_audio_advice",
+            "label": "Niles X32 vocal channel advice",
+            "value": " ".join(lines),
+            "source_ref": "niles_rig_kb.py:x32_vocal_channel_advice_lines",
+        }
+    ]
+
+
+def _final_reply_instruction(agent: str | None, message: str | None = None) -> str:
     key = str(agent or _DEFAULT_AGENT).strip().lower()
     if key == "niles":
+        if _is_niles_audio_advice_request(agent, message or ""):
+            return (
+                "For Niles audio how-to, treat this as advice, not live device control. "
+                "Give practical X32 vocal-channel guidance: gain, HPF, compression, EQ, "
+                "routing, and monitor-send cautions as relevant. Do not refuse, do not "
+                "mention Maestro, SEND_HOLD, authority, or finance/receivables, and do "
+                "not imply that any console state was changed."
+            )
         return (
             "For Niles, if the packet includes a concrete music/gig fact, the first sentence "
             "must name one of those facts, such as Reynolds Tavern, a track title, a transition, "
@@ -134,6 +193,39 @@ _SYSTEM_POSTURE_MARKERS = (
 )
 _OPERATOR_TRUTH_TOPICS = frozenset({"operator_truth"})
 _QUESTION_DOMAIN_FACT_MARKERS = {
+    "audio": (
+        (
+            "x32",
+            "vocal",
+            "vocal channel",
+            "channel strip",
+            "gain",
+            "hpf",
+            "high pass",
+            "compression",
+            "compressor",
+            "eq",
+            "monitor send",
+            "foh",
+            "iem",
+        ),
+        (
+            "x32",
+            "vocal",
+            "channel",
+            "gain",
+            "hpf",
+            "high pass",
+            "compression",
+            "compressor",
+            "eq",
+            "monitor",
+            "foh",
+            "iem",
+            "rig",
+            "audio",
+        ),
+    ),
     "gig": (
         ("gig", "gigs", "show", "shows", "booking", "performance", "venue", "set", "calendar"),
         ("gig", "gigs", "reynolds", "tavern", "booking", "performance", "venue", "set", "calendar"),
@@ -147,6 +239,41 @@ _QUESTION_DOMAIN_FACT_MARKERS = {
         ("approval", "approve", "guardian", "send_hold", "send hold", "gate", "proof", "protected"),
     ),
 }
+
+_NILES_AUDIO_ADVICE_MARKERS = (
+    "x32",
+    "vocal channel",
+    "channel strip",
+    "vocal",
+    "gain",
+    "hpf",
+    "high pass",
+    "compression",
+    "compressor",
+    "eq",
+    "monitor send",
+    "foh",
+    "iem",
+)
+
+_AUDIO_DOMAIN_FACT_MARKERS = (
+    "x32",
+    "vocal",
+    "channel",
+    "gain",
+    "hpf",
+    "high pass",
+    "compression",
+    "compressor",
+    "eq",
+    "monitor",
+    "foh",
+    "iem",
+    "rig",
+    "audio",
+    "niles_audio_advice",
+    "niles_gear_kb",
+)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -288,7 +415,12 @@ def _agent_relevant_fact(agent: str | None, fact: Mapping[str, Any]) -> bool:
     ref = _fact_source_ref(fact).lower()
     blob = f"{fact.get('label') or ''} {fact.get('value') or ''}".lower()
     if key == "niles":
-        return topic.startswith("niles_") or "niles_" in ref or "reynolds_gig" in ref
+        return (
+            topic.startswith("niles_")
+            or "niles_" in ref
+            or "reynolds_gig" in ref
+            or _is_audio_domain_fact(fact)
+        )
     if key in {"cassandra", "clara"}:
         if topic.startswith("niles_") or "niles_" in ref or "reynolds_gig" in ref:
             return False
@@ -415,6 +547,9 @@ def build_frontdoor_prompt(
 
     raw_facts = packet.get("facts") if isinstance(packet, Mapping) else None
     facts = [f for f in (raw_facts or ()) if isinstance(f, Mapping)]
+    niles_audio_advice_request = _is_niles_audio_advice_request(agent, message)
+    if niles_audio_advice_request:
+        facts = [*_niles_audio_advice_facts(), *facts]
 
     terms = _message_terms(message)
 
@@ -447,6 +582,9 @@ def build_frontdoor_prompt(
         overlap = _lexical_overlap(fact, terms)
         operator_truth = _is_operator_truth(fact)
         question_domain = _question_domain_fact(message, fact)
+        if agent_key == "niles" and niles_audio_advice_request and not _is_audio_domain_fact(fact):
+            pre_dropped_ids.append(fid)
+            continue
         if (
             agent_key in {"cassandra", "clara"}
             and not selected
@@ -521,7 +659,7 @@ def build_frontdoor_prompt(
         f"{layer_b}\n\n"
         "OPERATOR JUST SAID:\n"
         f"{message}\n\n"
-        f"{_final_reply_instruction(agent)}\n\n"
+        f"{_final_reply_instruction(agent, message)}\n\n"
         f"Now write {_agent_display_name(agent)}'s reply — first person, speaking directly to "
         "the operator. Do NOT describe or summarize the text above; just respond.\n"
         f"{_agent_display_name(agent)}:"
