@@ -540,6 +540,13 @@ class TestNoAuthorityEscalation:
             "contact",
             "description",
             "date",
+            # pure-data fields added by temporal-scoping (78) + build-request (80) — NOT authority
+            "as_of",
+            "scope",
+            "partial",
+            "needs_clarification",
+            "what",
+            "requesting_agent",
         }
         assert field_names == expected, (
             f"InterpretResult must have exactly {expected} fields. Got: {field_names}"
@@ -750,6 +757,13 @@ class TestActionRoute:
             "contact",
             "description",
             "date",
+            # pure-data fields added by temporal-scoping (78) + build-request (80) — NOT authority
+            "as_of",
+            "scope",
+            "partial",
+            "needs_clarification",
+            "what",
+            "requesting_agent",
         }
         assert field_names == expected
 
