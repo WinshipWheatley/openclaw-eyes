@@ -1389,3 +1389,8 @@ generated/system_knowledge/*.sqlite
 !packet_request_gate.py
 !tests/test_packet_request_gate.py
 !tests/test_clara_invoice_minor_units.py
+!agent_build_request_flow.py
+!polish_loop/build_request_intake.py
+!tests/test_agent_build_request_flow.py
+!tests/test_build_request_intake.py
+!tests/test_build_request_interpreter_contract.py
