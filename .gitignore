@@ -27,7 +27,6 @@
 #   .chief.env                    — all runtime secrets
 #   *_credentials.json            — any credentials file
 #   *_token.json                  — any token file
-
 !chief_listener.py
 !CHIEF_DELETION_NOTEBOOK.md
 !chief_gate_harness.py
@@ -316,7 +315,6 @@
 !docs/archives/**/
 !docs/archives/**/*.md
 !docs/archives/**/README.md
-
 !scripts/query_canonical_facts.py
 !scripts/dataroom_clean_load_plan.py
 !scripts/query_file_inventory.py
@@ -350,7 +348,6 @@
 !tests/test_check_truth_registry_hashes.py
 !tests/test_ingestion_guard.py
 !tests/test_truth_substrate_status.py
-
 !apps/
 !apps/legal-console-spike/
 !apps/legal-console-spike/README.md
@@ -383,7 +380,6 @@
 !apps/legal-console-spike/src-tauri/icons/icon.png
 !apps/legal-console-spike/src-tauri/src/
 !apps/legal-console-spike/src-tauri/src/*.rs
-
 !docs/handoffs/cassandra/
 !docs/handoffs/cassandra/.gitkeep
 !docs/exports/
@@ -475,7 +471,6 @@
 !chief_file_io.py
 !chief_output_utils.py
 !chief_chat.py
-!inbox_parser.py
 !pii_vault.py
 !queue_validator.py
 !queue_balancer.py
@@ -488,22 +483,18 @@
 !.codex/
 .codex/*
 !.codex/AGENTS.md
-
 !start_chief.sh
 !start_chief_logged.sh
 !start_openclaw_brains.sh
 !start_album_brain.sh
 !start_cassandra_core.sh
-
 !DEEPPOCKET.md
 !CURRENT_STATE.md
 !KNOWN_GAPS.md
 !NEXT_ACTIONS.md
 !RUNBOOK.md
-
 !skill_loader.py
 !skill_vetter.py
-
 !builder_watcher.sh
 !budget_tracker.py
 !loop_control.sh
@@ -524,9 +515,7 @@
 !vscode_cleanup.sh
 !openclaw.code-workspace
 !sync_to_mobile.sh
-
 # Polish loop
-!polish_loop/
 !polish_loop/orchestrator.py
 !polish_loop/pc_review_fallback.py
 !polish_loop/control_plane.py
@@ -542,7 +531,6 @@
 !tests/test_build_lifecycle_registry.py
 !tests/test_worker_runtime_resource_aware_wiring.py
 !tests/test_orchestrator_deferral_receipt.py
-!tests/
 !tests/fixtures/
 !tests/fixtures/skills/
 !tests/fixtures/skills/*.md
@@ -591,7 +579,6 @@
 !tests/test_pc4_hardening.py
 !tests/test_pc4_self_healing.py
 !tests/test_polish_loop_closure_bridge.py
-
 # tools/ — standalone utility modules
 !tools/
 !tools/file_verify.py
@@ -630,7 +617,6 @@
 !systemd/user/openclaw-read-model-import.timer.in
 !maestro_listener.py
 !interpreter_lm.py
-
 !agent_task_proposals.py
 !dashboard_gen.py
 !hitl_flowchart_gen.py
@@ -641,7 +627,6 @@
 !loop_dashboard_watchdog.sh
 !loop_supervisor.sh
 !retry_send_demo_dashboard.sh
-
 # Harness and snapshot lane
 !chief_end_of_day_review.py
 !chief_eod_harness.py
@@ -663,7 +648,6 @@
 !cassandra_identity.py
 !tests/test_cassandra_identity.py
 !backend_data_contract.py
-
 !tests/test_backend_performance_repository.py
 !tests/test_backend_performance_intelligence.py
 !tests/test_backend_agent_context.py
@@ -673,33 +657,26 @@
 !tests/test_operator_action_covenant.py
 !tests/test_operator_extension_simulator.py
 !tests/test_operator_evidence_bridge.py
-
 !docs/planning/chase_money/
 !docs/planning/chase_money/*.md
-
 !docs/planning/sensitive_roots/
 !docs/planning/sensitive_roots/*.md
-
 !docs/planning/agent_efficiency/
 !docs/planning/agent_efficiency/*.md
-
 !Operator/
 !Operator/*.md
 !scripts/mac_watch_markdown_index.py
 !tests/test_mac_watch_markdown_index.py
 !scripts/evidence_packet_generator.py
 !tests/test_evidence_packet_generator.py
-
 # Operator prompt/handoff generator
 !/operator_prompt_handoff_generator.py
 !/tests/test_operator_prompt_handoff_generator.py
 !/tests/test_operator_question_response.py
 !/tests/test_compiled_knowledge_substrate.py
-
 # Operator Harness planning specs
 !/docs/planning/operator_harness/
 !/docs/planning/operator_harness/COMPILED_KNOWLEDGE_SUBSTRATE_NORTH_STAR.md
-
 # Operator Frontier Map
 !/operator_frontier_map.py
 !/tests/test_operator_frontier_map.py
@@ -715,7 +692,6 @@
 !reports/file_path_dependency_scan/
 !reports/file_path_dependency_scan/*.md
 !reports/file_path_dependency_scan/*.json
-
 # File Path Dependency Scan reports
 !/reports/
 !/reports/file_path_dependency_scan/
@@ -729,7 +705,6 @@
 !scripts/openclaw_fleet_autoscaler.py
 !scripts/probe_capability_heartbeat.py
 !scripts/export_capability_heartbeat_read_model.py
-!tests/test_green_gate_script.py
 !tests/test_openclaw_fleet_autoscaler.py
 !tests/test_capability_heartbeat_probe.py
 !tests/test_capability_heartbeat_export.py
@@ -753,7 +728,6 @@
 !architecture_map_gate.py
 !tests/test_architecture_map_gate.py
 !tests/test_producer_contract_package.py
-
 # Producer Agent Contract
 !docs/producer/
 !docs/producer/*.md
@@ -765,8 +739,6 @@
 !templates/producer/*.json
 !templates/agent/
 !templates/agent/*.json
-
-
 !scripts/producer_review.py
 !scripts/producer_intake.py
 !tests/test_producer_review.py
@@ -780,11 +752,8 @@
 !generated/
 !generated/producer/
 !generated/producer/*.json
-
 !config/examples/
 !config/examples/producer.env.example
-
-!scripts/
 !scripts/run_producer_listener.sh
 !producer_listener.py
 !scripts/answer_harness.py
@@ -1265,8 +1234,6 @@ generated/system_knowledge/*.sqlite
 !generated/system_knowledge/st_annes_invoice_status_SEED.sql
 !generated/system_knowledge/st_annes_monthly_work_log.sqlite
 !generated/system_knowledge/sqlite_governance_registry.sqlite
-generated/system_knowledge/*.sqlite
-!generated/system_knowledge/capital_hilton_invoice_operator_run_status.sqlite
 !generated/external_registries/
 !generated/external_registries/openclaw-eyes/
 !generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json
@@ -1308,7 +1275,6 @@ generated/system_knowledge/*.sqlite
 !master_voice.sh
 !secret_log_redaction.py
 !tests/test_secret_log_redaction.py
-
 !evidence_importer.py
 !tests/test_evidence_importer.py
 !/evidence_integration.py
@@ -1333,7 +1299,6 @@ generated/system_knowledge/*.sqlite
 !tests/test_interactive_timeout_not_deep_floored.py
 !tests/test_ledger_guard_fail_closed.py
 !tests/test_frontdoor_gpu_lease.py
-
 # Perpetual self-knowledge engine daemonization (P2 wiring, fable/wiring-p2)
 !SELF-ORIENT.md
 !self_knowledge_orient.py
@@ -1403,3 +1368,8 @@ generated/system_knowledge/*.sqlite
 !tests/test_receivable_temporal_scoping.py
 !tests/test_paid_up_interpreter_contract.py
 !tests/test_maestro_packet_freshness_antirecite.py
+!agent_build_request_flow.py
+!polish_loop/build_request_intake.py
+!tests/test_agent_build_request_flow.py
+!tests/test_build_request_intake.py
+!tests/test_build_request_interpreter_contract.py
