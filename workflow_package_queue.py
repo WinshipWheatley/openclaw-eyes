@@ -572,6 +572,64 @@ def classify_intent(source_text: str) -> dict[str, Any]:
     }
 
 
+def _workflow_ref_from_lm1_intent(intent: str, client: str) -> str:
+    intent_key = str(intent or "").strip().lower().replace("-", "_")
+    client_key = str(client or "").strip().lower().replace("_", "-")
+    if intent_key == "invoice_send":
+        if client_key in {"st-annes", "st-anne", "st-anne-s", "st-annes-annapolis"}:
+            return "st_annes_monthly_invoice_rollup"
+        if client_key in {"capital-hilton", "capitalhilton"}:
+            return "capital_hilton_invoice_operator_assist"
+    if intent_key == "capture_gig" and client_key in {"st-annes", "st-anne", "st-anne-s", "st-annes-annapolis"}:
+        return "st_annes_work_log_event"
+    return ""
+
+
+def _classify_intent_with_lm1_override(
+    source_text: str,
+    intent_override: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    fallback = classify_intent(source_text)
+    if not isinstance(intent_override, Mapping):
+        return fallback
+    route = str(intent_override.get("route") or "").upper()
+    try:
+        confidence = float(intent_override.get("confidence") or 0.0)
+    except (TypeError, ValueError):
+        confidence = 0.0
+    workflow_ref = str(intent_override.get("workflow_ref") or "")
+    intent = str(intent_override.get("intent") or "")
+    client_ref = str(intent_override.get("client_ref") or intent_override.get("client") or "")
+    if not workflow_ref:
+        workflow_ref = _workflow_ref_from_lm1_intent(intent, client_ref)
+    if route != "WORKFLOW" or confidence < 0.75 or not workflow_ref:
+        return fallback
+    if workflow_ref not in SUPPORTED_PACKAGE_TYPES:
+        return fallback
+    world = "invoice_operations"
+    if workflow_ref == "capital_hilton_proposal_followup":
+        world = "business_development"
+    if workflow_ref == "diagnostic_package_gate_smoke":
+        world = "diagnostic"
+    if not client_ref:
+        if workflow_ref.startswith("st_annes"):
+            client_ref = "st_annes"
+        elif workflow_ref.startswith("capital_hilton"):
+            client_ref = "capital_hilton"
+    return {
+        "workflow_ref": workflow_ref,
+        "world": world,
+        "client_ref": client_ref or None,
+        "confidence": "high",
+        "intent_reason": str(intent_override.get("reason") or "LM1 shared seam resolved workflow intent."),
+        "intent_source": str(intent_override.get("source") or "lm1_shared_interpreter"),
+        "lm1_intent": intent,
+        "lm1_contact": str(intent_override.get("contact") or ""),
+        "lm1_description": str(intent_override.get("description") or ""),
+        "lm1_date": str(intent_override.get("date") or ""),
+    }
+
+
 def _capability_gate(workflow_ref: str, config: QueueConfig) -> dict[str, Any]:
     if workflow_ref == "st_annes_work_log_event":
         return {
@@ -845,11 +903,13 @@ def create_package(
     source_surface: str = "mission_control",
     created_at: str | None = None,
     config: QueueConfig | None = None,
+    intent_override: Mapping[str, Any] | None = None,
+    lm1_shared_packet: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     config = config or QueueConfig()
     created_at = _now_or_fixed(created_at)
     privacy = _privacy_gate(source_text, source_surface)
-    intent = classify_intent(source_text)
+    intent = _classify_intent_with_lm1_override(source_text, intent_override)
     protected_hash = protected_text_hash(source_text)
     workflow_ref = str(intent["workflow_ref"])
     capability = _capability_gate(workflow_ref, config)
@@ -907,6 +967,7 @@ def create_package(
         "privacy_redundancy_evaluator": dict(PRIVACY_EVALUATOR_DEFAULT),
         "privacy_gate_result": privacy,
         "intent_classification_result": intent,
+        "lm1_shared_packet": dict(lm1_shared_packet or {}),
         "capability_gate_result": capability,
         "worker_assignment": {
             "assignment_ref": "worker_assignment:" + _short_hash(package_id, worker_ref),

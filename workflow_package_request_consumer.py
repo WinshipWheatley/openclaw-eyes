@@ -806,6 +806,7 @@ def consume_workflow_package_request(
     source_request_filename: str = "",
     generated_at: str | None = None,
     sqlite_path: Path | None = None,
+    lm1_shared_seam: Mapping[str, Any] | None = None,
 ) -> WorkflowPackageRequestResult:
     generated_at = generated_at or utc_now()
     sqlite_path = sqlite_path or default_sqlite_path()
@@ -826,6 +827,16 @@ def consume_workflow_package_request(
             _source_text(raw_request),
             source_surface="mission_control",
             created_at=package_created_at,
+            intent_override=(
+                lm1_shared_seam.get("interpretation")
+                if isinstance(lm1_shared_seam, Mapping)
+                else None
+            ),
+            lm1_shared_packet=(
+                lm1_shared_seam.get("workflow_context_packet")
+                if isinstance(lm1_shared_seam, Mapping)
+                else None
+            ),
         )
         package["source_request_metadata"] = {
             "request_id": request_id,
@@ -891,6 +902,10 @@ def consume_workflow_package_request(
         "created_at": generated_at,
         "machine_proof": {
             "workflow_package_request_v0_detected": is_workflow_package_request(raw_request),
+            "lm1_shared_seam_used": isinstance(lm1_shared_seam, Mapping)
+            and bool(lm1_shared_seam.get("interpretation")),
+            "lm1_workflow_packet_present": isinstance(lm1_shared_seam, Mapping)
+            and bool(lm1_shared_seam.get("workflow_context_packet")),
             "source_surface_mission_control": str(raw_request.get("source_surface") or "") == "mission_control",
             "requested_mode_operator": str(raw_request.get("requested_mode") or "") == "operator",
             "package_recorded": package is not None,

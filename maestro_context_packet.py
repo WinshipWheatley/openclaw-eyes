@@ -7,6 +7,7 @@ small, source-tagged, and safe for a gated model prompt.
 
 from __future__ import annotations
 
+import copy
 from datetime import date, datetime, timezone
 import hashlib
 import json
@@ -115,6 +116,23 @@ def _session_path(session: Mapping[str, Any] | None, *keys: str) -> str:
         if isinstance(value, str) and value.strip():
             return value.strip()
     return ""
+
+
+def _prebuilt_lm1_shared_packet(session: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if os.environ.get("OPENCLAW_LM1_SHARED_SEAM", "0").lower() not in ("1", "true"):
+        return None
+    if not isinstance(session, Mapping):
+        return None
+    packet = session.get("lm1_shared_rich_context_packet")
+    if not isinstance(packet, Mapping) or not str(packet.get("packet_id") or "").strip():
+        return None
+    cloned = copy.deepcopy(dict(packet))
+    machine_proof = dict(cloned.get("machine_proof") or {})
+    machine_proof["lm1_shared_packet_reused"] = True
+    machine_proof["packet_compiler"] = "maestro_context_packet.build_maestro_context_packet"
+    cloned["machine_proof"] = machine_proof
+    cloned["lm1_shared_packet_reused"] = True
+    return cloned
 
 
 def _read_model_root(session: Mapping[str, Any] | None, read_model_root: str | Path | None) -> Path:
@@ -1182,6 +1200,10 @@ def build_maestro_context_packet(
         format_maestro_context_packet.  All existing facts are still assembled
         normally; this is purely an ordering/elevation hint — never a filter.
     """
+    prebuilt_lm1_packet = _prebuilt_lm1_shared_packet(session)
+    if prebuilt_lm1_packet is not None:
+        return prebuilt_lm1_packet
+
     root = _read_model_root(session, read_model_root)
     truth_path = _operator_truth_store_path(session, operator_truth_store_path)
     generated_at = _utc_now()
