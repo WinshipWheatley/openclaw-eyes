@@ -973,6 +973,10 @@ class TestAuthorityLockedThroughBridge:
             "contact",
             "description",
             "date",
+            "as_of",
+            "scope",
+            "partial",
+            "needs_clarification",
         }
         # No authority-adjacent attribute exists on a constructed result.
         result = interpreter_lm.InterpretResult(route="BRAIN", confidence=1.0, reason="x")

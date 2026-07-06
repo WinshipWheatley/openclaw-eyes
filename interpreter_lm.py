@@ -33,6 +33,8 @@ import json
 import os
 import re
 from dataclasses import dataclass, field
+from datetime import date as date_cls
+from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping
 
 from fleet_temporal_anchor import temporal_anchor_text
@@ -64,6 +66,8 @@ _VALID_ROUTES = {ROUTE_BRAIN, ROUTE_WORKFLOW, ROUTE_ACTION, ROUTE_BLOCKED, ROUTE
 
 INVOICE_SEND_INTENT = "invoice_send"
 CAPTURE_GIG_INTENT = "capture_gig"
+MARK_PAID_UP_INTENT = "mark_paid_up"
+PARTIAL_PAYMENT_INTENT = "partial_payment"
 
 _PLACEHOLDER_INVOICE_CLIENTS = {
     "",
@@ -102,6 +106,10 @@ def _normalize_interpreter_intent(value: Any) -> str:
         return INVOICE_SEND_INTENT
     if label in {CAPTURE_GIG_INTENT, "gig_capture", "add_gig", "calendar_gig", "capture_calendar_gig"}:
         return CAPTURE_GIG_INTENT
+    if label in {MARK_PAID_UP_INTENT, "paid_up", "all_paid_up", "mark_all_paid_up", "mark_paid_through"}:
+        return MARK_PAID_UP_INTENT
+    if label in {PARTIAL_PAYMENT_INTENT, "partial_paid", "partial_payment_received", "paid_half"}:
+        return PARTIAL_PAYMENT_INTENT
     return ""
 
 
@@ -229,6 +237,10 @@ class InterpretResult:
     contact: str = ""
     description: str = ""
     date: str = ""
+    as_of: str = ""
+    scope: str = ""
+    partial: bool = False
+    needs_clarification: bool = False
 
     def is_high_confidence_brain(self) -> bool:
         """True when the interpreter is confident the message is conversational."""
@@ -398,7 +410,14 @@ TASK:
 INVOICE CLIENT REGISTRY:
 {invoice_clients_list}
 
-5. If the operator is asking to capture, add, remember, schedule, or invoice a gig/event, set:
+5. If the operator says a client is all paid up / all square / caught up / paid off, set:
+   - "intent": "mark_paid_up"
+   - "client": one canonical slug when stated, empty for all/ambiguous.
+   - "scope": "client", "all", or "ambiguous".
+   - "as_of": ISO date when stated; otherwise today's temporal-anchor date.
+   Partial wording like "paid half" is NOT mark_paid_up; set "intent": "partial_payment".
+
+6. If the operator is asking to capture, add, remember, schedule, or invoice a gig/event, set:
    - "intent": "capture_gig"
    - "contact": the person or organization hint from the operator text.
    - "description": the gig/service description, without the date phrase.
@@ -412,12 +431,146 @@ Respond ONLY with valid JSON, no prose, no markdown fences:
   "fact_selection": ["<filename>", ...],
   "confidence": <float 0.0-1.0>,
   "reason": "<one sentence>",
-  "intent": "<invoice_send|capture_gig|>",
+  "intent": "<invoice_send|capture_gig|mark_paid_up|partial_payment|>",
   "client": "{invoice_client_contract}",
   "contact": "<contact hint|>",
   "description": "<gig description|>",
-  "date": "<date phrase|>"
+  "date": "<date phrase|>",
+  "as_of": "<YYYY-MM-DD|>",
+  "scope": "<client|all|ambiguous|>",
+  "partial": <true|false>,
+  "needs_clarification": <true|false>
 }}"""
+
+
+_PAID_UP_PHRASES = (
+    "all paid up",
+    "paid up",
+    "all square",
+    "square on",
+    "caught up",
+    "paid off",
+)
+
+_PARTIAL_PAYMENT_PHRASES = (
+    "paid half",
+    "half paid",
+    "partial payment",
+    "partially paid",
+    "paid some",
+)
+
+_MONTHS = {
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "february": 2,
+    "mar": 3,
+    "march": 3,
+    "apr": 4,
+    "april": 4,
+    "may": 5,
+    "jun": 6,
+    "june": 6,
+    "jul": 7,
+    "july": 7,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "sept": 9,
+    "september": 9,
+    "oct": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "dec": 12,
+    "december": 12,
+}
+
+
+def _iso_today() -> date_cls:
+    return datetime.now().date()
+
+
+def _paid_up_as_of(text: str) -> str:
+    iso = re.search(r"\b(20[0-9]{2}-[0-9]{1,2}-[0-9]{1,2})\b", text)
+    if iso:
+        return datetime.fromisoformat(iso.group(1)).date().isoformat()
+    lowered = text.casefold()
+    if "last friday" in lowered:
+        today = _iso_today()
+        days_since_friday = (today.weekday() - 4) % 7 or 7
+        return (today - timedelta(days=days_since_friday)).isoformat()
+    month_names = "|".join(sorted(_MONTHS, key=len, reverse=True))
+    month_day = re.search(
+        rf"\b({month_names})\.?\s+([0-9]{{1,2}})(?:st|nd|rd|th)?(?:,\s*(20[0-9]{{2}}))?\b",
+        text,
+        re.IGNORECASE,
+    )
+    if month_day:
+        month = _MONTHS[month_day.group(1).casefold().rstrip(".")]
+        day = int(month_day.group(2))
+        year = int(month_day.group(3)) if month_day.group(3) else _iso_today().year
+        return date_cls(year, month, day).isoformat()
+    through_day = re.search(
+        r"\b(?:through|thru|to|until)\s+(?:the\s+)?([0-9]{1,2})(?:st|nd|rd|th)?\b",
+        text,
+        re.IGNORECASE,
+    )
+    if through_day:
+        today = _iso_today()
+        return date_cls(today.year, today.month, int(through_day.group(1))).isoformat()
+    return _iso_today().isoformat()
+
+
+def _paid_up_scope_and_client(text: str) -> tuple[str, str, bool]:
+    lowered = _normalize_label(text)
+    if any(token in lowered for token in ("everything", "all clients", "all accounts", "everyone")):
+        return "all", "", False
+    best_slug = ""
+    best_len = -1
+    for entry in _invoice_client_entries():
+        for label in entry["match_labels"]:
+            if label and label in lowered and len(label) > best_len:
+                best_slug = str(entry["slug"])
+                best_len = len(label)
+    if best_slug:
+        return "client", best_slug, False
+    return "ambiguous", "", True
+
+
+def _fast_paid_up_interpret(text: str) -> InterpretResult | None:
+    lowered = _normalize_label(text)
+    partial = any(phrase in lowered for phrase in _PARTIAL_PAYMENT_PHRASES)
+    paid_up = any(phrase in lowered for phrase in _PAID_UP_PHRASES)
+    if not partial and not paid_up:
+        return None
+    scope, client, needs_clarification = _paid_up_scope_and_client(text)
+    if partial:
+        return InterpretResult(
+            route=ROUTE_ACTION,
+            confidence=0.97,
+            reason="partial_payment_not_full_paid_up",
+            intent=PARTIAL_PAYMENT_INTENT,
+            client=client,
+            as_of=_paid_up_as_of(text),
+            scope=scope,
+            partial=True,
+            needs_clarification=needs_clarification,
+        )
+    route = ROUTE_BLOCKED if needs_clarification else ROUTE_ACTION
+    reason = "paid_up_scope_ambiguous" if needs_clarification else "deterministic_paid_up_fast_path"
+    return InterpretResult(
+        route=route,
+        confidence=0.97,
+        reason=reason,
+        intent=MARK_PAID_UP_INTENT,
+        client=client,
+        as_of=_paid_up_as_of(text),
+        scope=scope,
+        partial=False,
+        needs_clarification=needs_clarification,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -492,6 +645,12 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
         or payload.get("service_date")
         or payload.get("when")
     )
+    as_of = _clean_lm_field(payload.get("as_of") or payload.get("paid_through") or payload.get("through_date"), max_len=32)
+    scope = _normalize_label(payload.get("scope") or payload.get("paid_up_scope"))
+    if scope not in {"client", "all", "ambiguous"}:
+        scope = ""
+    partial = bool(payload.get("partial"))
+    needs_clarification = bool(payload.get("needs_clarification"))
 
     return InterpretResult(
         route=raw_route,
@@ -503,6 +662,10 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
         contact=contact,
         description=description,
         date=date,
+        as_of=as_of,
+        scope=scope,
+        partial=partial,
+        needs_clarification=needs_clarification,
     )
 
 
@@ -541,6 +704,10 @@ def interpret_operator_message(
     """
     if not text or not text.strip():
         return InterpretResult(route=ROUTE_UNCERTAIN, reason="empty_text")
+
+    fast_paid_up = _fast_paid_up_interpret(text)
+    if fast_paid_up is not None:
+        return fast_paid_up
 
     _fn = protected_generate_fn or _select_interpreter_generate_fn()
     if _fn is None:
