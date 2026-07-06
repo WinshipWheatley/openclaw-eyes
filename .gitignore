@@ -704,6 +704,9 @@
 !tests/test_file_path_dependency_scan.py
 !plugin_domain_registry.py
 !tests/test_plugin_domain_registry.py
+!domain_module_registry.py
+!DOMAIN-ONBOARDING.md
+!tests/test_domain_module_registry.py
 !reports/file_path_dependency_scan/
 !reports/file_path_dependency_scan/*.md
 !reports/file_path_dependency_scan/*.json
