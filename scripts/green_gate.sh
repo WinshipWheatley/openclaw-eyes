@@ -34,10 +34,14 @@ RUN_ROOT="${OPENCLAW_GREEN_GATE_RUN_ROOT:-/tmp/openclaw-green-gate-runs}"
 RUN_TMP="$RUN_ROOT/greengate-$TS"
 LOG="$RUN_TMP/pytest.log"
 LOCK_DIR="${OPENCLAW_GREEN_GATE_LOCK_DIR:-/tmp/openclaw-green-gate-full.lock}"
+FAST_LOCK_ROOT="${OPENCLAW_GREEN_GATE_FAST_LOCK_ROOT:-/tmp/openclaw-green-gate-fast-locks}"
+FAST_LOCK_DIR=""
 LOCK_STALE_SECONDS="${OPENCLAW_GREEN_GATE_LOCK_STALE_SECONDS:-900}"
 LOCK_POLL_SECONDS="${OPENCLAW_GREEN_GATE_LOCK_POLL_SECONDS:-5}"
+FAST_BASE_REF="${OPENCLAW_FAST_BASE_REF:-main}"
 WORKTREE_CREATED=0
 LOCK_HELD=0
+FAST_LOCK_HELD=0
 REQUIRED_CLEAN_FIXTURES=(
   "generated/read_models/helm_composer_contract.json"
   "generated/read_models/mac_controller_real_use_smoke_status.json"
@@ -135,6 +139,14 @@ restore_trusted_tests(){
   fi
 }
 
+restore_trusted_tests_fast(){
+  if git rev-parse --verify "$TRUSTED_TEST_REF^{commit}" >/dev/null 2>&1; then
+    restore_trusted_tests
+    return 0
+  fi
+  echo "[green-gate] FAST trusted test ref not available ($TRUSTED_TEST_REF); using branch tests for this pre-gate."
+}
+
 lock_holder_value(){
   local key="$1"
   awk -F= -v key="$key" '$1 == key {print $2; exit}' "$LOCK_DIR/holder.env" 2>/dev/null || true
@@ -225,7 +237,167 @@ prepare_fast_pytest_args(){
     PYTEST_ARGS=($OPENCLAW_FAST_PYTEST_ARGS)
     return 0
   fi
-  PYTEST_ARGS=(tests/test_green_gate_script.py)
+  map_changed_paths_to_pytest_args
+}
+
+safe_lock_key(){
+  printf '%s' "$1" | sed 's/[^A-Za-z0-9._-]/_/g' | cut -c1-120
+}
+
+fast_lock_holder_value(){
+  local key="$1"
+  awk -F= -v key="$key" '$1 == key {print $2; exit}' "$FAST_LOCK_DIR/holder.env" 2>/dev/null || true
+}
+
+fast_lock_age_seconds(){
+  local now started
+  now="$(date +%s)"
+  started="$(fast_lock_holder_value started_epoch)"
+  case "$started" in
+    ""|*[!0-9]*)
+      started="$(stat -c %Y "$FAST_LOCK_DIR" 2>/dev/null || printf '%s\n' "$now")"
+      ;;
+  esac
+  printf '%s\n' "$(( now - started ))"
+}
+
+fast_lock_holder_alive(){
+  local pid
+  pid="$(fast_lock_holder_value pid)"
+  case "$pid" in
+    ""|*[!0-9]*) return 1 ;;
+  esac
+  kill -0 "$pid" >/dev/null 2>&1
+}
+
+reap_stale_fast_gate_lock(){
+  [ -n "$FAST_LOCK_DIR" ] || return 0
+  [ -d "$FAST_LOCK_DIR" ] || return 0
+  if fast_lock_holder_alive; then
+    return 0
+  fi
+  local age
+  age="$(fast_lock_age_seconds)"
+  if [ "$age" -ge "$LOCK_STALE_SECONDS" ]; then
+    echo "[green-gate] reaping stale FAST branch lock at $FAST_LOCK_DIR (age ${age}s, no live holder)."
+    rm -rf "$FAST_LOCK_DIR"
+  fi
+}
+
+write_fast_gate_lock_metadata(){
+  cat > "$FAST_LOCK_DIR/holder.env" <<EOF
+pid=$$
+started_epoch=$(date +%s)
+ref=$REF
+worktree=$WT
+run_tmp=$RUN_TMP
+log=$LOG
+EOF
+}
+
+acquire_fast_gate_lock(){
+  local key
+  key="$(safe_lock_key "$REF")"
+  FAST_LOCK_DIR="$FAST_LOCK_ROOT/$key.lock"
+  mkdir -p "$FAST_LOCK_ROOT" || fail "could not create fast-gate lock root: $FAST_LOCK_ROOT"
+  while true; do
+    if mkdir "$FAST_LOCK_DIR" 2>/dev/null; then
+      FAST_LOCK_HELD=1
+      write_fast_gate_lock_metadata
+      echo "[green-gate] FAST branch lock acquired: $FAST_LOCK_DIR"
+      return 0
+    fi
+    reap_stale_fast_gate_lock
+    if mkdir "$FAST_LOCK_DIR" 2>/dev/null; then
+      FAST_LOCK_HELD=1
+      write_fast_gate_lock_metadata
+      echo "[green-gate] FAST branch lock acquired: $FAST_LOCK_DIR"
+      return 0
+    fi
+    echo "[green-gate] waiting for FAST branch lock: $FAST_LOCK_DIR"
+    sleep "$LOCK_POLL_SECONDS"
+  done
+}
+
+release_fast_gate_lock(){
+  if [ "$FAST_LOCK_HELD" -eq 1 ]; then
+    if [ "$(fast_lock_holder_value pid)" = "$$" ]; then
+      rm -rf "$FAST_LOCK_DIR"
+    fi
+    FAST_LOCK_HELD=0
+    echo "[green-gate] FAST branch lock released: $FAST_LOCK_DIR"
+  fi
+}
+
+add_fast_pytest_arg(){
+  local candidate="$1"
+  local existing
+  [ -f "$candidate" ] || return 0
+  for existing in "${PYTEST_ARGS[@]}"; do
+    if [ "$existing" = "$candidate" ]; then
+      return 0
+    fi
+  done
+  PYTEST_ARGS+=("$candidate")
+}
+
+map_one_changed_path_to_tests(){
+  local path="$1"
+  local base stem candidate
+  case "$path" in
+    tests/test_*.py)
+      add_fast_pytest_arg "$path"
+      return 0
+      ;;
+    *.py|*.sh)
+      base="$(basename "$path")"
+      stem="${base%.*}"
+      add_fast_pytest_arg "tests/test_${stem}.py"
+      add_fast_pytest_arg "tests/test_${stem}_script.py"
+      add_fast_pytest_arg "tests/test_${stem}_integration.py"
+      if [ -d tests ]; then
+        while IFS= read -r candidate; do
+          add_fast_pytest_arg "$candidate"
+        done < <(find tests -maxdepth 1 -type f -name "test_*${stem}*.py" | sort)
+      fi
+      ;;
+  esac
+}
+
+changed_paths_for_fast(){
+  if [ -n "${OPENCLAW_FAST_CHANGED_PATHS:-}" ]; then
+    # Intentional shell-style splitting for operator-provided changed paths.
+    # shellcheck disable=SC2206
+    local provided=($OPENCLAW_FAST_CHANGED_PATHS)
+    printf '%s\n' "${provided[@]}"
+    return 0
+  fi
+  local base
+  if git rev-parse --verify "$FAST_BASE_REF^{commit}" >/dev/null 2>&1; then
+    base="$(git merge-base "$FAST_BASE_REF" HEAD 2>/dev/null || git rev-parse "$FAST_BASE_REF")"
+    git diff --name-only "$base" HEAD
+    return 0
+  fi
+  if git rev-parse --verify "HEAD^" >/dev/null 2>&1; then
+    git diff --name-only "HEAD^" HEAD
+    return 0
+  fi
+  git diff-tree --no-commit-id --name-only -r HEAD
+}
+
+map_changed_paths_to_pytest_args(){
+  local changed path
+  changed="$(changed_paths_for_fast || true)"
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    map_one_changed_path_to_tests "$path"
+  done <<< "$changed"
+  if [ "${#PYTEST_ARGS[@]}" -eq 0 ]; then
+    PYTEST_ARGS=(tests/test_green_gate_script.py)
+    echo "[green-gate] FAST changed-path mapping found no focused tests; falling back to ${PYTEST_ARGS[*]}."
+  else
+    echo "[green-gate] auto-selected FAST pytest args from changed paths: ${PYTEST_ARGS[*]}"
+  fi
 }
 
 # Git hooks export repo-local environment such as GIT_DIR and GIT_WORK_TREE.
@@ -239,6 +411,7 @@ cleanup(){
   if [ "$WORKTREE_CREATED" -eq 1 ]; then
     git -C "$REPO" worktree remove --force "$WT" >/dev/null 2>&1 || true
   fi
+  release_fast_gate_lock
   release_full_gate_lock
 }
 trap cleanup EXIT
@@ -247,9 +420,11 @@ assert_local_ext4_path "OPENCLAW_REPO" "$REPO"
 assert_local_ext4_path "OPENCLAW_VENV" "$VENV"
 assert_local_ext4_path "OPENCLAW_GREEN_GATE_RUN_ROOT" "$RUN_ROOT"
 assert_local_ext4_path "OPENCLAW_GREEN_GATE_LOCK_DIR" "$LOCK_DIR"
+assert_local_ext4_path "OPENCLAW_GREEN_GATE_FAST_LOCK_ROOT" "$FAST_LOCK_ROOT"
 mkdir -p "$WT_ROOT" || fail "could not create green-gate worktree root: $WT_ROOT"
 mkdir -p "$RUN_TMP/tmp" "$RUN_TMP/sqlite" || fail "could not create green-gate run tmp: $RUN_TMP"
 mkdir -p "$(dirname "$LOCK_DIR")" || fail "could not create full-gate lock parent: $(dirname "$LOCK_DIR")"
+mkdir -p "$FAST_LOCK_ROOT" || fail "could not create fast-gate lock root: $FAST_LOCK_ROOT"
 assert_local_ext4_path "OPENCLAW_GREEN_GATE_WORKTREE_ROOT" "$WT_ROOT"
 export TMPDIR="$RUN_TMP/tmp"
 export OPENCLAW_PYTEST_REDIRECT_TMP_SQLITE="${OPENCLAW_PYTEST_REDIRECT_TMP_SQLITE:-1}"
@@ -259,7 +434,7 @@ check_timeout_plugin
 if [ "$MODE" = "full" ]; then
   acquire_full_gate_lock
 else
-  prepare_fast_pytest_args
+  acquire_fast_gate_lock
   echo "[green-gate] FAST pre-gate mode enabled; no full-gate lock will be acquired."
 fi
 
@@ -272,11 +447,13 @@ cd "$WT" || fail "cwd"
 SHA="$(git rev-parse --short HEAD)"
 echo "[green-gate] python: $("$VENV" -c 'import sys; print(sys.executable)')"
 if [ "$MODE" = "full" ]; then
-  restore_trusted_tests
+  restore_trusted_tests_fast
   check_required_clean_fixtures
   echo "[green-gate] running FULL suite on clean checkout $SHA with trusted tests $TRUSTED_TEST_REF (timeout ${TIMEOUT_SECONDS}s/test, method $TIMEOUT_METHOD; this takes ~25 min) ..."
   OPENCLAW_TEST_MODE=1 OPENCLAW_SEND_HOLD=1 "$VENV" -m pytest -q -rA --timeout="$TIMEOUT_SECONDS" --timeout-method="$TIMEOUT_METHOD" > "$LOG" 2>&1
 else
+  prepare_fast_pytest_args
+  restore_trusted_tests
   echo "[green-gate] running FAST pre-gate on clean checkout $SHA: ${PYTEST_ARGS[*]}"
   OPENCLAW_TEST_MODE=1 OPENCLAW_SEND_HOLD=1 "$VENV" -m pytest -q -rA --timeout="$TIMEOUT_SECONDS" --timeout-method="$TIMEOUT_METHOD" "${PYTEST_ARGS[@]}" > "$LOG" 2>&1
 fi

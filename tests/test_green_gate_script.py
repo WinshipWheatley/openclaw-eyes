@@ -84,9 +84,13 @@ def test_green_gate_fast_mode_is_parallel_safe_and_skips_full_lock() -> None:
     assert "MODE=\"fast\"" in SCRIPT
     assert 'if [ "$MODE" = "full" ]; then' in SCRIPT
     assert "acquire_full_gate_lock" in SCRIPT
-    fast_section = SCRIPT.split('if [ "$MODE" = "full" ]; then', 1)[1]
-    assert "acquire_full_gate_lock" in fast_section
+    assert "OPENCLAW_GREEN_GATE_FAST_LOCK_ROOT" in SCRIPT
+    assert "acquire_fast_gate_lock" in SCRIPT
+    assert "FAST branch lock acquired" in SCRIPT
+    assert "no full-gate lock" in SCRIPT
     assert "OPENCLAW_FAST_PYTEST_ARGS" in SCRIPT
+    assert "OPENCLAW_FAST_BASE_REF" in SCRIPT
+    assert "map_changed_paths_to_pytest_args" in SCRIPT
 
 
 def test_green_gate_uses_run_scoped_tmp_log_and_sqlite_sandbox() -> None:
@@ -240,7 +244,9 @@ def test_green_gate_fast_mode_runs_subset_without_atomic_lock(tmp_path) -> None:
             "OPENCLAW_GREEN_GATE_WORKTREE_ROOT": str(tmp_path / "gate-worktrees"),
             "OPENCLAW_GREEN_GATE_RUN_ROOT": str(tmp_path / "gate-runs"),
             "OPENCLAW_GREEN_GATE_LOCK_DIR": str(lock_dir),
+            "OPENCLAW_GREEN_GATE_FAST_LOCK_ROOT": str(tmp_path / "fast-locks"),
             "OPENCLAW_FAST_PYTEST_ARGS": "tests/test_fast.py",
+            "OPENCLAW_TRUSTED_TEST_REF": "main",
             "OPENCLAW_PYTEST_TIMEOUT_SECONDS": "10",
         }
     )
@@ -257,5 +263,57 @@ def test_green_gate_fast_mode_runs_subset_without_atomic_lock(tmp_path) -> None:
     output = result.stdout + result.stderr
     assert result.returncode == 0
     assert "running FAST pre-gate" in output
+    assert "restoring trusted tests from main" in output
+    assert "FAST branch lock acquired" in output
     assert "FULL gate lock acquired" not in output
     assert lock_dir.exists()
+
+
+def test_green_gate_fast_mode_auto_maps_changed_module_to_test(tmp_path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "config", "user.email", "pc4-harden@example.invalid"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "PC4 Harden Test"], cwd=repo, check=True)
+    (repo / "foo_bar.py").write_text("VALUE = 1\n", encoding="utf-8")
+    tests_dir = repo / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_foo_bar.py").write_text(
+        "import foo_bar\n\n\ndef test_foo_bar():\n    assert foo_bar.VALUE == 2\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "main"], cwd=repo, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "checkout", "-b", "feature"], cwd=repo, check=True, capture_output=True, text=True)
+    (repo / "foo_bar.py").write_text("VALUE = 2\n", encoding="utf-8")
+    subprocess.run(["git", "commit", "-am", "change module"], cwd=repo, check=True, capture_output=True, text=True)
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "OPENCLAW_REPO": str(repo),
+            "OPENCLAW_VENV": _gate_python(),
+            "OPENCLAW_GREEN_GATE_WORKTREE_ROOT": str(tmp_path / "gate-worktrees"),
+            "OPENCLAW_GREEN_GATE_RUN_ROOT": str(tmp_path / "gate-runs"),
+            "OPENCLAW_GREEN_GATE_LOCK_DIR": str(tmp_path / "full.lock"),
+            "OPENCLAW_GREEN_GATE_FAST_LOCK_ROOT": str(tmp_path / "fast-locks"),
+            "OPENCLAW_FAST_BASE_REF": "main",
+            "OPENCLAW_TRUSTED_TEST_REF": "main",
+            "OPENCLAW_PYTEST_TIMEOUT_SECONDS": "10",
+        }
+    )
+    result = subprocess.run(
+        ["bash", str(SCRIPT_PATH), "--fast", "feature"],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+
+    output = result.stdout + result.stderr
+    assert result.returncode == 0
+    assert "auto-selected FAST pytest args from changed paths" in output
+    assert "tests/test_foo_bar.py" in output
+    assert "FULL gate lock acquired" not in output
