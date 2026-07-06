@@ -142,6 +142,11 @@ _WARM_NO_ACTION_LINE = (
     "There's nothing needed on your end right now; whenever it's convenient, just let me know if "
     "anything would help it along. As always, it's a pleasure working with you."
 )
+_INTERMEDIARY_FORWARD_LINE = (
+    "Whenever you're happy with the invoice, just let us know once you've forwarded it to {forward_to} - "
+    "and if it's easy, feel free to copy me (winshiplive@gmail.com) on that note so I can keep the "
+    "record straight. As always, a pleasure working with you."
+)
 
 
 def stable_json(payload: Any) -> str:
@@ -484,6 +489,19 @@ def _contact_greeting(contact: Mapping[str, Any] | None) -> str:
     return f"Hi {name_text.split()[0]},"
 
 
+def _contact_role_is_intermediary(contact: Mapping[str, Any] | None) -> bool:
+    role = _clean_text((contact or {}).get("role")).lower() if contact else ""
+    return "intermediary" in role or "forward" in role
+
+
+def _warm_closing_line(contact: Mapping[str, Any] | None) -> str:
+    forward_to_text = _clean_text((contact or {}).get("forward_to")) if contact else ""
+    forward_to = forward_to_text.split()[0] if forward_to_text else ""
+    if _contact_role_is_intermediary(contact) and forward_to:
+        return _INTERMEDIARY_FORWARD_LINE.format(forward_to=forward_to)
+    return _WARM_NO_ACTION_LINE
+
+
 def _general_contact_from_recipient_package(
     recipient_package: Mapping[str, Any],
     contact: Mapping[str, Any] | None,
@@ -637,7 +655,7 @@ def build_general_client_invoice_body(
         )
     lines.extend((
         "",
-        _WARM_NO_ACTION_LINE,
+        _warm_closing_line(contact),
         "",
         "Warmly,",
         "Clara Reid",
