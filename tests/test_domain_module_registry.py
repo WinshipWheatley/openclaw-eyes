@@ -108,6 +108,20 @@ def _read_models(tmp_path: Path) -> Path:
         ),
         encoding="utf-8",
     )
+    (root / "openclaw_capability_index.json").write_text(
+        json.dumps(
+            {
+                "generic_capabilities": [
+                    {
+                        "capability_id": "domain_module_registry",
+                        "capability_name": "Domain module registry",
+                        "capability_status": "READ_MODEL_ONLY",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
     return root
 
 
