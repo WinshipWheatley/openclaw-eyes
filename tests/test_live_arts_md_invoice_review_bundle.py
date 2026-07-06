@@ -405,9 +405,10 @@ def test_live_arts_md_workbook_confirmation_writes_receipt_and_refreshes_bundle(
     assert result.state_snapshot["source_workbook_status"] == "CONFIRMED"
     assert result.state_snapshot["invoice_record_selection_status"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
     assert live["source_workbook"]["status"] == "CONFIRMED"
-    assert live["invoice_selection"]["status"] == "OPERATOR_CONFIRMED"
-    assert live["invoice_selection"]["selected_invoice_ids"] == ["2026-1001"]
-    assert live["invoice_selection"]["selected_invoice_summary"] == "2026-1001 — June 2026 Speaker Rental — $900"
+    assert live["invoice_selection"]["status"] == "NEEDS_CANDIDATE_SELECTION"
+    assert live["invoice_selection"]["primary_action"]["hidden_request_payload"]["intended_use"] == (
+        "select_live_arts_md_invoice_candidate"
+    )
     assert live["invoice_artifact"]["status"] == "ARTIFACT_REQUIRED"
     assert live["invoice_artifact"]["attachment_ready"] is False
     assert live["approval_footer"]["approval_ready"] is False

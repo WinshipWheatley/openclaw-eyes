@@ -11,6 +11,7 @@ import argparse
 from dataclasses import asdict
 import hashlib
 import json
+import os
 import shutil
 from pathlib import Path
 from typing import Any, Mapping
@@ -31,6 +32,8 @@ JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
+_CANONICAL_DEFAULT_EXPORT_ROOT = Path("generated/read_models")
+_CANONICAL_DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-28T00:00:00+00:00"
 LEGACY_ACTION_RECEIPT_EXPORT_NAME = "invoice_review_action_request_receipt.json"
 SELECTION_RECEIPT_EXPORT_NAME = "live_arts_md_invoice_candidate_selected_receipt.json"
@@ -336,7 +339,26 @@ def _invoice_candidate_lookup(invoice_id: str) -> Mapping[str, Any] | None:
     return lookup(target) if callable(lookup) else None
 
 
+def _test_mode_default_ambient_reads_blocked() -> bool:
+    """Return True when default generated-root reads would leak test state.
+
+    Tests that intentionally exercise file-backed receipt consumption pass
+    explicit payloads or monkeypatch DEFAULT_EXPORT_ROOT/DEFAULT_BRIDGE_EXPORT_ROOT
+    to tmp roots. Under OPENCLAW_TEST_MODE, the unmodified default roots are
+    ambient machine state and must not affect unrelated tests.
+    """
+
+    if os.environ.get("OPENCLAW_TEST_MODE") != "1":
+        return False
+    return (
+        DEFAULT_EXPORT_ROOT == _CANONICAL_DEFAULT_EXPORT_ROOT
+        and DEFAULT_BRIDGE_EXPORT_ROOT == _CANONICAL_DEFAULT_BRIDGE_EXPORT_ROOT
+    )
+
+
 def _load_existing_selection_receipt() -> Mapping[str, Any] | None:
+    if _test_mode_default_ambient_reads_blocked():
+        return None
     receipt_names = (
         SELECTION_RECEIPT_EXPORT_NAME,
         LEGACY_ACTION_RECEIPT_EXPORT_NAME,
@@ -355,6 +377,8 @@ def _load_existing_selection_receipt() -> Mapping[str, Any] | None:
 
 
 def _load_existing_pdf_export_result_receipt() -> Mapping[str, Any] | None:
+    if _test_mode_default_ambient_reads_blocked():
+        return None
     for path in (
         DEFAULT_EXPORT_ROOT / PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME,
         DEFAULT_BRIDGE_EXPORT_ROOT / PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME,
@@ -370,6 +394,8 @@ def _load_existing_pdf_export_result_receipt() -> Mapping[str, Any] | None:
 
 
 def _load_existing_pdf_export_operator_assistance_annotation() -> Mapping[str, Any] | None:
+    if _test_mode_default_ambient_reads_blocked():
+        return None
     for path in (
         DEFAULT_EXPORT_ROOT / PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME,
         DEFAULT_BRIDGE_EXPORT_ROOT / PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME,
@@ -385,6 +411,8 @@ def _load_existing_pdf_export_operator_assistance_annotation() -> Mapping[str, A
 
 
 def _load_existing_pdf_candidate_decision_receipt() -> Mapping[str, Any] | None:
+    if _test_mode_default_ambient_reads_blocked():
+        return None
     for path in (
         DEFAULT_EXPORT_ROOT / PDF_CANDIDATE_DECISION_RECEIPT_EXPORT_NAME,
         DEFAULT_BRIDGE_EXPORT_ROOT / PDF_CANDIDATE_DECISION_RECEIPT_EXPORT_NAME,
