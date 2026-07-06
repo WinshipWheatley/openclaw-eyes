@@ -9,6 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from self_knowledge_ledger_gap_writer import (  # noqa: E402
     GAP_TABLE,
     backup_ledger,
+    query_inventory_graph_from_ledger,
+    write_inventory_graph_to_ledger,
     write_gaps_to_ledger,
 )
 
@@ -141,3 +143,71 @@ def test_backup_ledger_creates_timestamped_nonempty_copy(tmp_path):
     assert backup_path.exists()
     assert backup_path.stat().st_size > 0
     assert backup_path.name.startswith("ledger.sqlite.bak-")
+
+
+def test_inventory_graph_writes_and_answers_high_medium_deep_queries(tmp_path):
+    ledger = tmp_path / "ledger.sqlite"
+    _make_ledger(ledger, [])
+    graph = {
+        "schema_version": "self_knowledge_inventory_graph_v1",
+        "owner_scope": "pc",
+        "nodes": {
+            "machine:pc": {"id": "machine:pc", "kind": "machine", "owner_scope": "pc"},
+            "repo:/repo": {"id": "repo:/repo", "kind": "repo", "owner_scope": "pc", "path": "/repo"},
+            "worktree:/repo-wt": {
+                "id": "worktree:/repo-wt",
+                "kind": "worktree",
+                "owner_scope": "pc",
+                "worktree_path": "/repo-wt",
+                "repo_path": "/repo",
+                "health_status": "dirty",
+                "last_seen_at": "2026-07-05T12:00:00+00:00",
+            },
+            "openclaw_instance:/repo-wt": {
+                "id": "openclaw_instance:/repo-wt",
+                "kind": "openclaw_instance",
+                "owner_scope": "pc",
+                "root_path": "/repo-wt",
+                "activity_status": "idle",
+            },
+            "service:pc:kokoro-voice.service": {
+                "id": "service:pc:kokoro-voice.service",
+                "kind": "service",
+                "owner_scope": "pc",
+                "unit": "kokoro-voice.service",
+                "activation_state": "active",
+            },
+        },
+        "edges": [
+            {"source": "machine:pc", "target": "repo:/repo", "relation": "contains"},
+            {"source": "machine:pc", "target": "worktree:/repo-wt", "relation": "contains"},
+            {"source": "worktree:/repo-wt", "target": "repo:/repo", "relation": "branch-of"},
+            {"source": "worktree:/repo-wt", "target": "openclaw_instance:/repo-wt", "relation": "has-state"},
+            {"source": "machine:pc", "target": "service:pc:kokoro-voice.service", "relation": "runs"},
+        ],
+    }
+
+    dry_run = write_inventory_graph_to_ledger(graph, ledger, confirm=False)
+
+    assert dry_run["status"] == "dry_run"
+    with sqlite3.connect(ledger) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "knowledge_system_nodes" not in tables
+
+    written = write_inventory_graph_to_ledger(graph, ledger, confirm=True)
+    assert written["status"] == "written"
+    assert written["node_count"] == 5
+    assert written["edge_count"] == 5
+    assert Path(written["backup_path"]).exists()
+
+    high = query_inventory_graph_from_ledger(ledger, resolution="high")
+    medium = query_inventory_graph_from_ledger(ledger, resolution="medium", owner_scope="pc")
+    deep = query_inventory_graph_from_ledger(ledger, resolution="deep", node_id="worktree:/repo-wt")
+
+    assert high["machine_count"] == 1
+    assert high["repo_count"] == 1
+    assert high["worktree_count"] == 1
+    assert high["openclaw_instance_count"] == 1
+    assert medium["machines"]["pc"]["worktrees"] == ["/repo-wt"]
+    assert deep["node"]["health_status"] == "dirty"
+    assert {node["kind"] for node in deep["neighbors"]} == {"machine", "openclaw_instance", "repo"}

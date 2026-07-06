@@ -15,6 +15,33 @@ def _completed(stdout: str = "", stderr: str = "", returncode: int = 0) -> Simpl
     return SimpleNamespace(stdout=stdout, stderr=stderr, returncode=returncode)
 
 
+def _git(cwd: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _fixture_git_repo_with_worktree(tmp_path: Path) -> tuple[Path, Path]:
+    repo = tmp_path / "openclaw-main"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "config", "user.email", "codex@example.test")
+    _git(repo, "config", "user.name", "Codex Test")
+    _git(repo, "checkout", "-b", "main")
+    (repo / "README.md").write_text("# repo\n", encoding="utf-8")
+    _git(repo, "add", "README.md")
+    _git(repo, "commit", "-m", "init")
+
+    worktree = tmp_path / "openclaw-feature"
+    _git(repo, "worktree", "add", "-b", "feature", worktree.as_posix())
+    (worktree / "dirty.txt").write_text("not committed\n", encoding="utf-8")
+    return repo, worktree
+
+
 # --- processes -----------------------------------------------------------
 
 def test_enumerate_processes_parses_rows(monkeypatch):
@@ -210,3 +237,103 @@ def test_enumerate_sqlite_databases_unavailable_on_bad_root(tmp_path):
     result = sen.enumerate_sqlite_databases(missing)
 
     assert result["status"] == "unavailable"
+
+
+# --- git repos, worktrees, OpenClaw states, traversal graph -------------------
+
+def test_enumerate_git_repos_finds_repos_and_worktrees(tmp_path):
+    repo, worktree = _fixture_git_repo_with_worktree(tmp_path)
+
+    result = sen.enumerate_git_repos([tmp_path], owner_scope="pc")
+
+    assert result["status"] == "ok"
+    rows_by_path = {Path(row["path"]): row for row in result["rows"]}
+    assert repo.resolve() in rows_by_path
+    assert worktree.resolve() in rows_by_path
+    assert rows_by_path[repo.resolve()]["branch"] == "main"
+    assert rows_by_path[worktree.resolve()]["branch"] == "feature"
+    assert rows_by_path[worktree.resolve()]["dirty"] is True
+    assert rows_by_path[worktree.resolve()]["owner_scope"] == "pc"
+    assert rows_by_path[worktree.resolve()]["last_seen_at"]
+
+
+def test_enumerate_worktrees_parses_git_worktree_list(tmp_path):
+    repo, worktree = _fixture_git_repo_with_worktree(tmp_path)
+
+    result = sen.enumerate_worktrees([repo], owner_scope="pc")
+
+    assert result["status"] == "ok"
+    rows_by_path = {Path(row["worktree_path"]): row for row in result["rows"]}
+    assert repo.resolve() in rows_by_path
+    assert worktree.resolve() in rows_by_path
+    assert rows_by_path[worktree.resolve()]["repo_path"] == str(repo.resolve())
+    assert rows_by_path[worktree.resolve()]["branch"] == "feature"
+    assert rows_by_path[worktree.resolve()]["dirty"] is True
+
+
+def test_enumerate_openclaw_states_reports_branch_head_dirty_and_activity(tmp_path):
+    repo, worktree = _fixture_git_repo_with_worktree(tmp_path)
+
+    result = sen.enumerate_openclaw_states([repo, worktree], owner_scope="pc")
+
+    assert result["status"] == "ok"
+    rows_by_path = {Path(row["root_path"]): row for row in result["rows"]}
+    assert rows_by_path[repo.resolve()]["branch"] == "main"
+    assert rows_by_path[repo.resolve()]["activity_status"] == "idle"
+    assert rows_by_path[worktree.resolve()]["branch"] == "feature"
+    assert rows_by_path[worktree.resolve()]["dirty"] is True
+    assert rows_by_path[worktree.resolve()]["health_status"] == "dirty"
+
+
+def test_system_inventory_graph_answers_resolutions_and_traversal(tmp_path):
+    repo, worktree = _fixture_git_repo_with_worktree(tmp_path)
+    system_state = sen.enumerate_system_state(
+        timeout=5,
+        repo_root=repo,
+        roots=[tmp_path],
+        owner_scope="pc",
+    )
+    system_state["systemd_user_services"] = {
+        "status": "ok",
+        "rows": [
+            {
+                "unit": "kokoro-voice.service",
+                "load": "loaded",
+                "active": "active",
+                "sub": "running",
+                "description": "OpenClaw Kokoro Voice Service",
+            }
+        ],
+    }
+
+    graph = sen.build_system_inventory_graph(system_state, owner_scope="pc")
+    high = sen.query_system_inventory(graph, resolution="high")
+    medium = sen.query_system_inventory(graph, resolution="medium", owner_scope="pc")
+    worktree_node = f"worktree:{worktree.resolve()}"
+    deep = sen.query_system_inventory(graph, resolution="deep", node_id=worktree_node)
+    reachable = sen.reachable_node_ids(graph, worktree_node)
+
+    assert high["machine_count"] == 1
+    assert high["repo_count"] >= 2
+    assert high["openclaw_instance_count"] >= 2
+    assert str(worktree.resolve()) in medium["machines"]["pc"]["worktrees"]
+    assert deep["node"]["id"] == worktree_node
+    neighbor_kinds = {node["kind"] for node in deep["neighbors"]}
+    assert {"repo", "machine", "openclaw_instance"} <= neighbor_kinds
+    assert f"repo:{repo.resolve()}" in reachable
+    assert "machine:pc" in reachable
+    assert f"openclaw_instance:{worktree.resolve()}" in reachable
+    assert "service:pc:kokoro-voice.service" in reachable
+    instance_deep = sen.query_system_inventory(
+        graph,
+        resolution="deep",
+        node_id=f"openclaw_instance:{worktree.resolve()}",
+    )
+    assert "service:pc:kokoro-voice.service" in {
+        node["id"] for node in instance_deep["neighbors"]
+    }
+    assert {
+        "source": f"openclaw_instance:{worktree.resolve()}",
+        "target": "service:pc:kokoro-voice.service",
+        "relation": "depends-on",
+    } in graph["edges"]

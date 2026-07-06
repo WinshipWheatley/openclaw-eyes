@@ -3,10 +3,13 @@
 scheduled incremental crawl.
 
 Arbiter-aware: defers honestly instead of running when an interactive GPU
-lease is active (see `self_knowledge_scheduler.run_scheduled_crawl`). This
-script only crawls and reports; it never writes ledger state itself — gated
-ledger writes are a separate, explicit step via
-`self_knowledge_ledger_gap_writer.write_gaps_to_ledger(..., confirm=True)`.
+lease is active (see `self_knowledge_scheduler.run_scheduled_crawl`). Ledger
+writes are explicit and gated: without `--confirm-ledger-write`, the scheduled
+run only crawls/reports; with the flag, the scheduler uses the backup-first
+ledger writers.
+When invoked by the repo-owned systemd template, the explicit
+`--confirm-ledger-write` flag folds backup-protected gap, graph, and
+activation rows into the configured ledger.
 
 This is the template's ExecStart target for
 `systemd/user/self-knowledge-crawl.service.in` /
@@ -39,6 +42,7 @@ DEFAULT_LEASE_DB = Path(
     or str(ROOT / ".openclaw" / "polish_loop" / "gpu_leases.sqlite")
 )
 DEFAULT_STATE_DB = ROOT / ".openclaw" / "self_knowledge" / "crawl_state.sqlite"
+DEFAULT_LEDGER_PATH = ROOT / ".openclaw" / "business_ops" / "ledger.sqlite"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -49,6 +53,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--lease-db-path", default=str(DEFAULT_LEASE_DB))
     ap.add_argument("--state-db-path", default=str(DEFAULT_STATE_DB))
     ap.add_argument("--max-files", type=int, default=None)
+    ap.add_argument("--ledger-path", default=None)
+    ap.add_argument("--confirm-ledger-write", action="store_true")
+    ap.add_argument("--write-inventory-graph", action="store_true")
+    ap.add_argument("--write-activation-record", action="store_true")
+    ap.add_argument("--owner-scope", default="pc")
     args = ap.parse_args(argv)
 
     result = run_scheduled_crawl(
@@ -56,6 +65,11 @@ def main(argv: list[str] | None = None) -> int:
         lease_db_path=args.lease_db_path,
         state_db_path=args.state_db_path,
         max_files=args.max_files,
+        ledger_path=args.ledger_path,
+        confirm_ledger_write=args.confirm_ledger_write,
+        write_inventory_graph=args.write_inventory_graph,
+        write_activation_record=args.write_activation_record,
+        owner_scope=args.owner_scope,
     )
     print(json.dumps(result, indent=2))
     return 0

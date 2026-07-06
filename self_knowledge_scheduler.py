@@ -54,6 +54,11 @@ def run_scheduled_crawl(
     state_db_path: str | Path = DEFAULT_STATE_DB,
     max_files: int | None = None,
     now: datetime | None = None,
+    ledger_path: str | Path | None = None,
+    confirm_ledger_write: bool = False,
+    write_inventory_graph: bool = False,
+    write_activation_record: bool = False,
+    owner_scope: str = "pc",
 ) -> dict[str, Any]:
     """Defer honestly while an interactive GPU lease is active; otherwise run
     a bounded incremental crawl and report how many files were (re)visited.
@@ -64,11 +69,70 @@ def run_scheduled_crawl(
         return {"status": "deferred", "reason": "interactive_lease_active"}
 
     crumbs = crawl_filesystem_incremental(root, state_db_path, max_files=max_files)
-    return {
+    result: dict[str, Any] = {
         "status": "completed",
         "root": str(Path(root).resolve()),
         "files_visited": len(crumbs),
+        "activation_record": {
+            "activation_ref": f"self_knowledge_scheduled_crawl:{Path(root).resolve()}",
+            "activation_state": "invoked",
+            "root": str(Path(root).resolve()),
+            "scheduled_runtime_installed_by_this_call": False,
+            "ledger_path": str(Path(ledger_path).resolve()) if ledger_path is not None else None,
+            "ledger_write_confirm_requested": bool(confirm_ledger_write),
+            "ledger_write_confirmed": False,
+            "inventory_graph_write_confirmed": False,
+            "last_verified_at": now.isoformat(),
+        },
     }
+    if ledger_path is not None:
+        from self_knowledge_ledger_gap_writer import (
+            write_activation_record_to_ledger,
+            write_gaps_to_ledger,
+            write_inventory_graph_to_ledger,
+        )
+
+        ledger_result = write_gaps_to_ledger(
+            root,
+            ledger_path,
+            confirm=confirm_ledger_write,
+            max_files=max_files,
+        )
+        result["ledger_gap_write"] = ledger_result
+        result["activation_record"]["ledger_write_confirmed"] = (
+            confirm_ledger_write and ledger_result.get("status") == "written"
+        )
+        if write_inventory_graph:
+            from self_knowledge_system_enumerators import enumerate_system_state
+
+            system_state = enumerate_system_state(
+                timeout=10,
+                repo_root=root,
+                roots=[root],
+                owner_scope=owner_scope,
+            )
+            graph_result = write_inventory_graph_to_ledger(
+                system_state["inventory_graph"],
+                ledger_path,
+                confirm=confirm_ledger_write,
+            )
+            result["inventory_graph_write"] = graph_result
+            result["activation_record"]["inventory_graph_write_confirmed"] = (
+                confirm_ledger_write and graph_result.get("status") == "written"
+            )
+        if write_activation_record:
+            activation_result = write_activation_record_to_ledger(
+                result["activation_record"],
+                ledger_path,
+                confirm=confirm_ledger_write,
+            )
+            result["activation_record_write"] = activation_result
+    elif write_activation_record:
+        result["activation_record_write"] = {
+            "status": "ledger_path_required",
+            "reason": "write_activation_record requires ledger_path",
+        }
+    return result
 
 
 __all__ = ["run_scheduled_crawl"]
