@@ -340,6 +340,104 @@ def _operator_truth_facts(
     return facts, bool(facts), str(path or "")
 
 
+def _contacts_db_path() -> str:
+    try:
+        from contacts_registry import DEFAULT_CONTACTS_DB_PATH
+
+        return os.environ.get("OPENCLAW_CONTACTS_DB_PATH") or DEFAULT_CONTACTS_DB_PATH
+    except Exception:
+        return os.environ.get("OPENCLAW_CONTACTS_DB_PATH") or ""
+
+
+def _contact_text_key(value: Any) -> str:
+    text = str(value or "").lower().replace("'", "")
+    return re.sub(r"[^a-z0-9]+", " ", text).strip()
+
+
+def _contact_query_client_slugs(question: str, contacts: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    query_key = f" {_contact_text_key(question)} "
+    slugs: list[str] = []
+    for contact in contacts:
+        clients = contact.get("connected_clients") or contact.get("connected_client") or ()
+        if isinstance(clients, str):
+            clients = (clients,)
+        for client in clients:
+            slug = str(client or "").strip()
+            if not slug:
+                continue
+            terms = {
+                _contact_text_key(slug),
+                _contact_text_key(slug.replace("-", " ")),
+                _contact_text_key(slug.replace("-", "")),
+            }
+            if any(term and f" {term} " in query_key for term in terms) and slug not in slugs:
+                slugs.append(slug)
+    return tuple(slugs)
+
+
+def _contact_fact_value(contact: Mapping[str, Any]) -> str:
+    clients = contact.get("connected_clients") or contact.get("connected_client") or ()
+    if isinstance(clients, str):
+        clients = (clients,)
+    client_text = ", ".join(str(client) for client in clients if str(client).strip()) or "no client link"
+    role = str(contact.get("role") or "contact").strip()
+    name = str(contact.get("name") or contact.get("id") or "Contact").strip()
+    return f"{name} is a contacts_registry contact for {client_text}; role: {role}."
+
+
+def _contacts_registry_facts(question: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    db_path = _contacts_db_path()
+    proof: dict[str, Any] = {
+        "contacts_registry_used": False,
+        "contacts_registry_ref": f"contacts_registry:{db_path}" if db_path else "contacts_registry",
+        "contacts_registry_contact_count": 0,
+        "contacts_registry_client_slugs": [],
+    }
+    try:
+        from contacts_registry import ContactsRegistry
+
+        registry = ContactsRegistry(db_path, seed=True)
+        all_contacts = registry.list_contacts()
+    except Exception as exc:
+        proof["contacts_registry_error"] = str(exc)
+        return [], proof
+
+    client_slugs = _contact_query_client_slugs(question, all_contacts)
+    selected: list[dict[str, Any]] = []
+    if client_slugs:
+        for slug in client_slugs:
+            selected.extend(registry.get_contacts_for_client(slug))
+    elif re.search(r"\b(contact|person|people|who is|who's|who do i talk to)\b", str(question or ""), re.IGNORECASE):
+        selected = all_contacts
+
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for contact in selected:
+        contact_id = str(contact.get("id") or "")
+        if contact_id and contact_id not in seen:
+            seen.add(contact_id)
+            deduped.append(contact)
+
+    facts: list[dict[str, Any]] = []
+    source_ref = proof["contacts_registry_ref"]
+    for contact in deduped:
+        _append_fact(
+            facts,
+            topic="contacts_registry",
+            label=f"Contact: {contact.get('name') or contact.get('id')}",
+            value=_contact_fact_value(contact),
+            provenance="contacts_registry",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness={"client_slugs": list(client_slugs)},
+        )
+
+    proof["contacts_registry_used"] = bool(facts)
+    proof["contacts_registry_contact_count"] = len(deduped)
+    proof["contacts_registry_client_slugs"] = list(client_slugs)
+    return facts, proof
+
+
 def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
@@ -1089,8 +1187,9 @@ def build_maestro_context_packet(
     generated_at = _utc_now()
 
     truth_facts, operator_truth_used, truth_ref = _operator_truth_facts(path=truth_path, question=question)
+    contacts_facts, contacts_proof = _contacts_registry_facts(question)
     read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root)
-    facts = [*truth_facts, *read_model_facts]
+    facts = [*truth_facts, *contacts_facts, *read_model_facts]
 
     # SQLite canonical-facts source — DEFAULT-OFF.
     # Enabled when packet_source param is "sqlite"/"hybrid", OR when
@@ -1103,7 +1202,7 @@ def build_maestro_context_packet(
         # operator truth) so they survive format_maestro_context_packet's facts[:30] cap on
         # packet_text. Appending at the end risked silent truncation when truth+read-models
         # already fill the cap (AGY-G flip-1 audit, hole #3).
-        facts = [*truth_facts, *sqlite_facts, *read_model_facts]
+        facts = [*truth_facts, *contacts_facts, *sqlite_facts, *read_model_facts]
 
     # ── Interpreter LM fact-selection elevation (flag-gated, ADDITIVE) ──────────
     # When OPENCLAW_INTERPRETER_LM is on AND fact_selection is a non-empty list,
@@ -1239,6 +1338,7 @@ def build_maestro_context_packet(
                 builder_name="maestro_context_packet.build_maestro_context_packet",
                 facts=facts,
             ),
+            **contacts_proof,
             **read_model_proof,
         },
     }
