@@ -64,6 +64,7 @@ _VALID_ROUTES = {ROUTE_BRAIN, ROUTE_WORKFLOW, ROUTE_ACTION, ROUTE_BLOCKED, ROUTE
 
 INVOICE_SEND_INTENT = "invoice_send"
 CAPTURE_GIG_INTENT = "capture_gig"
+BUILD_REQUEST_INTENT = "build_request"
 
 _PLACEHOLDER_INVOICE_CLIENTS = {
     "",
@@ -102,6 +103,8 @@ def _normalize_interpreter_intent(value: Any) -> str:
         return INVOICE_SEND_INTENT
     if label in {CAPTURE_GIG_INTENT, "gig_capture", "add_gig", "calendar_gig", "capture_calendar_gig"}:
         return CAPTURE_GIG_INTENT
+    if label in {BUILD_REQUEST_INTENT, "request_build", "build_tooling", "tooling_build", "agent_build_request"}:
+        return BUILD_REQUEST_INTENT
     return ""
 
 
@@ -229,6 +232,8 @@ class InterpretResult:
     contact: str = ""
     description: str = ""
     date: str = ""
+    what: str = ""
+    requesting_agent: str = ""
 
     def is_high_confidence_brain(self) -> bool:
         """True when the interpreter is confident the message is conversational."""
@@ -260,6 +265,91 @@ class InterpretResult:
             and bool(self.description)
             and bool(self.date)
         )
+
+    def is_high_confidence_build_request(self) -> bool:
+        """True when the interpreter confidently extracted an agent build request."""
+        return (
+            self.intent == BUILD_REQUEST_INTENT
+            and self.route == ROUTE_ACTION
+            and self.confidence >= HIGH_CONFIDENCE_THRESHOLD
+            and bool(self.what)
+            and bool(self.requesting_agent)
+        )
+
+
+_KNOWN_REQUESTING_AGENTS = ("niles", "chief", "cassandra", "clara", "hermes")
+
+_BUILD_VERBS_RE = r"(?:build|make|create|implement|wire\s+up|put\s+together)"
+_BUILD_REQUEST_WITH_AGENT_RE = re.compile(
+    rf"""
+    \b
+    (?:hey\s+|ok\s+|okay\s+|please\s+)?
+    (?P<agent>{'|'.join(_KNOWN_REQUESTING_AGENTS)})
+    [\s,;:-]+
+    (?:can\s+you\s+|could\s+you\s+|please\s+)?
+    {_BUILD_VERBS_RE}
+    \s+
+    (?P<what>.+?)
+    \s*[\?\.!]*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+_BUILD_REQUEST_DIRECT_RE = re.compile(
+    rf"""
+    \b
+    (?:can\s+you\s+|could\s+you\s+|please\s+)?
+    {_BUILD_VERBS_RE}
+    \s+
+    (?P<what>.+?)
+    \s*[\?\.!]*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def _clean_build_request_what(value: Any) -> str:
+    text = _clean_lm_field(value, max_len=240)
+    text = re.sub(r"^(?:me\s+)?(?:a|an|the)\s+", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\s+", " ", text).strip(" \t\r\n.,!?")
+    return text
+
+
+def _build_request_fast_path(text: str) -> InterpretResult | None:
+    normalized = " ".join(str(text or "").strip().split())
+    if not normalized:
+        return None
+
+    match = _BUILD_REQUEST_WITH_AGENT_RE.search(normalized)
+    if match:
+        requesting_agent = _normalize_label(match.group("agent"))
+        what = _clean_build_request_what(match.group("what"))
+        if requesting_agent in _KNOWN_REQUESTING_AGENTS and what:
+            return InterpretResult(
+                route=ROUTE_ACTION,
+                fact_selection=["openclaw_capability_index.json", "work_board.json"],
+                confidence=0.95,
+                reason="common_agent_build_request_fast_path",
+                intent=BUILD_REQUEST_INTENT,
+                what=what,
+                requesting_agent=requesting_agent,
+            )
+
+    direct = _BUILD_REQUEST_DIRECT_RE.search(normalized)
+    if direct and any(f" {agent} " in f" {normalized.lower()} " for agent in _KNOWN_REQUESTING_AGENTS):
+        for agent in _KNOWN_REQUESTING_AGENTS:
+            if re.search(rf"\b{re.escape(agent)}\b", normalized, flags=re.IGNORECASE):
+                what = _clean_build_request_what(direct.group("what"))
+                if what:
+                    return InterpretResult(
+                        route=ROUTE_ACTION,
+                        fact_selection=["openclaw_capability_index.json", "work_board.json"],
+                        confidence=0.9,
+                        reason="common_build_request_fast_path",
+                        intent=BUILD_REQUEST_INTENT,
+                        what=what,
+                        requesting_agent=agent,
+                    )
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -406,6 +496,13 @@ INVOICE CLIENT REGISTRY:
    Resolve fuzzy date words using the temporal anchor above when the date is implicit, but do not
    invent missing contact, description, or date values.
 
+6. If the operator is asking an agent to build, make, implement, or wire up tooling, set:
+   - "route": "ACTION"
+   - "intent": "build_request"
+   - "requesting_agent": the addressed agent name, for example "niles".
+   - "what": the requested build item, without filler such as "can you build me".
+   This is routing intent only. Do not add authority, send, allow, deny, or execution fields.
+
 Respond ONLY with valid JSON, no prose, no markdown fences:
 {{
   "route": "<BRAIN|WORKFLOW|ACTION|BLOCKED|UNCERTAIN>",
@@ -416,7 +513,9 @@ Respond ONLY with valid JSON, no prose, no markdown fences:
   "client": "{invoice_client_contract}",
   "contact": "<contact hint|>",
   "description": "<gig description|>",
-  "date": "<date phrase|>"
+  "date": "<date phrase|>",
+  "what": "<build request payload|>",
+  "requesting_agent": "<agent name|>"
 }}"""
 
 
@@ -492,6 +591,20 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
         or payload.get("service_date")
         or payload.get("when")
     )
+    what = _clean_build_request_what(
+        payload.get("what")
+        or payload.get("build_request")
+        or payload.get("requested_build")
+        or payload.get("tooling_request")
+    )
+    requesting_agent = _normalize_label(
+        payload.get("requesting_agent")
+        or payload.get("agent")
+        or payload.get("addressed_agent")
+        or payload.get("from_agent")
+    )
+    if requesting_agent not in _KNOWN_REQUESTING_AGENTS:
+        requesting_agent = ""
 
     return InterpretResult(
         route=raw_route,
@@ -503,6 +616,8 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
         contact=contact,
         description=description,
         date=date,
+        what=what,
+        requesting_agent=requesting_agent,
     )
 
 
@@ -541,6 +656,10 @@ def interpret_operator_message(
     """
     if not text or not text.strip():
         return InterpretResult(route=ROUTE_UNCERTAIN, reason="empty_text")
+
+    fast_path_result = _build_request_fast_path(text)
+    if fast_path_result is not None:
+        return fast_path_result
 
     _fn = protected_generate_fn or _select_interpreter_generate_fn()
     if _fn is None:
