@@ -113,6 +113,14 @@ def run_scheduled_crawl(
             result["activation_record"]["inventory_graph_write_confirmed"] = (
                 confirm_ledger_write and graph_result.get("status") == "written"
             )
+            if confirm_ledger_write and graph_result.get("status") == "written":
+                from self_knowledge_completeness import build_completeness_report
+
+                result["completeness_report"] = build_completeness_report(
+                    ledger_path,
+                    root=root,
+                    now=now.isoformat(),
+                )
         if write_activation_record:
             activation_result = write_activation_record_to_ledger(
                 result["activation_record"],
