@@ -707,6 +707,8 @@
 !domain_module_registry.py
 !DOMAIN-ONBOARDING.md
 !tests/test_domain_module_registry.py
+!versioned_block_registry.py
+!tests/test_versioned_block_registry.py
 !reports/file_path_dependency_scan/
 !reports/file_path_dependency_scan/*.md
 !reports/file_path_dependency_scan/*.json
