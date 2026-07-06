@@ -588,6 +588,12 @@ def orient(
     else:
         system_map = _deep_map(nodes, edges, node_id=node_id)
 
+    from self_knowledge_completeness import build_graph_coverage_section
+
+    coverage = build_graph_coverage_section(nodes)
+    if isinstance(system_map, dict):
+        system_map["coverage"] = coverage
+
     payload = _base_envelope(
         level=level_key,
         ledger_path=ledger,
@@ -599,6 +605,7 @@ def orient(
         {
             "message": "Self-knowledge orientation loaded from the local ledger.",
             "map": system_map,
+            "coverage": coverage,
         }
     )
     return payload
