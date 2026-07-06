@@ -145,7 +145,23 @@ def test_clara_draft_resolves_st_annes_registry_contact_for_greeting(tmp_path: P
 
     assert result["ok"] is True
     assert "Hi Draper," in messages[0]
-    assert "There's nothing needed on your end right now" in messages[0]
+    assert "forwarded it to Glenn" in messages[0]
+    assert "copy me (winshiplive@gmail.com)" in messages[0]
+    assert "There's nothing needed on your end right now" not in messages[0]
+
+
+def test_recipient_resolution_enriches_intermediary_with_forward_target(tmp_path: Path) -> None:
+    contacts_db = tmp_path / "contacts.sqlite3"
+    ContactsRegistry(str(contacts_db), seed=True)
+
+    recipient = RealCockpitOps(contacts_db_path=str(contacts_db))._recipient_for_invoice(
+        client={"client_ref": "st_annes", "display_name": "St. Anne's"},
+        invoice_data=_st_annes_invoice_data(),
+    )
+
+    assert recipient["name"] == "Draper Carter"
+    assert recipient["role"] == "intermediary"
+    assert recipient["forward_to"] == "Glenn"
 
 
 def test_clara_draft_contact_greeting_is_registry_driven_for_swapped_client(tmp_path: Path) -> None:
@@ -207,7 +223,9 @@ def test_send_email_test_mode_uses_registry_contact_body(tmp_path: Path, monkeyp
 
     assert result["ok"] is True
     assert "Hi Draper," in calls[0][2]["body"]
-    assert "There's nothing needed on your end right now" in calls[0][2]["body"]
+    assert "forwarded it to Glenn" in calls[0][2]["body"]
+    assert "copy me (winshiplive@gmail.com)" in calls[0][2]["body"]
+    assert "There's nothing needed on your end right now" not in calls[0][2]["body"]
     assert calls[0][2]["attachments"] == [str(attachment)]
 
 

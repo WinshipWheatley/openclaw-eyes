@@ -41,6 +41,25 @@ def test_general_client_invoice_body_is_human_and_guard_clean():
         assert term not in lowered
 
 
+def test_general_client_invoice_body_asks_intermediary_to_forward_to_treasurer():
+    body = drafts.build_general_client_invoice_body(
+        _st_annes_invoice_data(),
+        {
+            "name": "Draper Carter",
+            "email": "draper.carter@gmail.com",
+            "role": "intermediary",
+            "forward_to": "Glenn",
+        },
+    )
+
+    assert "Hi Draper," in body
+    assert "forwarded it to Glenn" in body
+    assert "copy me (winshiplive@gmail.com)" in body
+    assert "There's nothing needed on your end right now" not in body
+    assert body.endswith("Warmly,\nClara Reid")
+    assert drafts.body_contains_backend_status_language(body) is False
+
+
 def test_general_client_invoice_body_uses_neutral_greeting_without_contact_name():
     body = drafts.build_general_client_invoice_body(
         _st_annes_invoice_data(),

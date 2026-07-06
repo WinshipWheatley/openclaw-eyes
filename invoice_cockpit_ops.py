@@ -340,6 +340,38 @@ def _select_contact_for_client(
     )[0]
 
 
+def _is_intermediary_contact(contact: dict[str, Any]) -> bool:
+    role = str(contact.get("role") or "").casefold()
+    return "intermediary" in role or "forward" in role
+
+
+def _forward_to_contact_name(contacts: list[dict[str, Any]], selected: dict[str, Any]) -> str:
+    selected_id = str(selected.get("id") or "")
+    for contact in contacts:
+        if str(contact.get("id") or "") == selected_id:
+            continue
+        role = str(contact.get("role") or "").casefold()
+        if "forward-to" in role or "treasurer" in role:
+            name = _clean_text(contact.get("name"))
+            if name:
+                return name.split()[0]
+    return ""
+
+
+def _recipient_from_contact(contact: dict[str, Any], *, email: str = "", contacts: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    recipient = {
+        "name": contact.get("name") or "",
+        "email": contact.get("email") or email,
+        "role": contact.get("role") or "",
+    }
+    if _is_intermediary_contact(contact):
+        forward_to = _forward_to_contact_name(list(contacts or []), contact)
+        if forward_to:
+            recipient["role"] = "intermediary"
+            recipient["forward_to"] = forward_to
+    return recipient
+
+
 def _needs_issued_invoice_pdf(invoice_data: dict[str, Any] | None, attachment: str | None) -> bool:
     data = invoice_data or {}
     status_text = " ".join(
@@ -374,15 +406,17 @@ class RealCockpitOps:
         registry = self._registry()
 
         email = str(_dict_first(data, "client_email", "recipient_email", "to_email") or "").strip()
+
+        for slug in _client_slug_candidates(client, data):
+            contacts = registry.get_contacts_for_client(slug)
+            contact = _select_contact_for_client(contacts, invoice_data=data)
+            if contact:
+                return _recipient_from_contact(contact, email=email, contacts=contacts)
+
         if email and "@" in email:
             contact = registry.get_contact(email)
             if contact:
-                return {"name": contact.get("name") or "", "email": contact.get("email") or email}
-
-        for slug in _client_slug_candidates(client, data):
-            contact = _select_contact_for_client(registry.get_contacts_for_client(slug), invoice_data=data)
-            if contact:
-                return {"name": contact.get("name") or "", "email": contact.get("email") or email}
+                return _recipient_from_contact(contact, email=email)
         return {"name": "", "email": email}
 
     def _issued_invoice_payload(self, invoice_data: dict[str, Any] | None) -> dict[str, Any]:
