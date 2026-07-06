@@ -894,6 +894,29 @@ def _answer_people_query(
     _capsule: Any | None = None,
     agent: str = "maestro",
 ) -> MaestroCassandraResult:
+    registry_answer = _answer_people_query_from_contacts_registry(text)
+    if registry_answer is not None:
+        answer, proof = registry_answer
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="people_reference_query",
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(answer),
+            plain_summary=answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                **proof,
+                "people_reference_query_performed": True,
+                "operator_truth_store_read": False,
+                "operator_truth_record_found": False,
+                "protected_generate_called": False,
+                "maestro_context_packet_used": False,
+                "external_llm_invoked": False,
+            },
+        )
+
     from operator_truth_store import find_operator_truth_for_text
 
     match = find_operator_truth_for_text(text)
@@ -913,6 +936,8 @@ def _answer_people_query(
             machine_proof={
                 **_adapter_machine_proof(handle_called=False),
                 "people_reference_query_performed": True,
+                "contacts_registry_read": True,
+                "contacts_registry_record_found": False,
                 "operator_truth_store_read": True,
                 "operator_truth_record_found": True,
                 "operator_truth_entity_key": entity_key,
@@ -935,6 +960,8 @@ def _answer_people_query(
     proof = {
         **dict(fallback.machine_proof or {}),
         "people_reference_query_performed": True,
+        "contacts_registry_read": True,
+        "contacts_registry_record_found": False,
         "operator_truth_store_read": True,
         "operator_truth_record_found": False,
         "people_reference_fell_through_to_protected_generate": bool(
@@ -952,6 +979,85 @@ def _answer_people_query(
         session_forwarded=fallback.session_forwarded,
         machine_proof=proof,
     )
+
+
+def _contacts_db_path() -> str:
+    try:
+        from contacts_registry import DEFAULT_CONTACTS_DB_PATH
+
+        return os.environ.get("OPENCLAW_CONTACTS_DB_PATH") or DEFAULT_CONTACTS_DB_PATH
+    except Exception:
+        return os.environ.get("OPENCLAW_CONTACTS_DB_PATH") or ""
+
+
+def _contact_text_key(value: Any) -> str:
+    text = str(value or "").lower().replace("'", "")
+    return re.sub(r"[^a-z0-9]+", " ", text).strip()
+
+
+def _contact_query_client_slugs(text: str, contacts: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    query_key = f" {_contact_text_key(text)} "
+    slugs: list[str] = []
+    for contact in contacts:
+        clients = contact.get("connected_clients") or contact.get("connected_client") or ()
+        if isinstance(clients, str):
+            clients = (clients,)
+        for client in clients:
+            slug = str(client or "").strip()
+            if not slug:
+                continue
+            terms = {
+                _contact_text_key(slug),
+                _contact_text_key(slug.replace("-", " ")),
+                _contact_text_key(slug.replace("-", "")),
+            }
+            if any(term and f" {term} " in query_key for term in terms) and slug not in slugs:
+                slugs.append(slug)
+    return tuple(slugs)
+
+
+def _format_contact_for_people_answer(contact: Mapping[str, Any], *, client_slug: str) -> str:
+    name = str(contact.get("name") or contact.get("id") or "Contact").strip()
+    role = str(contact.get("role") or "contact").strip()
+    return f"{name} ({role}; client: {client_slug})"
+
+
+def _answer_people_query_from_contacts_registry(text: str) -> tuple[str, dict[str, Any]] | None:
+    db_path = _contacts_db_path()
+    proof: dict[str, Any] = {
+        "contacts_registry_read": False,
+        "contacts_registry_record_found": False,
+        "contacts_registry_ref": f"contacts_registry:{db_path}" if db_path else "contacts_registry",
+        "contacts_registry_client_slug": "",
+        "contacts_registry_contact_ids": [],
+    }
+    try:
+        from contacts_registry import ContactsRegistry
+
+        registry = ContactsRegistry(db_path, seed=True)
+        all_contacts = registry.list_contacts()
+        proof["contacts_registry_read"] = True
+        slugs = _contact_query_client_slugs(text, all_contacts)
+        if not slugs:
+            return None
+        client_slug = slugs[0]
+        contacts = registry.get_contacts_for_client(client_slug)
+    except Exception as exc:
+        proof["contacts_registry_error"] = str(exc)
+        return None
+
+    if not contacts:
+        return None
+
+    proof["contacts_registry_record_found"] = True
+    proof["contacts_registry_client_slug"] = client_slug
+    proof["contacts_registry_contact_ids"] = [str(contact.get("id") or "") for contact in contacts]
+    contact_text = "; ".join(
+        _format_contact_for_people_answer(contact, client_slug=client_slug)
+        for contact in contacts
+    )
+    answer = f"Contacts registry for {client_slug}: {contact_text}."
+    return answer, proof
 
 
 def _answer_with_maestro_brain(
@@ -1761,6 +1867,7 @@ def _is_people_intent(text: str) -> bool:
         re.search(
             r"\b("
             r"who is|who's|"
+            r"who do i talk to|"
             r"contact for|point of contact|who should i contact|"
             r"relationship|team member|person|people"
             r")\b",

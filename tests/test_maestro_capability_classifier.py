@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from contacts_registry import ContactsRegistry
 from maestro_cassandra_responder import (
     answer_frontdoor_chat,
     build_truthful_status_capability_answer,
@@ -163,6 +164,36 @@ def test_roster_prompt_lists_live_agents_from_agent_presence(tmp_path: Path) -> 
     assert "Cassandra (online; operator_comms" in result.plain_summary
     assert "Chief (online; system_orchestration" in result.plain_summary
     assert result.machine_proof["agent_roster_summarized"] is True
+
+
+def test_people_reference_query_reads_contacts_registry_before_operator_truth(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    contacts_db = tmp_path / "contacts.sqlite3"
+    ContactsRegistry(str(contacts_db), seed=True)
+    monkeypatch.setenv("OPENCLAW_CONTACTS_DB_PATH", str(contacts_db))
+
+    def _operator_truth_must_not_run(_text: str):
+        raise AssertionError("operator truth should not be consulted before registry contacts")
+
+    monkeypatch.setattr("operator_truth_store.find_operator_truth_for_text", _operator_truth_must_not_run)
+
+    result = answer_frontdoor_chat(
+        "who do I talk to at St Anne's?",
+        session={"operator_truth_store_path": str(tmp_path / "operator_truth_store.json")},
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "people_reference_query"
+    assert "Draper Carter" in result.plain_summary
+    assert "Glenn Mortoro" in result.plain_summary
+    assert "Nancy Pollack" in result.plain_summary
+    assert "st-annes" in result.plain_summary
+    assert result.machine_proof["contacts_registry_read"] is True
+    assert result.machine_proof["contacts_registry_record_found"] is True
+    assert result.machine_proof["operator_truth_store_read"] is False
+    assert external_llm_invoked_for_result(result) is False
 
 
 @pytest.mark.parametrize(
