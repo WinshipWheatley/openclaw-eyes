@@ -16,7 +16,7 @@ def test_paid_up_fast_path_recognizes_common_phrasings_without_lm(monkeypatch) -
 
     assert result.route == interpreter_lm.ROUTE_ACTION
     assert result.intent == interpreter_lm.MARK_PAID_UP_INTENT
-    assert result.client == "st_annes"
+    assert result.client == "st-annes"
     assert result.as_of == "2026-06-15"
     assert result.scope == "client"
     assert result.partial is False
@@ -36,7 +36,7 @@ def test_paid_half_is_partial_not_full_paid_up() -> None:
     result = interpreter_lm.interpret_operator_message("St Anne's paid half on 2026-06-15")
 
     assert result.intent == interpreter_lm.PARTIAL_PAYMENT_INTENT
-    assert result.client == "st_annes"
+    assert result.client == "st-annes"
     assert result.partial is True
 
 
