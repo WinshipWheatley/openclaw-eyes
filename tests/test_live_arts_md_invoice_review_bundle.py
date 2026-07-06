@@ -344,6 +344,25 @@ def test_missing_receipt_keeps_clear_candidate_selection_blocker():
     )
 
 
+def test_default_generated_receipts_are_ignored_under_test_mode(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    default_root = Path("generated/read_models")
+    default_root.mkdir(parents=True)
+    (default_root / bundle.SELECTION_RECEIPT_EXPORT_NAME).write_text(
+        bundle.stable_json(_selected_2026_1001_receipt()),
+        encoding="utf-8",
+    )
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        generated_at=FIXED_NOW,
+    )
+
+    assert live["invoice_selection"]["status"] == "NEEDS_CANDIDATE_SELECTION"
+    assert live["invoice_artifact"]["attachment_ready"] is False
+
+
 def test_live_arts_md_workbook_confirmation_writes_receipt_and_refreshes_bundle(tmp_path):
     db_path = tmp_path / "invoice_review_state.sqlite"
     export_root = tmp_path / "generated" / "read_models"
