@@ -1394,3 +1394,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_temporal_recurrence_registry.py
 !tests/test_receivable_temporal_scoping.py
 !tests/test_paid_up_interpreter_contract.py
+!tests/test_maestro_packet_freshness_antirecite.py
