@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import re
 import sqlite3
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -21,6 +23,7 @@ from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
 
 
 ROOT = Path(__file__).resolve().parent
+LOGGER = logging.getLogger(__name__)
 AGENT_LANE_REGISTRY_VERSION = "agent_lane_registry_v0"
 READ_MODEL_VERSION = "agent_lanes_read_model_v0"
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -62,6 +65,17 @@ NO_AUTHORITY_FLAGS = {
     "runtime_authority": False,
     "client_deployment_allowed": False,
 }
+
+_CREATE_TABLE_RE = re.compile(
+    r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?P<table>\"[^\"]+\"|`[^`]+`|\[[^\]]+\]|[\w$]+)\s*\(",
+    re.IGNORECASE,
+)
+_COLUMN_RE = re.compile(
+    r"(?P<name>\"(?:[^\"]|\"\")+\"|`[^`]+`|\[[^\]]+\]|[\w$]+)\s+(?P<body>.+)",
+    re.DOTALL,
+)
+_TABLE_CONSTRAINT_TOKENS = {"CONSTRAINT", "FOREIGN", "PRIMARY", "UNIQUE", "CHECK", "EXCLUDE"}
+_COLUMN_CONSTRAINT_TOKENS = {"PRIMARY", "UNIQUE", "CHECK", "REFERENCES", "COLLATE", "GENERATED", "AS", "CONSTRAINT"}
 
 
 @dataclass(frozen=True)
@@ -650,6 +664,146 @@ CREATE TABLE IF NOT EXISTS agent_lane_routing_hints (
     )
 
 
+def _strip_identifier_quotes(identifier: str) -> str:
+    item = identifier.strip()
+    if item.startswith('"') and item.endswith('"'):
+        return item[1:-1].replace('""', '"')
+    if item.startswith("`") and item.endswith("`"):
+        return item[1:-1].replace("``", "`")
+    if item.startswith("[") and item.endswith("]"):
+        return item[1:-1].replace("]]", "]")
+    return item
+
+
+def _quote_identifier(identifier: str) -> str:
+    return '"' + identifier.replace('"', '""') + '"'
+
+
+def _split_sql_items(body: str) -> list[str]:
+    items: list[str] = []
+    current: list[str] = []
+    depth = 0
+    quote: str | None = None
+    index = 0
+    while index < len(body):
+        char = body[index]
+        current.append(char)
+        if quote:
+            if char == quote:
+                if index + 1 < len(body) and body[index + 1] == quote:
+                    current.append(body[index + 1])
+                    index += 1
+                else:
+                    quote = None
+        elif char in {"'", '"'}:
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(depth - 1, 0)
+        elif char == "," and depth == 0:
+            current.pop()
+            item = "".join(current).strip()
+            if item:
+                items.append(item)
+            current = []
+        index += 1
+    item = "".join(current).strip()
+    if item:
+        items.append(item)
+    return items
+
+
+def _create_table_parts(statement: str) -> tuple[str, list[str]] | None:
+    match = _CREATE_TABLE_RE.search(statement.strip())
+    if not match:
+        return None
+    table_name = _strip_identifier_quotes(match.group("table"))
+    open_paren = statement.find("(", match.end() - 1)
+    close_paren = statement.rfind(")")
+    if open_paren == -1 or close_paren == -1 or close_paren <= open_paren:
+        return None
+    return table_name, _split_sql_items(statement[open_paren + 1 : close_paren])
+
+
+def _column_add_fragment(column_sql: str) -> tuple[str, str] | None:
+    first_token = column_sql.lstrip().split(None, 1)[0].upper()
+    if first_token in _TABLE_CONSTRAINT_TOKENS:
+        return None
+    match = _COLUMN_RE.match(column_sql.strip())
+    if not match:
+        return None
+    name = _strip_identifier_quotes(match.group("name"))
+    tokens = match.group("body").split()
+    kept: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        upper = token.upper()
+        if upper == "NOT":
+            if index + 1 < len(tokens) and tokens[index + 1].upper() == "NULL":
+                index += 2
+            else:
+                index += 1
+            continue
+        if upper == "NULL":
+            index += 1
+            continue
+        if upper == "DEFAULT":
+            kept.append(token)
+            if index + 1 < len(tokens):
+                kept.append(tokens[index + 1])
+                index += 2
+            else:
+                index += 1
+            continue
+        if upper in _COLUMN_CONSTRAINT_TOKENS:
+            break
+        kept.append(token)
+        index += 1
+    declaration = " ".join(kept) if kept else "TEXT"
+    return name, f"{_quote_identifier(name)} {declaration}"
+
+
+def _declared_table_columns(statements: Iterable[str]) -> dict[str, dict[str, str]]:
+    declared: dict[str, dict[str, str]] = {}
+    for statement in statements:
+        parts = _create_table_parts(statement)
+        if parts is None:
+            continue
+        table_name, column_items = parts
+        columns: dict[str, str] = {}
+        for item in column_items:
+            parsed = _column_add_fragment(item)
+            if parsed is None:
+                continue
+            column_name, add_fragment = parsed
+            columns[column_name] = add_fragment
+        declared[table_name] = columns
+    return declared
+
+
+def _existing_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({_quote_identifier(table_name)})").fetchall()
+    return {row[1] for row in rows}
+
+
+def ensure_schema_columns(conn: sqlite3.Connection, statements: Iterable[str]) -> list[tuple[str, str]]:
+    """Add missing declared columns to existing tables without dropping or rewriting data."""
+
+    healed: list[tuple[str, str]] = []
+    for table_name, columns in _declared_table_columns(statements).items():
+        existing = _existing_columns(conn, table_name)
+        for column_name, add_fragment in columns.items():
+            if column_name in existing:
+                continue
+            conn.execute(f"ALTER TABLE {_quote_identifier(table_name)} ADD COLUMN {add_fragment}")
+            LOGGER.info("healed %s.%s schema drift via ALTER TABLE ADD COLUMN", table_name, column_name)
+            healed.append((table_name, column_name))
+            existing.add(column_name)
+    return healed
+
+
 def init_agent_lane_registry_schema(db_path: str | Path | None = None) -> str:
     path = str(db_path or DEFAULT_DB_PATH)
     db_parent = Path(path).parent
@@ -659,7 +813,13 @@ def init_agent_lane_registry_schema(db_path: str | Path | None = None) -> str:
     conn = sqlite3.connect(path)
     try:
         conn.execute("PRAGMA foreign_keys = ON")
-        for statement in _sql_statements():
+        statements = _sql_statements()
+        table_statements = tuple(statement for statement in statements if _create_table_parts(statement) is not None)
+        other_statements = tuple(statement for statement in statements if _create_table_parts(statement) is None)
+        for statement in table_statements:
+            conn.execute(statement)
+        ensure_schema_columns(conn, table_statements)
+        for statement in other_statements:
             conn.execute(statement)
         conn.commit()
     finally:
@@ -1443,6 +1603,7 @@ __all__ = [
     "agent_lane_table_names",
     "build_agent_lane_report",
     "build_agent_lanes_read_model",
+    "ensure_schema_columns",
     "export_agent_lanes_read_model",
     "format_agent_lane_report",
     "format_agent_lanes_read_model",
