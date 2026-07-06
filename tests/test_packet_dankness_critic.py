@@ -151,3 +151,32 @@ def test_observe_never_raises_on_bad_input(tmp_path):
     # garbage input must never raise — a live answer must never break on observation
     out = crit.observe_packet_dankness({"facts": "not a list"}, "x", "maestro", ledger=ledger)
     assert out is None or hasattr(out, "overall")
+
+
+def test_convergence_guard_stops_re_queuing_persistently_escalated_gap(tmp_path, monkeypatch):
+    """CONVERGENCE: a gap escalated >= MAX_ESCALATIONS times must NOT be re-queued.
+
+    Reproduces the churn that spun the loop 546x on one agent: without this guard, every response
+    re-files the same unfixable gap forever. With it, the gap is escalated a bounded number of
+    times (recorded for the operator) and then left alone until it actually changes.
+    """
+    monkeypatch.delenv("OPENCLAW_PACKET_DANKIFY_EMIT", raising=False)
+    from polish_loop.control_plane import ControlPlaneLedger, iso_now
+    ledger = ControlPlaneLedger(tmp_path / "cp.sqlite3", status_view_path=tmp_path / "s.json")
+    score = crit.score_packet_dankness(_dank_packet(), "what is on my calendar")
+    assert score.gaps  # there is a gap to churn on
+
+    # Two escalation cycles: emit -> mark the tasks DONE+escalated (simulating the drain escalating).
+    for _ in range(2):  # crit.MAX_ESCALATIONS is 2 (checked implicitly below)
+        admitted = crit.emit_packet_enrich_tasks(ledger, score, agent_id="maestro", question="what is on my calendar")
+        assert admitted, "expected the gap to still be queuable before the cap"
+        for tid in admitted:
+            with ledger.connect() as conn:
+                conn.execute(
+                    "UPDATE tasks SET status='DONE', terminal_reason='dankness_escalated', updated_at=? WHERE id=?",
+                    (iso_now(), tid),
+                )
+
+    # Third attempt: the same gap has now been escalated twice -> convergence guard must skip it.
+    again = crit.emit_packet_enrich_tasks(ledger, score, agent_id="maestro", question="what is on my calendar")
+    assert again == [], f"convergence guard failed — re-queued {len(again)} already-escalated gap(s) (the churn bug)"

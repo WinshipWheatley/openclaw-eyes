@@ -204,18 +204,33 @@ def emit_packet_enrich_tasks(
         enabled = dankify_emit_enabled()
     if not enabled or not score.gaps:
         return []
-    # Dedup: never re-queue a gap that already has a READY packet_enrich task. Without this
-    # an always-on loop would re-file the same gap on every response (queue/escalation spam).
+    # Dedup + CONVERGENCE guard. Two skips:
+    #  (1) a gap that already has a READY packet_enrich task (same-cycle queue spam), and
+    #  (2) a gap that has already been ESCALATED >= MAX_ESCALATIONS times. An escalated gap needs
+    #      the operator or a NEW source/pipeline — re-filing it on every response can never fix it,
+    #      it just churns (this is exactly what spun the loop 546x on one agent). Escalated gaps
+    #      stay recorded for the operator in the escalations read-model; a gap re-enters only if it
+    #      actually changes (different kind/source_ref -> different key).
+    MAX_ESCALATIONS = 2
     existing: set[str] = set()
+    _escalated_counts: dict[str, int] = {}
     try:
         import json as _json
         for _t in ledger.list_tasks():
-            if _t.get("type") == "packet_enrich" and _t.get("status") == "READY":
-                _pg = _t.get("payload") or {}
-                if isinstance(_pg, str):
-                    _pg = _json.loads(_pg)
-                _g = _pg.get("gap", {}) if isinstance(_pg, Mapping) else {}
-                existing.add(f"{_g.get('kind')}:{_g.get('source_ref') or _g.get('about')}")
+            if _t.get("type") != "packet_enrich":
+                continue
+            _pg = _t.get("payload") or {}
+            if isinstance(_pg, str):
+                _pg = _json.loads(_pg)
+            _g = _pg.get("gap", {}) if isinstance(_pg, Mapping) else {}
+            _k = f"{_g.get('kind')}:{_g.get('source_ref') or _g.get('about')}"
+            if _t.get("status") == "READY":
+                existing.add(_k)
+            elif "escalat" in str(_t.get("terminal_reason") or ""):
+                _escalated_counts[_k] = _escalated_counts.get(_k, 0) + 1
+        for _k, _n in _escalated_counts.items():
+            if _n >= MAX_ESCALATIONS:
+                existing.add(_k)
     except Exception:
         existing = set()
     admitted: list[str] = []
