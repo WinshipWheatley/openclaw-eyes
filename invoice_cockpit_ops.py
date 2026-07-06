@@ -255,11 +255,172 @@ def _telegram(method: str, **kw):
     return requests.post(f"https://api.telegram.org/bot{tok}/{method}", timeout=30, **kw).json()
 
 
+def _clean_text(value: Any) -> str:
+    return " ".join(str(value or "").strip().split())
+
+
+def _registry_client_slug(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", _clean_text(value).lower()).strip("-")
+
+
+def _dict_first(source: Any, *keys: str) -> Any:
+    if not isinstance(source, dict):
+        return None
+    for key in keys:
+        value = source.get(key)
+        if value not in (None, "", []):
+            return value
+    return None
+
+
+def _client_slug_candidates(*sources: Any) -> tuple[str, ...]:
+    candidates: list[str] = []
+    for source in sources:
+        if isinstance(source, dict):
+            values = (
+                _dict_first(source, "client_ref", "slug", "client_slug", "client"),
+                _dict_first(source, "client_name", "client_display_name", "display_name", "customer_name"),
+            )
+        else:
+            values = (source,)
+        for value in values:
+            slug = _registry_client_slug(value)
+            if slug and slug not in candidates:
+                candidates.append(slug)
+    return tuple(candidates)
+
+
+def _contact_emails(contact: dict[str, Any]) -> tuple[str, ...]:
+    emails = contact.get("emails")
+    if isinstance(emails, (list, tuple)):
+        values = tuple(str(email).strip().lower() for email in emails if str(email).strip())
+    else:
+        values = ()
+    primary = str(contact.get("email") or "").strip().lower()
+    if primary and primary not in values:
+        values = (primary, *values)
+    return values
+
+
+def _contact_role_rank(contact: dict[str, Any]) -> int:
+    text = f"{contact.get('id', '')} {contact.get('role', '')}".casefold()
+    preferences = (
+        "primary_invoice_contact",
+        "primary invoice",
+        "billing",
+        "accounts payable",
+        "ap-lead",
+        "ap",
+        "finance",
+        "intermediary",
+        "treasurer",
+        "accountant",
+    )
+    for index, token in enumerate(preferences):
+        if token in text:
+            return index
+    return len(preferences)
+
+
+def _select_contact_for_client(
+    contacts: list[dict[str, Any]],
+    *,
+    invoice_data: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not contacts:
+        return None
+    email = str(_dict_first(invoice_data or {}, "client_email", "recipient_email", "to_email") or "").strip().lower()
+    if email:
+        for contact in contacts:
+            if email in _contact_emails(contact):
+                return contact
+    return sorted(
+        contacts,
+        key=lambda contact: (_contact_role_rank(contact), str(contact.get("name") or ""), str(contact.get("id") or "")),
+    )[0]
+
+
+def _needs_issued_invoice_pdf(invoice_data: dict[str, Any] | None, attachment: str | None) -> bool:
+    data = invoice_data or {}
+    status_text = " ".join(
+        str(_dict_first(data, "invoice_status", "lifecycle_state", "status") or "").split()
+    ).casefold()
+    number_text = str(data.get("invoice_number") or "").casefold()
+    attachment_name = Path(str(attachment or "")).name.casefold()
+    return (
+        "draft" in status_text
+        or "draft" in number_text
+        or "draft" in attachment_name
+    )
+
+
 class RealCockpitOps:
     """Production ops. Instantiate under the agent runtime (env/creds loaded)."""
 
-    def __init__(self, contact_name: str = ""):
+    def __init__(self, contact_name: str = "", contacts_db_path: str | None = None):
         self.contact_name = contact_name
+        self.contacts_db_path = contacts_db_path or os.environ.get("OPENCLAW_CONTACTS_DB_PATH")
+
+    def _registry(self):
+        from contacts_registry import ContactsRegistry, DEFAULT_CONTACTS_DB_PATH
+
+        return ContactsRegistry(self.contacts_db_path or DEFAULT_CONTACTS_DB_PATH, seed=True)
+
+    def _recipient_for_invoice(self, *, client=None, invoice_data=None) -> dict[str, Any]:
+        if _clean_text(self.contact_name):
+            return {"name": _clean_text(self.contact_name)}
+
+        data = invoice_data if isinstance(invoice_data, dict) else {}
+        registry = self._registry()
+
+        email = str(_dict_first(data, "client_email", "recipient_email", "to_email") or "").strip()
+        if email and "@" in email:
+            contact = registry.get_contact(email)
+            if contact:
+                return {"name": contact.get("name") or "", "email": contact.get("email") or email}
+
+        for slug in _client_slug_candidates(client, data):
+            contact = _select_contact_for_client(registry.get_contacts_for_client(slug), invoice_data=data)
+            if contact:
+                return {"name": contact.get("name") or "", "email": contact.get("email") or email}
+        return {"name": "", "email": email}
+
+    def _issued_invoice_payload(self, invoice_data: dict[str, Any] | None) -> dict[str, Any]:
+        data = dict(invoice_data or {})
+        data["invoice_status"] = "issued"
+        data["lifecycle_state"] = "issued"
+        invoice_number = str(data.get("invoice_number") or "")
+        if "draft" in invoice_number.casefold() or not invoice_number.strip():
+            import invoice_generator
+
+            invoice_generator.TRACKER_DIR = Path(
+                os.environ.get("OPENCLAW_INVOICE_TRACKER_DIR", str(invoice_generator.TRACKER_DIR))
+            )
+            data["invoice_number"] = invoice_generator.get_next_invoice_number()
+        return data
+
+    def _finalized_real_attachment(
+        self,
+        *,
+        attachment: str,
+        attachment_sha256: str,
+        invoice_data: dict[str, Any] | None,
+    ) -> tuple[dict[str, Any], str, str]:
+        issued_data = self._issued_invoice_payload(invoice_data)
+        if not _needs_issued_invoice_pdf(invoice_data, attachment):
+            return issued_data, attachment, attachment_sha256
+
+        import invoice_generator
+
+        invoice_generator.INVOICES_DIR = Path(os.environ.get("OPENCLAW_INVOICES_DIR", str(invoice_generator.INVOICES_DIR)))
+        invoice_generator.TRACKER_DIR = Path(
+            os.environ.get("OPENCLAW_INVOICE_TRACKER_DIR", str(invoice_generator.TRACKER_DIR))
+        )
+        pdf = invoice_generator.generate_invoice_pdf(issued_data)
+        issued_data["attachment_filename"] = Path(pdf).name
+        digest = hashlib.sha256(Path(pdf).read_bytes()).hexdigest()
+        os.environ["OPENCLAW_ATTACHMENT_ALLOWED_DIRS"] = str(Path(pdf).parent)
+        return issued_data, str(pdf), digest
 
     # -- invoice preparation: real Codex-Mac receipt first, fallback generator second --
     def prepare_invoice(self, client: str):
@@ -302,7 +463,8 @@ class RealCockpitOps:
     def clara_draft_and_guardian(self, client, invoice_data, pdf_path):
         try:
             from clara_invoice_email_draft_package import build_general_client_invoice_body
-            body = build_general_client_invoice_body(invoice_data, {"name": self.contact_name})
+            recipient = self._recipient_for_invoice(client=client, invoice_data=invoice_data)
+            body = build_general_client_invoice_body(invoice_data, recipient)
             msg = ("Clara's draft to " + str((invoice_data or {}).get("client_email") or "the client") +
                    ":\n\n" + body + "\n\n— Reply 'approve' to run the TEST send to your inbox, or tell me what to change.")
             return self.telegram_message(msg)
@@ -348,11 +510,12 @@ class RealCockpitOps:
             import global_run_mode_context as grmc
             import google_access_broker as broker
             from clara_invoice_email_draft_package import build_general_client_invoice_body
-            subject = f"Invoice — {(invoice_data or {}).get('client_name','')}".strip()
-            body = build_general_client_invoice_body(invoice_data, {"name": self.contact_name})
-            params = {"to": to, "subject": subject, "body": body,
-                      "attachments": [attachment], "attachment_sha256": [attachment_sha256]}
             if mode == "test":
+                recipient = self._recipient_for_invoice(invoice_data=invoice_data)
+                subject = f"Invoice — {(invoice_data or {}).get('client_name','')}".strip()
+                body = build_general_client_invoice_body(invoice_data, recipient)
+                params = {"to": to, "subject": subject, "body": body,
+                          "attachments": [attachment], "attachment_sha256": [attachment_sha256]}
                 grmc.handle_run_mode_set_request(grmc.DEFAULT_SQLITE_PATH, {
                     "requested_run_mode": "test_live", "allowlisted_recipients": [grmc.ALLOWLISTED_TEST_EMAIL],
                     "test_execution_authority": {"schema_version": grmc.TEST_EXECUTION_AUTHORITY_SCHEMA,
@@ -366,7 +529,20 @@ class RealCockpitOps:
             from email_send_executor import DEFAULT_SEND_HOLD_PATH
             if Path(os.environ.get("OPENCLAW_SEND_HOLD_PATH") or DEFAULT_SEND_HOLD_PATH).is_file():
                 return {"ok": False, "error": "SEND_HOLD is active — lift it to send this to the client for real."}
-            return broker.call("cassandra", "google.gmail.send", params)
+            issued_data, issued_attachment, issued_digest = self._finalized_real_attachment(
+                attachment=attachment,
+                attachment_sha256=attachment_sha256,
+                invoice_data=invoice_data if isinstance(invoice_data, dict) else {},
+            )
+            recipient = self._recipient_for_invoice(invoice_data=issued_data)
+            subject = f"Invoice — {issued_data.get('client_name','')}".strip()
+            body = build_general_client_invoice_body(issued_data, recipient)
+            params = {"to": to, "subject": subject, "body": body,
+                      "attachments": [issued_attachment], "attachment_sha256": [issued_digest]}
+            res = broker.call("cassandra", "google.gmail.send", params)
+            if isinstance(invoice_data, dict) and isinstance(res, dict) and res.get("ok") is not False:
+                invoice_data.update(issued_data)
+            return res
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
