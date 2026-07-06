@@ -25,6 +25,8 @@ def execute_action(action: dict[str, Any], ops: Any) -> dict[str, Any]:
         return ops.apply_edit(action.get("invoice_data"), action.get("instruction"))
     if kind == wf.SEND_DRAFT_AND_APPROVAL:
         return ops.clara_draft_and_guardian(action.get("client"), action.get("invoice_data"), action.get("pdf_path"))
+    if kind == wf.SEND_GUARDIAN_APPROVAL:
+        return ops.guardian_approval_board(action.get("approval") or {})
     if kind in (wf.TEST_SEND, wf.REAL_SEND):
         return ops.send_email(
             to=action.get("to"), attachment=action.get("attachment"),

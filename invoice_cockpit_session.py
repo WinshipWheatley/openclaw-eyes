@@ -39,6 +39,16 @@ _FUZZY_EMAIL_TRIGGER = re.compile(
     re.IGNORECASE,
 )
 
+_REAL_REVIEW_TRIGGER = re.compile(
+    r"^\s*(?:please\s+|hey[, ]+|ok(?:ay)?[, ]+)?"
+    r"(?:take|flip|move|turn)\s+"
+    r"(?:the\s+)?(?P<client>[^?\n]{2,80}?)\s+"
+    r"(?:invoice\s+)?"
+    r"(?:out\s+of\s+test\s+mode|to\s+real\s+mode|live)\b"
+    r"[^?\n]{0,80}\b(?:send|ship|go)\b",
+    re.IGNORECASE,
+)
+
 _MISSING_EMAIL_MARKERS = {"", "unknown", "missing", "none", "null", "n/a", "na", "tbd"}
 
 
@@ -72,6 +82,18 @@ def _detect_fuzzy_email_trigger(text: str) -> str | None:
     if not match:
         return None
     return match.group("client").strip().rstrip(".!,")
+
+
+def _detect_real_review_trigger(text: str) -> str | None:
+    t = str(text or "")
+    if "?" in t:
+        return None
+    match = _REAL_REVIEW_TRIGGER.search(t)
+    if not match:
+        return None
+    client = match.group("client").strip().rstrip(".!,")
+    client = re.sub(r"\b(?:the\s+)?invoice\s*$", "", client, flags=re.IGNORECASE).strip()
+    return client or None
 
 
 def _client_match_key(value: Any) -> str:
@@ -322,17 +344,24 @@ def handle_invoice_cockpit_message(
     previous_stage = None
     pre_results: list[dict[str, Any]] = []
     if session is None:
-        interpreted = _interpreter_invoice_trigger(text)
-        if interpreted is _INTERPRETER_NO_TRIGGER:
-            return {"handled": False}
-        if interpreted is _INTERPRETER_NEEDS_CLIENT:
-            return _ask_which_client(ops)
+        real_review_requested = False
+        real_review_client = _detect_real_review_trigger(text)
+        if real_review_client:
+            interpreted = None
+            requested_client = real_review_client
+            real_review_requested = True
+        else:
+            interpreted = _interpreter_invoice_trigger(text)
+            if interpreted is _INTERPRETER_NO_TRIGGER:
+                return {"handled": False}
+            if interpreted is _INTERPRETER_NEEDS_CLIENT:
+                return _ask_which_client(ops)
 
-        requested_client = (
-            str(interpreted)
-            if isinstance(interpreted, str)
-            else (_detect_invoice_trigger(text) or _detect_fuzzy_email_trigger(text))
-        )
+            requested_client = (
+                str(interpreted)
+                if isinstance(interpreted, str)
+                else (_detect_invoice_trigger(text) or _detect_fuzzy_email_trigger(text))
+            )
         if not requested_client:
             return {"handled": False}
         if _is_placeholder_client(requested_client):
@@ -376,10 +405,22 @@ def handle_invoice_cockpit_message(
 
         try:
             invoice_data, pdf_path, digest = ops.prepare_invoice(client_model)
+            if hasattr(ops, "finalized_review_attachment"):
+                invoice_data, pdf_path, digest = ops.finalized_review_attachment(
+                    attachment=pdf_path,
+                    attachment_sha256=digest,
+                    invoice_data=invoice_data,
+                )
         except Exception as exc:
             return {"handled": True, "error": f"could not prepare the invoice: {exc}"}
         client_name = str(client_model.get("display_name") or requested_client)
-        state, actions = wf.start_invoice_send(client_name, invoice_data, pdf_path, digest)
+        state, actions = wf.start_invoice_send(
+            client_name,
+            invoice_data,
+            pdf_path,
+            digest,
+            real_review=real_review_requested,
+        )
         state["client_ref"] = str(client_model.get("client_ref") or "")
         state["client_model"] = dict(client_model)
     else:
@@ -398,12 +439,25 @@ def handle_invoice_cockpit_message(
                     state["pdf_path"] = result["pdf_path"]
                 if result.get("attachment_sha256"):
                     state["attachment_sha256"] = result["attachment_sha256"]
-                results.append(
-                    ops.telegram_pdf(
-                        state.get("pdf_path"),
-                        "Updated invoice preview. Reply with any change, or 'looks good' to draft it.",
+                if state.get("review_mode") == "real":
+                    state["stage"] = wf.AWAITING_SEND_APPROVAL
+                    approved_parts = dict(state.get("approved_parts") or {})
+                    approved_parts["invoice"] = False
+                    state["approved_parts"] = approved_parts
+                    results.append(
+                        ops.telegram_pdf(
+                            state.get("pdf_path"),
+                            "Updated final invoice PDF. Review it, or use the Guardian approval if it is ready.",
+                        )
                     )
-                )
+                    results.append(ex.execute_action(wf.guardian_approval_action(state), ops))
+                else:
+                    results.append(
+                        ops.telegram_pdf(
+                            state.get("pdf_path"),
+                            "Updated invoice preview. Reply with any change, or 'looks good' to draft it.",
+                        )
+                    )
             else:
                 note = result.get("note") or result.get("error") or "I couldn't parse that edit. Please say what line, date, and amount to change."
                 results.append(_safe_telegram_message(ops, note))
@@ -449,4 +503,5 @@ __all__ = [
     "handle_invoice_cockpit_message",
     "resolve_client_model",
     "_detect_invoice_trigger",
+    "_detect_real_review_trigger",
 ]

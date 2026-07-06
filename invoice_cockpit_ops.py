@@ -456,6 +456,19 @@ class RealCockpitOps:
         os.environ["OPENCLAW_ATTACHMENT_ALLOWED_DIRS"] = str(Path(pdf).parent)
         return issued_data, str(pdf), digest
 
+    def finalized_review_attachment(
+        self,
+        *,
+        attachment: str,
+        attachment_sha256: str,
+        invoice_data: dict[str, Any] | None,
+    ) -> tuple[dict[str, Any], str, str]:
+        return self._finalized_real_attachment(
+            attachment=attachment,
+            attachment_sha256=attachment_sha256,
+            invoice_data=invoice_data if isinstance(invoice_data, dict) else {},
+        )
+
     # -- invoice preparation: real Codex-Mac receipt first, fallback generator second --
     def prepare_invoice(self, client: str):
         real_invoice = _load_real_invoice_receipt(client)
@@ -500,8 +513,38 @@ class RealCockpitOps:
             recipient = self._recipient_for_invoice(client=client, invoice_data=invoice_data)
             body = build_general_client_invoice_body(invoice_data, recipient)
             msg = ("Clara's draft to " + str((invoice_data or {}).get("client_email") or "the client") +
-                   ":\n\n" + body + "\n\n— Reply 'approve' to run the TEST send to your inbox, or tell me what to change.")
+                   ":\n\n" + body + "\n\n— Review the body above; the send stays behind the cockpit approval gate.")
             return self.telegram_message(msg)
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+    def guardian_approval_board(self, approval: dict[str, Any]):
+        class _TelegramBoardOps:
+            def send(self, text: str, buttons: dict | None = None) -> int:
+                payload: dict[str, Any] = {"text": text}
+                if buttons:
+                    payload["reply_markup"] = json.dumps(buttons)
+                result = _telegram("sendMessage", data=payload)
+                return int(((result.get("result") or {}).get("message_id")) or 0)
+
+            def edit(self, message_id: int, text: str, buttons: dict | None = None) -> None:
+                payload: dict[str, Any] = {"message_id": message_id, "text": text}
+                if buttons:
+                    payload["reply_markup"] = json.dumps(buttons)
+                _telegram("editMessageText", data=payload)
+
+            def delete(self, message_id: int) -> None:
+                _telegram("deleteMessage", data={"message_id": message_id})
+
+        try:
+            import guardian_approval_board
+
+            state_db = os.environ.get(
+                "OPENCLAW_INVOICE_GUARDIAN_BOARD_DB",
+                "/home/openclaw/.openclaw/guardian/invoice_approval_board.sqlite",
+            )
+            result = guardian_approval_board.sync_board([approval], ops=_TelegramBoardOps(), state_db=state_db)
+            return {"ok": True, "board": result}
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
@@ -545,11 +588,16 @@ class RealCockpitOps:
             import google_access_broker as broker
             from clara_invoice_email_draft_package import build_general_client_invoice_body
             if mode == "test":
-                recipient = self._recipient_for_invoice(invoice_data=invoice_data)
-                subject = f"Invoice — {(invoice_data or {}).get('client_name','')}".strip()
-                body = build_general_client_invoice_body(invoice_data, recipient)
+                issued_data, issued_attachment, issued_digest = self._finalized_real_attachment(
+                    attachment=attachment,
+                    attachment_sha256=attachment_sha256,
+                    invoice_data=invoice_data if isinstance(invoice_data, dict) else {},
+                )
+                recipient = self._recipient_for_invoice(invoice_data=issued_data)
+                subject = f"Invoice — {issued_data.get('client_name','')}".strip()
+                body = build_general_client_invoice_body(issued_data, recipient)
                 params = {"to": to, "subject": subject, "body": body,
-                          "attachments": [attachment], "attachment_sha256": [attachment_sha256]}
+                          "attachments": [issued_attachment], "attachment_sha256": [issued_digest]}
                 grmc.handle_run_mode_set_request(grmc.DEFAULT_SQLITE_PATH, {
                     "requested_run_mode": "test_live", "allowlisted_recipients": [grmc.ALLOWLISTED_TEST_EMAIL],
                     "test_execution_authority": {"schema_version": grmc.TEST_EXECUTION_AUTHORITY_SCHEMA,
@@ -558,6 +606,8 @@ class RealCockpitOps:
                     res = broker.call("cassandra", "google.gmail.send", params)
                 finally:
                     grmc.handle_run_mode_set_request(grmc.DEFAULT_SQLITE_PATH, {"requested_run_mode": "production"})
+                if isinstance(invoice_data, dict) and isinstance(res, dict) and res.get("ok") is not False:
+                    invoice_data.update(issued_data)
                 return res
             # REAL: refuse while SEND_HOLD is active — the operator lifts it deliberately to go live.
             from email_send_executor import DEFAULT_SEND_HOLD_PATH
