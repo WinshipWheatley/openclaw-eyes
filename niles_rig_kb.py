@@ -452,6 +452,17 @@ def x32_control_summary_lines() -> tuple[str, ...]:
     )
 
 
+def x32_vocal_channel_advice_lines() -> tuple[str, ...]:
+    return (
+        "X32 vocal channel advice: set preamp gain from the singer's loudest line, aiming for healthy meter without clipping.",
+        "Engage HPF around 80-120 Hz for most vocals; raise it carefully for rumble, lower it for deep voices.",
+        "Use light compression first: about 2:1 to 3:1, medium attack/release, and roughly 3-6 dB gain reduction on peaks.",
+        "Shape EQ after gain: trim mud around 200-400 Hz, tame harshness around 2.5-4 kHz, and add presence or air only if needed.",
+        "Route to LR, keep the fader near unity to start, and build monitor sends slowly to avoid feedback.",
+        "This is setup advice only; no OSC message, hardware change, DAW control, or live execution is authorized.",
+    )
+
+
 def build_payload(*, sqlite_path: Path | None = None) -> dict[str, Any]:
     db_path = build_sqlite_kb(sqlite_path or DEFAULT_SQLITE_PATH)
     return {
@@ -469,6 +480,7 @@ def build_payload(*, sqlite_path: Path | None = None) -> dict[str, Any]:
         ],
         "device_summary": device_summary_lines(),
         "x32_control_summary": x32_control_summary_lines(),
+        "x32_vocal_channel_advice": x32_vocal_channel_advice_lines(),
         "source_refs": X32_OSC_SOURCE_REFS,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
@@ -494,6 +506,8 @@ def render_operator_readback() -> str:
         *[f"- {line}" for line in device_summary_lines()],
         "",
         *[f"- {line}" for line in x32_control_summary_lines()],
+        "",
+        *[f"- {line}" for line in x32_vocal_channel_advice_lines()],
         "",
         "- No hardware, app, OSC, MIDI, DAW, OBS, send, or external action is authorized here.",
     ]
