@@ -14,10 +14,12 @@ ss -tlnp) or walks the filesystem read-only looking for on-disk sqlite files.
 
 from __future__ import annotations
 
+import csv
 import os
 import subprocess
 from collections import deque
 from datetime import UTC, datetime
+from io import StringIO
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -165,6 +167,114 @@ def _git_row(path: Path, *, owner_scope: str, timeout: int, now_iso: str) -> dic
     }
 
 
+def _git_dirty_count(path: Path, *, timeout: int) -> int:
+    status = _git_output(path, ["status", "--porcelain"], timeout=timeout)
+    if status is None:
+        return 0
+    return len([line for line in status.splitlines() if line.strip()])
+
+
+def _nested_git_dirs(root: Path, *, worktree_paths: set[Path]) -> list[Path]:
+    repos: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        current = Path(dirpath).resolve()
+        if current in worktree_paths and current != root:
+            dirnames[:] = []
+            continue
+        if ".git" in dirnames or ".git" in filenames:
+            if current != root:
+                repos.append(current)
+            if ".git" in dirnames:
+                dirnames.remove(".git")
+        dirnames[:] = [
+            name
+            for name in sorted(dirnames)
+            if name not in _GIT_SCAN_EXCLUDED_PARTS
+        ]
+    return repos
+
+
+def enumerate_git_estate(
+    root: str | Path,
+    *,
+    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    """Enumerate the primary repo, all git worktrees, and nested repos."""
+
+    root_path = Path(root).resolve()
+    try:
+        proc = _run(["git", "-C", str(root_path), "worktree", "list", "--porcelain"], timeout=timeout)
+    except FileNotFoundError as exc:
+        return {"status": "unavailable", "reason": f"git_not_found:{exc}"}
+    except subprocess.TimeoutExpired as exc:
+        return {"status": "unavailable", "reason": f"timeout:{exc}"}
+    except OSError as exc:
+        return {"status": "unavailable", "reason": f"os_error:{exc}"}
+    except Exception as exc:
+        return {"status": "unavailable", "reason": f"probe_blocked:{type(exc).__name__}:{exc}"}
+
+    if proc.returncode != 0:
+        return {"status": "unavailable", "reason": f"git_exit_{proc.returncode}:{(proc.stderr or '').strip()}"}
+
+    entries = _parse_worktree_porcelain(proc.stdout)
+    worktree_paths = {
+        Path(str(entry.get("worktree_path"))).resolve()
+        for entry in entries
+        if entry.get("worktree_path")
+    }
+    rows: list[dict[str, Any]] = []
+    primary_seen = False
+    for entry in entries:
+        path = Path(str(entry.get("worktree_path"))).resolve()
+        kind = "repo" if path == root_path and not primary_seen else "worktree"
+        if kind == "repo":
+            primary_seen = True
+        row = {
+            "kind": kind,
+            "path": str(path),
+            "repo_path": str(root_path),
+            "branch": entry.get("branch") or "",
+            "head_commit": entry.get("head_commit") or "",
+            "dirty_count": _git_dirty_count(path, timeout=timeout),
+            "detached": not bool(entry.get("branch")),
+        }
+        if kind == "repo":
+            row["remote"] = _git_output(path, ["remote", "get-url", "origin"], timeout=timeout) or ""
+        rows.append(row)
+
+    if not primary_seen:
+        branch = _git_branch(root_path, timeout=timeout) or ""
+        rows.insert(
+            0,
+            {
+                "kind": "repo",
+                "path": str(root_path),
+                "repo_path": str(root_path),
+                "branch": branch,
+                "head_commit": _git_head(root_path, timeout=timeout) or "",
+                "dirty_count": _git_dirty_count(root_path, timeout=timeout),
+                "detached": not bool(branch),
+                "remote": _git_output(root_path, ["remote", "get-url", "origin"], timeout=timeout) or "",
+            },
+        )
+
+    for nested in _nested_git_dirs(root_path, worktree_paths=worktree_paths):
+        branch = _git_branch(nested, timeout=timeout) or ""
+        rows.append(
+            {
+                "kind": "nested_repo",
+                "path": str(nested),
+                "repo_path": str(root_path),
+                "branch": branch,
+                "head_commit": _git_head(nested, timeout=timeout) or "",
+                "dirty_count": _git_dirty_count(nested, timeout=timeout),
+                "detached": not bool(branch),
+                "remote": _git_output(nested, ["remote", "get-url", "origin"], timeout=timeout) or "",
+            }
+        )
+    return {"status": "ok", "rows": rows}
+
+
 def enumerate_processes(*, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict[str, Any]:
     """Enumerate running processes via `ps`."""
     try:
@@ -259,6 +369,47 @@ def enumerate_systemd_user_services(*, timeout: int = DEFAULT_TIMEOUT_SECONDS) -
     return {"status": "ok", "rows": rows}
 
 
+def enumerate_systemd_user_timers(*, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict[str, Any]:
+    """Enumerate systemd --user timers via `systemctl --user list-timers`."""
+    try:
+        proc = _run(
+            ["systemctl", "--user", "list-timers", "--all", "--no-legend", "--plain"],
+            timeout=timeout,
+        )
+    except FileNotFoundError as exc:
+        return {"status": "unavailable", "reason": f"systemctl_not_found:{exc}"}
+    except subprocess.TimeoutExpired as exc:
+        return {"status": "unavailable", "reason": f"timeout:{exc}"}
+    except OSError as exc:
+        return {"status": "unavailable", "reason": f"os_error:{exc}"}
+
+    if proc.returncode != 0:
+        return {
+            "status": "unavailable",
+            "reason": f"systemctl_exit_{proc.returncode}:{(proc.stderr or '').strip()}",
+        }
+
+    rows: list[dict[str, str]] = []
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split(None, 5)
+        if len(parts) < 5:
+            continue
+        rows.append(
+            {
+                "next": parts[0],
+                "left": parts[1],
+                "last": parts[2],
+                "passed": parts[3],
+                "unit": parts[4],
+                "activates": parts[5] if len(parts) > 5 else "",
+            }
+        )
+    return {"status": "ok", "rows": rows}
+
+
 def enumerate_listening_ports(*, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict[str, Any]:
     """Enumerate listening TCP ports via `ss -tlnp`."""
     try:
@@ -298,6 +449,122 @@ def enumerate_listening_ports(*, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict
             }
         )
     return {"status": "ok", "rows": rows}
+
+
+def enumerate_ollama_models(*, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict[str, Any]:
+    """Enumerate local Ollama models and whether they are currently loaded."""
+    try:
+        list_proc = _run(["ollama", "list"], timeout=timeout)
+    except FileNotFoundError as exc:
+        return {"status": "unavailable", "reason": f"ollama_not_found:{exc}"}
+    except subprocess.TimeoutExpired as exc:
+        return {"status": "unavailable", "reason": f"timeout:{exc}"}
+    except OSError as exc:
+        return {"status": "unavailable", "reason": f"os_error:{exc}"}
+    except Exception as exc:
+        return {"status": "unavailable", "reason": f"probe_blocked:{type(exc).__name__}:{exc}"}
+
+    if list_proc.returncode != 0:
+        return {
+            "status": "unavailable",
+            "reason": f"ollama_exit_{list_proc.returncode}:{(list_proc.stderr or '').strip()}",
+        }
+
+    loaded: set[str] = set()
+    try:
+        ps_proc = _run(["ollama", "ps"], timeout=timeout)
+        if ps_proc.returncode == 0:
+            for line in ps_proc.stdout.splitlines()[1:]:
+                parts = line.split()
+                if parts:
+                    loaded.add(parts[0])
+    except Exception:
+        loaded = set()
+
+    rows: list[dict[str, Any]] = []
+    for line in list_proc.stdout.splitlines():
+        line = line.strip()
+        if not line or line.upper().startswith("NAME "):
+            continue
+        parts = line.split()
+        if not parts:
+            continue
+        name = parts[0]
+        rows.append(
+            {
+                "name": name,
+                "id": parts[1] if len(parts) > 1 else "",
+                "size": " ".join(parts[2:4]) if len(parts) >= 4 else "",
+                "modified": " ".join(parts[4:]) if len(parts) > 4 else "",
+                "loaded": name in loaded,
+                "retired": name.startswith("gemma4:") or name in {"qwen3.6:latest", "nemotron-3-nano:30b"},
+            }
+        )
+    return {"status": "ok", "rows": rows}
+
+
+def enumerate_windows_tasks(*, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict[str, Any]:
+    """Enumerate OpenClaw Windows scheduled tasks when WSL interop is available."""
+    try:
+        proc = _run(["schtasks.exe", "/query", "/fo", "csv", "/v"], timeout=timeout)
+    except FileNotFoundError as exc:
+        return {"status": "unavailable", "reason": f"schtasks_not_found:{exc}"}
+    except subprocess.TimeoutExpired as exc:
+        return {"status": "unavailable", "reason": f"timeout:{exc}"}
+    except OSError as exc:
+        return {"status": "unavailable", "reason": f"os_error:{exc}"}
+
+    if proc.returncode != 0:
+        return {
+            "status": "unavailable",
+            "reason": f"schtasks_exit_{proc.returncode}:{(proc.stderr or '').strip()}",
+        }
+
+    rows: list[dict[str, str]] = []
+    try:
+        reader = csv.DictReader(StringIO(proc.stdout))
+        for raw in reader:
+            name = raw.get("TaskName") or raw.get("Task Name") or raw.get("name") or ""
+            if "openclaw" not in name.casefold():
+                continue
+            rows.append(
+                {
+                    "name": name.strip("\\"),
+                    "state": raw.get("Status") or raw.get("Scheduled Task State") or "",
+                    "schedule": raw.get("Schedule Type") or raw.get("Task To Run") or "",
+                }
+            )
+    except csv.Error as exc:
+        return {"status": "unavailable", "reason": f"csv_parse_error:{exc}"}
+    return {"status": "ok", "rows": rows}
+
+
+def enumerate_mac_bridge(bridge_root: str | Path = "/mnt/e/openclaw/codex_mac_bridge") -> dict[str, Any]:
+    """Observe the Mac node through the E-drive bridge, if present."""
+    root = Path(bridge_root)
+    if not root.exists():
+        return {"status": "unavailable", "reason": f"bridge_root_missing:{root}"}
+    newest: Path | None = None
+    try:
+        for child in root.rglob("*"):
+            if child.is_file() and (newest is None or child.stat().st_mtime > newest.stat().st_mtime):
+                newest = child
+    except OSError as exc:
+        return {"status": "unavailable", "reason": f"os_error:{exc}"}
+    last_traffic = ""
+    if newest is not None:
+        last_traffic = datetime.fromtimestamp(newest.stat().st_mtime, tz=UTC).isoformat()
+    return {
+        "status": "ok",
+        "rows": [
+            {
+                "machine": "MAC",
+                "bridge_path": str(root),
+                "last_traffic": last_traffic,
+                "workspace": "/Users/hwinshipwheatley/Documents/Invoices/openclaw_invoice_workspace",
+            }
+        ],
+    }
 
 
 def enumerate_sqlite_databases(
@@ -710,15 +977,20 @@ def enumerate_system_state(
 
 __all__ = [
     "build_system_inventory_graph",
+    "enumerate_git_estate",
     "enumerate_git_repos",
+    "enumerate_mac_bridge",
+    "enumerate_ollama_models",
     "enumerate_openclaw_states",
     "enumerate_processes",
     "enumerate_user_crontab",
     "enumerate_systemd_user_services",
+    "enumerate_systemd_user_timers",
     "enumerate_listening_ports",
     "enumerate_sqlite_databases",
     "enumerate_system_state",
     "enumerate_worktrees",
+    "enumerate_windows_tasks",
     "query_system_inventory",
     "reachable_node_ids",
 ]
