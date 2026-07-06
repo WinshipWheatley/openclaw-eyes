@@ -806,7 +806,17 @@ class TestAuthorityLockedThroughBridge:
         import dataclasses
 
         field_names = {f.name for f in dataclasses.fields(interpreter_lm.InterpretResult)}
-        assert field_names == {"route", "fact_selection", "confidence", "reason", "intent", "client"}
+        assert field_names == {
+            "route",
+            "fact_selection",
+            "confidence",
+            "reason",
+            "intent",
+            "client",
+            "contact",
+            "description",
+            "date",
+        }
         # No authority-adjacent attribute exists on a constructed result.
         result = interpreter_lm.InterpretResult(route="BRAIN", confidence=1.0, reason="x")
         for forbidden in ("authority", "allow", "send", "action", "deny", "authorize"):

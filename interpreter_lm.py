@@ -35,6 +35,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
+from fleet_temporal_anchor import temporal_anchor_text
+
 # ---------------------------------------------------------------------------
 # Flag gate
 # ---------------------------------------------------------------------------
@@ -61,6 +63,7 @@ HIGH_CONFIDENCE_THRESHOLD = 0.75
 _VALID_ROUTES = {ROUTE_BRAIN, ROUTE_WORKFLOW, ROUTE_ACTION, ROUTE_BLOCKED, ROUTE_UNCERTAIN}
 
 INVOICE_SEND_INTENT = "invoice_send"
+CAPTURE_GIG_INTENT = "capture_gig"
 
 _PLACEHOLDER_INVOICE_CLIENTS = {
     "",
@@ -97,7 +100,13 @@ def _normalize_interpreter_intent(value: Any) -> str:
     label = _normalize_label(value).replace(" ", "_")
     if label in {INVOICE_SEND_INTENT, "send_invoice", "invoice_email", "email_invoice"}:
         return INVOICE_SEND_INTENT
+    if label in {CAPTURE_GIG_INTENT, "gig_capture", "add_gig", "calendar_gig", "capture_calendar_gig"}:
+        return CAPTURE_GIG_INTENT
     return ""
+
+
+def _clean_lm_field(value: Any, *, max_len: int = 160) -> str:
+    return " ".join(str(value or "").strip().split())[:max_len]
 
 
 def _invoice_client_registry() -> Mapping[str, Mapping[str, Any]]:
@@ -217,6 +226,9 @@ class InterpretResult:
     reason: str = ""
     intent: str = ""
     client: str = ""
+    contact: str = ""
+    description: str = ""
+    date: str = ""
 
     def is_high_confidence_brain(self) -> bool:
         """True when the interpreter is confident the message is conversational."""
@@ -238,6 +250,16 @@ class InterpretResult:
     def is_high_confidence_invoice_send(self) -> bool:
         """True when the interpreter confidently resolved an invoice-send intent."""
         return self.intent == INVOICE_SEND_INTENT and self.confidence >= HIGH_CONFIDENCE_THRESHOLD
+
+    def is_high_confidence_capture_gig(self) -> bool:
+        """True when the interpreter confidently extracted a gig-capture payload."""
+        return (
+            self.intent == CAPTURE_GIG_INTENT
+            and self.confidence >= HIGH_CONFIDENCE_THRESHOLD
+            and bool(self.contact)
+            and bool(self.description)
+            and bool(self.date)
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -338,10 +360,13 @@ def _build_interpreter_prompt(text: str) -> str:
     read_models_list = "\n".join(f"  - {m}" for m in _KNOWN_READ_MODELS)
     invoice_clients_list = _invoice_client_prompt_lines()
     invoice_client_contract = _invoice_client_slug_contract()
+    temporal_anchor = temporal_anchor_text()
     return f"""You are the Maestro Interpreter LM.  Your ONLY job is to classify the operator's message and select relevant read-models.
 
 OPERATOR MESSAGE:
 {text}
+
+{temporal_anchor}
 
 AVAILABLE READ MODELS:
 {read_models_list}
@@ -373,14 +398,25 @@ TASK:
 INVOICE CLIENT REGISTRY:
 {invoice_clients_list}
 
+5. If the operator is asking to capture, add, remember, schedule, or invoice a gig/event, set:
+   - "intent": "capture_gig"
+   - "contact": the person or organization hint from the operator text.
+   - "description": the gig/service description, without the date phrase.
+   - "date": the operator's date phrase, preserving fuzzy wording when needed.
+   Resolve fuzzy date words using the temporal anchor above when the date is implicit, but do not
+   invent missing contact, description, or date values.
+
 Respond ONLY with valid JSON, no prose, no markdown fences:
 {{
   "route": "<BRAIN|WORKFLOW|ACTION|BLOCKED|UNCERTAIN>",
   "fact_selection": ["<filename>", ...],
   "confidence": <float 0.0-1.0>,
   "reason": "<one sentence>",
-  "intent": "<invoice_send|>",
-  "client": "{invoice_client_contract}"
+  "intent": "<invoice_send|capture_gig|>",
+  "client": "{invoice_client_contract}",
+  "contact": "<contact hint|>",
+  "description": "<gig description|>",
+  "date": "<date phrase|>"
 }}"""
 
 
@@ -429,12 +465,32 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
         confidence = 0.0
 
     reason = str(payload.get("reason") or "").strip()[:500]
-    intent = _normalize_interpreter_intent(payload.get("intent"))
+    intent = _normalize_interpreter_intent(
+        payload.get("intent") or payload.get("operator_intent") or payload.get("task_intent")
+    )
     client = _normalize_invoice_client(
         payload.get("client")
         or payload.get("client_slug")
         or payload.get("client_id")
         or payload.get("invoice_client")
+    )
+    contact = _clean_lm_field(
+        payload.get("contact")
+        or payload.get("contact_hint")
+        or payload.get("who")
+        or payload.get("person")
+    )
+    description = _clean_lm_field(
+        payload.get("description")
+        or payload.get("gig_description")
+        or payload.get("service")
+        or payload.get("event")
+    )
+    date = _clean_lm_field(
+        payload.get("date")
+        or payload.get("date_text")
+        or payload.get("service_date")
+        or payload.get("when")
     )
 
     return InterpretResult(
@@ -444,6 +500,9 @@ def _parse_interpreter_output(raw: str) -> InterpretResult:
         reason=reason,
         intent=intent,
         client=client,
+        contact=contact,
+        description=description,
+        date=date,
     )
 
 
