@@ -1116,7 +1116,9 @@ def _answer_with_maestro_brain(
     try:
         from packet_dankness_critic import observe_packet_dankness
 
-        observe_packet_dankness(context_packet, text, "maestro")
+        # COVERAGE: observe as the ACTUAL agent being answered (was hardcoded "maestro", which made
+        # the dankifier loop churn on maestro alone and never enrich the other 5 agents' packets).
+        observe_packet_dankness(context_packet, text, agent)
     except Exception:
         pass
     # Defense-in-depth (persona-voice layer): flag if any machine-contract leaked past the
