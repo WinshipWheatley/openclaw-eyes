@@ -183,7 +183,9 @@
 !tests/test_capital_hilton_payment_ingest.py
 !reminders_store.py
 !client_followup_watch.py
+!st_annes_forward_tracking_workflow.py
 !tests/test_reminders_and_followup_capability.py
+!tests/test_st_annes_forward_tracking_workflow.py
 !contacts_registry.py
 !tests/test_contacts_registry.py
 !gig_capture.py
