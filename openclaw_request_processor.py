@@ -3425,11 +3425,13 @@ def _process_workflow_package_request(
     *,
     generated_at: str | None,
     classification: RequestClassification,
+    lm1_shared_seam: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac:
     result = workflow_package_request_consumer.consume_workflow_package_request(
         raw_request,
         source_request_filename=request_path.name,
         generated_at=generated_at,
+        lm1_shared_seam=lm1_shared_seam,
     )
     receipt = result.receipt
     package = result.package or {}
@@ -3596,6 +3598,12 @@ def _process_workflow_package_request(
         detail_disclosure={
             "request_classification": asdict(response_classification),
             "workflow_package_request_consumer": receipt,
+            "lm1_shared_request_seam": {
+                "status": lm1_shared_seam.get("status"),
+                "interpretation": lm1_shared_seam.get("interpretation"),
+                "workflow_packet_id": ((lm1_shared_seam.get("workflow_context_packet") or {}).get("packet_id")),
+                "rich_packet_id": ((lm1_shared_seam.get("rich_context_packet") or {}).get("packet_id")),
+            } if isinstance(lm1_shared_seam, Mapping) else None,
             "package": package,
             "system_question_answer": receipt.get("system_question_answer") if system_question_answered else None,
             "operator_display": operator_display,
@@ -5545,6 +5553,287 @@ def _interpreter_enabled() -> bool:
     return os.environ.get("OPENCLAW_INTERPRETER_LM", "0").lower() in ("1", "true")
 
 
+def _lm1_shared_seam_enabled() -> bool:
+    return os.environ.get("OPENCLAW_LM1_SHARED_SEAM", "0").lower() in ("1", "true")
+
+
+def _lm1_source_text(raw_request: Mapping[str, Any]) -> str:
+    text = maestro_cassandra_responder.operator_text_from_request(raw_request)
+    if text:
+        return text
+    for key in ("source_text", "operator_message", "sanitized_message_summary", "operator_goal", "message", "text"):
+        value = str(raw_request.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _lm1_interpretation_dict(result: Any, *, source: str, workflow_intent: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    workflow_intent = dict(workflow_intent or {})
+    confidence = getattr(result, "confidence", workflow_intent.get("confidence", 0.0))
+    try:
+        confidence_value = float(confidence)
+    except (TypeError, ValueError):
+        confidence_value = 0.0
+    route = str(getattr(result, "route", workflow_intent.get("route") or "WORKFLOW") or "").upper()
+    intent = str(getattr(result, "intent", workflow_intent.get("intent") or "") or "")
+    client = str(getattr(result, "client", workflow_intent.get("client_ref") or workflow_intent.get("client") or "") or "")
+    workflow_ref = str(workflow_intent.get("workflow_ref") or "")
+    if not workflow_ref and route == "WORKFLOW":
+        workflow_ref = _lm1_workflow_ref_from_interpretation(intent=intent, client=client)
+    return {
+        "source": source,
+        "route": route,
+        "fact_selection": list(getattr(result, "fact_selection", workflow_intent.get("fact_selection") or []) or []),
+        "confidence": confidence_value,
+        "reason": str(getattr(result, "reason", workflow_intent.get("intent_reason") or "") or ""),
+        "intent": intent,
+        "client": client,
+        "contact": str(getattr(result, "contact", workflow_intent.get("contact") or "") or ""),
+        "description": str(getattr(result, "description", workflow_intent.get("description") or "") or ""),
+        "date": str(getattr(result, "date", workflow_intent.get("date") or "") or ""),
+        "workflow_ref": workflow_ref,
+        "world": str(workflow_intent.get("world") or ""),
+        "client_ref": str(workflow_intent.get("client_ref") or client or ""),
+    }
+
+
+def _lm1_workflow_ref_from_interpretation(*, intent: str, client: str) -> str:
+    intent_key = str(intent or "").strip().lower().replace("-", "_")
+    client_key = str(client or "").strip().lower().replace("_", "-")
+    if intent_key == "invoice_send":
+        if client_key in {"st-annes", "st-anne", "st-anne-s", "st-annes-annapolis"}:
+            return "st_annes_monthly_invoice_rollup"
+        if client_key in {"capital-hilton", "capitalhilton"}:
+            return "capital_hilton_invoice_operator_assist"
+    if intent_key == "capture_gig" and client_key in {"st-annes", "st-anne", "st-anne-s", "st-annes-annapolis"}:
+        return "st_annes_work_log_event"
+    return ""
+
+
+def _lm1_deterministic_workflow_interpretation(source_text: str) -> dict[str, Any] | None:
+    try:
+        import workflow_package_queue
+
+        intent = workflow_package_queue.classify_intent(source_text)
+    except Exception:
+        return None
+    workflow_ref = str(intent.get("workflow_ref") or "")
+    if workflow_ref == "diagnostic_package_gate_smoke":
+        return None
+    return _lm1_interpretation_dict(
+        None,
+        source="deterministic_workflow_classifier",
+        workflow_intent={
+            **dict(intent),
+            "route": "WORKFLOW",
+            "intent": "",
+            "fact_selection": [],
+        },
+    )
+
+
+def _lm1_workflow_authority_boundary() -> dict[str, bool]:
+    try:
+        import cross_machine_worker_dispatch_package as dispatch_contract
+
+        authority = {str(key): False for key in dispatch_contract.AUTHORITY_BOUNDARY}
+    except Exception:
+        authority = {}
+    authority.update(
+        {
+            "email_send_allowed": False,
+            "gmail_allowed": False,
+            "ledger_posting_allowed": False,
+            "ledger_mutation_allowed": False,
+            "browser_access_allowed": False,
+            "coupa_allowed": False,
+            "portal_submit_allowed": False,
+            "paid": False,
+            "sent": False,
+            "raw_body_ingestion_allowed": False,
+            "tool_execution_allowed": False,
+            "model_call_allowed": False,
+            "runtime_dispatch_allowed": False,
+        }
+    )
+    return authority
+
+
+def _lm1_workflow_context_packet(rich_packet: Mapping[str, Any], interpretation: Mapping[str, Any]) -> dict[str, Any]:
+    selected = {str(item) for item in interpretation.get("fact_selection", ()) if str(item).strip()}
+    bounded_facts: list[dict[str, Any]] = []
+    for fact in rich_packet.get("facts", ()) if isinstance(rich_packet.get("facts"), list) else ():
+        if not isinstance(fact, Mapping):
+            continue
+        source_ref = str(fact.get("source_ref") or "")
+        if selected and not any(item in source_ref for item in selected):
+            continue
+        pii_tier = str(fact.get("pii_tier") or "PUBLIC").upper()
+        if pii_tier not in {"PUBLIC", "LIGHT"}:
+            continue
+        bounded_facts.append(
+            {
+                "fact_id": str(fact.get("fact_id") or ""),
+                "topic": str(fact.get("topic") or ""),
+                "label": str(fact.get("label") or ""),
+                "value": str(fact.get("value") or "")[:360],
+                "source_ref": source_ref,
+                "provenance": str(fact.get("provenance") or ""),
+                "pii_tier": pii_tier,
+            }
+        )
+        if len(bounded_facts) >= 8:
+            break
+    return {
+        "schema_version": "lm1_shared_workflow_context_packet_v0",
+        "packet_id": str(rich_packet.get("packet_id") or ""),
+        "source_surface": str(rich_packet.get("source_surface") or ""),
+        "question_hash": hashlib.sha256(str(rich_packet.get("question") or "").encode("utf-8")).hexdigest(),
+        "interpretation": dict(interpretation),
+        "facts": bounded_facts,
+        "source_refs": [str(ref) for ref in rich_packet.get("source_refs", ()) if str(ref).strip()][:12],
+        "authority_boundary": _lm1_workflow_authority_boundary(),
+        "excluded_context": [
+            "packet_text",
+            "full daemon context",
+            "raw private bodies",
+            "credentials",
+            "send or payment authority",
+        ],
+        "machine_proof": {
+            "rich_packet_id": str(rich_packet.get("packet_id") or ""),
+            "packet_text_excluded": True,
+            "bounded_fact_count": len(bounded_facts),
+            "authority_flags_all_false": all(value is False for value in _lm1_workflow_authority_boundary().values()),
+        },
+    }
+
+
+def _lm1_result_from_seam(lm1_shared_seam: Mapping[str, Any] | None) -> Any | None:
+    if not isinstance(lm1_shared_seam, Mapping):
+        return None
+    result = lm1_shared_seam.get("interpret_result")
+    if result is not None:
+        return result
+    interpretation = lm1_shared_seam.get("interpretation")
+    if not isinstance(interpretation, Mapping):
+        return None
+    try:
+        from interpreter_lm import InterpretResult
+
+        return InterpretResult(
+            route=str(interpretation.get("route") or "UNCERTAIN"),
+            fact_selection=[str(item) for item in interpretation.get("fact_selection", ()) if str(item).strip()],
+            confidence=float(interpretation.get("confidence") or 0.0),
+            reason=str(interpretation.get("reason") or ""),
+            intent=str(interpretation.get("intent") or ""),
+            client=str(interpretation.get("client") or interpretation.get("client_ref") or ""),
+            contact=str(interpretation.get("contact") or ""),
+            description=str(interpretation.get("description") or ""),
+            date=str(interpretation.get("date") or ""),
+        )
+    except Exception:
+        return None
+
+
+def _build_lm1_shared_request_seam(
+    raw_request: Mapping[str, Any],
+    *,
+    generated_at: str | None = None,
+    _capsule: Any | None = None,
+) -> dict[str, Any]:
+    if not _lm1_shared_seam_enabled():
+        return {"status": "DISABLED", "machine_proof": {"lm1_shared_seam_enabled": False}}
+    operator_text = _lm1_source_text(raw_request)
+    if not operator_text:
+        return {"status": "NO_TEXT", "machine_proof": {"lm1_shared_seam_enabled": True, "operator_text_present": False}}
+
+    deterministic = _lm1_deterministic_workflow_interpretation(operator_text)
+    interp_result = None
+    interpreter_called = False
+    if deterministic is not None:
+        interpretation = deterministic
+    elif _interpreter_enabled():
+        try:
+            interp_result = _interpret_for_request(operator_text)
+            interpreter_called = True
+            interpretation = _lm1_interpretation_dict(interp_result, source="lm1_shared_interpreter")
+        except Exception:
+            interpretation = {
+                "source": "lm1_shared_interpreter_exception",
+                "route": "UNCERTAIN",
+                "fact_selection": [],
+                "confidence": 0.0,
+                "reason": "interpreter_exception",
+                "intent": "",
+                "client": "",
+                "contact": "",
+                "description": "",
+                "date": "",
+                "workflow_ref": "",
+                "world": "",
+                "client_ref": "",
+            }
+    else:
+        return {
+            "status": "INTERPRETER_DISABLED",
+            "machine_proof": {
+                "lm1_shared_seam_enabled": True,
+                "interpreter_lm_called": False,
+                "deterministic_workflow_resolved": False,
+            },
+        }
+
+    session = maestro_cassandra_responder.session_from_request(raw_request)
+    if interpretation.get("fact_selection"):
+        session = {**session, "interpreter_fact_selection": list(interpretation.get("fact_selection") or [])}
+    rich_packet: dict[str, Any] = {}
+    workflow_packet: dict[str, Any] = {}
+    packet_error = ""
+    try:
+        from maestro_context_packet import build_maestro_context_packet
+
+        rich_packet = dict(
+            build_maestro_context_packet(
+                question=operator_text,
+                session=session,
+                source_surface=_maestro_frontdoor_surface(raw_request) or str(raw_request.get("source_surface") or "mission_control"),
+                require_real_truth=True,
+                capsule=_capsule if _continuity_enabled() else None,
+                fact_selection=list(interpretation.get("fact_selection") or []),
+            )
+        )
+        machine_proof = dict(rich_packet.get("machine_proof") or {})
+        machine_proof["lm1_shared_seam_built"] = True
+        machine_proof["lm1_shared_seam_generated_at"] = generated_at or utc_now()
+        rich_packet["machine_proof"] = machine_proof
+        workflow_packet = _lm1_workflow_context_packet(rich_packet, interpretation)
+    except Exception as exc:
+        packet_error = type(exc).__name__
+
+    return {
+        "schema_version": "lm1_shared_request_seam_v0",
+        "status": "READY" if rich_packet and workflow_packet else "INTERPRETATION_READY_PACKET_UNAVAILABLE",
+        "generated_at": generated_at or utc_now(),
+        "interpret_result": interp_result,
+        "interpretation": interpretation,
+        "rich_context_packet": rich_packet,
+        "workflow_context_packet": workflow_packet,
+        "packet_error": packet_error,
+        "machine_proof": {
+            "lm1_shared_seam_enabled": True,
+            "operator_text_present": True,
+            "deterministic_workflow_resolved": deterministic is not None,
+            "interpreter_lm_called": interpreter_called,
+            "rich_context_packet_built": bool(rich_packet),
+            "workflow_context_packet_built": bool(workflow_packet),
+            "workflow_packet_authority_bounded": bool(workflow_packet)
+            and all(value is False for value in (workflow_packet.get("authority_boundary") or {}).values()),
+        },
+    }
+
+
 # Per-request memoization of the interpreter result so the BRAIN divert and the
 # ACTION/BLOCKED divert read the SAME classification from a SINGLE LM call. Without
 # this, each divert would independently call interpret_operator_message → two
@@ -5583,6 +5872,7 @@ def _try_interpreter_brain_divert(
     classification: RequestClassification,
     route_decision: Mapping[str, Any],
     _capsule: Any | None = None,
+    lm1_shared_seam: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac | None:
     """Flag-gated interpreter-LM routing augmentation.
 
@@ -5620,10 +5910,18 @@ def _try_interpreter_brain_divert(
     if not operator_text:
         return None
 
-    try:
-        interp_result = _interpret_for_request(operator_text)
-    except Exception:  # noqa: BLE001 — interpreter error → deterministic path
-        return None
+    interp_result = _lm1_result_from_seam(lm1_shared_seam)
+    if interp_result is None:
+        if (
+            isinstance(lm1_shared_seam, Mapping)
+            and str((lm1_shared_seam.get("interpretation") or {}).get("source") or "")
+            == "deterministic_workflow_classifier"
+        ):
+            return None
+        try:
+            interp_result = _interpret_for_request(operator_text)
+        except Exception:  # noqa: BLE001 — interpreter error → deterministic path
+            return None
 
     if not interp_result.is_high_confidence_brain():
         return None  # UNCERTAIN or WORKFLOW or low-confidence → deterministic path
@@ -5639,6 +5937,8 @@ def _try_interpreter_brain_divert(
     augmented_session: dict[str, Any] = dict(session or {})
     if interp_result.fact_selection:
         augmented_session["interpreter_fact_selection"] = list(interp_result.fact_selection)
+    if isinstance(lm1_shared_seam, Mapping) and isinstance(lm1_shared_seam.get("rich_context_packet"), Mapping):
+        augmented_session["lm1_shared_rich_context_packet"] = dict(lm1_shared_seam["rich_context_packet"])
 
     source_surface = _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat"
     agent = _resolved_frontdoor_agent(raw_request, session=augmented_session, _capsule=_capsule)
@@ -5680,6 +5980,13 @@ def _try_interpreter_brain_divert(
         "interpreter_confidence": interp_result.confidence,
         "interpreter_reason": interp_result.reason,
         "interpreter_fact_selection": list(interp_result.fact_selection),
+        "lm1_shared_seam_used": isinstance(lm1_shared_seam, Mapping)
+        and bool(lm1_shared_seam.get("rich_context_packet")),
+        "lm1_shared_packet_id": str(
+            ((lm1_shared_seam or {}).get("rich_context_packet") or {}).get("packet_id")
+            if isinstance(lm1_shared_seam, Mapping)
+            else ""
+        ),
     }
     local_model_invoked = bool(machine_proof.get("local_model_invoked", False))
     model_call_performed = bool(machine_proof.get("model_call_performed", False))
@@ -5840,6 +6147,7 @@ def _try_interpreter_action_blocked_divert(
     classification: RequestClassification,
     route_decision: Mapping[str, Any],
     _capsule: Any | None = None,
+    lm1_shared_seam: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac | None:
     """Flag-gated interpreter-LM routing for ACTION and BLOCKED routes.
 
@@ -5876,10 +6184,18 @@ def _try_interpreter_action_blocked_divert(
     if not operator_text:
         return None
 
-    try:
-        interp_result = _interpret_for_request(operator_text)
-    except Exception:  # noqa: BLE001 — interpreter error → deterministic path
-        return None
+    interp_result = _lm1_result_from_seam(lm1_shared_seam)
+    if interp_result is None:
+        if (
+            isinstance(lm1_shared_seam, Mapping)
+            and str((lm1_shared_seam.get("interpretation") or {}).get("source") or "")
+            == "deterministic_workflow_classifier"
+        ):
+            return None
+        try:
+            interp_result = _interpret_for_request(operator_text)
+        except Exception:  # noqa: BLE001 — interpreter error → deterministic path
+            return None
 
     # Only handle ACTION and BLOCKED here; BRAIN is handled by _try_interpreter_brain_divert.
     if not (interp_result.is_high_confidence_action() or interp_result.is_high_confidence_blocked()):
@@ -5924,6 +6240,8 @@ def _try_interpreter_action_blocked_divert(
         "interpreter_confidence": interp_result.confidence,
         "interpreter_reason": interp_result.reason,
         "interpreter_fact_selection": list(interp_result.fact_selection),
+        "lm1_shared_seam_used": isinstance(lm1_shared_seam, Mapping)
+        and bool(lm1_shared_seam.get("rich_context_packet")),
         "external_llm_invoked": False,
         "local_model_invoked": False,
         "model_call_performed": False,
@@ -7893,6 +8211,11 @@ def _process_request_path_core(
     )
     if maestro_frontdoor_response is not None:
         return maestro_frontdoor_response
+    lm1_shared_seam = _build_lm1_shared_request_seam(
+        raw_request,
+        generated_at=generated_at,
+        _capsule=_capsule,
+    )
     # ── Interpreter LM routing augmentation (flag-gated, ADVISORY, DEFAULT-OFF) ──
     # When OPENCLAW_INTERPRETER_LM="1" AND the deterministic gate would send this
     # message to the workflow consumer, consult the interpreter LM.  If it returns
@@ -7906,6 +8229,7 @@ def _process_request_path_core(
         classification=effective_classification,
         route_decision=route_decision,
         _capsule=_capsule,
+        lm1_shared_seam=lm1_shared_seam,
     )
     if interpreter_divert is not None:
         return interpreter_divert
@@ -7920,6 +8244,7 @@ def _process_request_path_core(
         classification=effective_classification,
         route_decision=route_decision,
         _capsule=_capsule,
+        lm1_shared_seam=lm1_shared_seam,
     )
     if interpreter_action_blocked_divert is not None:
         return interpreter_action_blocked_divert
@@ -7930,6 +8255,7 @@ def _process_request_path_core(
             raw_request,
             generated_at=generated_at,
             classification=effective_classification,
+            lm1_shared_seam=lm1_shared_seam,
         )
     if classification.request_family == "CHAT" and _is_workbook_candidate_keep_choice_request(raw_request):
         return _process_workbook_candidate_choice_request(

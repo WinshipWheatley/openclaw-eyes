@@ -38,6 +38,8 @@ import maestro_cassandra_responder as maestro
 import maestro_context_packet as packet_mod
 import openclaw_request_processor as processor
 import operator_truth_store
+import workflow_package_queue as queue
+import workflow_package_request_consumer as consumer
 from openclaw_request_processor import RequestClassification
 
 
@@ -320,6 +322,161 @@ def _starved_workflow_request() -> dict[str, Any]:
         "current_thread_ref": "operator_maestro_chat",
         # NOTE: deliberately NO authority_boundary → deterministic gate fails.
     }
+
+
+def _valid_workflow_request_for_text(text: str) -> dict[str, Any]:
+    protected_hash = queue.protected_text_hash(text)
+    return {
+        "request_id": "shared_lm1_workflow_001",
+        "source_request_id": "shared_lm1_workflow_001",
+        "request_type": consumer.REQUEST_TYPE,
+        "kind": consumer.REQUEST_KIND,
+        "source_surface": "mission_control",
+        "source_channel": "mission_control_chat",
+        "requested_mode": "operator",
+        "result_receipt_required": True,
+        "world": "finance",
+        "world_ref": "finance",
+        "thread_ref": "st_annes",
+        "active_surface_ref": "operator_maestro_chat",
+        "operator_text": text,
+        "source_text": text,
+        "operator_message": text,
+        "source_text_ref": "protected_text_hash:" + protected_hash,
+        "protected_text_hash": protected_hash,
+        "privacy_impact": "pending",
+        "idempotency_key": "workflow_package_request:shared_lm1_workflow_001",
+        "created_at": "2026-07-06T12:00:00+00:00",
+        "authority_boundary": {key: False for key in consumer.AUTHORITY_FALSE_FIELDS},
+        "mac_wrote_request_only": True,
+        "no_external_action": True,
+    }
+
+
+class TestSharedLm1Seam:
+    def test_shared_lm1_seam_feeds_workflow_and_reuses_rich_brain_packet(
+        self, tmp_path, monkeypatch
+    ):
+        """Fuzzy workflow text is interpreted once at the shared seam. The same
+        rich packet is reused by the brain path, while workflow gets only the
+        bounded authority-filtered packet and interpreted intent."""
+        monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "1")
+        monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
+        monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+        read_model_root = _seed_packet_read_models(tmp_path)
+        truth_path = _seed_operator_truth(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            maestro,
+            "session_from_request",
+            lambda _r: {
+                "read_model_root": read_model_root.as_posix(),
+                "operator_truth_store_path": truth_path.as_posix(),
+            },
+        )
+
+        calls = {"interpret": 0, "read_models": 0}
+
+        def _mock_interpret(text, *, session=None, protected_generate_fn=None):
+            calls["interpret"] += 1
+            return interpreter_lm.InterpretResult(
+                route=interpreter_lm.ROUTE_WORKFLOW,
+                fact_selection=["work_board.json"],
+                confidence=0.95,
+                reason="fuzzy St Anne's invoice request",
+                intent=interpreter_lm.INVOICE_SEND_INTENT,
+                client="st-annes",
+            )
+
+        real_read_model_facts = packet_mod._read_model_facts
+
+        def _spy_read_model_facts(root):
+            calls["read_models"] += 1
+            return real_read_model_facts(root)
+
+        monkeypatch.setattr(interpreter_lm, "interpret_operator_message", _mock_interpret)
+        monkeypatch.setattr(packet_mod, "_read_model_facts", _spy_read_model_facts)
+
+        req = _valid_workflow_request_for_text("please handle that Draper treasurer invoice thread")
+        seam = processor._build_lm1_shared_request_seam(req, generated_at="2026-07-06T12:01:00+00:00")
+
+        assert seam["status"] == "READY"
+        assert calls["interpret"] == 1
+        assert calls["read_models"] == 1
+        assert seam["interpretation"]["route"] == "WORKFLOW"
+        assert seam["interpretation"]["intent"] == "invoice_send"
+        assert seam["interpretation"]["client"] == "st-annes"
+        assert seam["rich_context_packet"]["packet_id"]
+        assert "packet_text" in seam["rich_context_packet"]
+        assert "packet_text" not in seam["workflow_context_packet"]
+        assert seam["workflow_context_packet"]["packet_id"] == seam["rich_context_packet"]["packet_id"]
+        assert all(value is False for value in seam["workflow_context_packet"]["authority_boundary"].values())
+
+        result = consumer.consume_workflow_package_request(
+            req,
+            source_request_filename="mission_control_operator_instruction_request_shared_lm1.json",
+            generated_at="2026-07-06T12:02:00+00:00",
+            sqlite_path=tmp_path / "workflow.sqlite",
+            lm1_shared_seam=seam,
+        )
+        assert result.package is not None
+        assert result.package["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+        assert result.package["intent_classification_result"]["intent_source"] == "lm1_shared_interpreter"
+        assert result.package["lm1_shared_packet"]["authority_boundary"]["email_send_allowed"] is False
+        assert result.receipt["machine_proof"]["lm1_shared_seam_used"] is True
+
+        captured: dict[str, Any] = {}
+
+        def _answer_stub(text, *, context_packet=None, **kwargs):
+            captured["packet_id"] = (context_packet or {}).get("packet_id")
+            return _stub_protected_generate(text, context_packet=context_packet, **kwargs)
+
+        brain_session = {
+            "read_model_root": read_model_root.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+            "interpreter_fact_selection": ["work_board.json"],
+            "lm1_shared_rich_context_packet": seam["rich_context_packet"],
+        }
+        brain = maestro.answer_frontdoor_chat(
+            "where are we on that?",
+            session=brain_session,
+            source_surface="operator_maestro_chat",
+            protected_generate_fn=_answer_stub,
+        )
+        assert brain.status == "ANSWER_READY"
+        assert captured["packet_id"] == seam["rich_context_packet"]["packet_id"]
+        assert calls["read_models"] == 1, "brain must reuse the seam packet, not rebuild it"
+
+    def test_shared_lm1_seam_keeps_known_workflow_phrase_deterministic(self, tmp_path, monkeypatch):
+        """Known phrases stay on the deterministic fast path. The shared seam may
+        expose the deterministic interpretation, but it must not call interpreter_lm."""
+        monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "1")
+        monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
+        monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+        read_model_root = _seed_packet_read_models(tmp_path)
+        truth_path = _seed_operator_truth(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            maestro,
+            "session_from_request",
+            lambda _r: {
+                "read_model_root": read_model_root.as_posix(),
+                "operator_truth_store_path": truth_path.as_posix(),
+            },
+        )
+
+        def _tripwire(*args, **kwargs):
+            raise AssertionError("known workflow phrases must not call interpreter_lm")
+
+        monkeypatch.setattr(interpreter_lm, "interpret_operator_message", _tripwire)
+
+        seam = processor._build_lm1_shared_request_seam(
+            _valid_workflow_request_for_text("Send St. Anne's invoice."),
+            generated_at="2026-07-06T12:03:00+00:00",
+        )
+
+        assert seam["status"] == "READY"
+        assert seam["interpretation"]["source"] == "deterministic_workflow_classifier"
+        assert seam["interpretation"]["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+        assert seam["machine_proof"]["interpreter_lm_called"] is False
 
 
 class TestStarvationBugFixedSynthetically:
