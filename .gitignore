@@ -1330,6 +1330,8 @@ generated/system_knowledge/*.sqlite
 !SELF-ORIENT.md
 !self_knowledge_orient.py
 !tests/test_self_knowledge_orient.py
+!self_knowledge_graph_writer.py
+!tests/test_self_knowledge_graph_writer.py
 !self_knowledge_ledger_gap_writer.py
 !tests/test_self_knowledge_ledger_gap_writer.py
 !self_knowledge_crawl_state.py

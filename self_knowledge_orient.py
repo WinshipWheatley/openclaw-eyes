@@ -297,22 +297,133 @@ def _count_by(nodes: Mapping[str, Mapping[str, Any]], key: str) -> dict[str, int
     return dict(sorted(counts.items()))
 
 
+def _nodes_of_kind(nodes: Mapping[str, Mapping[str, Any]], kind: str) -> list[dict[str, Any]]:
+    return [dict(node) for node in nodes.values() if node.get("kind") == kind]
+
+
+def _node_label(node: Mapping[str, Any]) -> str:
+    return str(node.get("display_name") or node.get("name") or node.get("unit") or node.get("id") or "")
+
+
+def _health_rollup(nodes: Mapping[str, Mapping[str, Any]]) -> str:
+    rollups = _nodes_of_kind(nodes, "health_rollup")
+    if rollups:
+        state = str(rollups[0].get("activation_state") or "")
+        if state:
+            return state
+    failed = sum(
+        1
+        for node in nodes.values()
+        if node.get("kind") == "service" and node.get("health_status") == "failed"
+    )
+    return f"{failed}_red" if failed else "green"
+
+
+def _graph_anomalies(nodes: Mapping[str, Mapping[str, Any]]) -> list[str]:
+    anomalies: list[str] = []
+    for node in nodes.values():
+        kind = node.get("kind")
+        label = _node_label(node)
+        if kind == "service" and node.get("health_status") == "failed":
+            anomalies.append(f"{label} = FAILED")
+        if kind == "worktree" and node.get("detached"):
+            anomalies.append(f"{label} detached HEAD")
+        if kind == "worktree" and int(node.get("dirty") or 0) > 0:
+            anomalies.append(f"{label} DIRTY:{node.get('dirty')}")
+        if kind == "ollama_model" and node.get("health_status") == "retired":
+            anomalies.append(f"{label} retired but present on disk")
+    return sorted(dict.fromkeys(anomalies))
+
+
+def _source_of_truth(nodes: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    for node in nodes.values():
+        if node.get("kind") == "sqlite_db" and node.get("role") == "source_of_truth":
+            return {
+                "path": node.get("path"),
+                "size_bytes": node.get("size_bytes"),
+                "role": "source_of_truth",
+            }
+    return {}
+
+
+def _brief_agent(node: Mapping[str, Any]) -> dict[str, Any]:
+    result = {
+        "name": node.get("name") or str(node.get("id") or "").removeprefix("agent:"),
+        "role": node.get("role"),
+        "entry": node.get("entry"),
+        "state": node.get("activation_state"),
+    }
+    if node.get("alias"):
+        result["alias"] = node.get("alias")
+    if node.get("model"):
+        result["model"] = node.get("model")
+    if node.get("voice"):
+        result["voice"] = node.get("voice")
+    return {key: value for key, value in result.items() if value not in (None, "")}
+
+
 def _high_map(nodes: Mapping[str, Mapping[str, Any]], edges: list[dict[str, str]]) -> dict[str, Any]:
+    machines = sorted(_nodes_of_kind(nodes, "machine"), key=_node_label)
+    agents = sorted(_nodes_of_kind(nodes, "agent"), key=lambda node: str(node.get("name") or node.get("id")))
+    key_services = sorted(
+        _nodes_of_kind(nodes, "service"),
+        key=lambda node: (0 if node.get("health_status") == "failed" else 1, _node_label(node)),
+    )[:8]
+    counts = {
+        "machine_count": _count_kind(nodes, "machine"),
+        "repo_count": _count_kind(nodes, "repo"),
+        "worktree_count": _count_kind(nodes, "worktree"),
+        "nested_repo_count": _count_kind(nodes, "nested_repo"),
+        "openclaw_instance_count": _count_kind(nodes, "openclaw_instance"),
+        "agent_count": _count_kind(nodes, "agent"),
+        "sidecar_count": _count_kind(nodes, "sidecar"),
+        "service_count": _count_kind(nodes, "service"),
+        "timer_count": _count_kind(nodes, "timer"),
+        "cron_count": _count_kind(nodes, "cron"),
+        "windows_task_count": _count_kind(nodes, "windows_task"),
+        "ollama_model_count": _count_kind(nodes, "ollama_model"),
+        "port_count": _count_kind(nodes, "port"),
+        "sqlite_db_count": _count_kind(nodes, "sqlite_db"),
+        "edge_count": len(edges),
+    }
+    health = _health_rollup(nodes)
     return {
-        "counts": {
-            "machine_count": _count_kind(nodes, "machine"),
-            "repo_count": _count_kind(nodes, "repo"),
-            "worktree_count": _count_kind(nodes, "worktree"),
-            "openclaw_instance_count": _count_kind(nodes, "openclaw_instance"),
-            "service_count": _count_kind(nodes, "service"),
-            "edge_count": len(edges),
-        },
-        "machines": sorted(
-            str(node.get("owner_scope") or node.get("id") or "")
-            for node in nodes.values()
-            if node.get("kind") == "machine"
+        "health": health,
+        "one_liner": (
+            f"{counts['machine_count']} machines; {counts['agent_count']} agents; "
+            f"{counts['service_count']} services; {health}; {counts['worktree_count']} worktrees."
         ),
-        "health": _count_by(nodes, "health_status"),
+        "counts": counts,
+        "machines": [
+            {
+                "id": node.get("id"),
+                "role": node.get("role") or node.get("display_name"),
+                "state": node.get("activation_state"),
+                "evidence": node.get("evidence_status"),
+            }
+            for node in machines
+        ],
+        "agents": [_brief_agent(node) for node in agents],
+        "key_services": [
+            {
+                "id": node.get("id"),
+                "unit": node.get("unit") or node.get("display_name"),
+                "state": node.get("activation_state"),
+                "health_status": node.get("health_status"),
+            }
+            for node in key_services
+        ],
+        "anomalies": _graph_anomalies(nodes),
+        "source_of_truth": _source_of_truth(nodes),
+        "degraded": next(
+            (
+                node.get("degraded")
+                for node in _nodes_of_kind(nodes, "health_rollup")
+                if isinstance(node.get("degraded"), list)
+            ),
+            [],
+        ),
+        "health_counts": _count_by(nodes, "health_status"),
         "activation_states": _count_by(nodes, "activation_state"),
     }
 
@@ -337,7 +448,22 @@ def _medium_map(nodes: Mapping[str, Mapping[str, Any]], *, owner_scope: str | No
             continue
         bucket = machines.setdefault(
             machine,
-            {"repos": [], "worktrees": [], "services": [], "openclaw_instances": []},
+            {
+                "repos": [],
+                "worktrees": [],
+                "nested_repos": [],
+                "services": [],
+                "timers": [],
+                "cron": [],
+                "windows_tasks": [],
+                "ports": [],
+                "ollama_models": [],
+                "sqlite_dbs": [],
+                "agents": [],
+                "sidecars": [],
+                "health_rollups": [],
+                "openclaw_instances": [],
+            },
         )
         kind = node.get("kind")
         if kind == "repo":
@@ -348,12 +474,43 @@ def _medium_map(nodes: Mapping[str, Mapping[str, Any]], *, owner_scope: str | No
             )
         elif kind == "service":
             bucket["services"].append(_brief_node(node, ("unit", "load", "active", "sub")))
+        elif kind == "nested_repo":
+            bucket["nested_repos"].append(_brief_node(node, ("path", "branch", "head_commit", "dirty", "remote")))
+        elif kind == "timer":
+            bucket["timers"].append(_brief_node(node, ("unit", "activation_state")))
+        elif kind == "cron":
+            bucket["cron"].append(_brief_node(node, ("key_facts", "activation_state")))
+        elif kind == "windows_task":
+            bucket["windows_tasks"].append(_brief_node(node, ("display_name", "activation_state", "key_facts")))
+        elif kind == "port":
+            bucket["ports"].append(_brief_node(node, ("local_address_port", "process", "activation_state")))
+        elif kind == "ollama_model":
+            bucket["ollama_models"].append(_brief_node(node, ("model_name", "activation_state", "key_facts")))
+        elif kind == "sqlite_db":
+            bucket["sqlite_dbs"].append(_brief_node(node, ("path", "role", "size_bytes")))
+        elif kind == "agent":
+            bucket["agents"].append(_brief_agent(node))
+        elif kind == "sidecar":
+            bucket["sidecars"].append(_brief_node(node, ("path", "state", "evidence_status")))
+        elif kind == "health_rollup":
+            bucket["health_rollups"].append(_brief_node(node, ("failed_services", "degraded", "activation_state")))
         elif kind == "openclaw_instance":
             bucket["openclaw_instances"].append(_brief_node(node, ("root_path", "activity_status")))
 
     for bucket in machines.values():
         for key, rows in bucket.items():
-            bucket[key] = sorted(rows, key=lambda row: str(row.get("path") or row.get("worktree_path") or row.get("unit") or row.get("root_path") or row.get("id")))
+            bucket[key] = sorted(
+                rows,
+                key=lambda row: str(
+                    row.get("path")
+                    or row.get("worktree_path")
+                    or row.get("unit")
+                    or row.get("local_address_port")
+                    or row.get("name")
+                    or row.get("root_path")
+                    or row.get("id")
+                ),
+            )
     return {"machines": dict(sorted(machines.items()))}
 
 

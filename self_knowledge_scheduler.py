@@ -89,7 +89,6 @@ def run_scheduled_crawl(
         from self_knowledge_ledger_gap_writer import (
             write_activation_record_to_ledger,
             write_gaps_to_ledger,
-            write_inventory_graph_to_ledger,
         )
 
         ledger_result = write_gaps_to_ledger(
@@ -103,16 +102,10 @@ def run_scheduled_crawl(
             confirm_ledger_write and ledger_result.get("status") == "written"
         )
         if write_inventory_graph:
-            from self_knowledge_system_enumerators import enumerate_system_state
+            from self_knowledge_graph_writer import write_graph_to_ledger
 
-            system_state = enumerate_system_state(
-                timeout=10,
-                repo_root=root,
-                roots=[root],
-                owner_scope=owner_scope,
-            )
-            graph_result = write_inventory_graph_to_ledger(
-                system_state["inventory_graph"],
+            graph_result = write_graph_to_ledger(
+                root,
                 ledger_path,
                 confirm=confirm_ledger_write,
             )

@@ -115,15 +115,14 @@ def test_orient_high_returns_counts_health_and_read_only_boundary(tmp_path: Path
     assert payload["source"]["read_only"] is True
     assert payload["authority_boundary"]["local_only"] is True
     assert payload["authority_boundary"]["external_model_packet_allowed"] is False
-    assert payload["map"]["counts"] == {
-        "machine_count": 1,
-        "repo_count": 1,
-        "worktree_count": 1,
-        "openclaw_instance_count": 1,
-        "service_count": 1,
-        "edge_count": 5,
-    }
-    assert payload["map"]["health"]["ok"] == 4
+    assert payload["map"]["counts"]["machine_count"] == 1
+    assert payload["map"]["counts"]["repo_count"] == 1
+    assert payload["map"]["counts"]["worktree_count"] == 1
+    assert payload["map"]["counts"]["openclaw_instance_count"] == 1
+    assert payload["map"]["counts"]["service_count"] == 1
+    assert payload["map"]["counts"]["edge_count"] == 5
+    assert payload["map"]["health"] == "green"
+    assert payload["map"]["health_counts"]["ok"] == 4
     assert payload["map"]["activation_states"]["inactive"] == 1
 
 
