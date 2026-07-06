@@ -310,6 +310,20 @@ def test_out_of_test_mode_review_packet_finalizes_orders_and_real_sends():
     assert store.load() is None
 
 
+def test_test_mode_review_preview_uses_same_finalized_attachment_path():
+    store, ops = FakeStore(), RealReviewOps()
+    result = cs.handle_invoice_cockpit_message("test st anne's email", ops=ops, store=store)
+
+    assert result["handled"] is True
+    assert result["stage"] == wf.AWAITING_INVOICE_APPROVAL
+    state = store.load()
+    assert state["pdf_path"] == "/tmp/WL-2026-0009.pdf"
+    assert state["attachment_sha256"] == "issuedhash"
+    assert state["invoice_data"]["invoice_number"] == "WL-2026-0009"
+    assert [call[0] for call in ops.calls[:3]] == ["prepare", "finalize", "pdf"]
+    assert not any(call[0] in {"draft", "send_test", "send_real", "blocked"} for call in ops.calls)
+
+
 def test_real_review_invoice_revision_resends_only_pdf_and_preserves_copy_approval():
     store, ops = FakeStore(), RealReviewOps()
     cs.handle_invoice_cockpit_message("take st annes out of test mode and send it", ops=ops, store=store)

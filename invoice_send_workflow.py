@@ -27,6 +27,7 @@ CANCELLED = "cancelled"
 SEND_INVOICE_PREVIEW = "send_invoice_preview"      # PDF + "approve or tell me what's wrong"
 APPLY_EDIT = "apply_edit"                          # re-generate/re-fetch the invoice from an instruction
 SEND_DRAFT_AND_APPROVAL = "send_draft_and_approval" # Clara draft + Guardian approval-to-send
+SEND_GUARDIAN_APPROVAL = "send_guardian_approval"  # Guardian approval board entry for the scoped send
 TEST_SEND = "test_send"                            # send WITH attachment in TEST mode -> operator inbox
 REAL_SEND = "real_send"                            # test mode OFF -> real send to the client
 ASK_CLARIFY = "ask_clarify"                        # ambiguous: ask, do not advance
@@ -39,15 +40,76 @@ def _preview_action(state: dict[str, Any]) -> dict[str, Any]:
             "prompt": "Here's the invoice. Reply with any change, or 'looks good' to draft it."}
 
 
-def start_invoice_send(client: str, invoice_data: dict, pdf_path: str, digest: str) -> tuple[dict, list[dict]]:
+def _approval_token(value: Any) -> str:
+    text = "".join(ch.lower() if ch.isalnum() else "-" for ch in str(value or ""))
+    return "-".join(part for part in text.split("-") if part) or "client"
+
+
+def _real_review_approval_id(state: dict[str, Any]) -> str:
+    existing = str(state.get("approval_id") or "")
+    if existing:
+        return existing
+    data = state.get("invoice_data") if isinstance(state.get("invoice_data"), dict) else {}
+    client_ref = data.get("client_ref") or state.get("client")
+    invoice_number = data.get("invoice_number") or "invoice"
+    return f"invoice-real-send:{_approval_token(client_ref)}:{_approval_token(invoice_number)}"
+
+
+def guardian_approval_action(state: dict[str, Any]) -> dict[str, Any]:
+    data = state.get("invoice_data") if isinstance(state.get("invoice_data"), dict) else {}
+    approval_id = _real_review_approval_id(state)
+    state["approval_id"] = approval_id
+    return {
+        "kind": SEND_GUARDIAN_APPROVAL,
+        "approval": {
+            "id": approval_id,
+            "requester": "Cassandra",
+            "tier": 2,
+            "action": "Send invoice email",
+            "action_summary_label": f"Send invoice {data.get('invoice_number') or ''}".strip(),
+            "target": data.get("client_email") or state.get("client_email") or "",
+            "supersede_key": approval_id,
+            "approval_context": {
+                "client": state.get("client") or data.get("client_name") or "",
+                "client_ref": data.get("client_ref") or "",
+                "invoice_number": data.get("invoice_number") or "",
+                "pdf_path": state.get("pdf_path") or "",
+                "attachment_sha256": state.get("attachment_sha256") or "",
+                "mode": "real_send",
+            },
+        },
+    }
+
+
+def _draft_action(state: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "kind": SEND_DRAFT_AND_APPROVAL,
+        "client": state.get("client"),
+        "invoice_data": state.get("invoice_data"),
+        "pdf_path": state.get("pdf_path"),
+    }
+
+
+def start_invoice_send(
+    client: str,
+    invoice_data: dict,
+    pdf_path: str,
+    digest: str,
+    *,
+    real_review: bool = False,
+) -> tuple[dict, list[dict]]:
     state = {
-        "stage": AWAITING_INVOICE_APPROVAL,
+        "stage": AWAITING_SEND_APPROVAL if real_review else AWAITING_INVOICE_APPROVAL,
         "client": client,
         "invoice_data": invoice_data,
         "client_email": str(invoice_data.get("client_email") or ""),
         "pdf_path": pdf_path,
         "attachment_sha256": digest,
     }
+    if real_review:
+        state["review_mode"] = "real"
+        state["approved_parts"] = {"invoice": False, "copy": False}
+        return state, [_preview_action(state), _draft_action(state), guardian_approval_action(state)]
     return state, [_preview_action(state)]
 
 
@@ -70,6 +132,13 @@ def _classify(text: str) -> str:
     return "clarify"
 
 
+def _edit_part(text: str) -> str:
+    t = " " + str(text or "").casefold() + " "
+    if any(token in t for token in (" copy", " body", " email", " draft", " clara", " reword", " wording", " message")):
+        return "copy"
+    return "invoice"
+
+
 def _clarify(state: dict, message: str) -> tuple[dict, list[dict]]:
     return state, [{"kind": ASK_CLARIFY, "text": message}]
 
@@ -85,6 +154,16 @@ def handle_reply(state: dict, text: str) -> tuple[dict, list[dict]]:
 
     # An explicit edit / rejection always returns to invoice review — never mid-send.
     if intent == "edit":
+        if state.get("review_mode") == "real":
+            state["stage"] = AWAITING_SEND_APPROVAL
+            approved_parts = dict(state.get("approved_parts") or {})
+            part = _edit_part(text)
+            approved_parts[part] = False
+            state["approved_parts"] = approved_parts
+            if part == "copy":
+                return state, [_draft_action(state), guardian_approval_action(state)]
+            return state, [{"kind": APPLY_EDIT, "instruction": text, "invoice_data": state.get("invoice_data"),
+                            "review_part": part}]
         state["stage"] = AWAITING_INVOICE_APPROVAL
         return state, [{"kind": APPLY_EDIT, "instruction": text, "invoice_data": state.get("invoice_data")}]
     if intent == "reject":
@@ -101,6 +180,11 @@ def handle_reply(state: dict, text: str) -> tuple[dict, list[dict]]:
 
     if stage == AWAITING_SEND_APPROVAL:
         if intent == "approve":
+            if state.get("review_mode") == "real":
+                state["stage"] = SENT
+                return state, [{"kind": REAL_SEND, "to": email, "attachment": state.get("pdf_path"),
+                                "attachment_sha256": state.get("attachment_sha256"), "mode": "real",
+                                "invoice_data": state.get("invoice_data")}]
             state["stage"] = AWAITING_TEST_CONFIRM
             return state, [{"kind": TEST_SEND, "to": email, "attachment": state.get("pdf_path"),
                             "attachment_sha256": state.get("attachment_sha256"), "mode": "test",
@@ -122,6 +206,7 @@ def handle_reply(state: dict, text: str) -> tuple[dict, list[dict]]:
 
 __all__ = [
     "AWAITING_INVOICE_APPROVAL", "AWAITING_SEND_APPROVAL", "AWAITING_TEST_CONFIRM", "SENT", "CANCELLED",
-    "SEND_INVOICE_PREVIEW", "APPLY_EDIT", "SEND_DRAFT_AND_APPROVAL", "TEST_SEND", "REAL_SEND",
-    "ASK_CLARIFY", "SEND_MESSAGE", "start_invoice_send", "handle_reply",
+    "SEND_INVOICE_PREVIEW", "APPLY_EDIT", "SEND_DRAFT_AND_APPROVAL", "SEND_GUARDIAN_APPROVAL",
+    "TEST_SEND", "REAL_SEND", "ASK_CLARIFY", "SEND_MESSAGE", "guardian_approval_action",
+    "start_invoice_send", "handle_reply",
 ]

@@ -205,6 +205,8 @@ def test_send_email_test_mode_uses_registry_contact_body(tmp_path: Path, monkeyp
     ContactsRegistry(str(contacts_db), seed=True)
     calls: list[tuple[str, str, dict]] = []
 
+    monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(tmp_path / "issued"))
+    monkeypatch.setenv("OPENCLAW_INVOICE_TRACKER_DIR", str(tmp_path / "tracker"))
     monkeypatch.setattr("global_run_mode_context.handle_run_mode_set_request", lambda *args, **kwargs: {"ok": True})
     monkeypatch.setattr(
         "google_access_broker.call",
@@ -226,7 +228,11 @@ def test_send_email_test_mode_uses_registry_contact_body(tmp_path: Path, monkeyp
     assert "forwarded it to Glenn" in calls[0][2]["body"]
     assert "copy me (winshiplive@gmail.com)" in calls[0][2]["body"]
     assert "There's nothing needed on your end right now" not in calls[0][2]["body"]
-    assert calls[0][2]["attachments"] == [str(attachment)]
+    sent_pdf = Path(calls[0][2]["attachments"][0])
+    assert sent_pdf.exists()
+    assert sent_pdf != attachment
+    assert "DRAFT" not in sent_pdf.name
+    assert calls[0][2]["attachment_sha256"] == [hashlib.sha256(sent_pdf.read_bytes()).hexdigest()]
 
 
 def test_finalized_review_attachment_regenerates_issued_non_draft_pdf(
