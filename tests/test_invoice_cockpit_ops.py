@@ -229,6 +229,31 @@ def test_send_email_test_mode_uses_registry_contact_body(tmp_path: Path, monkeyp
     assert calls[0][2]["attachments"] == [str(attachment)]
 
 
+def test_finalized_review_attachment_regenerates_issued_non_draft_pdf(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    draft_pdf = tmp_path / "WL-DRAFT-ST-ANNES__St_Annes.pdf"
+    draft_pdf.write_bytes(b"%PDF-1.4\nDRAFT\n%%EOF\n")
+    monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(tmp_path / "issued"))
+    monkeypatch.setenv("OPENCLAW_INVOICE_TRACKER_DIR", str(tmp_path / "tracker"))
+
+    data, pdf_path, digest = RealCockpitOps().finalized_review_attachment(
+        attachment=str(draft_pdf),
+        attachment_sha256=hashlib.sha256(draft_pdf.read_bytes()).hexdigest(),
+        invoice_data=_st_annes_invoice_data(),
+    )
+
+    issued_pdf = Path(pdf_path)
+    assert issued_pdf.exists()
+    assert issued_pdf != draft_pdf
+    assert "DRAFT" not in issued_pdf.name
+    assert data["invoice_status"] == "issued"
+    assert data["lifecycle_state"] == "issued"
+    assert "DRAFT" not in data["invoice_number"]
+    assert digest == hashlib.sha256(issued_pdf.read_bytes()).hexdigest()
+
+
 def test_send_email_real_mode_finalizes_draft_invoice_and_regenerates_clean_pdf(
     tmp_path: Path,
     monkeypatch,

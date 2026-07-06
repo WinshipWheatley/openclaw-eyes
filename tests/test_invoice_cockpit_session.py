@@ -45,6 +45,10 @@ class FakeOps:
         self.calls.append(("draft", client))
         return {"ok": True}
 
+    def guardian_approval_board(self, approval):
+        self.calls.append(("approval", approval))
+        return {"ok": True}
+
     def apply_edit(self, invoice_data, instruction):
         self.calls.append(("edit", instruction))
         return {"ok": True}
@@ -66,6 +70,49 @@ def _prepare_calls(ops):
 
 def _send_calls(ops):
     return [call for call in ops.calls if call[0].startswith("send_") or call[0] == "blocked"]
+
+
+class RealReviewOps(FakeOps):
+    def prepare_invoice(self, client):
+        self.calls.append(("prepare", client))
+        client_name = client.get("display_name") if isinstance(client, dict) else client
+        return (
+            {
+                "client_ref": "st_annes",
+                "client_name": client_name,
+                "client_email": self.client_email,
+                "invoice_number": "WL-DRAFT-ST-ANNES",
+                "invoice_status": "draft",
+                "line_items": [{"description": "Wedding", "service_date": "2026-06-27", "amount": 12500}],
+                "amount_total": 12500,
+                "balance_due": 12500,
+            },
+            "/tmp/WL-DRAFT-ST-ANNES.pdf",
+            "drafthash",
+        )
+
+    def finalized_review_attachment(self, *, attachment, attachment_sha256, invoice_data):
+        self.calls.append(("finalize", attachment, attachment_sha256, invoice_data.get("invoice_number")))
+        issued_data = dict(invoice_data)
+        issued_data["invoice_number"] = "WL-2026-0009"
+        issued_data["invoice_status"] = "issued"
+        issued_data["lifecycle_state"] = "issued"
+        issued_data["attachment_filename"] = "WL-2026-0009.pdf"
+        return issued_data, "/tmp/WL-2026-0009.pdf", "issuedhash"
+
+    def apply_edit(self, invoice_data, instruction):
+        self.calls.append(("edit", instruction))
+        edited = dict(invoice_data)
+        edited["amount_total"] = 30000
+        edited["balance_due"] = 30000
+        edited["attachment_filename"] = "WL-2026-0009-revised.pdf"
+        return {
+            "ok": True,
+            "changed": True,
+            "invoice_data": edited,
+            "pdf_path": "/tmp/WL-2026-0009-revised.pdf",
+            "attachment_sha256": "revisedhash",
+        }
 
 
 def test_default_registry_trigger_starts_flow_and_sends_pdf():
@@ -230,6 +277,72 @@ def test_interpreter_fuzzy_email_wording_resolves_registry_client_without_auto_s
     assert _prepare_calls(ops)[0][1]["client_ref"] == "st_annes"
     assert any(call[0] == "pdf" for call in ops.calls)
     assert not any(call[0] in {"draft", "send_test", "send_real", "blocked"} for call in ops.calls)
+
+
+def test_out_of_test_mode_review_packet_finalizes_orders_and_real_sends():
+    store, ops = FakeStore(), RealReviewOps(send_hold=False)
+    result = cs.handle_invoice_cockpit_message(
+        "take st annes out of test mode and send it",
+        ops=ops,
+        store=store,
+    )
+
+    assert result["handled"] is True
+    assert result["stage"] == wf.AWAITING_SEND_APPROVAL
+    state = store.load()
+    assert state["review_mode"] == "real"
+    assert state["pdf_path"] == "/tmp/WL-2026-0009.pdf"
+    assert state["attachment_sha256"] == "issuedhash"
+    assert state["invoice_data"]["invoice_number"] == "WL-2026-0009"
+    assert "DRAFT" not in state["invoice_data"]["invoice_number"]
+
+    call_order = [call[0] for call in ops.calls]
+    assert call_order[:5] == ["prepare", "finalize", "pdf", "draft", "approval"]
+    assert ops.calls[2][1] == "/tmp/WL-2026-0009.pdf"
+    approval = ops.calls[4][1]
+    assert approval["id"].startswith("invoice-real-send:")
+    assert approval["approval_context"]["pdf_path"] == "/tmp/WL-2026-0009.pdf"
+
+    approved = cs.handle_invoice_cockpit_message("approve", ops=ops, store=store)
+
+    assert approved["stage"] == wf.SENT
+    assert ("send_real", "draper.carter@gmail.com") in ops.calls
+    assert store.load() is None
+
+
+def test_real_review_invoice_revision_resends_only_pdf_and_preserves_copy_approval():
+    store, ops = FakeStore(), RealReviewOps()
+    cs.handle_invoice_cockpit_message("take st annes out of test mode and send it", ops=ops, store=store)
+    state = store.load()
+    state["approved_parts"] = {"invoice": True, "copy": True}
+    store.save(state)
+    before = len(ops.calls)
+
+    result = cs.handle_invoice_cockpit_message("change the invoice amount to $300", ops=ops, store=store)
+
+    assert result["stage"] == wf.AWAITING_SEND_APPROVAL
+    new_calls = ops.calls[before:]
+    assert [call[0] for call in new_calls] == ["edit", "pdf", "approval"]
+    assert store.load()["pdf_path"] == "/tmp/WL-2026-0009-revised.pdf"
+    assert store.load()["approved_parts"]["copy"] is True
+    assert store.load()["approved_parts"]["invoice"] is False
+
+
+def test_real_review_copy_revision_resends_only_clara_body_and_preserves_invoice_approval():
+    store, ops = FakeStore(), RealReviewOps()
+    cs.handle_invoice_cockpit_message("take st annes out of test mode and send it", ops=ops, store=store)
+    state = store.load()
+    state["approved_parts"] = {"invoice": True, "copy": True}
+    store.save(state)
+    before = len(ops.calls)
+
+    result = cs.handle_invoice_cockpit_message("reword the copy to mention due on receipt", ops=ops, store=store)
+
+    assert result["stage"] == wf.AWAITING_SEND_APPROVAL
+    new_calls = ops.calls[before:]
+    assert [call[0] for call in new_calls] == ["draft", "approval"]
+    assert store.load()["approved_parts"]["invoice"] is True
+    assert store.load()["approved_parts"]["copy"] is False
 
 
 def test_interpreter_placeholder_client_asks_instead_of_preparing_right(monkeypatch):
