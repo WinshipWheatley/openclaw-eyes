@@ -273,6 +273,19 @@ _RELATIVE_DATE_TERMS = re.compile(
     re.IGNORECASE,
 )
 _ISO_DATE_RE = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
+_RAW_OPERATOR_NOTE_PREFIX_RE = re.compile(
+    r"^\s*(?:i\s+got\s+your\s+message,?\s*)?"
+    r"(?:(?:one\s+thing\s+i\s+want\s+you\s+to\s+remember)|(?:remember\s+this)|(?:note\s+this))"
+    r"\s*[:,-]?\s*",
+    re.IGNORECASE,
+)
+_PAID_UP_NOTE_RE = re.compile(r"\b(?:all\s+paid\s+up|paid\s+up|all\s+square|caught\s+up)\b", re.IGNORECASE)
+
+_CLIENT_DISPLAY_NAMES = {
+    "st_annes": "St Anne's",
+    "live_arts_md": "Live Arts MD",
+    "capital_hilton": "Capital Hilton",
+}
 
 
 def _today_utc() -> date:
@@ -311,6 +324,13 @@ def _strip_stale_relative_date_truth(text: str, *, today: date | None = None) ->
     return "; ".join(kept).rstrip(".") + "."
 
 
+def _distill_operator_truth_note(text: str) -> str:
+    body = str(text or "").strip()
+    body = _RAW_OPERATOR_NOTE_PREFIX_RE.sub("", body).strip()
+    body = re.sub(r"^\s*i(?:'| a)?m\s+actually\s+", "", body, flags=re.IGNORECASE).strip()
+    return body or str(text or "").strip()
+
+
 def _operator_truth_facts(
     *,
     path: Path | None,
@@ -338,9 +358,11 @@ def _operator_truth_facts(
     for record in records:
         source_ref = str(record.get("source_ref") or path or "operator_truth_store")
         label = str(record.get("label") or record.get("entity_key") or "Operator truth")
-        value = _strip_stale_relative_date_truth(str(record.get("value") or ""))
+        raw_value = _strip_stale_relative_date_truth(str(record.get("value") or ""))
+        value = _distill_operator_truth_note(raw_value)
         if not value or _is_stale_relative_date_truth(f"{label} {value}"):
             continue
+        before_count = len(facts)
         _append_fact(
             facts,
             topic="operator_truth",
@@ -355,7 +377,219 @@ def _operator_truth_facts(
                 "precedence": record.get("precedence"),
             },
         )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "raw_operator_note": True,
+                    "verbatim_readback": False,
+                    "operator_note_handling": "distill_not_quote",
+                    "raw_operator_note_sha256": hashlib.sha256(str(raw_value or "").encode("utf-8")).hexdigest(),
+                    "current_truth": True,
+                    "entity_key": str(record.get("entity_key") or ""),
+                }
+            )
     return facts, bool(facts), str(path or "")
+
+
+def _as_of_date_from_session(session: Mapping[str, Any] | None) -> date:
+    raw = _session_path(session, "as_of_date", "packet_as_of_date", "today")
+    if not raw:
+        raw = os.environ.get("OPENCLAW_TODAY", "").strip()
+    if raw:
+        try:
+            return datetime.fromisoformat(raw).date()
+        except ValueError:
+            pass
+    return datetime.now(timezone.utc).date()
+
+
+def _client_display(client_ref: str) -> str:
+    return _CLIENT_DISPLAY_NAMES.get(client_ref, client_ref.replace("_", " ").title())
+
+
+def _money_minor_units(value: int, currency: str) -> str:
+    major = value / 100
+    if major.is_integer():
+        return f"{currency} {int(major)}"
+    return f"{currency} {major:.2f}"
+
+
+def _current_open_receivables_by_client(db_path: Path) -> dict[str, list[Any]]:
+    if not db_path.exists():
+        return {}
+    try:
+        from ar_expected_receivable_record import ExpectedReceivableRecord
+        from ar_gig_to_cash_store import GigToCashStore
+        from temporal_recurrence_registry import client_ref_slug
+    except Exception:
+        return {}
+
+    grouped: dict[str, list[Any]] = {}
+    try:
+        with GigToCashStore(str(db_path)) as store:
+            conn = getattr(store, "_conn", None)
+            if conn is None:
+                return {}
+            rows = conn.execute(
+                """
+                SELECT receivable_id
+                FROM expected_receivable_records
+                WHERE receivable_version_id NOT IN (
+                    SELECT supersedes_receivable_version_id
+                    FROM expected_receivable_records
+                    WHERE supersedes_receivable_version_id IS NOT NULL
+                )
+                ORDER BY ingestion_seq ASC
+                """
+            ).fetchall()
+            for row in rows:
+                current = store.get_current(ExpectedReceivableRecord, row["receivable_id"])
+                if current is None or current.lifecycle_state != "open":
+                    continue
+                grouped.setdefault(client_ref_slug(current.counterparty_ref), []).append(current)
+    except Exception:
+        return {}
+    return grouped
+
+
+def _receivable_temporal_facts(
+    *,
+    session: Mapping[str, Any] | None,
+    question: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ar_path_raw = _session_path(
+        session,
+        "gig_to_cash_db_path",
+        "ar_gig_to_cash_db_path",
+        "receivable_ledger_path",
+    )
+    proof: dict[str, Any] = {
+        "receivable_temporal_scoping_used": False,
+        "receivable_temporal_fact_count": 0,
+    }
+    if not ar_path_raw:
+        return [], proof
+
+    ar_path = Path(ar_path_raw)
+    open_by_client = _current_open_receivables_by_client(ar_path)
+    paid_store_raw = _session_path(
+        session,
+        "client_paid_through_store_path",
+        "paid_through_store_path",
+        "receivable_paid_through_store_path",
+    )
+    now = _as_of_date_from_session(session)
+    facts: list[dict[str, Any]] = []
+
+    clients = set(open_by_client)
+    question_lower = str(question or "").lower()
+    if any(token in question_lower for token in ("st anne", "st anne's", "st annes", "saint anne")):
+        clients.add("st_annes")
+    if not clients:
+        return [], proof
+
+    try:
+        from receivable_temporal_scoping import ClientPaidThroughStore, paid_up_state_for_client
+        from temporal_recurrence_registry import paid_up_state
+    except Exception:
+        return [], proof
+
+    paid_store = ClientPaidThroughStore(paid_store_raw) if paid_store_raw else None
+    for client_ref in sorted(clients):
+        open_receivables = open_by_client.get(client_ref, [])
+        if paid_store is not None:
+            state = paid_up_state_for_client(client_ref, now=now, paid_through_store=paid_store)
+        else:
+            state = paid_up_state(client_ref, paid_through=None, now=now)
+        if not open_receivables and state.status == "unknown_scope":
+            continue
+        receivable_bits = []
+        for receivable in open_receivables[:5]:
+            receivable_bits.append(
+                f"{receivable.receivable_id} due {receivable.due_date_iso} "
+                f"for {_money_minor_units(receivable.expected_minor_units, receivable.currency_iso)}"
+            )
+        value = (
+            f"{_client_display(client_ref)} current receivable state: {state.status}; "
+            f"paid_through={state.paid_through.isoformat() if state.paid_through else 'unknown'}; "
+            f"next_expected_invoice={state.next_expected_invoice.isoformat() if state.next_expected_invoice else 'unknown'}; "
+            f"open_receivables={'; '.join(receivable_bits) if receivable_bits else 'none'}."
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="receivable_temporal_state",
+            label=f"{_client_display(client_ref)} receivable temporal state",
+            value=value,
+            provenance="receivable_temporal_scoping",
+            source_ref=f"gig_to_cash:{ar_path.as_posix()}",
+            pii_tier="LIGHT",
+            freshness={
+                "as_of": now.isoformat(),
+                "client_ref": client_ref,
+                "paid_through_store_ref": paid_store_raw,
+            },
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "client_ref": client_ref,
+                    "paid_up_status": state.status,
+                    "paid_through": state.paid_through.isoformat() if state.paid_through else "",
+                    "next_expected_invoice": state.next_expected_invoice.isoformat() if state.next_expected_invoice else "",
+                    "open_receivable_count": len(open_receivables),
+                    "current_truth": True,
+                    "authority_source": "receivable_temporal_scoping.paid_up_state_for_client",
+                }
+            )
+
+    proof["receivable_temporal_scoping_used"] = bool(facts)
+    proof["receivable_temporal_fact_count"] = len(facts)
+    proof["receivable_temporal_clients"] = [str(fact.get("client_ref") or "") for fact in facts]
+    return facts, proof
+
+
+def _fact_mentions_client(fact: Mapping[str, Any], client_ref: str) -> bool:
+    display = _client_display(client_ref).lower()
+    compact_display = display.replace("'", "")
+    blob = " ".join(str(fact.get(key) or "") for key in ("label", "value", "source_ref", "entity_key")).lower()
+    blob_compact = blob.replace("'", "")
+    return client_ref in blob_compact or display in blob or compact_display in blob_compact
+
+
+def _resolve_operator_truth_drift(
+    truth_facts: Sequence[Mapping[str, Any]],
+    temporal_facts: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    authoritative_due = {
+        str(fact.get("client_ref") or ""): fact
+        for fact in temporal_facts
+        if str(fact.get("paid_up_status") or "") == "invoice_due" or int(fact.get("open_receivable_count") or 0) > 0
+    }
+    resolved: list[dict[str, Any]] = []
+    for fact in truth_facts:
+        cloned = dict(fact)
+        for client_ref, temporal_fact in authoritative_due.items():
+            if not client_ref or not _fact_mentions_client(cloned, client_ref):
+                continue
+            if not _PAID_UP_NOTE_RE.search(str(cloned.get("value") or "")):
+                continue
+            cloned.update(
+                {
+                    "current_truth": False,
+                    "drift_status": "superseded_by_receivable_temporal_state",
+                    "drift_resolution": "ledger_wins",
+                    "superseded_by_source_ref": str(temporal_fact.get("source_ref") or ""),
+                    "value": (
+                        f"{_client_display(client_ref)} has a prior settlement note, but the current "
+                        f"receivable temporal state is {temporal_fact.get('paid_up_status')}; use the "
+                        "receivable state as current."
+                    ),
+                }
+            )
+            break
+        resolved.append(cloned)
+    return resolved
 
 
 def _contacts_db_path() -> str:
@@ -1209,9 +1443,14 @@ def build_maestro_context_packet(
     generated_at = _utc_now()
 
     truth_facts, operator_truth_used, truth_ref = _operator_truth_facts(path=truth_path, question=question)
+    receivable_temporal_facts, receivable_temporal_proof = _receivable_temporal_facts(
+        session=session,
+        question=question,
+    )
+    truth_facts = _resolve_operator_truth_drift(truth_facts, receivable_temporal_facts)
     contacts_facts, contacts_proof = _contacts_registry_facts(question)
     read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root)
-    facts = [*truth_facts, *contacts_facts, *read_model_facts]
+    facts = [*receivable_temporal_facts, *truth_facts, *contacts_facts, *read_model_facts]
 
     # SQLite canonical-facts source — DEFAULT-OFF.
     # Enabled when packet_source param is "sqlite"/"hybrid", OR when
@@ -1224,7 +1463,7 @@ def build_maestro_context_packet(
         # operator truth) so they survive format_maestro_context_packet's facts[:30] cap on
         # packet_text. Appending at the end risked silent truncation when truth+read-models
         # already fill the cap (AGY-G flip-1 audit, hole #3).
-        facts = [*truth_facts, *contacts_facts, *sqlite_facts, *read_model_facts]
+        facts = [*receivable_temporal_facts, *truth_facts, *contacts_facts, *sqlite_facts, *read_model_facts]
 
     # ── Interpreter LM fact-selection elevation (flag-gated, ADDITIVE) ──────────
     # When OPENCLAW_INTERPRETER_LM is on AND fact_selection is a non-empty list,
@@ -1360,6 +1599,7 @@ def build_maestro_context_packet(
                 builder_name="maestro_context_packet.build_maestro_context_packet",
                 facts=facts,
             ),
+            **receivable_temporal_proof,
             **contacts_proof,
             **read_model_proof,
         },
@@ -1459,9 +1699,14 @@ def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
         source = str(fact.get("source_ref") or "")
         provenance = str(fact.get("provenance") or "")
         tier = str(fact.get("pii_tier") or "PUBLIC")
+        handling = ""
+        if fact.get("raw_operator_note") and fact.get("verbatim_readback") is False:
+            handling = "; raw_operator_note=true; verbatim_readback=false; distill_not_quote"
+        if fact.get("current_truth") is False:
+            handling = f"{handling}; current_truth=false; drift_resolution={fact.get('drift_resolution') or 'downranked'}"
         lines.append(
             f"- {fact.get('label')}: {fact.get('value')} "
-            f"[tier={tier}; provenance={provenance}; source={source}]"
+            f"[tier={tier}; provenance={provenance}; source={source}{handling}]"
         )
     if skills:
         lines.extend(["", "Applied skills:"])
