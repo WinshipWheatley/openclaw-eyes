@@ -553,6 +553,28 @@ def _deep_map(
     }
 
 
+def _domain_module_orient_section() -> dict[str, Any]:
+    """Attach read-only domain-module onboarding status when the registry is present."""
+
+    try:
+        from domain_module_registry import domain_orient_section
+
+        return domain_orient_section()
+    except Exception as exc:  # noqa: BLE001 - orient must remain available if optional metadata breaks.
+        return {
+            "schema_version": "domain_module_registry_v0",
+            "status": "unavailable",
+            "reason": type(exc).__name__,
+            "authority_boundary": {
+                "read_only": True,
+                "runtime_mutation_allowed": False,
+                "ledger_mutation_allowed": False,
+                "send_or_payment_allowed": False,
+            },
+            "domains": [],
+        }
+
+
 def orient(
     level: str = "high",
     *,
@@ -593,6 +615,7 @@ def orient(
     coverage = build_graph_coverage_section(nodes)
     if isinstance(system_map, dict):
         system_map["coverage"] = coverage
+        system_map["domain_modules"] = _domain_module_orient_section()
 
     payload = _base_envelope(
         level=level_key,
