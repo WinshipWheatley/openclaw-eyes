@@ -183,6 +183,10 @@ def _fact_text(fact: Mapping[str, Any]) -> str:
     parts = [str(fact.get(key) or "") for key in ("label", "value")]
     body = ": ".join(part for part in parts if part).strip()
     body = body or str(fact.get("value") or "").strip()
+    if fact.get("raw_operator_note") and fact.get("verbatim_readback") is False:
+        body = f"{body} [raw operator note: distill the meaning; do not quote verbatim]"
+    if fact.get("current_truth") is False:
+        body = f"{body} [not current truth: {fact.get('drift_resolution') or 'downranked'}]"
     note, _stale = _fact_freshness_note(fact)
     return f"{body} {note}".strip() if note else body
 
