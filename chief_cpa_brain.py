@@ -23,7 +23,15 @@ import re
 from datetime import datetime, date
 from pathlib import Path
 
-from chief_llm import external_model_packet_policy, ollama_call, ollama_json, nemotron_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
+
+from chief_llm import external_model_packet_policy, ollama_json, nemotron_call
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -394,7 +402,7 @@ def _format_income_reply(summary: dict) -> str:
     # Local Ollama — income summary includes client names and invoice numbers.
     # This data class is LOCAL-ONLY; it must not be sent to any external LLM.
     try:
-        result = ollama_call(prompt, timeout=30).strip()
+        result = _local_model_call(prompt, timeout=30).strip()
     except Exception as e:
         print(f"[chief_cpa] income reply LLM error: {e}", flush=True)
         result = ""
@@ -410,7 +418,7 @@ def _format_income_reply(summary: dict) -> str:
 def _format_tax_reply(est: dict) -> str:
     prompt = _TAX_PROMPT.format(**est)
     try:
-        result = ollama_call(prompt, timeout=30).strip()
+        result = _local_model_call(prompt, timeout=30).strip()
     except Exception as e:
         print(f"[chief_cpa] tax reply LLM error: {e}", flush=True)
         result = ""

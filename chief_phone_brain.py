@@ -21,7 +21,15 @@ import json
 from datetime import datetime, date
 from pathlib import Path
 
-from chief_llm import ollama_call, ollama_json
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
+
+from chief_llm import ollama_json
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -124,7 +132,7 @@ def _generate_script(text: str) -> str:
                 context_lines.append(f"  Invoice reference: {call['invoice_ref']}")
 
     prompt = _SCRIPT_PROMPT.format(context="\n".join(context_lines))
-    result = ollama_call(prompt, timeout=40).strip()
+    result = _local_model_call(prompt, timeout=40).strip()
     if not result:
         return (
             "Call script:\n"

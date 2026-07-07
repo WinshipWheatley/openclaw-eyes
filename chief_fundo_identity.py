@@ -23,7 +23,12 @@ Saves to:
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ────────────────────────────────────────────────────────────────────────
 
@@ -208,7 +213,7 @@ def handle(text: str = "") -> list[str]:
     # ── Who is Fundo ─────────────────────────────────────────────────────────────
     if "who is fundo" in t or "what is fundo" in t:
         prompt = _WHO_PROMPT.format(brief=FUNDO_FULL_BRIEF)
-        result = ollama_call(prompt, timeout=25, task_class="chief_structured_plan")
+        result = _local_model_call(prompt, timeout=25, task_class="chief_structured_plan")
         return [result or "fundo does not answer directly."]
 
     # ── Visual direction ─────────────────────────────────────────────────────────
@@ -217,7 +222,7 @@ def handle(text: str = "") -> list[str]:
         context = re.sub(r"fundo visual|visual direction", "", text, flags=re.IGNORECASE).strip()
         context = context or "an Instagram post announcing the first release"
         prompt  = _VISUAL_PROMPT.format(brief=FUNDO_FULL_BRIEF, context=context)
-        result  = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
+        result  = _local_model_call(prompt, timeout=30, task_class="chief_structured_plan")
         fallback = "VISUAL CONCEPT (Fallback): Thrift store anonymous. Near-black palette. Found objects and textures. No face visible."
         return [result or fallback]
 
@@ -228,13 +233,13 @@ def handle(text: str = "") -> list[str]:
         num = int(m.group()) if m else 1
         num = max(1, min(num, 15))
         prompt = _ARC_PROMPT.format(brief=FUNDO_FULL_BRIEF, number=num)
-        result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
+        result = _local_model_call(prompt, timeout=30, task_class="chief_structured_plan")
         fallback = f"Track #{num} (Fallback): Refer to the 15-song arc in Fundo Identity.md for position details."
         return [f"Track #{num} Arc Brief:\n\n{result}" if result else fallback]
 
     # ── Full brief (default) ─────────────────────────────────────────────────────
     prompt = _BRIEF_PROMPT.format(brief=FUNDO_FULL_BRIEF)
-    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
+    result = _local_model_call(prompt, timeout=30, task_class="chief_structured_plan")
     full   = result or "Fundo: an anonymous electronic project. Roots in world rhythm. Filtered through club, house, DnB, techno, and cosmic energy. Nobody knows if it's human or AI."
     return [f"Fundo Identity:\n\n{full}\n\n---\nFull brief saved to: openclaw-vault/Fundo/Fundo Identity.md"]
 

@@ -92,3 +92,92 @@ def test_adaptive_model_call_supports_legacy_ollama_fixture_without_attempts() -
 
     assert result == "legacy answer"
     assert calls == [{"prompt": "Answer briefly.", "timeout": 30, "model": "gemma4:31b"}]
+
+
+def test_adaptive_ollama_text_preserves_explicit_model_without_resolving() -> None:
+    calls: list[dict] = []
+
+    def fake_ollama(prompt, **kwargs):
+        calls.append(kwargs)
+        return "explicit model answer"
+
+    def fail_resolve(*_args, **_kwargs):
+        raise AssertionError("explicit model should not resolve a primary route")
+
+    result = adaptive.adaptive_ollama_text(
+        "Summarize this packet.",
+        timeout=60,
+        model="nemotron:30b",
+        task_class="chief_evidence_synthesis",
+        ollama_call_fn=fake_ollama,
+        resolve_model_fn=fail_resolve,
+    )
+
+    assert result == "explicit model answer"
+    assert calls == [
+        {
+            "timeout": 60,
+            "model": "nemotron:30b",
+            "task_class": "chief_evidence_synthesis",
+            "attempts": 1,
+        }
+    ]
+
+
+def test_adaptive_model_call_preserves_frontdoor_metadata_options_on_retry() -> None:
+    calls: list[dict] = []
+
+    def fake_ollama(prompt, **kwargs):
+        calls.append(kwargs)
+        if kwargs["model"] == "qwen3.5:4b":
+            return {"text": "", "done_reason": "load", "status": "empty"}
+        return {"text": "frontdoor answer", "done_reason": "stop", "status": "success"}
+
+    result = adaptive.adaptive_model_call(
+        "Front-door prompt",
+        task_class="frontdoor_reply",
+        timeout=25.0,
+        primary_model="qwen3.5:4b",
+        primary_lane="frontdoor_largest_fitting",
+        attempts=1,
+        think=False,
+        num_predict=180,
+        options={"temperature": 0},
+        keep_alive="30s",
+        return_metadata=True,
+        ollama_call_fn=fake_ollama,
+        select_model_fn=lambda **_kwargs: ("qwen3:8b-q4_K_M", "frontdoor_step_down_system_load"),
+        resource_probe_fn=lambda: SimpleNamespace(
+            available_vram_gb=1.0,
+            available_ram_gb=12.0,
+            system_load_1m=9.0,
+            cpu_count=4,
+            resident_vram_by_model_gb=lambda: {},
+        ),
+    )
+
+    assert result["text"] == "frontdoor answer"
+    assert calls == [
+        {
+            "timeout": 25.0,
+            "model": "qwen3.5:4b",
+            "task_class": "frontdoor_reply",
+            "attempts": 1,
+            "think": False,
+            "num_predict": 180,
+            "options": {"temperature": 0},
+            "keep_alive": "30s",
+            "return_metadata": True,
+        },
+        {
+            "timeout": 25.0,
+            "model": "qwen3:8b-q4_K_M",
+            "task_class": "frontdoor_reply",
+            "attempts": 1,
+            "think": False,
+            "num_predict": 180,
+            "options": {"temperature": 0},
+            "keep_alive": "30s",
+            "return_metadata": True,
+        },
+    ]

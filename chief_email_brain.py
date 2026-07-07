@@ -33,7 +33,15 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 
-from chief_llm import ollama_call, ollama_json
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
+
+from chief_llm import ollama_json
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -292,7 +300,7 @@ def _draft_email(to_name: str, topic: str, context: str, email_type: str) -> tup
         context=context or "none",
         email_type=email_type,
     )
-    raw = ollama_call(prompt, timeout=30, lane="strong").strip()
+    raw = _local_model_call(prompt, timeout=30, lane="strong").strip()
 
     if not raw:
         # Fallback draft

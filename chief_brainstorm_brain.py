@@ -24,7 +24,15 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import external_model_packet_policy, ollama_call, nemotron_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
+
+from chief_llm import external_model_packet_policy, nemotron_call
 from chief_session_manager import (
     set_workflow,
     set_workflow_state,
@@ -174,8 +182,8 @@ def _synthesize(raw_text: str) -> dict:
     if not result:
         # Local Ollama fallback — used when privacy check blocks cloud routing,
         # or when Nemotron call fails. Does NOT send blocked content to any cloud.
-        # ollama_call() auto-escalates to 14b for synthesis-length prompts.
-        result = ollama_call(prompt, timeout=60, task_class="chief_structured_plan").strip()
+        # _local_model_call() auto-escalates to 14b for synthesis-length prompts.
+        result = _local_model_call(prompt, timeout=60, task_class="chief_structured_plan").strip()
     result = re.sub(r"^```[a-z]*\n?", "", result)
     result = re.sub(r"\n?```$", "", result.strip())
     try:

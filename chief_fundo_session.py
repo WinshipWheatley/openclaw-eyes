@@ -36,7 +36,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ────────────────────────────────────────────────────────────────────────
 
@@ -158,7 +163,7 @@ def _generate_suno_prompt(session: dict) -> str:
         position=session["position"],
         name=session["name"],
     )
-    result = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
+    result = _local_model_call(prompt, timeout=40, task_class="chief_structured_plan")
     return result or f"Suno prompt generation failed for '{session['name']}'. Check local model routing."
 
 
@@ -233,7 +238,7 @@ def _coach_next_element(session: dict) -> str:
         coached_list=coached_list,
         element_label=label,
     )
-    result = ollama_call(prompt, timeout=45, task_class="chief_structured_plan")
+    result = _local_model_call(prompt, timeout=45, task_class="chief_structured_plan")
     return result or f"Coaching unavailable for {label} — local model unavailable."
 
 
@@ -339,7 +344,7 @@ def handle(text: str = "") -> list[str]:
             position=session["position"],
             name=session["name"],
         )
-        new_prompt = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
+        new_prompt = _local_model_call(prompt, timeout=40, task_class="chief_structured_plan")
         if new_prompt:
             session["suno_prompt"] = new_prompt
             _save_sessions(data)

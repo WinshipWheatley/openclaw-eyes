@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
-from chief_llm import ollama_call, resolve_local_model, select_frontdoor_model
+import chief_llm
 from frontdoor_resource_probe import probe_frontdoor_resources
 
+
+resolve_local_model = chief_llm.resolve_local_model
+select_frontdoor_model = chief_llm.select_frontdoor_model
 
 RouteLogger = Callable[..., None]
 OllamaCallFn = Callable[..., str]
@@ -21,16 +24,30 @@ def _call_ollama_once(
     ollama_call_fn: OllamaCallFn,
     prompt: str,
     *,
-    timeout: int,
+    timeout: int | float,
     model: str,
-    task_class: str,
-) -> str:
+    task_class: str | None,
+    attempts: int | None = 1,
+    think: bool | None = None,
+    num_predict: int | None = None,
+    options: Mapping[str, Any] | None = None,
+    keep_alive: str | None = None,
+    return_metadata: bool = False,
+) -> Any:
     kwargs = {
         "timeout": timeout,
         "model": model,
         "task_class": task_class,
-        "attempts": 1,
+        "attempts": attempts,
+        "think": think,
+        "num_predict": num_predict,
+        "options": dict(options) if options else None,
+        "keep_alive": keep_alive,
+        "return_metadata": return_metadata,
     }
+    kwargs = {key: value for key, value in kwargs.items() if value is not None}
+    if not return_metadata:
+        kwargs.pop("return_metadata", None)
     try:
         signature = inspect.signature(ollama_call_fn)
     except (TypeError, ValueError):
@@ -48,7 +65,14 @@ def _call_ollama_once(
                 in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
             }
             call_kwargs = {key: value for key, value in kwargs.items() if key in allowed}
-    return str(ollama_call_fn(prompt, **call_kwargs) or "")
+    result = ollama_call_fn(prompt, **call_kwargs)
+    return result if return_metadata else str(result or "")
+
+
+def _result_has_text(result: Any) -> bool:
+    if isinstance(result, Mapping):
+        return bool(str(result.get("text") or result.get("response") or "").strip())
+    return bool(str(result or "").strip())
 
 
 def _snapshot_kwargs(snapshot: Any) -> dict[str, Any]:
@@ -90,12 +114,18 @@ def _choose_retry_model(
 def adaptive_model_call(
     prompt: str,
     *,
-    task_class: str,
-    timeout: int,
+    task_class: str | None,
+    timeout: int | float,
     primary_model: str | None = None,
     primary_lane: str | None = None,
     lane: str | None = None,
     validation_outcome: str | None = None,
+    attempts: int | None = 1,
+    think: bool | None = None,
+    num_predict: int | None = None,
+    options: Mapping[str, Any] | None = None,
+    keep_alive: str | None = None,
+    return_metadata: bool = False,
     ollama_call_fn: OllamaCallFn | None = None,
     resolve_model_fn: ResolveModelFn | None = None,
     select_model_fn: SelectModelFn | None = None,
@@ -111,7 +141,7 @@ def adaptive_model_call(
     the caller emits its honest degraded fallback.
     """
 
-    ollama_call_fn = ollama_call_fn or ollama_call
+    ollama_call_fn = ollama_call_fn or chief_llm.ollama_call
     resolve_model_fn = resolve_model_fn or resolve_local_model
     select_model_fn = select_model_fn or select_frontdoor_model
     resource_probe_fn = resource_probe_fn or probe_frontdoor_resources
@@ -134,8 +164,14 @@ def adaptive_model_call(
         timeout=timeout,
         model=primary_model,
         task_class=task_class,
+        attempts=attempts,
+        think=think,
+        num_predict=num_predict,
+        options=options,
+        keep_alive=keep_alive,
+        return_metadata=return_metadata,
     )
-    if result or not retry:
+    if _result_has_text(result) or not retry:
         return result
 
     retry_model, retry_reason = _choose_retry_model(
@@ -144,7 +180,7 @@ def adaptive_model_call(
         resource_probe_fn=resource_probe_fn,
     )
     if not retry_model:
-        return ""
+        return result if return_metadata else ""
     if route_logger is not None:
         route_logger(
             task_class=task_class,
@@ -161,4 +197,51 @@ def adaptive_model_call(
         timeout=timeout,
         model=retry_model,
         task_class=task_class,
+        attempts=attempts,
+        think=think,
+        num_predict=num_predict,
+        options=options,
+        keep_alive=keep_alive,
+        return_metadata=return_metadata,
+    )
+
+
+def adaptive_ollama_text(
+    prompt: str,
+    *,
+    timeout: int | float = 15,
+    task_class: str | None = None,
+    lane: str | None = None,
+    model: str | None = None,
+    attempts: int | None = 1,
+    think: bool | None = None,
+    num_predict: int | None = None,
+    options: Mapping[str, Any] | None = None,
+    keep_alive: str | None = None,
+    return_metadata: bool = False,
+    retry: bool = True,
+    **test_overrides: Any,
+) -> Any:
+    """Compatibility wrapper for old ``ollama_call``-shaped call sites.
+
+    The primary call preserves explicit ``model`` / ``lane`` / ``task_class``
+    arguments, while empty responses get the shared adaptive retry.
+    """
+
+    primary_lane = lane if model is None else (lane or "explicit_model")
+    return adaptive_model_call(
+        prompt,
+        task_class=task_class,
+        timeout=timeout,
+        primary_model=model,
+        primary_lane=primary_lane,
+        lane=lane,
+        attempts=attempts,
+        think=think,
+        num_predict=num_predict,
+        options=options,
+        keep_alive=keep_alive,
+        return_metadata=return_metadata,
+        retry=retry,
+        **test_overrides,
     )

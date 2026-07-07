@@ -23,7 +23,12 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 try:
     import requests
@@ -231,7 +236,7 @@ def _brand_analysis(results: list[PageResult]) -> str:
             summaries.append(f"  {icon} {name}: {detail}")
     summaries_text = "\n".join(summaries)
 
-    result = ollama_call(
+    result = _local_model_call(
         _BRAND_PROMPT.format(page_summaries=summaries_text),
         timeout=30,
         task_class="chief_evidence_synthesis",

@@ -23,7 +23,15 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call, ollama_json
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
+
+from chief_llm import ollama_json
 
 # ── Paths ───────────────────────────────────────────────────────────────────────
 
@@ -217,7 +225,7 @@ def _handle_status(state: dict) -> list[str]:
 
     statuses_text = "\n".join(status_lines)
     prompt        = _PRIORITY_PROMPT.format(statuses=statuses_text)
-    analysis      = ollama_call(prompt, timeout=30)
+    analysis      = _local_model_call(prompt, timeout=30)
 
     if not analysis:
         # Fallback: find first not_started section

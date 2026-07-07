@@ -471,43 +471,23 @@ def _call_local_ollama(
     keep_alive: str | None = None,
     return_metadata: bool = False,
 ) -> Any:
-    from chief_llm import ollama_call
+    from adaptive_model_call import adaptive_ollama_text
 
-    try:
-        signature = inspect.signature(ollama_call)
-    except (TypeError, ValueError):
-        signature = None
     kwargs: dict[str, Any] = {
         "timeout": timeout,
         "task_class": task_class,
-    }
-    if model:
-        kwargs["model"] = model
-    if signature is not None and (
-        "attempts" in signature.parameters
-        or any(param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values())
-    ):
-        kwargs["attempts"] = attempts
-    for key, value in {
+        "attempts": attempts,
         "think": think,
         "num_predict": num_predict,
         "return_metadata": return_metadata,
-    }.items():
-        if signature is None or key in signature.parameters or any(
-            param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()
-        ):
-            kwargs[key] = value
-    for key, value in {
-        "options": dict(options) if options else None,
-        "keep_alive": keep_alive,
-    }.items():
-        if value is not None and (
-            signature is None or key in signature.parameters or any(
-                param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()
-            )
-        ):
-            kwargs[key] = value
-    result = ollama_call(prompt, **kwargs)
+    }
+    if model:
+        kwargs["model"] = model
+    if options:
+        kwargs["options"] = dict(options)
+    if keep_alive is not None:
+        kwargs["keep_alive"] = keep_alive
+    result = adaptive_ollama_text(prompt, **kwargs)
     if return_metadata:
         return result
     return str(result or "")

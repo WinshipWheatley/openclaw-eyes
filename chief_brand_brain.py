@@ -20,7 +20,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -148,7 +153,7 @@ def _check_on_brand(content: str, brand: dict) -> str:
         content=content[:500],
     )
     try:
-        result = ollama_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
+        result = _local_model_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
     except Exception:
         result = ""
     return result if _usable_brand_check(result) else _fallback_brand_check(content, brand)

@@ -24,7 +24,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -203,7 +208,7 @@ def _ask_llm(question: str) -> str:
         case=TEN_FINGERS_CASE,
         question=question,
     )
-    result = _ensure_musiclaw_safety(ollama_call(prompt, timeout=45))
+    result = _ensure_musiclaw_safety(_local_model_call(prompt, timeout=45))
     if not result:
         return (
             "Unable to generate advice right now. "
@@ -219,7 +224,7 @@ def _options_summary() -> str:
         knowledge=MUSIC_LAW_KNOWLEDGE,
         case=TEN_FINGERS_CASE,
     )
-    result = _ensure_musiclaw_safety(ollama_call(prompt, timeout=45))
+    result = _ensure_musiclaw_safety(_local_model_call(prompt, timeout=45))
     if not result:
         return (
             "Options for Ten Fingers dispute:\n"

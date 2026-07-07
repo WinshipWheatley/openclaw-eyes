@@ -7,7 +7,12 @@ from datetime import datetime
 from pathlib import Path
 
 from chief_file_io import load_json, save_json
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 from chief_session_manager import (
     get_workflow_state,
@@ -262,7 +267,7 @@ def _llm_normalize_billing_answer(field: str, raw: str) -> str:
         return raw  # No normalization needed for text fields
     today = datetime.now().strftime("%Y-%m-%d")
     prompt = _NORMALIZE_PROMPT.format(field=field, raw=raw, today=today)
-    result = ollama_call(prompt, timeout=10).strip()
+    result = _local_model_call(prompt, timeout=10).strip()
     # Sanity-check: for amounts, ensure result looks numeric
     if field in _AMOUNT_FIELDS:
         cleaned = re.sub(r"[^\d.]", "", result)

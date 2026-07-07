@@ -360,7 +360,7 @@ def emit_packet_enrich_tasks(
 
 
 def default_lm_useful_scorer() -> Callable[[Sequence[Mapping[str, Any]], str], float]:
-    """An lm_useful_scorer wired to the system's local LLM (chief_llm.ollama_call).
+    """An lm_useful_scorer wired to the system's adaptive local LLM layer.
 
     This is the "LM useful-scorer live" wiring: relevance judged by the real model instead of
     the deterministic term-match. Intended for the periodic enrich drain (not the per-response
@@ -368,9 +368,9 @@ def default_lm_useful_scorer() -> Callable[[Sequence[Mapping[str, Any]], str], f
     """
 
     def _generate(prompt: str) -> str:
-        from chief_llm import ollama_call  # local import: keeps the critic importable without the model
+        from adaptive_model_call import adaptive_ollama_text
 
-        return str(ollama_call(prompt) or "")
+        return str(adaptive_ollama_text(prompt) or "")
 
     return lm_useful_scorer(_generate)
 

@@ -20,7 +20,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -185,7 +190,7 @@ def _get_checkin(goals: list[dict]) -> str:
     goals_text = _build_goals_text(goals)
     prompt = _CHECKIN_PROMPT.format(goals_text=goals_text)
     try:
-        result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
+        result = _local_model_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
     except Exception:
         result = ""
     return result if not _weak_checkin(result) else _fallback_checkin(goals)

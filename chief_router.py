@@ -52,7 +52,15 @@ def _log_route(msg_hash: str, intent: str, llm_fallback: bool) -> None:
     except Exception as e:
         print(f"[route_log] write error: {e}", flush=True)
 
-from chief_llm import ollama_call, ollama_json
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
+
+from chief_llm import ollama_json
 from chief_session_manager import (
     load_session,
     set_workflow,
@@ -679,7 +687,7 @@ def _llm_classify_intent(text: str) -> str | None:
     _llm_fallback_fired = True
     try:
         prompt = _CLASSIFY_PROMPT.format(text=text)
-        result = ollama_call(prompt, timeout=10).lower().strip()
+        result = _local_model_call(prompt, timeout=10).lower().strip()
         valid = {"invoice", "payment", "followup", "receipt", "album",
                  "cpa", "calendar", "analytics", "goals"}
         return result if result in valid else None
@@ -1325,7 +1333,7 @@ Response discipline:
 
 def _chief_fallback_reply(text: str) -> list[str]:
     """Last-resort conversational fallback for Chief."""
-    from chief_llm import ollama_call
+    from adaptive_model_call import adaptive_ollama_text
     from chief_output_utils import tts_clean
     from cassandra_brain import build_context_snapshot
 
@@ -1339,7 +1347,7 @@ def _chief_fallback_reply(text: str) -> list[str]:
 
     try:
         # Use deep model with long timeout for generic conversational replies.
-        reply = ollama_call(prompt, timeout=600, model="qwen3.6:latest", task_class="chief_user_reply")
+        reply = _local_model_call(prompt, timeout=600, model="qwen3.6:latest", task_class="chief_user_reply")
         if not reply:
             return ["I processed that, but I have no specific operational response. Anything else?"]
         return [tts_clean(reply)]

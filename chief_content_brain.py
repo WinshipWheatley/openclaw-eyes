@@ -23,7 +23,12 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -145,7 +150,7 @@ def _get_recommendation(queue: list[dict], overdue: list[str]) -> str:
     overdue_str = "\n".join(f"- {o}" for o in overdue) or "none"
     prompt = _RECOMMENDATION_PROMPT.format(queue_items=queue_str, overdue=overdue_str)
     try:
-        result = ollama_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
+        result = _local_model_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
     except Exception:
         result = ""
     return result if _usable_recommendation(result) else _fallback_recommendation(queue, overdue)

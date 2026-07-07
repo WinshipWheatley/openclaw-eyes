@@ -27,7 +27,12 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -281,7 +286,7 @@ No bullet points. No headers."""
 
 def _build_narrative(report: str) -> str:
     prompt = _NARRATIVE_PROMPT.format(report=report)
-    result = ollama_call(prompt, timeout=20).strip()
+    result = _local_model_call(prompt, timeout=20).strip()
     return result if result else ""
 
 

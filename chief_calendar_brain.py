@@ -22,7 +22,12 @@ Run: python3 google_access_broker.py --auth  (one-time setup)
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ────────────────────────────────────────────────────────────────────────
 
@@ -181,7 +186,7 @@ def _build_summary(events: list[dict], hardcoded: list[dict]) -> str:
         event_lines=event_lines,
         hardcoded_lines=hardcoded_lines,
     )
-    result = ollama_call(prompt, timeout=30)
+    result = _local_model_call(prompt, timeout=30)
     return result or f"Events this week:\n{event_lines}\n\nHardcoded:\n{hardcoded_lines}"
 
 
