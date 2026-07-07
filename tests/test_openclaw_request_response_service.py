@@ -600,6 +600,31 @@ def _safe_heartbeat_path(response_dir: Path, request_id: str) -> Path:
     return response_dir / f"openclaw_processing_for_mac_{service._safe_filename_part(request_id)}.json"
 
 
+def test_service_publish_sanitizes_stale_carryover_response_text(tmp_path):
+    response_dir = tmp_path / "responses"
+    payload = {
+        "source_request_id": "stale-carryover-fixture",
+        "source_request_filename": "mission_control_chat_request_stale.json",
+        "request_type": "CHAT",
+        "internal_status": "RESPONSE_READY",
+        "operator_headline": "Response ready",
+        "operator_message": (
+            "The previous response was truncated. Continue? (61/61)\n"
+            "Still working... waiting for stream response\n"
+            "Fresh request-response answer."
+        ),
+        "how_to_fix": "No fix needed.",
+        "next_safe_move": "Show the response.",
+    }
+
+    published = service.publish_response_for_mac(payload, response_dir=response_dir, created_at=FIXED_NOW)
+    response = json.loads(Path(published.response_file).read_text(encoding="utf-8"))
+
+    assert response["operator_message"] == "Fresh request-response answer."
+    assert "Still working" not in json.dumps(response)
+    assert "previous response was truncated" not in json.dumps(response).lower()
+
+
 def _worker_receipt_rows(db_path: Path) -> list[sqlite3.Row]:
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row

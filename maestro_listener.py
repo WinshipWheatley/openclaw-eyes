@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from listener_resilience import clean_stale_carryover, honest_short_fail
+
 try:
     from telegram import Update
     from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
@@ -47,6 +49,11 @@ BLOCKED_OR_UNKNOWN_REPLY = (
     "Recorded, no action ran. Maestro did not receive a final answer for this request. "
     "Capability readback did not produce a final response. "
     "The request stayed inside the local bridge; no send, workflow, model, tool, or external action ran."
+)
+STALE_CARRYOVER_REPLY = honest_short_fail(
+    "Maestro",
+    no_action_line="The bridge stayed local; no send, workflow, model, tool, or external action ran.",
+    next_step="Retry after checking the request-response service and model contention.",
 )
 INTERIM_OR_STAGING_MARKERS = (
     "openclaw picked this up and is checking",
@@ -814,12 +821,23 @@ def _append_provenance(text: str, *, payload: Mapping[str, Any] | None, request_
     return f"{body}\n\n[{label}]"
 
 
+def _resilient_reply_text(text: str, *, payload: Mapping[str, Any] | None, request_id: str | None) -> str:
+    return str(
+        clean_stale_carryover(
+            text,
+            failure_text=_append_provenance(STALE_CARRYOVER_REPLY, payload=payload, request_id=request_id),
+        )
+    )
+
+
 def reply_text_from_bridge_response(payload: Mapping[str, Any] | None, *, request_id: str | None = None) -> str:
     if _blocked_or_unknown_response(payload):
-        return _append_provenance(BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
+        reply = _append_provenance(BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
+        return _resilient_reply_text(reply, payload=payload, request_id=request_id)
     assert payload is not None
     text = _best_final_text(payload)
-    return _append_provenance(text or BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
+    reply = _append_provenance(text or BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
+    return _resilient_reply_text(reply, payload=payload, request_id=request_id)
 
 
 # ── Fast "hang on" ack ────────────────────────────────────────────────────────

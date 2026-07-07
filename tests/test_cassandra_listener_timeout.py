@@ -67,6 +67,30 @@ def test_timeout_contract_success_sends_ack_then_result(monkeypatch):
     assert escalations == []
 
 
+def test_cassandra_reply_batch_sanitizes_stale_carryover(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+
+    async def _case():
+        async def fake_send(text: str):
+            sent.append(text)
+
+        delivered = await listener._send_reply_batch_or_degraded(
+            [
+                "The previous response was truncated. Continue? (61/61)\n"
+                "Still working... waiting for stream response\n"
+                "Fresh Cassandra answer."
+            ],
+            send_reply=fake_send,
+            should_deliver=lambda: True,
+        )
+        assert delivered == ["Fresh Cassandra answer."]
+
+    asyncio.run(_case())
+
+    assert sent == ["Fresh Cassandra answer."]
+
+
 def test_timeout_contract_escalates_after_timeout(monkeypatch):
     listener = _load_listener(monkeypatch)
     sent: list[str] = []
