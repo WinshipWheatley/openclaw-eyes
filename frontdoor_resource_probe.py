@@ -17,6 +17,12 @@ import urllib.request
 
 DEFAULT_OLLAMA_PS_URL = "http://localhost:11434/api/ps"
 WSL_NVIDIA_SMI = Path("/usr/lib/wsl/lib/nvidia-smi")
+# Task 135: /api/ps intermittently reports NO resident models while nvidia-smi shows real
+# card usage (observed live 2026-07-07 13:0x + 18:4x) -- residency credit lost entirely,
+# forcing an unnecessary step-down from a genuinely resident model. Treat an empty ps result
+# as UNKNOWN (not "genuinely idle") when the card shows more than this much used, and re-probe
+# once before accepting it.
+RESIDENCY_FLAKE_VRAM_USED_THRESHOLD_GB = 2.0
 
 
 @dataclass(frozen=True)
@@ -28,6 +34,7 @@ class FrontdoorResourceSnapshot:
     probe_errors: list[str]
     system_load_1m: float | None = None
     cpu_count: int | None = None
+    residency_probe_flake: bool = False
 
     def to_receipt_fields(self) -> dict[str, Any]:
         return {
@@ -38,6 +45,7 @@ class FrontdoorResourceSnapshot:
             "resource_probe_errors": list(self.probe_errors),
             "resource_probe_system_load_1m": self.system_load_1m,
             "resource_probe_cpu_count": self.cpu_count,
+            "resource_probe_residency_probe_flake": self.residency_probe_flake,
         }
 
     def resident_vram_by_model_gb(self) -> dict[str, float]:
@@ -188,6 +196,25 @@ def probe_frontdoor_resources(
         errors.append(f"cpu_count:{type(exc).__name__}")
     resident_models, ps_errors = _probe_ollama_ps(ollama_ps_url, timeout)
     errors.extend(ps_errors)
+    residency_probe_flake = False
+    vram_used_gb = (
+        total_vram_gb - available_vram_gb
+        if total_vram_gb is not None and available_vram_gb is not None
+        else None
+    )
+    if (
+        not resident_models
+        and vram_used_gb is not None
+        and vram_used_gb > RESIDENCY_FLAKE_VRAM_USED_THRESHOLD_GB
+    ):
+        # The card shows real usage but ps reported nothing resident -- likely a transient ps
+        # flake, not a genuinely empty card. Re-probe once before concluding otherwise.
+        retried_models, retry_errors = _probe_ollama_ps(ollama_ps_url, timeout)
+        if retried_models:
+            resident_models = retried_models
+        else:
+            residency_probe_flake = True
+            errors.extend(f"residency_retry_{err}" for err in retry_errors)
     return FrontdoorResourceSnapshot(
         available_vram_gb=available_vram_gb,
         total_vram_gb=total_vram_gb,
@@ -196,4 +223,5 @@ def probe_frontdoor_resources(
         probe_errors=errors,
         system_load_1m=system_load_1m,
         cpu_count=cpu_count,
+        residency_probe_flake=residency_probe_flake,
     )
