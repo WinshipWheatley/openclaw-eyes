@@ -782,6 +782,81 @@ def _proof_refs_for_source_room(source_room_context: Mapping[str, Any]) -> list[
     return proof_refs
 
 
+def _local_st_annes_proof_render_allowed(capability: Mapping[str, Any]) -> bool:
+    return (
+        capability.get("status") == "ALLOW_DRY_RUN"
+        and "local_pdf_proof_render" in set(capability.get("allowed_dry_run_actions") or ())
+    )
+
+
+def _st_annes_dry_run_proof_bundle(
+    source_room_context: Mapping[str, Any],
+    capability: Mapping[str, Any],
+) -> dict[str, Any]:
+    if source_room_context.get("package_ref") != "st_annes_monthly_invoice_rollup":
+        return {}
+    if not _local_st_annes_proof_render_allowed(capability):
+        return {}
+    proof_refs = _proof_refs_for_source_room(source_room_context)
+    if not proof_refs:
+        return {}
+    inventory = source_room_context.get("source_inventory")
+    sources = list(inventory.get("sources") or []) if isinstance(inventory, Mapping) else []
+    source_refs = [
+        str(source.get("source_ref"))
+        for source in sources
+        if isinstance(source, Mapping) and source.get("exists") is True and source.get("source_ref")
+    ]
+    rendered_artifacts = [
+        {
+            "artifact_ref": ref["artifact_ref"],
+            "artifact_kind": ref["artifact_kind"],
+            "source_inventory_ref": ref["source_inventory_ref"],
+            "render_mode": ref["render_mode"],
+            "source_backed": bool(source_refs),
+            "external_export_performed": False,
+            "email_send_performed": False,
+        }
+        for ref in proof_refs
+    ]
+    return {
+        "schema_version": "st_annes_dry_run_proof_bundle_v0",
+        "proof_bundle_id": "dry_run_proof_bundle:st_annes_monthly_invoice_rollup",
+        "emitter_ref": "workflow_package_queue:st_annes_dry_run_proof_bundle",
+        "workflow_ref": "st_annes_monthly_invoice_rollup",
+        "client_ref": "st_annes",
+        "source_inventory_ref": str(source_room_context.get("source_inventory_ref") or ""),
+        "conflict_log_ref": str(source_room_context.get("conflict_log_ref") or ""),
+        "duplicate_report_ref": str(source_room_context.get("duplicate_report_ref") or ""),
+        "decision_trace_ref": str(source_room_context.get("decision_trace_ref") or ""),
+        "artifact_order": [ref["artifact_kind"] for ref in proof_refs],
+        "proof_refs": proof_refs,
+        "rendered_artifacts": rendered_artifacts,
+        "source_refs": source_refs,
+        "blocked_actions": ["email_send", "workbook_write", "external_pdf_export"],
+        "authority_boundary": {
+            "email_send_allowed": False,
+            "workbook_write_allowed": False,
+            "external_pdf_export_allowed": False,
+            "ledger_posting_allowed": False,
+            "paid": False,
+            "sent": False,
+        },
+        "machine_proof": {
+            "emitter_invoked": True,
+            "source_inventory_exists": source_room_context.get("source_inventory_exists") is True,
+            "source_backed": bool(source_refs),
+            "pdf_proof_first": bool(proof_refs) and proof_refs[0]["artifact_kind"] == "pdf_proof",
+            "live_worker_executed": False,
+            "email_send_performed": False,
+            "workbook_mutation_performed": False,
+            "pdf_export_performed": False,
+            "ledger_mutation_performed": False,
+            "paid_marking_performed": False,
+        },
+    }
+
+
 def _display_source_ref(path: Path) -> str:
     try:
         return path.relative_to(ROOT).as_posix()
@@ -1118,7 +1193,8 @@ def create_package(
     result_status = _worker_result_status(status)
     source_room_context = _source_room_context_for_workflow(workflow_ref)
     project_room_gate = compile_project_room_package_gate(source_room_context)
-    proof_refs = _proof_refs_for_source_room(source_room_context)
+    dry_run_proof_bundle = _st_annes_dry_run_proof_bundle(source_room_context, capability)
+    proof_refs = list(dry_run_proof_bundle.get("proof_refs") or [])
     business_action_gate = {
         "gate_ref": "business_action_gate:" + _short_hash(package_id),
         "status": "CLOSED",
@@ -1154,6 +1230,7 @@ def create_package(
         "next_safe_action": project_room_gate["next_safe_action"],
         "source_room_context": source_room_context,
         "proof_refs": proof_refs,
+        "dry_run_proof_bundle": dry_run_proof_bundle,
         "project_room_gate_result": project_room_gate,
         "created_at": created_at,
         "updated_at": created_at,
@@ -1174,6 +1251,7 @@ def create_package(
             "result_status": result_status,
             "summary": "Dry-run worker recorded package state only.",
             "live_worker_executed": False,
+            "dry_run_proof_bundle_emitted": bool(dry_run_proof_bundle),
             "local_pdf_proof_rendered": any(ref["artifact_kind"] == "pdf_proof" for ref in proof_refs),
             "email_send_performed": False,
             "ledger_mutation_performed": False,

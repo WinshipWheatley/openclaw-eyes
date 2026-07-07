@@ -894,6 +894,8 @@ def consume_workflow_package_request(
         "voice_mode": operator_display["voice_mode"],
         "audience": operator_display["audience"],
         "operator_display": operator_display,
+        "proof_refs": list((package or {}).get("proof_refs") or []),
+        "dry_run_proof_bundle": dict((package or {}).get("dry_run_proof_bundle") or {}),
         "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
         "request_authority_boundary_all_false": not _authority_blockers(raw_request),
         "no_external_authority_granted": True,
@@ -910,6 +912,10 @@ def consume_workflow_package_request(
             "requested_mode_operator": str(raw_request.get("requested_mode") or "") == "operator",
             "package_recorded": package is not None,
             "queue_noop_worker_only": True,
+            "dry_run_proof_bundle_emitted": bool((package or {}).get("dry_run_proof_bundle")),
+            "local_pdf_proof_rendered": bool(
+                package and (package.get("worker_result") or {}).get("local_pdf_proof_rendered") is True
+            ),
             "business_action_gate_closed": bool(
                 package and (package.get("business_action_gate_result") or {}).get("status") == "CLOSED"
             ),
