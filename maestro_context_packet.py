@@ -1597,6 +1597,165 @@ def _actionable_sections(facts: Sequence[Mapping[str, Any]]) -> dict[str, list[s
     }
 
 
+def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    rows = [
+        fact for fact in facts
+        if str(fact.get("topic") or "") == "receivable_month_bounded" and fact.get("structured_fact") is True
+    ]
+    if not rows:
+        return [], {"finance_answer_topic_fact_count": 0}
+
+    open_lines: list[str] = []
+    settled_lines: list[str] = []
+    source_refs: list[str] = []
+    as_of_values: list[str] = []
+    for row in rows:
+        client_ref = str(row.get("client_ref") or "").strip()
+        month = str(row.get("month") or "").strip()
+        currency = str(row.get("currency_iso") or "USD").strip().upper()
+        open_minor = int(row.get("open_minor_units") or 0)
+        paid_minor = int(row.get("paid_minor_units") or 0)
+        status = str(row.get("payment_status") or "unknown").strip()
+        needs_reconcile = bool(row.get("needs_reconcile"))
+        as_of = str(row.get("as_of") or (row.get("freshness") or {}).get("as_of") or "").strip()
+        source_ref = str(row.get("source_ref") or "").strip()
+        if source_ref and source_ref not in source_refs:
+            source_refs.append(source_ref)
+        if as_of and as_of not in as_of_values:
+            as_of_values.append(as_of)
+        display = _client_display(client_ref)
+        line_parts = [
+            f"{display} {month}",
+            f"open {_money_minor_units(open_minor, currency)}",
+            f"paid {_money_minor_units(paid_minor, currency)}",
+            f"status {status}",
+        ]
+        if needs_reconcile:
+            line_parts.append("needs_reconcile")
+        if as_of:
+            line_parts.append(f"as_of {as_of}")
+        line = ", ".join(line_parts)
+        if open_minor > 0 or needs_reconcile:
+            open_lines.append(line)
+        elif str(row.get("settled_past_no_compound") or "").lower() == "true" or status == "settled":
+            settled_lines.append(line)
+
+    value = " ".join(
+        part
+        for part in (
+            open_lines and "Open/current money items: " + " | ".join(open_lines[:4]) + ".",
+            settled_lines and "Settled items: " + " | ".join(settled_lines[:4]) + ".",
+        )
+        if part
+    )
+    if not value:
+        return [], {"finance_answer_topic_fact_count": 0}
+    answer_facts: list[dict[str, Any]] = []
+    _append_fact(
+        answer_facts,
+        topic="finance_invoice_reconciliation",
+        label="Current money owed answer topic",
+        value=value,
+        provenance="derived_answer_topic",
+        source_ref=", ".join(source_refs) or f"generated/read_models/{RECEIVABLES_MONTH_BOUNDED_READ_MODEL}",
+        pii_tier="LIGHT",
+        freshness={"as_of": as_of_values[0] if as_of_values else "", "source_ref": ", ".join(source_refs)},
+    )
+    if answer_facts:
+        answer_facts[-1].update(
+            {
+                "answer_topic": True,
+                "structured_fact": True,
+                "current_truth": True,
+                "as_of": as_of_values[0] if as_of_values else "",
+                "authority_source": "receivables_month_bounded",
+            }
+        )
+    return answer_facts, {"finance_answer_topic_fact_count": len(answer_facts)}
+
+
+def _plate_overview_answer_topic_facts(
+    facts: Sequence[Mapping[str, Any]],
+    actionable: Mapping[str, Sequence[str]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    def answer_safe(value: object) -> str:
+        text = _compact(value, limit=220)
+        text = re.sub(r"\bSt\.\s+", "St ", text)
+        text = text.replace(";", ",")
+        return text.strip(" .")
+
+    source_facts = [fact for fact in facts if fact.get("answer_topic") is not True]
+    attention = [
+        answer_safe(f"{fact.get('label')}: {fact.get('value')}")
+        for fact in source_facts
+        if str(fact.get("topic") or "").strip().lower() in {"operator_attention", "receivable_attention"}
+    ]
+    money = []
+    for fact in source_facts:
+        if str(fact.get("topic") or "").strip().lower() != "receivable_month_bounded":
+            continue
+        if int(fact.get("open_minor_units") or 0) <= 0 and fact.get("needs_reconcile") is not True:
+            continue
+        currency = str(fact.get("currency_iso") or "USD").strip().upper()
+        money.append(
+            answer_safe(
+                f"{_client_display(str(fact.get('client_ref') or ''))} {fact.get('month')}: "
+                f"open {_money_minor_units(int(fact.get('open_minor_units') or 0), currency)}, "
+                f"status {fact.get('payment_status') or 'unknown'}"
+            )
+        )
+    upcoming = [
+        answer_safe(f"{fact.get('label')}: {fact.get('value')}")
+        for fact in source_facts
+        if str(fact.get("topic") or "").strip().lower() in {"gig_schedule", "calendar_day", "niles_gig_context"}
+    ]
+    if not any((attention, money, upcoming)):
+        return [], {"plate_answer_topic_fact_count": 0}
+    source_refs: list[str] = []
+    for fact in facts:
+        topic = str(fact.get("topic") or "").strip().lower()
+        if topic in {
+            "operator_attention",
+            "receivable_month_bounded",
+            "finance_invoice_reconciliation",
+            "gig_schedule",
+            "calendar_day",
+            "niles_gig_context",
+        }:
+            source_ref = str(fact.get("source_ref") or "").strip()
+            if source_ref and source_ref not in source_refs:
+                source_refs.append(source_ref)
+    value = " ".join(
+        part
+        for part in (
+            attention and "Needs attention: " + " | ".join(attention[:3]) + ".",
+            money and "Money: " + " | ".join(money[:3]) + ".",
+            upcoming and "Upcoming: " + " | ".join(upcoming[:3]) + ".",
+        )
+        if part
+    )
+    answer_facts: list[dict[str, Any]] = []
+    _append_fact(
+        answer_facts,
+        topic="plate_overview",
+        label="Current plate overview",
+        value=value,
+        provenance="derived_answer_topic",
+        source_ref=", ".join(source_refs) or "maestro_context_packet:actionable",
+        pii_tier="LIGHT",
+    )
+    if answer_facts:
+        answer_facts[-1].update(
+            {
+                "answer_topic": True,
+                "structured_fact": True,
+                "current_truth": True,
+                "authority_source": "packet_actionable_sections",
+            }
+        )
+    return answer_facts, {"plate_answer_topic_fact_count": len(answer_facts)}
+
+
 def _privacy_summary(facts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     tiers = sorted({str(fact.get("pii_tier") or "PUBLIC").upper() for fact in facts})
     return {
@@ -2195,6 +2354,16 @@ def build_maestro_context_packet(
         session=session,
     )
 
+    finance_answer_facts, answer_topic_proof = _receivable_answer_topic_facts(facts)
+    if finance_answer_facts:
+        facts = [*finance_answer_facts, *facts]
+    actionable = _actionable_sections(facts)
+    plate_answer_facts, plate_answer_proof = _plate_overview_answer_topic_facts(facts, actionable)
+    if plate_answer_facts:
+        facts = [*plate_answer_facts, *facts]
+        actionable = _actionable_sections(facts)
+    answer_topic_proof.update(plate_answer_proof)
+
     facts = annotate_facts_with_ledger_provenance(
         facts,
         builder_name="maestro_context_packet.build_maestro_context_packet",
@@ -2235,7 +2404,7 @@ def build_maestro_context_packet(
         "facts": facts,
         "skills": applied_skills,
         "skill_receipts": skill_receipts,
-        "actionable": _actionable_sections(facts),
+        "actionable": actionable,
         "privacy": _privacy_summary(facts),
         "bounds": {
             "send_hold_absolute": True,
@@ -2262,6 +2431,7 @@ def build_maestro_context_packet(
             ),
             **receivable_temporal_proof,
             **money_status_guard_proof,
+            **answer_topic_proof,
             **contacts_proof,
             **read_model_proof,
         },
