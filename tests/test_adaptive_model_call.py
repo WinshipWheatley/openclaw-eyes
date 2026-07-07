@@ -1,0 +1,94 @@
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import adaptive_model_call as adaptive
+
+
+def test_adaptive_model_call_retries_downshifted_model_after_empty_primary() -> None:
+    calls: list[dict] = []
+    routes: list[dict] = []
+
+    def fake_ollama(prompt, *, timeout=0, model=None, task_class=None, attempts=None, **_kwargs):
+        calls.append({"model": model, "timeout": timeout, "task_class": task_class, "attempts": attempts})
+        return "draft answer" if model == "qwen3:8b-q4_K_M" else ""
+
+    def fake_selector(**kwargs):
+        assert kwargs["available_vram_gb"] == 1.0
+        assert kwargs["resident_vram_by_model_gb"] == {"qwen3:8b-q4_K_M": 0.5}
+        return "qwen3:8b-q4_K_M", "frontdoor_step_down_vram_contention"
+
+    def fake_probe():
+        return SimpleNamespace(
+            available_vram_gb=1.0,
+            available_ram_gb=12.0,
+            system_load_1m=12.0,
+            cpu_count=4,
+            resident_vram_by_model_gb=lambda: {"qwen3:8b-q4_K_M": 0.5},
+        )
+
+    result = adaptive.adaptive_model_call(
+        "Draft a warm Clara reply.",
+        task_class="cassandra_outbound_draft",
+        timeout=60,
+        primary_model="gemma4:31b",
+        primary_lane="strong",
+        ollama_call_fn=fake_ollama,
+        select_model_fn=fake_selector,
+        resource_probe_fn=fake_probe,
+        route_logger=lambda **kwargs: routes.append(kwargs),
+    )
+
+    assert result == "draft answer"
+    assert calls == [
+        {"model": "gemma4:31b", "timeout": 60, "task_class": "cassandra_outbound_draft", "attempts": 1},
+        {"model": "qwen3:8b-q4_K_M", "timeout": 60, "task_class": "cassandra_outbound_draft", "attempts": 1},
+    ]
+    assert routes[0]["chosen_lane"] == "strong"
+    assert routes[1]["chosen_lane"] == "adaptive_retry"
+    assert routes[1]["escalation"] is True
+    assert routes[1]["model"] == "qwen3:8b-q4_K_M"
+
+
+def test_adaptive_model_call_returns_empty_after_single_retry() -> None:
+    calls: list[str] = []
+
+    result = adaptive.adaptive_model_call(
+        "Answer briefly.",
+        task_class="cassandra_user_reply",
+        timeout=30,
+        primary_model="gemma4:31b",
+        primary_lane="strong",
+        ollama_call_fn=lambda prompt, **kwargs: calls.append(kwargs["model"]) or "",
+        select_model_fn=lambda **_kwargs: ("qwen3:8b-q4_K_M", "frontdoor_step_down_system_load"),
+        resource_probe_fn=lambda: SimpleNamespace(
+            available_vram_gb=0.5,
+            available_ram_gb=10.0,
+            system_load_1m=20.0,
+            cpu_count=4,
+            resident_vram_by_model_gb=lambda: {},
+        ),
+    )
+
+    assert result == ""
+    assert calls == ["gemma4:31b", "qwen3:8b-q4_K_M"]
+
+
+def test_adaptive_model_call_supports_legacy_ollama_fixture_without_attempts() -> None:
+    calls: list[dict] = []
+
+    def legacy_ollama(prompt, timeout=0, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "model": model})
+        return "legacy answer"
+
+    result = adaptive.adaptive_model_call(
+        "Answer briefly.",
+        task_class="cassandra_user_reply",
+        timeout=30,
+        primary_model="gemma4:31b",
+        primary_lane="strong",
+        ollama_call_fn=legacy_ollama,
+    )
+
+    assert result == "legacy answer"
+    assert calls == [{"prompt": "Answer briefly.", "timeout": 30, "model": "gemma4:31b"}]

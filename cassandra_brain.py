@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from chief_file_io import load_json, save_json
+import adaptive_model_call
 from chief_llm import (
     external_language_model_call,
     external_model_packet_policy,
@@ -6413,16 +6414,18 @@ def _call(
             )
 
     model, lane = resolve_local_model(prompt, task_class=task_class)
-    _log_model_route(
+    timeout = 90 if lane == "deep" else 60
+    result = adaptive_model_call.adaptive_model_call(
+        prompt,
         task_class=task_class,
-        preferred_lane=lane,
-        chosen_lane=lane,
-        reason=f"policy route via shared local router for {task_class}",
-        escalation=False,
+        timeout=timeout,
+        primary_model=model,
+        primary_lane=lane,
         validation_outcome=validation_outcome,
-        model=model,
+        ollama_call_fn=ollama_call,
+        resolve_model_fn=resolve_local_model,
+        route_logger=_log_model_route,
     )
-    result = ollama_call(prompt, timeout=90 if lane == "deep" else 60, model=model)
     if result or not allow_deep_escalation:
         return result
 
@@ -6438,7 +6441,18 @@ def _call(
             model=strong_model,
         )
         print(f"[cassandra] escalating {task_class} from {lane} to {strong_lane}", flush=True)
-        return ollama_call(prompt, timeout=60, model=strong_model)
+        return adaptive_model_call.adaptive_model_call(
+            prompt,
+            task_class="cassandra_user_reply",
+            timeout=60,
+            primary_model=strong_model,
+            primary_lane=strong_lane,
+            validation_outcome="empty_response",
+            ollama_call_fn=ollama_call,
+            resolve_model_fn=resolve_local_model,
+            route_logger=_log_model_route,
+            retry=False,
+        )
 
     if task_class == "cassandra_user_reply":
         return result
@@ -6457,22 +6471,33 @@ def _call(
         model=deep_model,
     )
     print(f"[cassandra] escalating {task_class} from {lane} to {deep_lane}", flush=True)
-    result = ollama_call(prompt, timeout=90, model=deep_model)
+    result = adaptive_model_call.adaptive_model_call(
+        prompt,
+        task_class=task_class,
+        timeout=90,
+        primary_model=deep_model,
+        primary_lane=deep_lane,
+        validation_outcome="empty_response",
+        ollama_call_fn=ollama_call,
+        resolve_model_fn=resolve_local_model,
+        route_logger=_log_model_route,
+        retry=False,
+    )
     return result
 
 
 def _call_hidden_extract_classify_json(prompt: str, *, validation_label: str) -> dict | None:
     model, lane = resolve_local_model(prompt, task_class="cassandra_extract_classify")
-    _log_model_route(
+    raw = adaptive_model_call.adaptive_model_call(
+        prompt,
         task_class="cassandra_extract_classify",
-        preferred_lane=lane,
-        chosen_lane=lane,
-        reason=f"policy route via shared local router for {validation_label}",
-        escalation=False,
-        validation_outcome=None,
-        model=model,
+        timeout=20,
+        primary_model=model,
+        primary_lane=lane,
+        ollama_call_fn=ollama_call,
+        resolve_model_fn=resolve_local_model,
+        route_logger=_log_model_route,
     )
-    raw = ollama_call(prompt, timeout=20, model=model)
     if not raw:
         _log_model_route(
             task_class="cassandra_extract_classify",
