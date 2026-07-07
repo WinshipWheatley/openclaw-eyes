@@ -3439,6 +3439,7 @@ def _process_workflow_package_request(
     workflow_ref = str(receipt.get("workflow_ref") or raw_request.get("workflow_ref") or "unknown")
     client_ref = receipt.get("client_ref")
     capability_status = str(receipt.get("capability_gate_status") or "NOT_EVALUATED")
+    receipt_proof_refs = list(receipt.get("proof_refs") or [])
     current_world_ref = str(receipt.get("current_world_ref") or "")
     current_thread_ref = str(receipt.get("current_thread_ref") or "")
     target_world_ref = str(receipt.get("target_world_ref") or "")
@@ -3509,7 +3510,7 @@ def _process_workflow_package_request(
                 "The queue recorded only a no-op worker result and a closed business action gate."
             )
         ),
-        "proof_refs": tuple(str(ref) for ref in receipt.get("proof_refs", ()) if ref) if system_question_answered else (),
+        "proof_refs": receipt_proof_refs,
         "debug_refs": (),
         "raw_internal_status": internal_status,
         "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
@@ -5360,6 +5361,24 @@ def _is_maestro_frontdoor_operator_instruction(raw_request: Mapping[str, Any]) -
     return isinstance(authority, Mapping) and not any(value is True for value in authority.values())
 
 
+def _maestro_frontdoor_workflow_intent(raw_request: Mapping[str, Any]) -> dict[str, Any]:
+    if not _is_maestro_frontdoor_operator_instruction(raw_request):
+        return {}
+    operator_text = maestro_cassandra_responder.operator_text_from_request(raw_request)
+    if not operator_text:
+        return {}
+    try:
+        import workflow_package_queue
+
+        intent = workflow_package_queue.classify_intent(operator_text)
+    except Exception:
+        return {}
+    workflow_ref = str(intent.get("workflow_ref") or "")
+    if workflow_ref and workflow_ref != "diagnostic_package_gate_smoke":
+        return dict(intent)
+    return {}
+
+
 def _process_maestro_frontdoor_operator_instruction(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -5369,6 +5388,8 @@ def _process_maestro_frontdoor_operator_instruction(
     _capsule: Any | None = None,
 ) -> OpenClawResponseForMac | None:
     if not _is_maestro_frontdoor_operator_instruction(raw_request):
+        return None
+    if _maestro_frontdoor_workflow_intent(raw_request):
         return None
 
     operator_text = maestro_cassandra_responder.operator_text_from_request(raw_request)

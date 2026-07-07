@@ -518,9 +518,47 @@ def _privacy_gate(source_text: str, source_surface: str) -> dict[str, Any]:
     }
 
 
+def _normalized_operator_text(source_text: str) -> str:
+    text = source_text.lower().replace("’", "'")
+    for char in ".,?!;:()[]{}\"":
+        text = text.replace(char, " ")
+    text = text.replace("'", "")
+    return " ".join(text.split())
+
+
+def _mentions_st_annes(text: str) -> bool:
+    return any(
+        term in text
+        for term in (
+            "st anne",
+            "st annes",
+            "stannes",
+            "saint anne",
+            "saint annes",
+            "annes",
+        )
+    )
+
+
+def _st_annes_invoice_related(text: str) -> bool:
+    invoice_terms = ("invoice", "bill", "billing", "billed", "rollup")
+    return any(term in text for term in invoice_terms) or ("workflow" in text and "invoice" in text)
+
+
+def _st_annes_review_dry_run_semantics(text: str) -> bool:
+    review_terms = ("test", "review", "preview", "proof", "show", "see", "look at")
+    before_send_terms = ("before send", "before sending", "before it goes out", "before we send", "first")
+    billing_question_terms = ("what would we bill", "what do we bill", "how much would we bill")
+    return (
+        any(term in text for term in review_terms)
+        or any(term in text for term in before_send_terms)
+        or any(term in text for term in billing_question_terms)
+    )
+
+
 def classify_intent(source_text: str) -> dict[str, Any]:
-    text = source_text.lower()
-    st_annes_mentioned = "st. anne" in text or "st anne" in text or "anne's" in text or "annes" in text
+    text = _normalized_operator_text(source_text)
+    st_annes_mentioned = _mentions_st_annes(text)
     service_event_terms = (
         "church",
         "running sound",
@@ -539,13 +577,14 @@ def classify_intent(source_text: str) -> dict[str, Any]:
             "confidence": "high",
             "intent_reason": "Detected St. Anne's/church sound work-log instruction.",
         }
-    if st_annes_mentioned and ("invoice" in text or "send" in text or "rollup" in text):
+    if st_annes_mentioned and _st_annes_invoice_related(text):
         return {
             "workflow_ref": "st_annes_monthly_invoice_rollup",
             "world": "invoice_operations",
             "client_ref": "st_annes",
             "confidence": "high",
             "intent_reason": "Detected St. Anne's invoice instruction.",
+            "st_annes_review_dry_run_requested": _st_annes_review_dry_run_semantics(text),
         }
     if "capital hilton" in text and "proposal" in text:
         return {
@@ -631,7 +670,10 @@ def _classify_intent_with_lm1_override(
 
 
 def _st_annes_review_dry_run_requested(source_text: str) -> bool:
-    normalized = source_text.lower().replace("'", "").replace("’", "")
+    intent = classify_intent(source_text)
+    if intent.get("workflow_ref") == "st_annes_monthly_invoice_rollup":
+        return intent.get("st_annes_review_dry_run_requested") is True
+    normalized = _normalized_operator_text(source_text)
     review_terms = ("test", "review", "preview", "dry-run", "dry run", "proof")
     return any(term in normalized for term in review_terms)
 

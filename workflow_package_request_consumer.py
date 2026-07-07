@@ -287,6 +287,9 @@ def is_system_question_request(raw_request: Mapping[str, Any]) -> bool:
         return True
     if any(hint in text for hint in SYSTEM_QUESTION_HINTS):
         return True
+    intent = workflow_package_queue.classify_intent(source_text) if source_text else {}
+    if str(intent.get("workflow_ref") or "") not in {"", "diagnostic_package_gate_smoke"}:
+        return False
     question_like = "?" in text or text.strip().startswith(("what ", "why ", "can ", "how "))
     if not question_like:
         return False
