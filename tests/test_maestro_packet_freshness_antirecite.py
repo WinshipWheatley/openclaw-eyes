@@ -559,16 +559,14 @@ def _receivable_row(
     }
 
 
-def test_render_priority_never_truncates_expected_uninvoiced_behind_settled_cap() -> None:
-    """Task 137: the pending-send line was getting cut by the settled-tail item cap when
-    more than 4 clients had settled history in play. expected_uninvoiced + open items must
-    ALWAYS render; only the pure-settled tail is capped."""
+def test_render_priority_places_uninvoiced_content_on_its_own_open_line() -> None:
+    """Task 137 (iterated per Fable's probe): appending the pending-send content onto the
+    settled line let a per-line char cap truncate it mid-sentence with a literal "...". Fix
+    placement: the uninvoiced content is its OWN line in the Money:/open section; the settled
+    line for that client stays plain, no more content appended onto it."""
     from maestro_context_packet import _receivable_answer_topic_facts
 
     rows = [
-        _receivable_row(f"client_{i}", "2026-05", payment_status="settled", settled_past_no_compound=True)
-        for i in range(6)
-    ] + [
         _receivable_row("st_annes", "2026-04", payment_status="settled", settled_past_no_compound=True),
         _receivable_row("st_annes", "2026-07", payment_status="expected_uninvoiced"),
     ]
@@ -577,7 +575,32 @@ def test_render_priority_never_truncates_expected_uninvoiced_behind_settled_cap(
 
     assert answer_facts, "expected at least one derived answer-topic fact"
     value = str(answer_facts[0]["value"])
-    assert "current invoice ready to send once copy is fixed" in value
+    assert "..." not in value, "pending-send content must never be truncated mid-sentence"
+    money_section, _, settled_section = value.partition("Settled items:")
+    assert "St Anne's: current invoice ready to send once copy is fixed" in money_section
+    assert "St Anne's Apr paid" in settled_section
+    assert "St Anne's Apr paid; current invoice" not in settled_section
+
+
+def test_render_priority_never_truncates_expected_uninvoiced_behind_settled_cap() -> None:
+    """The uninvoiced line lives in the open section, which is never item-capped -- proven
+    even when 6 OTHER clients' settled history would fill (and overflow) the pure-settled
+    cap on its own."""
+    from maestro_context_packet import _receivable_answer_topic_facts
+
+    rows = [
+        _receivable_row(f"client_{i}", "2026-05", payment_status="settled", settled_past_no_compound=True)
+        for i in range(6)
+    ] + [
+        _receivable_row("st_annes", "2026-07", payment_status="expected_uninvoiced"),
+    ]
+
+    answer_facts, _proof = _receivable_answer_topic_facts(rows)
+
+    assert answer_facts, "expected at least one derived answer-topic fact"
+    value = str(answer_facts[0]["value"])
+    assert "..." not in value
+    assert "St Anne's: current invoice ready to send once copy is fixed" in value
 
 
 def test_money_question_never_renders_expected_uninvoiced_client_as_fully_settled(
