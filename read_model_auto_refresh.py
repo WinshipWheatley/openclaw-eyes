@@ -132,6 +132,11 @@ READ_MODEL_REFRESH_REGISTRY: dict[str, dict[str, Any]] = {
         "reason": "Pure local audit/export over packet facts and generated read-model freshness; no sends, no network, no external mounts.",
         "steps": [refresh_step("scripts/export_packet_coverage_matrix.py", "--format", "json")],
     },
+    "form_review_recommendations.json": {
+        "refreshable": True,
+        "reason": "Pure local prepare-only mode-shift form-review sweep; emits recommendations only and never executes shifts.",
+        "steps": [refresh_step("form_review_sweep.py", "--once")],
+    },
     "operator_attention_delivery_contract.json": {
         "refreshable": False,
         "reason": (

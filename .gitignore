@@ -197,6 +197,9 @@
 !invoice_line_edit.py
 !tests/test_invoice_line_edit.py
 !tests/test_invoice_cockpit_line_item_edits.py
+!mode_shift_ledger.py
+!form_review_sweep.py
+!tests/test_mode_shift_engine.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
