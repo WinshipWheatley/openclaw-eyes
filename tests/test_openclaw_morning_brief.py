@@ -1,0 +1,126 @@
+from __future__ import annotations
+
+import json
+from datetime import date
+from pathlib import Path
+
+import openclaw_morning_brief as morning
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def test_morning_brief_uses_structured_facts_and_skips_empty_sections(tmp_path) -> None:
+    root = tmp_path / "read_models"
+    _write_json(
+        root / "st_annes_receivable_state.json",
+        {
+            "as_of": "2026-07-06",
+            "open_items": [
+                {
+                    "client": "St. Anne's",
+                    "project": "two-event PDF",
+                    "amount": 1095,
+                    "currency": "USD",
+                    "status": "open",
+                }
+            ],
+        },
+    )
+    _write_json(
+        root / "niles_gig_schedule.json",
+        {
+            "events": [
+                {
+                    "date": "2026-07-07",
+                    "time": "7:00 PM",
+                    "title": "St. Anne's helper preview",
+                    "type": "gig",
+                },
+                {
+                    "date": "2026-07-08",
+                    "time": "9:00 PM",
+                    "title": "Tomorrow should not appear",
+                    "type": "gig",
+                },
+            ]
+        },
+    )
+    _write_json(root / "work_board.json", {"latest_cards": []})
+    _write_json(
+        root / "agent_presence.json",
+        {
+            "agents": [
+                {"agent_id": "maestro", "actual_state": "online"},
+                {"agent_id": "cassandra", "actual_state": "online"},
+            ]
+        },
+    )
+
+    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 7))
+
+    assert "St. Anne's two-event PDF: $1,095 as of 2026-07-06" in brief
+    assert "7:00 PM St. Anne's helper preview" in brief
+    assert "Tomorrow should not appear" not in brief
+    assert "decision" not in brief.lower()
+    assert "nothing" not in brief.lower()
+    assert "|" not in brief
+    assert "- " not in brief
+
+
+def test_morning_brief_does_not_launder_unstructured_money(tmp_path) -> None:
+    root = tmp_path / "read_models"
+    _write_json(
+        root / "finance_invoice_reconciliation.json",
+        {
+            "items": [
+                {
+                    "client": "Loose Note",
+                    "summary": "Client may owe $1095, maybe.",
+                    "status": "open",
+                }
+            ]
+        },
+    )
+
+    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 7))
+
+    assert "$1,095" not in brief
+    assert "Loose Note" not in brief
+
+
+def test_morning_brief_once_invokes_master_voice_with_stdin(tmp_path) -> None:
+    root = tmp_path / "read_models"
+    _write_json(
+        root / "agent_presence.json",
+        {"agents": [{"agent_id": "maestro", "actual_state": "online"}]},
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_run(argv, *, input, text, check, env):
+        calls.append({"argv": argv, "input": input, "text": text, "check": check, "env": env})
+
+    sent = morning.run_once(read_model_root=root, today=date(2026, 7, 7), runner=fake_run)
+
+    assert sent == "Morning. System: Maestro online."
+    assert calls[0]["argv"][-1] == str(morning.REPO_ROOT / "master_voice.sh")
+    assert calls[0]["input"] == sent
+    assert calls[0]["text"] is True
+    assert calls[0]["check"] is True
+    assert calls[0]["env"]["OPENCLAW_AGENT"] == "maestro"
+
+
+def test_morning_brief_systemd_templates_render() -> None:
+    service = (morning.REPO_ROOT / "systemd/user/openclaw-morning-brief.service.in").read_text(encoding="utf-8")
+    timer = (morning.REPO_ROOT / "systemd/user/openclaw-morning-brief.timer.in").read_text(encoding="utf-8")
+
+    rendered_service = service.replace("@REPO_ROOT@", "/home/openclaw")
+    rendered_timer = timer.replace("@REPO_ROOT@", "/home/openclaw")
+
+    assert "ExecStart=/usr/bin/env python3 /home/openclaw/openclaw_morning_brief.py --once" in rendered_service
+    assert "OnCalendar=*-*-* 08:00:00" in rendered_timer
+    assert "Unit=openclaw-morning-brief.service" in rendered_timer
+    assert "@REPO_ROOT@" not in rendered_service
+    assert "@REPO_ROOT@" not in rendered_timer
