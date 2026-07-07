@@ -51,7 +51,7 @@ def test_known_capabilities_are_present():
 def test_register_gap_capabilities_are_catalogued_with_no_activation_authority():
     capabilities = _capabilities_by_id(_payload())
 
-    assert len(register.REGISTER_GAP_CAPABILITY_IDS) == 19
+    assert len(register.REGISTER_GAP_CAPABILITY_IDS) == 22
     for capability_id in register.REGISTER_GAP_CAPABILITY_IDS:
         capability = capabilities[capability_id]
         assert capability["activation_allowed_now"] is False
@@ -74,6 +74,41 @@ def test_packet_source_sqlite_flip_is_standalone_capability():
     assert packet_source["capability_id"] != continuity["capability_id"]
 
 
+def test_lm1_shared_seam_and_packet_flags_have_activation_records():
+    capabilities = _capabilities_by_id(_payload())
+
+    expected = {
+        "lm1_shared_seam": "OPENCLAW_LM1_SHARED_SEAM",
+        "packet_delta_receipts": "OPENCLAW_PACKET_DELTA",
+        "packet_engine_spine": "OPENCLAW_PACKET_ENGINE",
+    }
+    for capability_id, flag_name in expected.items():
+        capability = capabilities[capability_id]
+        assert flag_name in capability["flag_or_config"]
+        assert capability["activation_allowed_now"] is False
+        assert capability["operator_approval_required"] is True
+        assert capability["canary_status"]
+
+
+def test_live_lm1_and_packet_flags_reconcile_without_activation_authority():
+    payload = _live_payload([
+        _test_source(
+            {
+                "OPENCLAW_LM1_SHARED_SEAM": "1",
+                "OPENCLAW_PACKET_DELTA": "1",
+                "OPENCLAW_PACKET_ENGINE": "1",
+            }
+        )
+    ])
+    capabilities = _capabilities_by_id(payload)
+
+    for capability_id in ("lm1_shared_seam", "packet_delta_receipts", "packet_engine_spine"):
+        capability = capabilities[capability_id]
+        assert capability["live_production_state"] == "enabled_verified"
+        assert capability["activation_allowed_now"] is False
+        assert capability["live_state"]["findings"][0]["redacted_value_category"] == "set_true"
+
+
 def test_register_gap_whitelist_names_are_present():
     for name in [
         "OPENCLAW_MAESTRO_BRAIN_LIVE",
@@ -88,6 +123,9 @@ def test_register_gap_whitelist_names_are_present():
         "OPENCLAW_FRONTDOOR_KEEP_ALIVE",
         "OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT",
         "CASSANDRA_MORNING_BRIEF_TEST_MODE",
+        "OPENCLAW_LM1_SHARED_SEAM",
+        "OPENCLAW_PACKET_DELTA",
+        "OPENCLAW_PACKET_ENGINE",
     ]:
         assert name in register.LIVE_ENV_WHITELIST
 
