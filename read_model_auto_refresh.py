@@ -122,6 +122,11 @@ READ_MODEL_REFRESH_REGISTRY: dict[str, dict[str, Any]] = {
         "reason": "Pure local export from the governed business-ops SQLite ledger; no network, no external mount.",
         "steps": [refresh_step("scripts/export_sync_health_read_model.py", "--format", "json")],
     },
+    "client_invoice_workflow_framework.json": {
+        "refreshable": True,
+        "reason": "Pure local export of the curated client invoice-workflow framework (which clients use Coupa/PO vs not); no network, no external mount. Added when task 88 wired it as a freeform-brain packet source.",
+        "steps": [refresh_step("scripts/export_client_invoice_workflow_framework.py")],
+    },
     # -- the 18 sources the real audit found stale -----------------------
     "capital_hilton_invoice_operator_readback.json": {
         "refreshable": True,
