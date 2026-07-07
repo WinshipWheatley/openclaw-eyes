@@ -46,8 +46,8 @@ QUESTION_COVERAGE_CONTRACT: dict[str, tuple[RequiredSection, ...]] = {
         ),
         RequiredSection(
             "month_bounded_receivables",
-            ("receivable_attention", "receivable_temporal_state", "money_not_tracked"),
-            ("st_annes_receivable_state.json",),
+            ("receivable_month_bounded", "receivable_attention", "receivable_temporal_state", "money_not_tracked"),
+            ("receivables_month_bounded.json", "st_annes_receivable_state.json"),
             data_source="read_model_or_ledger",
         ),
         RequiredSection(
@@ -59,8 +59,8 @@ QUESTION_COVERAGE_CONTRACT: dict[str, tuple[RequiredSection, ...]] = {
     "money_owed_invoice_status": (
         RequiredSection(
             "structured_receivables",
-            ("receivable_temporal_state", "receivable_attention", "money_not_tracked"),
-            ("st_annes_receivable_state.json",),
+            ("receivable_month_bounded", "receivable_temporal_state", "receivable_attention", "money_not_tracked"),
+            ("receivables_month_bounded.json", "st_annes_receivable_state.json"),
             data_source="ledger_or_read_model",
         ),
         RequiredSection(

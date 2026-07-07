@@ -1188,6 +1188,9 @@
 !tests/test_interpreter_lm.py
 !tests/test_interpreter_lm_integration.py
 !tests/test_continuity_stamp.py
+!receivables_month_bounded.py
+!scripts/export_receivables_month_bounded.py
+!tests/test_receivables_month_bounded.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md
@@ -1217,6 +1220,7 @@ generated/read_models/watch_desk_feed.json
 !generated/read_models/world_status.json
 !generated/read_models/packet_dankness_log.json
 !generated/read_models/packet_dankness_escalations.json
+!generated/read_models/receivables_month_bounded.json
 !generated/system_knowledge/
 generated/system_knowledge/*.sqlite
 !generated/system_knowledge/openclaw_service_supervision.sqlite

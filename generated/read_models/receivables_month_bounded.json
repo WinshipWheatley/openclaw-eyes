@@ -1,0 +1,162 @@
+{
+  "authority_boundary": {
+    "bank_access_performed": false,
+    "browser_access_performed": false,
+    "email_send_performed": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "money_movement_performed": false,
+    "paid_marking_performed": false,
+    "send_performed": false
+  },
+  "doctrine": {
+    "money_answers_source": "receivables_month_bounded rows only; do not infer totals from narrative.",
+    "settle_past_no_compound": "Rows with payment_status=settled force open_minor_units=0 and do not resurface as owed."
+  },
+  "generated_at": "2026-07-07T10:00:00+00:00",
+  "read_model_id": "receivables_month_bounded",
+  "rows": [
+    {
+      "amount_known": false,
+      "client_display_name": "Capital Hilton",
+      "client_ref": "capital_hilton",
+      "currency_iso": "USD",
+      "current_truth": true,
+      "invoiced_derived": false,
+      "invoiced_minor_units": null,
+      "month": "2026-06",
+      "needs_reconcile": true,
+      "notes": [
+        "check_unverified: check expected per operator; amount not yet evidenced."
+      ],
+      "open_minor_units": null,
+      "paid_minor_units": null,
+      "payment_status": "open_amount_unknown",
+      "receivable_ids": [],
+      "settled_past_no_compound": false,
+      "source_kinds": [
+        "canonical_business_fact"
+      ],
+      "source_refs": [
+        "canonical_business_fact:capital_hilton:2026-06:check_unverified"
+      ],
+      "structured_fact": true
+    },
+    {
+      "amount_known": true,
+      "client_display_name": "Live Arts MD",
+      "client_ref": "live_arts_md",
+      "currency_iso": "USD",
+      "current_truth": true,
+      "invoiced_derived": true,
+      "invoiced_minor_units": 199500,
+      "month": "2026-06",
+      "needs_reconcile": true,
+      "notes": [
+        "$900 paid; $1,095 remains open pending operator reconciliation."
+      ],
+      "open_minor_units": 109500,
+      "paid_minor_units": 90000,
+      "payment_status": "needs_reconcile",
+      "receivable_ids": [],
+      "settled_past_no_compound": false,
+      "source_kinds": [
+        "canonical_business_fact"
+      ],
+      "source_refs": [
+        "canonical_business_fact:live_arts_md:2026-06:1095_open_900_paid"
+      ],
+      "structured_fact": true
+    },
+    {
+      "amount_known": true,
+      "client_display_name": "St. Anne's",
+      "client_ref": "st_annes",
+      "currency_iso": "USD",
+      "current_truth": true,
+      "invoiced_derived": false,
+      "invoiced_minor_units": 62500,
+      "month": "2026-04",
+      "needs_reconcile": false,
+      "notes": [
+        "April share of St. Anne's Apr+May $1,250 paid total; settled months do not resurface as owed."
+      ],
+      "open_minor_units": 0,
+      "paid_minor_units": 62500,
+      "payment_status": "settled",
+      "receivable_ids": [],
+      "settled_past_no_compound": true,
+      "source_kinds": [
+        "canonical_business_fact"
+      ],
+      "source_refs": [
+        "canonical_business_fact:st_annes:2026-04:apr_may_paid"
+      ],
+      "structured_fact": true
+    },
+    {
+      "amount_known": true,
+      "client_display_name": "St. Anne's",
+      "client_ref": "st_annes",
+      "currency_iso": "USD",
+      "current_truth": true,
+      "invoiced_derived": false,
+      "invoiced_minor_units": 62500,
+      "month": "2026-05",
+      "needs_reconcile": false,
+      "notes": [
+        "May share of St. Anne's Apr+May $1,250 paid total; settled months do not resurface as owed."
+      ],
+      "open_minor_units": 0,
+      "paid_minor_units": 62500,
+      "payment_status": "settled",
+      "receivable_ids": [],
+      "settled_past_no_compound": true,
+      "source_kinds": [
+        "canonical_business_fact"
+      ],
+      "source_refs": [
+        "canonical_business_fact:st_annes:2026-05:apr_may_paid"
+      ],
+      "structured_fact": true
+    }
+  ],
+  "schema_version": "receivables_month_bounded_v1",
+  "source_refs": [
+    "canonical_business_fact:capital_hilton:2026-06:check_unverified",
+    "canonical_business_fact:live_arts_md:2026-06:1095_open_900_paid",
+    "canonical_business_fact:st_annes:2026-04:apr_may_paid",
+    "canonical_business_fact:st_annes:2026-05:apr_may_paid"
+  ],
+  "source_status": {
+    "canonical_month_fact_count": 4,
+    "facts_path": "",
+    "g2c_current_receivable_count": 0,
+    "g2c_db_path": "/home/openclaw/state/gig_to_cash/gig_to_cash.sqlite3",
+    "g2c_db_present": false
+  },
+  "summary": {
+    "client_count": 3,
+    "invoiced_minor_units_by_client": {
+      "live_arts_md": 199500,
+      "st_annes": 125000
+    },
+    "month_count": 3,
+    "needs_reconcile_keys": [
+      "capital_hilton:2026-06",
+      "live_arts_md:2026-06"
+    ],
+    "open_minor_units_by_client": {
+      "live_arts_md": 109500,
+      "st_annes": 0
+    },
+    "paid_minor_units_by_client": {
+      "live_arts_md": 90000,
+      "st_annes": 125000
+    },
+    "row_count": 4,
+    "unknown_amount_keys": [
+      "capital_hilton:2026-06"
+    ]
+  }
+}

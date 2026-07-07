@@ -104,6 +104,54 @@ def _seed_open_st_annes_receivable(tmp_path: Path) -> tuple[Path, Path]:
     return ar_path, paid_path
 
 
+def _copy_month_bounded_receivables(read_models: Path) -> None:
+    src = ROOT / "generated/read_models/receivables_month_bounded.json"
+    (read_models / "receivables_month_bounded.json").write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+
+
+def _seed_plate_attention(read_models: Path) -> None:
+    (read_models / "operator_attention_delivery_contract.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-07-07T14:00:00+00:00",
+                "read_model_id": "operator_attention_delivery_contract",
+                "surfaced_attention_items": {
+                    "st_annes_followup": {
+                        "actor_label": "Cassandra",
+                        "human_message": "St. Anne's needs Draper follow-up tonight.",
+                        "reason_for_attention": "forward_to_glenn_confirmation_due",
+                        "primary_human_action_label": "Review follow-up",
+                        "concise_spoken_guidance": "Ask Draper to confirm he forwarded the invoice to Glenn.",
+                        "urgency_level": "high",
+                        "client_ref": "st_annes",
+                        "workflow_ref": "st_annes_forward_tracking",
+                        "world_ref": "finance",
+                        "email_send_allowed": False,
+                        "external_action_allowed": False,
+                        "telegram_send_allowed": False,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (read_models / "reynolds_gig_setup_status.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-07-07T14:04:00+00:00",
+                "known_core_facts": {
+                    "venue_name": "Reynolds Tavern",
+                    "date": "2026-07-10",
+                    "start_time": "8:00 PM",
+                    "fee_amount": "400",
+                },
+                "lanes": {"music": {"status": "set list still needs review"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_stale_paid_up_operator_truth_loses_to_current_receivable_state(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPENCLAW_TODAY", "2026-07-06")
     read_models = _seed_read_models(tmp_path)
@@ -401,3 +449,166 @@ def test_freeform_maestro_brain_gets_client_billing_channel_facts(monkeypatch, t
         for fact in billing_facts
     )
     assert "generated/read_models/client_invoice_workflow_framework.json" in packet["source_refs"]
+
+
+def test_money_question_answers_from_structured_packet_answer_topics(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "who owes me money right now?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    answer = result.plain_summary.lower()
+    assert result.status == "ANSWER_READY"
+    assert "i don't have that" not in answer
+    assert "live arts" in answer
+    assert "1,095" in result.plain_summary or "1095" in result.plain_summary
+    assert "needs your reconcile" in answer
+    assert "as_of" in answer or "2026-07-07" in answer
+    assert result.machine_proof["protected_generate_called"] is True
+    assert result.machine_proof["model_call_performed"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
+
+
+def test_superb_money_answer_is_operator_clean_and_amount_evidenced(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "who owes me money right now?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    answer = result.plain_summary
+    lowered = answer.lower()
+
+    assert result.status == "ANSWER_READY"
+    assert "i don't have that" not in lowered
+    assert "Live Arts" in answer
+    assert "$1,095" in answer
+    assert "needs your reconcile" in lowered
+    assert "Capital Hilton" in answer
+    assert "check expected" in lowered
+    assert "amount unverified" in lowered
+    assert "St Anne's" in answer
+    assert "settled" in lowered
+    assert "as of 2026-07-07" in lowered
+
+    forbidden = (
+        "Current money owed answer topic",
+        "needs_reconcile",
+        "open_not_paid",
+        "open_amount_unknown",
+        "2026-06",
+        "$0",
+        "USD 0",
+        "2,000",
+        "2000",
+    )
+    for token in forbidden:
+        assert token not in answer
+
+
+def test_plate_question_answers_attention_money_and_upcoming_from_packet(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    _seed_plate_attention(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice contact is Draper; plate questions should use current read models.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "what's on my plate?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    answer = result.plain_summary
+    lowered = answer.lower()
+    assert result.status == "ANSWER_READY"
+    assert "i don't have that" not in lowered
+    assert "st. anne's needs draper follow-up" in lowered or "st anne's needs draper follow-up" in lowered
+    assert "live arts" in lowered
+    assert "1,095" in answer or "1095" in answer
+    assert "reynolds tavern" in lowered
+    assert "intent:" not in lowered
+    assert result.machine_proof["protected_generate_called"] is True
+    assert result.machine_proof["model_call_performed"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
+
+
+def test_superb_plate_today_answer_keeps_plate_overview_precedence(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    _seed_plate_attention(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice contact is Draper; plate questions should use current read models.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "what's on my plate today, and what actually needs me?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    answer = result.plain_summary
+    lowered = answer.lower()
+
+    assert result.status == "ANSWER_READY"
+    assert "i don't have that" not in lowered
+    assert "St Anne's needs Draper follow-up" in answer
+    assert "Live Arts" in answer
+    assert "$1,095" in answer
+    assert "needs your reconcile" in lowered
+    assert "Capital Hilton" in answer
+    assert "amount unverified" in lowered
+    assert "Reynolds Tavern" in answer
+    assert "stage" in lowered or "set list" in lowered
+
+    forbidden = (
+        "Current plate overview",
+        "Operator attention item",
+        "st_annes_followup",
+        "client_ref",
+        "send_allowed",
+        "external_action_allowed",
+        "needs_reconcile",
+        "open_amount_unknown",
+        "2026-06",
+    )
+    for token in forbidden:
+        assert token not in answer

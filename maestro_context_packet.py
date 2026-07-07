@@ -32,6 +32,7 @@ DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
 CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL = "client_invoice_workflow_framework.json"
+RECEIVABLES_MONTH_BOUNDED_READ_MODEL = "receivables_month_bounded.json"
 KNOWN_READ_MODELS = (
     "agent_presence.json",
     "openclaw_capability_index.json",
@@ -41,6 +42,7 @@ KNOWN_READ_MODELS = (
     "helm_operator_attention_package.json",
     "autonomous_followup_watch_attention.json",
     "st_annes_receivable_state.json",
+    RECEIVABLES_MONTH_BOUNDED_READ_MODEL,
     "finance_invoice_reconciliation.json",
     CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL,
     "capital_hilton_invoice_operator_readback.json",
@@ -420,6 +422,81 @@ def _money_minor_units(value: int, currency: str) -> str:
     if major.is_integer():
         return f"{currency} {int(major)}"
     return f"{currency} {major:.2f}"
+
+
+def _operator_money_minor_units(value: int | None, currency: str) -> str:
+    if value is None:
+        return "amount unverified"
+    major = value / 100
+    if currency.upper() == "USD":
+        if major.is_integer():
+            return f"${int(major):,}"
+        return f"${major:,.2f}"
+    if major.is_integer():
+        return f"{currency.upper()} {int(major):,}"
+    return f"{currency.upper()} {major:,.2f}"
+
+
+def _operator_month(month: object) -> str:
+    raw = str(month or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(f"{raw}-01")
+        return parsed.strftime("%B")
+    except ValueError:
+        return raw
+
+
+def _operator_short_month(month: object) -> str:
+    raw = str(month or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(f"{raw}-01")
+        return parsed.strftime("%b")
+    except ValueError:
+        return raw
+
+
+def _operator_as_of(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    return raw[:10] if re.match(r"^\d{4}-\d{2}-\d{2}", raw) else raw
+
+
+def _operator_payment_status(status: object, *, needs_reconcile: bool = False) -> str:
+    normalized = str(status or "unknown").strip().lower()
+    if needs_reconcile or normalized == "needs_reconcile":
+        return "needs your reconcile"
+    if normalized == "open_amount_unknown":
+        return "check expected, amount unverified"
+    if normalized == "open_not_paid":
+        return "check expected, not yet paid"
+    if normalized == "settled":
+        return "settled"
+    return normalized.replace("_", " ") or "unknown"
+
+
+def _receivable_operator_line(row: Mapping[str, Any]) -> str:
+    client = _client_display(str(row.get("client_ref") or ""))
+    month = _operator_month(row.get("month"))
+    currency = str(row.get("currency_iso") or "USD").strip().upper()
+    amount_known = bool(row.get("amount_known", True))
+    open_minor = row.get("open_minor_units") if amount_known else None
+    status = _operator_payment_status(row.get("payment_status"), needs_reconcile=bool(row.get("needs_reconcile")))
+    as_of = _operator_as_of(row.get("as_of") or (row.get("freshness") or {}).get("as_of"))
+
+    if not amount_known or row.get("payment_status") == "open_amount_unknown":
+        details = ["check expected", "amount unverified"]
+    else:
+        details = [f"{_operator_money_minor_units(int(open_minor or 0), currency)} open", status]
+    if month:
+        details.append(month)
+    if as_of:
+        details.append(f"as of {as_of}")
+    return f"{client}: {', '.join(dict.fromkeys(part for part in details if part))}"
 
 
 def _current_open_receivables_by_client(db_path: Path) -> dict[str, list[Any]]:
@@ -1174,6 +1251,78 @@ def _st_annes_receivable_state_facts(
     return facts, {"st_annes_receivable_state_fact_count": len(facts)}
 
 
+def _receivables_month_bounded_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / RECEIVABLES_MONTH_BOUNDED_READ_MODEL
+    source_ref = _display_read_model_ref(path)
+    rows = [row for row in payload.get("rows", ()) if isinstance(row, Mapping)]
+    facts: list[dict[str, Any]] = []
+    freshness = _freshness(path, payload)
+    as_of = str(freshness.get("as_of") or payload.get("generated_at") or "").strip()
+    for row in rows[:12]:
+        client_ref = str(row.get("client_ref") or "").strip()
+        month = str(row.get("month") or "").strip()
+        currency = str(row.get("currency_iso") or "USD").strip().upper()
+        if not client_ref or not month:
+            continue
+        notes = row.get("notes") if isinstance(row.get("notes"), Sequence) and not isinstance(row.get("notes"), (str, bytes)) else ()
+        note_text = "; ".join(str(note) for note in list(notes)[:2] if str(note).strip())
+        amount_known = bool(row.get("amount_known", True))
+
+        def _amount_value(field: str) -> int | None:
+            if not amount_known and row.get(field) is None:
+                return None
+            return int(row.get(field) or 0)
+
+        def _amount_text(field: str) -> str:
+            value = _amount_value(field)
+            return "unknown" if value is None else _money_minor_units(value, currency)
+
+        value = _join_parts(
+            f"{_client_display(client_ref)} {month}",
+            f"invoiced={_amount_text('invoiced_minor_units')}",
+            f"paid={_amount_text('paid_minor_units')}",
+            f"open={_amount_text('open_minor_units')}",
+            f"status={row.get('payment_status') or 'unknown'}",
+            bool(row.get("needs_reconcile")) and "needs_reconcile=true",
+            note_text,
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="receivable_month_bounded",
+            label=f"{_client_display(client_ref)} {month} receivables",
+            value=value,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=freshness,
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "client_ref": client_ref,
+                    "month": month,
+                    "currency_iso": currency,
+                    "amount_known": amount_known,
+                    "invoiced_minor_units": _amount_value("invoiced_minor_units"),
+                    "paid_minor_units": _amount_value("paid_minor_units"),
+                    "open_minor_units": _amount_value("open_minor_units"),
+                    "invoiced_derived": bool(row.get("invoiced_derived")),
+                    "needs_reconcile": bool(row.get("needs_reconcile")),
+                    "payment_status": str(row.get("payment_status") or "unknown"),
+                    "settled_past_no_compound": bool(row.get("settled_past_no_compound")),
+                    "structured_fact": True,
+                    "current_truth": True,
+                    "as_of": as_of,
+                    "authority_source": "receivables_month_bounded",
+                }
+            )
+    return facts, {"receivables_month_bounded_fact_count": len(facts)}
+
+
 def _generic_gig_read_model_facts(root: Path, known_payloads: Mapping[str, Mapping[str, Any]]) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
@@ -1317,6 +1466,12 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
         receivable_facts, receivable_proof = _st_annes_receivable_state_facts(root, st_annes_receivable)
         facts.extend(receivable_facts)
         proof.update(receivable_proof)
+
+    month_receivables = payloads.get(RECEIVABLES_MONTH_BOUNDED_READ_MODEL, {})
+    if month_receivables:
+        month_receivable_facts, month_receivable_proof = _receivables_month_bounded_facts(root, month_receivables)
+        facts.extend(month_receivable_facts)
+        proof.update(month_receivable_proof)
 
     sentinel = payloads.get("openclaw_change_sentinel.json", {})
     summary = sentinel.get("hermes_summary") if isinstance(sentinel.get("hermes_summary"), Mapping) else {}
@@ -1576,6 +1731,186 @@ def _actionable_sections(facts: Sequence[Mapping[str, Any]]) -> dict[str, list[s
         "needs_attention": attention[:8],
         "upcoming_commitments": upcoming[:8],
     }
+
+
+def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    rows = [
+        fact for fact in facts
+        if str(fact.get("topic") or "") == "receivable_month_bounded" and fact.get("structured_fact") is True
+    ]
+    if not rows:
+        return [], {"finance_answer_topic_fact_count": 0}
+
+    open_rows: list[Mapping[str, Any]] = []
+    settled_by_client: dict[str, list[Mapping[str, Any]]] = {}
+    source_refs: list[str] = []
+    as_of_values: list[str] = []
+    for row in rows:
+        client_ref = str(row.get("client_ref") or "").strip()
+        open_minor = int(row.get("open_minor_units") or 0)
+        status = str(row.get("payment_status") or "unknown").strip()
+        needs_reconcile = bool(row.get("needs_reconcile"))
+        as_of = str(row.get("as_of") or (row.get("freshness") or {}).get("as_of") or "").strip()
+        source_ref = str(row.get("source_ref") or "").strip()
+        if source_ref and source_ref not in source_refs:
+            source_refs.append(source_ref)
+        if as_of and as_of not in as_of_values:
+            as_of_values.append(as_of)
+        if open_minor > 0 or needs_reconcile:
+            open_rows.append(row)
+        elif str(row.get("settled_past_no_compound") or "").lower() == "true" or status == "settled":
+            settled_by_client.setdefault(client_ref, []).append(row)
+
+    open_rows.sort(
+        key=lambda row: (
+            row.get("amount_known") is False,
+            _client_display(str(row.get("client_ref") or "")).lower(),
+        )
+    )
+    open_lines = [_receivable_operator_line(row) for row in open_rows]
+    settled_lines: list[str] = []
+    for client_ref, client_rows in settled_by_client.items():
+        months = "/".join(
+            month
+            for month in (_operator_short_month(row.get("month")) for row in client_rows)
+            if month
+        )
+        as_of = _operator_as_of(next((row.get("as_of") for row in client_rows if row.get("as_of")), ""))
+        line = f"{_client_display(client_ref)}"
+        if months:
+            line = f"{line} {months}"
+        line = f"{line} settled; don't chase"
+        if as_of:
+            line = f"{line}, as of {as_of}"
+        settled_lines.append(line)
+
+    value = " ".join(
+        part
+        for part in (
+            open_lines and "Money: " + ". ".join(open_lines[:4]) + ".",
+            settled_lines and "Settled items: " + " | ".join(settled_lines[:4]) + ".",
+        )
+        if part
+    )
+    if not value:
+        return [], {"finance_answer_topic_fact_count": 0}
+    answer_facts: list[dict[str, Any]] = []
+    _append_fact(
+        answer_facts,
+        topic="finance_invoice_reconciliation",
+        label="Current money owed answer topic",
+        value=value,
+        provenance="derived_answer_topic",
+        source_ref=", ".join(source_refs) or f"generated/read_models/{RECEIVABLES_MONTH_BOUNDED_READ_MODEL}",
+        pii_tier="LIGHT",
+        freshness={"as_of": as_of_values[0] if as_of_values else "", "source_ref": ", ".join(source_refs)},
+    )
+    if answer_facts:
+        answer_facts[-1].update(
+            {
+                "answer_topic": True,
+                "structured_fact": True,
+                "current_truth": True,
+                "as_of": as_of_values[0] if as_of_values else "",
+                "authority_source": "receivables_month_bounded",
+            }
+        )
+    return answer_facts, {"finance_answer_topic_fact_count": len(answer_facts)}
+
+
+def _plate_overview_answer_topic_facts(
+    facts: Sequence[Mapping[str, Any]],
+    actionable: Mapping[str, Sequence[str]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    def answer_safe(value: object) -> str:
+        text = _compact(value, limit=220)
+        text = re.sub(r"\bSt\.\s+", "St ", text)
+        text = re.sub(r"\b(client_ref|workflow_ref|send_allowed|external_action_allowed)=[^,;|. ]+", "", text)
+        text = re.sub(r"\bneeds_reconcile\b", "needs your reconcile", text)
+        text = re.sub(r"\bopen_amount_unknown\b", "amount unverified", text)
+        text = re.sub(r"\bopen_not_paid\b", "check expected, not yet paid", text)
+        text = text.replace(";", ",")
+        return re.sub(r"\s+", " ", text).strip(" .,")
+
+    def attention_summary(fact: Mapping[str, Any]) -> str:
+        parts = []
+        for part in re.split(r"[;|]", str(fact.get("value") or "")):
+            clean = answer_safe(part)
+            if not clean:
+                continue
+            lowered = clean.lower()
+            if "=" in clean or "_" in clean:
+                continue
+            if lowered.startswith("reason:") or lowered.startswith("urgency:"):
+                continue
+            parts.append(clean)
+        return ", ".join(parts[:3])
+
+    source_facts = [fact for fact in facts if fact.get("answer_topic") is not True]
+    attention = [
+        attention_summary(fact)
+        for fact in source_facts
+        if str(fact.get("topic") or "").strip().lower() in {"operator_attention", "receivable_attention"}
+    ]
+    attention = [item for item in attention if item]
+    money = []
+    for fact in source_facts:
+        if str(fact.get("topic") or "").strip().lower() != "receivable_month_bounded":
+            continue
+        if int(fact.get("open_minor_units") or 0) <= 0 and fact.get("needs_reconcile") is not True:
+            continue
+        money.append(answer_safe(_receivable_operator_line(fact)))
+    money.sort(key=lambda value: ("amount unverified" in value.lower(), value.lower()))
+    upcoming = [
+        answer_safe(f"{fact.get('label')}: {fact.get('value')}")
+        for fact in source_facts
+        if str(fact.get("topic") or "").strip().lower() in {"gig_schedule", "calendar_day", "niles_gig_context"}
+    ]
+    if not any((attention, money, upcoming)):
+        return [], {"plate_answer_topic_fact_count": 0}
+    source_refs: list[str] = []
+    for fact in facts:
+        topic = str(fact.get("topic") or "").strip().lower()
+        if topic in {
+            "operator_attention",
+            "receivable_month_bounded",
+            "finance_invoice_reconciliation",
+            "gig_schedule",
+            "calendar_day",
+            "niles_gig_context",
+        }:
+            source_ref = str(fact.get("source_ref") or "").strip()
+            if source_ref and source_ref not in source_refs:
+                source_refs.append(source_ref)
+    value = " ".join(
+        part
+        for part in (
+            attention and "Needs attention: " + " | ".join(attention[:3]) + ".",
+            money and "Money: " + " | ".join(money[:3]) + ".",
+            upcoming and "Upcoming: " + " | ".join(upcoming[:3]) + ".",
+        )
+        if part
+    )
+    answer_facts: list[dict[str, Any]] = []
+    _append_fact(
+        answer_facts,
+        topic="plate_overview",
+        label="Current plate overview",
+        value=value,
+        provenance="derived_answer_topic",
+        source_ref=", ".join(source_refs) or "maestro_context_packet:actionable",
+        pii_tier="LIGHT",
+    )
+    if answer_facts:
+        answer_facts[-1].update(
+            {
+                "answer_topic": True,
+                "structured_fact": True,
+                "current_truth": True,
+                "authority_source": "packet_actionable_sections",
+            }
+        )
+    return answer_facts, {"plate_answer_topic_fact_count": len(answer_facts)}
 
 
 def _privacy_summary(facts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -2176,6 +2511,16 @@ def build_maestro_context_packet(
         session=session,
     )
 
+    finance_answer_facts, answer_topic_proof = _receivable_answer_topic_facts(facts)
+    if finance_answer_facts:
+        facts = [*finance_answer_facts, *facts]
+    actionable = _actionable_sections(facts)
+    plate_answer_facts, plate_answer_proof = _plate_overview_answer_topic_facts(facts, actionable)
+    if plate_answer_facts:
+        facts = [*plate_answer_facts, *facts]
+        actionable = _actionable_sections(facts)
+    answer_topic_proof.update(plate_answer_proof)
+
     facts = annotate_facts_with_ledger_provenance(
         facts,
         builder_name="maestro_context_packet.build_maestro_context_packet",
@@ -2216,7 +2561,7 @@ def build_maestro_context_packet(
         "facts": facts,
         "skills": applied_skills,
         "skill_receipts": skill_receipts,
-        "actionable": _actionable_sections(facts),
+        "actionable": actionable,
         "privacy": _privacy_summary(facts),
         "bounds": {
             "send_hold_absolute": True,
@@ -2243,6 +2588,7 @@ def build_maestro_context_packet(
             ),
             **receivable_temporal_proof,
             **money_status_guard_proof,
+            **answer_topic_proof,
             **contacts_proof,
             **read_model_proof,
         },

@@ -688,6 +688,9 @@ def _format_answer_fact(fact: Mapping[str, Any]) -> str:
     value = _clean_answer_value(fact.get("value"))
     if not value:
         return ""
+    if fact.get("answer_topic") is True:
+        sentence = value.rstrip(".") + "."
+        return sentence if _is_complete_utterance(sentence) else ""
     if label and label.lower() not in value.lower():
         sentence = f"{label}: {value}."
     else:
@@ -722,6 +725,14 @@ _SCHEDULE_INTENT_MARKERS = (
     "rehearsal",
 )
 _SCHEDULE_ANSWER_TOPICS = frozenset({"calendar_day"})
+_PLATE_INTENT_MARKERS = (
+    "what's on my plate",
+    "whats on my plate",
+    "on my plate",
+    "actually needs me",
+    "needs me",
+)
+_PLATE_ANSWER_TOPICS = frozenset({"plate_overview"})
 _FINANCE_INTENT_MARKERS = (
     "bill",
     "bills",
@@ -748,6 +759,11 @@ _NO_PACKET_ANSWER = (
 def _is_schedule_intent(prompt: str) -> bool:
     lowered = str(prompt or "").lower()
     return any(marker in lowered for marker in _SCHEDULE_INTENT_MARKERS)
+
+
+def _is_plate_intent(prompt: str) -> bool:
+    lowered = str(prompt or "").lower()
+    return any(marker in lowered for marker in _PLATE_INTENT_MARKERS)
 
 
 # 000i: a question that reduces to zero content terms is ambiguous. It can be a
@@ -801,6 +817,22 @@ def _schedule_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
         if len(matched) >= 3:
             break
     return " ".join(matched[:3]) if matched else None
+
+
+def _plate_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
+    matched: list[str] = []
+    seen: set[str] = set()
+    for fact in _eligible_fallback_facts(facts):
+        if str(fact.get("topic") or "").strip().lower() not in _PLATE_ANSWER_TOPICS:
+            continue
+        sentence = _format_answer_fact(fact)
+        key = sentence.lower()
+        if sentence and key not in seen:
+            matched.append(sentence)
+            seen.add(key)
+        if len(matched) >= 2:
+            break
+    return " ".join(matched[:2]) if matched else None
 
 
 # Social/casual messages — greetings, reactions, thanks, "I hear…". They ask for NO fact,
@@ -903,7 +935,12 @@ def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | s
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
     facts = _eligible_fallback_facts(facts)
 
-    if _is_schedule_intent(prompt):
+    plate_intent = _is_plate_intent(prompt)
+    if plate_intent:
+        plate = _plate_grounded_answer(facts)
+        if plate is not None:
+            return plate
+    if _is_schedule_intent(prompt) and not plate_intent:
         scheduled = _schedule_grounded_answer(facts)
         return scheduled if scheduled is not None else _NO_PACKET_ANSWER
     if _is_finance_intent(prompt):
