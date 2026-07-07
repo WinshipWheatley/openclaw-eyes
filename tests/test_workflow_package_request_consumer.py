@@ -105,6 +105,56 @@ def test_maestro_listener_envelope_reaches_freeform_brain(tmp_path: Path) -> Non
     assert "protected_text_hash_mismatch" not in json.dumps(response.detail_disclosure, sort_keys=True)
 
 
+def test_maestro_telegram_invoice_test_routes_to_st_annes_dryrun_not_freeform(tmp_path: Path) -> None:
+    request = maestro_listener.build_operator_maestro_chat_request(
+        "Maestro, Lets test the St Annes workflow for the invoice",
+        message_id="1191",
+        chat_id=123,
+        created_at=FIXED_NOW,
+    )
+    request_path = tmp_path / "mission_control_operator_instruction_request_maestro_telegram_1191.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+
+    assert response.internal_status == "RESPONSE_READY"
+    assert response.request_type == "WORKFLOW_PACKAGE_REQUEST"
+    assert response.workflow_ref == "st_annes_monthly_invoice_rollup"
+    assert "maestro_cassandra_responder" not in response.detail_disclosure
+    assert response.detail_disclosure["request_classification"]["selected_rail"] == "workflow_package_request_consumer"
+
+    receipt = response.detail_disclosure["workflow_package_request_consumer"]
+    assert receipt["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+    assert receipt["package_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert receipt["capability_gate_status"] == "ALLOW_DRY_RUN"
+    assert [ref["artifact_kind"] for ref in receipt["proof_refs"]] == [
+        "pdf_proof",
+        "clara_draft",
+        "guardian_gate",
+    ]
+    assert receipt["dry_run_proof_bundle"]["emitter_ref"] == "workflow_package_queue:st_annes_dry_run_proof_bundle"
+    assert receipt["machine_proof"]["dry_run_proof_bundle_emitted"] is True
+    assert receipt["machine_proof"]["email_send_performed"] is False
+    assert receipt["machine_proof"]["pdf_export_performed"] is False
+
+    package = response.detail_disclosure["package"]
+    assert package["capability_gate_result"]["actual_send_gate"]["email_send_allowed"] is False
+    assert package["worker_result"]["live_worker_executed"] is False
+    assert package["worker_result"]["email_send_performed"] is False
+    assert package["worker_result"]["pdf_export_performed"] is False
+    assert [ref["artifact_kind"] for ref in response.detail_disclosure["layered_response_fields"]["proof_refs"]] == [
+        "pdf_proof",
+        "clara_draft",
+        "guardian_gate",
+    ]
+    assert "coupa" not in response.operator_message.lower()
+
+
 def test_legacy_bare_hex_hash_still_validates_when_source_text_matches() -> None:
     request = maestro_listener.build_operator_maestro_chat_request(
         "What should Maestro do with this legacy operator message?",
