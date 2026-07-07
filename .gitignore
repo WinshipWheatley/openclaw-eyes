@@ -796,6 +796,7 @@
 !tests/test_runtime_activation_gate.py
 !activation_gate_register.py
 !tests/test_activation_gate_register.py
+!tests/test_one_knowledge_ledger_doctrine.py
 !workspaces/
 !workspaces/openclaw_program/
 !workspaces/openclaw_program/ACTIVATION_GATE_REGISTER.md

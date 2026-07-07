@@ -3599,12 +3599,7 @@ def _process_workflow_package_request(
         detail_disclosure={
             "request_classification": asdict(response_classification),
             "workflow_package_request_consumer": receipt,
-            "lm1_shared_request_seam": {
-                "status": lm1_shared_seam.get("status"),
-                "interpretation": lm1_shared_seam.get("interpretation"),
-                "workflow_packet_id": ((lm1_shared_seam.get("workflow_context_packet") or {}).get("packet_id")),
-                "rich_packet_id": ((lm1_shared_seam.get("rich_context_packet") or {}).get("packet_id")),
-            } if isinstance(lm1_shared_seam, Mapping) else None,
+            "lm1_shared_request_seam": _lm1_shared_request_seam_summary(lm1_shared_seam),
             "package": package,
             "system_question_answer": receipt.get("system_question_answer") if system_question_answered else None,
             "operator_display": operator_display,
@@ -5758,6 +5753,23 @@ def _lm1_result_from_seam(lm1_shared_seam: Mapping[str, Any] | None) -> Any | No
         return None
 
 
+def _lm1_shared_request_seam_summary(lm1_shared_seam: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(lm1_shared_seam, Mapping):
+        return None
+    workflow_packet = lm1_shared_seam.get("workflow_context_packet")
+    rich_packet = lm1_shared_seam.get("rich_context_packet")
+    workflow_packet = workflow_packet if isinstance(workflow_packet, Mapping) else {}
+    rich_packet = rich_packet if isinstance(rich_packet, Mapping) else {}
+    interpretation = lm1_shared_seam.get("interpretation")
+    return {
+        "status": str(lm1_shared_seam.get("status") or ""),
+        "interpretation": dict(interpretation) if isinstance(interpretation, Mapping) else {},
+        "workflow_packet_id": str(workflow_packet.get("packet_id") or ""),
+        "rich_packet_id": str(rich_packet.get("packet_id") or ""),
+        "packet_error": str(lm1_shared_seam.get("packet_error") or ""),
+    }
+
+
 def _build_lm1_shared_request_seam(
     raw_request: Mapping[str, Any],
     *,
@@ -6089,6 +6101,7 @@ def _try_interpreter_brain_divert(
             "route_to_staging_when_not_answer_ready": True,
             "interpreter_lm_divert": True,
         },
+        "lm1_shared_request_seam": _lm1_shared_request_seam_summary(lm1_shared_seam),
         "maestro_cassandra_responder": result_payload,
         "dynamic_card_response": card,
         "external_actions_locked": True,
@@ -6263,6 +6276,11 @@ def _try_interpreter_action_blocked_divert(
         "interpreter_fact_selection": list(interp_result.fact_selection),
         "lm1_shared_seam_used": isinstance(lm1_shared_seam, Mapping)
         and bool(lm1_shared_seam.get("rich_context_packet")),
+        "lm1_shared_packet_id": str(
+            ((lm1_shared_seam or {}).get("rich_context_packet") or {}).get("packet_id")
+            if isinstance(lm1_shared_seam, Mapping)
+            else ""
+        ),
         "external_llm_invoked": False,
         "local_model_invoked": False,
         "model_call_performed": False,
@@ -6300,6 +6318,7 @@ def _try_interpreter_action_blocked_divert(
             "route_to_staging_when_not_answer_ready": True,
             "interpreter_lm_divert": True,
         },
+        "lm1_shared_request_seam": _lm1_shared_request_seam_summary(lm1_shared_seam),
         "external_actions_locked": True,
         "model_or_worker_response_adapter_called": False,
         "workflow_package_staged": False,
@@ -8794,6 +8813,98 @@ def _processor_status_from_response(
     )
 
 
+def _int_counter(value: Any) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return max(parsed, 0)
+
+
+def _lm1_shared_seam_detail_from_response(response: OpenClawResponseForMac) -> dict[str, Any] | None:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    seam_detail = detail.get("lm1_shared_request_seam")
+    if isinstance(seam_detail, Mapping):
+        return dict(seam_detail)
+    proof = response.proof_to_response if isinstance(response.proof_to_response, Mapping) else {}
+    if "lm1_shared_seam_used" not in proof:
+        return None
+    packet_id = str(proof.get("lm1_shared_packet_id") or "")
+    return {
+        "status": "READY" if proof.get("lm1_shared_seam_used") and packet_id else "NOT_READY",
+        "interpretation": {},
+        "workflow_packet_id": "",
+        "rich_packet_id": packet_id,
+        "packet_error": "",
+    }
+
+
+def _lm1_shared_seam_receipt(
+    response: OpenClawResponseForMac,
+    *,
+    generated_at: str,
+) -> dict[str, Any] | None:
+    seam_detail = _lm1_shared_seam_detail_from_response(response)
+    if seam_detail is None:
+        return None
+    interpretation = seam_detail.get("interpretation")
+    interpretation = interpretation if isinstance(interpretation, Mapping) else {}
+    status = str(seam_detail.get("status") or "")
+    workflow_packet_id = str(seam_detail.get("workflow_packet_id") or "")
+    rich_packet_id = str(seam_detail.get("rich_packet_id") or "")
+    used = status == "READY" and bool(workflow_packet_id or rich_packet_id)
+    return {
+        "schema_version": "lm1_shared_seam_receipt_v0",
+        "receipt_type": "lm1_shared_seam_used" if used else "lm1_shared_seam_not_ready",
+        "generated_at": generated_at,
+        "source_request_id": response.source_request_id,
+        "request_type": response.request_type,
+        "feature_flag": "OPENCLAW_LM1_SHARED_SEAM",
+        "status": status,
+        "used": used,
+        "workflow_packet_id": workflow_packet_id,
+        "rich_packet_id": rich_packet_id,
+        "interpretation_source": str(interpretation.get("source") or ""),
+        "interpretation_route": str(interpretation.get("route") or ""),
+        "interpretation_confidence": interpretation.get("confidence"),
+        "packet_error": str(seam_detail.get("packet_error") or ""),
+    }
+
+
+def _lm1_shared_seam_counter(
+    receipt: Mapping[str, Any] | None,
+    previous_status: Mapping[str, Any] | None,
+    *,
+    generated_at: str,
+) -> dict[str, Any] | None:
+    previous_counter = None
+    if isinstance(previous_status, Mapping):
+        raw_counter = previous_status.get("lm1_shared_seam_counter")
+        previous_counter = raw_counter if isinstance(raw_counter, Mapping) else None
+    if receipt is None and previous_counter is None:
+        return None
+    observation_count = _int_counter((previous_counter or {}).get("observation_count"))
+    used_count = _int_counter((previous_counter or {}).get("used_count"))
+    not_ready_count = _int_counter((previous_counter or {}).get("not_ready_count"))
+    if receipt is not None:
+        observation_count += 1
+        if bool(receipt.get("used")):
+            used_count += 1
+        else:
+            not_ready_count += 1
+    return {
+        "schema_version": "lm1_shared_seam_counter_v0",
+        "read_model_id": "lm1_shared_seam_counter",
+        "generated_at": generated_at,
+        "feature_flag": "OPENCLAW_LM1_SHARED_SEAM",
+        "observation_count": observation_count,
+        "used_count": used_count,
+        "not_ready_count": not_ready_count,
+        "zero_live_fire_receipts": used_count == 0,
+        "latest_receipt": dict(receipt) if isinstance(receipt, Mapping) else (previous_counter or {}).get("latest_receipt"),
+    }
+
+
 def _machine_proof(
     response: OpenClawResponseForMac,
     status: OpenClawRequestProcessorStatus,
@@ -8939,6 +9050,7 @@ def build_payloads(
     *,
     generated_at: str | None = None,
     blockers: tuple[str, ...] = (),
+    previous_status: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     generated_at = generated_at or utc_now()
     status = _processor_status_from_response(response, blockers=blockers)
@@ -9056,6 +9168,27 @@ def build_payloads(
             "local_surface_request_external_action_allowed": local_surface_request.get("external_action_allowed"),
         }
     )
+    lm1_seam_receipt = _lm1_shared_seam_receipt(response, generated_at=generated_at)
+    lm1_seam_counter = _lm1_shared_seam_counter(
+        lm1_seam_receipt,
+        previous_status,
+        generated_at=generated_at,
+    )
+    if lm1_seam_receipt is not None:
+        response_payload.setdefault("request_receipts", {})["lm1_shared_seam"] = lm1_seam_receipt
+    if lm1_seam_counter is not None:
+        status_payload["lm1_shared_seam_counter"] = lm1_seam_counter
+        status_payload["machine_proof"].update(
+            {
+                "lm1_shared_seam_receipt_emitted": lm1_seam_receipt is not None,
+                "lm1_shared_seam_used": bool(lm1_seam_receipt and lm1_seam_receipt.get("used")),
+                "lm1_shared_seam_observation_count": lm1_seam_counter["observation_count"],
+                "lm1_shared_seam_used_count": lm1_seam_counter["used_count"],
+                "lm1_shared_seam_zero_live_fire_receipts": lm1_seam_counter["zero_live_fire_receipts"],
+            }
+        )
+    else:
+        status_payload["machine_proof"]["lm1_shared_seam_receipt_emitted"] = False
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))
     status_payload["machine_proof"]["content_hash"] = _content_hash(status_payload)
     response_payload["machine_proof"]["content_hash"] = _content_hash(response_payload)
@@ -9207,10 +9340,12 @@ def run_and_write(
             read_model_reader=read_model_reader,
         )
     quality_errors = _terminal_quality_errors(response)
+    previous_status = _read_existing_processor_status(export_root)
     response_payload, status_payload = build_payloads(
         response,
         generated_at=generated_at,
         blockers=quality_errors,
+        previous_status=previous_status,
     )
     publication = publish_response_for_mac_outbox(
         response_payload,

@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1671,6 +1672,50 @@ def test_guardian_output_gate_is_attached_to_mac_payloads():
     assert status["machine_proof"]["model_call_performed"] is False
     assert status["machine_proof"]["agent_dispatch_performed"] is False
     assert status["machine_proof"]["external_action_performed"] is False
+
+
+def test_lm1_shared_seam_receipt_and_counter_are_exported():
+    response = replace(
+        _minimal_response("Workflow package staged with shared seam proof."),
+        request_type="WORKFLOW_PACKAGE_REQUEST",
+        detail_disclosure={
+            "lm1_shared_request_seam": {
+                "status": "READY",
+                "interpretation": {
+                    "source": "lm1_shared_interpreter",
+                    "route": "WORKFLOW",
+                    "confidence": 0.95,
+                },
+                "workflow_packet_id": "lm1-packet-123",
+                "rich_packet_id": "lm1-packet-123",
+            }
+        },
+    )
+    previous_status = {
+        "lm1_shared_seam_counter": {
+            "observation_count": 3,
+            "used_count": 2,
+            "not_ready_count": 1,
+        }
+    }
+
+    payload, status = processor.build_payloads(
+        response,
+        generated_at=FIXED_NOW,
+        previous_status=previous_status,
+    )
+
+    receipt = payload["request_receipts"]["lm1_shared_seam"]
+    assert receipt["receipt_type"] == "lm1_shared_seam_used"
+    assert receipt["rich_packet_id"] == "lm1-packet-123"
+    assert receipt["interpretation_route"] == "WORKFLOW"
+    counter = status["lm1_shared_seam_counter"]
+    assert counter["read_model_id"] == "lm1_shared_seam_counter"
+    assert counter["observation_count"] == 4
+    assert counter["used_count"] == 3
+    assert counter["not_ready_count"] == 1
+    assert status["machine_proof"]["lm1_shared_seam_receipt_emitted"] is True
+    assert status["machine_proof"]["lm1_shared_seam_used_count"] == 3
 
 
 def test_guardian_output_gate_blocks_rogue_role_claims():
