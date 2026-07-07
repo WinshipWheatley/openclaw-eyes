@@ -1368,6 +1368,7 @@ generated/system_knowledge/*.sqlite
 !tests/test_receivable_temporal_scoping.py
 !tests/test_paid_up_interpreter_contract.py
 !tests/test_maestro_packet_freshness_antirecite.py
+!tests/test_cassandra_warm_client_draft_routing.py
 !agent_build_request_flow.py
 !polish_loop/build_request_intake.py
 !tests/test_agent_build_request_flow.py
