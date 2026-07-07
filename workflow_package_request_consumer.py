@@ -19,6 +19,7 @@ from typing import Any, Mapping
 
 import agent_voice_router
 import dynamic_card_packet
+import maestro_cassandra_responder as mcr
 import system_question_answer
 import workflow_package_queue
 
@@ -469,6 +470,173 @@ def _system_question_receipt(
     )
 
 
+_QUESTION_OPENERS = (
+    "who", "what", "when", "where", "which", "how",
+    "does", "did", "is", "are", "can",
+)
+
+
+def _is_general_question_text(text: str) -> bool:
+    """Task 129: interrogative texts route to the answer path, never instruction staging."""
+    normalized = " ".join(str(text or "").strip().lower().split())
+    if not normalized:
+        return False
+    if normalized.endswith("?"):
+        return True
+    first_word = normalized.split(" ", 1)[0].rstrip("?,.!;:")
+    return first_word in _QUESTION_OPENERS
+
+
+def is_business_question_request(raw_request: Mapping[str, Any]) -> bool:
+    """Task 129: a general operator BUSINESS question (money/gigs/contacts/status — not a
+    meta/system question, and not a specific client instruction) must be answered through
+    Maestro's real packet-grounded pipeline, never silently staged. System questions keep
+    their own, more specific local answer path (is_system_question_request); a text that
+    matches a specific client workflow keeps its existing instruction/dry-run-review
+    semantics (classify_intent) untouched."""
+    source_text = _source_text(raw_request)
+    if not source_text:
+        return False
+    if is_system_question_request(raw_request):
+        return False
+    intent = workflow_package_queue.classify_intent(source_text)
+    workflow_ref = str(intent.get("workflow_ref") or "")
+    if workflow_ref not in {"", "diagnostic_package_gate_smoke"}:
+        return False
+    return _is_general_question_text(source_text)
+
+
+def _business_question_receipt(
+    raw_request: Mapping[str, Any],
+    *,
+    request_id: str,
+    source_request_filename: str,
+    generated_at: str,
+    sqlite_path: Path,
+) -> WorkflowPackageRequestResult | None:
+    source_text = _source_text(raw_request)
+    session = mcr.session_from_request(raw_request)
+    result = mcr.answer_frontdoor_chat(
+        source_text,
+        session=session,
+        source_surface="mission_control",
+    )
+    if result.status != "ANSWER_READY":
+        return None
+    route = _system_question_route_metadata(raw_request)
+    machine_proof = mcr.machine_proof_for_result(result)
+    proof_refs = mcr.proof_refs_for_result(result)
+    answer_text = str(result.one_line_answer or result.plain_summary or "").strip()
+    operator_display = {
+        "speaker_ref": "maestro",
+        "voice_profile_ref": "agent_voice_profile:maestro",
+        "voice_mode": "operator_calm",
+        "audience": "internal_operator",
+        "routing_reason": "operator business question, answered from the grounded packet",
+        "headline": answer_text or "Answer ready",
+        "subheadline": "Answered from OpenClaw's grounded packet.",
+        "status_label": "Answer ready",
+        "tone": "calm",
+        "plain_summary": str(result.plain_summary or answer_text),
+        "next_safe_action": "Review the proof refs if you want the underlying facts.",
+        "why_it_matters": "The operator's question is answered directly, never staged as an instruction.",
+        "primary_fact": answer_text or "Answered.",
+        "secondary_facts": [],
+        "proof_caption": "Proof available.",
+        "proof_refs_collapsed": True,
+        "show_machine_details_by_default": False,
+    }
+    receipt = {
+        "schema_version": "workflow_package_request_consumer_v0",
+        "receipt_type": "WORKFLOW_PACKAGE_REQUEST_RESULT_RECEIPT",
+        "request_id": request_id,
+        "source_request_filename": source_request_filename,
+        "raw_internal_status": "RESPONSE_READY",
+        "primary_status": "ANSWER_READY",
+        "package_id": "",
+        "workflow_ref": "business_question_answer",
+        "client_ref": None,
+        "world": route["current_world_ref"] or "operations",
+        "package_status": "ANSWER_READY",
+        "capability_gate_status": "GROUNDED_PACKET_ANSWER",
+        "blocker": "",
+        "next_safe_action": operator_display["next_safe_action"],
+        "current_world_ref": route["current_world_ref"],
+        "current_thread_ref": route["current_thread_ref"],
+        "source_world_ref": route["source_world_ref"],
+        "source_thread_ref": route["source_thread_ref"],
+        "target_world_ref": route["target_world_ref"],
+        "target_thread_ref": route["target_thread_ref"],
+        "cross_lane_routed": route["cross_lane_routed"],
+        "routing_note": "Answered from Maestro's grounded packet (question, not staged).",
+        "speaker_ref": operator_display["speaker_ref"],
+        "voice_profile_ref": operator_display["voice_profile_ref"],
+        "voice_mode": operator_display["voice_mode"],
+        "audience": operator_display["audience"],
+        "operator_display": operator_display,
+        "maestro_answer": {
+            "one_line_answer": result.one_line_answer,
+            "plain_summary": result.plain_summary,
+            "intent_class": result.intent_class,
+        },
+        "proof_refs": list(dict.fromkeys(str(ref) for ref in proof_refs)),
+        "proof_refs_collapsed": True,
+        "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
+        "request_authority_boundary_all_false": not _authority_blockers(raw_request),
+        "no_external_authority_granted": True,
+        "result_receipt_required": raw_request.get("result_receipt_required") is True,
+        "sqlite_path": str(sqlite_path),
+        "created_at": generated_at,
+        "machine_proof": {
+            "workflow_package_request_v0_detected": is_workflow_package_request(raw_request),
+            "business_question_intent_detected": True,
+            "instruction_staging_bypassed": True,
+            "source_surface_mission_control": str(raw_request.get("source_surface") or "") == "mission_control",
+            "requested_mode_operator": str(raw_request.get("requested_mode") or "") == "operator",
+            "package_recorded": False,
+            "queue_sqlite_mutated": False,
+            "business_action_gate_closed": True,
+            "authority_flags_all_false": all(
+                value is False for value in workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT.values()
+            ),
+            "external_llm_called": bool(machine_proof.get("external_llm_invoked", False)),
+            "child_agent_spawned": False,
+            "live_execution_performed": False,
+            "email_send_performed": False,
+            "ledger_mutation_performed": False,
+            "browser_access_performed": False,
+            "gmail_access_performed": False,
+            "coupa_access_performed": False,
+            "workbook_mutation_performed": False,
+            "pdf_export_performed": False,
+            "paid_marking_performed": False,
+            "submit_performed": False,
+            "business_state_mutation_performed": False,
+            "raw_text_stored_in_sqlite": False,
+            "proof_refs_collapsed": True,
+            "unsafe_true_grants_absent": not _authority_blockers(raw_request),
+            "maestro_machine_proof": machine_proof,
+        },
+    }
+    receipt = dynamic_card_packet.add_rail_card_packet(
+        receipt,
+        "business_question_answer",
+        read_model_root=DEFAULT_EXPORT_ROOT,
+        generated_at=generated_at,
+        source_key="business_question_answer",
+    )
+    return WorkflowPackageRequestResult(
+        status="RECORDED",
+        request_id=request_id,
+        request_filename=source_request_filename,
+        package=None,
+        blockers=(),
+        response_primary_status="ANSWER_READY",
+        next_safe_action=str(operator_display["next_safe_action"]),
+        receipt=receipt,
+    )
+
+
 def _normalize_ref(value: str) -> str:
     text = str(value or "").strip().lower()
     text = text.replace("&", "and")
@@ -823,6 +991,16 @@ def consume_workflow_package_request(
             generated_at=generated_at,
             sqlite_path=sqlite_path,
         )
+    if ok and is_business_question_request(raw_request):
+        business_result = _business_question_receipt(
+            raw_request,
+            request_id=request_id,
+            source_request_filename=source_request_filename,
+            generated_at=generated_at,
+            sqlite_path=sqlite_path,
+        )
+        if business_result is not None:
+            return business_result
     package: dict[str, Any] | None = None
     if ok:
         package_created_at = str(raw_request.get("created_at") or generated_at)
