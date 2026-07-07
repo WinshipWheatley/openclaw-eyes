@@ -80,6 +80,29 @@ def _fire_agent_voice(agent: str, text: str, update) -> None:
         print(f"[chief_guardian_listener] {agent} voice note skipped: {exc}", flush=True)
 
 
+def _build_no_pending_guardian_packet(question: str) -> dict:
+    from guardian_context_packet import build_guardian_context_packet
+    from packet_engine import build_agent_packet
+
+    return build_agent_packet(
+        agent="guardian",
+        question=question,
+        question_class="approval_posture_no_pending",
+        legacy_builder=build_guardian_context_packet,
+    )
+
+
+def _log_no_pending_guardian_packet(packet: dict) -> None:
+    receipt = packet.get("packet_engine_receipt") if isinstance(packet, dict) else None
+    receipt_id = receipt.get("receipt_id") if isinstance(receipt, dict) else ""
+    packet_id = packet.get("packet_id") if isinstance(packet, dict) else ""
+    if packet_id or receipt_id:
+        print(
+            f"[guardian] no-pending context packet built packet_id={packet_id} receipt_id={receipt_id}",
+            flush=True,
+        )
+
+
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Primary approval path: handle inline button taps.
@@ -323,20 +346,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if not has_pending_approval():
         _reply = guardian_no_pending_reply(text)
-        # Surface grounded approval-posture facts from the HITL ledger. READ-ONLY:
-        # build_guardian_context_packet never resolves/approves anything. Additive —
-        # appended to the existing reply; any failure is silently skipped.
+        # Ground the reply with a read-only packet and packet-engine receipt, but
+        # never expose the raw packet text in the operator-visible Telegram reply.
         try:
-            from guardian_context_packet import (
-                build_guardian_context_packet,
-                format_guardian_context_packet,
-            )
-            _posture = format_guardian_context_packet(build_guardian_context_packet())
-            if _posture and _posture.strip():
-                _posture = _posture.strip()
-                if len(_posture) > 900:  # keep the Telegram reply well under the 4096 cap
-                    _posture = _posture[:900].rstrip() + " …"
-                _reply = f"{_reply}\n\n{_posture}"
+            _log_no_pending_guardian_packet(_build_no_pending_guardian_packet(text))
         except Exception:
             pass
         await update.message.reply_text(_reply)
