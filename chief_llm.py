@@ -86,6 +86,8 @@ _FRONTDOOR_MODEL_HARD_DENY = frozenset({"gemma4:26b", "gemma4:31b"})
 # RAM headroom (GB) reserved below available RAM, and a hard size ceiling.
 _FRONTDOOR_MODEL_RAM_HEADROOM_GB = 4.0
 _FRONTDOOR_MODEL_MAX_GB_DEFAULT = 12.0
+_FRONTDOOR_SYSTEM_LOAD_1M_HIGH_DEFAULT = 4.0
+_FRONTDOOR_SYSTEM_LOAD_PER_CPU_HIGH_DEFAULT = 0.75
 
 # Hardware-fit ceiling for ALL local-model lanes (not just the front-door). A model whose
 # on-disk size exceeds this never resolves on this box: gemma4:26b (~19GB) on a 24GB box
@@ -792,6 +794,47 @@ def FRONTDOOR_MODEL_ALLOWLIST() -> tuple[str, ...]:
     return parsed
 
 
+def _frontdoor_float_env(name: str, default: float) -> float:
+    try:
+        value = float(os.environ.get(name, "").strip() or default)
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+def _frontdoor_system_load_is_high(
+    system_load_1m: float | None,
+    cpu_count: int | None,
+) -> bool:
+    if system_load_1m is None:
+        return False
+    try:
+        load_1m = float(system_load_1m)
+    except (TypeError, ValueError):
+        return False
+    if load_1m < 0:
+        return False
+
+    absolute_threshold = _frontdoor_float_env(
+        "OPENCLAW_FRONTDOOR_SYSTEM_LOAD_1M_HIGH",
+        _FRONTDOOR_SYSTEM_LOAD_1M_HIGH_DEFAULT,
+    )
+    if load_1m >= absolute_threshold:
+        return True
+
+    try:
+        cores = int(cpu_count or 0)
+    except (TypeError, ValueError):
+        cores = 0
+    if cores <= 0:
+        return False
+    per_cpu_threshold = _frontdoor_float_env(
+        "OPENCLAW_FRONTDOOR_SYSTEM_LOAD_PER_CPU_HIGH",
+        _FRONTDOOR_SYSTEM_LOAD_PER_CPU_HIGH_DEFAULT,
+    )
+    return (load_1m / cores) >= per_cpu_threshold
+
+
 def select_frontdoor_model(
     *,
     installed: set[str] | None = None,
@@ -799,6 +842,8 @@ def select_frontdoor_model(
     available_ram_gb: float | None = None,
     available_vram_gb: float | None = None,
     resident_vram_by_model_gb: dict[str, float] | None = None,
+    system_load_1m: float | None = None,
+    cpu_count: int | None = None,
     max_gb: float | None = None,
 ) -> tuple[str | None, str]:
     """Pick the LARGEST allowlisted, installed model that fits the GPU card (and RAM).
@@ -816,8 +861,9 @@ def select_frontdoor_model(
     (measured live, not here) misses the budget.
 
     Returns (model_or_None, reason): ``frontdoor_largest_fitting`` (GPU-resident/fast),
-    ``frontdoor_largest_fitting_ram_spill`` (fits the card, spills to RAM), or
-    ``no_fitting_model``. gemma4:26b/31b never appear (not in the allowlist, also too big).
+    ``frontdoor_largest_fitting_ram_spill`` (fits the card, spills to RAM),
+    ``frontdoor_step_down_system_load`` (high system load), or ``no_fitting_model``.
+    gemma4:26b/31b never appear (not in the allowlist, also too big).
     installed/sizes/available_ram_gb/available_vram_gb are injectable for tests; default to
     live queries.
     """
@@ -877,6 +923,11 @@ def select_frontdoor_model(
     # allowlist is smallest-first. For the interactive front door, free-VRAM contention
     # should step down to the smallest local model that can answer instead of selecting
     # a larger spill candidate and risking the deterministic floor.
+    if (
+        len(card_fitting) > 1
+        and _frontdoor_system_load_is_high(system_load_1m, cpu_count)
+    ):
+        return card_fitting[0], "frontdoor_step_down_system_load"
     if vram_fitting:
         selected = vram_fitting[-1]
         reason = (
