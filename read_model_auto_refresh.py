@@ -159,6 +159,24 @@ READ_MODEL_REFRESH_REGISTRY: dict[str, dict[str, Any]] = {
             "Auto-refresh must not synthesize a receivable state without a bounded source event."
         ),
     },
+    "packet_dankness_log.json": {
+        "refreshable": True,
+        "reason": (
+            "Local visibility export for the packet self-improvement loop. It only creates or "
+            "normalizes generated/read_models/packet_dankness_log.json from existing score "
+            "records; no enrichment drain, network, bridge mirror, or external action."
+        ),
+        "steps": [refresh_step("scripts/export_packet_dankness_read_models.py")],
+    },
+    "packet_dankness_escalations.json": {
+        "refreshable": True,
+        "reason": (
+            "Local visibility export for grounded packet-gap escalations. It only creates or "
+            "normalizes generated/read_models/packet_dankness_escalations.json from existing "
+            "records; no enrichment drain, network, bridge mirror, or external action."
+        ),
+        "steps": [refresh_step("scripts/export_packet_dankness_read_models.py")],
+    },
     # -- the 18 sources the real audit found stale -----------------------
     "capital_hilton_invoice_operator_readback.json": {
         "refreshable": True,

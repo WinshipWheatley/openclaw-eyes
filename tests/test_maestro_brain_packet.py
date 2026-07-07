@@ -163,6 +163,57 @@ def test_maestro_context_packet_includes_calendar_events_for_day_questions(monke
     assert packet["bounds"]["money_movement_allowed"] is False
 
 
+def test_maestro_context_packet_surfaces_packet_dankness_loop(monkeypatch, tmp_path: Path) -> None:
+    store_path = _truth_store(monkeypatch, tmp_path)
+    read_model_root = _read_models(tmp_path)
+    (read_model_root / "packet_dankness_log.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "packet_dankness_log_v0",
+                "read_model_id": "packet_dankness_log",
+                "generated_at": "2026-07-07T00:00:00+00:00",
+                "records": [
+                    {
+                        "agent_id": "maestro",
+                        "overall": 0.42,
+                        "gaps": 2,
+                        "refreshed": 1,
+                        "escalated": 1,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (read_model_root / "packet_dankness_escalations.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "packet_dankness_escalations_v0",
+                "read_model_id": "packet_dankness_escalations",
+                "generated_at": "2026-07-07T00:00:00+00:00",
+                "escalations": [{"reason": "gap needs operator source"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from maestro_context_packet import build_maestro_context_packet
+
+    packet = build_maestro_context_packet(
+        question="is the packet dankness loop improving itself?",
+        read_model_root=read_model_root,
+        operator_truth_store_path=store_path,
+        require_real_truth=True,
+    )
+    facts = [fact for fact in packet["facts"] if fact.get("topic") == "packet_dankness_loop"]
+
+    assert facts
+    assert "generated/read_models/packet_dankness_log.json" in packet["source_refs"]
+    assert "generated/read_models/packet_dankness_escalations.json" in packet["source_refs"]
+    assert "refreshed 1" in facts[0]["value"]
+    assert "escalated 1" in facts[0]["value"]
+
+
 def test_stub_truth_root_is_rejected(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
     monkeypatch.setenv("OPENCLAW_OPERATOR_TRUTH_TEST_STORE", str(tmp_path / "empty_truth.json"))

@@ -32,6 +32,19 @@ _STOP = frozenset(
     "the a an of to is at in on for and or what whats where when how do does my me i you "
     "with about are was were be been being this that it its".split()
 )
+_PACKET_ENRICH_TESTS = (
+    "python -m pytest tests/test_packet_dankness_critic.py "
+    "tests/test_packet_dankness_enricher.py tests/test_packet_dankness_drain.py "
+    "tests/test_polish_loop_task_package_materialization.py -q"
+)
+_PACKET_ENRICH_ALLOWED_FILES = (
+    "packet_dankness_critic.py",
+    "packet_dankness_enricher.py",
+    "packet_dankness_drain.py",
+    "read_model_auto_refresh.py",
+    "generated/read_models/packet_dankness_log.json",
+    "generated/read_models/packet_dankness_escalations.json",
+)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -75,6 +88,84 @@ def _fact_text(fact: Mapping[str, Any]) -> str:
     return " ".join(
         str(fact.get(k) or "") for k in ("topic", "label", "value")
     ).lower()
+
+
+def _gap_key(gap: Mapping[str, Any]) -> str:
+    return f"{gap.get('kind')}:{gap.get('source_ref') or gap.get('about')}"
+
+
+def _packet_enrich_task_package_fields(
+    gap: Mapping[str, Any],
+    score: DanknessScore,
+    *,
+    agent_id: str,
+    question: str,
+) -> dict[str, Any]:
+    """Return the Phase-C task-package fields for a grounded packet_enrich task.
+
+    The package tells the worker how to resolve the gap. It deliberately does not
+    include any candidate fact content: refresh a real source, or write an escalation.
+    """
+
+    target = str(gap.get("source_ref") or gap.get("about") or "packet gap").strip()
+    kind = str(gap.get("kind") or "unknown_gap").strip()
+    return {
+        "goal": (
+            f"Resolve packet enrichment gap {kind} for agent {agent_id}: {target}. "
+            "Use grounded sources only; otherwise record an operator-facing escalation."
+        ),
+        "scope": [
+            "Process one packet_enrich control-plane task.",
+            "Preserve the original gap payload and grounded_only contract.",
+            "Use existing packet dankness enricher and drain mechanisms.",
+        ],
+        "success_criteria": [
+            "Known stale read-model sources are refreshed through their registered local generator.",
+            "Unknown, missing, or insufficient sources append a packet dankness escalation record.",
+            "No fact is created unless it comes from a real source with provenance.",
+            f"Dankness score at queue time is recorded as {score.overall}.",
+        ],
+        "allowed_files": list(_PACKET_ENRICH_ALLOWED_FILES),
+        "forbidden_files": [
+            ".chief.env",
+            ".google-secrets/",
+            "private vaults",
+            "production account material",
+        ],
+        "allowed_actions": [
+            "Run registered local read-model exporters.",
+            "Append packet dankness observation or escalation read-model records.",
+            "Update only this packet_enrich control-plane task outcome.",
+        ],
+        "forbidden_actions": [
+            "external communication",
+            "financial account mutation",
+            "credential access",
+            "production service restart",
+            "ungrounded fact creation",
+        ],
+        "tests_to_run": [_PACKET_ENRICH_TESTS],
+        "stop_conditions": [
+            "The gap lacks grounded source data and no safe local source exists.",
+            "A refresh would need private credentials or external side effects.",
+            "The result would require inferred content rather than provenance.",
+        ],
+        "output_contract": [
+            "Return a refreshed source receipt or a packet_dankness_escalations read-model record.",
+            "Keep grounded_only true in all task evidence.",
+        ],
+        "help_or_escalation_route": [
+            "Append to generated/read_models/packet_dankness_escalations.json for operator review."
+        ],
+        "rollback_expectation": [
+            "Remove or terminalize only the queued packet_enrich task if this task is invalid."
+        ],
+        "production_prohibitions": [
+            "No external network side effects.",
+            "No financial account mutation.",
+            "No credential or private-vault access.",
+        ],
+    }
 
 
 def score_packet_dankness(
@@ -223,7 +314,7 @@ def emit_packet_enrich_tasks(
             if isinstance(_pg, str):
                 _pg = _json.loads(_pg)
             _g = _pg.get("gap", {}) if isinstance(_pg, Mapping) else {}
-            _k = f"{_g.get('kind')}:{_g.get('source_ref') or _g.get('about')}"
+            _k = _gap_key(_g) if isinstance(_g, Mapping) else "unknown:unknown"
             if _t.get("status") == "READY":
                 existing.add(_k)
             elif "escalat" in str(_t.get("terminal_reason") or ""):
@@ -235,7 +326,7 @@ def emit_packet_enrich_tasks(
         existing = set()
     admitted: list[str] = []
     for gap in score.gaps:
-        _key = f"{gap.get('kind')}:{gap.get('source_ref') or gap.get('about')}"
+        _key = _gap_key(gap)
         if _key in existing:
             continue
         existing.add(_key)
@@ -248,6 +339,14 @@ def emit_packet_enrich_tasks(
             "grounded_only": True,  # enricher contract: wire a real source or flag; never fabricate
             "rollback_no_send": True,
         }
+        payload.update(
+            _packet_enrich_task_package_fields(
+                gap,
+                score,
+                agent_id=agent_id,
+                question=question,
+            )
+        )
         task_id = ledger.admit_task(
             source="detector",  # a packet-gap detector (READY source); task_type distinguishes it
             task_type="packet_enrich",
