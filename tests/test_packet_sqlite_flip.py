@@ -510,8 +510,14 @@ def test_pii_tier_mapping_fails_closed(tmp_path: Path) -> None:
 
 
 def test_sqlite_facts_precede_read_models_for_cap_survival(monkeypatch, tmp_path: Path) -> None:
-    """AGY-G flip-1 audit hole #3: SQLite/canonical facts must be ordered BEFORE the bulky
-    read-model facts so doctrine survives format_maestro_context_packet's facts[:30] cap."""
+    """Three-tier packet ordering: derived answer topics (<=5) -> canonical facts -> raw
+    read-model facts. Evolved 2026-07-07 (tasks 113/123 x AGY-G audit hole-3): source_ref
+    citing read_models is evidence provenance, not bulk-classification; provenance=
+    derived_answer_topic marks the distilled tier.
+
+    AGY-G flip-1 audit hole #3 (original intent, still enforced): SQLite/canonical facts must
+    be ordered before the BULK (non-derived) read-model facts so doctrine survives
+    format_maestro_context_packet's facts[:30] cap."""
     store_path = _truth_store(monkeypatch, tmp_path)
     read_model_root = _read_models(tmp_path)
     db_path = _seed_ledger(tmp_path)
@@ -533,9 +539,23 @@ def test_sqlite_facts_precede_read_models_for_cap_survival(monkeypatch, tmp_path
         )
 
     facts = packet["facts"]
+    derived_idx = [i for i, f in enumerate(facts) if f.get("provenance") == "derived_answer_topic"]
     canonical_idx = [i for i, f in enumerate(facts) if f.get("provenance") == "canonical_facts"]
-    readmodel_idx = [i for i, f in enumerate(facts) if "read_models" in str(f.get("source_ref") or "")]
+    readmodel_idx = [
+        i for i, f in enumerate(facts)
+        if "read_models" in str(f.get("source_ref") or "") and f.get("provenance") != "derived_answer_topic"
+    ]
     assert canonical_idx, "expected canonical facts present with flag on"
+
+    # Derived answer-topic facts (evidence-grounded distillations) may lead the packet, but the
+    # prepend must never become a new cap-eviction vector — keep the distilled tier small.
+    assert len(derived_idx) <= 5, "derived answer-topic facts must stay <= 5 (cap-eviction guard)"
+    if derived_idx:
+        assert max(derived_idx) < min(canonical_idx), \
+            "derived answer-topic facts must appear before canonical facts"
+
+    # Original AGY-G hole-3 invariant: canonical/SQLite facts must precede the BULK (non-derived)
+    # read-model facts so they survive the packet_text cap.
     if readmodel_idx:
         assert max(canonical_idx) < min(readmodel_idx), \
-            "canonical/SQLite facts must precede read-model facts so they survive the packet_text cap"
+            "canonical/SQLite facts must precede bulk read-model facts so they survive the packet_text cap"
