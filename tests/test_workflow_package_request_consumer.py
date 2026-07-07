@@ -525,6 +525,57 @@ def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_pat
         assert gates == [(0, 0, 0, 0, 0, 0, 0, 0)]
 
 
+def test_st_annes_dryrun_review_consumer_emits_pdf_first_proof_bundle_before_send_permission(tmp_path):
+    request = _request_payload(
+        request_id="st_annes_invoice_review_before_send",
+        source_text="let's test the st annes invoice before we send it for real",
+        world_ref="finance",
+        thread_ref="st_annes",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_st_annes_review_before_send.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.status == "RECORDED"
+    assert result.package is not None
+    assert result.receipt["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+    assert result.receipt["package_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert result.receipt["capability_gate_status"] == "ALLOW_DRY_RUN"
+    assert result.receipt["proof_refs"] == result.package["proof_refs"]
+    assert [ref["artifact_kind"] for ref in result.receipt["proof_refs"]] == [
+        "pdf_proof",
+        "clara_draft",
+        "guardian_gate",
+    ]
+
+    bundle = result.package["dry_run_proof_bundle"]
+    assert bundle["emitter_ref"] == "workflow_package_queue:st_annes_dry_run_proof_bundle"
+    assert bundle["source_inventory_ref"] == "source_inventory:st_annes_monthly_invoice_rollup"
+    assert bundle["artifact_order"] == ["pdf_proof", "clara_draft", "guardian_gate"]
+    assert bundle["proof_refs"] == result.receipt["proof_refs"]
+    assert bundle["rendered_artifacts"][0]["artifact_kind"] == "pdf_proof"
+    assert bundle["rendered_artifacts"][0]["source_backed"] is True
+    assert "generated/system_knowledge/st_annes_invoice_status_SEED.sql" in bundle["source_refs"]
+    assert bundle["machine_proof"]["emitter_invoked"] is True
+    assert bundle["machine_proof"]["source_inventory_exists"] is True
+    assert bundle["machine_proof"]["pdf_proof_first"] is True
+    assert bundle["machine_proof"]["email_send_performed"] is False
+
+    assert result.package["capability_gate_result"]["actual_send_gate"]["status"] == "CLOSED_PERMISSION_REQUIRED"
+    assert result.package["worker_result"]["live_worker_executed"] is False
+    assert result.package["worker_result"]["local_pdf_proof_rendered"] is True
+    assert result.package["worker_result"]["pdf_export_performed"] is False
+    assert result.package["worker_result"]["email_send_performed"] is False
+    assert result.receipt["machine_proof"]["dry_run_proof_bundle_emitted"] is True
+    assert result.receipt["machine_proof"]["email_send_performed"] is False
+    assert result.receipt["machine_proof"]["pdf_export_performed"] is False
+    assert result.receipt["machine_proof"]["business_action_gate_closed"] is True
+
+
 def test_st_annes_work_log_from_capital_hilton_context_cross_lane_routes_to_finance_st_annes(tmp_path):
     request = _request_payload(
         request_id="church_sound_from_capital_hilton_context",
