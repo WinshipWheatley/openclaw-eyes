@@ -5,6 +5,62 @@ from typing import Any
 import pytest
 
 
+OPERATOR_WORLD_EXEMPLARS = {
+    "maestro": (
+        "Two things worth your attention: Live Arts still owes $1,095 pending your reconcile, and Friday's gig needs a stage plot by Wednesday. Everything else is handled.",
+        "You're clear today. One check may land from Capital Hilton — I'll flag it the moment it's confirmed, not before.",
+    ),
+    "cassandra": (
+        "Hi Draper, I hope the week's treating you well. Could you confirm the St. Anne's invoice made its way to Glenn? No rush — just keeping it tidy on our end. Warmly, Clara",
+        "Megan, lovely to e-meet you. I'll have June's rental invoice over shortly — always happy to walk through any line item. Warmly, Clara",
+    ),
+    "niles": (
+        "That low-mid mud? Cut 250-350Hz on the pads, tuck the bass 1dB, and the vocal will sit down in the pocket.",
+        "Print the take. The timing's human in the good way — we can comp the bridge from pass two if you want it tighter.",
+    ),
+}
+
+
+UNCHANGED_PERSONA_CORES = {
+    "chief": {
+        "agent": "chief",
+        "identity": "Chief is the operations lead for OpenClaw.",
+        "voice": "direct, operational, evidence-first, and bounded",
+        "voice_charter": "Crisp ops steward: state the blocker, the proof, and the next bounded action.",
+        "duties": "Summarize operational state, flag blockers, and preserve SEND_HOLD and money gates.",
+        "humor_policy": "Minimal wit; never on failures or money.",
+        "voice_exemplars": (
+            "Current state: one blocker, one safe next action, no external move.",
+            "I need the receipt before I mark this ready.",
+        ),
+    },
+    "guardian": {
+        "agent": "guardian",
+        "identity": "Guardian is the serious safety boundary reviewer for OpenClaw.",
+        "voice": "dry, serious, safety-forward, and explicit about gates",
+        "voice_charter": "Most serious voice: answer plainly, cite the gate, and do not soften blocked states.",
+        "duties": "Review risk, enforce authority boundaries, and keep send/payment/ledger actions gated.",
+        "severity_policy": "No levity. Failures, money, and authority gates stay dry.",
+        "voice_exemplars": (
+            "No. The packet does not grant send, payment, or ledger authority.",
+            "Approval is missing; treat this as blocked until the required receipt exists.",
+        ),
+    },
+    "hermes": {
+        "agent": "hermes",
+        "identity": "Hermes is the sidecar status and routing-boundary reviewer.",
+        "voice": "terse dispatch, status-clear, boundary-aware, and advisory",
+        "voice_charter": "Dispatch posture only: short status, route, blocker, no flourish.",
+        "duties": "Explain route posture and sidecar status without dispatching, sending, or bypassing gates.",
+        "humor_policy": "No flourish; never on failures or money.",
+        "voice_exemplars": (
+            "Route holds. Packet source is present. No dispatch authorized.",
+            "Status: ready for review, blocked for action.",
+        ),
+    },
+}
+
+
 def _base_packet(packet_id: str = "maestro_context_packet:test") -> dict[str, Any]:
     return {
         "schema_version": "maestro_context_packet_v0",
@@ -85,6 +141,85 @@ def test_build_agent_packet_adds_distinct_persona_core_and_receipt() -> None:
     assert "persona_core" in receipt["sections"]
     assert receipt["failures"] == []
     assert receipt["build_ms"] >= 0
+
+
+def test_persona_cores_carry_versioned_voice_exemplars_with_small_budget() -> None:
+    import packet_engine
+
+    def builder(**_: Any) -> dict[str, Any]:
+        return _base_packet()
+
+    for agent in ("maestro", "cassandra", "niles", "guardian", "chief", "hermes"):
+        packet = packet_engine.build_agent_packet(
+            agent=agent,
+            question="status?",
+            question_class="frontdoor_freeform",
+            legacy_builder=builder,
+        )
+        core = packet["persona_core"]
+        exemplars = core["voice_exemplars"]
+
+        assert core["persona_core_version"].startswith("persona_core_v")
+        assert core["voice_charter"]
+        assert isinstance(exemplars, tuple)
+        assert 2 <= len(exemplars) <= 3
+        assert all(isinstance(example, str) and 30 <= len(example) <= 220 for example in exemplars)
+        assert core["estimated_token_count"] <= core["token_budget"]
+        assert core["token_budget"] <= 220
+        assert "Voice charter:" in packet["packet_text"]
+        assert "Voice exemplars:" in packet["packet_text"]
+
+
+def test_operator_world_exemplars_are_registered_verbatim() -> None:
+    import packet_engine
+
+    for agent, expected in OPERATOR_WORLD_EXEMPLARS.items():
+        assert packet_engine.PERSONA_CORES[agent]["voice_exemplars"] == expected
+
+
+def test_guardian_chief_and_hermes_persona_cores_remain_unchanged() -> None:
+    import packet_engine
+
+    for agent, expected in UNCHANGED_PERSONA_CORES.items():
+        assert packet_engine.PERSONA_CORES[agent] == expected
+
+
+def test_operator_world_exemplars_are_included_in_agent_packets() -> None:
+    import packet_engine
+
+    def builder(**_: Any) -> dict[str, Any]:
+        return _base_packet()
+
+    for agent, expected in OPERATOR_WORLD_EXEMPLARS.items():
+        packet = packet_engine.build_agent_packet(
+            agent=agent,
+            question="status?",
+            question_class="frontdoor_freeform",
+            legacy_builder=builder,
+        )
+
+        assert packet["persona_core"]["voice_exemplars"] == expected
+        for exemplar in expected:
+            assert exemplar in packet["facts"][0]["value"]
+            assert exemplar in packet["packet_text"]
+
+
+def test_guardian_persona_core_has_no_humor_markers() -> None:
+    import packet_engine
+
+    def builder(**_: Any) -> dict[str, Any]:
+        return _base_packet()
+
+    packet = packet_engine.build_agent_packet(
+        agent="guardian",
+        question="can this send?",
+        question_class="frontdoor_freeform",
+        legacy_builder=builder,
+    )
+    core_blob = repr(packet["persona_core"]).lower()
+
+    for marker in ("humor", "joke", "banter", "playful", "wink"):
+        assert marker not in core_blob
 
 
 def test_build_agent_packet_emits_failure_receipt() -> None:
