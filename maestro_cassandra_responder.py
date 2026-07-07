@@ -28,6 +28,7 @@ DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 CAPABILITY_INDEX_READ_MODEL = "openclaw_capability_index.json"
 AGENT_PRESENCE_READ_MODEL = "agent_presence.json"
 CHIEF_STATUS_READ_MODEL = "chief_status_rail.json"
+SYNC_HEALTH_READ_MODEL = "sync_health.json"
 ALLOWED_SESSION_KEYS = (
     "system_knowledge_repo_root",
     "system_knowledge_ledger_path",
@@ -116,6 +117,8 @@ def backend_route_for_result(result: MaestroCassandraResult) -> str:
         if (result.machine_proof or {}).get("protected_generate_called") is True:
             return "maestro_cassandra_responder.protected_generate.status_capability_context"
         return "maestro_cassandra_responder.truthful_status_capability_readback"
+    if result.intent_class == "system_health_readback":
+        return "maestro_cassandra_responder.chief_system_health_readback"
     if result.intent_class == "hermes_truthful_advisory":
         return HERMES_TRUTHFUL_BACKEND_ROUTE
     if result.intent_class:
@@ -408,6 +411,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("operator_truth_correction", True, "")
     if _is_operator_truth_query_intent(normalized):
         return ("operator_truth_query", True, "")
+    if _is_system_health_readback_intent(normalized):
+        return ("system_health_readback", True, "")
     if _is_advisory_interrogative_intent(normalized):
         return ("maestro_brain_freeform", True, "")
     if _is_send_or_reply_intent(normalized):
@@ -596,6 +601,19 @@ def answer_frontdoor_chat(
             mac_render_hint=MAC_RENDER_HINT,
             session_forwarded=forwarded_session,
             machine_proof=_adapter_machine_proof(handle_called=False),
+        )
+
+    if intent_class == "system_health_readback":
+        answer = build_chief_system_health_answer(session=session)
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=answer["one_line_answer"],
+            plain_summary=answer["plain_summary"],
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
         )
 
     if intent_class == "status_capability_readback" and _is_conversational_status_capability_prompt(_normalize(text)):
@@ -1502,6 +1520,102 @@ def build_truthful_status_capability_answer(
     }
 
 
+def build_chief_system_health_answer(
+    *,
+    session: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    root = _read_model_root_from_session(session)
+    presence_payload, presence_path = _read_json_read_model(root, AGENT_PRESENCE_READ_MODEL)
+    chief_payload, chief_path = _read_json_read_model(root, CHIEF_STATUS_READ_MODEL)
+    sync_payload, sync_path = _read_json_read_model(root, SYNC_HEALTH_READ_MODEL)
+
+    agents = [
+        row
+        for row in presence_payload.get("agents", ())
+        if isinstance(row, Mapping)
+    ]
+    agent_lines: list[str] = []
+    online_agents: list[str] = []
+    degraded_or_offline: list[str] = []
+    for row in agents:
+        agent_id = str(row.get("agent_id") or row.get("display_name") or "unknown").strip()
+        display = str(row.get("display_name") or agent_id).strip()
+        state = str(row.get("actual_state") or "unknown").strip().lower() or "unknown"
+        label = agent_id or display
+        if state == "online":
+            online_agents.append(label)
+        elif state != "metadata_available":
+            degraded_or_offline.append(f"{label}:{state}")
+        agent_lines.append(f"{display}: {state}")
+
+    total_agents = int(presence_payload.get("agent_count") or len(agents) or 0)
+    online_count = int(presence_payload.get("online_count") or len(online_agents) or 0)
+    chief_status = str(chief_payload.get("chief_current_status") or chief_payload.get("rail_status") or "unknown").strip()
+    chief_summary = _chief_status_summary(chief_payload) or "Chief status rail unavailable"
+    mirror_status = str(sync_payload.get("mirror_status") or "unknown").strip()
+    display_status = str(sync_payload.get("display_status") or "unknown").strip()
+    trust_status = str(sync_payload.get("trust_status") or "unknown").strip()
+    last_mac = sync_payload.get("last_mac_completion") if isinstance(sync_payload.get("last_mac_completion"), Mapping) else {}
+    last_mac_time = str(last_mac.get("time") or "").strip()
+    last_mac_status = str(last_mac.get("status") or "").strip()
+
+    source_refs = tuple(
+        path.as_posix()
+        for payload, path in (
+            (presence_payload, presence_path),
+            (chief_payload, chief_path),
+            (sync_payload, sync_path),
+        )
+        if payload
+    )
+    one_line = (
+        f"Chief system health: front door={chief_status or 'unknown'}; "
+        f"agent response stack={online_count}/{total_agents} online; "
+        f"sync mirror={mirror_status}, display={display_status}."
+    )
+    lines = [
+        "Chief system health readback from current read models.",
+        f"- Front door: {chief_summary}.",
+        f"- Agent response stack: {_join_names(agent_lines)}.",
+        f"- Sync: mirror={mirror_status}, display={display_status}, trust={trust_status}.",
+    ]
+    if last_mac_time:
+        lines.append(f"- Last Mac sync: {last_mac_time} ({last_mac_status or 'unknown'}).")
+    if degraded_or_offline:
+        lines.append(f"- Degraded/offline agents: {_join_names(degraded_or_offline)}.")
+    lines.extend(
+        [
+            "- Sources: " + _join_names(source_refs) + ".",
+            "- Boundaries: no model call, no send, no repair, no restart, no dispatch, no ledger mutation.",
+        ]
+    )
+    return {
+        "one_line_answer": _one_line_answer(one_line),
+        "plain_summary": "\n".join(lines),
+        "machine_proof": {
+            "system_health_readback_performed": True,
+            "agent_presence_used": bool(presence_payload),
+            "chief_status_rail_used": bool(chief_payload),
+            "sync_health_used": bool(sync_payload),
+            "source_truth_refs": source_refs,
+            "online_agent_count": online_count,
+            "agent_count": total_agents,
+            "online_agents": tuple(online_agents),
+            "degraded_or_offline_agents": tuple(degraded_or_offline),
+            "frontdoor_status": chief_status,
+            "sync_mirror_status": mirror_status,
+            "sync_display_status": display_status,
+            "protected_generate_called": False,
+            "model_call_performed": False,
+            "local_model_invoked": False,
+            "external_llm_invoked": False,
+            "maestro_context_packet_used": False,
+            "runtime_execution_triggered": False,
+            "agent_dispatch_performed": False,
+        },
+    }
+
+
 def _read_model_root_from_session(session: Mapping[str, Any] | None) -> Path:
     if isinstance(session, Mapping):
         for key in ("read_model_root", "read_model_root_path", "generated_read_model_root"):
@@ -1820,6 +1934,27 @@ def _is_status_capability_intent(text: str) -> bool:
     return (
         any(term in text for term in ("status", "capability", "capabilities", "online", "blocked", "roster"))
         and any(term in text for term in ("openclaw", "agents", "agent", "you", "can", "do"))
+    )
+
+
+def _is_system_health_readback_intent(text: str) -> bool:
+    direct_phrases = (
+        "system-health read",
+        "system health read",
+        "system-health status",
+        "system health status",
+        "system-health check",
+        "system health check",
+        "front door and agent response stack",
+        "agent response stack",
+        "service health",
+        "agent/service health",
+    )
+    if any(phrase in text for phrase in direct_phrases):
+        return True
+    return (
+        any(term in text for term in ("system-health", "system health", "service health", "health read"))
+        and any(term in text for term in ("openclaw", "front door", "agent", "agents", "stack"))
     )
 
 
