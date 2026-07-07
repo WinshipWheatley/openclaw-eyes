@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenClaw autonomous client follow-up watcher (prepare-only)
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/env python3 @REPO_ROOT@/autonomous_followup_watch_scheduler.py --once
+NoNewPrivileges=true
+TimeoutStartSec=180

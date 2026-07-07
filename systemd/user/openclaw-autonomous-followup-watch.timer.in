@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenClaw autonomous client follow-up watcher every few hours
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=4h
+AccuracySec=10min
+Persistent=true
+Unit=openclaw-autonomous-followup-watch.service
+
+[Install]
+WantedBy=timers.target

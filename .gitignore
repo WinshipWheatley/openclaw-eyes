@@ -1364,8 +1364,12 @@ generated/system_knowledge/*.sqlite
 !tests/test_clara_invoice_minor_units.py
 !temporal_recurrence_registry.py
 !receivable_temporal_scoping.py
+!autonomous_followup_watch_scheduler.py
 !tests/test_temporal_recurrence_registry.py
 !tests/test_receivable_temporal_scoping.py
+!tests/test_autonomous_followup_watch_scheduler.py
+!systemd/user/openclaw-autonomous-followup-watch.service.in
+!systemd/user/openclaw-autonomous-followup-watch.timer.in
 !tests/test_paid_up_interpreter_contract.py
 !tests/test_maestro_packet_freshness_antirecite.py
 !tests/test_cassandra_warm_client_draft_routing.py
