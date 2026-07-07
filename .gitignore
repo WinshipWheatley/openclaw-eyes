@@ -1357,9 +1357,11 @@ generated/system_knowledge/*.sqlite
 !tests/test_guardian_notifier_board_integration.py
 !tests/test_guardian_board_actionable_only.py
 !workflow_test_mode.py
+!workflow_test_mode_self_proof.py
 !tests/test_workflow_test_mode_disposition.py
 !tests/test_broker_workflow_test_mode_wiring.py
 !tests/test_executor_test_mode_send_hold.py
+!tests/test_workflow_test_mode_self_proof.py
 !tests/test_gmail_attachment_support.py
 !invoice_send_workflow.py
 !tests/test_invoice_send_workflow.py
@@ -1369,6 +1371,8 @@ generated/system_knowledge/*.sqlite
 !invoice_cockpit_session.py
 !tests/test_invoice_cockpit_session.py
 !invoice_cockpit_ops.py
+!scripts/export_workflow_test_mode_self_proof.py
+!generated/read_models/workflow_test_mode_self_proof.json
 !packet_request_gate.py
 !tests/test_packet_request_gate.py
 !tests/test_clara_invoice_minor_units.py
