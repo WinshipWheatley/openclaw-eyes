@@ -23,6 +23,16 @@ def _continuity_enabled() -> bool:
     return os.environ.get("OPENCLAW_CONTINUITY_CAPSULE", "0").lower() in ("1", "true")
 
 
+def _packet_engine_enabled() -> bool:
+    """Return True unless OPENCLAW_PACKET_ENGINE explicitly disables the engine."""
+    return os.environ.get("OPENCLAW_PACKET_ENGINE", "1").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
+
 MAC_RENDER_HINT = "COMPACT_WITH_DISCLOSURE"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 CAPABILITY_INDEX_READ_MODEL = "openclaw_capability_index.json"
@@ -745,17 +755,79 @@ def _answer_status_capability_with_brain(
         "source_ref": ", ".join(source_refs) or CAPABILITY_INDEX_READ_MODEL,
         "pii_tier": "PUBLIC",
     }
+    packet_engine_used = False
+    packet_engine_fallback_used = False
+    packet_engine_receipt: Mapping[str, Any] | None = None
+    packet_engine_failure_type = ""
     try:
         from maestro_context_packet import build_maestro_context_packet
 
-        context_packet = dict(
-            build_maestro_context_packet(
-                question=text,
-                session=session,
-                source_surface=source_surface,
-                require_real_truth=True,
+        if _packet_engine_enabled():
+            try:
+                from packet_engine import build_agent_packet
+
+                context_packet = dict(
+                    build_agent_packet(
+                        agent=agent,
+                        question=text,
+                        question_class="status_capability_readback",
+                        authority={
+                            "source_surface": source_surface,
+                            "send_hold": True,
+                        },
+                        session=session,
+                        source_surface=source_surface,
+                        require_real_truth=True,
+                    )
+                )
+                packet_engine_receipt = dict(context_packet.get("packet_engine_receipt") or {})
+                failures = packet_engine_receipt.get("failures") or ()
+                if context_packet.get("status") == "PACKET_ENGINE_BUILD_FAILED" or failures:
+                    packet_engine_fallback_used = True
+                    if failures:
+                        first_failure = next(iter(failures), {})
+                        if isinstance(first_failure, Mapping):
+                            packet_engine_failure_type = str(first_failure.get("type") or "")
+                    context_packet = dict(
+                        build_maestro_context_packet(
+                            question=text,
+                            session=session,
+                            source_surface=source_surface,
+                            require_real_truth=True,
+                        )
+                    )
+                else:
+                    packet_engine_used = True
+            except Exception as exc:  # noqa: BLE001 - fail open to old packet path
+                packet_engine_fallback_used = True
+                packet_engine_failure_type = type(exc).__name__
+                try:
+                    from packet_engine import build_fallback_receipt
+
+                    packet_engine_receipt = build_fallback_receipt(
+                        agent=agent,
+                        question_class="status_capability_readback",
+                        failure=exc,
+                    )
+                except Exception:  # noqa: BLE001
+                    packet_engine_receipt = None
+                context_packet = dict(
+                    build_maestro_context_packet(
+                        question=text,
+                        session=session,
+                        source_surface=source_surface,
+                        require_real_truth=True,
+                    )
+                )
+        else:
+            context_packet = dict(
+                build_maestro_context_packet(
+                    question=text,
+                    session=session,
+                    source_surface=source_surface,
+                    require_real_truth=True,
+                )
             )
-        )
         facts = [row for row in context_packet.get("facts", ()) if isinstance(row, Mapping)]
         context_packet["facts"] = [fact, *facts]
         refs = list(context_packet.get("source_refs", ()))
@@ -825,6 +897,15 @@ def _answer_status_capability_with_brain(
         answer_text = str(readback.get("plain_summary") or readback.get("one_line_answer") or "").strip()
 
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
+    packet_engine_proof: dict[str, Any] = {
+        "packet_engine_used": packet_engine_used,
+        "packet_engine_fallback_used": packet_engine_fallback_used,
+    }
+    if packet_engine_receipt:
+        packet_engine_proof["packet_engine_receipt_id"] = str(packet_engine_receipt.get("receipt_id") or "")
+        packet_engine_proof["packet_engine_receipt_status"] = str(packet_engine_receipt.get("status") or "")
+    if packet_engine_failure_type:
+        packet_engine_proof["packet_engine_failure_type"] = packet_engine_failure_type
     return MaestroCassandraResult(
         status="ANSWER_READY",
         intent_class="status_capability_readback",
@@ -849,6 +930,7 @@ def _answer_status_capability_with_brain(
             "protected_generate_decision": str(receipt.get("decision") or ""),
             "send_hold_boundary_visible": True,
             "claims_trace_to_packet": True,
+            **packet_engine_proof,
         },
     )
 
@@ -1088,6 +1170,10 @@ def _answer_with_maestro_brain(
     except Exception:  # noqa: BLE001 — never break the brain path on a hint
         _fact_selection = None
     # ─────────────────────────────────────────────────────────────────────────
+    packet_engine_used = False
+    packet_engine_fallback_used = False
+    packet_engine_receipt: Mapping[str, Any] | None = None
+    packet_engine_failure_type = ""
     try:
         from maestro_context_packet import build_maestro_context_packet
 
@@ -1096,14 +1182,72 @@ def _answer_with_maestro_brain(
         # so it can populate packet_entity_aliases + packet_source_revision (Edit 2).
         # When OFF or no capsule: call is identical to pre-edit (capsule=None default).
         _capsule_arg = _capsule if _continuity_enabled() else None
-        context_packet = build_maestro_context_packet(
-            question=text,
-            session=session,
-            source_surface=source_surface,
-            require_real_truth=True,
-            capsule=_capsule_arg,
-            fact_selection=_fact_selection,
-        )
+        if _packet_engine_enabled():
+            try:
+                from packet_engine import build_agent_packet
+
+                context_packet = build_agent_packet(
+                    agent=agent,
+                    question=text,
+                    question_class="maestro_brain_freeform",
+                    authority={
+                        "source_surface": source_surface,
+                        "send_hold": True,
+                    },
+                    session=session,
+                    source_surface=source_surface,
+                    require_real_truth=True,
+                    capsule=_capsule_arg,
+                    fact_selection=_fact_selection,
+                )
+                packet_engine_receipt = dict(context_packet.get("packet_engine_receipt") or {})
+                failures = packet_engine_receipt.get("failures") or ()
+                if context_packet.get("status") == "PACKET_ENGINE_BUILD_FAILED" or failures:
+                    packet_engine_fallback_used = True
+                    if failures:
+                        first_failure = next(iter(failures), {})
+                        if isinstance(first_failure, Mapping):
+                            packet_engine_failure_type = str(first_failure.get("type") or "")
+                    context_packet = build_maestro_context_packet(
+                        question=text,
+                        session=session,
+                        source_surface=source_surface,
+                        require_real_truth=True,
+                        capsule=_capsule_arg,
+                        fact_selection=_fact_selection,
+                    )
+                else:
+                    packet_engine_used = True
+            except Exception as exc:  # noqa: BLE001 - fail open to old packet path
+                packet_engine_fallback_used = True
+                packet_engine_failure_type = type(exc).__name__
+                try:
+                    from packet_engine import build_fallback_receipt
+
+                    packet_engine_receipt = build_fallback_receipt(
+                        agent=agent,
+                        question_class="maestro_brain_freeform",
+                        failure=exc,
+                    )
+                except Exception:  # noqa: BLE001
+                    packet_engine_receipt = None
+                context_packet = build_maestro_context_packet(
+                    question=text,
+                    session=session,
+                    source_surface=source_surface,
+                    require_real_truth=True,
+                    capsule=_capsule_arg,
+                    fact_selection=_fact_selection,
+                )
+        else:
+            context_packet = build_maestro_context_packet(
+                question=text,
+                session=session,
+                source_surface=source_surface,
+                require_real_truth=True,
+                capsule=_capsule_arg,
+                fact_selection=_fact_selection,
+            )
     except Exception as exc:
         answer = (
             "I don't have a grounded Maestro packet for that yet. "
@@ -1240,6 +1384,15 @@ def _answer_with_maestro_brain(
     # (Claim detection now runs centrally in _enrich_operator_surface on the FINAL operator_message
     # for every agent — see the consolidation note above.)
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
+    packet_engine_proof: dict[str, Any] = {
+        "packet_engine_used": packet_engine_used,
+        "packet_engine_fallback_used": packet_engine_fallback_used,
+    }
+    if packet_engine_receipt:
+        packet_engine_proof["packet_engine_receipt_id"] = str(packet_engine_receipt.get("receipt_id") or "")
+        packet_engine_proof["packet_engine_receipt_status"] = str(packet_engine_receipt.get("status") or "")
+    if packet_engine_failure_type:
+        packet_engine_proof["packet_engine_failure_type"] = packet_engine_failure_type
     return MaestroCassandraResult(
         status="ANSWER_READY",
         intent_class="maestro_brain_freeform",
@@ -1264,6 +1417,7 @@ def _answer_with_maestro_brain(
             # Interpreter-LM traceability (advisory only — None/empty when off):
             "interpreter_fact_selection_applied": list(_fact_selection or []),
             "interpreter_fact_selection_used": bool(_fact_selection),
+            **packet_engine_proof,
         },
     )
 
