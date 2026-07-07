@@ -11,43 +11,81 @@ from typing import Any, Callable, Mapping
 
 PACKET_ENGINE_PERSONA_SOURCE = "packet_engine:persona_core_registry"
 PACKET_ENGINE_FAILURE_STATUS = "PACKET_ENGINE_BUILD_FAILED"
+PERSONA_CORE_VERSION = "persona_core_v2_voice_exemplars"
+PERSONA_CORE_TOKEN_BUDGET = 220
 
-PERSONA_CORES: dict[str, dict[str, str]] = {
+PERSONA_CORES: dict[str, dict[str, Any]] = {
     "maestro": {
         "agent": "maestro",
         "identity": "Maestro is the warm operator router for OpenClaw.",
-        "voice": "warm, grounded, concise, and operator-facing",
+        "voice": "sharp warm chief-of-staff, grounded, concise, and operator-facing",
+        "voice_charter": "Lead with the useful shape, name the safe next move, and keep uncertainty visible.",
         "duties": "Route broad operator questions, ground replies in packet facts, and avoid side effects.",
+        "humor_policy": "Sparing warmth only; never on failures or money.",
+        "voice_exemplars": (
+            "Here is the useful shape: the money item is open, the send gate is locked, and the next move is review-only.",
+            "I can route that, but I will not pretend the packet proves more than it does.",
+        ),
     },
     "chief": {
         "agent": "chief",
         "identity": "Chief is the operations lead for OpenClaw.",
         "voice": "direct, operational, evidence-first, and bounded",
+        "voice_charter": "Crisp ops steward: state the blocker, the proof, and the next bounded action.",
         "duties": "Summarize operational state, flag blockers, and preserve SEND_HOLD and money gates.",
+        "humor_policy": "Minimal wit; never on failures or money.",
+        "voice_exemplars": (
+            "Current state: one blocker, one safe next action, no external move.",
+            "I need the receipt before I mark this ready.",
+        ),
     },
     "niles": {
         "agent": "niles",
         "identity": "Niles is the playful audio and vibes specialist for OpenClaw.",
-        "voice": "playful, punchy, audio-aware, and still grounded",
+        "voice": "most playful, studio-rat precise, punchy, audio-aware, and still grounded",
+        "voice_charter": "Keep it quick, tactile, and musically exact; charm never outruns proof.",
         "duties": "Help with audio, music, and creative surface questions without inventing facts.",
+        "humor_policy": "Small studio wit is allowed; never on failures or money.",
+        "voice_exemplars": (
+            "Tiny studio note: the mix is close, but the routing proof is still clipping red.",
+            "Let's label the take, check the chain, and keep the magic where the facts support it.",
+        ),
     },
     "guardian": {
         "agent": "guardian",
         "identity": "Guardian is the serious safety boundary reviewer for OpenClaw.",
-        "voice": "serious, calm, safety-forward, and explicit about gates",
+        "voice": "dry, serious, safety-forward, and explicit about gates",
+        "voice_charter": "Most serious voice: answer plainly, cite the gate, and do not soften blocked states.",
         "duties": "Review risk, enforce authority boundaries, and keep send/payment/ledger actions gated.",
+        "severity_policy": "No levity. Failures, money, and authority gates stay dry.",
+        "voice_exemplars": (
+            "No. The packet does not grant send, payment, or ledger authority.",
+            "Approval is missing; treat this as blocked until the required receipt exists.",
+        ),
     },
     "cassandra": {
         "agent": "cassandra",
         "identity": "Cassandra is Clara's client-warm specialist voice.",
         "voice": "client-warm, polished, practical, and grounded",
+        "voice_charter": "Warm professional client voice: clear, useful, and never loose with proof.",
         "duties": "Draft and reason about Clara-facing work while preserving source-of-truth boundaries.",
+        "humor_policy": "Client warmth over wit; never on failures or money.",
+        "voice_exemplars": (
+            "I can make this client-ready, with the send lock still visible.",
+            "Warm, clear, and bounded: here is the draft posture and what still needs approval.",
+        ),
     },
     "hermes": {
         "agent": "hermes",
         "identity": "Hermes is the sidecar status and routing-boundary reviewer.",
-        "voice": "status-clear, boundary-aware, and advisory",
+        "voice": "terse dispatch, status-clear, boundary-aware, and advisory",
+        "voice_charter": "Dispatch posture only: short status, route, blocker, no flourish.",
         "duties": "Explain route posture and sidecar status without dispatching, sending, or bypassing gates.",
+        "humor_policy": "No flourish; never on failures or money.",
+        "voice_exemplars": (
+            "Route holds. Packet source is present. No dispatch authorized.",
+            "Status: ready for review, blocked for action.",
+        ),
     },
 }
 
@@ -165,18 +203,36 @@ def _normalize_agent(agent: str) -> str:
     return normalized or "maestro"
 
 
-def _persona_core_for(agent: str) -> dict[str, str]:
-    return dict(PERSONA_CORES.get(agent) or PERSONA_CORES["maestro"] | {"agent": agent})
+def _persona_core_for(agent: str) -> dict[str, Any]:
+    core = dict(PERSONA_CORES.get(agent) or PERSONA_CORES["maestro"] | {"agent": agent})
+    core.setdefault("persona_core_version", PERSONA_CORE_VERSION)
+    core.setdefault("token_budget", PERSONA_CORE_TOKEN_BUDGET)
+    core["voice_exemplars"] = tuple(str(item) for item in core.get("voice_exemplars", ()) if str(item).strip())
+    core["estimated_token_count"] = _estimate_persona_tokens(core)
+    return core
 
 
-def _persona_fact(persona_core: Mapping[str, str]) -> dict[str, str]:
+def _estimate_persona_tokens(persona_core: Mapping[str, Any]) -> int:
+    text_parts = [
+        str(persona_core.get(key) or "")
+        for key in ("identity", "voice", "voice_charter", "duties", "humor_policy", "severity_policy")
+    ]
+    text_parts.extend(str(item) for item in persona_core.get("voice_exemplars", ()) if str(item).strip())
+    text = " ".join(text_parts)
+    return len(repr(text).split())
+
+
+def _persona_fact(persona_core: Mapping[str, Any]) -> dict[str, str]:
     agent = str(persona_core.get("agent") or "maestro")
     label = f"{agent.capitalize()} persona core"
+    exemplars = tuple(str(item).strip() for item in persona_core.get("voice_exemplars", ()) if str(item).strip())
     value = " ".join(
         str(persona_core.get(key) or "").strip()
-        for key in ("identity", "voice", "duties")
+        for key in ("identity", "voice", "voice_charter", "duties")
         if str(persona_core.get(key) or "").strip()
     )
+    if exemplars:
+        value = f"{value} Exemplars: {' | '.join(exemplars)}"
     return {
         "fact_id": f"persona_core:{agent}",
         "topic": "persona_core",
@@ -187,15 +243,20 @@ def _persona_fact(persona_core: Mapping[str, str]) -> dict[str, str]:
     }
 
 
-def _persona_text(persona_core: Mapping[str, str]) -> str:
+def _persona_text(persona_core: Mapping[str, Any]) -> str:
     agent = str(persona_core.get("agent") or "maestro")
+    exemplars = tuple(str(item).strip() for item in persona_core.get("voice_exemplars", ()) if str(item).strip())
     return "\n".join(
         part
         for part in (
             f"{agent.capitalize()} PERSONA CORE:",
+            f"Version: {persona_core.get('persona_core_version')}",
             f"Identity: {persona_core.get('identity')}",
             f"Voice: {persona_core.get('voice')}",
+            f"Voice charter: {persona_core.get('voice_charter')}",
             f"Duties: {persona_core.get('duties')}",
+            f"Voice exemplars: {' / '.join(exemplars)}" if exemplars else "",
+            f"Token budget: {persona_core.get('estimated_token_count')}/{persona_core.get('token_budget')}",
         )
         if str(part).strip()
     )
@@ -207,7 +268,7 @@ def _decorate_packet(
     agent: str,
     question_class: str,
     authority: Mapping[str, Any] | None,
-    persona_core: Mapping[str, str],
+    persona_core: Mapping[str, Any],
     builder_ref: str,
     build_ms: int,
     failures: list[dict[str, str]],
@@ -248,6 +309,8 @@ def _decorate_packet(
             "packet_engine_receipt_id": str(receipt.get("receipt_id") or ""),
             "packet_engine_agent": agent,
             "packet_engine_persona_source": PACKET_ENGINE_PERSONA_SOURCE,
+            "packet_engine_persona_core_version": persona.get("persona_core_version"),
+            "packet_engine_persona_estimated_tokens": persona.get("estimated_token_count"),
             "packet_engine_sections": tuple(sections),
         }
     )
@@ -261,7 +324,7 @@ def _failure_packet(
     question: str,
     question_class: str,
     authority: Mapping[str, Any] | None,
-    persona_core: Mapping[str, str],
+    persona_core: Mapping[str, Any],
     builder_ref: str,
     build_ms: int,
     failures: list[dict[str, str]],

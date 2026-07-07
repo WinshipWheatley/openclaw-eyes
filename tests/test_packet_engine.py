@@ -87,6 +87,51 @@ def test_build_agent_packet_adds_distinct_persona_core_and_receipt() -> None:
     assert receipt["build_ms"] >= 0
 
 
+def test_persona_cores_carry_versioned_voice_exemplars_with_small_budget() -> None:
+    import packet_engine
+
+    def builder(**_: Any) -> dict[str, Any]:
+        return _base_packet()
+
+    for agent in ("maestro", "cassandra", "niles", "guardian", "chief", "hermes"):
+        packet = packet_engine.build_agent_packet(
+            agent=agent,
+            question="status?",
+            question_class="frontdoor_freeform",
+            legacy_builder=builder,
+        )
+        core = packet["persona_core"]
+        exemplars = core["voice_exemplars"]
+
+        assert core["persona_core_version"].startswith("persona_core_v")
+        assert core["voice_charter"]
+        assert isinstance(exemplars, tuple)
+        assert 2 <= len(exemplars) <= 3
+        assert all(isinstance(example, str) and 30 <= len(example) <= 220 for example in exemplars)
+        assert core["estimated_token_count"] <= core["token_budget"]
+        assert core["token_budget"] <= 220
+        assert "Voice charter:" in packet["packet_text"]
+        assert "Voice exemplars:" in packet["packet_text"]
+
+
+def test_guardian_persona_core_has_no_humor_markers() -> None:
+    import packet_engine
+
+    def builder(**_: Any) -> dict[str, Any]:
+        return _base_packet()
+
+    packet = packet_engine.build_agent_packet(
+        agent="guardian",
+        question="can this send?",
+        question_class="frontdoor_freeform",
+        legacy_builder=builder,
+    )
+    core_blob = repr(packet["persona_core"]).lower()
+
+    for marker in ("humor", "joke", "banter", "playful", "wink"):
+        assert marker not in core_blob
+
+
 def test_build_agent_packet_emits_failure_receipt() -> None:
     import packet_engine
 
