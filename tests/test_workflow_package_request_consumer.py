@@ -434,6 +434,47 @@ def test_general_money_question_answers_via_frontdoor_not_staged(tmp_path, monke
     _assert_no_unsafe_grants(result.receipt)
 
 
+def test_general_money_question_detected_via_operator_text_field_variant(tmp_path, monkeypatch):
+    """Regression: `_source_text`'s own key list doesn't include `operator_text` (only
+    `source_text`/`operator_message`/etc), but real envelopes -- e.g. Mission Control's own
+    writer -- may use `operator_text` instead, which maestro_cassandra_responder.
+    operator_text_from_request already knows how to read. The business-question guard must
+    still fire for that field-name variant, not just the narrower `_source_text` shape."""
+    request = _request_payload(
+        request_id="business_question_operator_text_field",
+        source_text="who owes me money right now?",
+        world_ref="finance",
+        thread_ref="openclaw",
+    )
+    request.pop("source_text")
+    request["operator_text"] = "who owes me money right now?"
+
+    def _fake_answer_frontdoor_chat(text, *, session=None, source_surface="operator_maestro_chat", **_kwargs):
+        return mcr.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="Live Arts MD still owes $1,095 — needs your reconcile.",
+            plain_summary="Live Arts MD still owes $1,095 — needs your reconcile.",
+            machine_proof={"local_model_invoked": True, "model_call_performed": True},
+        )
+
+    monkeypatch.setattr(consumer.mcr, "answer_frontdoor_chat", _fake_answer_frontdoor_chat)
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_business_question_operator_text_field.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.status == "RECORDED"
+    assert result.receipt["workflow_ref"] == "business_question_answer"
+    assert result.receipt["package_status"] == "ANSWER_READY"
+    assert result.receipt["machine_proof"]["package_recorded"] is False
+    _assert_no_unsafe_grants(result.receipt)
+
+
 def test_general_question_still_stages_when_frontdoor_has_no_ready_answer(tmp_path, monkeypatch):
     """If Maestro's own answer engine can't produce a grounded answer (status != ANSWER_READY),
     fall back to the existing staging behavior rather than forcing a bad answer."""

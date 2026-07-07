@@ -494,7 +494,7 @@ def is_business_question_request(raw_request: Mapping[str, Any]) -> bool:
     their own, more specific local answer path (is_system_question_request); a text that
     matches a specific client workflow keeps its existing instruction/dry-run-review
     semantics (classify_intent) untouched."""
-    source_text = _source_text(raw_request)
+    source_text = _business_question_source_text(raw_request)
     if not source_text:
         return False
     if is_system_question_request(raw_request):
@@ -506,6 +506,14 @@ def is_business_question_request(raw_request: Mapping[str, Any]) -> bool:
     return _is_general_question_text(source_text)
 
 
+def _business_question_source_text(raw_request: Mapping[str, Any]) -> str:
+    """`_source_text` only checks this module's own narrower key list; real envelopes (e.g.
+    Mission Control's own writer) may use `operator_text`/`operatorText`/etc instead, which
+    `maestro_cassandra_responder.operator_text_from_request` already knows how to read. Try
+    the narrower, already-tested key list first, then widen."""
+    return _source_text(raw_request) or mcr.operator_text_from_request(raw_request)
+
+
 def _business_question_receipt(
     raw_request: Mapping[str, Any],
     *,
@@ -514,7 +522,7 @@ def _business_question_receipt(
     generated_at: str,
     sqlite_path: Path,
 ) -> WorkflowPackageRequestResult | None:
-    source_text = _source_text(raw_request)
+    source_text = _business_question_source_text(raw_request)
     session = mcr.session_from_request(raw_request)
     result = mcr.answer_frontdoor_chat(
         source_text,
