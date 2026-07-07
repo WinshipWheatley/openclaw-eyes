@@ -1327,6 +1327,7 @@ generated/system_knowledge/*.sqlite
 !tests/test_niles_stage_plot_ingest.py
 !guardian_approval_notifier.py
 !tests/test_guardian_approval_notifier.py
+!tests/test_guardian_listener_packet_visibility.py
 !tests/test_system_question_finance_inference.py
 !tests/test_team_grounded_fallback.py
 !tests/test_niles_taste_dna.py
