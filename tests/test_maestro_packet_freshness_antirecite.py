@@ -9,8 +9,12 @@ from ar_expected_receivable_record import create_expected_receivable
 from ar_gig_to_cash_store import GigToCashStore
 from ar_invoice_record import create_invoice_record
 from frontdoor_prompt import build_frontdoor_prompt
+import maestro_cassandra_responder as maestro
 from maestro_context_packet import build_maestro_context_packet
 from receivable_temporal_scoping import ClientPaidThroughStore
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _seed_read_models(tmp_path: Path) -> Path:
@@ -43,6 +47,8 @@ def _seed_read_models(tmp_path: Path) -> Path:
         ),
         encoding="utf-8",
     )
+    src = ROOT / "generated/read_models/client_invoice_workflow_framework.json"
+    (root / "client_invoice_workflow_framework.json").write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
     return root
 
 
@@ -174,3 +180,75 @@ def test_grounded_packet_keeps_sourced_read_model_facts_without_drift_session(mo
     assert packet["machine_proof"]["read_model_count"] >= 2
     assert all(str(fact.get("source_ref") or "") for fact in packet["facts"])
     assert any("Work board columns" in str(fact.get("value") or "") for fact in packet["facts"])
+
+
+def test_freeform_maestro_brain_gets_client_billing_channel_facts(monkeypatch, tmp_path: Path) -> None:
+    read_models = _seed_read_models(tmp_path)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "Use the canonical client invoice workflow framework for client billing-channel facts.",
+    )
+    captured: dict[str, object] = {}
+
+    def _billing_grounded_stub(text: str, *, context_packet=None, **kwargs):
+        captured["context_packet"] = context_packet
+        packet_text = str((context_packet or {}).get("packet_text") or "").lower()
+        if (
+            "st. anne's does not use coupa" in packet_text
+            and "capital hilton uses coupa" in packet_text
+            and "client_invoice_workflow_framework.json" in packet_text
+        ):
+            return {
+                "text": "St Anne's does not use Coupa by default. Capital Hilton uses Coupa for its client recipe.",
+                "receipt": {
+                    "receipt_id": "stub_billing_grounded",
+                    "decision": "INJECTED_STUB",
+                    "external_llm_invoked": False,
+                    "local_model_invoked": False,
+                    "model_call_performed": False,
+                },
+            }
+        return {
+            "text": "St Anne's uses Coupa from a PO.",
+            "receipt": {
+                "receipt_id": "stub_billing_ungrounded",
+                "decision": "INJECTED_STUB",
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+                "model_call_performed": False,
+            },
+        }
+
+    result = maestro.answer_frontdoor_chat(
+        "What should I check before I submit St Anne's invoice through Coupa, and does Capital Hilton need Coupa?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=_billing_grounded_stub,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "maestro_brain_freeform"
+    answer = result.plain_summary.lower()
+    assert "st anne's uses coupa" not in answer
+    assert "st anne's does not use coupa" in answer
+    assert "capital hilton uses coupa" in answer
+
+    packet = captured["context_packet"]
+    assert isinstance(packet, dict)
+    billing_facts = [fact for fact in packet["facts"] if fact.get("topic") == "client_billing_channel"]
+    facts_by_client = {
+        str(fact.get("client_ref") or ""): bool(fact.get("uses_coupa"))
+        for fact in billing_facts
+    }
+    assert facts_by_client.items() >= {"st_annes": False, "capital_hilton": True}.items()
+    assert any(
+        fact.get("client_ref") == "st_annes"
+        and fact.get("purchase_order_required") is False
+        and "does not use Coupa" in str(fact.get("value") or "")
+        for fact in billing_facts
+    )
+    assert "generated/read_models/client_invoice_workflow_framework.json" in packet["source_refs"]
