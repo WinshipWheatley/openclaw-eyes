@@ -53,6 +53,7 @@ COMEDY_BASE_CHANCE = 0.12  # 12% — mid-range of the 10–15% doctrine window
 
 _STATUS_SURFACE_PHRASES = {
     "open_not_paid": "check expected, not yet paid",
+    "open_amount_unknown": "check expected, amount not yet confirmed",
     "needs_reconcile": "needs your reconcile",
     "needs_operator_review": "needs operator review",
     "pending_approval": "needs approval",
@@ -66,6 +67,7 @@ _STATUS_SURFACE_PHRASES = {
     "not_tracked": "not tracked",
     "needs_review": "needs review",
 }
+_UNKNOWN_AMOUNT_STATUSES = {"open_amount_unknown", "amount_unknown", "unknown_amount"}
 
 _MONTH_NAMES = (
     "",
@@ -154,7 +156,10 @@ def operator_surface_value(value: Any) -> str:
 def render_operator_money_status_line(*, entity: Any, amount: Any, status: Any) -> str:
     """Render a money/status item without leaking raw status tokens."""
     entity_text = str(entity or "Unknown client").strip() or "Unknown client"
-    amount_text = str(amount or "amount unverified").strip() or "amount unverified"
+    amount_text = str(amount or "").strip()
+    status_token = str(status or "").strip().lower()
+    if status_token in _UNKNOWN_AMOUNT_STATUSES or not amount_text:
+        return f"{entity_text}: check expected, amount not yet confirmed."
     return f"{entity_text} still owes {amount_text} — {operator_surface_value(status)}"
 
 

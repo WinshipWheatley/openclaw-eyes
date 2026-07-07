@@ -339,6 +339,16 @@ class TestOperatorDecisionWording:
             == "Live Arts still owes $1,095 — needs your reconcile"
         )
 
+    def test_unknown_amount_money_status_uses_confirmation_template(self):
+        assert (
+            guard.render_operator_money_status_line(
+                entity="Capital Hilton (June)",
+                amount=None,
+                status="open_amount_unknown",
+            )
+            == "Capital Hilton (June): check expected, amount not yet confirmed."
+        )
+
     def test_operator_surface_text_humanizes_embedded_status_tokens(self):
         assert (
             guard.operator_surface_text(
