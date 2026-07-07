@@ -74,6 +74,7 @@ def _canonical_facts_path(tmp_path: Path) -> Path:
                     "invoiced_minor_units": 199500,
                     "paid_minor_units": 90000,
                     "open_minor_units": 109500,
+                    "invoiced_derived": True,
                     "needs_reconcile": True,
                     "payment_status": "needs_reconcile",
                     "notes": ["$900 paid, $1,095 still open until operator reconciliation."],
@@ -87,6 +88,7 @@ def _canonical_facts_path(tmp_path: Path) -> Path:
                     "invoiced_minor_units": 62500,
                     "paid_minor_units": 62500,
                     "open_minor_units": 0,
+                    "amount_evidence_minor_units": [62500],
                     "needs_reconcile": False,
                     "payment_status": "settled",
                     "notes": ["April share of Apr+May $1,250 paid total; do not resurface as owed."],
@@ -100,6 +102,7 @@ def _canonical_facts_path(tmp_path: Path) -> Path:
                     "invoiced_minor_units": 62500,
                     "paid_minor_units": 62500,
                     "open_minor_units": 0,
+                    "amount_evidence_minor_units": [62500],
                     "needs_reconcile": False,
                     "payment_status": "settled",
                     "notes": ["May share of Apr+May $1,250 paid total; do not resurface as owed."],
@@ -109,9 +112,10 @@ def _canonical_facts_path(tmp_path: Path) -> Path:
                     "client_ref": "capital_hilton",
                     "month": "2026-06",
                     "currency_iso": "USD",
+                    "amount_known": False,
                     "needs_reconcile": True,
-                    "payment_status": "open_not_paid",
-                    "notes": ["check_unverified: observed check/payment evidence is not ledger proof."],
+                    "payment_status": "open_amount_unknown",
+                    "notes": ["check_unverified: check expected per operator; amount not yet evidenced."],
                     "source_ref": "test:capital-hilton:check-unverified",
                 },
             ],
@@ -148,6 +152,8 @@ def test_build_receivables_month_bounded_merges_g2c_and_canonical_facts(tmp_path
     )
 
     live_arts = _row(payload, "live_arts_md", "2026-06")
+    assert live_arts["amount_known"] is True
+    assert live_arts["invoiced_derived"] is True
     assert live_arts["invoiced_minor_units"] == 199500
     assert live_arts["paid_minor_units"] == 90000
     assert live_arts["open_minor_units"] == 109500
@@ -166,6 +172,7 @@ def test_build_receivables_month_bounded_merges_g2c_and_canonical_facts(tmp_path
 
     capital = _row(payload, "capital_hilton", "2026-06")
     assert capital["source_kinds"] == ["canonical_business_fact", "g2c_expected_receivable"]
+    assert capital["amount_known"] is True
     assert capital["invoiced_minor_units"] == 200000
     assert capital["paid_minor_units"] == 0
     assert capital["open_minor_units"] == 200000
@@ -177,6 +184,58 @@ def test_build_receivables_month_bounded_merges_g2c_and_canonical_facts(tmp_path
     assert payload["summary"]["open_minor_units_by_client"]["st_annes"] == 0
     assert payload["authority_boundary"]["ledger_mutation_performed"] is False
     assert payload["authority_boundary"]["money_movement_performed"] is False
+
+
+def test_default_capital_hilton_unknown_amount_is_not_invented(tmp_path: Path) -> None:
+    from receivables_month_bounded import build_receivables_month_bounded
+
+    payload = build_receivables_month_bounded(
+        g2c_db_path=tmp_path / "missing-g2c.sqlite3",
+        facts_path=None,
+        generated_at=FIXED_GENERATED_AT,
+    )
+
+    capital = _row(payload, "capital_hilton", "2026-06")
+    assert capital["amount_known"] is False
+    assert capital["payment_status"] == "open_amount_unknown"
+    assert capital["open_minor_units"] is None
+    assert capital["invoiced_minor_units"] is None
+    assert "check expected per operator; amount not yet evidenced" in " ".join(capital["notes"])
+    assert "capital_hilton:2026-06" in payload["summary"]["unknown_amount_keys"]
+    assert "capital_hilton" not in payload["summary"]["open_minor_units_by_client"]
+
+
+def test_unevidenced_canonical_amount_fails_validation(tmp_path: Path) -> None:
+    from receivables_month_bounded import build_receivables_month_bounded
+
+    facts_path = tmp_path / "bad_facts.json"
+    _write_json(
+        facts_path,
+        {
+            "receivable_month_facts": [
+                {
+                    "client_ref": "capital_hilton",
+                    "month": "2026-06",
+                    "currency_iso": "USD",
+                    "open_minor_units": 200000,
+                    "payment_status": "open_not_paid",
+                    "source_ref": "test:capital-hilton:check-unverified",
+                }
+            ]
+        },
+    )
+
+    try:
+        build_receivables_month_bounded(
+            g2c_db_path=tmp_path / "missing-g2c.sqlite3",
+            facts_path=facts_path,
+            generated_at=FIXED_GENERATED_AT,
+        )
+    except ValueError as exc:
+        assert "unevidenced amount" in str(exc)
+        assert "open_minor_units" in str(exc)
+    else:
+        raise AssertionError("expected unevidenced canonical amount to fail validation")
 
 
 def test_export_writes_receivables_month_bounded_to_generated_path(tmp_path: Path) -> None:
@@ -243,6 +302,51 @@ def test_maestro_packet_uses_month_bounded_receivables_as_structured_money_fact(
     assert not any(fact.get("topic") == "money_not_tracked" for fact in packet["facts"])
     assert "generated/read_models/receivables_month_bounded.json" in packet["source_refs"]
     assert packet["machine_proof"]["receivables_month_bounded_fact_count"] == len(receivable_facts)
+
+
+def test_maestro_packet_keeps_unknown_receivable_amounts_unknown(tmp_path: Path) -> None:
+    from maestro_context_packet import build_maestro_context_packet
+    from receivables_month_bounded import build_receivables_month_bounded, stable_json
+
+    read_model_root = tmp_path / "read_models"
+    _write_json(
+        read_model_root / "agent_presence.json",
+        {
+            "generated_at": FIXED_GENERATED_AT,
+            "agents": [{"agent_id": "maestro", "display_name": "Maestro", "actual_state": "online"}],
+        },
+    )
+    _write_json(
+        read_model_root / "finance_invoice_reconciliation.json",
+        {
+            "generated_at": FIXED_GENERATED_AT,
+            "counts": {"finance_candidate_count": 0, "high_risk_count": 0},
+        },
+    )
+    payload = build_receivables_month_bounded(
+        g2c_db_path=tmp_path / "missing-g2c.sqlite3",
+        facts_path=None,
+        generated_at=FIXED_GENERATED_AT,
+    )
+    (read_model_root / "receivables_month_bounded.json").write_text(stable_json(payload), encoding="utf-8")
+
+    packet = build_maestro_context_packet(
+        question="What is Capital Hilton's June invoice status?",
+        read_model_root=read_model_root,
+        require_real_truth=False,
+    )
+
+    [capital] = [
+        fact
+        for fact in packet["facts"]
+        if fact.get("topic") == "receivable_month_bounded"
+        and fact.get("client_ref") == "capital_hilton"
+        and fact.get("month") == "2026-06"
+    ]
+    assert capital["amount_known"] is False
+    assert capital["open_minor_units"] is None
+    assert "open=unknown" in capital["value"]
+    assert "$0.00" not in capital["value"]
 
 
 def test_receivables_month_bounded_registered_for_refresh_and_money_coverage() -> None:

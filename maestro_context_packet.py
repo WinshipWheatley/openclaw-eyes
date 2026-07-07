@@ -1179,11 +1179,22 @@ def _receivables_month_bounded_facts(
             continue
         notes = row.get("notes") if isinstance(row.get("notes"), Sequence) and not isinstance(row.get("notes"), (str, bytes)) else ()
         note_text = "; ".join(str(note) for note in list(notes)[:2] if str(note).strip())
+        amount_known = bool(row.get("amount_known", True))
+
+        def _amount_value(field: str) -> int | None:
+            if not amount_known and row.get(field) is None:
+                return None
+            return int(row.get(field) or 0)
+
+        def _amount_text(field: str) -> str:
+            value = _amount_value(field)
+            return "unknown" if value is None else _money_minor_units(value, currency)
+
         value = _join_parts(
             f"{_client_display(client_ref)} {month}",
-            f"invoiced={_money_minor_units(int(row.get('invoiced_minor_units') or 0), currency)}",
-            f"paid={_money_minor_units(int(row.get('paid_minor_units') or 0), currency)}",
-            f"open={_money_minor_units(int(row.get('open_minor_units') or 0), currency)}",
+            f"invoiced={_amount_text('invoiced_minor_units')}",
+            f"paid={_amount_text('paid_minor_units')}",
+            f"open={_amount_text('open_minor_units')}",
             f"status={row.get('payment_status') or 'unknown'}",
             bool(row.get("needs_reconcile")) and "needs_reconcile=true",
             note_text,
@@ -1205,9 +1216,11 @@ def _receivables_month_bounded_facts(
                     "client_ref": client_ref,
                     "month": month,
                     "currency_iso": currency,
-                    "invoiced_minor_units": int(row.get("invoiced_minor_units") or 0),
-                    "paid_minor_units": int(row.get("paid_minor_units") or 0),
-                    "open_minor_units": int(row.get("open_minor_units") or 0),
+                    "amount_known": amount_known,
+                    "invoiced_minor_units": _amount_value("invoiced_minor_units"),
+                    "paid_minor_units": _amount_value("paid_minor_units"),
+                    "open_minor_units": _amount_value("open_minor_units"),
+                    "invoiced_derived": bool(row.get("invoiced_derived")),
                     "needs_reconcile": bool(row.get("needs_reconcile")),
                     "payment_status": str(row.get("payment_status") or "unknown"),
                     "settled_past_no_compound": bool(row.get("settled_past_no_compound")),

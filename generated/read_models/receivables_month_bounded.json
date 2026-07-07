@@ -17,19 +17,21 @@
   "read_model_id": "receivables_month_bounded",
   "rows": [
     {
+      "amount_known": false,
       "client_display_name": "Capital Hilton",
       "client_ref": "capital_hilton",
       "currency_iso": "USD",
       "current_truth": true,
-      "invoiced_minor_units": 200000,
+      "invoiced_derived": false,
+      "invoiced_minor_units": null,
       "month": "2026-06",
       "needs_reconcile": true,
       "notes": [
-        "check_unverified: Coupa/check evidence is not payment proof; keep open until reconciliation."
+        "check_unverified: check expected per operator; amount not yet evidenced."
       ],
-      "open_minor_units": 200000,
-      "paid_minor_units": 0,
-      "payment_status": "open_not_paid",
+      "open_minor_units": null,
+      "paid_minor_units": null,
+      "payment_status": "open_amount_unknown",
       "receivable_ids": [],
       "settled_past_no_compound": false,
       "source_kinds": [
@@ -41,10 +43,12 @@
       "structured_fact": true
     },
     {
+      "amount_known": true,
       "client_display_name": "Live Arts MD",
       "client_ref": "live_arts_md",
       "currency_iso": "USD",
       "current_truth": true,
+      "invoiced_derived": true,
       "invoiced_minor_units": 199500,
       "month": "2026-06",
       "needs_reconcile": true,
@@ -65,10 +69,12 @@
       "structured_fact": true
     },
     {
+      "amount_known": true,
       "client_display_name": "St. Anne's",
       "client_ref": "st_annes",
       "currency_iso": "USD",
       "current_truth": true,
+      "invoiced_derived": false,
       "invoiced_minor_units": 62500,
       "month": "2026-04",
       "needs_reconcile": false,
@@ -89,10 +95,12 @@
       "structured_fact": true
     },
     {
+      "amount_known": true,
       "client_display_name": "St. Anne's",
       "client_ref": "st_annes",
       "currency_iso": "USD",
       "current_truth": true,
+      "invoiced_derived": false,
       "invoiced_minor_units": 62500,
       "month": "2026-05",
       "needs_reconcile": false,
@@ -130,7 +138,6 @@
   "summary": {
     "client_count": 3,
     "invoiced_minor_units_by_client": {
-      "capital_hilton": 200000,
       "live_arts_md": 199500,
       "st_annes": 125000
     },
@@ -140,15 +147,16 @@
       "live_arts_md:2026-06"
     ],
     "open_minor_units_by_client": {
-      "capital_hilton": 200000,
       "live_arts_md": 109500,
       "st_annes": 0
     },
     "paid_minor_units_by_client": {
-      "capital_hilton": 0,
       "live_arts_md": 90000,
       "st_annes": 125000
     },
-    "row_count": 4
+    "row_count": 4,
+    "unknown_amount_keys": [
+      "capital_hilton:2026-06"
+    ]
   }
 }
