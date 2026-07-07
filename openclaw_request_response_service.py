@@ -29,6 +29,7 @@ import openclaw_request_processor as processor
 import client_invoice_audit_handoff
 import client_invoice_sheet_audit
 import deterministic_intent_interpreter
+from listener_resilience import clean_response_payload_text, honest_short_fail
 import lm_intent_proposal_contract
 import mac_worker_handoff_package
 import openclaw_event_bridge_adapter
@@ -53,6 +54,11 @@ MANIFEST_EXPORT_NAME = "response_manifest.json"
 LATEST_RESPONSE_EXPORT_NAME = "openclaw_response_for_mac_latest.json"
 LATEST_PROCESSING_EXPORT_NAME = "openclaw_processing_for_mac_latest.json"
 CONTRACT_STATUS = "BOUNDED_LOCAL_OPENCLAW_REQUEST_RESPONSE_SERVICE"
+STALE_CARRYOVER_REPLY = honest_short_fail(
+    "OpenClaw request-response service",
+    no_action_line="No send, workflow execution, ledger post, payment, or external action occurred.",
+    next_step="Retry after checking the request-response service and model contention.",
+)
 
 SERVICE_STATUSES = (
     "IDLE_NO_REQUEST_AVAILABLE",
@@ -1229,7 +1235,11 @@ def publish_response_for_mac(
     response_file = response_dir / f"openclaw_response_for_mac_{safe_request_id}.json"
     latest_file = response_dir / LATEST_RESPONSE_EXPORT_NAME
     manifest_file = response_dir / MANIFEST_EXPORT_NAME
-    published_payload = _published_response_payload(response_payload, created_at=created_at)
+    cleaned_response_payload = clean_response_payload_text(
+        response_payload,
+        failure_text=STALE_CARRYOVER_REPLY,
+    )
+    published_payload = _published_response_payload(cleaned_response_payload, created_at=created_at)
     published_payload = processor.stamp_proof_to_response_source_response_path(
         published_payload,
         source_response_path=response_file.as_posix(),
@@ -1249,10 +1259,10 @@ def publish_response_for_mac(
         responses = []
     record = {
         "source_request_id": request_id,
-        "source_request_filename": response_payload.get("source_request_filename"),
-        "request_type": response_payload.get("request_type"),
-        "internal_status": response_payload.get("internal_status"),
-        "operator_headline": response_payload.get("operator_headline"),
+        "source_request_filename": cleaned_response_payload.get("source_request_filename"),
+        "request_type": cleaned_response_payload.get("request_type"),
+        "internal_status": cleaned_response_payload.get("internal_status"),
+        "operator_headline": cleaned_response_payload.get("operator_headline"),
         "response_file": response_file.as_posix(),
         "created_at": created_at,
         "terminal": published_payload["terminal"],
@@ -1274,13 +1284,13 @@ def publish_response_for_mac(
         latest_response_file=latest_file.as_posix(),
         manifest_file=manifest_file.as_posix(),
         source_request_id=request_id,
-        source_request_filename=str(response_payload.get("source_request_filename") or ""),
-        request_type=str(response_payload.get("request_type") or "UNKNOWN_FAIL_CLOSED"),
-        internal_status=str(response_payload.get("internal_status") or "UNKNOWN_FAIL_CLOSED"),
-        operator_headline=str(response_payload.get("operator_headline") or ""),
-        operator_message=str(response_payload.get("operator_message") or ""),
-        how_to_fix=str(response_payload.get("how_to_fix") or ""),
-        next_safe_move=str(response_payload.get("next_safe_move") or ""),
+        source_request_filename=str(cleaned_response_payload.get("source_request_filename") or ""),
+        request_type=str(cleaned_response_payload.get("request_type") or "UNKNOWN_FAIL_CLOSED"),
+        internal_status=str(cleaned_response_payload.get("internal_status") or "UNKNOWN_FAIL_CLOSED"),
+        operator_headline=str(cleaned_response_payload.get("operator_headline") or ""),
+        operator_message=str(cleaned_response_payload.get("operator_message") or ""),
+        how_to_fix=str(cleaned_response_payload.get("how_to_fix") or ""),
+        next_safe_move=str(cleaned_response_payload.get("next_safe_move") or ""),
         terminal=bool(published_payload["terminal"]),
     )
 

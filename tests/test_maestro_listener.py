@@ -367,6 +367,26 @@ def test_reply_suppresses_processing_heartbeat_as_final_answer():
     assert "Maestro-native reply - ref 42:abcdef" in reply
 
 
+def test_reply_sanitizes_stale_carryover_before_delivery():
+    payload = {
+        "source_request_id": "maestro_telegram_42_abcdef123456",
+        "internal_status": "RESPONSE_READY",
+        "request_type": "CHAT",
+        "operator_message": (
+            "The previous response was truncated. Continue? (61/61)\n"
+            "Still working... waiting for stream response\n"
+            "Fresh Maestro answer."
+        ),
+    }
+
+    reply = maestro_listener.reply_text_from_bridge_response(payload)
+
+    assert "Fresh Maestro answer." in reply
+    assert "Still working" not in reply
+    assert "previous response was truncated" not in reply.lower()
+    assert "Maestro-native reply - ref 42:abcdef" in reply
+
+
 def test_listener_has_no_outbound_send_imports_and_send_hold_boundary_false():
     source = Path(maestro_listener.__file__).read_text(encoding="utf-8")
     tree = ast.parse(source)

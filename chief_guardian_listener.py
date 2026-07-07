@@ -46,6 +46,7 @@ from telegram.ext import (
 )
 from telegram_agent_intake import record_telegram_listener_update_safe
 from chief_nonapproval_responder import guardian_no_pending_reply
+from listener_resilience import clean_stale_carryover, honest_short_fail
 
 # Guardian bot must be explicitly configured — this listener should not
 # start on the Chief or Cassandra token.
@@ -61,6 +62,16 @@ if not _token:
 
 BOT_TOKEN = _token
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
+GUARDIAN_STALE_CARRYOVER_REPLY = honest_short_fail(
+    "Guardian",
+    no_action_line="No approval, denial, send, workflow execution, ledger post, payment, or external action occurred.",
+    next_step="Retry after checking Guardian listener health and model contention.",
+)
+
+
+def guardian_resilient_reply(text: str) -> str:
+    return str(clean_stale_carryover(text, failure_text=GUARDIAN_STALE_CARRYOVER_REPLY))
+
 
 def _fire_agent_voice(agent: str, text: str, update) -> None:
     """Fire-and-forget Kokoro voice note (Guardian=am_onyx), non-blocking + fail-soft.
@@ -137,6 +148,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         - Forbidden (bot blocked / chat gone): log reason, no fallback (send_message would also fail).
         Other exceptions are re-raised so they surface in logs.
         """
+        text = guardian_resilient_reply(text)
         try:
             await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup([]))
         except TelegramBadRequest as e:
@@ -253,7 +265,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             f"If no action: request expires and is auto-denied.\n\n"
             f"Use the buttons on the message above to respond."
         )
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=why_text)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=guardian_resilient_reply(why_text))
         return  # Original message with buttons left intact
 
     # ── DELAY 5m — safe deferral; polling loop resets timeout and re-sends ─────
@@ -341,7 +353,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         approved_by=str(update.effective_user.id) if update.effective_user else "operator",
     )
     if _hitl_result.get("handled"):
-        await update.message.reply_text(str(_hitl_result.get("reply") or "HITL reply handled."))
+        await update.message.reply_text(guardian_resilient_reply(str(_hitl_result.get("reply") or "HITL reply handled.")))
         return
 
     if not has_pending_approval():
@@ -352,7 +364,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             _log_no_pending_guardian_packet(_build_no_pending_guardian_packet(text))
         except Exception:
             pass
-        await update.message.reply_text(_reply)
+        await update.message.reply_text(guardian_resilient_reply(_reply))
         return
 
     # Read pending record once: id → binding; options → correct format hint.
@@ -388,13 +400,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 )
             except Exception:
                 _ans = ""
-        await update.message.reply_text(f"{_ans}\n\n———\n{error}" if _ans else error)
+        await update.message.reply_text(guardian_resilient_reply(f"{_ans}\n\n———\n{error}" if _ans else error))
         if _ans:
             _fire_agent_voice("guardian", _ans, update)
         return
 
     reply = record_decision(decision, expected_id=_pending_id)
-    await update.message.reply_text(reply)
+    await update.message.reply_text(guardian_resilient_reply(reply))
 
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()

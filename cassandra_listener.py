@@ -46,6 +46,7 @@ from cassandra_identity import (
 from cassandra_sender import send_voice_note
 from cassandra_voice import speak, synthesize_for_voice_note
 from cassandra_whisper_relay import relay_transcript, transcribe_audio
+from listener_resilience import bounded_reply_timeout, clean_stale_carryover
 from telegram_agent_intake import record_cassandra_listener_text_update
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
@@ -80,6 +81,7 @@ _APPROVAL_WAIT_STALL_S = 300
 _APPROVAL_WAIT_NOTICE = "Guardian approval is still pending. Once you approve or deny it, I'll continue."
 _APPROVAL_STALLED_NOTICE = "Guardian approval is still pending longer than expected. Chief is investigating while I keep waiting for the result."
 _CHAT_REQUEST_TOKENS: dict[int, int] = {}
+_TIMEOUT_SENTINEL = object()
 
 # ── Producer integration ─────────────────────────────────────────────────────
 
@@ -355,7 +357,13 @@ async def _send_reply_batch_or_degraded(
 ) -> list[str]:
     delivered: list[str] = []
     for reply in replies or []:
-        text = str(reply or "").strip()
+        text = str(
+            clean_stale_carryover(
+                reply,
+                failure_text=_DEGRADED_EMPTY_REPLY_NOTICE,
+            )
+            or ""
+        ).strip()
         if not text or _is_generic_quiet_reply(text):
             continue
         if should_deliver():
@@ -409,21 +417,26 @@ async def _run_request_with_timeout_contract(
     )
     task = asyncio.create_task(_run_cassandra_with_backpressure(run_cassandra, text, session_meta))
     try:
-        replies = await asyncio.wait_for(asyncio.shield(task), timeout=_REQUEST_TIMEOUT_S)
-    except asyncio.TimeoutError:
-        working_ack_task.cancel()
-        if should_deliver():
-            approval_state, _approval_data = _pending_cassandra_approval_state()
-            if approval_state == "waiting":
-                await send_reply(_APPROVAL_WAIT_NOTICE)
-            else:
-                if approval_state == "stalled":
-                    await send_reply(_APPROVAL_STALLED_NOTICE)
+        replies = await bounded_reply_timeout(
+            asyncio.shield(task),
+            timeout_seconds=_REQUEST_TIMEOUT_S,
+            timeout_result=_TIMEOUT_SENTINEL,
+            clean_result=False,
+        )
+        if replies is _TIMEOUT_SENTINEL:
+            working_ack_task.cancel()
+            if should_deliver():
+                approval_state, _approval_data = _pending_cassandra_approval_state()
+                if approval_state == "waiting":
+                    await send_reply(_APPROVAL_WAIT_NOTICE)
                 else:
-                    await send_reply(_ESCALATION_NOTICE)
-                asyncio.create_task(escalate_failure(text, session_meta))
-        asyncio.create_task(_deliver_late_result(task, send_reply=send_reply, should_deliver=should_deliver))
-        return None
+                    if approval_state == "stalled":
+                        await send_reply(_APPROVAL_STALLED_NOTICE)
+                    else:
+                        await send_reply(_ESCALATION_NOTICE)
+                    asyncio.create_task(escalate_failure(text, session_meta))
+            asyncio.create_task(_deliver_late_result(task, send_reply=send_reply, should_deliver=should_deliver))
+            return None
     except Exception as exc:
         working_ack_task.cancel()
         print(f"[cassandra_listener] request runtime error: {exc}", flush=True)

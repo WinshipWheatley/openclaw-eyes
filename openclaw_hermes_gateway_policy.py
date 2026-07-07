@@ -8,10 +8,11 @@ external messages, move money, start services, or write route receipts.
 
 from __future__ import annotations
 
-import asyncio
 import os
 import re
 from typing import Any
+
+from listener_resilience import bounded_reply_timeout, clean_stale_carryover
 
 
 _ROUTE_TARGET_RE = re.compile(
@@ -60,13 +61,6 @@ _LEAK_PATTERNS = (
     re.compile(r"\bInterrupting current task\s*(?:\([^)]*\))?", re.IGNORECASE),
     re.compile(r"\(?(?:iteration|loop)\s+\d+\s*/\s*\d+\)?", re.IGNORECASE),
 )
-_STALE_CARRYOVER_LINE_PATTERNS = (
-    re.compile(r"\bprevious response was truncated\b", re.IGNORECASE),
-    re.compile(r"\bskill_view\s*:\s*factory_handoff_status\b", re.IGNORECASE),
-    re.compile(r"\bstill working\b", re.IGNORECASE),
-    re.compile(r"\bwaiting for stream response\b", re.IGNORECASE),
-    re.compile(r"\bno chunks yet\b", re.IGNORECASE),
-)
 _DEFAULT_GATEWAY_REPLY_TIMEOUT_SECONDS = 45.0
 _STALL_FAILURE_REPLY = "\n".join(
     [
@@ -95,10 +89,6 @@ def _gateway_reply_timeout_seconds() -> float:
 
 def stalled_stream_failure_reply() -> str:
     return _STALL_FAILURE_REPLY
-
-
-def _is_stale_carryover_line(text: str) -> bool:
-    return any(pattern.search(text) for pattern in _STALE_CARRYOVER_LINE_PATTERNS)
 
 
 def _agent_route_targets() -> frozenset[str]:
@@ -213,23 +203,11 @@ def truthful_reply_for_text(text: str) -> str | None:
 def sanitize_gateway_response(content: Any) -> Any:
     """Remove internal gateway/runtime wording from user-facing text."""
 
-    if not isinstance(content, str) or not content:
-        return content
-    cleaned_lines: list[str] = []
-    for raw_line in content.splitlines():
-        if _is_stale_carryover_line(raw_line):
-            continue
-        line = raw_line
-        for pattern in _LEAK_PATTERNS:
-            line = pattern.sub("", line)
-        line = re.sub(r"[ \t]{2,}", " ", line).strip()
-        line = re.sub(r"\s+([.,;:!?])", r"\1", line)
-        if line:
-            cleaned_lines.append(line)
-    cleaned = "\n".join(cleaned_lines).strip()
-    if not cleaned and content.strip():
-        return stalled_stream_failure_reply()
-    return cleaned
+    return clean_stale_carryover(
+        content,
+        failure_text=stalled_stream_failure_reply(),
+        artifact_patterns=_LEAK_PATTERNS,
+    )
 
 
 def _event_is_authorized_for_intercept(runner: Any, event: Any) -> bool:
@@ -330,13 +308,13 @@ def install_gateway_policy_patch(*, gateway_run_module: Any | None = None, base_
                     reply = truthful_reply_for_text(getattr(event, "text", "") or "")
                     if reply is not None:
                         return reply
-            try:
-                result = await asyncio.wait_for(
-                    original_handle_message(self, event),
-                    timeout=_gateway_reply_timeout_seconds(),
-                )
-            except TimeoutError:
-                return stalled_stream_failure_reply()
+            result = await bounded_reply_timeout(
+                original_handle_message(self, event),
+                timeout_seconds=_gateway_reply_timeout_seconds(),
+                timeout_result=stalled_stream_failure_reply(),
+                failure_text=stalled_stream_failure_reply(),
+                artifact_patterns=_LEAK_PATTERNS,
+            )
             return sanitize_gateway_response(result)
 
         runner_cls._handle_message = _openclaw_handle_message

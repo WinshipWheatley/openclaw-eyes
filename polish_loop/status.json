@@ -1,13 +1,13 @@
 {
   "approved": false,
   "block_reason": null,
-  "last_updated": "2026-06-23T06:51:15.298424+00:00",
+  "last_updated": "2026-07-07T19:50:33.641840+00:00",
   "pass": 1,
-  "phase_c_dispatchable": false,
-  "phase_c_ledger": "/home/openclaw/polish_loop/control_plane.sqlite3",
+  "phase_c_dispatchable": true,
+  "phase_c_ledger": "/tmp/integ-batch3/polish_loop/control_plane.sqlite3",
   "phase_c_owner": null,
-  "phase_c_status": "DONE",
-  "phase_c_task_id": "task-028d121366c84b878d69ad97f2e7fde8",
+  "phase_c_status": "READY",
+  "phase_c_task_id": "task-499b6767f74a4812a17380515acd08f7",
   "status": "idle",
-  "task_name": null
+  "task_name": "task-499b6767f74a4812a17380515acd08f7"
 }
