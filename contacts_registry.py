@@ -486,6 +486,7 @@ def answer_contact_question(question: str, *, db_path: str = DEFAULT_CONTACTS_DB
     contacts = registry.list_contacts()
     named = _named_contact_for_question(question, contacts)
     slugs = client_slugs_for_text(question, contacts)
+    role_query = _role_query_for_question(question)
     proof = {
         "question_class": "contacts_whos_who",
         "contacts_registry_read": True,
@@ -493,6 +494,8 @@ def answer_contact_question(question: str, *, db_path: str = DEFAULT_CONTACTS_DB
         "contacts_registry_client_slugs": list(slugs),
         "contacts_registry_contact_ids": [],
         "contacts_registry_record_found": False,
+        "contacts_registry_role_query": role_query,
+        "contacts_registry_role_match_found": False,
         "protected_generate_called": False,
         "external_llm_invoked": False,
     }
@@ -524,6 +527,20 @@ def answer_contact_question(question: str, *, db_path: str = DEFAULT_CONTACTS_DB
         for slug in slugs:
             selected.extend(registry.get_contacts_for_client(slug))
         selected = _dedupe_contacts(selected)
+        if role_query:
+            role_matches = _contacts_matching_role(selected, role_query)
+            if role_matches:
+                selected = role_matches
+                proof["contacts_registry_role_match_found"] = True
+            else:
+                proof["contacts_registry_contact_ids"] = [str(contact.get("id") or "") for contact in selected]
+                proof["contacts_registry_record_found"] = bool(selected)
+                return {
+                    "answered": False,
+                    "question_class": "contacts_whos_who",
+                    "answer": _role_gap_answer(role_query, slugs[0], selected),
+                    "machine_proof": proof,
+                }
         if _asks_for_payment_handler(question):
             selected = _payment_ranked_contacts(selected)
         if selected:
@@ -594,6 +611,57 @@ def _asks_for_email(question: str) -> bool:
 
 def _asks_for_payment_handler(question: str) -> bool:
     return bool(re.search(r"\b(payments?|payer|invoice|treasurer|handles?|who handles)\b", str(question or ""), re.IGNORECASE))
+
+
+ROLE_QUERY_TERMS: dict[str, tuple[str, ...]] = {
+    "accountant": ("accountant", "accounting", "bookkeeper"),
+    "treasurer": ("treasurer",),
+    "ap": ("ap", "a p", "accounts payable", "account payable"),
+    "tech": ("tech", "technical", "av", "a v", "audio", "sound"),
+    "manager": ("manager",),
+}
+
+
+def _role_query_for_question(question: str) -> str:
+    query_key = f" {_contact_match_key(question)} "
+    for canonical_role, terms in ROLE_QUERY_TERMS.items():
+        for term in terms:
+            term_key = _contact_match_key(term)
+            if term_key and f" {term_key} " in query_key:
+                return canonical_role
+    return ""
+
+
+def _contacts_matching_role(contacts: list[dict[str, Any]], role_query: str) -> list[dict[str, Any]]:
+    terms = ROLE_QUERY_TERMS.get(role_query, ())
+    role_terms = {_contact_match_key(term) for term in terms}
+    role_terms.discard("")
+    matches: list[dict[str, Any]] = []
+    for contact in contacts:
+        role_key = f" {_contact_match_key(contact.get('role'))} "
+        if any(f" {term} " in role_key for term in role_terms):
+            matches.append(contact)
+    return matches
+
+
+def _role_gap_answer(role_query: str, client_slug: str, contacts: list[dict[str, Any]]) -> str:
+    known_contacts = "; ".join(_format_contact_sentence(contact).rstrip(".") for contact in contacts)
+    client_label = _client_display_name(client_slug)
+    base = f"I do not have a confirmed {role_query} contact for {_client_slug(client_slug)}."
+    if not known_contacts:
+        return base
+    return f"{base} Known {client_label} contacts: {known_contacts}."
+
+
+def _client_display_name(client_slug: str) -> str:
+    labels = {
+        "capital-hilton": "Capital Hilton",
+        "live-arts-md": "Live Arts MD",
+        "reynolds": "Reynolds",
+        "st-annes": "St. Anne's",
+    }
+    slug = _client_slug(client_slug)
+    return labels.get(slug, slug)
 
 
 def _payment_ranked_contacts(contacts: list[dict[str, Any]]) -> list[dict[str, Any]]:

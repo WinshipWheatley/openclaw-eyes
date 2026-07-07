@@ -164,6 +164,37 @@ def test_contact_question_answers_st_annes_payment_handler_from_registry(tmp_pat
     assert result["machine_proof"]["contacts_registry_record_found"] is True
 
 
+def test_contact_question_prefers_named_client_role_match(tmp_path: Path) -> None:
+    db_path = str(tmp_path / "contacts.sqlite3")
+    ContactsRegistry(db_path)
+
+    result = answer_contact_question("who is the accountant at Live Arts?", db_path=db_path)
+
+    assert result["answered"] is True
+    answer = result["answer"]
+    assert "Megan Rivas" in answer
+    assert "accountant" in answer.lower()
+    assert "Dane Krich" not in answer
+    assert "Draper Carter" not in answer
+    assert "Glenn Mortoro" not in answer
+
+
+def test_contact_question_named_role_gap_offers_only_named_client_contacts(tmp_path: Path) -> None:
+    db_path = str(tmp_path / "contacts.sqlite3")
+    ContactsRegistry(db_path)
+
+    result = answer_contact_question("who is the treasurer at Live Arts?", db_path=db_path)
+
+    assert result["answered"] is False
+    answer = result["answer"]
+    assert "do not have a confirmed treasurer contact for live-arts-md" in answer.lower()
+    assert "Known Live Arts MD contacts:" in answer
+    assert "Dane Krich" in answer
+    assert "Megan Rivas" in answer
+    assert "Glenn Mortoro" not in answer
+    assert "Nancy Pollack" not in answer
+
+
 def test_contact_question_for_annette_email_is_honest_gap(tmp_path: Path) -> None:
     db_path = str(tmp_path / "contacts.sqlite3")
     ContactsRegistry(db_path)
