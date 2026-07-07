@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from types import SimpleNamespace
 
 import openclaw_hermes_gateway_policy as policy
+from scripts import run_openclaw_hermes_gateway
 
 
 def test_route_request_denies_without_skill_lookup_or_dispatch() -> None:
@@ -77,6 +79,52 @@ def test_sanitizer_removes_runtime_leaks() -> None:
     assert sanitized == "Actual answer stays."
 
 
+def test_sanitizer_removes_stalled_stream_and_truncation_carryover() -> None:
+    sanitized = policy.sanitize_gateway_response(
+        "The previous response was truncated. Continue? (61/61)\n"
+        "skill_view: factory_handoff_status\n"
+        "Still working... (10 min elapsed - iteration 2/90, waiting for stream response (27%, no chunks yet))\n"
+        "Fresh answer from this turn."
+    )
+
+    assert sanitized == "Fresh answer from this turn."
+
+
+def test_stale_only_gateway_response_becomes_short_honest_failure() -> None:
+    sanitized = policy.sanitize_gateway_response(
+        "Still working... (10 min elapsed - iteration 2/90, waiting for stream response (27%, no chunks yet))\n"
+        "The previous response was truncated. Continue? (61/61)"
+    )
+
+    assert "Hermes could not produce a fresh answer before the local model stream limit." in sanitized
+    assert "No requested send, agent dispatch, route receipt, or money action occurred." in sanitized
+    assert "Still working" not in sanitized
+    assert "iteration" not in sanitized
+    assert "previous response was truncated" not in sanitized.lower()
+
+
+def test_gateway_wrapper_sets_bounded_stream_defaults(monkeypatch) -> None:
+    for key in run_openclaw_hermes_gateway.OPENCLAW_GATEWAY_ENV_DEFAULTS:
+        monkeypatch.delenv(key, raising=False)
+
+    applied = run_openclaw_hermes_gateway.configure_gateway_environment()
+
+    assert os.environ["HERMES_OPENCLAW_GATEWAY_REPLY_TIMEOUT_SECONDS"] == "45"
+    assert os.environ["HERMES_OPENCLAW_GATEWAY_NO_CHUNK_TIMEOUT_SECONDS"] == "20"
+    assert os.environ["HERMES_OPENCLAW_GATEWAY_MAX_STREAM_RETRIES"] == "1"
+    assert applied["HERMES_OPENCLAW_GATEWAY_STALE_CARRYOVER_POLICY"] == "sanitize-and-fail-short"
+
+
+def test_gateway_wrapper_preserves_operator_timeout_override(monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_OPENCLAW_GATEWAY_REPLY_TIMEOUT_SECONDS", "12")
+    monkeypatch.delenv("HERMES_OPENCLAW_GATEWAY_MAX_STREAM_RETRIES", raising=False)
+
+    run_openclaw_hermes_gateway.configure_gateway_environment()
+
+    assert os.environ["HERMES_OPENCLAW_GATEWAY_REPLY_TIMEOUT_SECONDS"] == "12"
+    assert os.environ["HERMES_OPENCLAW_GATEWAY_MAX_STREAM_RETRIES"] == "1"
+
+
 def test_runner_patch_intercepts_authorized_plain_messages_before_original_handler() -> None:
     class GatewayRunner:
         def _is_user_authorized(self, source):
@@ -118,6 +166,33 @@ def test_runner_patch_preserves_unauthorized_flow() -> None:
     policy.install_gateway_policy_patch(gateway_run_module=module, base_adapter_cls=None)
 
     assert asyncio.run(GatewayRunner()._handle_message(event)) == "original unauthorized handling"
+
+
+def test_runner_patch_bounds_stalled_handler_with_honest_failure(monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_OPENCLAW_GATEWAY_REPLY_TIMEOUT_SECONDS", "0.01")
+
+    class GatewayRunner:
+        def _is_user_authorized(self, source):
+            return True
+
+        async def _handle_message(self, event):
+            await asyncio.sleep(1)
+            return "late answer"
+
+    event = SimpleNamespace(
+        text="plain question",
+        internal=False,
+        source=SimpleNamespace(user_id="operator"),
+        get_command=lambda: None,
+    )
+    module = SimpleNamespace(GatewayRunner=GatewayRunner)
+
+    policy.install_gateway_policy_patch(gateway_run_module=module, base_adapter_cls=None)
+    reply = asyncio.run(GatewayRunner()._handle_message(event))
+
+    assert "Hermes could not produce a fresh answer before the local model stream limit." in reply
+    assert "Still working" not in reply
+    assert "late answer" not in reply
 
 
 class _Platform:  # hashable (real Platform is an enum used as a dict key)
@@ -233,4 +308,4 @@ def test_send_patch_sanitizes_busy_status_before_delivery() -> None:
     )
 
     assert result == "sent"
-    assert adapter.sent_kwargs["content"] == "Still working.\nOK"
+    assert adapter.sent_kwargs["content"] == "OK"

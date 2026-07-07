@@ -11,6 +11,15 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 HERMES_ROOT = REPO_ROOT / "sidecars" / "hermes"
+OPENCLAW_GATEWAY_ENV_DEFAULTS = {
+    "HERMES_OPENCLAW_MODE": "gateway",
+    "HERMES_OPENCLAW_GATEWAY": "1",
+    "HERMES_OPENCLAW_DISABLE_EXTERNAL_FALLBACK": "1",
+    "HERMES_OPENCLAW_GATEWAY_REPLY_TIMEOUT_SECONDS": "45",
+    "HERMES_OPENCLAW_GATEWAY_NO_CHUNK_TIMEOUT_SECONDS": "20",
+    "HERMES_OPENCLAW_GATEWAY_MAX_STREAM_RETRIES": "1",
+    "HERMES_OPENCLAW_GATEWAY_STALE_CARRYOVER_POLICY": "sanitize-and-fail-short",
+}
 
 
 def _configure_import_paths() -> None:
@@ -18,6 +27,14 @@ def _configure_import_paths() -> None:
         value = str(path)
         if value not in sys.path:
             sys.path.insert(0, value)
+
+
+def configure_gateway_environment() -> dict[str, str]:
+    """Install OpenClaw Hermes safety defaults without overriding operator pins."""
+
+    for key, value in OPENCLAW_GATEWAY_ENV_DEFAULTS.items():
+        os.environ.setdefault(key, value)
+    return {key: os.environ[key] for key in OPENCLAW_GATEWAY_ENV_DEFAULTS}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -31,9 +48,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: missing Hermes runtime directory: {HERMES_ROOT}", file=sys.stderr)
         return 2
 
-    os.environ.setdefault("HERMES_OPENCLAW_MODE", "gateway")
-    os.environ.setdefault("HERMES_OPENCLAW_GATEWAY", "1")
-    os.environ.setdefault("HERMES_OPENCLAW_DISABLE_EXTERNAL_FALLBACK", "1")
+    configure_gateway_environment()
 
     _configure_import_paths()
 
