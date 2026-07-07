@@ -59,14 +59,43 @@ def test_st_annes_work_log_instruction_stages_record_only_package():
     assert package["privacy_impact"]["raw_text_stored"] is False
 
 
-def test_st_annes_invoice_send_blocks_before_permission_or_artifact():
-    package = _package("Send St. Anne's invoice.")
+def test_st_annes_invoice_review_dry_run_renders_pdf_first_before_send_permission():
+    package = _package("let's test the st annes invoice before we send it for real")
 
     assert package["workflow_ref"] == "st_annes_monthly_invoice_rollup"
     assert package["client_ref"] == "st_annes"
-    assert package["status"] == "PERMISSION_REQUIRED"
-    assert package["capability_gate_result"]["status"] == "PERMISSION_REQUIRED"
-    assert package["worker_result"]["result_status"] == "NOOP_BLOCKED_BY_GATE"
+    assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert package["capability_gate_result"]["status"] == "ALLOW_DRY_RUN"
+    assert "local_pdf_proof_render" in package["capability_gate_result"]["allowed_dry_run_actions"]
+    assert "email_send" in package["capability_gate_result"]["blocked_actions"]
+    assert "workbook_write" in package["capability_gate_result"]["blocked_actions"]
+    assert "external_pdf_export" in package["capability_gate_result"]["blocked_actions"]
+    assert package["proof_refs"] == [
+        {
+            "artifact_ref": "pdf_proof:st_annes_monthly_invoice_rollup",
+            "artifact_kind": "pdf_proof",
+            "source_inventory_ref": "source_inventory:st_annes_monthly_invoice_rollup",
+            "render_mode": "local_dry_run_review",
+        },
+        {
+            "artifact_ref": "clara_draft:st_annes_monthly_invoice_rollup",
+            "artifact_kind": "clara_draft",
+            "source_inventory_ref": "source_inventory:st_annes_monthly_invoice_rollup",
+            "render_mode": "local_dry_run_review",
+        },
+        {
+            "artifact_ref": "guardian_gate:st_annes_monthly_invoice_rollup",
+            "artifact_kind": "guardian_gate",
+            "source_inventory_ref": "source_inventory:st_annes_monthly_invoice_rollup",
+            "render_mode": "guardian_preview_closed",
+        },
+    ]
+    assert package["source_room_context"]["source_inventory_exists"] is True
+    assert package["worker_result"]["result_status"] == "NOOP_RESULT_RECORDED"
+    assert package["worker_result"]["live_worker_executed"] is False
+    assert package["worker_result"]["local_pdf_proof_rendered"] is True
+    assert package["worker_result"]["pdf_export_performed"] is False
+    assert package["worker_result"]["email_send_performed"] is False
     assert package["business_action_gate_result"]["status"] == "CLOSED"
     assert package["business_action_gate_result"]["email_send_allowed"] is False
     assert package["business_action_gate_result"]["sent"] is False
