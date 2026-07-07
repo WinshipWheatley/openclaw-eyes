@@ -18,7 +18,12 @@ Saves to:
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Domain map ────────────────────────────────────────────────────────────────
 # Each domain: list of filenames (present = exists, None = proposed/missing).
@@ -246,7 +251,7 @@ Be concise and direct. No bullet points. No markdown headers."""
 def _build_narrative(report: str) -> str:
     prompt = _NARRATIVE_PROMPT.format(report=report)
     try:
-        result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
+        result = _local_model_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
     except Exception:
         result = ""
     return result if result else _fallback_narrative(report)

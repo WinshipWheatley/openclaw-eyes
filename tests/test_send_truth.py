@@ -1296,7 +1296,66 @@ class TestCassandraRouterPolicy:
         assert reply == "draft body"
         assert route_calls == [{"lane": None, "task_class": "cassandra_outbound_draft"}]
 
-    def test_fast_user_reply_escalates_to_strong_after_empty_response(self, monkeypatch):
+    def test_outbound_draft_retries_downshifted_model_after_empty_primary(self, monkeypatch):
+        import adaptive_model_call as adaptive
+        import cassandra_brain
+
+        route_calls = []
+        model_calls = []
+
+        monkeypatch.setattr(
+            cassandra_brain,
+            "resolve_local_model",
+            lambda prompt, lane=None, task_class=None: route_calls.append(
+                {"lane": lane, "task_class": task_class}
+            ) or ("gemma4:31b", "strong"),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            adaptive,
+            "probe_frontdoor_resources",
+            lambda: type(
+                "Snapshot",
+                (),
+                {
+                    "available_vram_gb": 0.5,
+                    "available_ram_gb": 10.0,
+                    "system_load_1m": 20.0,
+                    "cpu_count": 4,
+                    "resident_vram_by_model_gb": lambda self: {},
+                },
+            )(),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            adaptive,
+            "select_frontdoor_model",
+            lambda **_kwargs: ("qwen3:8b-q4_K_M", "frontdoor_step_down_system_load"),
+            raising=False,
+        )
+
+        def fake_ollama(prompt, timeout=0, model=None, lane=None, task_class=None, attempts=None, **_kwargs):
+            model_calls.append({"model": model, "attempts": attempts, "timeout": timeout})
+            return "Clara draft body." if model == "qwen3:8b-q4_K_M" else ""
+
+        monkeypatch.setattr(cassandra_brain, "ollama_call", fake_ollama, raising=False)
+
+        reply = cassandra_brain._call(
+            "Draft a warm plain-text email reply from Clara.",
+            task_class="cassandra_outbound_draft",
+            cloud_ok=False,
+            allow_deep_escalation=True,
+        )
+
+        assert reply == "Clara draft body."
+        assert route_calls == [{"lane": None, "task_class": "cassandra_outbound_draft"}]
+        assert model_calls == [
+            {"model": "gemma4:31b", "attempts": 1, "timeout": 60},
+            {"model": "qwen3:8b-q4_K_M", "attempts": 1, "timeout": 60},
+        ]
+
+    def test_fast_user_reply_escalates_to_strong_after_adaptive_retry_empty(self, monkeypatch):
+        import adaptive_model_call as adaptive
         import cassandra_brain
 
         route_calls = []
@@ -1310,12 +1369,34 @@ class TestCassandraRouterPolicy:
 
         def fake_ollama(prompt, timeout=0, model=None, lane=None, task_class=None):
             model_calls.append(model)
-            if model == "gemma4:26b":
+            if model in {"gemma4:26b", "qwen3:8b-q4_K_M"}:
                 return ""
             return "strong answer"
 
         monkeypatch.setattr(cassandra_brain, "resolve_local_model", fake_resolve, raising=False)
         monkeypatch.setattr(cassandra_brain, "ollama_call", fake_ollama, raising=False)
+        monkeypatch.setattr(
+            adaptive,
+            "probe_frontdoor_resources",
+            lambda: type(
+                "Snapshot",
+                (),
+                {
+                    "available_vram_gb": 0.5,
+                    "available_ram_gb": 10.0,
+                    "system_load_1m": 20.0,
+                    "cpu_count": 4,
+                    "resident_vram_by_model_gb": lambda self: {},
+                },
+            )(),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            adaptive,
+            "select_frontdoor_model",
+            lambda **_kwargs: ("qwen3:8b-q4_K_M", "frontdoor_step_down_system_load"),
+            raising=False,
+        )
 
         reply = cassandra_brain._call(
             "Yep.",
@@ -1329,9 +1410,10 @@ class TestCassandraRouterPolicy:
             {"lane": None, "task_class": "cassandra_user_reply_fast"},
             {"lane": None, "task_class": "cassandra_user_reply"},
         ]
-        assert model_calls == ["gemma4:26b", "gemma4:31b"]
+        assert model_calls == ["gemma4:26b", "qwen3:8b-q4_K_M", "gemma4:31b"]
 
     def test_strong_user_reply_does_not_escalate_to_nemotron(self, monkeypatch):
+        import adaptive_model_call as adaptive
         import cassandra_brain
 
         route_calls = []
@@ -1351,6 +1433,28 @@ class TestCassandraRouterPolicy:
             lambda prompt, timeout=0, model=None, lane=None, task_class=None: model_calls.append(model) or "",
             raising=False,
         )
+        monkeypatch.setattr(
+            adaptive,
+            "probe_frontdoor_resources",
+            lambda: type(
+                "Snapshot",
+                (),
+                {
+                    "available_vram_gb": 0.5,
+                    "available_ram_gb": 10.0,
+                    "system_load_1m": 20.0,
+                    "cpu_count": 4,
+                    "resident_vram_by_model_gb": lambda self: {},
+                },
+            )(),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            adaptive,
+            "select_frontdoor_model",
+            lambda **_kwargs: ("qwen3:8b-q4_K_M", "frontdoor_step_down_system_load"),
+            raising=False,
+        )
 
         reply = cassandra_brain._call(
             "What matters most across all of this right now?",
@@ -1361,7 +1465,67 @@ class TestCassandraRouterPolicy:
 
         assert reply == ""
         assert route_calls == [{"lane": None, "task_class": "cassandra_user_reply"}]
-        assert model_calls == ["gemma4:31b"]
+        assert model_calls == ["gemma4:31b", "qwen3:8b-q4_K_M"]
+
+    def test_strong_task_escalates_deep_after_adaptive_retry_empty(self, monkeypatch):
+        import adaptive_model_call as adaptive
+        import cassandra_brain
+
+        route_calls = []
+        model_calls = []
+
+        def fake_resolve(prompt, lane=None, task_class=None):
+            route_calls.append({"lane": lane, "task_class": task_class})
+            if lane == "deep":
+                return ("nemotron-deep:latest", "deep")
+            return ("gemma4:31b", "strong")
+
+        def fake_ollama(prompt, timeout=0, model=None, lane=None, task_class=None, attempts=None):
+            model_calls.append({"model": model, "timeout": timeout, "attempts": attempts})
+            return "deep answer" if model == "nemotron-deep:latest" else ""
+
+        monkeypatch.setattr(cassandra_brain, "resolve_local_model", fake_resolve, raising=False)
+        monkeypatch.setattr(cassandra_brain, "ollama_call", fake_ollama, raising=False)
+        monkeypatch.setattr(
+            adaptive,
+            "probe_frontdoor_resources",
+            lambda: type(
+                "Snapshot",
+                (),
+                {
+                    "available_vram_gb": 0.5,
+                    "available_ram_gb": 10.0,
+                    "system_load_1m": 20.0,
+                    "cpu_count": 4,
+                    "resident_vram_by_model_gb": lambda self: {},
+                },
+            )(),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            adaptive,
+            "select_frontdoor_model",
+            lambda **_kwargs: ("qwen3:8b-q4_K_M", "frontdoor_step_down_system_load"),
+            raising=False,
+        )
+
+        reply = cassandra_brain._call(
+            "Draft a careful client-facing reply.",
+            task_class="cassandra_outbound_draft",
+            cloud_ok=False,
+            allow_deep_escalation=True,
+        )
+
+        assert reply == "deep answer"
+        assert route_calls == [
+            {"lane": None, "task_class": "cassandra_outbound_draft"},
+            {"lane": "deep", "task_class": "cassandra_outbound_draft"},
+        ]
+        assert model_calls == [
+            {"model": "gemma4:31b", "timeout": 60, "attempts": 1},
+            {"model": "qwen3:8b-q4_K_M", "timeout": 60, "attempts": 1},
+            {"model": "nemotron-deep:latest", "timeout": 90, "attempts": 1},
+        ]
 
     def test_cloud_ok_false_never_invokes_nemotron(self, monkeypatch):
         import cassandra_brain

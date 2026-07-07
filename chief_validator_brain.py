@@ -18,7 +18,13 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
 from chief_output_utils import tts_clean
 
 VAULT_LOG = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Validation Log.md")
@@ -149,7 +155,7 @@ def _retry_once(original_prompt: str, timeout: int = 45) -> str:
         "Your previous response was empty or unusable. "
         "Please try again and respond to this:\n\n" + original_prompt
     )
-    result = ollama_call(retry_prompt, timeout=timeout).strip()
+    result = _local_model_call(retry_prompt, timeout=timeout).strip()
     return result
 
 

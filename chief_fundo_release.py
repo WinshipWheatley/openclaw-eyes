@@ -27,7 +27,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -156,7 +161,7 @@ def _build_narrative(session: dict, readiness: dict) -> str:
         suno_approved=readiness["suno_approved"],
         elements_complete=readiness["elements_complete"],
     )
-    result = ollama_call(prompt, timeout=30).strip()
+    result = _local_model_call(prompt, timeout=30).strip()
     return result if result else ""
 
 

@@ -110,8 +110,7 @@ def handle_morning_followup(text: str) -> list[str]:
         if s: return [f"From the morning brief (Directive):\n\n{s}"]
 
     # LLM fallback for general conversational queries
-    from chief_llm import ollama_call
-    
+    from adaptive_model_call import adaptive_ollama_text
     flat_sections = []
     for k, v in sections.items():
         flat_sections.append(f"--- {k} ---")
@@ -135,7 +134,7 @@ Rules:
 - Do not mention the cache, JSON formatting, or "according to the brief" in your answer.
 - If the answer is not in the cache, simply reply exactly: "I don't see the answer to that in the morning brief."
 """
-    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
+    result = adaptive_ollama_text(prompt, timeout=30, task_class="chief_structured_plan").strip()
     if not result:
         return ["I couldn't generate an answer from the morning cache."]
     return [result]

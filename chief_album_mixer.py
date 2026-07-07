@@ -22,7 +22,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -176,7 +181,7 @@ def _build_brief(title: str, row: dict) -> str:
         vocal=_vocal_context(row) or "not specified",
         batch_days=row.get("batch_days", "").strip() or "not planned",
     )
-    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
+    result = _local_model_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
     if not result:
         passes_str = ", ".join(passes) or "none"
         gaps_str = ", ".join(gaps) or "none"

@@ -42,6 +42,62 @@ def test_extract_event_details_uses_local_cassandra_extract_classify_first(monke
     assert model_calls == ["nemotron-3-nano:4b"]
 
 
+def test_hidden_extract_classify_retries_downshifted_model_after_empty_primary(monkeypatch):
+    import adaptive_model_call as adaptive
+    import cassandra_brain
+
+    route_calls = []
+    model_calls = []
+
+    monkeypatch.setattr(
+        cassandra_brain,
+        "resolve_local_model",
+        lambda prompt, lane=None, task_class=None: route_calls.append(
+            {"lane": lane, "task_class": task_class}
+        ) or ("gemma4:31b", "strong"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        adaptive,
+        "probe_frontdoor_resources",
+        lambda: type(
+            "Snapshot",
+            (),
+            {
+                "available_vram_gb": 0.5,
+                "available_ram_gb": 10.0,
+                "system_load_1m": 20.0,
+                "cpu_count": 4,
+                "resident_vram_by_model_gb": lambda self: {},
+            },
+        )(),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        adaptive,
+        "select_frontdoor_model",
+        lambda **_kwargs: ("qwen3:8b-q4_K_M", "frontdoor_step_down_system_load"),
+        raising=False,
+    )
+
+    def fake_ollama(prompt, timeout=0, model=None, lane=None, task_class=None, attempts=None):
+        model_calls.append({"model": model, "timeout": timeout, "attempts": attempts})
+        if model == "qwen3:8b-q4_K_M":
+            return '{"intent":"calendar_create","confidence":"high"}'
+        return ""
+
+    monkeypatch.setattr(cassandra_brain, "ollama_call", fake_ollama, raising=False)
+
+    parsed = cassandra_brain._call_hidden_extract_classify_json("extract intent", validation_label="fixture")
+
+    assert parsed == {"intent": "calendar_create", "confidence": "high"}
+    assert route_calls == [{"lane": None, "task_class": "cassandra_extract_classify"}]
+    assert model_calls == [
+        {"model": "gemma4:31b", "timeout": 20, "attempts": 1},
+        {"model": "qwen3:8b-q4_K_M", "timeout": 20, "attempts": 1},
+    ]
+
+
 def test_extract_event_details_parses_exact_doctor_appointment_shape_without_models(monkeypatch):
     import cassandra_brain
 

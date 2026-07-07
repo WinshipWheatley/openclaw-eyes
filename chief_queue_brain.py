@@ -26,7 +26,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ────────────────────────────────────────────────────────────────────────
 
@@ -135,7 +140,7 @@ def _clean_item(text: str) -> str:
         return text[:120]
 
     prompt = _CLEAN_PROMPT.format(text=cleaned)
-    result = ollama_call(prompt, timeout=15, task_class="chief_agentic_code").strip()
+    result = _local_model_call(prompt, timeout=15, task_class="chief_agentic_code").strip()
     # Fallback: use stripped text if LLM unavailable or too short
     if result and len(result) > 10:
         return result[:120]

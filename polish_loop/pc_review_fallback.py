@@ -38,10 +38,20 @@ try:
     if str(REPO_ROOT) in sys.path:
         sys.path.remove(str(REPO_ROOT))
     sys.path.insert(0, str(REPO_ROOT))
-    from chief_llm import ollama_call, OLLAMA_MODEL_DEEP
+    from adaptive_model_call import adaptive_ollama_text
+    from chief_llm import OLLAMA_MODEL_DEEP
+    ollama_call = adaptive_ollama_text
     _LLM_AVAILABLE = True
 except ImportError:
+    ollama_call = None
     _LLM_AVAILABLE = False
+
+
+def _local_model_call(*args, **kwargs):
+    model_call = globals().get("ollama_call")
+    if model_call is None:
+        return ""
+    return model_call(*args, **kwargs)
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -271,7 +281,7 @@ CODE CHANGES:
 Your verdict (PASS or FAIL with one-line reason):"""
 
     try:
-        response = ollama_call(prompt, timeout=60, model=OLLAMA_MODEL_DEEP)
+        response = _local_model_call(prompt, timeout=60, model=OLLAMA_MODEL_DEEP)
     except Exception as e:
         return False, f"REVIEW_UNAVAILABLE: Ollama error: {e}"
 

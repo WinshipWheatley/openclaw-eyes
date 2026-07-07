@@ -16,7 +16,12 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -169,7 +174,7 @@ def format_report(stats: dict) -> str:
         watcher_alert_samples=", ".join(stats["watcher_alert_samples"]) or "none",
     )
     try:
-        result = ollama_call(prompt, timeout=30, task_class="chief_evidence_synthesis").strip()
+        result = _local_model_call(prompt, timeout=30, task_class="chief_evidence_synthesis").strip()
     except Exception:
         result = ""
     if _usable_report(result):

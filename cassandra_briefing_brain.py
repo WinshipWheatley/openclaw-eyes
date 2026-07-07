@@ -44,7 +44,14 @@ from pathlib import Path
 from cassandra_brain import build_context_snapshot, build_current_truth_snapshot
 from cassandra_mode import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
-from chief_llm import ollama_call, resolve_local_model, ollama_json
+from adaptive_model_call import adaptive_ollama_text
+
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
+from chief_llm import resolve_local_model, ollama_json
 from chief_file_io import save_json, load_json, append_md_tagged
 
 import harness_context
@@ -925,7 +932,7 @@ def _run_briefing_stage(
         f"[cassandra_briefing] stage={name} role={role} lane={resolved_lane} model={model} started",
         flush=True,
     )
-    result = ollama_call(prompt, timeout=timeout, model=model)
+    result = _local_model_call(prompt, timeout=timeout, model=model)
     cleaned = _clean_briefing_stage_text(name, result)
     attempt_count = 1
     retry_used = False
@@ -937,7 +944,7 @@ def _run_briefing_stage(
             f"retry=compact-fallback",
             flush=True,
         )
-        result = ollama_call(fallback_prompt, timeout=timeout, model=model)
+        result = _local_model_call(fallback_prompt, timeout=timeout, model=model)
         cleaned = _clean_briefing_stage_text(name, result)
     finished = harness_context.now()
     duration_ms = int((time.monotonic() - t0) * 1000)
@@ -1293,14 +1300,14 @@ def generate_briefing(slot: str) -> str:
             _NON_MORNING_BRIEF_PRIMARY_TIMEOUT_SECONDS,
             _remaining_non_morning_brief_timeout(started),
         )
-        result = ollama_call(
+        result = _local_model_call(
             prompt,
             timeout=primary_timeout,
             model=model,
             task_class=task_class,
         )
         if not result:
-            result = ollama_call(
+            result = _local_model_call(
                 prompt,
                 timeout=_remaining_non_morning_brief_timeout(started),
                 model=_NON_MORNING_BRIEF_FALLBACK_MODEL,

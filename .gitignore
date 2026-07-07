@@ -1404,3 +1404,5 @@ generated/system_knowledge/*.sqlite
 !systemd/user/openclaw-autonomous-invoice-prep.timer.in
 !listener_resilience.py
 !tests/test_listener_resilience.py
+!adaptive_model_call.py
+!tests/test_adaptive_model_call.py

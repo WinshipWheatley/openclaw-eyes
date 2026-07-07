@@ -18,8 +18,15 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_json, ollama_call
+from adaptive_model_call import adaptive_ollama_text
 
+ollama_call = adaptive_ollama_text
+
+def _local_model_call(*args, **kwargs):
+    return globals()["ollama_call"](*args, **kwargs)
+
+
+from chief_llm import ollama_json
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
 VAULT_MARKETING      = Path("/mnt/c/OpenClawShared/openclaw-vault/Marketing")
@@ -469,7 +476,7 @@ def _draft_content(text: str) -> list[str]:
         genre=ARTIST_PROFILE["genre"],
         request=text,
     )
-    result = ollama_call(prompt, timeout=60, task_class="chief_structured_plan").strip()
+    result = _local_model_call(prompt, timeout=60, task_class="chief_structured_plan").strip()
     if not result:
         return ["Draft failed — try again."]
     return [result]
@@ -643,7 +650,7 @@ def _fundo_draft(text: str) -> list[str]:
     ctx      = _get_fundo_ctx()
     platform = "TikTok" if "tiktok" in text.lower() else "Instagram"
     prompt   = _FUNDO_DRAFT_PROMPT.format(fundo_context=ctx, request=text, platform=platform)
-    result   = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
+    result   = _local_model_call(prompt, timeout=40, task_class="chief_structured_plan")
     return [result or "Draft failed — check Claude API."]
 
 
