@@ -7426,8 +7426,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     save_state(state)
 
     result = [reply] if reply else [
-        "Cassandra is degraded: the model path returned no usable answer. "
-        "I did not send or change anything. I can still answer deterministic status, date, and capability questions."
+        "I couldn't put together a good answer just now. Nothing was sent or changed. "
+        "Try me again in a minute."
     ]
     _log_conversation(
         text,

@@ -9,6 +9,7 @@ from intent_router import (
     NO_AUTHORITY_FLAGS,
     build_intent_router_read_model,
     export_intent_router_read_model,
+    format_intent_router_read_model,
     init_intent_router_schema,
     intent_router_table_names,
     route_operator_intent,
@@ -152,6 +153,49 @@ def test_that_new_file_without_recent_context_is_not_guessed(tmp_path):
     assert result.status == "needs_operator_review"
     assert "unresolved" in row["routing_reason"]
     assert _row(db_path, "SELECT COUNT(*) FROM intent_context_links WHERE intent_id = ?", (result.intent_id,))[0] == 0
+
+
+def test_intent_intake_refines_dictation_before_operator_surfaces(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    raw_text = "Niles, do something with that new Logic file."
+
+    result = route_operator_intent(
+        text=raw_text,
+        source_kind="cli",
+        source_channel="test",
+        requested_by="operator",
+        db_path=db_path,
+        intent_id="intent_anti_launder",
+        run_id="run_anti_launder",
+    )
+    row = _row(
+        db_path,
+        """
+SELECT refined_actor, refined_verb, refined_object, refined_status,
+       refined_as_of, provenance_raw, provenance_raw_sha256,
+       needs_operator_review, refinement_status, operator_display
+FROM intent_records
+WHERE intent_id = ?
+""",
+        (result.intent_id,),
+    )
+    read_model = build_intent_router_read_model(db_path=db_path)
+    rendered = format_intent_router_read_model(read_model)
+
+    assert row["refined_actor"] == "Niles"
+    assert row["refined_verb"] == "review"
+    assert row["refined_object"] == "new Logic file"
+    assert row["refined_status"] == "needs_operator_review"
+    assert row["refined_as_of"]
+    assert row["provenance_raw"] == raw_text
+    assert len(row["provenance_raw_sha256"]) == 64
+    assert row["needs_operator_review"] == 1
+    assert row["refinement_status"] == "needs_operator_review"
+    assert row["operator_display"] == "Niles request about new Logic file needs operator review."
+    assert read_model["latest_intent"]["operator_display"] == row["operator_display"]
+    assert raw_text not in rendered
+    assert "Intent: Niles, do something" not in rendered
+    assert "Niles request about new Logic file needs operator review." in rendered
 
 
 def test_file_context_links_recent_logic_metadata_without_raw_reads(tmp_path):

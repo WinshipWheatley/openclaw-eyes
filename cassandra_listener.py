@@ -64,8 +64,8 @@ _HANDLER_EXCEPTION_NOTICE = (
     "I did not send or change anything. Chief is investigating."
 )
 _DEGRADED_EMPTY_REPLY_NOTICE = (
-    "Cassandra is degraded: the model path returned no usable answer. "
-    "I did not send or change anything. I can still answer deterministic status, date, and capability questions."
+    "I couldn't put together a good answer just now. Nothing was sent or changed. "
+    "Try me again in a minute."
 )
 _BACKPRESSURE_NOTICE = (
     "Cassandra is degraded: a heavier request is already running, so I did not queue another model call. "

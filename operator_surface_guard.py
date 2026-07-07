@@ -51,6 +51,187 @@ COMEDY_RANK_FLOOR = 1
 # are repeatable. The caller controls the random seed by passing payload_hash.
 COMEDY_BASE_CHANCE = 0.12  # 12% — mid-range of the 10–15% doctrine window
 
+_STATUS_SURFACE_PHRASES = {
+    "open_not_paid": "check expected, not yet paid",
+    "needs_reconcile": "needs your reconcile",
+    "needs_operator_review": "needs operator review",
+    "pending_approval": "needs approval",
+    "approval_required": "needs approval",
+    "open": "open",
+    "routed": "routed",
+    "rejected": "rejected",
+    "paid": "paid",
+    "settled": "settled",
+    "invoice_due": "invoice due",
+    "not_tracked": "not tracked",
+    "needs_review": "needs review",
+}
+
+_MONTH_NAMES = (
+    "",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+
+_BARE_MONTH_CODE_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+_BARE_MONTH_CODE_IN_TEXT_RE = re.compile(r"\b\d{4}-(?:0[1-9]|1[0-2])(?!-\d)\b")
+_SURFACE_STATUS_TOKEN_RE = re.compile(
+    r"\b(open_not_paid|needs_reconcile|needs_operator_review|pending_approval|approval_required)\b"
+)
+_MONEY_DASH_RE = re.compile(
+    r"\b(still owes\s+\$[0-9][0-9,]*(?:\.\d{2})?)\s+-\s+"
+    r"(needs your reconcile|check expected, not yet paid)\b",
+    re.IGNORECASE,
+)
+
+_ACTOR_LABELS = {
+    "chief": "Chief",
+    "cassandra": "Cassandra",
+    "guardian": "Guardian",
+    "niles": "Niles",
+    "hermes": "Hermes",
+    "report_bridge": "Report Bridge",
+    "operator": "Operator",
+    "unrouted": "Operator",
+}
+
+_INTENT_VERBS = {
+    "file_context_request": "review",
+    "markdown_reorg_request": "organize",
+    "read_model_refresh_request": "refresh",
+    "report_bridge_request": "review",
+    "safety_review_request": "review",
+    "communication_summary_request": "summarize",
+    "music_project_request": "review",
+    "project_capsule_request": "review",
+    "status_orientation_request": "review",
+    "unknown_review": "clarify",
+}
+
+_INTENT_OBJECTS = {
+    "markdown_reorg_request": "Markdown files",
+    "read_model_refresh_request": "read-model mirror",
+    "report_bridge_request": "Report Bridge package",
+    "safety_review_request": "safety question",
+    "communication_summary_request": "status summary",
+    "music_project_request": "music project",
+    "project_capsule_request": "project capsule",
+    "status_orientation_request": "current status",
+    "unknown_review": "unclear request",
+}
+
+
+# ---------------------------------------------------------------------------
+# Operator decision/status wording
+# ---------------------------------------------------------------------------
+
+def operator_surface_value(value: Any) -> str:
+    """Return the operator-facing spelling for machine statuses and month codes."""
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    lowered = text.lower()
+    if lowered in _STATUS_SURFACE_PHRASES:
+        return _STATUS_SURFACE_PHRASES[lowered]
+    month_match = _BARE_MONTH_CODE_RE.fullmatch(text)
+    if month_match:
+        return _MONTH_NAMES[int(month_match.group(1))]
+    if "_" in text:
+        return text.replace("_", " ")
+    return text
+
+
+def render_operator_money_status_line(*, entity: Any, amount: Any, status: Any) -> str:
+    """Render a money/status item without leaking raw status tokens."""
+    entity_text = str(entity or "Unknown client").strip() or "Unknown client"
+    amount_text = str(amount or "amount unverified").strip() or "amount unverified"
+    return f"{entity_text} still owes {amount_text} — {operator_surface_value(status)}"
+
+
+def operator_surface_text(value: Any) -> str:
+    """Humanize known machine status tokens and bare month codes inside text."""
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    text = _SURFACE_STATUS_TOKEN_RE.sub(lambda match: operator_surface_value(match.group(0)), text)
+    text = _BARE_MONTH_CODE_IN_TEXT_RE.sub(lambda match: operator_surface_value(match.group(0)), text)
+    text = _MONEY_DASH_RE.sub(lambda match: f"{match.group(1)} — {match.group(2)}", text)
+    return text
+
+
+def _actor_label(actor: Any) -> str:
+    normalized = str(actor or "operator").strip().lower().replace(" ", "_")
+    return _ACTOR_LABELS.get(normalized, normalized.replace("_", " ").title() or "Operator")
+
+
+def _intent_object_from_text(raw_text: str, intent_category: str) -> str:
+    lowered = raw_text.lower()
+    if "logic" in lowered:
+        return "new Logic file" if "new" in lowered else "Logic file"
+    if "markdown" in lowered:
+        return "new Markdown file" if "new" in lowered and "file" in lowered else "Markdown files"
+    if "report bridge" in lowered and ("read-model" in lowered or "read model" in lowered):
+        return "Report Bridge read-model"
+    if "read-model" in lowered or "read model" in lowered:
+        return "read-model mirror"
+    return _INTENT_OBJECTS.get(intent_category, "request")
+
+
+def _intent_status_phrase(status: Any) -> str:
+    normalized = str(status or "").strip().lower()
+    if normalized == "routed":
+        return "is routed"
+    if normalized == "rejected":
+        return "was rejected"
+    phrase = operator_surface_value(normalized)
+    return phrase if phrase.startswith(("is ", "was ", "needs ")) else f"is {phrase}"
+
+
+def refine_operator_intent_surface(
+    *,
+    raw_text: Any,
+    actor: Any,
+    intent_category: Any,
+    status: Any,
+    as_of: Any,
+) -> dict[str, Any]:
+    """Return refined intent metadata for operator surfaces.
+
+    The raw intake stays only in provenance fields. ``operator_display`` is
+    deterministic and built from refined actor/object/status fields.
+    """
+    raw = re.sub(r"\s+", " ", str(raw_text or "").replace("\x00", "")).strip()
+    category = str(intent_category or "unknown_review").strip()
+    actor_label = _actor_label(actor)
+    status_token = str(status or "needs_operator_review").strip() or "needs_operator_review"
+    verb = _INTENT_VERBS.get(category, "review")
+    obj = _intent_object_from_text(raw, category)
+    status_phrase = _intent_status_phrase(status_token)
+    raw_hash = hashlib.sha256(raw.encode("utf-8", errors="replace")).hexdigest()
+    needs_review = status_token == "needs_operator_review"
+    return {
+        "refined_actor": actor_label,
+        "refined_verb": verb,
+        "refined_object": obj,
+        "refined_status": status_token,
+        "refined_as_of": str(as_of or ""),
+        "provenance_raw": raw,
+        "provenance_raw_sha256": raw_hash,
+        "needs_operator_review": 1 if needs_review else 0,
+        "refinement_status": "needs_operator_review" if needs_review else "structured",
+        "operator_display": f"{actor_label} request about {obj} {status_phrase}.",
+    }
+
 
 # ---------------------------------------------------------------------------
 # Machine-contract leak detection (extends master_voice.sh guard)

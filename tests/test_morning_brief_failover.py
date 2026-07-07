@@ -135,6 +135,31 @@ def test_missing_ledger_still_returns_clean_deterministic_brief(tmp_path):
     assert "No external send" in result.text
 
 
+def test_deterministic_morning_brief_humanizes_status_tokens():
+    facts = MorningBriefFacts(
+        generated_at=FIXED_NOW.isoformat(timespec="seconds"),
+        ledger_path="/tmp/test-ledger.sqlite",
+        latest_event_summary=(
+            "Live Arts still owes $1,095 - needs_reconcile. "
+            "Status open_not_paid for 2026-06."
+        ),
+        pending_approval_packets=0,
+        pending_side_effects=0,
+        open_packet_count=0,
+        canonical_fact_count=1,
+        source_notes=("test_fixture",),
+    )
+
+    text = build_deterministic_morning_brief(facts)
+
+    assert "needs_reconcile" not in text
+    assert "open_not_paid" not in text
+    assert "for 2026-06" not in text
+    assert "Live Arts still owes $1,095 — needs your reconcile" in text
+    assert "check expected, not yet paid" in text
+    assert "June" in text
+
+
 def test_deterministic_template_never_raises_on_bad_fact_shape():
     text = build_deterministic_morning_brief(object())  # type: ignore[arg-type]
 

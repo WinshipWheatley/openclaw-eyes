@@ -198,10 +198,10 @@ def test_plate_question_packet_carries_operator_attention_and_due_receivables(mo
                     "st_annes_followup": {
                         "actor_label": "Cassandra",
                         "human_message": "St. Anne's needs Draper follow-up tonight.",
-                        "reason_for_attention": "forward_to_glenn_confirmation_due",
+                        "reason_for_attention": "needs_reconcile",
                         "primary_human_action_label": "Review follow-up",
-                        "concise_spoken_guidance": "Ask Draper to confirm he forwarded the invoice to Glenn.",
-                        "urgency_level": "high",
+                        "concise_spoken_guidance": "Ask Draper to confirm he forwarded the 2026-06 invoice to Glenn.",
+                        "urgency_level": "open_not_paid",
                         "client_ref": "st_annes",
                         "workflow_ref": "st_annes_forward_tracking",
                         "world_ref": "finance",
@@ -283,6 +283,11 @@ def test_plate_question_packet_carries_operator_attention_and_due_receivables(mo
     assert "forward-to-Glenn proof" in plate_blob
     assert "awaiting Draper's confirmation" in plate_blob
     assert "July receivable is due" in plate_blob
+    assert "needs_reconcile" not in plate_blob
+    assert "open_not_paid" not in packet["packet_text"]
+    assert "needs your reconcile" in packet["packet_text"]
+    assert "check expected, not yet paid" in packet["packet_text"]
+    assert "June invoice" in packet["packet_text"]
     attention_blob = "\n".join(packet["actionable"]["needs_attention"])
     assert "St. Anne's needs Draper follow-up tonight." in attention_blob
     assert "July receivable is due" in packet["packet_text"]

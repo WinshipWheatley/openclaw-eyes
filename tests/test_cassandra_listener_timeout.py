@@ -233,6 +233,12 @@ def test_timeout_contract_replaces_generic_quiet_reply_with_degraded_notice(monk
     asyncio.run(_case())
 
     assert sent == [listener._DEGRADED_EMPTY_REPLY_NOTICE]
+    assert sent[0] == (
+        "I couldn't put together a good answer just now. Nothing was sent or changed. "
+        "Try me again in a minute."
+    )
+    assert "model path" not in sent[0]
+    assert "listener health" not in sent[0]
 
 
 def test_timeout_contract_delivers_late_success_once(monkeypatch):

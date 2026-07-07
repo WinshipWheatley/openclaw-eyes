@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from business_ops_ledger import resolve_business_ops_ledger_path
+from operator_surface_guard import operator_surface_text
 
 
 PROVIDER_ORDER = ("cassandra", "chief", "hermes", "guardian")
@@ -97,7 +98,7 @@ def _latest_event_summary(conn: sqlite3.Connection) -> str:
             """
         ).fetchone()
         if row and str(row[0]).strip():
-            return _one_line(str(row[0]), limit=220)
+            return _operator_surface_line(str(row[0]), limit=220)
     except Exception:
         pass
     return "No recent ledger event summary was available."
@@ -189,6 +190,10 @@ def _one_line(text: str, *, limit: int = 160) -> str:
     if boundary >= 80:
         clipped = clipped[:boundary]
     return clipped.rstrip(" .,;:") + "..."
+
+
+def _operator_surface_line(text: object, *, limit: int = 220) -> str:
+    return operator_surface_text(_one_line(_coerce_text(text), limit=limit))
 
 
 def _coerce_text(value: object) -> str:
@@ -355,7 +360,7 @@ def build_guardian_morning_brief(facts: MorningBriefFacts) -> str:
         f"Open approval packets: {facts.pending_approval_packets}. "
         f"Pending side effects: {facts.pending_side_effects}. "
         f"Open packet records: {facts.open_packet_count}. "
-        f"Latest ledger note: {facts.latest_event_summary} "
+        f"Latest ledger note: {_operator_surface_line(facts.latest_event_summary, limit=220)} "
         "Next safe move: inspect pending approvals and active sessions before assuming the day is clear."
     )
 
@@ -371,7 +376,7 @@ def build_deterministic_morning_brief(facts: MorningBriefFacts) -> str:
             f"Pending side effects: {max(0, int(facts.pending_side_effects))}. "
             f"Open packet records: {max(0, int(facts.open_packet_count))}. "
             f"Canonical facts recorded: {max(0, int(facts.canonical_fact_count))}. "
-            f"Latest ledger note: {_one_line(facts.latest_event_summary, limit=220)} "
+            f"Latest ledger note: {_operator_surface_line(facts.latest_event_summary, limit=220)} "
             "Next safe move: review the local queue, pending approvals, and session state before treating the day as clear. "
             "No external send, voice, service restart, or live mutation was attempted."
         )

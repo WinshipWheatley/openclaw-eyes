@@ -27,6 +27,7 @@ from business_ops_ledger import (
     reset_disposable_sqlite_path,
 )
 from operator_action import ALLOWED_ACTIONS, ALLOWED_SOURCE_KINDS, init_operator_action_schema
+from operator_surface_guard import operator_surface_value, refine_operator_intent_surface
 from recent_file_context import (
     init_recent_file_context_schema,
 )
@@ -90,6 +91,18 @@ INTENT_CATEGORIES = {
     "unknown_review",
 }
 INTENT_STATUSES = {"routed", "needs_operator_review", "rejected"}
+INTENT_REFINEMENT_COLUMNS: dict[str, str] = {
+    "refined_actor": "TEXT DEFAULT ''",
+    "refined_verb": "TEXT DEFAULT ''",
+    "refined_object": "TEXT DEFAULT ''",
+    "refined_status": "TEXT DEFAULT ''",
+    "refined_as_of": "TEXT DEFAULT ''",
+    "provenance_raw": "TEXT DEFAULT ''",
+    "provenance_raw_sha256": "TEXT DEFAULT ''",
+    "needs_operator_review": "INTEGER NOT NULL DEFAULT 0",
+    "refinement_status": "TEXT DEFAULT ''",
+    "operator_display": "TEXT DEFAULT ''",
+}
 ACTION_INTENT_CATEGORIES = {
     "invoice_send",
     "email_send",
@@ -298,6 +311,16 @@ CREATE TABLE IF NOT EXISTS intent_records (
   status TEXT NOT NULL,
   routing_reason TEXT NOT NULL,
   rejection_reason TEXT,
+  refined_actor TEXT DEFAULT '',
+  refined_verb TEXT DEFAULT '',
+  refined_object TEXT DEFAULT '',
+  refined_status TEXT DEFAULT '',
+  refined_as_of TEXT DEFAULT '',
+  provenance_raw TEXT DEFAULT '',
+  provenance_raw_sha256 TEXT DEFAULT '',
+  needs_operator_review INTEGER NOT NULL DEFAULT 0,
+  refinement_status TEXT DEFAULT '',
+  operator_display TEXT DEFAULT '',
   agent_activation_allowed INTEGER NOT NULL DEFAULT 0,
   direct_execution_allowed INTEGER NOT NULL DEFAULT 0,
   approval_bypass_allowed INTEGER NOT NULL DEFAULT 0,
@@ -389,6 +412,16 @@ CREATE TABLE IF NOT EXISTS intent_router_receipts (
     )
 
 
+def _ensure_intent_refinement_columns(conn: sqlite3.Connection) -> None:
+    existing = {
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(intent_records)").fetchall()
+    }
+    for column, column_type in INTENT_REFINEMENT_COLUMNS.items():
+        if column not in existing:
+            conn.execute(f"ALTER TABLE intent_records ADD COLUMN {column} {column_type}")
+
+
 def _ensure_agent_registry_rows(db_path: str | Path) -> None:
     init_agent_lane_registry_schema(db_path)
     conn = sqlite3.connect(db_path)
@@ -415,6 +448,7 @@ def init_intent_router_schema(db_path: str | Path | None = None) -> str:
             try:
                 for statement in _sql_statements():
                     conn.execute(statement)
+                _ensure_intent_refinement_columns(conn)
                 conn.commit()
             finally:
                 conn.close()
@@ -815,6 +849,55 @@ def _approval_required_for(
     if agent_id == "guardian" or category == "safety_review_request":
         return True
     return status != "routed" or bool(candidate_action_type)
+
+
+def _write_intent_refinement(
+    conn: sqlite3.Connection,
+    *,
+    intent_id: str,
+    raw_text: str,
+    actor: str | None,
+    intent_category: str,
+    status: str,
+    as_of: str,
+) -> dict[str, Any]:
+    refined = refine_operator_intent_surface(
+        raw_text=raw_text,
+        actor=actor or "operator",
+        intent_category=intent_category,
+        status=status,
+        as_of=as_of,
+    )
+    conn.execute(
+        """
+UPDATE intent_records
+SET refined_actor = ?,
+    refined_verb = ?,
+    refined_object = ?,
+    refined_status = ?,
+    refined_as_of = ?,
+    provenance_raw = ?,
+    provenance_raw_sha256 = ?,
+    needs_operator_review = ?,
+    refinement_status = ?,
+    operator_display = ?
+WHERE intent_id = ?
+""".strip(),
+        (
+            refined["refined_actor"],
+            refined["refined_verb"],
+            refined["refined_object"],
+            refined["refined_status"],
+            refined["refined_as_of"],
+            refined["provenance_raw"],
+            refined["provenance_raw_sha256"],
+            1 if refined["needs_operator_review"] else 0,
+            refined["refinement_status"],
+            refined["operator_display"],
+            intent_id,
+        ),
+    )
+    return refined
 
 
 def _latest_recent_file_context_run(conn: sqlite3.Connection) -> str | None:
@@ -1351,6 +1434,16 @@ WHERE intent_id = ?
                 (status, routing_reason, next_safe_move, 1 if approval_required else 0, resolved_intent_id),
             )
 
+        _write_intent_refinement(
+            conn,
+            intent_id=resolved_intent_id,
+            raw_text=normalized_text,
+            actor=routed_agent_id or explicit_agent_id,
+            intent_category=category,
+            status=status,
+            as_of=now,
+        )
+
         conn.execute(
             """
 INSERT INTO intent_plan_proposals (
@@ -1499,6 +1592,16 @@ def _dict_rows(conn: sqlite3.Connection, sql: str, params: tuple[Any, ...] = ())
 def _safe_intent_summary(row: dict[str, Any] | None) -> dict[str, Any] | None:
     if row is None:
         return None
+    operator_display = str(row.get("operator_display") or "").strip()
+    if not operator_display:
+        refined = refine_operator_intent_surface(
+            raw_text=row.get("intent_text_preview") or "",
+            actor=row.get("routed_agent_id") or "operator",
+            intent_category=row.get("intent_category") or "unknown_review",
+            status=row.get("status") or "needs_operator_review",
+            as_of=row.get("created_at") or "",
+        )
+        operator_display = str(refined["operator_display"])
     return {
         "intent_id": row["intent_id"],
         "source_kind": row["source_kind"],
@@ -1512,12 +1615,21 @@ def _safe_intent_summary(row: dict[str, Any] | None) -> dict[str, Any] | None:
         "intent_category": row["intent_category"],
         "confidence": row["confidence"],
         "status": row["status"],
+        "status_label": operator_surface_value(row["status"]),
         "approval_required": bool(row["approval_required"]),
         "execution_allowed": bool(row["execution_allowed"]),
         "action_request_created": bool(row["action_request_created"]),
         "candidate_action_type": row["candidate_action_type"],
         "next_safe_move": row["next_safe_move"],
         "created_at": row["created_at"],
+        "refined_actor": row.get("refined_actor") or "",
+        "refined_verb": row.get("refined_verb") or "",
+        "refined_object": row.get("refined_object") or "",
+        "refined_status": row.get("refined_status") or "",
+        "refined_as_of": row.get("refined_as_of") or "",
+        "needs_operator_review": bool(row.get("needs_operator_review")),
+        "refinement_status": row.get("refinement_status") or "",
+        "operator_display": operator_display,
     }
 
 
@@ -1624,7 +1736,9 @@ def format_intent_router_report(payload: dict[str, Any]) -> str:
     ]
     for item in payload.get("items") or []:
         lines.append(
-            f"- `{item['intent_id']}`: {item['status']} -> "
+            f"- {item.get('operator_display') or item['intent_id']} "
+            f"[`{item['intent_id']}`] "
+            f"({item.get('status_label') or operator_surface_value(item['status'])}) -> "
             f"{item['routed_agent_id'] or 'unrouted'}/{item['routed_lane_id'] or 'none'}; "
             f"category={item['intent_category']}; world={item['world_hint']}; "
             f"candidate_action={item['candidate_action_type'] or 'none'}"
@@ -1751,8 +1865,9 @@ def format_intent_router_read_model(read_model: dict[str, Any]) -> str:
     if latest:
         lines.extend(
             [
-                f"- Intent: `{latest['intent_id']}`.",
-                f"- Status: `{latest['status']}`.",
+                f"- Request: {latest.get('operator_display') or latest['intent_id']}",
+                f"- Intent id: `{latest['intent_id']}`.",
+                f"- Status: {latest.get('status_label') or operator_surface_value(latest['status'])}.",
                 f"- Route: `{latest['routed_agent_id'] or 'unrouted'}` / `{latest['routed_lane_id'] or 'none'}`.",
                 f"- Category: `{latest['intent_category']}`.",
                 f"- World: `{latest['world_hint']}`.",
@@ -1808,9 +1923,9 @@ def format_route_result(result: IntentRouteResult) -> str:
         [
             "Intent Router v0",
             "",
-            f"Intent: `{result.intent_id}`",
+            f"Intent id: `{result.intent_id}`",
             f"Run: `{result.run_id}`",
-            f"Status: `{result.status}`",
+            f"Status: {operator_surface_value(result.status)}",
             f"Route: `{result.routed_agent_id or 'unrouted'}` / `{result.routed_lane_id or 'none'}`",
             f"World: `{result.world_hint}`",
             f"Category: `{result.intent_category}`",

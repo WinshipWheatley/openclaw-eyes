@@ -25,6 +25,7 @@ from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
 from dropped_intent_registry import init_dropped_intent_schema
 from intent_router import init_intent_router_schema
 from operator_action import init_operator_action_schema
+from operator_surface_guard import operator_surface_value, refine_operator_intent_surface
 from project_capsule import init_project_capsule_schema
 from report_bridge import init_report_bridge_schema
 from steel_thread_radar import init_steel_thread_schema
@@ -507,7 +508,9 @@ def _intent_cards(conn: sqlite3.Connection, board_id: str) -> list[dict[str, Any
         """
 SELECT intent_id, intent_text_preview, routed_agent_id, routed_lane_id,
        world_hint, intent_category, status, next_safe_move, approval_required,
-       rejection_reason, created_at
+       rejection_reason, created_at, refined_actor, refined_verb, refined_object,
+       refined_status, refined_as_of, needs_operator_review, refinement_status,
+       operator_display
 FROM intent_records
 ORDER BY created_at DESC, intent_id DESC
 LIMIT 100
@@ -521,13 +524,24 @@ LIMIT 100
             column = "needs_review"
         else:
             column = "rejected"
+        title = str(row["operator_display"] or "").strip()
+        if not title:
+            title = refine_operator_intent_surface(
+                raw_text=row["intent_text_preview"],
+                actor=row["routed_agent_id"] or "operator",
+                intent_category=row["intent_category"],
+                status=row["status"],
+                as_of=row["created_at"],
+            )["operator_display"]
+        status_label = operator_surface_value(row["status"])
+        summary = f"{status_label.capitalize()}. {row['next_safe_move']}"
         cards.append(
             _make_card(
                 board_id=board_id,
                 source_kind="intent_record",
                 source_id=row["intent_id"],
-                title=f"Intent: {row['intent_text_preview']}",
-                summary=row["next_safe_move"],
+                title=title,
+                summary=summary,
                 world_hint=row["world_hint"],
                 agent_id=row["routed_agent_id"],
                 lane_id=row["routed_lane_id"],

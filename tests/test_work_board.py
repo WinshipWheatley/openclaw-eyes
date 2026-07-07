@@ -191,6 +191,36 @@ def test_build_creates_cards_from_intents_dropped_work_packets_and_actions(tmp_p
     assert all(row["raw_body_stored"] == 0 for row in cards)
 
 
+def test_intent_cards_use_refined_operator_display_not_raw_preview(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    raw_text = "Niles, do something with that new Logic file."
+    route_operator_intent(
+        text=raw_text,
+        source_kind="cli",
+        source_channel="test",
+        requested_by="operator",
+        db_path=db_path,
+        intent_id="intent_raw_preview",
+        run_id="run_raw_preview",
+    )
+
+    build_work_board(db_path=db_path, run_id="board_anti_launder")
+    card = _row(
+        db_path,
+        """
+SELECT title, summary, status
+FROM work_board_cards
+WHERE source_kind = 'intent_record' AND source_id = 'intent_raw_preview'
+""",
+    )
+
+    assert card["title"] == "Niles request about new Logic file needs operator review."
+    assert raw_text not in card["title"]
+    assert not card["title"].startswith("Intent:")
+    assert "needs operator review" in card["summary"].lower()
+    assert "needs_operator_review" not in card["summary"]
+
+
 def test_build_is_idempotent(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     route_operator_intent(

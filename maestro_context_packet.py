@@ -19,6 +19,7 @@ from typing import Any, Mapping, Sequence
 
 from context_source import annotate_facts_with_ledger_provenance, ledger_machine_proof
 from fleet_temporal_anchor import temporal_anchor_text
+from operator_surface_guard import operator_surface_text
 
 
 # ── Conversation-continuity flag (ADDITIVE, default OFF) ──────────────────────
@@ -116,6 +117,10 @@ def _compact(value: Any, *, limit: int = 900) -> str:
     return text[: limit - 3].rstrip() + "..."
 
 
+def _operator_surface_text(value: Any, *, limit: int = 900) -> str:
+    return operator_surface_text(_compact(value, limit=limit))
+
+
 def _session_path(session: Mapping[str, Any] | None, *keys: str) -> str:
     if not isinstance(session, Mapping):
         return ""
@@ -206,7 +211,7 @@ def _append_fact(
     pii_tier: str = "PUBLIC",
     freshness: Mapping[str, Any] | None = None,
 ) -> None:
-    clean_value = _compact(value)
+    clean_value = _operator_surface_text(value)
     if not clean_value:
         return
     fact = {
