@@ -182,6 +182,155 @@ def test_grounded_packet_keeps_sourced_read_model_facts_without_drift_session(mo
     assert any("Work board columns" in str(fact.get("value") or "") for fact in packet["facts"])
 
 
+def test_plate_question_packet_carries_operator_attention_and_due_receivables(monkeypatch, tmp_path: Path) -> None:
+    read_models = _seed_read_models(tmp_path)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice contact is Draper and plate questions should use current read models.",
+    )
+    (read_models / "operator_attention_delivery_contract.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-07-07T14:00:00+00:00",
+                "read_model_id": "operator_attention_delivery_contract",
+                "surfaced_attention_items": {
+                    "st_annes_followup": {
+                        "actor_label": "Cassandra",
+                        "human_message": "St. Anne's needs Draper follow-up tonight.",
+                        "reason_for_attention": "forward_to_glenn_confirmation_due",
+                        "primary_human_action_label": "Review follow-up",
+                        "concise_spoken_guidance": "Ask Draper to confirm he forwarded the invoice to Glenn.",
+                        "urgency_level": "high",
+                        "client_ref": "st_annes",
+                        "workflow_ref": "st_annes_forward_tracking",
+                        "world_ref": "finance",
+                        "email_send_allowed": False,
+                        "external_action_allowed": False,
+                        "telegram_send_allowed": False,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (read_models / "helm_operator_attention_package.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-07-07T14:01:00+00:00",
+                "read_model_id": "helm_operator_attention_package",
+                "primary_cards": [
+                    {
+                        "card_ref": "primary:st_annes_followup",
+                        "actionability": "ACTION_REQUIRED",
+                        "operator_summary": "St. Anne's forward-to-Glenn proof is still the plate item.",
+                        "safe_next_move": "Review the Draper follow-up draft before any send.",
+                        "proof_refs": ["generated/read_models/st_annes_receivable_state.json"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (read_models / "autonomous_followup_watch_attention.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-07-07T14:02:00+00:00",
+                "read_model_id": "autonomous_followup_watch_attention",
+                "attention_items": [
+                    {
+                        "attention_id": "st_annes_forward_watch",
+                        "client_ref": "st_annes",
+                        "summary": "St. Anne's is awaiting Draper's confirmation that Glenn has the invoice.",
+                        "next_safe_move": "Surface the draft for operator review only.",
+                        "requires_operator": True,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (read_models / "st_annes_receivable_state.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-07-07T14:03:00+00:00",
+                "read_model_id": "st_annes_receivable_state",
+                "client_ref": "st_annes",
+                "paid_up_status": "invoice_due",
+                "summary": "St. Anne's July receivable is due and needs follow-up with Draper.",
+                "next_safe_move": "Confirm Draper forwarded the invoice to Glenn before any send.",
+                "send_hold_active": True,
+                "ledger_mutation_allowed": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    packet = build_maestro_context_packet(
+        question="what's on my plate tonight, and what actually needs me?",
+        read_model_root=read_models,
+        operator_truth_store_path=truth_path,
+        require_real_truth=True,
+    )
+
+    source_refs = set(packet["source_refs"])
+    assert "generated/read_models/operator_attention_delivery_contract.json" in source_refs
+    assert "generated/read_models/helm_operator_attention_package.json" in source_refs
+    assert "generated/read_models/autonomous_followup_watch_attention.json" in source_refs
+    assert "generated/read_models/st_annes_receivable_state.json" in source_refs
+    plate_blob = "\n".join(str(fact.get("value") or "") for fact in packet["facts"])
+    assert "St. Anne's needs Draper follow-up tonight." in plate_blob
+    assert "forward-to-Glenn proof" in plate_blob
+    assert "awaiting Draper's confirmation" in plate_blob
+    assert "July receivable is due" in plate_blob
+    attention_blob = "\n".join(packet["actionable"]["needs_attention"])
+    assert "St. Anne's needs Draper follow-up tonight." in attention_blob
+    assert "July receivable is due" in packet["packet_text"]
+    assert "I don't have that" not in packet["packet_text"]
+
+    def _plate_grounded_stub(text: str, *, context_packet=None, **kwargs):
+        packet_text = str((context_packet or {}).get("packet_text") or "")
+        if "St. Anne's needs Draper follow-up tonight." in packet_text and "July receivable is due" in packet_text:
+            return {
+                "text": (
+                    "Tonight: St. Anne's needs Draper follow-up. "
+                    "The July receivable is due; review the Draper follow-up draft before any send."
+                ),
+                "receipt": {
+                    "receipt_id": "stub_plate_grounded",
+                    "decision": "INJECTED_STUB",
+                    "external_llm_invoked": False,
+                    "local_model_invoked": False,
+                    "model_call_performed": False,
+                },
+            }
+        return {
+            "text": "I don't have that in the current Maestro packet.",
+            "receipt": {
+                "receipt_id": "stub_plate_missing",
+                "decision": "INJECTED_STUB",
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+                "model_call_performed": False,
+            },
+        }
+
+    result = maestro.answer_frontdoor_chat(
+        "what's on my plate tonight, and what actually needs me?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=_plate_grounded_stub,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert "St. Anne's needs Draper follow-up" in result.plain_summary
+    assert "July receivable is due" in result.plain_summary
+    assert "I don't have that" not in result.plain_summary
+
+
 def test_freeform_maestro_brain_gets_client_billing_channel_facts(monkeypatch, tmp_path: Path) -> None:
     read_models = _seed_read_models(tmp_path)
     truth_path = _seed_truth(

@@ -37,6 +37,10 @@ KNOWN_READ_MODELS = (
     "openclaw_capability_index.json",
     "chief_status_rail.json",
     "openclaw_change_sentinel.json",
+    "operator_attention_delivery_contract.json",
+    "helm_operator_attention_package.json",
+    "autonomous_followup_watch_attention.json",
+    "st_annes_receivable_state.json",
     "finance_invoice_reconciliation.json",
     CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL,
     "capital_hilton_invoice_operator_readback.json",
@@ -822,6 +826,216 @@ def _client_invoice_billing_channel_facts(
     return facts, proof
 
 
+def _iter_named_mappings(value: Any) -> list[tuple[str, Mapping[str, Any]]]:
+    rows: list[tuple[str, Mapping[str, Any]]] = []
+    if isinstance(value, Mapping):
+        for key, row in value.items():
+            if isinstance(row, Mapping):
+                rows.append((str(key), row))
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for index, row in enumerate(value):
+            if isinstance(row, Mapping):
+                row_id = str(row.get("attention_id") or row.get("card_ref") or row.get("id") or index)
+                rows.append((row_id, row))
+    return rows
+
+
+def _first_text(row: Mapping[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = str(row.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _join_parts(*parts: object) -> str:
+    return "; ".join(str(part).strip() for part in parts if str(part or "").strip())
+
+
+def _operator_attention_delivery_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / "operator_attention_delivery_contract.json"
+    source_ref = _display_read_model_ref(path)
+    rows = _iter_named_mappings(payload.get("surfaced_attention_items") or payload.get("attention_items"))
+    facts: list[dict[str, Any]] = []
+    for item_id, row in rows[:8]:
+        message = _first_text(row, "human_message", "operator_summary", "summary", "title")
+        guidance = _first_text(row, "concise_spoken_guidance", "next_safe_move", "primary_human_action_label")
+        if not message and not guidance:
+            continue
+        actor = _first_text(row, "actor_label", "agent_id")
+        urgency = _first_text(row, "urgency_level", "severity", "priority")
+        reason = _first_text(row, "reason_for_attention", "attention_reason", "reason")
+        value = _join_parts(
+            actor and f"{actor} attention",
+            message,
+            guidance and f"next: {guidance}",
+            reason and f"reason: {reason}",
+            urgency and f"urgency: {urgency}",
+            row.get("client_ref") and f"client_ref={row.get('client_ref')}",
+            "send_allowed=false",
+            "external_action_allowed=false",
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="operator_attention",
+            label=f"Operator attention item: {item_id}",
+            value=value,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=_freshness(path, payload),
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "attention_item_id": item_id,
+                    "client_ref": str(row.get("client_ref") or ""),
+                    "workflow_ref": str(row.get("workflow_ref") or ""),
+                    "operator_action_required": True,
+                    "email_send_allowed": bool(row.get("email_send_allowed")),
+                    "external_action_allowed": bool(row.get("external_action_allowed")),
+                    "current_truth": True,
+                }
+            )
+    return facts, {"operator_attention_delivery_fact_count": len(facts)}
+
+
+def _helm_operator_attention_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / "helm_operator_attention_package.json"
+    source_ref = _display_read_model_ref(path)
+    cards = _iter_named_mappings(payload.get("primary_cards"))
+    facts: list[dict[str, Any]] = []
+    for card_id, row in cards[:6]:
+        summary = _first_text(row, "operator_summary", "summary", "title", "headline")
+        next_move = _first_text(row, "safe_next_move", "next_safe_move")
+        if not summary and not next_move:
+            continue
+        value = _join_parts(
+            summary,
+            next_move and f"next: {next_move}",
+            row.get("actionability") and f"actionability={row.get('actionability')}",
+            "send_allowed=false",
+            "ledger_mutation_allowed=false",
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="operator_attention",
+            label=f"Helm primary attention card: {card_id}",
+            value=value,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=_freshness(path, payload),
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "attention_item_id": card_id,
+                    "operator_action_required": True,
+                    "current_truth": True,
+                }
+            )
+    return facts, {"helm_operator_attention_fact_count": len(facts)}
+
+
+def _autonomous_followup_attention_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / "autonomous_followup_watch_attention.json"
+    source_ref = _display_read_model_ref(path)
+    rows: list[tuple[str, Mapping[str, Any]]] = []
+    for key in ("attention_items", "items", "due_items", "followup_items", "follow_up_items"):
+        rows.extend(_iter_named_mappings(payload.get(key)))
+    facts: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item_id, row in rows:
+        if item_id in seen or len(facts) >= 8:
+            continue
+        seen.add(item_id)
+        summary = _first_text(row, "summary", "human_message", "operator_summary", "title")
+        next_move = _first_text(row, "next_safe_move", "next_move", "action")
+        if not summary and not next_move:
+            continue
+        value = _join_parts(
+            summary,
+            next_move and f"next: {next_move}",
+            row.get("client_ref") and f"client_ref={row.get('client_ref')}",
+            "review_only=true",
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="operator_attention",
+            label=f"Autonomous follow-up attention: {item_id}",
+            value=value,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=_freshness(path, payload),
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "attention_item_id": item_id,
+                    "client_ref": str(row.get("client_ref") or ""),
+                    "operator_action_required": bool(row.get("requires_operator", True)),
+                    "current_truth": True,
+                }
+            )
+    return facts, {"autonomous_followup_attention_fact_count": len(facts)}
+
+
+def _st_annes_receivable_state_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / "st_annes_receivable_state.json"
+    source_ref = _display_read_model_ref(path)
+    summary = _first_text(payload, "summary", "operator_summary", "status_summary")
+    next_move = _first_text(payload, "next_safe_move", "follow_up", "action")
+    status = _first_text(payload, "paid_up_status", "status", "workflow_stage")
+    if not summary and not next_move and not status:
+        return [], {"st_annes_receivable_state_fact_count": 0}
+    facts: list[dict[str, Any]] = []
+    value = _join_parts(
+        status and f"status={status}",
+        summary,
+        next_move and f"next: {next_move}",
+        f"send_hold_active={bool(payload.get('send_hold_active', True))}",
+        f"ledger_mutation_allowed={bool(payload.get('ledger_mutation_allowed', False))}",
+    )
+    _append_fact(
+        facts,
+        topic="receivable_attention",
+        label="St. Anne's receivable attention state",
+        value=value,
+        provenance="generated_read_model",
+        source_ref=source_ref,
+        pii_tier="LIGHT",
+        freshness=_freshness(path, payload),
+    )
+    if facts:
+        action_text = f"{status} {summary} {next_move}".lower()
+        facts[-1].update(
+            {
+                "client_ref": str(payload.get("client_ref") or "st_annes"),
+                "paid_up_status": status,
+                "operator_action_required": "due" in action_text or "follow" in action_text,
+                "current_truth": True,
+            }
+        )
+    return facts, {"st_annes_receivable_state_fact_count": len(facts)}
+
+
 def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
@@ -900,6 +1114,30 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             source_ref=_display_read_model_ref(root / "chief_status_rail.json"),
             freshness=_freshness(root / "chief_status_rail.json", chief),
         )
+
+    attention_delivery = payloads.get("operator_attention_delivery_contract.json", {})
+    if attention_delivery:
+        attention_facts, attention_proof = _operator_attention_delivery_facts(root, attention_delivery)
+        facts.extend(attention_facts)
+        proof.update(attention_proof)
+
+    helm_attention = payloads.get("helm_operator_attention_package.json", {})
+    if helm_attention:
+        helm_facts, helm_proof = _helm_operator_attention_facts(root, helm_attention)
+        facts.extend(helm_facts)
+        proof.update(helm_proof)
+
+    followup_attention = payloads.get("autonomous_followup_watch_attention.json", {})
+    if followup_attention:
+        followup_facts, followup_proof = _autonomous_followup_attention_facts(root, followup_attention)
+        facts.extend(followup_facts)
+        proof.update(followup_proof)
+
+    st_annes_receivable = payloads.get("st_annes_receivable_state.json", {})
+    if st_annes_receivable:
+        receivable_facts, receivable_proof = _st_annes_receivable_state_facts(root, st_annes_receivable)
+        facts.extend(receivable_facts)
+        proof.update(receivable_proof)
 
     sentinel = payloads.get("openclaw_change_sentinel.json", {})
     summary = sentinel.get("hermes_summary") if isinstance(sentinel.get("hermes_summary"), Mapping) else {}
