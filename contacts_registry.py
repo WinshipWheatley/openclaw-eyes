@@ -19,6 +19,20 @@ from typing import Any
 DEFAULT_CONTACTS_DB_PATH = "/home/openclaw/state/contacts/contacts.sqlite3"
 CONTACTS_SCHEMA_VERSION = 1
 DEFAULT_SOURCE_REF = "Operator/to-codex/43-durable-contacts-registry.md"
+CONTACTS_109_SOURCE_REF = "Operator/to-codex/109-contacts-registry-complete.md"
+CLIENT_SLUG_ALIASES = {
+    "st-anne": "st-annes",
+    "st-anne-s": "st-annes",
+    "st-annes": "st-annes",
+    "saint-anne": "st-annes",
+    "saint-anne-s": "st-annes",
+    "saint-annes": "st-annes",
+    "live-arts": "live-arts-md",
+    "live-arts-md": "live-arts-md",
+    "capital-hilton": "capital-hilton",
+    "reynolds": "reynolds",
+    "reynolds-tavern": "reynolds",
+}
 
 
 @dataclass(frozen=True)
@@ -38,16 +52,18 @@ DEFAULT_CONTACT_SEEDS: tuple[ContactSeed, ...] = (
         name="Glenn Mortoro",
         emails=("treasurer@stannes-annapolis.org", "glennmortoro@gmail.com"),
         connected_clients=("st-annes",),
-        role="treasurer/forward-to",
-        aliases=("Glen Mortoro", "Glenn", "Glen", "treasurer", "St. Anne's treasurer"),
+        role="St. Anne's treasurer and invoice payer",
+        aliases=("Glen Mortoro", "Glenn", "Glen", "treasurer", "St. Anne's treasurer", "St. Anne's payer"),
+        source_ref=CONTACTS_109_SOURCE_REF,
     ),
     ContactSeed(
         id="draper-carter",
         name="Draper Carter",
         emails=("draper.carter@gmail.com", "draper@liveartsmd.org"),
         connected_clients=("st-annes", "live-arts-md"),
-        role="intermediary",
-        aliases=("Draper", "Draper Carter", "Draper Live Arts", "Draper St. Anne's"),
+        role="St. Anne's primary contact; forwards invoice/payment details to Glen",
+        aliases=("Draper", "Draper Carter", "Draper Live Arts", "Draper St. Anne's", "St. Anne's primary contact"),
+        source_ref=CONTACTS_109_SOURCE_REF,
     ),
     ContactSeed(
         id="ernie-green",
@@ -70,48 +86,63 @@ DEFAULT_CONTACT_SEEDS: tuple[ContactSeed, ...] = (
         name="Dane Krich",
         emails=("dane@liveartsmd.org", "execdir@cysomusic.org"),
         connected_clients=("live-arts-md",),
-        role="GM",
+        role="Live Arts primary contact",
         aliases=("Dane", "Dane Krich"),
+        source_ref=CONTACTS_109_SOURCE_REF,
     ),
     ContactSeed(
         id="megan-rivas",
         name="Megan Rivas",
-        emails=("megan@mandmstrategic.com",),
+        emails=(),
         connected_clients=("live-arts-md",),
-        role="accountant",
-        aliases=("Megan", "Megan Rivas"),
+        role="Live Arts accountant, new around June 2026; email unknown",
+        aliases=("Megan", "Megan Rivas", "Live Arts accountant"),
+        source_ref=CONTACTS_109_SOURCE_REF,
     ),
     ContactSeed(
         id="lawrence-valcovic",
         name="Lawrence Valcovic",
         emails=("lawrencevalcovic@hilton.com",),
         connected_clients=("capital-hilton",),
-        role="F&B",
+        role="Capital Hilton contact; Will",
         aliases=("Will", "Will Valcovic", "Lawrence", "Lawrence Valcovic"),
+        source_ref=CONTACTS_109_SOURCE_REF,
     ),
     ContactSeed(
         id="chyna-hardin",
         name="Chyna Hardin",
         emails=("Chyna.Hardin@hilton.com",),
         connected_clients=("capital-hilton",),
-        role="finance",
+        role="Capital Hilton finance contact",
         aliases=("Chyna", "Chyna Hardin"),
+        source_ref=CONTACTS_109_SOURCE_REF,
     ),
     ContactSeed(
         id="sam-getachew",
         name="Sam Getachew",
         emails=("Sam.getachew@hilton.com",),
         connected_clients=("capital-hilton",),
-        role="bar-mgr",
+        role="Capital Hilton bar manager",
         aliases=("Sam", "Sam Getachew"),
+        source_ref=CONTACTS_109_SOURCE_REF,
     ),
     ContactSeed(
         id="annette-sunga",
         name="Annette Sunga",
-        emails=("annette.Sunga@hilton.com",),
+        emails=(),
         connected_clients=("capital-hilton",),
-        role="AP-lead",
-        aliases=("Annette", "Annette Sunga"),
+        role="Capital Hilton AP contact candidate; email unknown; needs_operator_review",
+        aliases=("Annette", "Annette Sunga", "Capital Hilton AP"),
+        source_ref=CONTACTS_109_SOURCE_REF,
+    ),
+    ContactSeed(
+        id="mike-heuer",
+        name="Mike Heuer",
+        emails=(),
+        connected_clients=("reynolds",),
+        role="gig referrer for Reynolds",
+        aliases=("Mike", "Mike Heuer", "Reynolds referrer"),
+        source_ref=CONTACTS_109_SOURCE_REF,
     ),
 )
 
@@ -129,7 +160,8 @@ def _slug_key(value: object) -> str:
 
 
 def _client_slug(value: object) -> str:
-    return _slug_key(value)
+    slug = _slug_key(value)
+    return CLIENT_SLUG_ALIASES.get(slug, slug)
 
 
 def _alias_key(value: object) -> str:
@@ -434,12 +466,189 @@ def get_contacts_for_client(
     return ContactsRegistry(db_path, seed=False).get_contacts_for_client(client_slug)
 
 
+def client_slugs_for_text(text: str, contacts: tuple[dict[str, Any], ...] | list[dict[str, Any]]) -> tuple[str, ...]:
+    query_key = f" {_contact_match_key(text)} "
+    slugs: list[str] = []
+    for contact in contacts:
+        clients = contact.get("connected_clients") or contact.get("connected_client") or ()
+        if isinstance(clients, str):
+            clients = (clients,)
+        for client in clients:
+            slug = _client_slug(client)
+            terms = _client_terms(slug)
+            if any(term and f" {term} " in query_key for term in terms) and slug not in slugs:
+                slugs.append(slug)
+    return tuple(slugs)
+
+
+def answer_contact_question(question: str, *, db_path: str = DEFAULT_CONTACTS_DB_PATH) -> dict[str, Any]:
+    registry = ContactsRegistry(db_path, seed=True)
+    contacts = registry.list_contacts()
+    named = _named_contact_for_question(question, contacts)
+    slugs = client_slugs_for_text(question, contacts)
+    proof = {
+        "question_class": "contacts_whos_who",
+        "contacts_registry_read": True,
+        "contacts_registry_ref": f"contacts_registry:{db_path}",
+        "contacts_registry_client_slugs": list(slugs),
+        "contacts_registry_contact_ids": [],
+        "contacts_registry_record_found": False,
+        "protected_generate_called": False,
+        "external_llm_invoked": False,
+    }
+
+    if named is not None and _asks_for_email(question) and not named.get("email"):
+        proof["contacts_registry_contact_ids"] = [str(named.get("id") or "")]
+        proof["contacts_registry_record_found"] = True
+        name = str(named.get("name") or "that contact")
+        role = str(named.get("role") or "contact")
+        return {
+            "answered": False,
+            "question_class": "contacts_whos_who",
+            "answer": f"I do not have a confirmed email for {name}. Registry role: {role}; needs operator review.",
+            "machine_proof": proof,
+        }
+
+    if named is not None and _asks_for_email(question) and named.get("email"):
+        proof["contacts_registry_contact_ids"] = [str(named.get("id") or "")]
+        proof["contacts_registry_record_found"] = True
+        return {
+            "answered": True,
+            "question_class": "contacts_whos_who",
+            "answer": f"{named['name']}'s registry email is {named['email']}.",
+            "machine_proof": proof,
+        }
+
+    if slugs:
+        selected: list[dict[str, Any]] = []
+        for slug in slugs:
+            selected.extend(registry.get_contacts_for_client(slug))
+        selected = _dedupe_contacts(selected)
+        if _asks_for_payment_handler(question):
+            selected = _payment_ranked_contacts(selected)
+        if selected:
+            proof["contacts_registry_contact_ids"] = [str(contact.get("id") or "") for contact in selected]
+            proof["contacts_registry_record_found"] = True
+            answer = _contacts_answer_for_client(question, slugs[0], selected)
+            return {
+                "answered": True,
+                "question_class": "contacts_whos_who",
+                "answer": answer,
+                "machine_proof": proof,
+            }
+
+    if named is not None:
+        proof["contacts_registry_contact_ids"] = [str(named.get("id") or "")]
+        proof["contacts_registry_record_found"] = True
+        return {
+            "answered": True,
+            "question_class": "contacts_whos_who",
+            "answer": _format_contact_sentence(named),
+            "machine_proof": proof,
+        }
+
+    return {
+        "answered": False,
+        "question_class": "contacts_whos_who",
+        "answer": "I do not have a matching contact in the contacts registry.",
+        "machine_proof": proof,
+    }
+
+
+def _contact_match_key(value: object) -> str:
+    text = re.sub(r"['’]s\b", "", _clean_text(value).lower())
+    text = text.replace("'", "").replace("’", "")
+    return re.sub(r"[^a-z0-9]+", " ", text).strip()
+
+
+def _client_terms(slug: str) -> set[str]:
+    base = _client_slug(slug)
+    aliases = {base, base.replace("-", " "), base.replace("-", "")}
+    if base == "st-annes":
+        aliases.update({"st anne", "st annes", "st anne s", "saint anne", "saint annes", "saint anne s"})
+    elif base == "live-arts-md":
+        aliases.update({"live arts", "live arts md", "live arts maryland"})
+    elif base == "capital-hilton":
+        aliases.update({"capital hilton", "hilton"})
+    elif base == "reynolds":
+        aliases.update({"reynolds", "reynolds tavern"})
+    return {_contact_match_key(alias) for alias in aliases if alias}
+
+
+def _contact_terms(contact: Mapping[str, Any]) -> set[str]:
+    values = [contact.get("id"), contact.get("name"), *(contact.get("aliases") or ())]
+    return {_contact_match_key(value) for value in values if _contact_match_key(value)}
+
+
+def _named_contact_for_question(question: str, contacts: list[dict[str, Any]]) -> dict[str, Any] | None:
+    query_key = f" {_contact_match_key(question)} "
+    for contact in contacts:
+        if any(term and f" {term} " in query_key for term in _contact_terms(contact)):
+            return contact
+    return None
+
+
+def _asks_for_email(question: str) -> bool:
+    return bool(re.search(r"\b(email|e-mail|address|contact info)\b", str(question or ""), re.IGNORECASE))
+
+
+def _asks_for_payment_handler(question: str) -> bool:
+    return bool(re.search(r"\b(payments?|payer|invoice|treasurer|handles?|who handles)\b", str(question or ""), re.IGNORECASE))
+
+
+def _payment_ranked_contacts(contacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def score(contact: Mapping[str, Any]) -> tuple[int, str]:
+        role = str(contact.get("role") or "").lower()
+        if "invoice payer" in role or "treasurer" in role:
+            return (0, str(contact.get("name") or ""))
+        if "forwards" in role or "primary contact" in role:
+            return (1, str(contact.get("name") or ""))
+        return (2, str(contact.get("name") or ""))
+
+    return sorted(contacts, key=score)
+
+
+def _contacts_answer_for_client(question: str, slug: str, contacts: list[dict[str, Any]]) -> str:
+    if slug == "st-annes" and _asks_for_payment_handler(question):
+        primary = contacts[0]
+        forwarder = next((contact for contact in contacts[1:] if "forwards" in str(contact.get("role") or "").lower()), None)
+        answer = _format_contact_sentence(primary)
+        if forwarder is not None:
+            answer += f" {forwarder['name']} is the St. Anne's primary contact and forwards details to Glen."
+        return answer
+    return " ".join(_format_contact_sentence(contact) for contact in contacts)
+
+
+def _format_contact_sentence(contact: Mapping[str, Any]) -> str:
+    name = str(contact.get("name") or contact.get("id") or "Contact")
+    role = str(contact.get("role") or "contact")
+    clients = contact.get("connected_clients") or contact.get("connected_client") or ()
+    if isinstance(clients, str):
+        clients = (clients,)
+    client_text = ", ".join(str(client) for client in clients) or "no client link"
+    return f"{name}: {role}; client: {client_text}."
+
+
+def _dedupe_contacts(contacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for contact in contacts:
+        contact_id = str(contact.get("id") or "")
+        if contact_id in seen:
+            continue
+        seen.add(contact_id)
+        deduped.append(contact)
+    return deduped
+
+
 __all__ = [
     "CONTACTS_SCHEMA_VERSION",
     "DEFAULT_CONTACTS_DB_PATH",
     "DEFAULT_CONTACT_SEEDS",
     "ContactSeed",
     "ContactsRegistry",
+    "answer_contact_question",
+    "client_slugs_for_text",
     "get_contact",
     "get_contacts_for_client",
     "seed_default_contacts",

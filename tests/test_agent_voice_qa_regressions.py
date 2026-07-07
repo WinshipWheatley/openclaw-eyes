@@ -36,6 +36,31 @@ def test_maestro_context_packet_includes_contacts_registry_facts(
     assert "contacts_registry:" in "\n".join(packet["source_refs"])
 
 
+def test_maestro_context_packet_answers_st_annes_payment_contact_from_registry(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from contacts_registry import ContactsRegistry
+    from maestro_context_packet import build_maestro_context_packet
+
+    contacts_db = tmp_path / "contacts.sqlite3"
+    ContactsRegistry(str(contacts_db), seed=True)
+    monkeypatch.setenv("OPENCLAW_CONTACTS_DB_PATH", str(contacts_db))
+
+    packet = build_maestro_context_packet(
+        question="who handles St Anne's payments?",
+        require_real_truth=False,
+    )
+
+    contact_facts = [fact for fact in packet["facts"] if fact["topic"] == "contacts_registry"]
+    blob = json.dumps(contact_facts, sort_keys=True)
+    assert contact_facts
+    assert "Glenn Mortoro" in blob
+    assert "invoice payer" in blob
+    assert "Draper Carter" in blob
+    assert "contacts_whos_who" in packet["machine_proof"].get("contacts_registry_question_class", "")
+
+
 def test_stale_relative_date_operator_truth_fact_is_not_packeted(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_store = types.ModuleType("operator_truth_store")
 

@@ -736,6 +736,13 @@ def _contact_text_key(value: Any) -> str:
 
 
 def _contact_query_client_slugs(question: str, contacts: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    try:
+        from contacts_registry import client_slugs_for_text
+
+        normalized_contacts = [dict(contact) for contact in contacts]
+        return client_slugs_for_text(question, normalized_contacts)
+    except Exception:
+        pass
     query_key = f" {_contact_text_key(question)} "
     slugs: list[str] = []
     for contact in contacts:
@@ -773,6 +780,7 @@ def _contacts_registry_facts(question: str) -> tuple[list[dict[str, Any]], dict[
         "contacts_registry_ref": f"contacts_registry:{db_path}" if db_path else "contacts_registry",
         "contacts_registry_contact_count": 0,
         "contacts_registry_client_slugs": [],
+        "contacts_registry_question_class": "",
     }
     try:
         from contacts_registry import ContactsRegistry
@@ -788,7 +796,11 @@ def _contacts_registry_facts(question: str) -> tuple[list[dict[str, Any]], dict[
     if client_slugs:
         for slug in client_slugs:
             selected.extend(registry.get_contacts_for_client(slug))
-    elif re.search(r"\b(contacts?|person|people|who is|who's|who do i talk to)\b", str(question or ""), re.IGNORECASE):
+    elif re.search(
+        r"\b(contacts?|person|people|who is|who's|who do i talk to|who handles)\b",
+        str(question or ""),
+        re.IGNORECASE,
+    ):
         selected = all_contacts
 
     deduped: list[dict[str, Any]] = []
@@ -816,6 +828,7 @@ def _contacts_registry_facts(question: str) -> tuple[list[dict[str, Any]], dict[
     proof["contacts_registry_used"] = bool(facts)
     proof["contacts_registry_contact_count"] = len(deduped)
     proof["contacts_registry_client_slugs"] = list(client_slugs)
+    proof["contacts_registry_question_class"] = "contacts_whos_who" if facts else ""
     return facts, proof
 
 

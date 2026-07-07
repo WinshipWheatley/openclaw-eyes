@@ -4,6 +4,7 @@ from pathlib import Path
 from contacts_registry import (
     CONTACTS_SCHEMA_VERSION,
     ContactsRegistry,
+    answer_contact_question,
     get_contact,
     get_contacts_for_client,
     seed_default_contacts,
@@ -28,6 +29,7 @@ def test_default_seed_loads_fuller_roster_into_sqlite_tables(tmp_path: Path) -> 
         "chyna-hardin",
         "sam-getachew",
         "annette-sunga",
+        "mike-heuer",
     } <= contact_ids
 
     with sqlite3.connect(db_path) as conn:
@@ -74,7 +76,7 @@ def test_lookup_by_id_name_alias_and_business_email(tmp_path: Path) -> None:
     assert by_id["email"] == "draper.carter@gmail.com"
     assert by_id["emails"] == ("draper.carter@gmail.com", "draper@liveartsmd.org")
     assert by_id["connected_client"] == ("live-arts-md", "st-annes")
-    assert by_id["role"] == "intermediary"
+    assert by_id["role"] == "St. Anne's primary contact; forwards invoice/payment details to Glen"
 
 
 def test_lookup_by_secondary_seed_emails(tmp_path: Path) -> None:
@@ -116,16 +118,62 @@ def test_null_email_placeholder_contact_is_seeded_not_dropped(tmp_path: Path) ->
     assert ernie["connected_client"] == ("live-arts-md", "st-annes")
 
 
-def test_latest_filled_emails_for_annette_and_nancy_are_seeded(tmp_path: Path) -> None:
+def test_annette_stays_email_unknown_and_nancy_email_is_seeded(tmp_path: Path) -> None:
     registry = ContactsRegistry(str(tmp_path / "contacts.sqlite3"))
 
     annette = registry.get_contact("Annette")
     nancy = registry.get_contact("Nancy Pollack")
 
-    assert annette["email"] == "annette.Sunga@hilton.com"
+    assert annette["email"] is None
+    assert annette["emails"] == ()
     assert annette["connected_client"] == ("capital-hilton",)
+    assert "email unknown" in annette["role"].lower()
+    assert "needs_operator_review" in annette["role"]
     assert nancy["email"] == "npollack@stannes-annapolis.org"
     assert nancy["connected_client"] == ("st-annes",)
+
+
+def test_live_arts_accountant_and_reynolds_referrer_have_roles_without_invented_email(tmp_path: Path) -> None:
+    registry = ContactsRegistry(str(tmp_path / "contacts.sqlite3"))
+
+    megan = registry.get_contact("Megan Rivas")
+    mike = registry.get_contact("Mike Heuer")
+
+    assert megan["name"] == "Megan Rivas"
+    assert "accountant" in megan["role"].lower()
+    assert "June 2026" in megan["role"]
+    assert megan["email"] is None
+    assert mike["name"] == "Mike Heuer"
+    assert "gig referrer" in mike["role"].lower()
+    assert "reynolds" in mike["connected_client"]
+
+
+def test_contact_question_answers_st_annes_payment_handler_from_registry(tmp_path: Path) -> None:
+    db_path = str(tmp_path / "contacts.sqlite3")
+    ContactsRegistry(db_path)
+
+    result = answer_contact_question("who handles St Anne's payments?", db_path=db_path)
+
+    assert result["answered"] is True
+    assert result["question_class"] == "contacts_whos_who"
+    answer = result["answer"]
+    assert "Glenn Mortoro" in answer
+    assert "invoice payer" in answer
+    assert "Draper Carter" in answer
+    assert "forwards" in answer.lower()
+    assert result["machine_proof"]["contacts_registry_record_found"] is True
+
+
+def test_contact_question_for_annette_email_is_honest_gap(tmp_path: Path) -> None:
+    db_path = str(tmp_path / "contacts.sqlite3")
+    ContactsRegistry(db_path)
+
+    result = answer_contact_question("what is Annette's email?", db_path=db_path)
+
+    assert result["answered"] is False
+    assert "I do not have a confirmed email for Annette Sunga" in result["answer"]
+    assert "needs operator review" in result["answer"].lower()
+    assert "Annette.Sunga@hilton.com" not in result["answer"]
 
 
 def test_module_level_resolvers_read_seeded_sqlite_store(tmp_path: Path) -> None:
