@@ -91,6 +91,45 @@ def test_morning_brief_does_not_launder_unstructured_money(tmp_path) -> None:
     assert "Loose Note" not in brief
 
 
+def test_morning_brief_live_probe_quality_money_decisions_and_voice(tmp_path) -> None:
+    root = tmp_path / "read_models"
+    src = morning.REPO_ROOT / "generated/read_models/receivables_month_bounded.json"
+    (root / "receivables_month_bounded.json").parent.mkdir(parents=True, exist_ok=True)
+    (root / "receivables_month_bounded.json").write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+    _write_json(
+        root / "work_board.json",
+        {
+            "cards": [
+                {
+                    "status": "needs_operator_review",
+                    "summary": "Intent: Hermes, synthesize current posture",
+                },
+                {
+                    "status": "pending_approval",
+                    "title": "Approve Capital Hilton invoice review packet",
+                },
+            ],
+        },
+    )
+    _write_json(
+        root / "agent_presence.json",
+        {"agents": [{"agent_id": "maestro", "display_name": "Maestro", "actual_state": "online"}]},
+    )
+
+    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 7))
+    lowered = brief.lower()
+
+    assert "live arts" in lowered
+    assert "$1,095" in brief
+    assert "needs_reconcile" in lowered or "needs reconcile" in lowered
+    assert "Intent:" not in brief
+    assert "Hermes, synthesize current posture" not in brief
+    assert "Approve Capital Hilton invoice review packet" in brief
+    assert brief.startswith("Morning. You're clear today except")
+    assert len([part for part in brief.split(".") if part.strip()]) <= 4
+    assert "timer" not in lowered
+
+
 def test_morning_brief_once_invokes_master_voice_with_stdin(tmp_path) -> None:
     root = tmp_path / "read_models"
     _write_json(

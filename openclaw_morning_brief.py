@@ -28,6 +28,7 @@ class MoneyItem:
     amount: float
     currency: str
     as_of: str
+    status: str = ""
 
 
 @dataclass(frozen=True)
@@ -39,23 +40,40 @@ class DayEvent:
 def build_morning_brief(*, read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT, today: date | None = None) -> str:
     root = Path(read_model_root)
     today_value = today or date.today()
-    parts = ["Morning."]
 
     money_items = collect_open_money_items(root)
-    if money_items:
-        parts.append("Open money: " + "; ".join(_format_money_item(item) for item in money_items[:4]) + ".")
-
     events = collect_today_events(root, today_value)
+    decisions = collect_decision_items(root)
+    health = system_health_line(root)
+
+    if not money_items and not events and not decisions:
+        parts = ["Morning."]
+        if health:
+            parts.append("System: " + health + ".")
+        return " ".join(parts)
+
+    parts = ["Morning."]
+    if money_items:
+        parts.append(
+            "You're clear today except money needs attention: "
+            + "; ".join(_format_money_item(item) for item in money_items[:4])
+            + "."
+        )
+    else:
+        parts.append("You're clear today.")
+
     if events:
         parts.append("Today: " + "; ".join(_format_event(event) for event in events[:5]) + ".")
 
-    decisions = collect_decision_items(root)
     if decisions:
-        parts.append("Decisions: " + "; ".join(decisions[:4]) + ".")
+        parts.append("Decisions to review: " + "; ".join(decisions[:4]) + ".")
 
-    health = system_health_line(root)
     if health:
-        parts.append("System: " + health + ".")
+        system_sentence = "System: " + health + "."
+        if len(parts) < 4:
+            parts.append(system_sentence)
+        else:
+            parts[-1] = parts[-1].rstrip(".") + " " + system_sentence
 
     return " ".join(parts)
 
@@ -78,8 +96,9 @@ def collect_open_money_items(root: Path) -> list[MoneyItem]:
                 MoneyItem(
                     label=label,
                     amount=amount,
-                    currency=str(obj.get("currency") or context.get("currency") or "USD"),
+                    currency=str(obj.get("currency") or obj.get("currency_iso") or context.get("currency") or "USD"),
                     as_of=_date_part(as_of),
+                    status=str(obj.get("payment_status") or obj.get("status") or "").strip(),
                 )
             )
     return _dedupe_dataclasses(items)
@@ -114,6 +133,8 @@ def collect_decision_items(root: Path) -> list[str]:
             if status not in ACTION_STATUSES and not bool(obj.get("needs_operator_review")):
                 continue
             label = _first_text(obj.get("title"), obj.get("summary"), obj.get("next_safe_move"), obj.get("human_message"))
+            if _looks_like_raw_intent(label):
+                continue
             if label:
                 decisions.append(_strip_terminal_punctuation(_compact(label)))
     return _dedupe_strings(decisions)
@@ -187,6 +208,9 @@ def _iter_dicts(value: Any, context: Mapping[str, Any] | None = None) -> Iterato
 
 
 def _structured_amount(obj: Mapping[str, Any]) -> float | None:
+    value = obj.get("open_minor_units")
+    if isinstance(value, int | float):
+        return float(value) / 100.0
     for key in ("amount_minor", "minor_units", "amount_cents"):
         value = obj.get(key)
         if isinstance(value, int | float):
@@ -199,21 +223,23 @@ def _structured_amount(obj: Mapping[str, Any]) -> float | None:
 
 def _is_open_money_status(obj: Mapping[str, Any]) -> bool:
     status = str(obj.get("status") or obj.get("payment_status") or "").strip().lower()
-    if status in {"open", "unpaid", "outstanding", "needs_reconcile", "needs_operator_review"}:
+    if status in {"open", "open_not_paid", "unpaid", "outstanding", "unverified", "check_unverified", "needs_reconcile", "needs_operator_review"}:
         return True
     return bool(obj.get("open") is True)
 
 
 def _money_label(obj: Mapping[str, Any], context: Mapping[str, Any]) -> str:
-    client = _first_text(obj.get("client"), obj.get("client_name"), context.get("client"))
-    project = _first_text(obj.get("project"), obj.get("event"), obj.get("label"), obj.get("title"), obj.get("name"))
+    client = _display_token(_first_text(obj.get("client"), obj.get("client_name"), obj.get("client_display_name"), obj.get("client_ref"), context.get("client")))
+    project = _display_token(_first_text(obj.get("project"), obj.get("event"), obj.get("month"), obj.get("label"), obj.get("title"), obj.get("name")))
     if client and project and project.lower() not in client.lower():
         return _compact(f"{client} {project}")
     return _compact(client or project or _first_text(obj.get("summary"), obj.get("description")) or "")
 
 
 def _format_money_item(item: MoneyItem) -> str:
-    return f"{item.label}: {_format_amount(item.amount, item.currency)} as of {item.as_of}"
+    status = str(item.status or "").strip()
+    status_text = f" {status}" if status in {"needs_reconcile", "open_not_paid", "unverified", "check_unverified", "needs_operator_review"} else ""
+    return f"{item.label}: {_format_amount(item.amount, item.currency)}{status_text} as of {item.as_of}"
 
 
 def _format_amount(amount: float, currency: str) -> str:
@@ -232,6 +258,23 @@ def _first_text(*values: Any) -> str:
         if isinstance(value, str) and value.strip():
             return value.strip()
     return ""
+
+
+def _display_token(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    known = {
+        "live_arts_md": "Live Arts MD",
+        "st_annes": "St. Anne's",
+        "capital_hilton": "Capital Hilton",
+    }
+    return known.get(text, text.replace("_", " ").title() if "_" in text else text)
+
+
+def _looks_like_raw_intent(value: str) -> bool:
+    text = str(value or "").strip().lower()
+    return text.startswith("intent:") or " intent:" in text
 
 
 def _date_part(value: str) -> str:
