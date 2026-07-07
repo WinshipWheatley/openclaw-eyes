@@ -98,6 +98,55 @@ def test_finance_intent_grounded_answer():
     assert "non-authoritative candidate" not in answer
 
 
+def test_payment_status_question_classifies_to_finance_not_contacts():
+    """Task 137: "did X pay us?" is a payment-status QUESTION -- 'pay'/'paid' were missing
+    from _FINANCE_INTENT_MARKERS, so it fell through to the generic scored-facts path, which
+    favored a contacts_registry fact over the actual finance answer."""
+    packet = {
+        "facts": [
+            {
+                "topic": "contacts_registry",
+                "label": "Draper Carter",
+                "value": "Draper Carter is a contacts_registry contact for st-annes; role: St. Anne's primary contact.",
+            },
+            {
+                "topic": "finance_invoice_reconciliation",
+                "label": "Current money owed answer topic",
+                "value": "St Anne's Apr/May paid; current invoice ready to send once copy is fixed.",
+            },
+        ]
+    }
+
+    answer = _fallback_grounded_answer("did St Anne's pay us?", packet)
+
+    assert "current invoice ready to send once copy is fixed" in answer
+    assert "contacts_registry contact" not in answer
+
+
+from protected_generate import _clean_answer_value
+
+
+def test_clean_answer_value_preserves_abbreviation_periods():
+    """Task 137: the sentence splitter mangled 'St. Anne's primary contact; forwards...'
+    into 'St; Anne's primary contact; forwards...' -- treating the 'St.' abbreviation as a
+    sentence boundary. Must preserve it while still splitting on the genuine semicolon."""
+    value = "St. Anne's primary contact; forwards invoice/payment details to Glen."
+
+    cleaned = _clean_answer_value(value)
+
+    assert "St; Anne's" not in cleaned
+    assert cleaned.startswith("St. Anne's primary contact")
+    assert "forwards invoice/payment details to Glen" in cleaned
+
+
+def test_clean_answer_value_still_splits_genuine_sentences():
+    value = "First fact here. Second fact here; third clause here."
+
+    cleaned = _clean_answer_value(value)
+
+    assert cleaned == "First fact here; Second fact here; third clause here"
+
+
 def test_schedule_intent_still_uses_calendar_only():
     packet = {
         "facts": [

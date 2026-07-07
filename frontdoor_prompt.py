@@ -231,7 +231,10 @@ _QUESTION_DOMAIN_FACT_MARKERS = {
         ("gig", "gigs", "reynolds", "tavern", "booking", "performance", "venue", "set", "calendar"),
     ),
     "invoice": (
-        ("invoice", "invoices", "receivable", "receivables", "payment", "paid", "owed", "owes", "coupa"),
+        # Task 137: "did X pay us?" / "has X paid?" are payment-status QUESTIONS -- the bare
+        # word "pay" was missing, so they fell through to generic lexical overlap and lost
+        # to contacts_registry facts that also mention the client's name.
+        ("invoice", "invoices", "receivable", "receivables", "payment", "pay", "paid", "owed", "owes", "coupa"),
         ("invoice", "receivable", "payment", "paid", "owed", "owes", "coupa", "capital hilton"),
     ),
     "approval": (

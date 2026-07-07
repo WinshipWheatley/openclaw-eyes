@@ -1778,8 +1778,12 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
             _client_display(str(row.get("client_ref") or "")).lower(),
         )
     )
+    # Task 137 (render priority): expected_uninvoiced + open items are the most actionable
+    # content and must NEVER be truncated by an item cap -- only the pure-settled tail (no
+    # pending item) is capped.
     open_lines = [_receivable_operator_line(row) for row in open_rows]
-    settled_lines: list[str] = []
+    priority_settled_lines: list[str] = []
+    pure_settled_lines: list[str] = []
     for client_ref, client_rows in settled_by_client.items():
         months = "/".join(
             month
@@ -1799,7 +1803,7 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
             line = f"{line} settled; don't chase"
         if as_of:
             line = f"{line}, as of {as_of}"
-        settled_lines.append(line)
+        (priority_settled_lines if uninvoiced_rows else pure_settled_lines).append(line)
     for client_ref, client_rows in uninvoiced_by_client.items():
         # An expected-uninvoiced item with no settled history for this client -- still
         # surface it, never silently drop it or fold it into "settled".
@@ -1807,13 +1811,14 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
         line = f"{_client_display(client_ref)}: current invoice ready to send once copy is fixed"
         if as_of:
             line = f"{line}, as of {as_of}"
-        settled_lines.append(line)
+        priority_settled_lines.append(line)
+    settled_lines = priority_settled_lines + pure_settled_lines[:4]
 
     value = " ".join(
         part
         for part in (
-            open_lines and "Money: " + ". ".join(open_lines[:4]) + ".",
-            settled_lines and "Settled items: " + " | ".join(settled_lines[:4]) + ".",
+            open_lines and "Money: " + ". ".join(open_lines) + ".",
+            settled_lines and "Settled items: " + " | ".join(settled_lines) + ".",
         )
         if part
     )

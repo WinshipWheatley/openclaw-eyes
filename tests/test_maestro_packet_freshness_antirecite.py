@@ -536,6 +536,50 @@ def test_superb_money_answer_is_operator_clean_and_amount_evidenced(monkeypatch,
         assert token not in answer
 
 
+def _receivable_row(
+    client_ref: str,
+    month: str,
+    *,
+    payment_status: str,
+    open_minor_units: int = 0,
+    needs_reconcile: bool = False,
+    settled_past_no_compound: bool = False,
+) -> dict:
+    return {
+        "topic": "receivable_month_bounded",
+        "structured_fact": True,
+        "client_ref": client_ref,
+        "month": month,
+        "payment_status": payment_status,
+        "open_minor_units": open_minor_units,
+        "needs_reconcile": needs_reconcile,
+        "settled_past_no_compound": settled_past_no_compound,
+        "as_of": "2026-07-07",
+        "source_ref": f"test:{client_ref}:{month}",
+    }
+
+
+def test_render_priority_never_truncates_expected_uninvoiced_behind_settled_cap() -> None:
+    """Task 137: the pending-send line was getting cut by the settled-tail item cap when
+    more than 4 clients had settled history in play. expected_uninvoiced + open items must
+    ALWAYS render; only the pure-settled tail is capped."""
+    from maestro_context_packet import _receivable_answer_topic_facts
+
+    rows = [
+        _receivable_row(f"client_{i}", "2026-05", payment_status="settled", settled_past_no_compound=True)
+        for i in range(6)
+    ] + [
+        _receivable_row("st_annes", "2026-04", payment_status="settled", settled_past_no_compound=True),
+        _receivable_row("st_annes", "2026-07", payment_status="expected_uninvoiced"),
+    ]
+
+    answer_facts, _proof = _receivable_answer_topic_facts(rows)
+
+    assert answer_facts, "expected at least one derived answer-topic fact"
+    value = str(answer_facts[0]["value"])
+    assert "current invoice ready to send once copy is fixed" in value
+
+
 def test_money_question_never_renders_expected_uninvoiced_client_as_fully_settled(
     monkeypatch, tmp_path: Path
 ) -> None:
@@ -569,19 +613,14 @@ def test_money_question_never_renders_expected_uninvoiced_client_as_fully_settle
     assert "st anne's apr/may settled" not in lowered
 
 
-def test_did_st_annes_pay_us_question_answers_from_real_packet_not_staging(
+def test_did_st_annes_pay_us_question_answers_money_class_apr_may_paid_current_not_sent(
     monkeypatch, tmp_path: Path
 ) -> None:
-    """'did St Anne's pay us?' contains the action-term 'pay' -- before this fix it hijacked
-    straight to ROUTE_TO_STAGING with zero information (same bug class as 129). It must reach
-    the real packet-grounded engine and answer from evidenced facts, never claim a blanket
-    'settled' that would paper over the current unsent invoice.
-
-    Note: the packet DOES carry the new expected_uninvoiced fact for every St Anne's query
-    (verified directly against build_maestro_context_packet); which facts the deterministic
-    TEST_MODE renderer selects into the final reply for this specific narrow phrasing is a
-    separate fact-relevance-ranking concern this task didn't touch -- the "who owes me money"
-    aggregate query above proves the tier renders correctly end to end."""
+    """Task 137 ACCEPTANCE: 'did St Anne's pay us?' contains the action-term 'pay' -- before
+    129's fix it hijacked straight to ROUTE_TO_STAGING; before 137's fix it classified to the
+    contacts_registry roster instead of the money class (missing 'pay'/'paid' finance-intent
+    markers). Must now classify to money and answer 'Apr/May paid; current invoice not yet
+    sent' (via the expected_uninvoiced tier's rendered line), un-truncated."""
     monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
     read_models = _seed_read_models(tmp_path)
     _copy_month_bounded_receivables(read_models)
@@ -603,7 +642,8 @@ def test_did_st_annes_pay_us_question_answers_from_real_packet_not_staging(
     lowered = result.plain_summary.lower()
     assert result.status == "ANSWER_READY"
     assert "staging" not in lowered
-    assert "st anne's" in lowered or "st. anne's" in lowered
+    assert "current invoice ready to send once copy is fixed" in lowered
+    assert "contacts_registry contact" not in lowered
     assert "fully settled" not in lowered
     assert "all paid up" not in lowered
 
