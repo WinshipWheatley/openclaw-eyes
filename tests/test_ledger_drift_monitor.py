@@ -9,7 +9,13 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
     path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
 
 
-def _audit_row(*, builder: str, packet_id: str, route: str = "local_ollama_frontdoor") -> dict:
+def _audit_row(
+    *,
+    builder: str,
+    packet_id: str,
+    route: str = "local_ollama_frontdoor",
+    agent_id: str = "cassandra",
+) -> dict:
     return {
         "schema_version": "protected_generate_receipt_v0",
         "route": route,
@@ -22,7 +28,7 @@ def _audit_row(*, builder: str, packet_id: str, route: str = "local_ollama_front
                 "schema_version": "ledger_runtime_drift_receipt_v0",
                 "builder_name": builder,
                 "packet_id": packet_id,
-                "agent_id": "cassandra",
+                "agent_id": agent_id,
                 "status": "ledger_runtime_repair_applied",
                 "source_of_truth": "business_ops_ledger",
                 "original_fact_count": 1,
@@ -99,6 +105,42 @@ def test_ledger_source_drift_package_is_bounded_for_guardian_factory(tmp_path: P
     assert "protected_generate.py" in package["allowed_files"]
     assert "tests/test_ledger_drift_monitor.py" in package["allowed_files"]
     assert any("No production restarts" in item for item in package["production_prohibitions"])
+
+
+def test_sibling_ledger_drift_yields_class_scoped_gap_and_package(tmp_path: Path) -> None:
+    from ledger_drift_monitor import detect_ledger_source_drift_gaps
+    from self_improvement_request import compile_self_improvement_package
+
+    audit = tmp_path / "protected_generate_audit.jsonl"
+    _write_jsonl(
+        audit,
+        [
+            _audit_row(
+                builder="context_source.packet_builder",
+                packet_id="cassandra_context_packet:one",
+                agent_id="cassandra",
+            ),
+            _audit_row(
+                builder="context_source.packet_builder",
+                packet_id="maestro_context_packet:two",
+                agent_id="maestro",
+            ),
+        ],
+    )
+
+    [gap] = detect_ledger_source_drift_gaps(audit_log_path=audit, min_occurrences=2)
+
+    assert gap["failure_class"] == "ledger_source_drift"
+    assert gap["class_scope"] == "class"
+    assert "ledger_source_drift" in gap["build_goal"]
+    assert {item["agent_id"] for item in gap["sibling_evidence"]} == {"cassandra", "maestro"}
+    assert all(item["packet_id"] for item in gap["sibling_evidence"])
+
+    package = compile_self_improvement_package(gap, agent="hermes")
+
+    assert package["failure_class"] == "ledger_source_drift"
+    assert package["class_scope"] == "class"
+    assert package["sibling_evidence"] == gap["sibling_evidence"]
 
 
 def test_self_knowledge_merges_ledger_drift_gaps(monkeypatch) -> None:

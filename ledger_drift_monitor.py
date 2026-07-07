@@ -110,6 +110,39 @@ def _unique(values: Iterable[Any], *, limit: int = 8) -> list[str]:
     return out
 
 
+def _receipt_surface(receipt: Mapping[str, Any]) -> str:
+    for key in ("agent_id", "source_surface", "surface", "packet_id"):
+        value = str(receipt.get(key) or "").strip()
+        if value:
+            return value
+    return "unknown"
+
+
+def _sibling_evidence(receipts: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for receipt in receipts:
+        surface = _receipt_surface(receipt)
+        if surface in seen:
+            continue
+        seen.add(surface)
+        item = {
+            "agent_id": str(receipt.get("agent_id") or surface),
+            "packet_id": str(receipt.get("packet_id") or ""),
+            "builder_name": str(receipt.get("builder_name") or ""),
+        }
+        original_refs = receipt.get("original_source_refs")
+        if isinstance(original_refs, list):
+            item["original_source_refs"] = _unique(original_refs, limit=4)
+        repair_refs = receipt.get("repair_source_refs")
+        if isinstance(repair_refs, list):
+            item["repair_source_refs"] = _unique(repair_refs, limit=4)
+        evidence.append({key: value for key, value in item.items() if value not in ("", [])})
+        if len(evidence) >= 8:
+            break
+    return evidence
+
+
 def _gap_for_builder(builder_name: str, receipts: list[dict[str, Any]]) -> dict[str, Any]:
     packet_ids = _unique(receipt.get("packet_id") for receipt in receipts)
     agents = _unique(receipt.get("agent_id") for receipt in receipts)
@@ -140,16 +173,27 @@ def _gap_for_builder(builder_name: str, receipts: list[dict[str, Any]]) -> dict[
         f"Original refs: {', '.join(original_refs) or 'none recorded'}. "
         f"Ledger repair refs: {', '.join(repair_refs[:3]) or 'none recorded'}."
     )
+    siblings = _sibling_evidence(receipts)
+    class_scope = "class" if len({item.get("agent_id") or item.get("packet_id") for item in siblings}) > 1 else "instance"
+    class_instruction = (
+        "Fix the ledger_source_drift failure class across the evidenced sibling packet builders, "
+        "not just one instance. "
+        if class_scope == "class"
+        else ""
+    )
     return {
         "id": f"ledger_source_drift:{digest}",
         "say": f"I caught {builder_name} pulling packet context from the wrong place; I repaired it from the ledger live, but the source path needs fixing.",
         "build_goal": (
-            f"Use the runtime ledger drift evidence for {builder_name} to find why this packet path "
+            f"{class_instruction}Use the runtime ledger drift evidence for {builder_name} to find why this packet path "
             "returned empty, unprovenanced, or wrong-source facts. Rewrite the source path to pull "
             "from context_source/the business-ops ledger directly, preserve the runtime guard as a "
             "fail-closed backup, and add a regression test proving this drift no longer recurs."
         ),
         "evidence": evidence,
+        "failure_class": "ledger_source_drift",
+        "class_scope": class_scope,
+        "sibling_evidence": siblings if class_scope == "class" else [],
         "ledger_drift_builder_name": builder_name,
         "ledger_drift_count": count,
         "ledger_drift_original_source_refs": original_refs,

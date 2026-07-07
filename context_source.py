@@ -268,7 +268,10 @@ def _append_canonical_facts(
         SELECT fact_id, source_file, section_heading, fact_text, sensitivity_class,
                allowed_actors, doc_category, ingested_at
         FROM canonical_facts
-        ORDER BY COALESCE(ingested_at, '') DESC, fact_id
+        ORDER BY
+          CASE WHEN doc_category = 'build_doctrine' THEN 0 ELSE 1 END,
+          COALESCE(ingested_at, '') DESC,
+          fact_id
         LIMIT 60
         """
     ).fetchall()

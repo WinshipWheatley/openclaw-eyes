@@ -262,6 +262,39 @@ def _detector_payload_has_forbidden_action(payload: Any) -> bool:
     )
 
 
+def _payload_gap_key(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    for key in ("self_improvement_gap_id", "gap_id", "context_gap_id"):
+        value = str(payload.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _payload_class_scope(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return "instance"
+    return "class" if str(payload.get("class_scope") or "").strip().lower() == "class" else "instance"
+
+
+def _active_task_with_gap(conn: sqlite3.Connection, gap_key: str) -> sqlite3.Row | None:
+    if not gap_key:
+        return None
+    rows = conn.execute(
+        """
+        SELECT * FROM tasks
+        WHERE status NOT IN ('DONE', 'BLOCKED', 'DEAD')
+        ORDER BY created_at, id
+        """
+    ).fetchall()
+    for row in rows:
+        payload = _decode_json(row["payload"], {})
+        if _payload_gap_key(payload) == gap_key:
+            return row
+    return None
+
+
 def _default_task_id(task_type: str, payload: dict[str, Any]) -> str:
     if task_type == "agent_heal":
         source_surface = str(payload.get("source_surface") or "").strip().lower()
@@ -658,6 +691,55 @@ class ControlPlaneLedger:
             acceptance_ref_text = acceptance_ref
 
         with self._tx() as conn:
+            gap_key = _payload_gap_key(payload)
+            existing_gap_task = _active_task_with_gap(conn, gap_key)
+            if existing_gap_task is not None and existing_gap_task["id"] != task_id:
+                existing_payload = _decode_json(existing_gap_task["payload"], {})
+                existing_scope = _payload_class_scope(existing_payload)
+                incoming_scope = _payload_class_scope(payload)
+                if incoming_scope == "class":
+                    conn.execute(
+                        """
+                        UPDATE tasks
+                        SET type=?, status=?, source=?, version=version+1, max_attempts=?,
+                            budget_cap=?, acceptance_ref=?, payload=?, proposed_expires_at=?,
+                            dispatchable=?, updated_at=?
+                        WHERE id=?
+                        """,
+                        (
+                            task_type,
+                            status,
+                            source_norm,
+                            max_attempts,
+                            budget_cap,
+                            acceptance_ref_text,
+                            _encode_json(payload),
+                            proposed_expires_at,
+                            dispatchable,
+                            now,
+                            existing_gap_task["id"],
+                        ),
+                    )
+                    self._event(
+                        conn,
+                        task_id=existing_gap_task["id"],
+                        event_type="TASK_CLASS_SCOPE_UPGRADED",
+                        actor=source_norm,
+                        from_status=existing_gap_task["status"],
+                        to_status=status,
+                        detail={"gap_key": gap_key, "preferred_scope": "class"},
+                    )
+                    return str(existing_gap_task["id"])
+                if existing_scope == "class":
+                    self._event(
+                        conn,
+                        task_id=existing_gap_task["id"],
+                        event_type="TASK_DEDUPED",
+                        actor=source_norm,
+                        to_status=existing_gap_task["status"],
+                        detail={"reason": "active_class_scoped_gap_exists", "gap_key": gap_key},
+                    )
+                    return str(existing_gap_task["id"])
             try:
                 conn.execute(
                     """
