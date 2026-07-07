@@ -866,6 +866,141 @@ def test_pgwr_real_frontdoor_packet_flag_on_auto_uses_profile_local_path(tmp_pat
     assert "Winship is the human operator." in outcome.text
 
 
+def test_pgwr_frontdoor_default_timeout_still_attempts_local_model(tmp_path, monkeypatch):
+    import protected_generate as pg
+
+    calls: dict = {}
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", "1")
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_REPLY_TIMEOUT", raising=False)
+    monkeypatch.setattr(pg, "_stage1_validate", lambda _text: (True, True, ()))
+    monkeypatch.setattr(pg, "_live_model_allowed", lambda *a, **k: True)
+    monkeypatch.setattr(chief_llm, "_configured_openrouter_model", lambda: "", raising=False)
+    monkeypatch.setattr(chief_llm, "ollama_is_unreachable", lambda **_k: False, raising=False)
+    monkeypatch.setattr(
+        chief_llm,
+        "select_frontdoor_model",
+        lambda **_k: ("qwen3.5:4b", "frontdoor_largest_fitting"),
+        raising=False,
+    )
+
+    def fake_ollama(prompt, **kwargs):
+        calls["prompt"] = prompt
+        calls["kwargs"] = kwargs
+        return {
+            "text": "Tonight: review the invoice thread and the calendar hold. You need the St Anne's decision.",
+            "done_reason": "stop",
+            "elapsed_ms": 39,
+        }
+
+    monkeypatch.setattr(chief_llm, "ollama_call", fake_ollama)
+
+    outcome = protected_generate_with_receipt(
+        "what's on my plate tonight, and what actually needs me?",
+        context_packet=_FRONTDOOR_PACKET,
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=True,
+    )
+
+    assert calls["kwargs"]["timeout"] == pg.DEFAULT_LOCAL_TIMEOUT_SECONDS
+    assert outcome.receipt["model_call_attempted"] is True
+    assert outcome.receipt["model_call_performed"] is True
+    assert outcome.receipt["local_model_invoked"] is True
+    assert outcome.receipt["model_fallback_reason"] == "model_ok"
+    assert outcome.receipt["model_timeout_s"] == pg.DEFAULT_LOCAL_TIMEOUT_SECONDS
+    assert "Tonight:" in outcome.text
+
+
+def test_frontdoor_grounded_fallback_does_not_recite_stale_raw_operator_notes(tmp_path):
+    packet = {
+        "schema_version": "maestro_context_packet_v0",
+        "packet_id": "maestro_context_packet:plate",
+        "facts": [
+            {
+                "fact_id": "operator_truth:stale_note",
+                "topic": "operator_truth",
+                "label": "St Anne's stale paid-up note",
+                "value": "I'm actually all paid up with St Annes; papa rapper; tonight that is a",
+                "raw_operator_note": True,
+                "verbatim_readback": False,
+                "current_truth": False,
+                "source_ref": "telegram:test:stale",
+                "ledger_provenance": make_ledger_provenance(
+                    source_table="operator_truth",
+                    source_id="stale_note",
+                    db_path="test-ledger.sqlite",
+                ),
+            },
+            {
+                "fact_id": "receivable_temporal_state:st_annes",
+                "topic": "receivable_temporal_state",
+                "label": "St Anne's current receivable state",
+                "value": "Tonight needs operator review: St Anne's current receivable state is invoice_due; open_receivables=one July invoice.",
+                "current_truth": True,
+                "source_ref": "gig_to_cash:test",
+                "ledger_provenance": make_ledger_provenance(
+                    source_table="receivable_temporal_state",
+                    source_id="st_annes",
+                    db_path="test-ledger.sqlite",
+                ),
+            },
+        ],
+    }
+
+    outcome = protected_generate_with_receipt(
+        "what's on my plate tonight, and what actually needs me?",
+        context_packet=packet,
+        generator_fn=_gen_returning("Model started an answer that is a", done_reason="length"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+    )
+
+    lowered = outcome.text.lower()
+    assert "i'm actually all paid up" not in lowered
+    assert "papa rapper" not in lowered
+    assert "that is a" not in lowered
+    assert "invoice_due" in outcome.text
+    assert outcome.receipt["model_fallback_reason"] == "truncated"
+    assert outcome.receipt["delivered_response_source"] == "grounded_fallback"
+
+
+def test_frontdoor_grounded_fallback_never_emits_dangling_fact_text(tmp_path):
+    packet = {
+        "schema_version": "maestro_context_packet_v0",
+        "packet_id": "maestro_context_packet:truncated-fallback",
+        "facts": [
+            {
+                "fact_id": "plate:truncated",
+                "topic": "personal_agenda",
+                "label": "Tonight plate",
+                "value": "Tonight's plate needs a",
+                "source_ref": "generated/read_models/personal_agenda.json",
+                "ledger_provenance": make_ledger_provenance(
+                    source_table="personal_agenda",
+                    source_id="truncated",
+                    db_path="test-ledger.sqlite",
+                ),
+            }
+        ],
+    }
+
+    outcome = protected_generate_with_receipt(
+        "what's on my plate tonight?",
+        context_packet=packet,
+        generator_fn=_gen_returning("Model answer also ended on a", done_reason="length"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+    )
+
+    assert "is a." not in outcome.text
+    assert "ended on a" not in outcome.text
+    assert "needs a." not in outcome.text.lower()
+    assert outcome.receipt["model_fallback_reason"] == "truncated"
+    assert outcome.receipt["response_truncated"] is True
+    assert outcome.text.endswith(".")
+
+
 def test_pgwr_frontdoor_low_vram_steps_down_and_delivers_model(tmp_path, monkeypatch):
     import protected_generate as pg
     import frontdoor_resource_probe as frp

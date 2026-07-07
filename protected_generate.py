@@ -658,6 +658,14 @@ def _fact_match_score(fact: Mapping[str, Any], terms: set[str], *, allow_system_
     return score
 
 
+def _fallback_fact_eligible(fact: Mapping[str, Any]) -> bool:
+    if fact.get("current_truth") is False:
+        return False
+    if fact.get("raw_operator_note") and fact.get("verbatim_readback") is False:
+        return False
+    return True
+
+
 def _clean_answer_value(value: object) -> str:
     chunks = []
     for chunk in _SENTENCE_SPLIT_RE.split(str(value or "")):
@@ -674,13 +682,21 @@ def _clean_answer_value(value: object) -> str:
 
 
 def _format_answer_fact(fact: Mapping[str, Any]) -> str:
+    if not _fallback_fact_eligible(fact):
+        return ""
     label = str(fact.get("label") or "").strip()
     value = _clean_answer_value(fact.get("value"))
     if not value:
         return ""
     if label and label.lower() not in value.lower():
-        return f"{label}: {value}."
-    return value.rstrip(".") + "."
+        sentence = f"{label}: {value}."
+    else:
+        sentence = value.rstrip(".") + "."
+    return sentence if _is_complete_utterance(sentence) else ""
+
+
+def _eligible_fallback_facts(facts: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    return [fact for fact in facts if _fallback_fact_eligible(fact)]
 
 
 # 000h: gig/day/schedule questions must answer from the calendar, never from a
@@ -774,7 +790,7 @@ def _is_finance_intent(prompt: str) -> bool:
 def _schedule_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
     matched: list[str] = []
     seen: set[str] = set()
-    for fact in facts:
+    for fact in _eligible_fallback_facts(facts):
         if str(fact.get("topic") or "").strip().lower() not in _SCHEDULE_ANSWER_TOPICS:
             continue
         sentence = _format_answer_fact(fact)
@@ -828,7 +844,7 @@ def _social_backstop(prompt: str) -> str:
 def _finance_grounded_answer(facts: list[Mapping[str, Any]]) -> str | None:
     matched: list[str] = []
     seen: set[str] = set()
-    for fact in facts:
+    for fact in _eligible_fallback_facts(facts):
         if str(fact.get("topic") or "").strip().lower() not in _FINANCE_ANSWER_TOPICS:
             continue
         sentence = _format_answer_fact(fact)
@@ -885,6 +901,7 @@ def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | s
         return _social_backstop(prompt)
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
+    facts = _eligible_fallback_facts(facts)
 
     if _is_schedule_intent(prompt):
         scheduled = _schedule_grounded_answer(facts)
@@ -1222,6 +1239,8 @@ def protected_generate_with_receipt(
         fd_interactive_timeout_s <= 0 or fd_interactive_timeout_s > MAX_FRONTDOOR_TIMEOUT_SECONDS
     ):
         fd_interactive_timeout_s = None
+    if front_door_profile and fd_interactive_timeout_s is None:
+        fd_interactive_timeout_s = DEFAULT_LOCAL_TIMEOUT_SECONDS
     fd_num_predict = num_predict if num_predict is not None else (_frontdoor_num_predict() if front_door_profile else None)
     fd_model_think = model_think if model_think is not None else (False if front_door_profile else None)
     fd_ollama_options = _frontdoor_ollama_options() if front_door_profile else {}
