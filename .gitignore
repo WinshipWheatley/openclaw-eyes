@@ -1364,10 +1364,14 @@ generated/system_knowledge/*.sqlite
 !tests/test_clara_invoice_minor_units.py
 !temporal_recurrence_registry.py
 !receivable_temporal_scoping.py
+!autonomous_invoice_prep_scheduler.py
 !tests/test_temporal_recurrence_registry.py
 !tests/test_receivable_temporal_scoping.py
+!tests/test_autonomous_invoice_prep_scheduler.py
 !tests/test_paid_up_interpreter_contract.py
 !tests/test_maestro_packet_freshness_antirecite.py
+!systemd/user/openclaw-autonomous-invoice-prep.service.in
+!systemd/user/openclaw-autonomous-invoice-prep.timer.in
 !agent_build_request_flow.py
 !polish_loop/build_request_intake.py
 !tests/test_agent_build_request_flow.py
