@@ -31,12 +31,14 @@ SCHEMA_VERSION = "maestro_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
+CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL = "client_invoice_workflow_framework.json"
 KNOWN_READ_MODELS = (
     "agent_presence.json",
     "openclaw_capability_index.json",
     "chief_status_rail.json",
     "openclaw_change_sentinel.json",
     "finance_invoice_reconciliation.json",
+    CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL,
     "capital_hilton_invoice_operator_readback.json",
     "capital_hilton_invoice_operator_run_status.json",
     "cassandra_email_calendar_delta_detangle.json",
@@ -690,6 +692,136 @@ def _contacts_registry_facts(question: str) -> tuple[list[dict[str, Any]], dict[
     return facts, proof
 
 
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value or "").strip().lower()
+    return text in {"1", "true", "yes", "y", "required"}
+
+
+def _recipe_selected_rail_refs(recipe: Mapping[str, Any]) -> set[str]:
+    selected = recipe.get("selected_rails")
+    if not isinstance(selected, Sequence) or isinstance(selected, (str, bytes)):
+        return set()
+    refs: set[str] = set()
+    for item in selected:
+        if not isinstance(item, Mapping):
+            continue
+        rail_ref = str(item.get("rail_ref") or "").strip()
+        if rail_ref:
+            refs.add(rail_ref)
+    return refs
+
+
+def _recipe_coupa_evidence(recipe: Mapping[str, Any], portal: Mapping[str, Any]) -> str:
+    payment = (
+        recipe.get("client_specific_payment_expectations")
+        if isinstance(recipe.get("client_specific_payment_expectations"), Mapping)
+        else {}
+    )
+    bits = [
+        portal.get("supplier_portal_provider"),
+        portal.get("portal_provider"),
+        portal.get("provider_display_name"),
+        portal.get("portal_ref"),
+        payment.get("expected_payment_signal") if isinstance(payment, Mapping) else "",
+    ]
+    selected = recipe.get("selected_rails")
+    if isinstance(selected, Sequence) and not isinstance(selected, (str, bytes)):
+        for item in selected:
+            if isinstance(item, Mapping):
+                bits.append(item.get("recipe_notes"))
+                bits.append(item.get("rail_ref"))
+    return " ".join(str(bit or "") for bit in bits)
+
+
+def _client_invoice_billing_channel_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL
+    source_ref = _display_read_model_ref(path)
+    recipes = payload.get("recipes")
+    proof: dict[str, Any] = {
+        "client_invoice_workflow_framework_used_for_billing_channels": False,
+        "client_billing_channel_fact_count": 0,
+        "client_billing_channel_clients": [],
+    }
+    if not isinstance(recipes, Sequence) or isinstance(recipes, (str, bytes)):
+        return [], proof
+
+    facts: list[dict[str, Any]] = []
+    for recipe in recipes:
+        if not isinstance(recipe, Mapping):
+            continue
+        client_ref = str(recipe.get("client_ref") or "").strip()
+        display = str(recipe.get("client_display_name") or client_ref.replace("_", " ").title()).strip()
+        portal = (
+            recipe.get("client_specific_portal_requirements")
+            if isinstance(recipe.get("client_specific_portal_requirements"), Mapping)
+            else {}
+        )
+        selected_rails = _recipe_selected_rail_refs(recipe)
+        supplier_portal_required = _truthy(portal.get("supplier_portal_required")) or (
+            "supplier_portal_rail" in selected_rails
+        )
+        purchase_order_required = (
+            _truthy(portal.get("purchase_order_required"))
+            or _truthy(portal.get("requires_purchase_order"))
+            or "purchase_order_rail" in selected_rails
+        )
+        coupa_evidence = _recipe_coupa_evidence(recipe, portal).lower()
+        uses_coupa = supplier_portal_required and "coupa" in coupa_evidence
+        portal_ref = str(portal.get("portal_ref") or "").strip() or "none"
+
+        if uses_coupa:
+            channel_sentence = (
+                f"{display} uses Coupa for its client invoice recipe; "
+                f"supplier_portal_required=true; purchase_order_required={str(purchase_order_required).lower()}; "
+                f"portal_ref={portal_ref}."
+            )
+        else:
+            channel_sentence = (
+                f"{display} does not use Coupa by default; "
+                f"supplier_portal_required={str(supplier_portal_required).lower()}; "
+                f"purchase_order_required={str(purchase_order_required).lower()}; portal_ref={portal_ref}; "
+                "use the non-Coupa client invoice recipe until a client-specific portal requirement is configured."
+            )
+
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="client_billing_channel",
+            label=f"{display} billing channel",
+            value=channel_sentence,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=_freshness(path, payload),
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "client_ref": client_ref,
+                    "uses_coupa": uses_coupa,
+                    "supplier_portal_required": supplier_portal_required,
+                    "purchase_order_required": purchase_order_required,
+                    "portal_ref": portal_ref,
+                    "authority_source": "client_invoice_workflow_framework.recipes",
+                    "current_truth": True,
+                }
+            )
+
+    proof["client_invoice_workflow_framework_used_for_billing_channels"] = bool(facts)
+    proof["client_billing_channel_fact_count"] = len(facts)
+    proof["client_billing_channel_clients"] = [
+        str(fact.get("client_ref") or "") for fact in facts if str(fact.get("client_ref") or "").strip()
+    ]
+    return facts, proof
+
+
 def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
@@ -808,6 +940,12 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             pii_tier="LIGHT",
             freshness=_freshness(root / "finance_invoice_reconciliation.json", finance),
         )
+
+    invoice_framework = payloads.get(CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL, {})
+    if invoice_framework:
+        billing_facts, billing_proof = _client_invoice_billing_channel_facts(root, invoice_framework)
+        facts.extend(billing_facts)
+        proof.update(billing_proof)
 
     cap_run = payloads.get("capital_hilton_invoice_operator_run_status.json", {})
     if cap_run:
