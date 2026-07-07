@@ -1481,6 +1481,121 @@ def test_process_inbound_email_replies_uses_open_ended_model_path_for_simple_con
     assert scheduled["body"] == "That sounds great — I'm looking forward to it too."
 
 
+def test_process_inbound_email_replies_degraded_path_still_logs_conversation(tmp_path, monkeypatch):
+    """Task 131: a degraded (empty) model response used to vanish -- the operator-facing
+    Telegram status went out, but nothing landed in cassandra_conversations.jsonl, a trace
+    blindspot when the real cause is model-slot contention, not a genuine capability gap."""
+    import cassandra_brain
+    import cassandra_outreach
+
+    nicknames_path = tmp_path / "contact_nicknames.json"
+    bridge_log = tmp_path / "cassandra_email_bridge.jsonl"
+    analysis_log = tmp_path / "cassandra_email_thread_analysis.jsonl"
+    thread_state = tmp_path / "cassandra_email_thread_state.json"
+    correspondence_log = tmp_path / "cassandra_correspondence.jsonl"
+    convo_log = tmp_path / "cassandra_conversations.jsonl"
+    nicknames_path.write_text(
+        json.dumps(
+            {
+                "draper": {
+                    "name": "Draper Carter",
+                    "tier": "inner_circle",
+                    "pinned_email": "draper@example.com",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    correspondence_log.write_text(
+        json.dumps(
+            {
+                "ts": "2026-04-16 22:47:35",
+                "recipient": "draper@example.com",
+                "recipient_email": "draper@example.com",
+                "state": "sent_confirmed",
+                "subject": "Studio catch-up",
+                "thread_id": "t3",
+                "route": "email_send",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(cassandra_brain, "_NICKNAMES_PATH", nicknames_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_EMAIL_BRIDGE_LOG", bridge_log, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_EMAIL_THREAD_ANALYSIS_LOG", analysis_log, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_EMAIL_THREAD_STATE", thread_state, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_CORRESPONDENCE_LOG", correspondence_log, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_INBOUND_EMAIL_REPLY_LOCK", tmp_path / "reply.lock", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_CONVO_LOG", convo_log, raising=False)
+
+    def fake_call(prompt, **kwargs):
+        # Simulate model-slot contention/degradation: an honest empty response.
+        return ""
+
+    monkeypatch.setattr(cassandra_brain, "_call", fake_call, raising=False)
+
+    notifications = []
+    monkeypatch.setattr("cassandra_sender.send_message", lambda text, chat_id=None: notifications.append(text), raising=False)
+
+    def fake_broker(agent, capability, params):
+        if capability == "google.gmail.read.metadata":
+            return {
+                "ok": True,
+                "data": [
+                    {
+                        "message_id": "m3",
+                        "thread_id": "t3",
+                        "from_name": "Draper Carter",
+                        "from_email": "draper@example.com",
+                        "subject": "Re: Studio catch-up",
+                        "date_raw": "Thu, 16 Apr 2026 23:11:06 -0400",
+                        "in_reply_to": "<draft-m3@example.com>",
+                        "references": "",
+                        "labels": ["INBOX", "UNREAD"],
+                        "snippet": "Tuesday works great. Looking forward to it.",
+                    }
+                ],
+                "error": "",
+            }
+        assert capability == "google.gmail.read.body"
+        return {
+            "ok": True,
+            "data": {
+                "thread_id": "t3",
+                "messages": [
+                    {
+                        "message_id": "m3",
+                        "thread_id": "t3",
+                        "from_name": "Draper Carter",
+                        "from_email": "draper@example.com",
+                        "subject": "Re: Studio catch-up",
+                        "date_raw": "Thu, 16 Apr 2026 23:11:06 -0400",
+                        "internal_date": "1776395466000",
+                        "body_text": "Tuesday works great. Looking forward to it.",
+                        "snippet": "Tuesday works great. Looking forward to it.",
+                    }
+                ],
+            },
+            "error": "",
+        }
+
+    monkeypatch.setattr(cassandra_brain, "broker_call", fake_broker, raising=False)
+
+    processed = cassandra_brain.process_inbound_email_replies()
+
+    assert processed == [{"message_id": "m3", "status": "no_draft_path", "drafted": False}]
+    assert notifications, "operator-facing Telegram status must still go out"
+    assert convo_log.exists(), "the degraded path must land in the conversation trace"
+    lines = [json.loads(line) for line in convo_log.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert lines, "expected at least one degraded-path conversation log entry"
+    entry = lines[-1]
+    assert entry["route"] == "degraded_model_path"
+    assert entry.get("message_id") == "m3"
+    assert entry.get("status") == "no_draft_path"
+
+
 def test_process_inbound_email_replies_is_idempotent_across_repeat_polls(tmp_path, monkeypatch):
     import cassandra_brain
     import cassandra_outreach
