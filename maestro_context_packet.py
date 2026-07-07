@@ -37,6 +37,10 @@ KNOWN_READ_MODELS = (
     "openclaw_capability_index.json",
     "chief_status_rail.json",
     "openclaw_change_sentinel.json",
+    "operator_attention_delivery_contract.json",
+    "helm_operator_attention_package.json",
+    "autonomous_followup_watch_attention.json",
+    "st_annes_receivable_state.json",
     "finance_invoice_reconciliation.json",
     CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL,
     "capital_hilton_invoice_operator_readback.json",
@@ -594,6 +598,129 @@ def _resolve_operator_truth_drift(
     return resolved
 
 
+_MONTH_BOUND_RE = re.compile(
+    r"\b(month|january|february|march|april|may|june|july|august|september|october|november|december)\b",
+    re.IGNORECASE,
+)
+_RECEIVABLE_STATUS_QUESTION_RE = re.compile(
+    r"(\breceivables?\b|\bowe[ds]?\b|\bpaid\s+up\b|\bcaught\s+up\b|\bsettled?\b|\bsettlement\b|\bunpaid\b)",
+    re.IGNORECASE,
+)
+_MONEY_STATUS_VALUE_RE = re.compile(
+    r"(\$|\bpaid\b|\bpaid\s+up\b|\bowes?\b|\binvoice\b|\breceivable\b|\bsettled\b|\bunpaid\b|\bdue\b)",
+    re.IGNORECASE,
+)
+
+
+def _fact_as_of(fact: Mapping[str, Any]) -> str:
+    direct = str(fact.get("as_of") or fact.get("refined_as_of") or "").strip()
+    if direct:
+        return direct
+    freshness = fact.get("freshness") if isinstance(fact.get("freshness"), Mapping) else {}
+    return str(freshness.get("as_of") or "").strip()
+
+
+def _question_needs_money_status_data(question: str) -> bool:
+    text = str(question or "")
+    if _RECEIVABLE_STATUS_QUESTION_RE.search(text):
+        return True
+    if _MONTH_BOUND_RE.search(text) and re.search(r"\b(invoice|invoices|money|due)\b", text, re.IGNORECASE):
+        return True
+    return False
+
+
+def _fact_is_money_status_fact(fact: Mapping[str, Any]) -> bool:
+    topic = str(fact.get("topic") or "").lower()
+    if any(token in topic for token in ("money", "invoice", "receivable", "settlement", "finance")):
+        return True
+    value = " ".join(str(fact.get(key) or "") for key in ("label", "value")).lower()
+    return bool(_MONEY_STATUS_VALUE_RE.search(value))
+
+
+def _fact_is_structured_money_status(fact: Mapping[str, Any]) -> bool:
+    if fact.get("needs_operator_review"):
+        return False
+    if str(fact.get("topic") or "") == "receivable_temporal_state" and _fact_as_of(fact):
+        return True
+    return bool(fact.get("structured_fact") is True and _fact_as_of(fact))
+
+
+def _money_not_tracked_label(question: str) -> str:
+    lowered = str(question or "").lower()
+    if "receivable" in lowered or "owe" in lowered or "owed" in lowered:
+        return "month-bounded receivables"
+    if "invoice" in lowered:
+        return "invoice status"
+    if "settle" in lowered or "paid" in lowered or "caught up" in lowered:
+        return "settlement status"
+    return "money/status data"
+
+
+def _anti_launder_not_tracked_fact(question: str, *, as_of: str, dropped_count: int) -> dict[str, Any]:
+    label = _money_not_tracked_label(question)
+    return {
+        "fact_id": f"money_not_tracked:{_short_hash((question, as_of, dropped_count))}",
+        "topic": "money_not_tracked",
+        "label": "Money/status data not tracked",
+        "value": f"not tracked: {label} (no structured fact with as_of is available).",
+        "provenance": "money_status_anti_launder_guard",
+        "source_ref": "maestro_context_packet:money_status_anti_launder_guard",
+        "pii_tier": "PUBLIC",
+        "structured_fact": True,
+        "as_of": as_of,
+        "dropped_unstructured_money_fact_count": dropped_count,
+    }
+
+
+def _apply_money_status_anti_launder_guard(
+    facts: Sequence[Mapping[str, Any]],
+    *,
+    question: str,
+    session: Mapping[str, Any] | None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if not _question_needs_money_status_data(question):
+        return [dict(fact) for fact in facts], {
+            "money_status_anti_launder_guard_applied": False,
+            "money_status_unstructured_facts_dropped": 0,
+            "money_status_not_tracked_marker_added": False,
+        }
+
+    kept: list[dict[str, Any]] = []
+    dropped = 0
+    structured_money_facts = 0
+    for fact in facts:
+        cloned = dict(fact)
+        if not _fact_is_money_status_fact(cloned):
+            kept.append(cloned)
+            continue
+        if _fact_is_structured_money_status(cloned):
+            structured_money_facts += 1
+            if _fact_as_of(cloned):
+                cloned["as_of"] = _fact_as_of(cloned)
+            kept.append(cloned)
+        else:
+            dropped += 1
+
+    marker_added = False
+    if structured_money_facts == 0:
+        kept.insert(
+            0,
+            _anti_launder_not_tracked_fact(
+                question,
+                as_of=_as_of_date_from_session(session).isoformat(),
+                dropped_count=dropped,
+            ),
+        )
+        marker_added = True
+
+    return kept, {
+        "money_status_anti_launder_guard_applied": True,
+        "money_status_structured_fact_count": structured_money_facts,
+        "money_status_unstructured_facts_dropped": dropped,
+        "money_status_not_tracked_marker_added": marker_added,
+    }
+
+
 def _contacts_db_path() -> str:
     try:
         from contacts_registry import DEFAULT_CONTACTS_DB_PATH
@@ -661,7 +788,7 @@ def _contacts_registry_facts(question: str) -> tuple[list[dict[str, Any]], dict[
     if client_slugs:
         for slug in client_slugs:
             selected.extend(registry.get_contacts_for_client(slug))
-    elif re.search(r"\b(contact|person|people|who is|who's|who do i talk to)\b", str(question or ""), re.IGNORECASE):
+    elif re.search(r"\b(contacts?|person|people|who is|who's|who do i talk to)\b", str(question or ""), re.IGNORECASE):
         selected = all_contacts
 
     deduped: list[dict[str, Any]] = []
@@ -822,6 +949,257 @@ def _client_invoice_billing_channel_facts(
     return facts, proof
 
 
+def _iter_named_mappings(value: Any) -> list[tuple[str, Mapping[str, Any]]]:
+    rows: list[tuple[str, Mapping[str, Any]]] = []
+    if isinstance(value, Mapping):
+        for key, row in value.items():
+            if isinstance(row, Mapping):
+                rows.append((str(key), row))
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for index, row in enumerate(value):
+            if isinstance(row, Mapping):
+                row_id = str(row.get("attention_id") or row.get("card_ref") or row.get("id") or index)
+                rows.append((row_id, row))
+    return rows
+
+
+def _first_text(row: Mapping[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = str(row.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _join_parts(*parts: object) -> str:
+    return "; ".join(str(part).strip() for part in parts if str(part or "").strip())
+
+
+def _operator_attention_delivery_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / "operator_attention_delivery_contract.json"
+    source_ref = _display_read_model_ref(path)
+    rows = _iter_named_mappings(payload.get("surfaced_attention_items") or payload.get("attention_items"))
+    facts: list[dict[str, Any]] = []
+    for item_id, row in rows[:8]:
+        message = _first_text(row, "human_message", "operator_summary", "summary", "title")
+        guidance = _first_text(row, "concise_spoken_guidance", "next_safe_move", "primary_human_action_label")
+        if not message and not guidance:
+            continue
+        actor = _first_text(row, "actor_label", "agent_id")
+        urgency = _first_text(row, "urgency_level", "severity", "priority")
+        reason = _first_text(row, "reason_for_attention", "attention_reason", "reason")
+        value = _join_parts(
+            actor and f"{actor} attention",
+            message,
+            guidance and f"next: {guidance}",
+            reason and f"reason: {reason}",
+            urgency and f"urgency: {urgency}",
+            row.get("client_ref") and f"client_ref={row.get('client_ref')}",
+            "send_allowed=false",
+            "external_action_allowed=false",
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="operator_attention",
+            label=f"Operator attention item: {item_id}",
+            value=value,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=_freshness(path, payload),
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "attention_item_id": item_id,
+                    "client_ref": str(row.get("client_ref") or ""),
+                    "workflow_ref": str(row.get("workflow_ref") or ""),
+                    "operator_action_required": True,
+                    "email_send_allowed": bool(row.get("email_send_allowed")),
+                    "external_action_allowed": bool(row.get("external_action_allowed")),
+                    "current_truth": True,
+                }
+            )
+    return facts, {"operator_attention_delivery_fact_count": len(facts)}
+
+
+def _helm_operator_attention_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / "helm_operator_attention_package.json"
+    source_ref = _display_read_model_ref(path)
+    cards = _iter_named_mappings(payload.get("primary_cards"))
+    facts: list[dict[str, Any]] = []
+    for card_id, row in cards[:6]:
+        summary = _first_text(row, "operator_summary", "summary", "title", "headline")
+        next_move = _first_text(row, "safe_next_move", "next_safe_move")
+        if not summary and not next_move:
+            continue
+        value = _join_parts(
+            summary,
+            next_move and f"next: {next_move}",
+            row.get("actionability") and f"actionability={row.get('actionability')}",
+            "send_allowed=false",
+            "ledger_mutation_allowed=false",
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="operator_attention",
+            label=f"Helm primary attention card: {card_id}",
+            value=value,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=_freshness(path, payload),
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "attention_item_id": card_id,
+                    "operator_action_required": True,
+                    "current_truth": True,
+                }
+            )
+    return facts, {"helm_operator_attention_fact_count": len(facts)}
+
+
+def _autonomous_followup_attention_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / "autonomous_followup_watch_attention.json"
+    source_ref = _display_read_model_ref(path)
+    rows: list[tuple[str, Mapping[str, Any]]] = []
+    for key in ("attention_items", "items", "due_items", "followup_items", "follow_up_items"):
+        rows.extend(_iter_named_mappings(payload.get(key)))
+    facts: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item_id, row in rows:
+        if item_id in seen or len(facts) >= 8:
+            continue
+        seen.add(item_id)
+        summary = _first_text(row, "summary", "human_message", "operator_summary", "title")
+        next_move = _first_text(row, "next_safe_move", "next_move", "action")
+        if not summary and not next_move:
+            continue
+        value = _join_parts(
+            summary,
+            next_move and f"next: {next_move}",
+            row.get("client_ref") and f"client_ref={row.get('client_ref')}",
+            "review_only=true",
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="operator_attention",
+            label=f"Autonomous follow-up attention: {item_id}",
+            value=value,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=_freshness(path, payload),
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "attention_item_id": item_id,
+                    "client_ref": str(row.get("client_ref") or ""),
+                    "operator_action_required": bool(row.get("requires_operator", True)),
+                    "current_truth": True,
+                }
+            )
+    return facts, {"autonomous_followup_attention_fact_count": len(facts)}
+
+
+def _st_annes_receivable_state_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / "st_annes_receivable_state.json"
+    source_ref = _display_read_model_ref(path)
+    summary = _first_text(payload, "summary", "operator_summary", "status_summary")
+    next_move = _first_text(payload, "next_safe_move", "follow_up", "action")
+    status = _first_text(payload, "paid_up_status", "status", "workflow_stage")
+    if not summary and not next_move and not status:
+        return [], {"st_annes_receivable_state_fact_count": 0}
+    facts: list[dict[str, Any]] = []
+    value = _join_parts(
+        status and f"status={status}",
+        summary,
+        next_move and f"next: {next_move}",
+        f"send_hold_active={bool(payload.get('send_hold_active', True))}",
+        f"ledger_mutation_allowed={bool(payload.get('ledger_mutation_allowed', False))}",
+    )
+    _append_fact(
+        facts,
+        topic="receivable_attention",
+        label="St. Anne's receivable attention state",
+        value=value,
+        provenance="generated_read_model",
+        source_ref=source_ref,
+        pii_tier="LIGHT",
+        freshness=_freshness(path, payload),
+    )
+    if facts:
+        action_text = f"{status} {summary} {next_move}".lower()
+        facts[-1].update(
+            {
+                "client_ref": str(payload.get("client_ref") or "st_annes"),
+                "paid_up_status": status,
+                "operator_action_required": "due" in action_text or "follow" in action_text,
+                "current_truth": True,
+            }
+        )
+    return facts, {"st_annes_receivable_state_fact_count": len(facts)}
+
+
+def _generic_gig_read_model_facts(root: Path, known_payloads: Mapping[str, Mapping[str, Any]]) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
+    facts: list[dict[str, Any]] = []
+    refs: list[str] = []
+    seen_paths: set[Path] = set()
+    for pattern in ("*gig*.json", "*schedule*.json"):
+        for path in sorted(root.glob(pattern)):
+            if path.name == "reynolds_gig_setup_status.json" or path in seen_paths:
+                continue
+            seen_paths.add(path)
+            payload = dict(known_payloads.get(path.name) or _read_json(path))
+            if not payload:
+                continue
+            rows: list[Mapping[str, Any]] = []
+            for key in ("gigs", "events", "schedule", "items", "upcoming_gigs"):
+                value = payload.get(key)
+                if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+                    rows.extend(row for row in value if isinstance(row, Mapping))
+            if not rows and any(key in payload for key in ("title", "date", "venue", "status")):
+                rows.append(payload)
+            source_ref = _display_read_model_ref(path)
+            refs.append(source_ref)
+            for index, row in enumerate(rows[:8]):
+                title = _first_text(row, "title", "gig_title", "name", "event_name")
+                when = _first_text(row, "date", "start", "starts_at", "start_time")
+                venue = _first_text(row, "venue", "venue_name", "location")
+                status = _first_text(row, "status", "state")
+                if not any((title, when, venue, status)):
+                    continue
+                _append_fact(
+                    facts,
+                    topic="gig_schedule",
+                    label=f"Gig schedule item: {_first_text(row, 'gig_id', 'id') or index}",
+                    value=_join_parts(title, when and f"date={when}", venue and f"venue={venue}", status and f"status={status}"),
+                    provenance="generated_read_model",
+                    source_ref=source_ref,
+                    pii_tier="LIGHT",
+                    freshness=_freshness(path, payload),
+                )
+    return facts, refs, {"generic_gig_read_model_fact_count": len(facts)}
+
+
 def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
@@ -900,6 +1278,30 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             source_ref=_display_read_model_ref(root / "chief_status_rail.json"),
             freshness=_freshness(root / "chief_status_rail.json", chief),
         )
+
+    attention_delivery = payloads.get("operator_attention_delivery_contract.json", {})
+    if attention_delivery:
+        attention_facts, attention_proof = _operator_attention_delivery_facts(root, attention_delivery)
+        facts.extend(attention_facts)
+        proof.update(attention_proof)
+
+    helm_attention = payloads.get("helm_operator_attention_package.json", {})
+    if helm_attention:
+        helm_facts, helm_proof = _helm_operator_attention_facts(root, helm_attention)
+        facts.extend(helm_facts)
+        proof.update(helm_proof)
+
+    followup_attention = payloads.get("autonomous_followup_watch_attention.json", {})
+    if followup_attention:
+        followup_facts, followup_proof = _autonomous_followup_attention_facts(root, followup_attention)
+        facts.extend(followup_facts)
+        proof.update(followup_proof)
+
+    st_annes_receivable = payloads.get("st_annes_receivable_state.json", {})
+    if st_annes_receivable:
+        receivable_facts, receivable_proof = _st_annes_receivable_state_facts(root, st_annes_receivable)
+        facts.extend(receivable_facts)
+        proof.update(receivable_proof)
 
     sentinel = payloads.get("openclaw_change_sentinel.json", {})
     summary = sentinel.get("hermes_summary") if isinstance(sentinel.get("hermes_summary"), Mapping) else {}
@@ -1076,6 +1478,11 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             source_ref=_display_read_model_ref(root / "reynolds_gig_setup_status.json"),
             freshness=_freshness(root / "reynolds_gig_setup_status.json", reynolds),
         )
+
+    generic_gig_facts, generic_gig_refs, generic_gig_proof = _generic_gig_read_model_facts(root, payloads)
+    facts.extend(generic_gig_facts)
+    refs.extend(generic_gig_refs)
+    proof.update(generic_gig_proof)
 
     niles_review = payloads.get("niles_album_review_packet.json", {})
     if niles_review:
@@ -1495,15 +1902,37 @@ def _sqlite_canonical_facts(
             conn.close()
             return []
 
+        existing_columns = {
+            str(row["name"])
+            for row in conn.execute("PRAGMA table_info(canonical_facts)").fetchall()
+        }
+        optional_columns = []
+        for column in (
+            "refined_entity",
+            "refined_claim",
+            "refined_amount",
+            "refined_due_date",
+            "refined_status",
+            "refined_as_of",
+            "provenance_raw_sha256",
+            "needs_operator_review",
+            "refinement_status",
+        ):
+            if column in existing_columns:
+                optional_columns.append(column)
+            else:
+                optional_columns.append(f"NULL AS {column}")
+
         # 3. Fetch full rows for candidates; apply allowed_actors filter; dedupe
         results: list[dict[str, Any]] = []
         for fact_id in candidate_ids:
             if len(results) >= limit:
                 break
             row = conn.execute(
-                """SELECT fact_text, sensitivity_class, allowed_actors, doc_category,
-                          section_heading, source_file, content_hash, temporal_or_doctrine
-                   FROM canonical_facts WHERE fact_id = ? LIMIT 1""",
+                f"""SELECT fact_text, sensitivity_class, allowed_actors, doc_category,
+                           section_heading, source_file, content_hash, temporal_or_doctrine,
+                           {", ".join(optional_columns)}
+                    FROM canonical_facts WHERE fact_id = ? LIMIT 1""",
                 (fact_id,),
             ).fetchone()
             if row is None:
@@ -1537,6 +1966,27 @@ def _sqlite_canonical_facts(
                 provenance="canonical_facts",
                 pii_tier=pii_tier,
             )
+            if fact_list:
+                fact_list[-1].update(
+                    {
+                        "structured_fact": bool(
+                            row["refined_entity"]
+                            and row["refined_claim"]
+                            and row["refined_status"]
+                            and row["refined_as_of"]
+                            and not row["needs_operator_review"]
+                        ),
+                        "needs_operator_review": bool(row["needs_operator_review"]),
+                        "refinement_status": str(row["refinement_status"] or ""),
+                        "refined_entity": str(row["refined_entity"] or ""),
+                        "refined_claim": str(row["refined_claim"] or ""),
+                        "refined_amount": str(row["refined_amount"] or ""),
+                        "refined_due_date": str(row["refined_due_date"] or ""),
+                        "refined_status": str(row["refined_status"] or ""),
+                        "as_of": str(row["refined_as_of"] or ""),
+                        "provenance_raw_sha256": str(row["provenance_raw_sha256"] or ""),
+                    }
+                )
             results.extend(fact_list)
 
         conn.close()
@@ -1672,6 +2122,12 @@ def build_maestro_context_packet(
         for skill in applied_skills
     ]
 
+    facts, money_status_guard_proof = _apply_money_status_anti_launder_guard(
+        facts,
+        question=question,
+        session=session,
+    )
+
     facts = annotate_facts_with_ledger_provenance(
         facts,
         builder_name="maestro_context_packet.build_maestro_context_packet",
@@ -1738,6 +2194,7 @@ def build_maestro_context_packet(
                 facts=facts,
             ),
             **receivable_temporal_proof,
+            **money_status_guard_proof,
             **contacts_proof,
             **read_model_proof,
         },
@@ -1838,6 +2295,9 @@ def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
         provenance = str(fact.get("provenance") or "")
         tier = str(fact.get("pii_tier") or "PUBLIC")
         handling = ""
+        as_of = _fact_as_of(fact)
+        if as_of:
+            handling = f"{handling}; as_of={as_of}"
         if fact.get("raw_operator_note") and fact.get("verbatim_readback") is False:
             handling = "; raw_operator_note=true; verbatim_readback=false; distill_not_quote"
         if fact.get("current_truth") is False:

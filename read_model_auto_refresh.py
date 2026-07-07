@@ -127,6 +127,38 @@ READ_MODEL_REFRESH_REGISTRY: dict[str, dict[str, Any]] = {
         "reason": "Pure local export of the curated client invoice-workflow framework (which clients use Coupa/PO vs not); no network, no external mount. Added when task 88 wired it as a freeform-brain packet source.",
         "steps": [refresh_step("scripts/export_client_invoice_workflow_framework.py")],
     },
+    "packet_coverage_matrix.json": {
+        "refreshable": True,
+        "reason": "Pure local audit/export over packet facts and generated read-model freshness; no sends, no network, no external mounts.",
+        "steps": [refresh_step("scripts/export_packet_coverage_matrix.py", "--format", "json")],
+    },
+    "operator_attention_delivery_contract.json": {
+        "refreshable": False,
+        "reason": (
+            "Task 95 made this a packet source, but there is no dedicated safe local exporter "
+            "in this checkout. It appears to be produced by an upstream attention-delivery workflow; "
+            "auto-refresh must not invent or restamp operator attention."
+        ),
+    },
+    "helm_operator_attention_package.json": {
+        "refreshable": True,
+        "reason": "Pure local Helm attention package exporter; writes generated/read_models outputs only.",
+        "steps": [refresh_step("scripts/export_helm_operator_attention_package.py", "--format", "json")],
+    },
+    "autonomous_followup_watch_attention.json": {
+        "refreshable": False,
+        "reason": (
+            "Produced by autonomous_followup_watch_scheduler as a scheduling side effect. "
+            "A blind refresh would advance scheduler state; keep it explicit until a dry-run exporter exists."
+        ),
+    },
+    "st_annes_receivable_state.json": {
+        "refreshable": False,
+        "reason": (
+            "Produced by st_annes_forward_tracking_workflow from receivable state transitions. "
+            "Auto-refresh must not synthesize a receivable state without a bounded source event."
+        ),
+    },
     # -- the 18 sources the real audit found stale -----------------------
     "capital_hilton_invoice_operator_readback.json": {
         "refreshable": True,
