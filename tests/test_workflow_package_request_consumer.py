@@ -3,6 +3,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -624,6 +626,47 @@ def test_st_annes_dryrun_review_consumer_emits_pdf_first_proof_bundle_before_sen
     assert result.receipt["machine_proof"]["email_send_performed"] is False
     assert result.receipt["machine_proof"]["pdf_export_performed"] is False
     assert result.receipt["machine_proof"]["business_action_gate_closed"] is True
+
+
+@pytest.mark.parametrize(
+    "source_text",
+    [
+        "can you show me the saint annes invoice before it goes out",
+        "let me see the invoice first for st annes",
+        "preview the st annes invoice",
+        "what would we bill st annes",
+        "review the invoice before send for st annes",
+        "show me the st annes bill before sending it",
+    ],
+)
+def test_st_annes_review_phrasings_open_dryrun_with_proof_refs_and_no_send(tmp_path, source_text):
+    request = _request_payload(
+        request_id=f"st_annes_review_variant_{abs(hash(source_text)) % 10_000_000}",
+        source_text=source_text,
+        world_ref="finance",
+        thread_ref="st_annes",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_st_annes_review_variant.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.package is not None
+    assert result.receipt["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+    assert result.receipt["package_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert result.receipt["capability_gate_status"] == "ALLOW_DRY_RUN"
+    assert [ref["artifact_kind"] for ref in result.receipt["proof_refs"]] == [
+        "pdf_proof",
+        "clara_draft",
+        "guardian_gate",
+    ]
+    assert result.package["capability_gate_result"]["actual_send_gate"]["email_send_allowed"] is False
+    assert result.package["worker_result"]["live_worker_executed"] is False
+    assert result.package["worker_result"]["email_send_performed"] is False
+    assert result.package["worker_result"]["pdf_export_performed"] is False
 
 
 def test_st_annes_work_log_from_capital_hilton_context_cross_lane_routes_to_finance_st_annes(tmp_path):
