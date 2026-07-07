@@ -594,6 +594,129 @@ def _resolve_operator_truth_drift(
     return resolved
 
 
+_MONTH_BOUND_RE = re.compile(
+    r"\b(month|january|february|march|april|may|june|july|august|september|october|november|december)\b",
+    re.IGNORECASE,
+)
+_RECEIVABLE_STATUS_QUESTION_RE = re.compile(
+    r"(\breceivables?\b|\bowe[ds]?\b|\bpaid\s+up\b|\bcaught\s+up\b|\bsettled?\b|\bsettlement\b|\bunpaid\b)",
+    re.IGNORECASE,
+)
+_MONEY_STATUS_VALUE_RE = re.compile(
+    r"(\$|\bpaid\b|\bpaid\s+up\b|\bowes?\b|\binvoice\b|\breceivable\b|\bsettled\b|\bunpaid\b|\bdue\b)",
+    re.IGNORECASE,
+)
+
+
+def _fact_as_of(fact: Mapping[str, Any]) -> str:
+    direct = str(fact.get("as_of") or fact.get("refined_as_of") or "").strip()
+    if direct:
+        return direct
+    freshness = fact.get("freshness") if isinstance(fact.get("freshness"), Mapping) else {}
+    return str(freshness.get("as_of") or "").strip()
+
+
+def _question_needs_money_status_data(question: str) -> bool:
+    text = str(question or "")
+    if _RECEIVABLE_STATUS_QUESTION_RE.search(text):
+        return True
+    if _MONTH_BOUND_RE.search(text) and re.search(r"\b(invoice|invoices|money|due)\b", text, re.IGNORECASE):
+        return True
+    return False
+
+
+def _fact_is_money_status_fact(fact: Mapping[str, Any]) -> bool:
+    topic = str(fact.get("topic") or "").lower()
+    if any(token in topic for token in ("money", "invoice", "receivable", "settlement", "finance")):
+        return True
+    value = " ".join(str(fact.get(key) or "") for key in ("label", "value")).lower()
+    return bool(_MONEY_STATUS_VALUE_RE.search(value))
+
+
+def _fact_is_structured_money_status(fact: Mapping[str, Any]) -> bool:
+    if fact.get("needs_operator_review"):
+        return False
+    if str(fact.get("topic") or "") == "receivable_temporal_state" and _fact_as_of(fact):
+        return True
+    return bool(fact.get("structured_fact") is True and _fact_as_of(fact))
+
+
+def _money_not_tracked_label(question: str) -> str:
+    lowered = str(question or "").lower()
+    if "receivable" in lowered or "owe" in lowered or "owed" in lowered:
+        return "month-bounded receivables"
+    if "invoice" in lowered:
+        return "invoice status"
+    if "settle" in lowered or "paid" in lowered or "caught up" in lowered:
+        return "settlement status"
+    return "money/status data"
+
+
+def _anti_launder_not_tracked_fact(question: str, *, as_of: str, dropped_count: int) -> dict[str, Any]:
+    label = _money_not_tracked_label(question)
+    return {
+        "fact_id": f"money_not_tracked:{_short_hash((question, as_of, dropped_count))}",
+        "topic": "money_not_tracked",
+        "label": "Money/status data not tracked",
+        "value": f"not tracked: {label} (no structured fact with as_of is available).",
+        "provenance": "money_status_anti_launder_guard",
+        "source_ref": "maestro_context_packet:money_status_anti_launder_guard",
+        "pii_tier": "PUBLIC",
+        "structured_fact": True,
+        "as_of": as_of,
+        "dropped_unstructured_money_fact_count": dropped_count,
+    }
+
+
+def _apply_money_status_anti_launder_guard(
+    facts: Sequence[Mapping[str, Any]],
+    *,
+    question: str,
+    session: Mapping[str, Any] | None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if not _question_needs_money_status_data(question):
+        return [dict(fact) for fact in facts], {
+            "money_status_anti_launder_guard_applied": False,
+            "money_status_unstructured_facts_dropped": 0,
+            "money_status_not_tracked_marker_added": False,
+        }
+
+    kept: list[dict[str, Any]] = []
+    dropped = 0
+    structured_money_facts = 0
+    for fact in facts:
+        cloned = dict(fact)
+        if not _fact_is_money_status_fact(cloned):
+            kept.append(cloned)
+            continue
+        if _fact_is_structured_money_status(cloned):
+            structured_money_facts += 1
+            if _fact_as_of(cloned):
+                cloned["as_of"] = _fact_as_of(cloned)
+            kept.append(cloned)
+        else:
+            dropped += 1
+
+    marker_added = False
+    if structured_money_facts == 0:
+        kept.insert(
+            0,
+            _anti_launder_not_tracked_fact(
+                question,
+                as_of=_as_of_date_from_session(session).isoformat(),
+                dropped_count=dropped,
+            ),
+        )
+        marker_added = True
+
+    return kept, {
+        "money_status_anti_launder_guard_applied": True,
+        "money_status_structured_fact_count": structured_money_facts,
+        "money_status_unstructured_facts_dropped": dropped,
+        "money_status_not_tracked_marker_added": marker_added,
+    }
+
+
 def _contacts_db_path() -> str:
     try:
         from contacts_registry import DEFAULT_CONTACTS_DB_PATH
@@ -1495,15 +1618,37 @@ def _sqlite_canonical_facts(
             conn.close()
             return []
 
+        existing_columns = {
+            str(row["name"])
+            for row in conn.execute("PRAGMA table_info(canonical_facts)").fetchall()
+        }
+        optional_columns = []
+        for column in (
+            "refined_entity",
+            "refined_claim",
+            "refined_amount",
+            "refined_due_date",
+            "refined_status",
+            "refined_as_of",
+            "provenance_raw_sha256",
+            "needs_operator_review",
+            "refinement_status",
+        ):
+            if column in existing_columns:
+                optional_columns.append(column)
+            else:
+                optional_columns.append(f"NULL AS {column}")
+
         # 3. Fetch full rows for candidates; apply allowed_actors filter; dedupe
         results: list[dict[str, Any]] = []
         for fact_id in candidate_ids:
             if len(results) >= limit:
                 break
             row = conn.execute(
-                """SELECT fact_text, sensitivity_class, allowed_actors, doc_category,
-                          section_heading, source_file, content_hash, temporal_or_doctrine
-                   FROM canonical_facts WHERE fact_id = ? LIMIT 1""",
+                f"""SELECT fact_text, sensitivity_class, allowed_actors, doc_category,
+                           section_heading, source_file, content_hash, temporal_or_doctrine,
+                           {", ".join(optional_columns)}
+                    FROM canonical_facts WHERE fact_id = ? LIMIT 1""",
                 (fact_id,),
             ).fetchone()
             if row is None:
@@ -1537,6 +1682,27 @@ def _sqlite_canonical_facts(
                 provenance="canonical_facts",
                 pii_tier=pii_tier,
             )
+            if fact_list:
+                fact_list[-1].update(
+                    {
+                        "structured_fact": bool(
+                            row["refined_entity"]
+                            and row["refined_claim"]
+                            and row["refined_status"]
+                            and row["refined_as_of"]
+                            and not row["needs_operator_review"]
+                        ),
+                        "needs_operator_review": bool(row["needs_operator_review"]),
+                        "refinement_status": str(row["refinement_status"] or ""),
+                        "refined_entity": str(row["refined_entity"] or ""),
+                        "refined_claim": str(row["refined_claim"] or ""),
+                        "refined_amount": str(row["refined_amount"] or ""),
+                        "refined_due_date": str(row["refined_due_date"] or ""),
+                        "refined_status": str(row["refined_status"] or ""),
+                        "as_of": str(row["refined_as_of"] or ""),
+                        "provenance_raw_sha256": str(row["provenance_raw_sha256"] or ""),
+                    }
+                )
             results.extend(fact_list)
 
         conn.close()
@@ -1672,6 +1838,12 @@ def build_maestro_context_packet(
         for skill in applied_skills
     ]
 
+    facts, money_status_guard_proof = _apply_money_status_anti_launder_guard(
+        facts,
+        question=question,
+        session=session,
+    )
+
     facts = annotate_facts_with_ledger_provenance(
         facts,
         builder_name="maestro_context_packet.build_maestro_context_packet",
@@ -1738,6 +1910,7 @@ def build_maestro_context_packet(
                 facts=facts,
             ),
             **receivable_temporal_proof,
+            **money_status_guard_proof,
             **contacts_proof,
             **read_model_proof,
         },
@@ -1838,6 +2011,9 @@ def format_maestro_context_packet(packet: Mapping[str, Any]) -> str:
         provenance = str(fact.get("provenance") or "")
         tier = str(fact.get("pii_tier") or "PUBLIC")
         handling = ""
+        as_of = _fact_as_of(fact)
+        if as_of:
+            handling = f"{handling}; as_of={as_of}"
         if fact.get("raw_operator_note") and fact.get("verbatim_readback") is False:
             handling = "; raw_operator_note=true; verbatim_readback=false; distill_not_quote"
         if fact.get("current_truth") is False:

@@ -27,6 +27,11 @@ from business_ops_ledger import (
     record_canonical_fact,
     resolve_business_ops_ledger_path,
 )
+from fact_refinement import (
+    ensure_fact_refinement_columns,
+    refine_fact_record_for_ingest,
+    store_fact_refinement_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +191,8 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None, allow
     path = resolve_business_ops_ledger_path(db_path)
     _guard_production_path(path, allow_production=allow_production)
 
+    refinement = refine_fact_record_for_ingest(record)
+    record = refinement.record
     fact_text = record.get("fact_text", "")
     if not fact_text or not fact_text.strip():
         raise ValueError("record['fact_text'] cannot be empty.")
@@ -197,11 +204,20 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None, allow
     init_business_ops_ledger(path)
     conn = _connect(path)
     _init_fts_tables(conn)
+    ensure_fact_refinement_columns(conn)
 
     try:
         # Deduplication check
         exists, existing_id = _fact_exists_by_hash(conn, chash)
         if exists:
+            if existing_id:
+                store_fact_refinement_metadata(
+                    conn,
+                    fact_id=existing_id,
+                    metadata=refinement.metadata,
+                    db_path=path,
+                )
+                conn.commit()
             conn.close()
             return {"status": "skipped", "fact_id": existing_id, "content_hash": chash}
 
@@ -256,6 +272,12 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None, allow
                 record.get("doc_category"),
             )
             _enqueue_embedding(conn, chash, fact_id)
+            store_fact_refinement_metadata(
+                conn,
+                fact_id=fact_id,
+                metadata=refinement.metadata,
+                db_path=path,
+            )
             conn.commit()
             return {
                 "status": "replaced",
@@ -295,6 +317,12 @@ def ingest_graded_fact(record: dict[str, Any], db_path: str | None = None, allow
 
         # Enqueue embedding work
         _enqueue_embedding(conn, chash, fact_id)
+        store_fact_refinement_metadata(
+            conn,
+            fact_id=fact_id,
+            metadata=refinement.metadata,
+            db_path=path,
+        )
 
         conn.commit()
         return {"status": "inserted", "fact_id": fact_id, "content_hash": chash}
