@@ -6644,6 +6644,29 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         )
         return reply
 
+    clara_draft_result = _handle_clara_client_voice_draft_request(query)
+    if clara_draft_result is not None:
+        clara_reply, clara_draft = clara_draft_result
+        save_state(state)
+        _log_conversation(
+            text,
+            [clara_reply],
+            route="clara_client_voice_draft",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "draft_ref": clara_draft.get("draft_ref"),
+                "selected_voice": clara_draft.get("selected_voice"),
+                "client_ref": clara_draft.get("client_ref"),
+                "gmail_polled": False,
+                "gmail_draft_created": False,
+                "email_send_performed": False,
+                "ledger_mutation_performed": False,
+                "payment_lookup_performed": False,
+            },
+        )
+        return [clara_reply]
+
     objective_result = _handle_operator_objective(
         query,
         source_channel="telegram",
@@ -6794,29 +6817,6 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [recall_reply]
     except Exception as _e:
         pass  # briefing module unavailable — fall through to LLM
-
-    clara_draft_result = _handle_clara_client_voice_draft_request(query)
-    if clara_draft_result is not None:
-        clara_reply, clara_draft = clara_draft_result
-        save_state(state)
-        _log_conversation(
-            text,
-            [clara_reply],
-            route="clara_client_voice_draft",
-            metadata={
-                "event_id": event_id,
-                "ops_packet": ops_packet.to_dict(),
-                "draft_ref": clara_draft.get("draft_ref"),
-                "selected_voice": clara_draft.get("selected_voice"),
-                "client_ref": clara_draft.get("client_ref"),
-                "gmail_polled": False,
-                "gmail_draft_created": False,
-                "email_send_performed": False,
-                "ledger_mutation_performed": False,
-                "payment_lookup_performed": False,
-            },
-        )
-        return [clara_reply]
 
     if _should_route_finance_status_before_intake(query, gmail_decision):
         finance_reply = _handle_finance_status_request(query, state)
