@@ -318,7 +318,67 @@ class TestOperatorSurfaceCheck:
 
 
 # ---------------------------------------------------------------------------
-# 6. Contract read-model
+# 6. Operator decision/status wording
+# ---------------------------------------------------------------------------
+
+class TestOperatorDecisionWording:
+
+    def test_machine_status_tokens_are_humanized(self):
+        assert guard.operator_surface_value("open_not_paid") == "check expected, not yet paid"
+        assert guard.operator_surface_value("needs_reconcile") == "needs your reconcile"
+        assert guard.operator_surface_value("needs_operator_review") == "needs operator review"
+        assert guard.operator_surface_value("2026-06") == "June"
+
+    def test_money_status_line_is_operator_wording(self):
+        assert (
+            guard.render_operator_money_status_line(
+                entity="Live Arts",
+                amount="$1,095",
+                status="needs_reconcile",
+            )
+            == "Live Arts still owes $1,095 — needs your reconcile"
+        )
+
+    def test_unknown_amount_money_status_uses_confirmation_template(self):
+        assert (
+            guard.render_operator_money_status_line(
+                entity="Capital Hilton (June)",
+                amount=None,
+                status="open_amount_unknown",
+            )
+            == "Capital Hilton (June): check expected, amount not yet confirmed."
+        )
+
+    def test_operator_surface_text_humanizes_embedded_status_tokens(self):
+        assert (
+            guard.operator_surface_text(
+                "Live Arts still owes $1,095 - needs_reconcile. Status open_not_paid for 2026-06."
+            )
+            == (
+                "Live Arts still owes $1,095 — needs your reconcile. "
+                "Status check expected, not yet paid for June."
+            )
+        )
+
+    def test_refined_intent_display_never_uses_raw_dictation(self):
+        refined = guard.refine_operator_intent_surface(
+            raw_text="Niles, do something with that new Logic file.",
+            actor="niles",
+            intent_category="file_context_request",
+            status="needs_operator_review",
+            as_of="2026-07-07T00:00:00+00:00",
+        )
+
+        assert refined["refined_actor"] == "Niles"
+        assert refined["refined_verb"] == "review"
+        assert refined["refined_object"] == "new Logic file"
+        assert refined["operator_display"] == "Niles request about new Logic file needs operator review."
+        assert refined["provenance_raw"] == "Niles, do something with that new Logic file."
+        assert refined["provenance_raw"] not in refined["operator_display"]
+
+
+# ---------------------------------------------------------------------------
+# 7. Contract read-model
 # ---------------------------------------------------------------------------
 
 class TestContractReadModel:
