@@ -159,6 +159,22 @@ READ_MODEL_REFRESH_REGISTRY: dict[str, dict[str, Any]] = {
             "Auto-refresh must not synthesize a receivable state without a bounded source event."
         ),
     },
+    "receivables_month_bounded.json": {
+        "refreshable": True,
+        "reason": (
+            "Pure local read-only export from current Gig-to-Cash expected receivables plus explicit "
+            "canonical month facts. It writes only generated/read_models/receivables_month_bounded.json "
+            "and performs no send, payment, bank, or ledger mutation."
+        ),
+        "steps": [
+            refresh_step(
+                "scripts/export_receivables_month_bounded.py",
+                "--format",
+                "json",
+                generated_at_flag="--generated-at",
+            )
+        ],
+    },
     # -- the 18 sources the real audit found stale -----------------------
     "capital_hilton_invoice_operator_readback.json": {
         "refreshable": True,
