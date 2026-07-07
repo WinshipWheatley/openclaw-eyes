@@ -595,8 +595,16 @@ def build_receivables_month_bounded(
         _merge_canonical_fact(buckets, fact)
     from recurrence_rule_store import DEFAULT_DB_PATH as DEFAULT_RULE_DB_PATH
 
+    derivation_today = None
+    if generated_at:
+        try:
+            derivation_today = datetime.fromisoformat(generated_at.replace("Z", "+00:00")).date()
+        except ValueError:
+            derivation_today = None
     rule_derived_facts = _recurrence_rule_derived_facts(
-        buckets, rule_db_path=recurrence_rule_db_path or DEFAULT_RULE_DB_PATH
+        buckets,
+        rule_db_path=recurrence_rule_db_path or DEFAULT_RULE_DB_PATH,
+        today=derivation_today,
     )
     for fact in rule_derived_facts:
         _merge_canonical_fact(buckets, fact)

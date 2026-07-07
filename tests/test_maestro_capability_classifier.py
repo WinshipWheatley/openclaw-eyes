@@ -304,6 +304,44 @@ def test_recurrence_rule_statement_captured_via_maestro_intake_end_to_end(tmp_pa
     assert persisted.truth_status == "operator_directive"
 
 
+def test_recurrence_rule_correction_phrasing_not_swallowed_by_legacy_truth_store(
+    tmp_path: Path,
+) -> None:
+    """Task 136b#1 (Fable probe 2026-07-07): 'actually St Anne's invoices should go out on
+    the 15th of every month' is a CORRECTION phrasing with no 'send ... invoice' verb-object
+    shape. Before this fix it was swallowed by the legacy operator-truth-store intake
+    ('Operator truth updated...') -- two intakes competing for the same statement, violating
+    the no-leftovers doctrine. It must reach the rule store, supersede the prior version, and
+    the readback must include both old and new."""
+    from recurrence_rule_store import RecurrenceRuleStore
+
+    rule_db_path = tmp_path / "rules.sqlite3"
+    session = {"recurrence_rule_db_path": str(rule_db_path)}
+
+    step1 = answer_frontdoor_chat(
+        "I send St Anne's a new invoice on the first of every month",
+        session=session,
+        source_surface="operator_maestro_chat",
+    )
+    step2 = answer_frontdoor_chat(
+        "actually St Anne's invoices should go out on the 15th of every month",
+        session=session,
+        source_surface="operator_maestro_chat",
+    )
+
+    assert step1.intent_class == "recurrence_rule_statement"
+    assert step2.intent_class == "recurrence_rule_statement"
+    assert "Operator truth updated" not in step2.plain_summary
+    assert "was:" in step2.plain_summary
+    assert "first" in step2.plain_summary
+
+    with RecurrenceRuleStore(rule_db_path) as store:
+        latest = store.latest_unsuperseded_for_client("st_annes", "invoice_send")
+        history = store.all_versions_for_client("st_annes")
+    assert latest.schedule_day == 15
+    assert len(history) == 2, "correction must supersede, not overwrite"
+
+
 def test_calendar_prompt_stays_deterministic_without_brain_or_send(tmp_path: Path) -> None:
     session = _write_read_models(tmp_path)
 

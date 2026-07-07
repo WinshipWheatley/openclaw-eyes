@@ -417,14 +417,19 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("empty", False, "empty_text")
     if _is_hermes_truthful_intent(normalized):
         return ("hermes_truthful_advisory", True, "")
+    if _is_recurrence_rule_statement_intent(text):
+        # Task 136b#1 (Fable probe 2026-07-07): a rule-shaped statement -- INCLUDING a
+        # correction phrasing with schedule words ("actually St Anne's invoices should go
+        # out on the 15th") -- must reach the rule store BEFORE the legacy operator-truth-
+        # store intake can claim it. Two intakes competing for the same statement violates
+        # the no-leftovers doctrine at the intake layer; checked first, unconditionally.
+        return ("recurrence_rule_statement", True, "")
     if _is_operator_truth_correction_intent(text):
         return ("operator_truth_correction", True, "")
     if _is_operator_truth_query_intent(normalized):
         return ("operator_truth_query", True, "")
     if _is_system_health_readback_intent(normalized):
         return ("system_health_readback", True, "")
-    if _is_recurrence_rule_statement_intent(text):
-        return ("recurrence_rule_statement", True, "")
     if _is_advisory_interrogative_intent(normalized):
         return ("maestro_brain_freeform", True, "")
     if _is_send_or_reply_intent(normalized):

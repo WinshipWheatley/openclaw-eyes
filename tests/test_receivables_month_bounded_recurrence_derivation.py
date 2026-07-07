@@ -19,6 +19,33 @@ def test_no_rule_ever_stated_is_zero_behavior_change(tmp_path):
     assert payload["source_status"]["recurrence_rule_derived_fact_count"] == 0
 
 
+def test_build_derives_day_from_generated_at_not_real_wallclock(tmp_path):
+    """Regression: build_receivables_month_bounded must derive 'today' for rule-derivation
+    FROM generated_at, not the real wall-clock date -- a schedule_day > 1 fixture with an
+    explicit generated_at in the future/past must still derive correctly regardless of when
+    the test actually runs (a schedule_day=1 fixture masks this bug, since day-of-month is
+    always >= 1)."""
+    rule_db = tmp_path / "rules.sqlite3"
+    with RecurrenceRuleStore(rule_db) as store:
+        capture_recurrence_rule_statement(
+            "I send St Anne's a new invoice on the 15th of every month",
+            store=store,
+            now_iso="2026-06-01T12:00:00+00:00",
+        )
+
+    payload = rmb.build_receivables_month_bounded(
+        g2c_db_path=tmp_path / "no_g2c.sqlite3",
+        facts_path=tmp_path / "no_facts.json",
+        recurrence_rule_db_path=rule_db,
+        generated_at="2026-07-20T00:00:00+00:00",
+    )
+
+    assert payload["source_status"]["recurrence_rule_derived_fact_count"] == 1
+    rows = [row for row in payload["rows"] if row["client_ref"] == "st_annes" and row["month"] == "2026-07"]
+    assert len(rows) == 1
+    assert rows[0]["payment_status"] == "expected_uninvoiced"
+
+
 def test_scheduled_day_passed_with_no_send_evidence_derives_overdue_line(tmp_path):
     rule_db = tmp_path / "rules.sqlite3"
     with RecurrenceRuleStore(rule_db) as store:

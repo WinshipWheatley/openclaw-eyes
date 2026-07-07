@@ -36,10 +36,31 @@ _RULE_STATEMENT_RE = re.compile(
     r"every\s+month\s+on\s+the\s+(?P<day2>[a-z0-9-]+))",
     re.IGNORECASE,
 )
+# Task 136b#1 (Fable probe): a CORRECTION phrasing -- "St Anne's invoices should go out on
+# the 15th of every month" / "St Anne's invoices now go out on the 15th" -- names the client
+# as the sentence subject rather than the object of "send". Must reach the rule store, not
+# get swallowed by the legacy operator-truth-store intake.
+_RULE_CORRECTION_RE = re.compile(
+    r"\b(?P<client>[a-z][a-z .'&-]*?)\s+invoice[s]?\s+(?:should\s+|now\s+)*go(?:es)?\s+out\s+"
+    r"on\s+the\s+(?P<day1>[a-z0-9-]+)(?:\s+of\s+every\s+month)?",
+    re.IGNORECASE,
+)
 # "I send OUT a new invoice..." -- "out" isn't a client, it's part of the verb phrase. A
 # statement with no explicit client named in the same sentence needs conversation-context
 # resolution (136b+); here it correctly falls through to None rather than guessing.
 _NON_CLIENT_FILLER_WORDS = frozenset({"out", "it", "them", "invoices", "an", "invoice"})
+_CLIENT_TEXT_LEADING_FILLER_RE = re.compile(
+    r"^(?:actually|wait|hey|so|ok|okay|now|and)\s+", re.IGNORECASE
+)
+
+
+def _clean_client_text(raw: str) -> str:
+    cleaned = str(raw or "").strip()
+    while True:
+        stripped = _CLIENT_TEXT_LEADING_FILLER_RE.sub("", cleaned).strip()
+        if stripped == cleaned:
+            return cleaned
+        cleaned = stripped
 
 
 def _ordinal_to_day(word: str) -> int | None:
@@ -61,22 +82,27 @@ def _ordinal_text(day: int) -> str:
 
 def detect_recurrence_rule_statement(text: str) -> dict[str, object] | None:
     """Returns {client_text, schedule_day} if ``text`` matches a monthly-day-N recurrence
-    statement shape ("I send St Anne's a new invoice on the first of every month" / "every
-    month on the 15th"), else None. Never guesses -- an unmatched shape falls through to
-    normal question/instruction handling untouched."""
-    match = _RULE_STATEMENT_RE.search(str(text or ""))
-    if not match:
-        return None
-    day_word = match.group("day1") or match.group("day2")
-    if not day_word:
-        return None
-    day = _ordinal_to_day(day_word)
-    if day is None:
-        return None
-    client_text = str(match.group("client") or "").strip()
-    if not client_text or client_text.lower() in _NON_CLIENT_FILLER_WORDS:
-        return None
-    return {"client_text": client_text, "schedule_day": day}
+    statement OR correction shape ("I send St Anne's a new invoice on the first of every
+    month" / "every month on the 15th" / "St Anne's invoices should go out on the 15th of
+    every month"), else None. Never guesses -- an unmatched shape falls through to normal
+    question/instruction handling untouched."""
+    body = str(text or "")
+    for pattern in (_RULE_STATEMENT_RE, _RULE_CORRECTION_RE):
+        match = pattern.search(body)
+        if not match:
+            continue
+        groups = match.groupdict()
+        day_word = groups.get("day1") or groups.get("day2")
+        if not day_word:
+            continue
+        day = _ordinal_to_day(day_word)
+        if day is None:
+            continue
+        client_text = _clean_client_text(groups.get("client") or "")
+        if not client_text or client_text.lower() in _NON_CLIENT_FILLER_WORDS:
+            continue
+        return {"client_text": client_text, "schedule_day": day}
+    return None
 
 
 def capture_recurrence_rule_statement(
