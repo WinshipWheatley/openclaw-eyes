@@ -62,6 +62,7 @@
 !frontdoor_prompt.py
 !frontdoor_latency_budget.py
 !fact_refinement.py
+!packet_coverage_contract.py
 !chief_marketing_brain.py
 !chief_approval_brain.py
 !chief_reporter_brain.py
@@ -1075,6 +1076,7 @@
 !scripts/export_work_terrain_build_cue_reconciliation_queue.py
 !scripts/export_openclaw_service_supervision.py
 !scripts/openclaw_service_keeper.py
+!scripts/export_packet_coverage_matrix.py
 !scripts/export_openclaw_business_object_layer_audit.py
 !scripts/export_openclaw_lm_child_package_gate.py
 !scripts/export_openclaw_hermes_sidecar.py
@@ -1297,6 +1299,7 @@ generated/system_knowledge/*.sqlite
 !tests/test_frontdoor_model_profile.py
 !tests/test_frontdoor_latency_budget.py
 !tests/test_fact_refinement_anti_launder.py
+!tests/test_packet_coverage_contract.py
 !tests/test_frontdoor_warmpin_offload.py
 !tests/test_interactive_timeout_not_deep_floored.py
 !tests/test_ledger_guard_fail_closed.py

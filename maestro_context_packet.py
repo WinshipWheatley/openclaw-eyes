@@ -788,7 +788,7 @@ def _contacts_registry_facts(question: str) -> tuple[list[dict[str, Any]], dict[
     if client_slugs:
         for slug in client_slugs:
             selected.extend(registry.get_contacts_for_client(slug))
-    elif re.search(r"\b(contact|person|people|who is|who's|who do i talk to)\b", str(question or ""), re.IGNORECASE):
+    elif re.search(r"\b(contacts?|person|people|who is|who's|who do i talk to)\b", str(question or ""), re.IGNORECASE):
         selected = all_contacts
 
     deduped: list[dict[str, Any]] = []
@@ -1159,6 +1159,47 @@ def _st_annes_receivable_state_facts(
     return facts, {"st_annes_receivable_state_fact_count": len(facts)}
 
 
+def _generic_gig_read_model_facts(root: Path, known_payloads: Mapping[str, Mapping[str, Any]]) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
+    facts: list[dict[str, Any]] = []
+    refs: list[str] = []
+    seen_paths: set[Path] = set()
+    for pattern in ("*gig*.json", "*schedule*.json"):
+        for path in sorted(root.glob(pattern)):
+            if path.name == "reynolds_gig_setup_status.json" or path in seen_paths:
+                continue
+            seen_paths.add(path)
+            payload = dict(known_payloads.get(path.name) or _read_json(path))
+            if not payload:
+                continue
+            rows: list[Mapping[str, Any]] = []
+            for key in ("gigs", "events", "schedule", "items", "upcoming_gigs"):
+                value = payload.get(key)
+                if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+                    rows.extend(row for row in value if isinstance(row, Mapping))
+            if not rows and any(key in payload for key in ("title", "date", "venue", "status")):
+                rows.append(payload)
+            source_ref = _display_read_model_ref(path)
+            refs.append(source_ref)
+            for index, row in enumerate(rows[:8]):
+                title = _first_text(row, "title", "gig_title", "name", "event_name")
+                when = _first_text(row, "date", "start", "starts_at", "start_time")
+                venue = _first_text(row, "venue", "venue_name", "location")
+                status = _first_text(row, "status", "state")
+                if not any((title, when, venue, status)):
+                    continue
+                _append_fact(
+                    facts,
+                    topic="gig_schedule",
+                    label=f"Gig schedule item: {_first_text(row, 'gig_id', 'id') or index}",
+                    value=_join_parts(title, when and f"date={when}", venue and f"venue={venue}", status and f"status={status}"),
+                    provenance="generated_read_model",
+                    source_ref=source_ref,
+                    pii_tier="LIGHT",
+                    freshness=_freshness(path, payload),
+                )
+    return facts, refs, {"generic_gig_read_model_fact_count": len(facts)}
+
+
 def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
@@ -1437,6 +1478,11 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             source_ref=_display_read_model_ref(root / "reynolds_gig_setup_status.json"),
             freshness=_freshness(root / "reynolds_gig_setup_status.json", reynolds),
         )
+
+    generic_gig_facts, generic_gig_refs, generic_gig_proof = _generic_gig_read_model_facts(root, payloads)
+    facts.extend(generic_gig_facts)
+    refs.extend(generic_gig_refs)
+    proof.update(generic_gig_proof)
 
     niles_review = payloads.get("niles_album_review_packet.json", {})
     if niles_review:
