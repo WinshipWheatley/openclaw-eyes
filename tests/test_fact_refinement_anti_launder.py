@@ -145,6 +145,38 @@ def test_month_bounded_receivables_question_without_structured_fact_gets_not_tra
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """No-data side of the two-case contract (evolved 2026-07-07: tasks 110/121 added a
+    COMMITTED generated/read_models/receivables_month_bounded.json with real Live Arts data,
+    which made the single-case premise here stale — the query found real data via the
+    read-model root even though this test's own SQLite ledger fixture was empty. Isolating
+    read_model_root to an empty dir closes that leak so this case genuinely has zero
+    structured facts from EITHER source."""
+    db_path = tmp_path / "ledger.sqlite"
+    init_business_ops_ledger(str(db_path))
+    monkeypatch.setenv("OPENCLAW_LEDGER_PATH", str(db_path))
+    empty_read_model_root = tmp_path / "empty_read_models"
+    empty_read_model_root.mkdir()
+
+    packet = build_maestro_context_packet(
+        question="what did Live Arts owe me in June 2026?",
+        session={"as_of_date": "2026-07-07"},
+        require_real_truth=False,
+        packet_source="sqlite",
+        read_model_root=empty_read_model_root,
+    )
+
+    assert "not tracked: month-bounded receivables" in packet["packet_text"].lower()
+    marker = [fact for fact in packet["facts"] if fact.get("topic") == "money_not_tracked"][0]
+    assert marker["as_of"] == "2026-07-07"
+
+
+def test_month_bounded_receivables_question_with_structured_fact_gets_real_answer_no_marker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Data side of the two-case contract: with the real receivables_month_bounded.json
+    read-model present (the default read_model_root, not isolated), the same question must
+    carry the structured money facts and must NOT carry the "not tracked" marker."""
     db_path = tmp_path / "ledger.sqlite"
     init_business_ops_ledger(str(db_path))
     monkeypatch.setenv("OPENCLAW_LEDGER_PATH", str(db_path))
@@ -156,6 +188,6 @@ def test_month_bounded_receivables_question_without_structured_fact_gets_not_tra
         packet_source="sqlite",
     )
 
-    assert "not tracked: month-bounded receivables" in packet["packet_text"].lower()
-    marker = [fact for fact in packet["facts"] if fact.get("topic") == "money_not_tracked"][0]
-    assert marker["as_of"] == "2026-07-07"
+    assert "not tracked: month-bounded receivables" not in packet["packet_text"].lower()
+    assert not [fact for fact in packet["facts"] if fact.get("topic") == "money_not_tracked"]
+    assert "1,095" in packet["packet_text"]
