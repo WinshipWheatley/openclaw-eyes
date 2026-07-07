@@ -7,6 +7,7 @@ system RAM via /proc/meminfo, and resident Ollama model VRAM via /api/ps.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 import json
 from pathlib import Path
 import subprocess
@@ -25,6 +26,8 @@ class FrontdoorResourceSnapshot:
     available_ram_gb: float | None
     resident_models: list[dict[str, Any]]
     probe_errors: list[str]
+    system_load_1m: float | None = None
+    cpu_count: int | None = None
 
     def to_receipt_fields(self) -> dict[str, Any]:
         return {
@@ -33,6 +36,8 @@ class FrontdoorResourceSnapshot:
             "resource_probe_available_ram_gb": self.available_ram_gb,
             "resource_probe_resident_models": list(self.resident_models),
             "resource_probe_errors": list(self.probe_errors),
+            "resource_probe_system_load_1m": self.system_load_1m,
+            "resource_probe_cpu_count": self.cpu_count,
         }
 
     def resident_vram_by_model_gb(self) -> dict[str, float]:
@@ -81,6 +86,10 @@ def _read_meminfo() -> str:
     return Path("/proc/meminfo").read_text(encoding="utf-8")
 
 
+def _read_loadavg() -> str:
+    return Path("/proc/loadavg").read_text(encoding="utf-8")
+
+
 def _parse_mem_available_gb(meminfo: str) -> float | None:
     for line in str(meminfo or "").splitlines():
         if not line.startswith("MemAvailable:"):
@@ -92,6 +101,16 @@ def _parse_mem_available_gb(meminfo: str) -> float | None:
             except ValueError:
                 return None
     return None
+
+
+def _parse_loadavg_1m(loadavg: str) -> float | None:
+    first = str(loadavg or "").strip().split()[0:1]
+    if not first:
+        return None
+    try:
+        return round(float(first[0]), 3)
+    except ValueError:
+        return None
 
 
 def _probe_gpu_memory(timeout: float) -> tuple[float | None, float | None, list[str]]:
@@ -157,6 +176,16 @@ def probe_frontdoor_resources(
     except Exception as exc:
         available_ram_gb = None
         errors.append(f"meminfo:{type(exc).__name__}")
+    try:
+        system_load_1m = _parse_loadavg_1m(_read_loadavg())
+    except Exception as exc:
+        system_load_1m = None
+        errors.append(f"loadavg:{type(exc).__name__}")
+    try:
+        cpu_count = os.cpu_count()
+    except Exception as exc:
+        cpu_count = None
+        errors.append(f"cpu_count:{type(exc).__name__}")
     resident_models, ps_errors = _probe_ollama_ps(ollama_ps_url, timeout)
     errors.extend(ps_errors)
     return FrontdoorResourceSnapshot(
@@ -165,4 +194,6 @@ def probe_frontdoor_resources(
         available_ram_gb=available_ram_gb,
         resident_models=resident_models,
         probe_errors=errors,
+        system_load_1m=system_load_1m,
+        cpu_count=cpu_count,
     )

@@ -218,6 +218,61 @@ def test_select_frontdoor_steps_down_when_free_vram_is_tight(monkeypatch):
     assert reason == "frontdoor_step_down_vram_contention"
 
 
+def test_select_frontdoor_steps_down_when_system_load_is_high(monkeypatch):
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", "qwen3.5:4b,qwen3:8b-q4_K_M")
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", raising=False)
+    installed = {"qwen3.5:4b", "qwen3:8b-q4_K_M"}
+
+    model, reason = chief_llm.select_frontdoor_model(
+        installed=installed,
+        sizes=_SIZES,
+        available_ram_gb=16.0,
+        available_vram_gb=6.0,
+        max_gb=6.0,
+        system_load_1m=8.0,
+        cpu_count=8,
+    )
+
+    assert model == "qwen3.5:4b"
+    assert reason == "frontdoor_step_down_system_load"
+
+
+def test_select_frontdoor_idle_headroom_prefers_quality_8b(monkeypatch):
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", "qwen3.5:4b,qwen3:8b-q4_K_M")
+    monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", raising=False)
+    installed = {"qwen3.5:4b", "qwen3:8b-q4_K_M"}
+
+    model, reason = chief_llm.select_frontdoor_model(
+        installed=installed,
+        sizes=_SIZES,
+        available_ram_gb=16.0,
+        available_vram_gb=6.0,
+        max_gb=6.0,
+        system_load_1m=0.4,
+        cpu_count=8,
+    )
+
+    assert model == "qwen3:8b-q4_K_M"
+    assert reason == "frontdoor_largest_fitting"
+
+
+def test_frontdoor_resource_probe_reads_loadavg_and_cpu(monkeypatch):
+    import frontdoor_resource_probe as frp
+
+    monkeypatch.setattr(frp, "_probe_gpu_memory", lambda timeout: (6.0, 6.0, []))
+    monkeypatch.setattr(frp, "_read_meminfo", lambda: "MemAvailable: 16777216 kB\n")
+    monkeypatch.setattr(frp, "_probe_ollama_ps", lambda url, timeout: ([], []))
+    monkeypatch.setattr(frp, "_read_loadavg", lambda: "8.12 2.00 1.00 1/100 12345\n")
+    monkeypatch.setattr(frp.os, "cpu_count", lambda: 8)
+
+    snapshot = frp.probe_frontdoor_resources()
+
+    assert snapshot.system_load_1m == 8.12
+    assert snapshot.cpu_count == 8
+    assert snapshot.to_receipt_fields()["resource_probe_system_load_1m"] == 8.12
+    assert snapshot.to_receipt_fields()["resource_probe_cpu_count"] == 8
+
+
 def test_select_frontdoor_uses_smallest_card_fit_when_vram_exhausted(monkeypatch):
     monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", raising=False)
     monkeypatch.delenv("OPENCLAW_FRONTDOOR_MODEL_MAX_GB", raising=False)
@@ -1054,6 +1109,68 @@ def test_pgwr_frontdoor_low_vram_steps_down_and_delivers_model(tmp_path, monkeyp
     assert outcome.receipt["model_fallback_reason"] == "model_ok"
     assert outcome.receipt["model_selected"] == "qwen3.5:4b"
     assert outcome.receipt["model_selection_reason"] == "frontdoor_step_down_vram_contention"
+
+
+def test_pgwr_frontdoor_high_load_steps_down_and_delivers_model(tmp_path, monkeypatch):
+    import protected_generate as pg
+    import frontdoor_resource_probe as frp
+    from frontdoor_resource_probe import FrontdoorResourceSnapshot
+
+    calls: dict = {}
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", "1")
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_REPLY_TIMEOUT", "25")
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST", "qwen3.5:4b,qwen3:8b-q4_K_M")
+    monkeypatch.setattr(pg, "_live_model_allowed", lambda *a, **k: True)
+    monkeypatch.setattr(chief_llm, "_configured_openrouter_model", lambda: "", raising=False)
+    monkeypatch.setattr(chief_llm, "ollama_is_unreachable", lambda **_k: False, raising=False)
+    monkeypatch.setattr(
+        chief_llm,
+        "_ollama_installed_models",
+        lambda *a, **k: {"qwen3.5:4b", "qwen3:8b-q4_K_M"},
+        raising=False,
+    )
+    monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: dict(_SIZES), raising=False)
+    monkeypatch.setattr(
+        frp,
+        "probe_frontdoor_resources",
+        lambda: FrontdoorResourceSnapshot(
+            available_vram_gb=6.0,
+            total_vram_gb=6.0,
+            available_ram_gb=16.0,
+            resident_models=[],
+            probe_errors=[],
+            system_load_1m=8.0,
+            cpu_count=8,
+        ),
+    )
+
+    def fake_ollama(prompt, **kwargs):
+        calls["kwargs"] = kwargs
+        return {
+            "text": "Tonight needs the St. Anne's follow-up review.",
+            "done_reason": "stop",
+            "elapsed_ms": 40,
+            "response_metadata": {"eval_count": 7},
+        }
+
+    monkeypatch.setattr(chief_llm, "ollama_call", fake_ollama)
+    outcome = protected_generate_with_receipt(
+        "what's on my plate tonight?",
+        context_packet=_FRONTDOOR_PACKET,
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=True,
+    )
+
+    assert calls["kwargs"]["model"] == "qwen3.5:4b"
+    assert "St. Anne's follow-up review" in outcome.text
+    assert outcome.receipt["local_model_invoked"] is True
+    assert outcome.receipt["deterministic_fallback_used"] is False
+    assert outcome.receipt["delivered_response_source"] == "model"
+    assert outcome.receipt["model_fallback_reason"] == "model_ok"
+    assert outcome.receipt["model_selected"] == "qwen3.5:4b"
+    assert outcome.receipt["model_selection_reason"] == "frontdoor_step_down_system_load"
+    assert outcome.receipt["resource_probe_system_load_1m"] == 8.0
+    assert outcome.receipt["resource_probe_cpu_count"] == 8
 
 
 def test_pgwr_explicit_frontdoor_true_works_with_flag_off(tmp_path, monkeypatch):
