@@ -475,11 +475,60 @@ def test_money_question_answers_from_structured_packet_answer_topics(monkeypatch
     assert "i don't have that" not in answer
     assert "live arts" in answer
     assert "1,095" in result.plain_summary or "1095" in result.plain_summary
-    assert "needs_reconcile" in answer or "needs reconcile" in answer
+    assert "needs your reconcile" in answer
     assert "as_of" in answer or "2026-07-07" in answer
     assert result.machine_proof["protected_generate_called"] is True
     assert result.machine_proof["model_call_performed"] is False
     assert result.machine_proof["external_llm_invoked"] is False
+
+
+def test_superb_money_answer_is_operator_clean_and_amount_evidenced(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "who owes me money right now?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    answer = result.plain_summary
+    lowered = answer.lower()
+
+    assert result.status == "ANSWER_READY"
+    assert "i don't have that" not in lowered
+    assert "Live Arts" in answer
+    assert "$1,095" in answer
+    assert "needs your reconcile" in lowered
+    assert "Capital Hilton" in answer
+    assert "check expected" in lowered
+    assert "amount unverified" in lowered
+    assert "St Anne's" in answer
+    assert "settled" in lowered
+    assert "as of 2026-07-07" in lowered
+
+    forbidden = (
+        "Current money owed answer topic",
+        "needs_reconcile",
+        "open_not_paid",
+        "open_amount_unknown",
+        "2026-06",
+        "$0",
+        "USD 0",
+        "2,000",
+        "2000",
+    )
+    for token in forbidden:
+        assert token not in answer
 
 
 def test_plate_question_answers_attention_money_and_upcoming_from_packet(monkeypatch, tmp_path: Path) -> None:
@@ -514,3 +563,52 @@ def test_plate_question_answers_attention_money_and_upcoming_from_packet(monkeyp
     assert result.machine_proof["protected_generate_called"] is True
     assert result.machine_proof["model_call_performed"] is False
     assert result.machine_proof["external_llm_invoked"] is False
+
+
+def test_superb_plate_today_answer_keeps_plate_overview_precedence(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    _seed_plate_attention(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice contact is Draper; plate questions should use current read models.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "what's on my plate today, and what actually needs me?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    answer = result.plain_summary
+    lowered = answer.lower()
+
+    assert result.status == "ANSWER_READY"
+    assert "i don't have that" not in lowered
+    assert "St Anne's needs Draper follow-up" in answer
+    assert "Live Arts" in answer
+    assert "$1,095" in answer
+    assert "needs your reconcile" in lowered
+    assert "Capital Hilton" in answer
+    assert "amount unverified" in lowered
+    assert "Reynolds Tavern" in answer
+    assert "stage" in lowered or "set list" in lowered
+
+    forbidden = (
+        "Current plate overview",
+        "Operator attention item",
+        "st_annes_followup",
+        "client_ref",
+        "send_allowed",
+        "external_action_allowed",
+        "needs_reconcile",
+        "open_amount_unknown",
+        "2026-06",
+    )
+    for token in forbidden:
+        assert token not in answer

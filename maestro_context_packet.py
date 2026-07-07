@@ -422,6 +422,81 @@ def _money_minor_units(value: int, currency: str) -> str:
     return f"{currency} {major:.2f}"
 
 
+def _operator_money_minor_units(value: int | None, currency: str) -> str:
+    if value is None:
+        return "amount unverified"
+    major = value / 100
+    if currency.upper() == "USD":
+        if major.is_integer():
+            return f"${int(major):,}"
+        return f"${major:,.2f}"
+    if major.is_integer():
+        return f"{currency.upper()} {int(major):,}"
+    return f"{currency.upper()} {major:,.2f}"
+
+
+def _operator_month(month: object) -> str:
+    raw = str(month or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(f"{raw}-01")
+        return parsed.strftime("%B")
+    except ValueError:
+        return raw
+
+
+def _operator_short_month(month: object) -> str:
+    raw = str(month or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(f"{raw}-01")
+        return parsed.strftime("%b")
+    except ValueError:
+        return raw
+
+
+def _operator_as_of(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    return raw[:10] if re.match(r"^\d{4}-\d{2}-\d{2}", raw) else raw
+
+
+def _operator_payment_status(status: object, *, needs_reconcile: bool = False) -> str:
+    normalized = str(status or "unknown").strip().lower()
+    if needs_reconcile or normalized == "needs_reconcile":
+        return "needs your reconcile"
+    if normalized == "open_amount_unknown":
+        return "check expected, amount unverified"
+    if normalized == "open_not_paid":
+        return "check expected, not yet paid"
+    if normalized == "settled":
+        return "settled"
+    return normalized.replace("_", " ") or "unknown"
+
+
+def _receivable_operator_line(row: Mapping[str, Any]) -> str:
+    client = _client_display(str(row.get("client_ref") or ""))
+    month = _operator_month(row.get("month"))
+    currency = str(row.get("currency_iso") or "USD").strip().upper()
+    amount_known = bool(row.get("amount_known", True))
+    open_minor = row.get("open_minor_units") if amount_known else None
+    status = _operator_payment_status(row.get("payment_status"), needs_reconcile=bool(row.get("needs_reconcile")))
+    as_of = _operator_as_of(row.get("as_of") or (row.get("freshness") or {}).get("as_of"))
+
+    if not amount_known or row.get("payment_status") == "open_amount_unknown":
+        details = ["check expected", "amount unverified"]
+    else:
+        details = [f"{_operator_money_minor_units(int(open_minor or 0), currency)} open", status]
+    if month:
+        details.append(month)
+    if as_of:
+        details.append(f"as of {as_of}")
+    return f"{client}: {', '.join(dict.fromkeys(part for part in details if part))}"
+
+
 def _current_open_receivables_by_client(db_path: Path) -> dict[str, list[Any]]:
     if not db_path.exists():
         return {}
@@ -1618,16 +1693,13 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
     if not rows:
         return [], {"finance_answer_topic_fact_count": 0}
 
-    open_lines: list[str] = []
-    settled_lines: list[str] = []
+    open_rows: list[Mapping[str, Any]] = []
+    settled_by_client: dict[str, list[Mapping[str, Any]]] = {}
     source_refs: list[str] = []
     as_of_values: list[str] = []
     for row in rows:
         client_ref = str(row.get("client_ref") or "").strip()
-        month = str(row.get("month") or "").strip()
-        currency = str(row.get("currency_iso") or "USD").strip().upper()
         open_minor = int(row.get("open_minor_units") or 0)
-        paid_minor = int(row.get("paid_minor_units") or 0)
         status = str(row.get("payment_status") or "unknown").strip()
         needs_reconcile = bool(row.get("needs_reconcile"))
         as_of = str(row.get("as_of") or (row.get("freshness") or {}).get("as_of") or "").strip()
@@ -1636,27 +1708,38 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
             source_refs.append(source_ref)
         if as_of and as_of not in as_of_values:
             as_of_values.append(as_of)
-        display = _client_display(client_ref)
-        line_parts = [
-            f"{display} {month}",
-            f"open {_money_minor_units(open_minor, currency)}",
-            f"paid {_money_minor_units(paid_minor, currency)}",
-            f"status {status}",
-        ]
-        if needs_reconcile:
-            line_parts.append("needs_reconcile")
-        if as_of:
-            line_parts.append(f"as_of {as_of}")
-        line = ", ".join(line_parts)
         if open_minor > 0 or needs_reconcile:
-            open_lines.append(line)
+            open_rows.append(row)
         elif str(row.get("settled_past_no_compound") or "").lower() == "true" or status == "settled":
-            settled_lines.append(line)
+            settled_by_client.setdefault(client_ref, []).append(row)
+
+    open_rows.sort(
+        key=lambda row: (
+            row.get("amount_known") is False,
+            _client_display(str(row.get("client_ref") or "")).lower(),
+        )
+    )
+    open_lines = [_receivable_operator_line(row) for row in open_rows]
+    settled_lines: list[str] = []
+    for client_ref, client_rows in settled_by_client.items():
+        months = "/".join(
+            month
+            for month in (_operator_short_month(row.get("month")) for row in client_rows)
+            if month
+        )
+        as_of = _operator_as_of(next((row.get("as_of") for row in client_rows if row.get("as_of")), ""))
+        line = f"{_client_display(client_ref)}"
+        if months:
+            line = f"{line} {months}"
+        line = f"{line} settled; don't chase"
+        if as_of:
+            line = f"{line}, as of {as_of}"
+        settled_lines.append(line)
 
     value = " ".join(
         part
         for part in (
-            open_lines and "Open/current money items: " + " | ".join(open_lines[:4]) + ".",
+            open_lines and "Money: " + ". ".join(open_lines[:4]) + ".",
             settled_lines and "Settled items: " + " | ".join(settled_lines[:4]) + ".",
         )
         if part
@@ -1694,29 +1777,42 @@ def _plate_overview_answer_topic_facts(
     def answer_safe(value: object) -> str:
         text = _compact(value, limit=220)
         text = re.sub(r"\bSt\.\s+", "St ", text)
+        text = re.sub(r"\b(client_ref|workflow_ref|send_allowed|external_action_allowed)=[^,;|. ]+", "", text)
+        text = re.sub(r"\bneeds_reconcile\b", "needs your reconcile", text)
+        text = re.sub(r"\bopen_amount_unknown\b", "amount unverified", text)
+        text = re.sub(r"\bopen_not_paid\b", "check expected, not yet paid", text)
         text = text.replace(";", ",")
-        return text.strip(" .")
+        return re.sub(r"\s+", " ", text).strip(" .,")
+
+    def attention_summary(fact: Mapping[str, Any]) -> str:
+        parts = []
+        for part in re.split(r"[;|]", str(fact.get("value") or "")):
+            clean = answer_safe(part)
+            if not clean:
+                continue
+            lowered = clean.lower()
+            if "=" in clean or "_" in clean:
+                continue
+            if lowered.startswith("reason:") or lowered.startswith("urgency:"):
+                continue
+            parts.append(clean)
+        return ", ".join(parts[:3])
 
     source_facts = [fact for fact in facts if fact.get("answer_topic") is not True]
     attention = [
-        answer_safe(f"{fact.get('label')}: {fact.get('value')}")
+        attention_summary(fact)
         for fact in source_facts
         if str(fact.get("topic") or "").strip().lower() in {"operator_attention", "receivable_attention"}
     ]
+    attention = [item for item in attention if item]
     money = []
     for fact in source_facts:
         if str(fact.get("topic") or "").strip().lower() != "receivable_month_bounded":
             continue
         if int(fact.get("open_minor_units") or 0) <= 0 and fact.get("needs_reconcile") is not True:
             continue
-        currency = str(fact.get("currency_iso") or "USD").strip().upper()
-        money.append(
-            answer_safe(
-                f"{_client_display(str(fact.get('client_ref') or ''))} {fact.get('month')}: "
-                f"open {_money_minor_units(int(fact.get('open_minor_units') or 0), currency)}, "
-                f"status {fact.get('payment_status') or 'unknown'}"
-            )
-        )
+        money.append(answer_safe(_receivable_operator_line(fact)))
+    money.sort(key=lambda value: ("amount unverified" in value.lower(), value.lower()))
     upcoming = [
         answer_safe(f"{fact.get('label')}: {fact.get('value')}")
         for fact in source_facts
