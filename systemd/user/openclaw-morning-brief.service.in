@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenClaw Maestro morning brief sender
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/env python3 @REPO_ROOT@/openclaw_morning_brief.py --once
+NoNewPrivileges=true
+TimeoutStartSec=240

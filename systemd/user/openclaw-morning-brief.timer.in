@@ -1,0 +1,13 @@
+[Unit]
+Description=Send OpenClaw Maestro morning brief daily
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Timer]
+OnBootSec=10min
+OnCalendar=*-*-* 08:00:00
+AccuracySec=5min
+Persistent=true
+Unit=openclaw-morning-brief.service
+
+[Install]
+WantedBy=timers.target

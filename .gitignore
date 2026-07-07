@@ -1398,6 +1398,10 @@ generated/system_knowledge/*.sqlite
 !tests/test_agent_build_request_flow.py
 !tests/test_build_request_intake.py
 !tests/test_build_request_interpreter_contract.py
+!openclaw_morning_brief.py
+!tests/test_openclaw_morning_brief.py
+!systemd/user/openclaw-morning-brief.service.in
+!systemd/user/openclaw-morning-brief.timer.in
 !autonomous_invoice_prep_scheduler.py
 !tests/test_autonomous_invoice_prep_scheduler.py
 !systemd/user/openclaw-autonomous-invoice-prep.service.in
