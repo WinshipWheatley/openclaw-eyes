@@ -235,6 +235,49 @@ def test_send_email_test_mode_uses_registry_contact_body(tmp_path: Path, monkeyp
     assert calls[0][2]["attachment_sha256"] == [hashlib.sha256(sent_pdf.read_bytes()).hexdigest()]
 
 
+def test_send_email_test_mode_previews_number_without_consuming_counter(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Task 134: workflow-test-mode sends must never burn a real invoice number, and must
+    be tagged distinctly from a real 'issued' send so it can never be mistaken for one."""
+    contacts_db = tmp_path / "contacts.sqlite3"
+    ContactsRegistry(str(contacts_db), seed=True)
+    calls: list[tuple[str, str, dict]] = []
+
+    monkeypatch.setenv("OPENCLAW_INVOICES_DIR", str(tmp_path / "issued"))
+    monkeypatch.setenv("OPENCLAW_INVOICE_TRACKER_DIR", str(tmp_path / "tracker"))
+    monkeypatch.setattr("global_run_mode_context.handle_run_mode_set_request", lambda *args, **kwargs: {"ok": True})
+    monkeypatch.setattr(
+        "google_access_broker.call",
+        lambda actor, capability, params: calls.append((actor, capability, params)) or {"ok": True},
+    )
+    attachment = tmp_path / "draft.pdf"
+    attachment.write_bytes(b"%PDF-1.4\nDRAFT\n%%EOF\n")
+
+    ops = RealCockpitOps(contacts_db_path=str(contacts_db))
+    result = ops.send_email(
+        to="draper.carter@gmail.com",
+        attachment=str(attachment),
+        attachment_sha256=hashlib.sha256(attachment.read_bytes()).hexdigest(),
+        invoice_data=_st_annes_invoice_data(),
+        mode="test",
+    )
+    result2 = ops.send_email(
+        to="draper.carter@gmail.com",
+        attachment=str(attachment),
+        attachment_sha256=hashlib.sha256(attachment.read_bytes()).hexdigest(),
+        invoice_data=_st_annes_invoice_data(),
+        mode="test",
+    )
+
+    assert result["ok"] is True
+    assert result2["ok"] is True
+    tracker_dir = tmp_path / "tracker"
+    counter_files = list(tracker_dir.glob("invoice_counter_*.txt")) if tracker_dir.is_dir() else []
+    assert not counter_files, "test-mode send must not consume the real invoice counter"
+    assert calls[0][2]["attachments"] == calls[1][2]["attachments"], "test-mode previews the same number each time"
+
+
 def test_finalized_review_attachment_regenerates_issued_non_draft_pdf(
     tmp_path: Path,
     monkeypatch,

@@ -104,6 +104,121 @@ def test_build_st_annes_invoice_data_defaults_to_two_events():
     ]
 
 
+def test_build_st_annes_invoice_data_draft_stage_is_default_and_unchanged():
+    """Task 134 ACCEPTANCE: draft artifact unchanged -- the default stage (no arg passed)
+    behaves byte-identically to before stage-awareness existed."""
+    invoice_generator = _reload_invoice_generator()
+
+    data = invoice_generator.build_st_annes_invoice_data([])
+
+    assert data["invoice_number"] == "WL-DRAFT-ST-ANNES"
+    assert data["invoice_stage"] == "draft"
+
+
+def test_build_st_annes_invoice_data_finalized_stage_uses_real_sequential_number(
+    tmp_path, monkeypatch
+):
+    invoice_generator = _reload_invoice_generator()
+    monkeypatch.setattr(invoice_generator, "TRACKER_DIR", tmp_path)
+
+    data = invoice_generator.build_st_annes_invoice_data([], stage="finalized")
+
+    assert data["invoice_stage"] == "finalized"
+    assert "draft" not in data["invoice_number"].lower()
+    assert data["invoice_number"].startswith("WL-")
+    counter_files = list(tmp_path.glob("invoice_counter_*.txt"))
+    assert len(counter_files) == 1
+    assert counter_files[0].read_text().strip() == "1"
+
+
+def test_build_st_annes_invoice_data_finalized_stage_consumes_counter_each_call(
+    tmp_path, monkeypatch
+):
+    """A real send must never reuse a number -- each finalized call advances the counter."""
+    invoice_generator = _reload_invoice_generator()
+    monkeypatch.setattr(invoice_generator, "TRACKER_DIR", tmp_path)
+
+    first = invoice_generator.build_st_annes_invoice_data([], stage="finalized")
+    second = invoice_generator.build_st_annes_invoice_data([], stage="finalized")
+
+    assert first["invoice_number"] != second["invoice_number"]
+
+
+def test_build_st_annes_invoice_data_test_stage_previews_without_consuming_counter(
+    tmp_path, monkeypatch
+):
+    """Task 134: workflow-test-mode must never burn a real invoice number."""
+    invoice_generator = _reload_invoice_generator()
+    monkeypatch.setattr(invoice_generator, "TRACKER_DIR", tmp_path)
+
+    first = invoice_generator.build_st_annes_invoice_data([], stage="test")
+    second = invoice_generator.build_st_annes_invoice_data([], stage="test")
+
+    assert first["invoice_stage"] == "test"
+    assert "draft" not in first["invoice_number"].lower()
+    assert first["invoice_number"].startswith("WL-")
+    assert first["invoice_number"] == second["invoice_number"], "test stage must not consume the counter"
+    assert not list(tmp_path.glob("invoice_counter_*.txt")), "test stage must not write the counter file"
+
+
+def test_build_st_annes_invoice_data_rejects_unknown_stage():
+    invoice_generator = _reload_invoice_generator()
+
+    try:
+        invoice_generator.build_st_annes_invoice_data([], stage="bogus")
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_generate_invoice_pdf_finalized_scrubs_draft_wording_from_all_text_fields(
+    tmp_path, monkeypatch
+):
+    """Task 134 ACCEPTANCE: finalized artifact contains zero case-insensitive 'draft'
+    occurrences, even when the source data (e.g. an external invoice receipt) carries the
+    word somewhere other than invoice_number."""
+    monkeypatch.delenv("OPENCLAW_INVOICES_DIR", raising=False)
+    invoice_generator = _reload_invoice_generator()
+    monkeypatch.setattr(invoice_generator, "INVOICES_DIR", tmp_path)
+    data = _invoice_data(
+        invoice_number="DRAFT — WL-2026-0099",
+        client_name="St. Anne's (DRAFT)",
+        project_desc="Church services -- draft copy for review",
+        line_items=[{"description": "Wedding (Draft)", "service_date": "2026-06-27", "amount": 12500}],
+        invoice_stage="finalized",
+    )
+
+    pdf_path = invoice_generator.generate_invoice_pdf(data)
+
+    assert pdf_path.exists()
+    assert "draft" not in pdf_path.name.lower()
+
+
+def test_generate_invoice_pdf_draft_stage_leaves_draft_wording_alone(tmp_path, monkeypatch):
+    """Draft marking is CORRECT pre-approval -- scrubbing must not apply to draft stage."""
+    monkeypatch.delenv("OPENCLAW_INVOICES_DIR", raising=False)
+    invoice_generator = _reload_invoice_generator()
+    monkeypatch.setattr(invoice_generator, "INVOICES_DIR", tmp_path)
+    data = _invoice_data(invoice_number="WL-DRAFT-ST-ANNES", invoice_stage="draft")
+
+    pdf_path = invoice_generator.generate_invoice_pdf(data)
+
+    assert "draft" in pdf_path.name.lower()
+
+
+def test_generate_invoice_pdf_test_stage_renders_successfully_with_watermark(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENCLAW_INVOICES_DIR", raising=False)
+    invoice_generator = _reload_invoice_generator()
+    monkeypatch.setattr(invoice_generator, "INVOICES_DIR", tmp_path)
+    data = _invoice_data(invoice_number="WL-2026-0099", invoice_stage="test")
+
+    pdf_path = invoice_generator.generate_invoice_pdf(data)
+
+    assert pdf_path.exists()
+    assert pdf_path.stat().st_size > 0
+    assert "draft" not in pdf_path.name.lower()
+
+
 def test_build_st_annes_invoice_data_prefers_two_ready_work_log_events(
     tmp_path, monkeypatch
 ):
