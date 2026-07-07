@@ -83,6 +83,47 @@ def test_st_annes_invoice_send_blocks_for_artifact_when_permission_ready():
     assert "email_send" in package["capability_gate_result"]["blocked_actions"]
 
 
+def test_st_annes_invoice_dry_run_has_real_source_inventory_and_pdf_first_proof():
+    package = _package(
+        "Send St. Anne's invoice.",
+        config=queue.QueueConfig(
+            st_annes_send_permission_ready=True,
+            st_annes_approved_pdf_artifact_available=True,
+        ),
+    )
+
+    assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert package["capability_gate_result"]["status"] == "ALLOW_DRY_RUN"
+    assert package["project_room_ready"] is True
+    assert package["synthesis_allowed"] is True
+    assert "source_inventory_missing" not in package["project_room_gate_result"]["blockers"]
+    assert not package["project_room_gate_result"]["missing_project_room_refs"]
+
+    source_room = package["source_room_context"]
+    assert source_room["source_inventory_exists"] is True
+    assert source_room["source_inventory_ref"] == "source_inventory:st_annes_monthly_invoice_rollup"
+    assert source_room["conflict_log_ref"] == "conflict_log:st_annes_monthly_invoice_rollup"
+    assert source_room["duplicate_report_ref"] == "duplicate_report:st_annes_monthly_invoice_rollup"
+    assert source_room["decision_trace_ref"] == "decision_trace:st_annes_monthly_invoice_rollup"
+    assert source_room["dry_run_artifact_order"] == ["pdf_proof", "clara_draft", "guardian_gate"]
+    source_refs = {row["source_ref"] for row in source_room["source_inventory"]["sources"]}
+    assert "generated/read_models/st_annes_work_log_events.json" in source_refs
+    assert "generated/system_knowledge/st_annes_invoice_status_SEED.sql" in source_refs
+    assert any(row["artifact_kind"] == "operator_provided_pdf_invoice" for row in source_room["source_inventory"]["sources"])
+    assert source_room["source_inventory"]["machine_proof"]["derived_from_existing_files"] is True
+    assert package["worker_result"]["live_worker_executed"] is False
+    assert package["worker_result"]["pdf_export_performed"] is False
+    assert package["worker_result"]["email_send_performed"] is False
+
+
+def test_st_annes_source_inventory_flag_fails_closed_when_required_source_missing(monkeypatch, tmp_path):
+    monkeypatch.setattr(queue, "DEFAULT_EXPORT_ROOT", tmp_path / "missing_read_models")
+    context = queue._source_room_context_for_workflow("st_annes_monthly_invoice_rollup")
+
+    assert context["source_inventory_exists"] is False
+    assert context["missing_source_refs"]
+
+
 def test_capital_hilton_proposal_followup_is_business_development_no_invoice_or_send():
     package = _package("Follow up on Capital Hilton proposal.")
     display = package["operator_display"]
