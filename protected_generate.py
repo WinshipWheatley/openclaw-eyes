@@ -1257,6 +1257,8 @@ def protected_generate_with_receipt(
     fd_available_vram_gb: float | None = None
     fd_available_ram_gb: float | None = None
     fd_resident_vram_by_model_gb: dict[str, float] = {}
+    fd_system_load_1m: float | None = None
+    fd_cpu_count: int | None = None
     if front_door_profile:
         try:
             from frontdoor_resource_probe import probe_frontdoor_resources
@@ -1266,6 +1268,8 @@ def protected_generate_with_receipt(
             fd_available_vram_gb = _resource_snapshot.available_vram_gb
             fd_available_ram_gb = _resource_snapshot.available_ram_gb
             fd_resident_vram_by_model_gb = _resource_snapshot.resident_vram_by_model_gb()
+            fd_system_load_1m = _resource_snapshot.system_load_1m
+            fd_cpu_count = _resource_snapshot.cpu_count
         except Exception as exc:
             fd_resource_probe_fields = {"resource_probe_errors": [f"probe_exception:{type(exc).__name__}"]}
 
@@ -1359,6 +1363,8 @@ def protected_generate_with_receipt(
                                 available_vram_gb=fd_available_vram_gb,
                                 available_ram_gb=fd_available_ram_gb,
                                 resident_vram_by_model_gb=fd_resident_vram_by_model_gb,
+                                system_load_1m=fd_system_load_1m,
+                                cpu_count=fd_cpu_count,
                             )
                             fd_model_selection_reason = _reason
                             fd_model_selected = fd_model_selected or _model
