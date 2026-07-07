@@ -108,6 +108,53 @@ INTERNAL_STATE_LEAK_PATTERNS = (
     re.compile(r"\bInterrupting current task\s*(?:\([^)]*\))?\s*", re.IGNORECASE),
     re.compile(r"\(?(?:iteration|loop)\s+\d+\s*/\s*\d+\)?", re.IGNORECASE),
 )
+_ANSWER_TOPIC_AMOUNT_RE = re.compile(r"\$[\d,]+(?:\.\d+)?")
+_ANSWER_TOPIC_MAX_SENTENCES = 5
+
+
+def _derived_answer_topic_values(context_packet: Mapping[str, Any] | None) -> tuple[str, ...]:
+    if not isinstance(context_packet, Mapping):
+        return ()
+    facts = context_packet.get("facts", ())
+    if not isinstance(facts, Sequence):
+        return ()
+    values: list[str] = []
+    for fact in facts:
+        if not isinstance(fact, Mapping):
+            continue
+        if str(fact.get("provenance") or "") != "derived_answer_topic":
+            continue
+        value = str(fact.get("value") or "").strip()
+        if value:
+            values.append(value)
+    return tuple(values)
+
+
+def _sentence_count(text: str) -> int:
+    stripped = str(text or "").strip()
+    if not stripped:
+        return 0
+    return len([part for part in re.split(r"(?<=[.!?])\s+", stripped) if part.strip()])
+
+
+def _enforce_answer_topic_presentation(answer_text: str, context_packet: Mapping[str, Any] | None) -> str:
+    """Anti-launder extension (task 132): when the packet carries a derived answer topic
+    (money/plate), the reply must carry the topic's rendered lines VERBATIM -- amounts and
+    statuses are never paraphrased. Live evidence (msg 1277): the model re-narrated an
+    evidenced $1,095 as "amounts still unverified or unknown", dropping the number. Post-check
+    the model's reply against the topic's amount strings and against a concise-reply cap; on
+    either mismatch, fall back to the deterministic topic text itself (grounded > eloquent)."""
+    topic_values = _derived_answer_topic_values(context_packet)
+    if not topic_values:
+        return answer_text
+    required_amounts = tuple(dict.fromkeys(_ANSWER_TOPIC_AMOUNT_RE.findall(" ".join(topic_values))))
+    if not required_amounts:
+        return answer_text
+    amounts_present = all(amount in answer_text for amount in required_amounts)
+    concise_enough = _sentence_count(answer_text) <= _ANSWER_TOPIC_MAX_SENTENCES
+    if amounts_present and concise_enough:
+        return answer_text
+    return " ".join(topic_values)
 
 
 def _default_handle(text: str, session: dict[str, Any] | None = None) -> Sequence[str]:
@@ -1349,6 +1396,7 @@ def _answer_with_maestro_brain(
     answer_text = _strip_internal_state_leaks(answer_text) or (
         "I don't have that in the current Maestro packet."
     )
+    answer_text = _enforce_answer_topic_presentation(answer_text, context_packet)
     # ── SELF-IMPROVEMENT LOOP ─────────────────────────────────────────────────
     # If the operator just agreed to an improvement the agent recommended last turn, file it
     # as a REAL build request (-> PROPOSED + Guardian). Otherwise, if they're talking about
