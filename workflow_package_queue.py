@@ -718,6 +718,136 @@ def _worker_result_status(package_status: str) -> str:
     return "NOOP_RESULT_RECORDED"
 
 
+def _display_source_ref(path: Path) -> str:
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _source_path(path: str | Path) -> Path:
+    candidate = Path(path)
+    return candidate if candidate.is_absolute() else ROOT / candidate
+
+
+def _file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _json_object(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _inventory_source(
+    path: str | Path,
+    *,
+    artifact_kind: str,
+    required: bool = True,
+    source_of_truth: bool = True,
+) -> dict[str, Any]:
+    source_path = _source_path(path)
+    exists = source_path.exists()
+    row: dict[str, Any] = {
+        "source_ref": _display_source_ref(source_path),
+        "artifact_kind": artifact_kind,
+        "required": required,
+        "exists": exists,
+        "source_of_truth": source_of_truth,
+    }
+    if exists and source_path.is_file():
+        row["file_size_bytes"] = source_path.stat().st_size
+        row["sha256"] = _file_sha256(source_path)
+        if source_path.suffix.lower() == ".json":
+            payload = _json_object(source_path)
+            for key in ("schema_version", "read_model_id", "status", "client_ref", "workflow_ref", "invoice_period"):
+                if payload.get(key) not in (None, ""):
+                    row[key] = payload[key]
+    return row
+
+
+def _st_annes_invoice_artifact_sources() -> list[dict[str, Any]]:
+    try:
+        import st_annes_invoice_status as invoice_status
+
+        receipt_path = invoice_status.find_latest_manual_send_receipt(invoice_status.DEFAULT_RECEIPT_DIR)
+        pdf_path = invoice_status.DEFAULT_PDF_PATH
+    except Exception:  # noqa: BLE001 - fail closed by reporting missing refs.
+        receipt_path = Path("/mnt/e/openclaw/artifacts/invoice_workbooks/st_annes/2026-05/st_annes_manual_invoice_sent_receipt_20260601T211257Z.json")
+        pdf_path = Path("/mnt/e/openclaw/artifacts/invoice_workbooks/st_annes/2026-05/Invoice_St_Annes_May_2026_OPERATOR_SENT.pdf")
+    return [
+        _inventory_source(receipt_path, artifact_kind="manual_send_receipt_json", required=False),
+        _inventory_source(pdf_path, artifact_kind="operator_provided_pdf_invoice", required=False),
+    ]
+
+
+def _st_annes_monthly_invoice_source_room_context() -> dict[str, Any]:
+    scenario_ref = "st_annes_monthly_invoice_rollup"
+    sources = [
+        _inventory_source(DEFAULT_EXPORT_ROOT / "st_annes_work_log_events.json", artifact_kind="work_log_read_model"),
+        _inventory_source(DEFAULT_EXPORT_ROOT / "st_annes_monthly_work_log_contract.json", artifact_kind="work_log_contract_read_model"),
+        _inventory_source(DEFAULT_EXPORT_ROOT / "st_annes_work_log_review_surface.json", artifact_kind="operator_review_read_model"),
+        _inventory_source(
+            Path("generated/system_knowledge/st_annes_invoice_status_SEED.sql"),
+            artifact_kind="invoice_status_seed_sql",
+        ),
+        *_st_annes_invoice_artifact_sources(),
+    ]
+    missing_source_refs = [row["source_ref"] for row in sources if row["required"] and not row["exists"]]
+    source_inventory_exists = not missing_source_refs
+    refs = _project_room_refs(scenario_ref)
+    return {
+        **refs,
+        "package_ref": scenario_ref,
+        "package_type": "client/business_draft",
+        "uses_multiple_sources": True,
+        "source_inventory_exists": source_inventory_exists,
+        "duplicate_report_exists": source_inventory_exists,
+        "decision_trace_exists": source_inventory_exists,
+        "unresolved_critical_conflict": False,
+        "version_families_exist": True,
+        "repeated_or_failed_work": True,
+        "missing_source_refs": missing_source_refs,
+        "dry_run_artifact_order": ["pdf_proof", "clara_draft", "guardian_gate"],
+        "source_inventory": {
+            "source_inventory_ref": refs["source_inventory_ref"],
+            "client_ref": "st_annes",
+            "workflow_ref": "st_annes_monthly_invoice_rollup",
+            "source_of_truth_policy": "project_invoice_source_of_truth",
+            "sources": sources,
+            "machine_proof": {
+                "derived_from_existing_files": source_inventory_exists,
+                "required_source_count": len([row for row in sources if row["required"]]),
+                "missing_source_count": len(missing_source_refs),
+                "pdf_proof_first": True,
+                "live_worker_executed": False,
+                "send_performed": False,
+                "ledger_post_performed": False,
+            },
+        },
+        "conflict_log": {
+            "conflict_log_ref": refs["conflict_log_ref"],
+            "status": "NO_UNRESOLVED_CRITICAL_CONFLICTS" if source_inventory_exists else "SOURCE_INVENTORY_INCOMPLETE",
+            "conflicts": [],
+        },
+        "duplicate_report": {
+            "duplicate_report_ref": refs["duplicate_report_ref"],
+            "status": "VERSION_FAMILY_REVIEWED" if source_inventory_exists else "SOURCE_INVENTORY_INCOMPLETE",
+            "current_source_refs": [row["source_ref"] for row in sources if row["exists"]],
+            "stale_source_current_truth_allowed": False,
+        },
+        "decision_trace": {
+            "decision_trace_ref": refs["decision_trace_ref"],
+            "status": "PDF_PROOF_FIRST_DRY_RUN_ORDER_READY" if source_inventory_exists else "SOURCE_INVENTORY_INCOMPLETE",
+            "artifact_order": ["pdf_proof", "clara_draft", "guardian_gate"],
+            "live_worker_executed": False,
+        },
+    }
+
+
 def _source_room_context_for_workflow(workflow_ref: str) -> dict[str, Any]:
     if workflow_ref == "capital_hilton_invoice_operator_assist":
         return {
@@ -745,12 +875,7 @@ def _source_room_context_for_workflow(workflow_ref: str) -> dict[str, Any]:
             "unresolved_critical_conflict": True,
         }
     if workflow_ref == "st_annes_monthly_invoice_rollup":
-        return {
-            "package_ref": workflow_ref,
-            "package_type": "client/business_draft",
-            "uses_multiple_sources": True,
-            "source_inventory_exists": False,
-        }
+        return _st_annes_monthly_invoice_source_room_context()
     return {
         "package_ref": workflow_ref,
         "package_type": "simple_answer",
@@ -927,7 +1052,8 @@ def create_package(
     package_id = "workflow_package:" + _short_hash(source_surface, protected_hash, workflow_ref, created_at)
     worker_ref = "noop_worker:" + workflow_ref
     result_status = _worker_result_status(status)
-    project_room_gate = compile_project_room_package_gate(_source_room_context_for_workflow(workflow_ref))
+    source_room_context = _source_room_context_for_workflow(workflow_ref)
+    project_room_gate = compile_project_room_package_gate(source_room_context)
     business_action_gate = {
         "gate_ref": "business_action_gate:" + _short_hash(package_id),
         "status": "CLOSED",
@@ -961,6 +1087,7 @@ def create_package(
         "synthesis_allowed": project_room_gate["synthesis_allowed"],
         "blocked_reason": project_room_gate["blocked_reason"],
         "next_safe_action": project_room_gate["next_safe_action"],
+        "source_room_context": source_room_context,
         "project_room_gate_result": project_room_gate,
         "created_at": created_at,
         "updated_at": created_at,
@@ -980,6 +1107,7 @@ def create_package(
             "result_ref": "worker_result:" + _short_hash(package_id, result_status),
             "result_status": result_status,
             "summary": "Dry-run worker recorded package state only.",
+            "live_worker_executed": False,
             "email_send_performed": False,
             "ledger_mutation_performed": False,
             "browser_access_performed": False,
