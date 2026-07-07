@@ -167,6 +167,22 @@ def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
             },
         },
     )
+    _write_json(
+        read_model_root / "sync_health.json",
+        {
+            "schema_version": "sync_health_v0",
+            "mirror_status": "current",
+            "display_status": "ready",
+            "trust_status": "trusted",
+            "operator_action_required": False,
+            "missing_expected": 0,
+            "hash_mismatch": 0,
+            "last_mac_completion": {
+                "status": "synced",
+                "time": "2026-06-05T11:00:00+00:00",
+            },
+        },
+    )
     return read_model_root
 
 
@@ -360,6 +376,44 @@ def test_status_capability_query_answers_from_read_models_without_handle(tmp_pat
     assert result.machine_proof["blocked_or_future_capability_ids_not_claimed"] == (
         "protected_secret_intake",
     )
+
+
+def test_chief_system_health_probe_uses_health_read_models_not_album_or_model(tmp_path):
+    read_model_root = _seed_truthful_status_read_models(tmp_path)
+
+    def forbidden_handle(_text: str, _session: dict | None = None) -> list[str]:
+        raise AssertionError("Chief system-health readback must not call cassandra_brain.handle")
+
+    def forbidden_generate(*_args, **_kwargs):
+        raise AssertionError("Chief system-health readback must not call protected_generate")
+
+    result = maestro.answer_frontdoor_chat(
+        "give me a system-health read on the current OpenClaw front door and agent response stack",
+        session={"read_model_root": read_model_root.as_posix()},
+        handle_fn=forbidden_handle,
+        protected_generate_fn=forbidden_generate,
+        agent="chief",
+    )
+
+    lower_summary = result.plain_summary.lower()
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "system_health_readback"
+    assert result.allowed_to_call_handle is False
+    assert "chief system health" in lower_summary
+    assert "front door" in lower_summary
+    assert "agent response stack" in lower_summary
+    assert "chief: online" in lower_summary
+    assert "sync: mirror=current" in lower_summary
+    assert "safe_status_read_model_only" in result.plain_summary
+    for forbidden in ("album", "recording", "drums", "bass", "songs"):
+        assert forbidden not in lower_summary
+    assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["protected_generate_called"] is False
+    assert result.machine_proof["model_call_performed"] is False
+    assert result.machine_proof["agent_presence_used"] is True
+    assert result.machine_proof["chief_status_rail_used"] is True
+    assert result.machine_proof["sync_health_used"] is True
+    assert result.machine_proof["system_health_readback_performed"] is True
 
 
 def test_status_capability_missing_index_fails_closed_without_fake_claim(tmp_path):
