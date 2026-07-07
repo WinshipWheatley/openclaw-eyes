@@ -35,6 +35,7 @@ DEFAULT_CANONICAL_RECEIVABLE_MONTH_FACTS: tuple[dict[str, Any], ...] = (
         "invoiced_minor_units": 199500,
         "paid_minor_units": 90000,
         "open_minor_units": 109500,
+        "invoiced_derived": True,
         "needs_reconcile": True,
         "payment_status": "needs_reconcile",
         "notes": ["$900 paid; $1,095 remains open pending operator reconciliation."],
@@ -48,6 +49,7 @@ DEFAULT_CANONICAL_RECEIVABLE_MONTH_FACTS: tuple[dict[str, Any], ...] = (
         "invoiced_minor_units": 62500,
         "paid_minor_units": 62500,
         "open_minor_units": 0,
+        "amount_evidence_minor_units": [62500],
         "needs_reconcile": False,
         "payment_status": "settled",
         "notes": ["April share of St. Anne's Apr+May $1,250 paid total; settled months do not resurface as owed."],
@@ -61,6 +63,7 @@ DEFAULT_CANONICAL_RECEIVABLE_MONTH_FACTS: tuple[dict[str, Any], ...] = (
         "invoiced_minor_units": 62500,
         "paid_minor_units": 62500,
         "open_minor_units": 0,
+        "amount_evidence_minor_units": [62500],
         "needs_reconcile": False,
         "payment_status": "settled",
         "notes": ["May share of St. Anne's Apr+May $1,250 paid total; settled months do not resurface as owed."],
@@ -71,12 +74,10 @@ DEFAULT_CANONICAL_RECEIVABLE_MONTH_FACTS: tuple[dict[str, Any], ...] = (
         "client_display_name": "Capital Hilton",
         "month": "2026-06",
         "currency_iso": "USD",
-        "invoiced_minor_units": 200000,
-        "paid_minor_units": 0,
-        "open_minor_units": 200000,
+        "amount_known": False,
         "needs_reconcile": True,
-        "payment_status": "open_not_paid",
-        "notes": ["check_unverified: Coupa/check evidence is not payment proof; keep open until reconciliation."],
+        "payment_status": "open_amount_unknown",
+        "notes": ["check_unverified: check expected per operator; amount not yet evidenced."],
         "source_ref": "canonical_business_fact:capital_hilton:2026-06:check_unverified",
     },
 )
@@ -105,6 +106,7 @@ _CLIENT_DISPLAY_NAMES = {
 _VALID_STATUSES = {
     "cancelled",
     "needs_reconcile",
+    "open_amount_unknown",
     "open_not_paid",
     "settled",
     "unknown",
@@ -165,6 +167,68 @@ def _notes(value: Any) -> list[str]:
     return []
 
 
+_AMOUNT_FIELDS = ("invoiced_minor_units", "paid_minor_units", "open_minor_units")
+_DOLLAR_RE = re.compile(r"\$([0-9][0-9,]*(?:\.[0-9]{1,2})?)")
+_SOURCE_TOKEN_AMOUNT_RE = re.compile(r"(?<![0-9])([0-9]{1,6})(?:_(?:open|paid|owed|due|invoiced|settled))")
+
+
+def _minor_units_from_decimal_text(value: str) -> int | None:
+    text = value.replace(",", "").strip()
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]{1,2})?", text):
+        return None
+    whole, _, cents = text.partition(".")
+    return int(whole) * 100 + int((cents + "00")[:2])
+
+
+def _amount_evidence_minor_units(fact: Mapping[str, Any]) -> set[int]:
+    amounts: set[int] = set()
+    explicit = fact.get("amount_evidence_minor_units")
+    if isinstance(explicit, Iterable) and not isinstance(explicit, (str, bytes, Mapping)):
+        for value in explicit:
+            coerced = _coerce_int(value)
+            if coerced is not None:
+                amounts.add(coerced)
+    evidence_texts: list[str] = [
+        str(fact.get("source_ref") or fact.get("source") or ""),
+        str(fact.get("source_evidence") or fact.get("evidence") or ""),
+    ]
+    evidence_texts.extend(_notes(fact.get("notes") or fact.get("note")))
+    for text in evidence_texts:
+        for match in _DOLLAR_RE.finditer(text):
+            parsed = _minor_units_from_decimal_text(match.group(1))
+            if parsed is not None:
+                amounts.add(parsed)
+        for match in _SOURCE_TOKEN_AMOUNT_RE.finditer(text):
+            amounts.add(int(match.group(1)) * 100)
+    return amounts
+
+
+def _validate_canonical_fact_amounts(fact: Mapping[str, Any]) -> list[str]:
+    source_ref = _source_ref(fact, "canonical_business_fact")
+    evidence_amounts = _amount_evidence_minor_units(fact)
+    errors: list[str] = []
+    paid = _coerce_int(fact.get("paid_minor_units"))
+    open_amount = _coerce_int(fact.get("open_minor_units"))
+    for field in _AMOUNT_FIELDS:
+        value = _coerce_int(fact.get(field))
+        if value is None or value == 0:
+            continue
+        if field == "invoiced_minor_units" and bool(fact.get("invoiced_derived")):
+            if paid is not None and open_amount is not None and paid + open_amount == value:
+                continue
+        if value not in evidence_amounts:
+            errors.append(f"{source_ref} {field}={value} has no matching amount in cited source evidence")
+    return errors
+
+
+def validate_canonical_receivable_month_facts(facts: Iterable[Mapping[str, Any]]) -> None:
+    errors: list[str] = []
+    for fact in facts:
+        errors.extend(_validate_canonical_fact_amounts(fact))
+    if errors:
+        raise ValueError("unevidenced amount in receivables_month_bounded facts: " + "; ".join(errors))
+
+
 def _source_ref(value: Mapping[str, Any], fallback: str) -> str:
     return str(value.get("source_ref") or value.get("source") or fallback).strip()
 
@@ -178,6 +242,9 @@ def _empty_bucket(client_ref: str, month: str, currency: str, display_name: str 
         "invoiced_minor_units": 0,
         "paid_minor_units": 0,
         "open_minor_units": 0,
+        "amount_known": True,
+        "amount_source_count": 0,
+        "invoiced_derived": False,
         "needs_reconcile": False,
         "payment_status": "unknown",
         "settled_past_no_compound": False,
@@ -253,6 +320,8 @@ def _merge_g2c_receivable(buckets: dict[tuple[str, str, str], dict[str, Any]], r
     if amount <= 0:
         return
     bucket = _bucket_for(buckets, client_ref=client_ref, month=month, currency=currency)
+    bucket["amount_known"] = True
+    bucket["amount_source_count"] = int(bucket.get("amount_source_count") or 0) + 1
     state = str(getattr(receivable, "lifecycle_state", "") or "open").strip().lower()
     bucket["invoiced_minor_units"] += amount
     if state == "satisfied":
@@ -320,13 +389,24 @@ def _merge_canonical_fact(
         currency=currency,
         display_name=str(fact.get("client_display_name") or fact.get("display_name") or ""),
     )
+    fact_amounts: dict[str, int] = {}
     for key in ("invoiced_minor_units", "paid_minor_units", "open_minor_units"):
         value = _coerce_int(fact.get(key))
         if value is not None:
+            fact_amounts[key] = value
             bucket[key] = value
+    if fact_amounts:
+        bucket["amount_known"] = True
+        bucket["amount_source_count"] = int(bucket.get("amount_source_count") or 0) + 1
+    elif fact.get("amount_known") is False and int(bucket.get("amount_source_count") or 0) == 0:
+        bucket["amount_known"] = False
     status = str(fact.get("payment_status") or fact.get("status") or "").strip().lower()
+    if status == "open_amount_unknown" and bucket.get("amount_known"):
+        status = "open_not_paid" if int(bucket.get("open_minor_units") or 0) > 0 else "needs_reconcile"
     if status in _VALID_STATUSES:
         bucket["payment_status"] = status
+    if "invoiced_derived" in fact:
+        bucket["invoiced_derived"] = bool(fact.get("invoiced_derived"))
     if "needs_reconcile" in fact:
         bucket["needs_reconcile"] = bool(fact.get("needs_reconcile"))
     if bucket["payment_status"] == "needs_reconcile":
@@ -346,14 +426,29 @@ def _merge_canonical_fact(
 def _finalize_bucket(bucket: Mapping[str, Any]) -> dict[str, Any]:
     row = dict(bucket)
     status = str(row.get("payment_status") or "unknown")
+    amount_known = bool(row.get("amount_known", True))
     invoiced = int(row.get("invoiced_minor_units") or 0)
     paid = int(row.get("paid_minor_units") or 0)
     open_amount = int(row.get("open_minor_units") or 0)
+    if not amount_known:
+        status = "open_amount_unknown"
+        row["needs_reconcile"] = True
+        if not row.get("notes"):
+            row["notes"] = ["check expected per operator; amount not yet evidenced."]
+        invoiced_value: int | None = None
+        paid_value: int | None = None
+        open_value: int | None = None
+    else:
+        invoiced_value = invoiced
+        paid_value = paid
+        open_value = open_amount
     if status == "settled":
         open_amount = 0
         paid = max(paid, invoiced)
         row["needs_reconcile"] = False
         row["settled_past_no_compound"] = True
+        open_value = open_amount
+        paid_value = paid
     elif status == "unknown":
         if open_amount > 0:
             status = "needs_reconcile" if row.get("needs_reconcile") else "open_not_paid"
@@ -362,10 +457,18 @@ def _finalize_bucket(bucket: Mapping[str, Any]) -> dict[str, Any]:
             row["settled_past_no_compound"] = True
         else:
             status = "unknown"
+    if status == "open_amount_unknown":
+        amount_known = False
+        invoiced_value = None
+        paid_value = None
+        open_value = None
     row["payment_status"] = status
-    row["invoiced_minor_units"] = invoiced
-    row["paid_minor_units"] = paid
-    row["open_minor_units"] = open_amount
+    row["amount_known"] = amount_known
+    row["invoiced_minor_units"] = invoiced_value
+    row["paid_minor_units"] = paid_value
+    row["open_minor_units"] = open_value
+    row["invoiced_derived"] = bool(row.get("invoiced_derived"))
+    row.pop("amount_source_count", None)
     row["source_kinds"] = sorted(str(item) for item in row.get("source_kinds", set()) if str(item))
     row["source_refs"] = sorted(dict.fromkeys(str(item) for item in row.get("source_refs", []) if str(item)))
     row["notes"] = list(dict.fromkeys(str(item) for item in row.get("notes", []) if str(item)))
@@ -380,13 +483,18 @@ def _summary(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
     paid_by_client: dict[str, int] = {}
     invoiced_by_client: dict[str, int] = {}
     needs_reconcile: list[str] = []
+    unknown_amounts: list[str] = []
     for row in rows:
         client_ref = str(row.get("client_ref") or "")
-        open_by_client[client_ref] = open_by_client.get(client_ref, 0) + int(row.get("open_minor_units") or 0)
-        paid_by_client[client_ref] = paid_by_client.get(client_ref, 0) + int(row.get("paid_minor_units") or 0)
-        invoiced_by_client[client_ref] = invoiced_by_client.get(client_ref, 0) + int(row.get("invoiced_minor_units") or 0)
+        amount_known = row.get("amount_known") is not False
+        if amount_known:
+            open_by_client[client_ref] = open_by_client.get(client_ref, 0) + int(row.get("open_minor_units") or 0)
+            paid_by_client[client_ref] = paid_by_client.get(client_ref, 0) + int(row.get("paid_minor_units") or 0)
+            invoiced_by_client[client_ref] = invoiced_by_client.get(client_ref, 0) + int(row.get("invoiced_minor_units") or 0)
         if row.get("needs_reconcile"):
             needs_reconcile.append(f"{client_ref}:{row.get('month')}")
+        if not amount_known:
+            unknown_amounts.append(f"{client_ref}:{row.get('month')}")
     return {
         "row_count": len(rows),
         "client_count": len({str(row.get("client_ref") or "") for row in rows}),
@@ -395,6 +503,7 @@ def _summary(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
         "paid_minor_units_by_client": dict(sorted(paid_by_client.items())),
         "invoiced_minor_units_by_client": dict(sorted(invoiced_by_client.items())),
         "needs_reconcile_keys": sorted(needs_reconcile),
+        "unknown_amount_keys": sorted(unknown_amounts),
     }
 
 
@@ -410,6 +519,7 @@ def build_receivables_month_bounded(
     for receivable in g2c_records:
         _merge_g2c_receivable(buckets, receivable)
     canonical_facts = load_canonical_receivable_month_facts(facts_path)
+    validate_canonical_receivable_month_facts(canonical_facts)
     for fact in canonical_facts:
         _merge_canonical_fact(buckets, fact)
     rows = [
