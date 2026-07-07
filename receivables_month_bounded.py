@@ -80,6 +80,21 @@ DEFAULT_CANONICAL_RECEIVABLE_MONTH_FACTS: tuple[dict[str, Any], ...] = (
         "notes": ["check_unverified: check expected per operator; amount not yet evidenced."],
         "source_ref": "canonical_business_fact:capital_hilton:2026-06:check_unverified",
     },
+    {
+        # Task 133 (operator correction 2026-07-07: "st annes is not settled... we are not
+        # all paid up"): current St. Anne's work is owed but NOT YET INVOICED (draft held for
+        # a copy fix), a third tier distinct from open-invoiced and settled. No amount claim
+        # until the finalized invoice (134) evidences one -- 121's validator applies.
+        "client_ref": "st_annes",
+        "client_display_name": "St. Anne's",
+        "month": "2026-07",
+        "currency_iso": "USD",
+        "amount_known": False,
+        "needs_reconcile": False,
+        "payment_status": "expected_uninvoiced",
+        "notes": ["Current invoice ready to send once the copy is fixed; not yet invoiced, not settled."],
+        "source_ref": "canonical_business_fact:st_annes_current_open:2026-07:expected_uninvoiced",
+    },
 )
 
 
@@ -105,6 +120,7 @@ _CLIENT_DISPLAY_NAMES = {
 }
 _VALID_STATUSES = {
     "cancelled",
+    "expected_uninvoiced",
     "needs_reconcile",
     "open_amount_unknown",
     "open_not_paid",
@@ -431,10 +447,15 @@ def _finalize_bucket(bucket: Mapping[str, Any]) -> dict[str, Any]:
     paid = int(row.get("paid_minor_units") or 0)
     open_amount = int(row.get("open_minor_units") or 0)
     if not amount_known:
-        status = "open_amount_unknown"
-        row["needs_reconcile"] = True
-        if not row.get("notes"):
-            row["notes"] = ["check expected per operator; amount not yet evidenced."]
+        # Task 133: expected_uninvoiced is a DELIBERATE third tier (owed, not yet invoiced),
+        # not the same as "we don't know the open amount of an invoiced item" -- don't let it
+        # get swallowed into open_amount_unknown, and it isn't "needing reconcile" either
+        # (that's an invoiced-and-unpaid concept; this is pre-invoice).
+        if status != "expected_uninvoiced":
+            status = "open_amount_unknown"
+            row["needs_reconcile"] = True
+            if not row.get("notes"):
+                row["notes"] = ["check expected per operator; amount not yet evidenced."]
         invoiced_value: int | None = None
         paid_value: int | None = None
         open_value: int | None = None
@@ -457,7 +478,7 @@ def _finalize_bucket(bucket: Mapping[str, Any]) -> dict[str, Any]:
             row["settled_past_no_compound"] = True
         else:
             status = "unknown"
-    if status == "open_amount_unknown":
+    if status in ("open_amount_unknown", "expected_uninvoiced"):
         amount_known = False
         invoiced_value = None
         paid_value = None

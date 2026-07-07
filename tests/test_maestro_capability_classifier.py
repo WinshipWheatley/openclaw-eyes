@@ -240,6 +240,31 @@ def test_real_payment_send_command_still_routes_to_staging() -> None:
     assert gate_reason
 
 
+def test_payment_status_question_with_action_word_routes_to_brain_not_staging() -> None:
+    """Task 133: 'did St Anne's pay us?' contains the action-term 'pay' but is a QUESTION
+    about status, not an instruction to pay -- must not get hijacked into staging (same bug
+    class as 129, in the sibling classify_frontdoor_intent gate)."""
+    intent_class, allowed_to_call_handle, gate_reason = classify_frontdoor_intent(
+        "did St Anne's pay us?"
+    )
+
+    assert intent_class == "maestro_brain_freeform"
+    assert allowed_to_call_handle is True
+    assert gate_reason == ""
+
+
+def test_pay_the_invoice_instruction_still_routes_to_staging() -> None:
+    """The question-shape exemption must not swallow real instructions that happen to start
+    with an interrogative-looking word or otherwise aren't question-shaped."""
+    intent_class, allowed_to_call_handle, gate_reason = classify_frontdoor_intent(
+        "pay the St Anne's invoice now"
+    )
+
+    assert intent_class == "workflow_or_business_action"
+    assert allowed_to_call_handle is False
+    assert gate_reason == "workflow_or_business_action_routes_to_staging"
+
+
 def test_calendar_prompt_stays_deterministic_without_brain_or_send(tmp_path: Path) -> None:
     session = _write_read_models(tmp_path)
 

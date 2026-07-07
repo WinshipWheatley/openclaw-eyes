@@ -436,7 +436,7 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("ledger_reference_clarification", True, "")
     if ledger_resolution.get("status") == "RESOLVED" and ledger_resolution.get("blocked_action_requested") is not True:
         return ("maestro_brain_freeform", True, "")
-    if _is_workflow_or_business_action_intent(normalized):
+    if _is_workflow_or_business_action_intent(normalized) and not _is_general_question_shape(normalized):
         return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     if _is_date_awareness_intent(normalized):
         return ("date_awareness", True, "")
@@ -2260,3 +2260,22 @@ def _is_workflow_or_business_action_intent(text: str) -> bool:
         "create calendar",
     )
     return any(term in text for term in action_terms)
+
+
+_GENERAL_QUESTION_OPENERS = (
+    "who", "what", "when", "where", "which", "how",
+    "does", "did", "is", "are", "can",
+)
+
+
+def _is_general_question_shape(text: str) -> bool:
+    """Task 133: a question-shaped text (interrogative opener or trailing '?') must never be
+    classified as a business action just because it contains an action-shaped word --
+    'did St Anne's pay us?' contains 'pay' but asks about status, not a payment request."""
+    normalized = str(text or "").strip()
+    if not normalized:
+        return False
+    if normalized.endswith("?"):
+        return True
+    first_word = normalized.split(" ", 1)[0].rstrip("?,.!;:")
+    return first_word in _GENERAL_QUESTION_OPENERS

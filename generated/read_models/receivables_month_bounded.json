@@ -119,6 +119,32 @@
         "canonical_business_fact:st_annes:2026-05:apr_may_paid"
       ],
       "structured_fact": true
+    },
+    {
+      "amount_known": false,
+      "client_display_name": "St. Anne's",
+      "client_ref": "st_annes",
+      "currency_iso": "USD",
+      "current_truth": true,
+      "invoiced_derived": false,
+      "invoiced_minor_units": null,
+      "month": "2026-07",
+      "needs_reconcile": false,
+      "notes": [
+        "Current invoice ready to send once the copy is fixed; not yet invoiced, not settled."
+      ],
+      "open_minor_units": null,
+      "paid_minor_units": null,
+      "payment_status": "expected_uninvoiced",
+      "receivable_ids": [],
+      "settled_past_no_compound": false,
+      "source_kinds": [
+        "canonical_business_fact"
+      ],
+      "source_refs": [
+        "canonical_business_fact:st_annes_current_open:2026-07:expected_uninvoiced"
+      ],
+      "structured_fact": true
     }
   ],
   "schema_version": "receivables_month_bounded_v1",
@@ -126,10 +152,11 @@
     "canonical_business_fact:capital_hilton:2026-06:check_unverified",
     "canonical_business_fact:live_arts_md:2026-06:1095_open_900_paid",
     "canonical_business_fact:st_annes:2026-04:apr_may_paid",
-    "canonical_business_fact:st_annes:2026-05:apr_may_paid"
+    "canonical_business_fact:st_annes:2026-05:apr_may_paid",
+    "canonical_business_fact:st_annes_current_open:2026-07:expected_uninvoiced"
   ],
   "source_status": {
-    "canonical_month_fact_count": 4,
+    "canonical_month_fact_count": 5,
     "facts_path": "",
     "g2c_current_receivable_count": 0,
     "g2c_db_path": "/home/openclaw/state/gig_to_cash/gig_to_cash.sqlite3",
@@ -141,7 +168,7 @@
       "live_arts_md": 199500,
       "st_annes": 125000
     },
-    "month_count": 3,
+    "month_count": 4,
     "needs_reconcile_keys": [
       "capital_hilton:2026-06",
       "live_arts_md:2026-06"
@@ -154,9 +181,10 @@
       "live_arts_md": 90000,
       "st_annes": 125000
     },
-    "row_count": 4,
+    "row_count": 5,
     "unknown_amount_keys": [
-      "capital_hilton:2026-06"
+      "capital_hilton:2026-06",
+      "st_annes:2026-07"
     ]
   }
 }

@@ -1748,6 +1748,7 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
 
     open_rows: list[Mapping[str, Any]] = []
     settled_by_client: dict[str, list[Mapping[str, Any]]] = {}
+    uninvoiced_by_client: dict[str, list[Mapping[str, Any]]] = {}
     source_refs: list[str] = []
     as_of_values: list[str] = []
     for row in rows:
@@ -1761,7 +1762,12 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
             source_refs.append(source_ref)
         if as_of and as_of not in as_of_values:
             as_of_values.append(as_of)
-        if open_minor > 0 or needs_reconcile:
+        if status == "expected_uninvoiced":
+            # Task 133: owed work that hasn't been invoiced yet is a THIRD tier, distinct
+            # from open-invoiced and settled -- it must never let the client read as "fully
+            # settled" just because their OTHER, already-paid months are settled.
+            uninvoiced_by_client.setdefault(client_ref, []).append(row)
+        elif open_minor > 0 or needs_reconcile:
             open_rows.append(row)
         elif str(row.get("settled_past_no_compound") or "").lower() == "true" or status == "settled":
             settled_by_client.setdefault(client_ref, []).append(row)
@@ -1784,7 +1790,21 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
         line = f"{_client_display(client_ref)}"
         if months:
             line = f"{line} {months}"
-        line = f"{line} settled; don't chase"
+        uninvoiced_rows = uninvoiced_by_client.pop(client_ref, None)
+        if uninvoiced_rows:
+            # Client has both settled history AND a current expected-uninvoiced item --
+            # combine into one honest line, never claim "fully settled".
+            line = f"{line} paid; current invoice ready to send once copy is fixed"
+        else:
+            line = f"{line} settled; don't chase"
+        if as_of:
+            line = f"{line}, as of {as_of}"
+        settled_lines.append(line)
+    for client_ref, client_rows in uninvoiced_by_client.items():
+        # An expected-uninvoiced item with no settled history for this client -- still
+        # surface it, never silently drop it or fold it into "settled".
+        as_of = _operator_as_of(next((row.get("as_of") for row in client_rows if row.get("as_of")), ""))
+        line = f"{_client_display(client_ref)}: current invoice ready to send once copy is fixed"
         if as_of:
             line = f"{line}, as of {as_of}"
         settled_lines.append(line)

@@ -536,6 +536,78 @@ def test_superb_money_answer_is_operator_clean_and_amount_evidenced(monkeypatch,
         assert token not in answer
 
 
+def test_money_question_never_renders_expected_uninvoiced_client_as_fully_settled(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Task 133 (operator correction: "st annes is not settled... we are not all paid up"):
+    a client with a current expected-uninvoiced item must never read as fully settled, even
+    though their earlier months genuinely are paid."""
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "who owes me money right now?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    answer = result.plain_summary
+    lowered = answer.lower()
+    assert result.status == "ANSWER_READY"
+    assert "st. anne's" in lowered or "st anne's" in lowered
+    assert "current invoice ready to send once copy is fixed" in lowered
+    assert "st. anne's apr/may settled" not in lowered
+    assert "st anne's apr/may settled" not in lowered
+
+
+def test_did_st_annes_pay_us_question_answers_from_real_packet_not_staging(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """'did St Anne's pay us?' contains the action-term 'pay' -- before this fix it hijacked
+    straight to ROUTE_TO_STAGING with zero information (same bug class as 129). It must reach
+    the real packet-grounded engine and answer from evidenced facts, never claim a blanket
+    'settled' that would paper over the current unsent invoice.
+
+    Note: the packet DOES carry the new expected_uninvoiced fact for every St Anne's query
+    (verified directly against build_maestro_context_packet); which facts the deterministic
+    TEST_MODE renderer selects into the final reply for this specific narrow phrasing is a
+    separate fact-relevance-ranking concern this task didn't touch -- the "who owes me money"
+    aggregate query above proves the tier renders correctly end to end."""
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "did St Anne's pay us?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    lowered = result.plain_summary.lower()
+    assert result.status == "ANSWER_READY"
+    assert "staging" not in lowered
+    assert "st anne's" in lowered or "st. anne's" in lowered
+    assert "fully settled" not in lowered
+    assert "all paid up" not in lowered
+
+
 def test_plate_question_answers_attention_money_and_upcoming_from_packet(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
     read_models = _seed_read_models(tmp_path)
