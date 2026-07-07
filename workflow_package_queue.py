@@ -630,7 +630,18 @@ def _classify_intent_with_lm1_override(
     }
 
 
-def _capability_gate(workflow_ref: str, config: QueueConfig) -> dict[str, Any]:
+def _st_annes_review_dry_run_requested(source_text: str) -> bool:
+    normalized = source_text.lower().replace("'", "").replace("’", "")
+    review_terms = ("test", "review", "preview", "dry-run", "dry run", "proof")
+    return any(term in normalized for term in review_terms)
+
+
+def _capability_gate(
+    workflow_ref: str,
+    config: QueueConfig,
+    *,
+    source_text: str = "",
+) -> dict[str, Any]:
     if workflow_ref == "st_annes_work_log_event":
         return {
             "gate_ref": "capability_gate:st_annes_work_log_event",
@@ -641,6 +652,8 @@ def _capability_gate(workflow_ref: str, config: QueueConfig) -> dict[str, Any]:
             "blocked_actions": (),
         }
     if workflow_ref == "st_annes_monthly_invoice_rollup":
+        if _st_annes_review_dry_run_requested(source_text):
+            return _st_annes_invoice_review_capability(config)
         if not config.st_annes_send_permission_ready:
             return {
                 "gate_ref": "capability_gate:st_annes_invoice_send_permission",
@@ -649,6 +662,7 @@ def _capability_gate(workflow_ref: str, config: QueueConfig) -> dict[str, Any]:
                 "provider_policy": "blocked_until_permission_registry_ready",
                 "provider_required": True,
                 "blocked_actions": ("email_send", "workbook_write", "pdf_export"),
+                "actual_send_gate": _st_annes_actual_send_gate(config),
             }
         if not config.st_annes_approved_pdf_artifact_available:
             return {
@@ -658,15 +672,9 @@ def _capability_gate(workflow_ref: str, config: QueueConfig) -> dict[str, Any]:
                 "provider_policy": "blocked_until_approved_artifact",
                 "provider_required": True,
                 "blocked_actions": ("email_send",),
+                "actual_send_gate": _st_annes_actual_send_gate(config),
             }
-        return {
-            "gate_ref": "capability_gate:st_annes_invoice_rollup",
-            "status": "ALLOW_DRY_RUN",
-            "reason": "Invoice rollup can be staged for operator review only.",
-            "provider_policy": "local_noop_worker_only",
-            "provider_required": False,
-            "blocked_actions": ("email_send", "workbook_write", "pdf_export"),
-        }
+        return _st_annes_invoice_review_capability(config)
     if workflow_ref == "capital_hilton_invoice_operator_assist":
         if not config.capital_hilton_operator_assist_provider_staged or not config.capital_hilton_submit_gate_staged:
             return {
@@ -716,6 +724,62 @@ def _worker_result_status(package_status: str) -> str:
     if package_status in {"PERMISSION_REQUIRED", "ARTIFACT_REQUIRED", "PROVIDER_GATE_REQUIRED"}:
         return "NOOP_BLOCKED_BY_GATE"
     return "NOOP_RESULT_RECORDED"
+
+
+def _st_annes_actual_send_gate(config: QueueConfig) -> dict[str, Any]:
+    if not config.st_annes_send_permission_ready:
+        status = "CLOSED_PERMISSION_REQUIRED"
+        reason = "Send permission registry is not ready for actual email send."
+    elif not config.st_annes_approved_pdf_artifact_available:
+        status = "CLOSED_ARTIFACT_REQUIRED"
+        reason = "No approved PDF artifact is available for actual email send."
+    else:
+        status = "CLOSED_GUARDIAN_REQUIRED"
+        reason = "Guardian approval is required before actual email send."
+    return {
+        "gate_ref": "actual_send_gate:st_annes_invoice_email_send",
+        "status": status,
+        "reason": reason,
+        "send_permission_ready": config.st_annes_send_permission_ready,
+        "approved_pdf_artifact_available": config.st_annes_approved_pdf_artifact_available,
+        "guardian_approval_required": True,
+        "email_send_allowed": False,
+        "blocked_actions": ("email_send",),
+    }
+
+
+def _st_annes_invoice_review_capability(config: QueueConfig) -> dict[str, Any]:
+    return {
+        "gate_ref": "capability_gate:st_annes_invoice_review_dry_run",
+        "status": "ALLOW_DRY_RUN",
+        "reason": "Invoice proof review can be staged locally before send permission.",
+        "provider_policy": "local_noop_worker_only_actual_send_gate_closed",
+        "provider_required": False,
+        "allowed_dry_run_actions": ("local_pdf_proof_render", "clara_draft_render", "guardian_gate_preview"),
+        "blocked_actions": ("email_send", "workbook_write", "external_pdf_export"),
+        "actual_send_gate": _st_annes_actual_send_gate(config),
+    }
+
+
+def _proof_refs_for_source_room(source_room_context: Mapping[str, Any]) -> list[dict[str, str]]:
+    if not source_room_context.get("source_inventory_exists"):
+        return []
+    source_inventory_ref = str(source_room_context.get("source_inventory_ref") or "")
+    if not source_inventory_ref:
+        return []
+    workflow_ref = str(source_room_context.get("package_ref") or "")
+    proof_refs: list[dict[str, str]] = []
+    for artifact_kind in source_room_context.get("dry_run_artifact_order") or ():
+        render_mode = "guardian_preview_closed" if artifact_kind == "guardian_gate" else "local_dry_run_review"
+        proof_refs.append(
+            {
+                "artifact_ref": f"{artifact_kind}:{workflow_ref}",
+                "artifact_kind": str(artifact_kind),
+                "source_inventory_ref": source_inventory_ref,
+                "render_mode": render_mode,
+            }
+        )
+    return proof_refs
 
 
 def _display_source_ref(path: Path) -> str:
@@ -1037,7 +1101,7 @@ def create_package(
     intent = _classify_intent_with_lm1_override(source_text, intent_override)
     protected_hash = protected_text_hash(source_text)
     workflow_ref = str(intent["workflow_ref"])
-    capability = _capability_gate(workflow_ref, config)
+    capability = _capability_gate(workflow_ref, config, source_text=source_text)
     status = _package_status(workflow_ref, str(capability["status"]))
     operator_display = operator_display_for_package(
         workflow_ref,
@@ -1054,6 +1118,7 @@ def create_package(
     result_status = _worker_result_status(status)
     source_room_context = _source_room_context_for_workflow(workflow_ref)
     project_room_gate = compile_project_room_package_gate(source_room_context)
+    proof_refs = _proof_refs_for_source_room(source_room_context)
     business_action_gate = {
         "gate_ref": "business_action_gate:" + _short_hash(package_id),
         "status": "CLOSED",
@@ -1088,6 +1153,7 @@ def create_package(
         "blocked_reason": project_room_gate["blocked_reason"],
         "next_safe_action": project_room_gate["next_safe_action"],
         "source_room_context": source_room_context,
+        "proof_refs": proof_refs,
         "project_room_gate_result": project_room_gate,
         "created_at": created_at,
         "updated_at": created_at,
@@ -1108,6 +1174,7 @@ def create_package(
             "result_status": result_status,
             "summary": "Dry-run worker recorded package state only.",
             "live_worker_executed": False,
+            "local_pdf_proof_rendered": any(ref["artifact_kind"] == "pdf_proof" for ref in proof_refs),
             "email_send_performed": False,
             "ledger_mutation_performed": False,
             "browser_access_performed": False,
@@ -1176,6 +1243,8 @@ def build_contract_read_model(
             "synthesis_allowed",
             "blocked_reason",
             "next_safe_action",
+            "source_room_context",
+            "proof_refs",
             "project_room_gate_result",
             "created_at",
             "updated_at",
