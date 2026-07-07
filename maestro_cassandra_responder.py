@@ -423,6 +423,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("operator_truth_query", True, "")
     if _is_system_health_readback_intent(normalized):
         return ("system_health_readback", True, "")
+    if _is_recurrence_rule_statement_intent(text):
+        return ("recurrence_rule_statement", True, "")
     if _is_advisory_interrogative_intent(normalized):
         return ("maestro_brain_freeform", True, "")
     if _is_send_or_reply_intent(normalized):
@@ -558,6 +560,42 @@ def answer_frontdoor_chat(
                 **_adapter_machine_proof(handle_called=False),
                 "operator_truth_store_written": bool(records),
                 "operator_truth_entities": labels,
+            },
+        )
+
+    if intent_class == "recurrence_rule_statement":
+        from recurrence_rule_intake import capture_recurrence_rule_statement
+        from recurrence_rule_store import DEFAULT_DB_PATH as _DEFAULT_RULE_DB_PATH
+        from recurrence_rule_store import RecurrenceRuleStore
+
+        rule_db_path = (
+            (session or {}).get("recurrence_rule_db_path") if isinstance(session, Mapping) else None
+        ) or _DEFAULT_RULE_DB_PATH
+        with RecurrenceRuleStore(rule_db_path) as store:
+            capture = capture_recurrence_rule_statement(text, store=store, source_ref=source_surface)
+        if capture is None:
+            answer = "I couldn't quite parse that as a recurring rule. No rule was recorded."
+            captured = False
+            needs_review = False
+        else:
+            answer = str(capture["reply"])
+            captured = capture["status"] == "captured"
+            needs_review = capture["status"] == "needs_operator_review"
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=answer,
+            plain_summary=answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "recurrence_rule_captured": captured,
+                "recurrence_rule_needs_operator_review": needs_review,
+                "protected_generate_called": False,
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
             },
         )
 
@@ -2110,6 +2148,16 @@ def _is_system_health_readback_intent(text: str) -> bool:
         any(term in text for term in ("system-health", "system health", "service health", "health read"))
         and any(term in text for term in ("openclaw", "front door", "agent", "agents", "stack"))
     )
+
+
+def _is_recurrence_rule_statement_intent(text: str) -> bool:
+    """Task 136a: 'I send St Anne's a new invoice on the first of every month' is an operator
+    STATEMENT of a recurring business rule -- a third category, distinct from both a question
+    and an instruction. Checked early, before advisory/action/question classification, so it
+    is never mistaken for either."""
+    from recurrence_rule_intake import detect_recurrence_rule_statement
+
+    return detect_recurrence_rule_statement(text) is not None
 
 
 def _status_capability_readback_focus(text: str) -> str:

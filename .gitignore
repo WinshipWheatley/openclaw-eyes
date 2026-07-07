@@ -1410,4 +1410,10 @@ generated/system_knowledge/*.sqlite
 !tests/test_listener_resilience.py
 !adaptive_model_call.py
 !tests/test_adaptive_model_call.py
+!recurrence_rule_record.py
+!recurrence_rule_store.py
+!recurrence_rule_intake.py
+!tests/test_recurrence_rule_store.py
+!tests/test_recurrence_rule_intake.py
+!tests/test_receivables_month_bounded_recurrence_derivation.py
 !tests/test_hermes_observer.py

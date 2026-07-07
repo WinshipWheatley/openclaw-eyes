@@ -265,6 +265,45 @@ def test_pay_the_invoice_instruction_still_routes_to_staging() -> None:
     assert gate_reason == "workflow_or_business_action_routes_to_staging"
 
 
+def test_recurrence_rule_statement_classifies_as_its_own_intent() -> None:
+    """Task 136a: a rule STATEMENT is a third category, distinct from both a question and
+    an instruction -- 'I send St Anne's a new invoice on the first of every month'."""
+    intent_class, allowed_to_call_handle, gate_reason = classify_frontdoor_intent(
+        "I send St Anne's a new invoice on the first of every month"
+    )
+
+    assert intent_class == "recurrence_rule_statement"
+    assert allowed_to_call_handle is True
+    assert gate_reason == ""
+
+
+def test_recurrence_rule_statement_captured_via_maestro_intake_end_to_end(tmp_path: Path) -> None:
+    """Task 136a ACCEPTANCE: a fixture statement through the real intake -> recurrence
+    record in the store + plain confirmation reply."""
+    from recurrence_rule_store import RecurrenceRuleStore
+
+    rule_db_path = tmp_path / "rules.sqlite3"
+
+    result = answer_frontdoor_chat(
+        "I send St Anne's a new invoice on the first of every month",
+        session={"recurrence_rule_db_path": str(rule_db_path)},
+        source_surface="operator_maestro_chat",
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "recurrence_rule_statement"
+    assert "St. Anne's" in result.plain_summary
+    assert "monthly" in result.plain_summary
+    assert result.machine_proof["recurrence_rule_captured"] is True
+    assert result.machine_proof["local_model_invoked"] is False
+
+    with RecurrenceRuleStore(rule_db_path) as store:
+        persisted = store.latest_unsuperseded_for_client("st_annes", "invoice_send")
+    assert persisted is not None
+    assert persisted.schedule_day == 1
+    assert persisted.truth_status == "operator_directive"
+
+
 def test_calendar_prompt_stays_deterministic_without_brain_or_send(tmp_path: Path) -> None:
     session = _write_read_models(tmp_path)
 

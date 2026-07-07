@@ -528,11 +528,61 @@ def _summary(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _recurrence_rule_derived_facts(
+    buckets: Mapping[tuple[str, str, str], Mapping[str, Any]],
+    *,
+    rule_db_path: str | Path,
+    today: Any = None,
+) -> list[dict[str, Any]]:
+    """Task 136a: the expected-uninvoiced tier consumes operator-stated recurrence rules.
+    No rule = no derivation -- never guess schedules. When a rule's scheduled day has passed
+    for the current month AND no send evidence already covers that client-month (no G2C/
+    canonical row already exists for it), derive an expected_uninvoiced fact citing the rule
+    as the source. Hand-landed facts (a manually-entered canonical fact) become
+    CORROBORATION once they exist, not the source of truth -- this only fills a gap, it
+    never overrides an existing bucket."""
+    if not Path(rule_db_path).exists():
+        # No rule has ever been stated -- skip entirely, zero behavior change, zero
+        # connection overhead.
+        return []
+    from recurrence_rule_store import RecurrenceRuleStore
+
+    current = today or datetime.now(timezone.utc).date()
+    month_key = f"{current.year:04d}-{current.month:02d}"
+    derived: list[dict[str, Any]] = []
+    with RecurrenceRuleStore(rule_db_path) as store:
+        for rule in store.active_rules(event_type="invoice_send"):
+            if rule.schedule_kind != "monthly_day":
+                continue
+            if current.day < rule.schedule_day:
+                continue  # scheduled day hasn't arrived yet this month
+            if any(key[0] == rule.client_ref and key[1] == month_key for key in buckets):
+                continue  # send evidence (G2C or a hand-landed canonical fact) already covers this period
+            derived.append(
+                {
+                    "client_ref": rule.client_ref,
+                    "client_display_name": _CLIENT_DISPLAY_NAMES.get(rule.client_ref, ""),
+                    "month": month_key,
+                    "currency_iso": "USD",
+                    "amount_known": False,
+                    "needs_reconcile": False,
+                    "payment_status": "expected_uninvoiced",
+                    "notes": [
+                        f"Derived from recurrence rule: invoice_send monthly on day "
+                        f"{rule.schedule_day} ({rule.rule_version_id})."
+                    ],
+                    "source_ref": f"recurrence_rule:{rule.rule_version_id}",
+                }
+            )
+    return derived
+
+
 def build_receivables_month_bounded(
     *,
     g2c_db_path: str | Path = DEFAULT_G2C_DB_PATH,
     facts_path: str | Path | None = None,
     generated_at: str | None = None,
+    recurrence_rule_db_path: str | Path | None = None,
 ) -> dict[str, Any]:
     buckets: dict[tuple[str, str, str], dict[str, Any]] = {}
     g2c_path = Path(g2c_db_path)
@@ -542,6 +592,13 @@ def build_receivables_month_bounded(
     canonical_facts = load_canonical_receivable_month_facts(facts_path)
     validate_canonical_receivable_month_facts(canonical_facts)
     for fact in canonical_facts:
+        _merge_canonical_fact(buckets, fact)
+    from recurrence_rule_store import DEFAULT_DB_PATH as DEFAULT_RULE_DB_PATH
+
+    rule_derived_facts = _recurrence_rule_derived_facts(
+        buckets, rule_db_path=recurrence_rule_db_path or DEFAULT_RULE_DB_PATH
+    )
+    for fact in rule_derived_facts:
         _merge_canonical_fact(buckets, fact)
     rows = [
         _finalize_bucket(bucket)
@@ -561,6 +618,7 @@ def build_receivables_month_bounded(
             "g2c_current_receivable_count": len(g2c_records),
             "canonical_month_fact_count": len(canonical_facts),
             "facts_path": str(facts_path or ""),
+            "recurrence_rule_derived_fact_count": len(rule_derived_facts),
         },
         "rows": rows,
         "summary": _summary(rows),
