@@ -132,3 +132,14 @@ def test_short_warm_note_to_draper_produces_inline_clara_draft_before_staging(mo
     assert logged[-1]["route"] == "clara_client_voice_draft"
     assert logged[-1]["gmail_draft_created"] is False
     assert logged[-1]["email_send_performed"] is False
+
+
+def test_objective_followup_review_request_is_not_clara_draft() -> None:
+    import cassandra_brain
+
+    prompt = (
+        "Cassandra, have we received any emails from Annette at Capital Hilton? "
+        "If not, send a follow-up tomorrow but show me the draft before sending."
+    )
+
+    assert cassandra_brain._detect_clara_client_voice_draft_intent(prompt) is False

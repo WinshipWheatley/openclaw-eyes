@@ -2800,18 +2800,50 @@ def _detect_clara_client_voice_draft_intent(text: str) -> bool:
     t = " ".join(str(text or "").lower().split())
     if not t:
         return False
-    draft_markers = (
-        "draft",
-        "write",
-        "compose",
-        "word",
-        "warm note",
-        "note to",
-        "message to",
-        "email to",
-        "what should i ask",
-        "what should i say",
+
+    # Operator-objective requests often contain "show me the draft before
+    # sending", but their primary intent is gated lookup/follow-up orchestration,
+    # not immediate Clara client-copy generation.
+    email_lookup = any(
+        term in t
+        for term in (
+            "email",
+            "emails",
+            "gmail",
+            "reply",
+            "replied",
+            "responded",
+            "response",
+            "responese",
+            "recieved",
+            "received",
+        )
     )
+    followup = any(
+        term in t
+        for term in ("follow up", "follow-up", "followup", "send a follow", "send it", "send a reply")
+    )
+    review_first = any(
+        term in t
+        for term in (
+            "show me the draft",
+            "show the draft",
+            "before you send",
+            "before sending",
+            "don't send until",
+            "do not send until",
+        )
+    )
+    if email_lookup and followup and review_first:
+        return False
+
+    direct_draft_shape = bool(
+        re.search(r"\b(draft|write|compose)\b.{0,80}\b(warm\s+)?(note|message|email)\b", t)
+    )
+    question_copy_shape = any(marker in t for marker in ("what should i ask", "what should i say"))
+    if not (direct_draft_shape or question_copy_shape):
+        return False
+
     client_copy_shape_markers = (
         "warm",
         "note",
@@ -2831,8 +2863,6 @@ def _detect_clara_client_voice_draft_intent(text: str) -> bool:
         "capital hilton",
         "live arts",
     )
-    if not any(marker in t for marker in draft_markers):
-        return False
     if not any(marker in t for marker in client_copy_shape_markers):
         return False
     if not any(marker in t for marker in client_context_markers):
