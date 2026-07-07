@@ -8,6 +8,8 @@ external messages, move money, start services, or write route receipts.
 
 from __future__ import annotations
 
+import asyncio
+import os
 import re
 from typing import Any
 
@@ -58,10 +60,45 @@ _LEAK_PATTERNS = (
     re.compile(r"\bInterrupting current task\s*(?:\([^)]*\))?", re.IGNORECASE),
     re.compile(r"\(?(?:iteration|loop)\s+\d+\s*/\s*\d+\)?", re.IGNORECASE),
 )
+_STALE_CARRYOVER_LINE_PATTERNS = (
+    re.compile(r"\bprevious response was truncated\b", re.IGNORECASE),
+    re.compile(r"\bskill_view\s*:\s*factory_handoff_status\b", re.IGNORECASE),
+    re.compile(r"\bstill working\b", re.IGNORECASE),
+    re.compile(r"\bwaiting for stream response\b", re.IGNORECASE),
+    re.compile(r"\bno chunks yet\b", re.IGNORECASE),
+)
+_DEFAULT_GATEWAY_REPLY_TIMEOUT_SECONDS = 45.0
+_STALL_FAILURE_REPLY = "\n".join(
+    [
+        "Hermes could not produce a fresh answer before the local model stream limit.",
+        "The upstream local model returned no usable chunks, so stale partial output was discarded.",
+        "No requested send, agent dispatch, route receipt, or money action occurred.",
+        "Ask Fable or the operator to check Hermes gateway health and Ollama contention before retrying.",
+    ]
+)
 
 
 def _normalize(text: str) -> str:
     return " ".join(str(text or "").lower().strip().replace("’", "'").split())
+
+
+def _gateway_reply_timeout_seconds() -> float:
+    raw = os.environ.get("HERMES_OPENCLAW_GATEWAY_REPLY_TIMEOUT_SECONDS", "").strip()
+    if not raw:
+        return _DEFAULT_GATEWAY_REPLY_TIMEOUT_SECONDS
+    try:
+        value = float(raw)
+    except ValueError:
+        return _DEFAULT_GATEWAY_REPLY_TIMEOUT_SECONDS
+    return value if value > 0 else _DEFAULT_GATEWAY_REPLY_TIMEOUT_SECONDS
+
+
+def stalled_stream_failure_reply() -> str:
+    return _STALL_FAILURE_REPLY
+
+
+def _is_stale_carryover_line(text: str) -> bool:
+    return any(pattern.search(text) for pattern in _STALE_CARRYOVER_LINE_PATTERNS)
 
 
 def _agent_route_targets() -> frozenset[str]:
@@ -180,6 +217,8 @@ def sanitize_gateway_response(content: Any) -> Any:
         return content
     cleaned_lines: list[str] = []
     for raw_line in content.splitlines():
+        if _is_stale_carryover_line(raw_line):
+            continue
         line = raw_line
         for pattern in _LEAK_PATTERNS:
             line = pattern.sub("", line)
@@ -187,7 +226,10 @@ def sanitize_gateway_response(content: Any) -> Any:
         line = re.sub(r"\s+([.,;:!?])", r"\1", line)
         if line:
             cleaned_lines.append(line)
-    return "\n".join(cleaned_lines).strip()
+    cleaned = "\n".join(cleaned_lines).strip()
+    if not cleaned and content.strip():
+        return stalled_stream_failure_reply()
+    return cleaned
 
 
 def _event_is_authorized_for_intercept(runner: Any, event: Any) -> bool:
@@ -288,7 +330,13 @@ def install_gateway_policy_patch(*, gateway_run_module: Any | None = None, base_
                     reply = truthful_reply_for_text(getattr(event, "text", "") or "")
                     if reply is not None:
                         return reply
-            result = await original_handle_message(self, event)
+            try:
+                result = await asyncio.wait_for(
+                    original_handle_message(self, event),
+                    timeout=_gateway_reply_timeout_seconds(),
+                )
+            except TimeoutError:
+                return stalled_stream_failure_reply()
             return sanitize_gateway_response(result)
 
         runner_cls._handle_message = _openclaw_handle_message
@@ -321,5 +369,6 @@ def install_gateway_policy_patch(*, gateway_run_module: Any | None = None, base_
 __all__ = [
     "install_gateway_policy_patch",
     "sanitize_gateway_response",
+    "stalled_stream_failure_reply",
     "truthful_reply_for_text",
 ]
