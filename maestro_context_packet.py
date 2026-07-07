@@ -32,6 +32,7 @@ DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
 CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL = "client_invoice_workflow_framework.json"
+RECEIVABLES_MONTH_BOUNDED_READ_MODEL = "receivables_month_bounded.json"
 KNOWN_READ_MODELS = (
     "agent_presence.json",
     "openclaw_capability_index.json",
@@ -41,6 +42,7 @@ KNOWN_READ_MODELS = (
     "helm_operator_attention_package.json",
     "autonomous_followup_watch_attention.json",
     "st_annes_receivable_state.json",
+    RECEIVABLES_MONTH_BOUNDED_READ_MODEL,
     "finance_invoice_reconciliation.json",
     CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL,
     "capital_hilton_invoice_operator_readback.json",
@@ -1159,6 +1161,65 @@ def _st_annes_receivable_state_facts(
     return facts, {"st_annes_receivable_state_fact_count": len(facts)}
 
 
+def _receivables_month_bounded_facts(
+    root: Path,
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    path = root / RECEIVABLES_MONTH_BOUNDED_READ_MODEL
+    source_ref = _display_read_model_ref(path)
+    rows = [row for row in payload.get("rows", ()) if isinstance(row, Mapping)]
+    facts: list[dict[str, Any]] = []
+    freshness = _freshness(path, payload)
+    as_of = str(freshness.get("as_of") or payload.get("generated_at") or "").strip()
+    for row in rows[:12]:
+        client_ref = str(row.get("client_ref") or "").strip()
+        month = str(row.get("month") or "").strip()
+        currency = str(row.get("currency_iso") or "USD").strip().upper()
+        if not client_ref or not month:
+            continue
+        notes = row.get("notes") if isinstance(row.get("notes"), Sequence) and not isinstance(row.get("notes"), (str, bytes)) else ()
+        note_text = "; ".join(str(note) for note in list(notes)[:2] if str(note).strip())
+        value = _join_parts(
+            f"{_client_display(client_ref)} {month}",
+            f"invoiced={_money_minor_units(int(row.get('invoiced_minor_units') or 0), currency)}",
+            f"paid={_money_minor_units(int(row.get('paid_minor_units') or 0), currency)}",
+            f"open={_money_minor_units(int(row.get('open_minor_units') or 0), currency)}",
+            f"status={row.get('payment_status') or 'unknown'}",
+            bool(row.get("needs_reconcile")) and "needs_reconcile=true",
+            note_text,
+        )
+        before_count = len(facts)
+        _append_fact(
+            facts,
+            topic="receivable_month_bounded",
+            label=f"{_client_display(client_ref)} {month} receivables",
+            value=value,
+            provenance="generated_read_model",
+            source_ref=source_ref,
+            pii_tier="LIGHT",
+            freshness=freshness,
+        )
+        if len(facts) > before_count:
+            facts[-1].update(
+                {
+                    "client_ref": client_ref,
+                    "month": month,
+                    "currency_iso": currency,
+                    "invoiced_minor_units": int(row.get("invoiced_minor_units") or 0),
+                    "paid_minor_units": int(row.get("paid_minor_units") or 0),
+                    "open_minor_units": int(row.get("open_minor_units") or 0),
+                    "needs_reconcile": bool(row.get("needs_reconcile")),
+                    "payment_status": str(row.get("payment_status") or "unknown"),
+                    "settled_past_no_compound": bool(row.get("settled_past_no_compound")),
+                    "structured_fact": True,
+                    "current_truth": True,
+                    "as_of": as_of,
+                    "authority_source": "receivables_month_bounded",
+                }
+            )
+    return facts, {"receivables_month_bounded_fact_count": len(facts)}
+
+
 def _generic_gig_read_model_facts(root: Path, known_payloads: Mapping[str, Mapping[str, Any]]) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
@@ -1302,6 +1363,12 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
         receivable_facts, receivable_proof = _st_annes_receivable_state_facts(root, st_annes_receivable)
         facts.extend(receivable_facts)
         proof.update(receivable_proof)
+
+    month_receivables = payloads.get(RECEIVABLES_MONTH_BOUNDED_READ_MODEL, {})
+    if month_receivables:
+        month_receivable_facts, month_receivable_proof = _receivables_month_bounded_facts(root, month_receivables)
+        facts.extend(month_receivable_facts)
+        proof.update(month_receivable_proof)
 
     sentinel = payloads.get("openclaw_change_sentinel.json", {})
     summary = sentinel.get("hermes_summary") if isinstance(sentinel.get("hermes_summary"), Mapping) else {}
