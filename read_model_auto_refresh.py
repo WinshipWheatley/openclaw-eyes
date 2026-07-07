@@ -127,6 +127,24 @@ READ_MODEL_REFRESH_REGISTRY: dict[str, dict[str, Any]] = {
         "reason": "Pure local export of the curated client invoice-workflow framework (which clients use Coupa/PO vs not); no network, no external mount. Added when task 88 wired it as a freeform-brain packet source.",
         "steps": [refresh_step("scripts/export_client_invoice_workflow_framework.py")],
     },
+    "packet_dankness_log.json": {
+        "refreshable": True,
+        "reason": (
+            "Local visibility export for the packet self-improvement loop. It only creates or "
+            "normalizes generated/read_models/packet_dankness_log.json from existing score "
+            "records; no enrichment drain, network, bridge mirror, or external action."
+        ),
+        "steps": [refresh_step("scripts/export_packet_dankness_read_models.py")],
+    },
+    "packet_dankness_escalations.json": {
+        "refreshable": True,
+        "reason": (
+            "Local visibility export for grounded packet-gap escalations. It only creates or "
+            "normalizes generated/read_models/packet_dankness_escalations.json from existing "
+            "records; no enrichment drain, network, bridge mirror, or external action."
+        ),
+        "steps": [refresh_step("scripts/export_packet_dankness_read_models.py")],
+    },
     # -- the 18 sources the real audit found stale -----------------------
     "capital_hilton_invoice_operator_readback.json": {
         "refreshable": True,

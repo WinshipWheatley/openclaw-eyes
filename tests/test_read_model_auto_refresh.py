@@ -76,6 +76,13 @@ def test_registry_has_25_known_sources_including_the_missing_one():
     assert "reynolds_gig_setup_status.json" in READ_MODEL_REFRESH_REGISTRY
 
 
+def test_packet_dankness_read_models_are_registered_for_safe_local_refresh():
+    for name in ("packet_dankness_log.json", "packet_dankness_escalations.json"):
+        entry = READ_MODEL_REFRESH_REGISTRY[name]
+        assert entry["refreshable"] is True
+        assert entry["steps"][0]["args"] == ["scripts/export_packet_dankness_read_models.py"]
+
+
 def test_every_registry_entry_has_an_explicit_disposition():
     for name, entry in READ_MODEL_REFRESH_REGISTRY.items():
         assert "refreshable" in entry, f"{name} missing refreshable flag"

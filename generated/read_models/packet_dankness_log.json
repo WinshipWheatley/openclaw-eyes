@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-07-07T00:00:00+00:00",
+  "latest": null,
+  "machine_proof": {
+    "external_side_effects_allowed": false,
+    "fabrication_allowed": false,
+    "grounded_only_contract": true
+  },
+  "read_model_id": "packet_dankness_log",
+  "record_count": 0,
+  "records": [],
+  "schema_version": "packet_dankness_log_v0"
+}

@@ -1082,6 +1082,7 @@
 !scripts/check_skill_metadata.py
 !scripts/import_external_system_knowledge_registry.py
 !scripts/land_reynolds_gig.py
+!scripts/export_packet_dankness_read_models.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
 !tests/test_chief_compose_contract.py
@@ -1209,6 +1210,8 @@ generated/read_models/watch_desk_feed.json
 !generated/read_models/workflow_package_request_consumer_status.json
 !generated/read_models/workroom_review_decision_status.json
 !generated/read_models/world_status.json
+!generated/read_models/packet_dankness_log.json
+!generated/read_models/packet_dankness_escalations.json
 !generated/system_knowledge/
 generated/system_knowledge/*.sqlite
 !generated/system_knowledge/openclaw_service_supervision.sqlite

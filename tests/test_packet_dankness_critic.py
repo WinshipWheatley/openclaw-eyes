@@ -18,6 +18,10 @@ if str(POLISH) not in sys.path:
 
 import packet_dankness_critic as crit
 from polish_loop.control_plane import ControlPlaneLedger
+from polish_loop.worker_runtime import (
+    TASK_PACKAGE_REQUIRED_PAYLOAD_FIELDS,
+    build_task_package_markdown,
+)
 
 
 def _fresh() -> str:
@@ -115,6 +119,35 @@ def test_emit_when_enabled_queues_grounded_packet_enrich_tasks(tmp_path):
     assert task["status"] == "READY"
     # the load-bearing contract travels with the task
     assert task["payload"]["grounded_only"] is True
+
+
+def test_packet_enrich_payload_materializes_phase_c_task_package(tmp_path):
+    ledger = ControlPlaneLedger(tmp_path / "cp.sqlite3", status_view_path=tmp_path / "s.json")
+    score = crit.score_packet_dankness(_dank_packet(), "what is on my calendar tomorrow")
+
+    admitted = crit.emit_packet_enrich_tasks(
+        ledger, score, agent_id="maestro", question="what is on my calendar tomorrow", enabled=True
+    )
+
+    lease = ledger.claim_task(admitted[0], owner="phase-c-package-test", lease_seconds=60)
+    assert lease is not None
+    row = ledger.get_task(admitted[0])
+    payload = row["payload"]
+    for field in TASK_PACKAGE_REQUIRED_PAYLOAD_FIELDS:
+        assert payload[field], f"packet_enrich payload missing Phase-C field {field}"
+
+    markdown = build_task_package_markdown(
+        row,
+        lease,
+        repo_root=tmp_path,
+        worktree=tmp_path,
+        branch="codex/test-packet-enrich",
+    )
+
+    assert "schema_version: polish_loop_task_package_v1" in markdown
+    assert "task_type: packet_enrich" in markdown
+    assert "grounded_only" in markdown
+    assert "ungrounded fact creation" in markdown
 
 
 def test_no_question_terms_is_neutral_not_penalized():

@@ -42,7 +42,7 @@ def test_unknown_stale_source_escalates(tmp_path):
         "kind": "stale_source", "source_ref": "generated/read_models/finance_invoice_reconciliation.json"}}
     out = enr.enrich_one(payload, runner=_ok, escalations_path=esc)
     assert out["outcome"] == "escalated"
-    recs = json.loads(esc.read_text())
+    recs = json.loads(esc.read_text())["escalations"]
     assert recs and "no known safe generator" in recs[0]["reason"]
 
 
@@ -67,7 +67,7 @@ def test_failed_generator_escalates_not_crashes(tmp_path):
         "kind": "stale_source", "source_ref": "generated/read_models/work_board.json"}}
     out = enr.enrich_one(payload, runner=_fail, escalations_path=esc)
     assert out["outcome"] == "escalated"
-    assert "exit 1" in json.loads(esc.read_text())[0]["reason"]
+    assert "exit 1" in json.loads(esc.read_text())["escalations"][0]["reason"]
 
 
 def test_run_dankness_cycle_refreshes_and_escalates(tmp_path):
@@ -87,5 +87,27 @@ def test_run_dankness_cycle_refreshes_and_escalates(tmp_path):
     assert "refreshed" in outcomes   # stale orchestration_progress -> refreshed
     assert "escalated" in outcomes   # calendar missing_fact -> escalated (not fabricated)
     logged = json.loads(log.read_text())
-    assert logged[-1]["agent_id"] == "maestro"
-    assert logged[-1]["refreshed"] >= 1 and logged[-1]["escalated"] >= 1
+    assert logged["read_model_id"] == "packet_dankness_log"
+    assert logged["records"][-1]["agent_id"] == "maestro"
+    assert logged["records"][-1]["refreshed"] >= 1 and logged["records"][-1]["escalated"] >= 1
+
+
+def test_ensure_dankness_read_models_creates_refreshable_object_payloads(tmp_path):
+    esc = tmp_path / "packet_dankness_escalations.json"
+    log = tmp_path / "packet_dankness_log.json"
+
+    result = enr.ensure_packet_dankness_read_models(
+        escalations_path=esc,
+        score_log_path=log,
+        generated_at="2026-07-07T00:00:00+00:00",
+    )
+
+    assert result["score_log_path"] == str(log)
+    log_payload = json.loads(log.read_text(encoding="utf-8"))
+    esc_payload = json.loads(esc.read_text(encoding="utf-8"))
+    assert log_payload["schema_version"] == "packet_dankness_log_v0"
+    assert esc_payload["schema_version"] == "packet_dankness_escalations_v0"
+    assert log_payload["generated_at"] == "2026-07-07T00:00:00+00:00"
+    assert esc_payload["generated_at"] == "2026-07-07T00:00:00+00:00"
+    assert log_payload["records"] == []
+    assert esc_payload["escalations"] == []

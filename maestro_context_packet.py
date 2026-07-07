@@ -44,6 +44,8 @@ KNOWN_READ_MODELS = (
     "cassandra_email_calendar_delta_detangle.json",
     "work_board.json",
     "orchestration_progress.json",
+    "packet_dankness_log.json",
+    "packet_dankness_escalations.json",
     "niles_track_registry.json",
     "niles_album_review_packet.json",
     "niles_album_matrix_review.json",
@@ -1028,6 +1030,39 @@ def _read_model_facts(root: Path) -> tuple[list[dict[str, Any]], list[str], dict
             provenance="generated_read_model",
             source_ref=_display_read_model_ref(root / "orchestration_progress.json"),
             freshness=_freshness(root / "orchestration_progress.json", progress),
+        )
+
+    dankness_log = payloads.get("packet_dankness_log.json", {})
+    dankness_escalations = payloads.get("packet_dankness_escalations.json", {})
+    dankness_records = [
+        row for row in dankness_log.get("records", ()) if isinstance(row, Mapping)
+    ]
+    escalation_records = [
+        row for row in dankness_escalations.get("escalations", ()) if isinstance(row, Mapping)
+    ]
+    if dankness_log or dankness_escalations:
+        latest = dankness_records[-1] if dankness_records else {}
+        latest_agent = str(latest.get("agent_id") or "unknown").strip()
+        latest_overall = latest.get("overall", "unknown")
+        latest_gaps = latest.get("gaps", "unknown")
+        latest_refreshed = latest.get("refreshed", 0)
+        latest_escalated = latest.get("escalated", 0)
+        _append_fact(
+            facts,
+            topic="packet_dankness_loop",
+            label="Packet self-improvement loop visibility",
+            value=(
+                f"Packet dankness loop has {len(dankness_records)} score records and "
+                f"{len(escalation_records)} escalation records. Latest agent {latest_agent}; "
+                f"overall {latest_overall}; gaps {latest_gaps}; refreshed {latest_refreshed}; "
+                f"escalated {latest_escalated}."
+            ),
+            provenance="generated_read_model",
+            source_ref=_display_read_model_ref(root / "packet_dankness_log.json"),
+            freshness=_freshness(
+                root / "packet_dankness_log.json",
+                dankness_log or dankness_escalations,
+            ),
         )
 
     niles_tracks = payloads.get("niles_track_registry.json", {})
