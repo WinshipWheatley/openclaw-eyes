@@ -72,15 +72,31 @@ def authorize_route(suggestion: dict, *, target: str = "chief",
 # Observation — what Hermes watches. Each observer is () -> list[suggestion].
 # A suggestion is {id, problem, evidence, build_goal, severity, source}.
 # --------------------------------------------------------------------------- #
+def _class_metadata(source: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key in ("failure_class", "class_scope", "sibling_evidence"):
+        if key in source and source.get(key) not in (None, "", []):
+            out[key] = source.get(key)
+    return out
+
+
 def _brain_quality_observer() -> list[dict]:
     """The fleet's shared front-door brain quality, via the proven self-monitor."""
     try:
         from self_monitor import self_check
 
-        return [{"id": f["id"], "problem": f["problem"], "evidence": f.get("evidence", ""),
-                 "build_goal": f["fix_goal"], "severity": f.get("severity", "medium"),
-                 "source": "brain_quality"}
-                for f in self_check()]
+        return [
+            {
+                "id": f["id"],
+                "problem": f["problem"],
+                "evidence": f.get("evidence", ""),
+                "build_goal": f["fix_goal"],
+                "severity": f.get("severity", "medium"),
+                "source": "brain_quality",
+                **_class_metadata(f),
+            }
+            for f in self_check()
+        ]
     except Exception:
         return []
 

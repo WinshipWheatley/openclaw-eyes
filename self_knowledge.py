@@ -165,11 +165,19 @@ def _detected_self_monitor_gaps() -> list[dict]:
     try:
         from self_monitor import self_check
 
-        return [
-            {"id": f["id"], "say": f["problem"], "build_goal": f["fix_goal"],
-             "evidence": f.get("evidence", "")}
-            for f in self_check()
-        ]
+        gaps = []
+        for f in self_check():
+            gap = {
+                "id": f["id"],
+                "say": f["problem"],
+                "build_goal": f["fix_goal"],
+                "evidence": f.get("evidence", ""),
+            }
+            for key in ("failure_class", "class_scope", "sibling_evidence"):
+                if key in f and f.get(key) not in (None, "", []):
+                    gap[key] = f.get(key)
+            gaps.append(gap)
+        return gaps
     except Exception:
         return []
 

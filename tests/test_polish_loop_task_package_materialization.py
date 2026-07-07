@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 import subprocess
@@ -147,6 +148,89 @@ def test_full_synthetic_payload_materializes_every_required_field(tmp_path):
     assert f"schema_version: {TASK_PACKAGE_SCHEMA_VERSION}" in markdown
     assert f"lease_nonce: {lease.lease_nonce}" in markdown
     assert "tests/test_polish_loop_task_package_materialization.py" in markdown
+
+
+def test_task_package_round_trips_class_scope_fields(tmp_path):
+    ledger = _ledger(tmp_path)
+    payload = _full_payload(
+        failure_class="ledger_source_drift",
+        class_scope="class",
+        sibling_evidence=[
+            {
+                "agent_id": "cassandra",
+                "packet_id": "cassandra_context_packet:one",
+                "evidence": "receipt:cassandra",
+            },
+            {
+                "agent_id": "maestro",
+                "packet_id": "maestro_context_packet:two",
+                "evidence": "receipt:maestro",
+            },
+        ],
+    )
+    task_id = _admit_ready(ledger, payload=payload)
+    lease = _claim(ledger, task_id)
+    row = ledger.get_task(task_id)
+
+    markdown = build_task_package_markdown(
+        row,
+        lease,
+        repo_root=tmp_path / "repo",
+        worktree=tmp_path / "repo",
+        branch="agy-codex/polish-task-package",
+    )
+
+    assert "failure_class: ledger_source_drift" in markdown
+    assert "class_scope: class" in markdown
+    assert "## Sibling Evidence" in markdown
+    assert "cassandra_context_packet:one" in markdown
+    payload_json = markdown.split("```json", 1)[1].split("```", 1)[0]
+    round_tripped = json.loads(payload_json)
+    assert round_tripped["failure_class"] == "ledger_source_drift"
+    assert round_tripped["class_scope"] == "class"
+    assert round_tripped["sibling_evidence"][1]["agent_id"] == "maestro"
+
+
+def test_intake_prefers_class_scoped_package_for_same_gap(tmp_path):
+    ledger = _ledger(tmp_path)
+    instance_payload = _full_payload(
+        self_improvement_gap_id="ledger_source_drift:abc123",
+        failure_class="ledger_source_drift",
+        class_scope="instance",
+        sibling_evidence=[],
+    )
+    class_payload = _full_payload(
+        goal="fix the ledger source drift class across sibling packet builders",
+        self_improvement_gap_id="ledger_source_drift:abc123",
+        failure_class="ledger_source_drift",
+        class_scope="class",
+        sibling_evidence=[
+            {"agent_id": "cassandra", "packet_id": "cassandra_context_packet:one"},
+            {"agent_id": "maestro", "packet_id": "maestro_context_packet:two"},
+        ],
+    )
+
+    first_id = ledger.admit_task(
+        source="detector",
+        task_type="self_improvement",
+        requested_status="READY",
+        payload=instance_payload,
+        acceptance_ref={"acceptance_path": "tests/test_polish_loop_task_package_materialization.py"},
+    )
+    returned_id = ledger.admit_task(
+        source="detector",
+        task_type="self_improvement",
+        requested_status="READY",
+        payload=class_payload,
+        acceptance_ref={"acceptance_path": "tests/test_polish_loop_task_package_materialization.py"},
+    )
+
+    assert returned_id == first_id
+    assert ledger.counts()["tasks"] == 1
+    task = ledger.get_task(first_id)
+    assert task["payload"]["class_scope"] == "class"
+    assert task["payload"]["failure_class"] == "ledger_source_drift"
+    assert "sibling packet builders" in task["payload"]["goal"]
 
 
 def test_missing_required_field_fails_closed_before_builder_invocation(tmp_path, monkeypatch):

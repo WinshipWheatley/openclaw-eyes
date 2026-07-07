@@ -207,3 +207,69 @@ def test_context_source_adds_ledger_provenance_without_rewriting_source_ref(tmp_
     assert enriched[0]["ledger_provenance"]["projection_source_ref"] == (
         "generated/read_models/agent_presence.json"
     )
+
+
+def test_polish_loop_builder_context_packet_prioritizes_build_doctrine(tmp_path: Path) -> None:
+    from polish_loop.worker_runtime import build_polish_loop_build_context_packet
+
+    ledger = tmp_path / "ledger.sqlite"
+    _init_context_source_ledger(ledger)
+    conn = sqlite3.connect(ledger)
+    for index in range(12):
+        conn.execute(
+            """
+            INSERT INTO canonical_facts (
+                fact_id, source_file, section_heading, source_commit, content_hash,
+                fact_text, sensitivity_class, allowed_actors, doc_category,
+                temporal_or_doctrine, source_description, ingested_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"newer_fact_{index}",
+                "docs/runtime.md",
+                f"Newer fact {index}",
+                "abc123",
+                f"hash-newer-{index}",
+                f"Newer operational fact {index}.",
+                "operational_canonical",
+                json.dumps(["all"]),
+                "operations",
+                "temporal_checkpoint",
+                "crowding fixture",
+                f"2026-07-07T12:{index:02d}:00+00:00",
+            ),
+        )
+    conn.execute(
+        """
+        INSERT INTO canonical_facts (
+            fact_id, source_file, section_heading, source_commit, content_hash,
+            fact_text, sensitivity_class, allowed_actors, doc_category,
+            temporal_or_doctrine, source_description, ingested_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "build_doctrine_class_level_fixes",
+            "Operator/build-doctrine.md",
+            "Class-Level Build Doctrine",
+            "abc123",
+            "hash-build-doctrine",
+            "When builders or self-heal loops fix a failure, fix the failure class when sibling evidence exists.",
+            "operational_canonical",
+            json.dumps(["all", "polish_loop_builder"]),
+            "build_doctrine",
+            "doctrine_reference",
+            "operator directive",
+            "2026-07-07T00:00:00+00:00",
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    packet = build_polish_loop_build_context_packet(
+        goal="repair a repeated class-level build failure",
+        db_path=ledger,
+    )
+
+    joined = json.dumps(packet, sort_keys=True)
+    assert "build_doctrine" in joined
+    assert "fix the failure class when sibling evidence exists" in joined

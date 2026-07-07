@@ -8,11 +8,12 @@ model-invented "improvement"). Everything is keyed by conversation_id and fail-o
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Mapping, Optional
 
 _DEFAULT_STORE = Path("/home/openclaw/.openclaw/self_improvement_recommendations.json")
 _CHIEF_ENV = Path("/home/openclaw/.chief.env")
@@ -440,6 +441,20 @@ def _list_profile_value(profile: dict[str, Any], key: str) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
+def _safe_metadata_list(value: Any) -> list[Any]:
+    if not isinstance(value, list):
+        return []
+    out: list[Any] = []
+    for item in value:
+        if isinstance(item, Mapping):
+            out.append(dict(item))
+        elif item is not None:
+            text = str(item).strip()
+            if text:
+                out.append(text)
+    return copy.deepcopy(out)
+
+
 def compile_self_improvement_package(gap: dict, *, agent: str = "maestro") -> dict:
     """Turn a known self-improvement gap into a bounded builder package.
 
@@ -496,6 +511,15 @@ def compile_self_improvement_package(gap: dict, *, agent: str = "maestro") -> di
         "package_compiler": "self_improvement_request.compile_self_improvement_package",
         "package_profile": profile_id,
     }
+    failure_class = str(gap.get("failure_class") or "").strip()
+    if failure_class:
+        payload["failure_class"] = failure_class
+    class_scope = str(gap.get("class_scope") or "").strip().lower()
+    if class_scope in {"instance", "class"}:
+        payload["class_scope"] = class_scope
+    sibling_evidence = _safe_metadata_list(gap.get("sibling_evidence"))
+    if sibling_evidence:
+        payload["sibling_evidence"] = sibling_evidence
     missing = [
         field for field in _TASK_PACKAGE_REQUIRED_PAYLOAD_FIELDS
         if not _nonempty_package_value(payload.get(field))

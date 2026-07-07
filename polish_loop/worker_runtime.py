@@ -386,6 +386,13 @@ def build_task_package_markdown(
         ("branch", str(branch or "unknown")),
         ("payload_digest", _payload_digest(payload)),
     ]
+    for optional_field in ("failure_class", "class_scope"):
+        value = _payload_value(payload, optional_field)
+        if _nonempty(value):
+            fields.append((optional_field, str(value).strip()))
+    sibling_evidence = _payload_value(payload, "sibling_evidence", default=[])
+    if _nonempty(sibling_evidence):
+        fields.append(("sibling_evidence", _compact_json(sibling_evidence)))
     sections: list[tuple[str, str]] = [
         ("Goal", str(_payload_value(payload, "goal")).strip()),
         ("Scope", _render_list(_list_value(_payload_value(payload, "scope", default=[])))),
@@ -410,6 +417,7 @@ def build_task_package_markdown(
             "Production Prohibitions",
             _render_list(_list_value(_payload_value(payload, "production_prohibitions", default=[]))),
         ),
+        ("Sibling Evidence", _acceptance_ref_text(sibling_evidence)),
         (
             "System Context (ledger-grounded)",
             _render_ledger_system_context(str(_payload_value(payload, "goal")).strip()),
