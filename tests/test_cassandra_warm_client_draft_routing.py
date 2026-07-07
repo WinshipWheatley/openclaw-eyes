@@ -50,7 +50,9 @@ def test_warm_client_draft_routes_to_clara_not_payment_lookup(monkeypatch) -> No
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies, **kwargs}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append(
+            {"route": route, "replies": replies, **dict(kwargs.get("metadata") or {})}
+        ),
         raising=False,
     )
 

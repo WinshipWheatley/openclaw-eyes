@@ -2795,6 +2795,189 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
     return reply
 
 
+def _detect_clara_client_voice_draft_intent(text: str) -> bool:
+    """True for client-facing draft wording asks, not status/payment lookup asks."""
+    t = " ".join(str(text or "").lower().split())
+    if not t:
+        return False
+    draft_markers = (
+        "draft",
+        "write",
+        "compose",
+        "word",
+        "warm note",
+        "note to",
+        "message to",
+        "email to",
+        "what should i ask",
+        "what should i say",
+    )
+    client_copy_shape_markers = (
+        "warm",
+        "note",
+        "message",
+        "email",
+        "ask",
+        "say",
+        "wording",
+    )
+    client_context_markers = (
+        "client",
+        "draper",
+        "glenn",
+        "st. anne",
+        "st anne",
+        "invoice",
+        "capital hilton",
+        "live arts",
+    )
+    if not any(marker in t for marker in draft_markers):
+        return False
+    if not any(marker in t for marker in client_copy_shape_markers):
+        return False
+    if not any(marker in t for marker in client_context_markers):
+        return False
+    create_invoice_only = re.search(r"\b(create|make|generate)\b.*\binvoice\b", t)
+    note_or_message = any(marker in t for marker in ("note", "message", "email", "ask", "say", "word"))
+    if create_invoice_only and not note_or_message:
+        return False
+    return True
+
+
+def _clara_client_voice_draft_spec(text: str) -> dict[str, Any] | None:
+    t = " ".join(str(text or "").lower().split())
+    if any(marker in t for marker in ("st. anne", "st anne", "draper", "glenn")):
+        return {
+            "client_ref": "st_annes",
+            "workflow_ref": "st_annes_invoice_workflow",
+            "client_display_name": "St. Anne's",
+            "recipient_package": {
+                "to_recipients": (
+                    {
+                        "display_name": "Draper Carter",
+                        "role": "primary_invoice_contact",
+                        "lane": "to",
+                        "email": "draper.carter@gmail.com",
+                        "email_status": "KNOWN_OPERATOR_PROVIDED",
+                        "confirmation_status": "CONFIRMED_BY_RECEIPT",
+                        "proof_ref": "operator_known_email:draper.carter@gmail.com",
+                        "email_invented": False,
+                    },
+                ),
+                "cc_recipients": (),
+                "recipient_confirmation_status": "CONFIRMED_BY_RECEIPT",
+                "recipient_info_missing": (),
+                "recipient_email_invented": False,
+                "confirmation_receipt_required": "operator_known_contact",
+            },
+            "invoice_period_label": "the current St. Anne's invoice",
+            "invoice_data": {
+                "client_name": "St. Anne's",
+                "coverage_label": "the current St. Anne's invoice",
+            },
+            "contact": {
+                "name": "Draper Carter",
+                "email": "draper.carter@gmail.com",
+                "role": "intermediary",
+                "forward_to": "Glenn",
+            },
+        }
+    if "capital hilton" in t:
+        return {
+            "client_ref": "capital_hilton",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "client_display_name": "Capital Hilton",
+            "recipient_package": {
+                "to_recipients": (
+                    {
+                        "display_name": "Annette",
+                        "role": "finance_primary",
+                        "lane": "to",
+                        "email": None,
+                        "email_status": "MISSING",
+                        "confirmation_status": "CANDIDATE_UNCONFIRMED",
+                        "proof_ref": None,
+                        "email_invented": False,
+                    },
+                ),
+                "cc_recipients": (),
+                "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
+                "recipient_info_missing": ("Annette",),
+                "recipient_email_invented": False,
+                "confirmation_receipt_required": "recipient_confirmation_receipt",
+            },
+            "invoice_period_label": "the current Capital Hilton invoice",
+            "invoice_data": {
+                "client_name": "Capital Hilton",
+                "coverage_label": "the current Capital Hilton invoice",
+            },
+            "contact": {"name": "Annette"},
+        }
+    if "live arts" in t:
+        return {
+            "client_ref": "live_arts_md",
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "client_display_name": "Live Arts MD",
+            "recipient_package": {
+                "to_recipients": (
+                    {
+                        "display_name": "Dane",
+                        "role": "primary_invoice_contact",
+                        "lane": "to",
+                        "email": None,
+                        "email_status": "MISSING",
+                        "confirmation_status": "CANDIDATE_UNCONFIRMED",
+                        "proof_ref": None,
+                        "email_invented": False,
+                    },
+                ),
+                "cc_recipients": (),
+                "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
+                "recipient_info_missing": ("Dane",),
+                "recipient_email_invented": False,
+                "confirmation_receipt_required": "recipient_confirmation_receipt",
+            },
+            "invoice_period_label": "the current Live Arts MD invoice",
+            "invoice_data": {
+                "client_name": "Live Arts MD",
+                "coverage_label": "the current Live Arts MD invoice",
+            },
+            "contact": {"name": "Dane"},
+        }
+    return None
+
+
+def _handle_clara_client_voice_draft_request(text: str) -> tuple[str, dict[str, Any]] | None:
+    if not _detect_clara_client_voice_draft_intent(text):
+        return None
+    spec = _clara_client_voice_draft_spec(text)
+    if spec is None:
+        return None
+    from clara_invoice_email_draft_package import build_clara_invoice_email_draft_package
+
+    draft = build_clara_invoice_email_draft_package(
+        client_ref=spec["client_ref"],
+        workflow_ref=spec["workflow_ref"],
+        client_display_name=spec["client_display_name"],
+        recipient_package=spec["recipient_package"],
+        attachment_ready=False,
+        attachment_refs=(),
+        invoice_period_label=spec["invoice_period_label"],
+        supplier_portal_required=False,
+        first_contact_intro_required=False,
+        present_receipts=("clara_email_draft_receipt",),
+        invoice_data=spec["invoice_data"],
+        contact=spec["contact"],
+    )
+    reply = (
+        "Clara draft (review only - not sent):\n"
+        f"Subject: {draft['subject']}\n\n"
+        f"{draft['body']}\n\n"
+        "Nothing has been sent; this is only a draft for review."
+    )
+    return reply, draft
+
+
 def _looks_like_operator_financial_event(text: str) -> bool:
     lowered = " ".join(str(text or "").lower().split())
     if not lowered:
@@ -6611,6 +6794,29 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [recall_reply]
     except Exception as _e:
         pass  # briefing module unavailable — fall through to LLM
+
+    clara_draft_result = _handle_clara_client_voice_draft_request(query)
+    if clara_draft_result is not None:
+        clara_reply, clara_draft = clara_draft_result
+        save_state(state)
+        _log_conversation(
+            text,
+            [clara_reply],
+            route="clara_client_voice_draft",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "draft_ref": clara_draft.get("draft_ref"),
+                "selected_voice": clara_draft.get("selected_voice"),
+                "client_ref": clara_draft.get("client_ref"),
+                "gmail_polled": False,
+                "gmail_draft_created": False,
+                "email_send_performed": False,
+                "ledger_mutation_performed": False,
+                "payment_lookup_performed": False,
+            },
+        )
+        return [clara_reply]
 
     if _should_route_finance_status_before_intake(query, gmail_decision):
         finance_reply = _handle_finance_status_request(query, state)
