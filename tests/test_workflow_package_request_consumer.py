@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import maestro_cassandra_responder as mcr
 import openclaw_request_processor as processor
 import openclaw_request_response_service as service
 import maestro_listener
@@ -385,6 +386,217 @@ def test_safe_next_question_routes_to_openclaw_status_answer(tmp_path):
     assert "safe next" in result.receipt["operator_display"]["headline"].lower()
     assert result.receipt["system_question_answer"]["answer"]["proof_refs"]
     _assert_no_unsafe_grants(result.receipt)
+
+
+def test_general_money_question_answers_via_frontdoor_not_staged(tmp_path, monkeypatch):
+    """Task 129: a general business question (no specific client match, not a system
+    question) must be answered through Maestro's real packet-grounded pipeline, never
+    silently staged as a generic operator instruction."""
+    request = _request_payload(
+        request_id="business_question_who_owes_me_money",
+        source_text="who owes me money right now?",
+        world_ref="finance",
+        thread_ref="openclaw",
+    )
+
+    captured: dict = {}
+
+    def _fake_answer_frontdoor_chat(text, *, session=None, source_surface="operator_maestro_chat", **_kwargs):
+        captured["text"] = text
+        return mcr.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="Live Arts MD still owes $1,095 — needs your reconcile.",
+            plain_summary="Live Arts MD still owes $1,095 — needs your reconcile.",
+            machine_proof={"local_model_invoked": True, "model_call_performed": True},
+        )
+
+    monkeypatch.setattr(consumer.mcr, "answer_frontdoor_chat", _fake_answer_frontdoor_chat)
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_business_question_who_owes_me_money.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert captured["text"] == "who owes me money right now?"
+    assert result.status == "RECORDED"
+    assert result.package is None
+    assert not (tmp_path / "workflow_package_queue.sqlite").exists()
+    assert result.receipt["workflow_ref"] != "diagnostic_package_gate_smoke"
+    assert result.receipt["package_status"] == "ANSWER_READY"
+    assert "$1,095" in json.dumps(result.receipt)
+    assert result.receipt["machine_proof"]["business_question_intent_detected"] is True
+    assert result.receipt["machine_proof"]["instruction_staging_bypassed"] is True
+    assert result.receipt["machine_proof"]["package_recorded"] is False
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_general_money_question_detected_via_operator_text_field_variant(tmp_path, monkeypatch):
+    """Regression: `_source_text`'s own key list doesn't include `operator_text` (only
+    `source_text`/`operator_message`/etc), but real envelopes -- e.g. Mission Control's own
+    writer -- may use `operator_text` instead, which maestro_cassandra_responder.
+    operator_text_from_request already knows how to read. The business-question guard must
+    still fire for that field-name variant, not just the narrower `_source_text` shape."""
+    request = _request_payload(
+        request_id="business_question_operator_text_field",
+        source_text="who owes me money right now?",
+        world_ref="finance",
+        thread_ref="openclaw",
+    )
+    request.pop("source_text")
+    request["operator_text"] = "who owes me money right now?"
+
+    def _fake_answer_frontdoor_chat(text, *, session=None, source_surface="operator_maestro_chat", **_kwargs):
+        return mcr.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="Live Arts MD still owes $1,095 — needs your reconcile.",
+            plain_summary="Live Arts MD still owes $1,095 — needs your reconcile.",
+            machine_proof={"local_model_invoked": True, "model_call_performed": True},
+        )
+
+    monkeypatch.setattr(consumer.mcr, "answer_frontdoor_chat", _fake_answer_frontdoor_chat)
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_business_question_operator_text_field.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.status == "RECORDED"
+    assert result.receipt["workflow_ref"] == "business_question_answer"
+    assert result.receipt["package_status"] == "ANSWER_READY"
+    assert result.receipt["machine_proof"]["package_recorded"] is False
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_general_question_still_stages_when_frontdoor_has_no_ready_answer(tmp_path, monkeypatch):
+    """If Maestro's own answer engine can't produce a grounded answer (status != ANSWER_READY),
+    fall back to the existing staging behavior rather than forcing a bad answer."""
+    request = _request_payload(
+        request_id="business_question_no_grounded_answer",
+        source_text="what happened with the thing we discussed?",
+        world_ref="finance",
+        thread_ref="openclaw",
+    )
+
+    def _fake_answer_frontdoor_chat(text, *, session=None, source_surface="operator_maestro_chat", **_kwargs):
+        return mcr.MaestroCassandraResult(
+            status="ROUTE_TO_STAGING",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            route_to_staging_reason="no grounded packet",
+        )
+
+    monkeypatch.setattr(consumer.mcr, "answer_frontdoor_chat", _fake_answer_frontdoor_chat)
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_business_question_no_grounded_answer.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "diagnostic_package_gate_smoke"
+    assert result.receipt["package_status"] != "ANSWER_READY"
+    assert (tmp_path / "workflow_package_queue.sqlite").exists()
+
+
+def test_client_specific_review_question_keeps_existing_dryrun_semantics(tmp_path, monkeypatch):
+    """A question that ALSO matches a specific client workflow (e.g. St Anne's billing
+    review) must keep its existing classify_intent-driven routing, not get redirected
+    through the new general-question answer path."""
+    request = _request_payload(
+        request_id="st_annes_billing_question",
+        source_text="what would we bill St Annes for June?",
+        world_ref="finance",
+        thread_ref="st_annes",
+    )
+
+    def _unexpected_call(*_args, **_kwargs):
+        raise AssertionError("answer_frontdoor_chat must not be called for a client-specific match")
+
+    monkeypatch.setattr(consumer.mcr, "answer_frontdoor_chat", _unexpected_call)
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_st_annes_billing_question.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+
+
+def test_non_question_instruction_still_stages(tmp_path, monkeypatch):
+    """Counter-case from the 129 spec: instructions ('run the St Annes invoice rollup')
+    are not question-shaped and must keep staging exactly as before."""
+    request = _request_payload(
+        request_id="business_instruction_st_annes_rollup",
+        source_text="run the St Annes invoice rollup",
+        world_ref="finance",
+        thread_ref="st_annes",
+    )
+
+    def _unexpected_call(*_args, **_kwargs):
+        raise AssertionError("answer_frontdoor_chat must not be called for a non-question instruction")
+
+    monkeypatch.setattr(consumer.mcr, "answer_frontdoor_chat", _unexpected_call)
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_business_instruction_st_annes_rollup.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+
+
+def test_general_money_question_end_to_end_through_process_request_path(tmp_path, monkeypatch):
+    """Task 129 ACCEPTANCE: a live-shaped Mission Control request for msg 1277's exact text
+    produces the money answer end-to-end through process_request_path, not the staging ack."""
+
+    def _fake_answer_frontdoor_chat(text, *, session=None, source_surface="operator_maestro_chat", **_kwargs):
+        return mcr.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="Live Arts MD still owes $1,095 — needs your reconcile.",
+            plain_summary="Live Arts MD still owes $1,095 — needs your reconcile.",
+            machine_proof={"local_model_invoked": True, "model_call_performed": True},
+        )
+
+    monkeypatch.setattr(consumer.mcr, "answer_frontdoor_chat", _fake_answer_frontdoor_chat)
+
+    request = _request_payload(
+        request_id="msg_1277",
+        source_text="who owes me money right now?",
+        world_ref="finance",
+        thread_ref="openclaw",
+    )
+    request_path = tmp_path / "mission_control_operator_instruction_request_msg_1277.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+
+    assert response.workflow_ref == "business_question_answer"
+    assert "OpenClaw is staging this instruction" not in (response.operator_headline or "")
+    assert "$1,095" in (response.operator_message or "")
+    receipt = response.detail_disclosure["workflow_package_request_consumer"]
+    assert receipt["workflow_ref"] == "business_question_answer"
+    assert receipt["package_status"] == "ANSWER_READY"
+    assert receipt["machine_proof"]["package_recorded"] is False
 
 
 def test_contextual_what_should_i_do_here_finance_capital_hilton_answers_payment_watch(tmp_path):
