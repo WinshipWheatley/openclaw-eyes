@@ -18,9 +18,12 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = REPO_ROOT / "generated" / "read_models"
 MONEY_SOURCE_TOKENS = ("receivable", "invoice", "finance", "billing", "payment")
-# Task 127: mirrors operator_surface_guard._UNKNOWN_AMOUNT_STATUSES -- a pending
-# "check expected" item is plate-worthy even before the amount is confirmed.
-_UNKNOWN_AMOUNT_STATUS_TOKENS = {"open_amount_unknown", "amount_unknown", "unknown_amount"}
+# Task 127 (task 138: added expected_uninvoiced): mirrors operator_surface_guard.
+# _UNKNOWN_AMOUNT_STATUSES -- a pending "check expected" item is plate-worthy even before
+# the amount is confirmed. expected_uninvoiced (133/136a's tier -- owed but not yet invoiced,
+# distinct from "invoiced but amount uncertain") was missing here, so the St Anne's pending
+# item was silently dropped from the brief entirely.
+_UNKNOWN_AMOUNT_STATUS_TOKENS = {"open_amount_unknown", "amount_unknown", "unknown_amount", "expected_uninvoiced"}
 EVENT_SOURCE_TOKENS = ("calendar", "gig", "schedule")
 DECISION_SOURCE_TOKENS = ("approval", "work_board", "attention", "reconcile", "review")
 ACTION_STATUSES = {"pending_approval", "needs_operator_review", "needs_reconcile", "approval_required"}

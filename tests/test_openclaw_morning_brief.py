@@ -142,6 +142,32 @@ def test_morning_brief_includes_unknown_amount_item_as_attention_line(tmp_path) 
     assert "open_amount_unknown" not in brief
 
 
+def test_morning_brief_includes_expected_uninvoiced_item_as_attention_line(tmp_path) -> None:
+    """Task 138 (found during final deploy verification): expected_uninvoiced (133/136a's
+    tier -- owed but not yet invoiced) was missing from the recognized unknown-amount status
+    set, so a client's pending invoice-in-progress item was silently dropped from the brief
+    entirely -- same class of bug as 127, one status token short."""
+    root = tmp_path / "read_models"
+    _write_json(
+        root / "receivable_status.json",
+        {
+            "items": [
+                {
+                    "client": "St. Anne's",
+                    "month": "2026-07",
+                    "payment_status": "expected_uninvoiced",
+                    "as_of": "2026-07-07",
+                }
+            ]
+        },
+    )
+
+    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 7))
+
+    assert "St. Anne's (July): check expected, amount not yet confirmed" in brief
+    assert "expected_uninvoiced" not in brief
+
+
 def test_morning_brief_live_probe_quality_money_decisions_and_voice(tmp_path) -> None:
     root = tmp_path / "read_models"
     src = morning.REPO_ROOT / "generated/read_models/receivables_month_bounded.json"
@@ -180,7 +206,11 @@ def test_morning_brief_live_probe_quality_money_decisions_and_voice(tmp_path) ->
     assert "Hermes, synthesize current posture" not in brief
     assert "Approve Capital Hilton invoice review packet" in brief
     assert brief.startswith("Morning. You're clear today except")
-    assert len([part for part in brief.split(".") if part.strip()]) <= 4
+    # "St." (an abbreviation, not a sentence end) can now legitimately appear as a money-item
+    # client name (task 138) -- strip it before counting so the concision check measures real
+    # sentences, not abbreviation periods.
+    sentence_count_text = brief.replace("St.", "St")
+    assert len([part for part in sentence_count_text.split(".") if part.strip()]) <= 4
     assert "timer" not in lowered
 
 

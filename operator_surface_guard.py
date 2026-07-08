@@ -67,7 +67,7 @@ _STATUS_SURFACE_PHRASES = {
     "not_tracked": "not tracked",
     "needs_review": "needs review",
 }
-_UNKNOWN_AMOUNT_STATUSES = {"open_amount_unknown", "amount_unknown", "unknown_amount"}
+_UNKNOWN_AMOUNT_STATUSES = {"open_amount_unknown", "amount_unknown", "unknown_amount", "expected_uninvoiced"}
 
 _MONTH_NAMES = (
     "",
