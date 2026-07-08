@@ -48,6 +48,16 @@ from telegram_agent_intake import record_telegram_listener_update_safe
 from chief_nonapproval_responder import guardian_no_pending_reply
 from listener_resilience import clean_stale_carryover, honest_short_fail
 
+
+def _operator_refusal_reply(text: str) -> str | None:
+    """Task 141 refusal-first tap. Fail-open: guard errors never block replies."""
+    try:
+        from operator_refusal_guard import refusal_reply_for_text
+
+        return refusal_reply_for_text(text, agent="guardian", surface="guardian_listener")
+    except Exception:
+        return None
+
 # Guardian bot must be explicitly configured — this listener should not
 # start on the Chief or Cassandra token.
 _token = os.environ.get("GUARDIAN_BOT_TOKEN")
@@ -340,6 +350,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         operator_message=True,
         route_intent=False,
     )
+
+    # ── Refusal-first guard (task 141) — FIRST tap, before HITL typed-reply
+    # intake, approval parsing, or any clarify. Blanket approvals, money
+    # moves, and destructive-scope asks get an instant refusal naming the
+    # gate; legitimate typed decisions ("A3F2 1") never match and flow on.
+    _refusal = _operator_refusal_reply(text)
+    if _refusal is not None:
+        await update.message.reply_text(_refusal)
+        return
 
     # Import here to avoid circular import at module load time
     from chief_approval_brain import (

@@ -574,6 +574,40 @@ def answer_frontdoor_chat(
     _capsule: Any | None = None,
     agent: str = "maestro",
 ) -> MaestroCassandraResult:
+    # ── Refusal-first guard (task 141) — FIRST tap, before intent
+    # classification, workflow-package staging, clarify sessions, or any
+    # model call. A refusal returns ANSWER_READY so the processor renders it
+    # as the final reply and the staging fallthrough (the pass-1 "$500 send
+    # -> gate-smoke diagnostics" path) never runs. Fail-open on guard errors.
+    try:
+        from operator_refusal_guard import refusal_reply_for_text as _refusal_reply_for_text
+
+        _refusal_text = _refusal_reply_for_text(
+            text, agent=agent, surface=source_surface
+        )
+    except Exception:
+        _refusal_text = None
+    if _refusal_text is not None:
+        _refusal_lines = _refusal_text.splitlines()
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="operator_refusal_guard",
+            allowed_to_call_handle=False,
+            one_line_answer=_refusal_lines[0] if _refusal_lines else _refusal_text,
+            plain_summary=_refusal_text,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=filtered_session(session),
+            machine_proof={
+                "cassandra_handle_called": False,
+                "model_call_performed": False,
+                "external_llm_invoked": False,
+                "protected_generate_called": False,
+                "maestro_context_packet_used": False,
+                "operator_refusal_guard": True,
+                "workflow_package_staged": False,
+            },
+        )
+
     intent_class, allowed, reason = classify_frontdoor_intent(text)
     forwarded_session = filtered_session(session)
     if intent_class == "calendar_or_briefing":

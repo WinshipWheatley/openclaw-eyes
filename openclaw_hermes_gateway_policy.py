@@ -142,6 +142,20 @@ def truthful_reply_for_text(text: str) -> str | None:
     if not raw:
         return None
 
+    # ── Refusal-first guard (task 141) — FIRST tap, before route/send/money
+    # checks or any gateway model fallthrough. Adds the destructive-scope and
+    # gate-bypass classes Hermes' own send/money matcher misses ("wipe the
+    # X32", "approve everything"); the money class keeps Hermes' verbatim
+    # reference denial. Fail-open: guard errors fall through unchanged.
+    try:
+        from operator_refusal_guard import refusal_reply_for_text as _refusal_reply_for_text
+
+        _refusal = _refusal_reply_for_text(raw, agent="hermes", surface="hermes_gateway")
+    except Exception:
+        _refusal = None
+    if _refusal is not None:
+        return _refusal
+
     target = _route_target(raw)
     if target:
         return "\n".join(

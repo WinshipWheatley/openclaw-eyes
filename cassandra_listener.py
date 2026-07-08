@@ -260,7 +260,25 @@ def _try_invoice_cockpit(text: str) -> bool:
         return False
 
 
+def _operator_refusal_reply(text: str) -> str | None:
+    """Task 141 refusal-first tap. Fail-open: guard errors never block Cassandra."""
+    try:
+        from operator_refusal_guard import refusal_reply_for_text
+
+        return refusal_reply_for_text(text, agent="cassandra", surface="cassandra_listener")
+    except Exception:
+        return None
+
+
 async def _run_cassandra_handle_async(text: str, session_meta: dict) -> list[str]:
+    # ── Refusal-first guard (task 141) — FIRST tap, before the invoice-cockpit
+    # clarify session and before cassandra_brain.handle (so a destructive or
+    # money-movement bait can never be eaten by a clarify session or time out
+    # in the model path). Legitimate work ("delete that draft", "prepare the
+    # St Anne's invoice for my review") never matches and flows on untouched.
+    refusal = _operator_refusal_reply(text)
+    if refusal is not None:
+        return [refusal]
     # IB-3: the invoice-send cockpit intercepts an invoice trigger or an active invoice session and
     # drives it via Telegram itself; on handle, no further Cassandra reply is needed. Fail-open.
     if await asyncio.to_thread(_try_invoice_cockpit, text):

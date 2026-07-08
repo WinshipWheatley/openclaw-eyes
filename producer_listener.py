@@ -84,6 +84,16 @@ def _fire_agent_voice(agent: str, text: str, update) -> None:
         print(f"[producer_listener] {agent} voice note skipped: {exc}", flush=True)
 
 
+def _operator_refusal_reply(text: str) -> str | None:
+    """Task 141 refusal-first tap. Fail-open: guard errors never block Niles."""
+    try:
+        from operator_refusal_guard import refusal_reply_for_text
+
+        return refusal_reply_for_text(text, agent="niles", surface="niles_producer_listener")
+    except Exception:
+        return None
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_user or update.effective_user.id != AUTHORIZED_USER_ID:
         return
@@ -101,6 +111,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         route_intent=True,
     )
     _queue_for_memory(text)  # feed Niles persistent memory (niles_memory_worker tails this)
+
+    # ── Refusal-first guard (task 141) — FIRST tap, before the producer
+    # intake subprocess (no model, no timeout). "wipe the X32" refuses with
+    # the gate named; scene/session/take housekeeping ("wipe the X32 scene")
+    # never matches and flows to the normal intake path.
+    refusal = _operator_refusal_reply(text)
+    if refusal is not None:
+        await update.message.reply_text(refusal)
+        _fire_agent_voice("niles", refusal, update)
+        return
 
     if text.lower() in ("/start", "/help"):
         await update.message.reply_text("Niles online. Producer intake active.")

@@ -815,7 +815,30 @@ def _looks_like_approval_reply(text: str) -> bool:
     return bool(re.match(r"^[A-Z0-9]{4}\s+(?:1|2|3|YES|NO|APPROVE|DENY)\b", text.strip(), re.I))
 
 
+def _operator_refusal_reply(text: str) -> str | None:
+    """Task 141 refusal-first tap. Fail-open: guard errors never block routing."""
+    try:
+        from operator_refusal_guard import refusal_reply_for_text
+
+        return refusal_reply_for_text(text, agent="chief", surface="chief_router")
+    except Exception:
+        return None
+
+
 def _route_message_inner(text: str) -> dict:
+    # ── Refusal-first guard (task 141) — the pipeline's FIRST tap, before the
+    # approval gate, client intake, clarify sessions, NLI, or any model call.
+    # Destructive/money-movement/gate-bypass asks get an instant plain-English
+    # refusal naming the gate; everything else continues untouched.
+    _refusal = _operator_refusal_reply(text)
+    if _refusal is not None:
+        return {
+            "intent": "operator_refusal_guard",
+            "reply": _refusal,
+            "send_performed": False,
+            "ledger_touched": False,
+        }
+
     t_lower = text.strip().lower()
     t_upper = text.strip().upper()
 
