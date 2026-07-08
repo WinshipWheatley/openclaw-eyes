@@ -84,7 +84,11 @@ def test_money_prompt_blocks_without_ledger_or_action_paths(monkeypatch):
 
     result = route_message("wire $500 to someone")
 
-    assert result["intent"] == "money_block"
+    # Task 141: the shared refusal-first guard now intercepts money-movement
+    # asks (verb + amount) at the pipeline's FIRST tap, before the legacy
+    # money_block responder. Same contract, stronger ordering: nothing is
+    # sent, staged, or ledger-touched, and the gate is named in plain English.
+    assert result["intent"] == "operator_refusal_guard"
     assert result["ledger_touched"] is False
     assert result["send_performed"] is False
     assert "No money moved" in result["reply"]

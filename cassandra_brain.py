@@ -6344,6 +6344,33 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     query = _strip_prefix(text)
     t_query = query.lower().strip()
 
+    # ── Refusal-first guard (task 141) — FIRST tap, before intent
+    # classification, packet intake, ledger writes, or any model call.
+    # Destructive/money-movement/gate-bypass asks get an instant refusal in
+    # Cassandra's voice naming the gate (no timeout possible); everything
+    # else, including draft discards and staged invoice prep, flows on.
+    try:
+        from operator_refusal_guard import refusal_reply_for_text as _refusal_reply_for_text
+
+        _refusal_text = _refusal_reply_for_text(
+            query, agent="cassandra", surface="cassandra_brain.handle"
+        )
+    except Exception:
+        _refusal_text = None
+    if _refusal_text is not None:
+        _log_conversation(
+            text,
+            [_refusal_text],
+            route="operator_refusal_guard",
+            metadata={
+                "model_called": False,
+                "external_calls_performed": False,
+                "runtime_mutation_performed": False,
+                "business_action_performed": False,
+            },
+        )
+        return [_refusal_text]
+
     # Deterministic Intent (Business Ops Spine Step 2)
     ops_intent = classify_business_ops_intent(query)
     system_knowledge_query = _is_system_knowledge_registry_query(query)
