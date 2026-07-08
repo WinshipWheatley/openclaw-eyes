@@ -1285,6 +1285,9 @@ generated/system_knowledge/*.sqlite
 !generated/audit_shards/active_machinery_v0/mock_worker_outputs/
 !generated/audit_shards/active_machinery_v0/mock_worker_outputs/*.json
 !master_voice.sh
+!tests/test_master_voice_shell.py
+!tests/fixtures/
+!tests/fixtures/stub_pyv.py
 !secret_log_redaction.py
 !tests/test_secret_log_redaction.py
 !evidence_importer.py
@@ -1412,4 +1415,10 @@ generated/system_knowledge/*.sqlite
 !tests/test_adaptive_model_call.py
 !model_slot_lease.py
 !tests/test_model_slot_lease.py
+!recurrence_rule_record.py
+!recurrence_rule_store.py
+!recurrence_rule_intake.py
+!tests/test_recurrence_rule_store.py
+!tests/test_recurrence_rule_intake.py
+!tests/test_receivables_month_bounded_recurrence_derivation.py
 !tests/test_hermes_observer.py

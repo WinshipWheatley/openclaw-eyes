@@ -1748,6 +1748,7 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
 
     open_rows: list[Mapping[str, Any]] = []
     settled_by_client: dict[str, list[Mapping[str, Any]]] = {}
+    uninvoiced_by_client: dict[str, list[Mapping[str, Any]]] = {}
     source_refs: list[str] = []
     as_of_values: list[str] = []
     for row in rows:
@@ -1761,7 +1762,12 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
             source_refs.append(source_ref)
         if as_of and as_of not in as_of_values:
             as_of_values.append(as_of)
-        if open_minor > 0 or needs_reconcile:
+        if status == "expected_uninvoiced":
+            # Task 133: owed work that hasn't been invoiced yet is a THIRD tier, distinct
+            # from open-invoiced and settled -- it must never let the client read as "fully
+            # settled" just because their OTHER, already-paid months are settled.
+            uninvoiced_by_client.setdefault(client_ref, []).append(row)
+        elif open_minor > 0 or needs_reconcile:
             open_rows.append(row)
         elif str(row.get("settled_past_no_compound") or "").lower() == "true" or status == "settled":
             settled_by_client.setdefault(client_ref, []).append(row)
@@ -1772,8 +1778,28 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
             _client_display(str(row.get("client_ref") or "")).lower(),
         )
     )
+    # Task 137 (render priority, iterated per Fable's probe): expected_uninvoiced content is
+    # its OWN line in the OPEN/action section -- appending it onto the settled line let a
+    # per-line char cap truncate it mid-sentence. The settled line for that client stays
+    # plain (no more "; don't chase" hedge, since there IS something to act on with them).
+    # Both open_lines and the uninvoiced lines are NEVER item-capped; only the pure-settled
+    # tail (no pending item) is capped.
     open_lines = [_receivable_operator_line(row) for row in open_rows]
-    settled_lines: list[str] = []
+    for client_ref, client_rows in uninvoiced_by_client.items():
+        months = "/".join(
+            month
+            for month in (_operator_short_month(row.get("month")) for row in client_rows)
+            if month
+        )
+        as_of = _operator_as_of(next((row.get("as_of") for row in client_rows if row.get("as_of")), ""))
+        line = f"{_client_display(client_ref)}: current invoice ready to send once copy is fixed"
+        if months:
+            line = f"{line}, {months}"
+        if as_of:
+            line = f"{line}, as of {as_of}"
+        open_lines.append(line)
+
+    pure_settled_lines: list[str] = []
     for client_ref, client_rows in settled_by_client.items():
         months = "/".join(
             month
@@ -1784,16 +1810,17 @@ def _receivable_answer_topic_facts(facts: Sequence[Mapping[str, Any]]) -> tuple[
         line = f"{_client_display(client_ref)}"
         if months:
             line = f"{line} {months}"
-        line = f"{line} settled; don't chase"
+        line = f"{line} paid" if client_ref in uninvoiced_by_client else f"{line} settled; don't chase"
         if as_of:
             line = f"{line}, as of {as_of}"
-        settled_lines.append(line)
+        pure_settled_lines.append(line)
+    settled_lines = pure_settled_lines[:4]
 
     value = " ".join(
         part
         for part in (
-            open_lines and "Money: " + ". ".join(open_lines[:4]) + ".",
-            settled_lines and "Settled items: " + " | ".join(settled_lines[:4]) + ".",
+            open_lines and "Money: " + ". ".join(open_lines) + ".",
+            settled_lines and "Settled items: " + " | ".join(settled_lines) + ".",
         )
         if part
     )

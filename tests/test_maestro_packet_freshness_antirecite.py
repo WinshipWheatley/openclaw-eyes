@@ -536,6 +536,141 @@ def test_superb_money_answer_is_operator_clean_and_amount_evidenced(monkeypatch,
         assert token not in answer
 
 
+def _receivable_row(
+    client_ref: str,
+    month: str,
+    *,
+    payment_status: str,
+    open_minor_units: int = 0,
+    needs_reconcile: bool = False,
+    settled_past_no_compound: bool = False,
+) -> dict:
+    return {
+        "topic": "receivable_month_bounded",
+        "structured_fact": True,
+        "client_ref": client_ref,
+        "month": month,
+        "payment_status": payment_status,
+        "open_minor_units": open_minor_units,
+        "needs_reconcile": needs_reconcile,
+        "settled_past_no_compound": settled_past_no_compound,
+        "as_of": "2026-07-07",
+        "source_ref": f"test:{client_ref}:{month}",
+    }
+
+
+def test_render_priority_places_uninvoiced_content_on_its_own_open_line() -> None:
+    """Task 137 (iterated per Fable's probe): appending the pending-send content onto the
+    settled line let a per-line char cap truncate it mid-sentence with a literal "...". Fix
+    placement: the uninvoiced content is its OWN line in the Money:/open section; the settled
+    line for that client stays plain, no more content appended onto it."""
+    from maestro_context_packet import _receivable_answer_topic_facts
+
+    rows = [
+        _receivable_row("st_annes", "2026-04", payment_status="settled", settled_past_no_compound=True),
+        _receivable_row("st_annes", "2026-07", payment_status="expected_uninvoiced"),
+    ]
+
+    answer_facts, _proof = _receivable_answer_topic_facts(rows)
+
+    assert answer_facts, "expected at least one derived answer-topic fact"
+    value = str(answer_facts[0]["value"])
+    assert "..." not in value, "pending-send content must never be truncated mid-sentence"
+    money_section, _, settled_section = value.partition("Settled items:")
+    assert "St Anne's: current invoice ready to send once copy is fixed" in money_section
+    assert "St Anne's Apr paid" in settled_section
+    assert "St Anne's Apr paid; current invoice" not in settled_section
+
+
+def test_render_priority_never_truncates_expected_uninvoiced_behind_settled_cap() -> None:
+    """The uninvoiced line lives in the open section, which is never item-capped -- proven
+    even when 6 OTHER clients' settled history would fill (and overflow) the pure-settled
+    cap on its own."""
+    from maestro_context_packet import _receivable_answer_topic_facts
+
+    rows = [
+        _receivable_row(f"client_{i}", "2026-05", payment_status="settled", settled_past_no_compound=True)
+        for i in range(6)
+    ] + [
+        _receivable_row("st_annes", "2026-07", payment_status="expected_uninvoiced"),
+    ]
+
+    answer_facts, _proof = _receivable_answer_topic_facts(rows)
+
+    assert answer_facts, "expected at least one derived answer-topic fact"
+    value = str(answer_facts[0]["value"])
+    assert "..." not in value
+    assert "St Anne's: current invoice ready to send once copy is fixed" in value
+
+
+def test_money_question_never_renders_expected_uninvoiced_client_as_fully_settled(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Task 133 (operator correction: "st annes is not settled... we are not all paid up"):
+    a client with a current expected-uninvoiced item must never read as fully settled, even
+    though their earlier months genuinely are paid."""
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "who owes me money right now?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    answer = result.plain_summary
+    lowered = answer.lower()
+    assert result.status == "ANSWER_READY"
+    assert "st. anne's" in lowered or "st anne's" in lowered
+    assert "current invoice ready to send once copy is fixed" in lowered
+    assert "st. anne's apr/may settled" not in lowered
+    assert "st anne's apr/may settled" not in lowered
+
+
+def test_did_st_annes_pay_us_question_answers_money_class_apr_may_paid_current_not_sent(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Task 137 ACCEPTANCE: 'did St Anne's pay us?' contains the action-term 'pay' -- before
+    129's fix it hijacked straight to ROUTE_TO_STAGING; before 137's fix it classified to the
+    contacts_registry roster instead of the money class (missing 'pay'/'paid' finance-intent
+    markers). Must now classify to money and answer 'Apr/May paid; current invoice not yet
+    sent' (via the expected_uninvoiced tier's rendered line), un-truncated."""
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "did St Anne's pay us?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+    )
+
+    lowered = result.plain_summary.lower()
+    assert result.status == "ANSWER_READY"
+    assert "staging" not in lowered
+    assert "current invoice ready to send once copy is fixed" in lowered
+    assert "contacts_registry contact" not in lowered
+    assert "fully settled" not in lowered
+    assert "all paid up" not in lowered
+
+
 def test_model_paraphrase_that_drops_amount_falls_back_to_deterministic_topic_text(
     monkeypatch, tmp_path: Path
 ) -> None:

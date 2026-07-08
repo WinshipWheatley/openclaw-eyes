@@ -606,6 +606,11 @@ SYSTEM_POSTURE_TERMS = frozenset(
 ANSWER_FILLER_MARKERS = ("next friday",)
 _WORD_RE = re.compile(r"[a-z0-9']+")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|;\s+")
+# Task 137: the sentence splitter above naively treats "St." as an end-of-sentence period,
+# mangling "St. Anne's primary contact" into "St; Anne's primary contact" once the chunks are
+# rejoined with "; ". Protect common abbreviation periods before splitting, restore after.
+_ABBREVIATION_PERIOD_RE = re.compile(r"\b(St|Mr|Mrs|Ms|Dr|Jr|Sr)\.(?=\s|$)", re.IGNORECASE)
+_ABBREVIATION_PERIOD_PLACEHOLDER = "ABBREV_PERIOD"
 
 
 def _question_terms(prompt: str) -> set[str]:
@@ -647,9 +652,13 @@ def _fallback_fact_eligible(fact: Mapping[str, Any]) -> bool:
 
 
 def _clean_answer_value(value: object) -> str:
+    protected = _ABBREVIATION_PERIOD_RE.sub(
+        lambda m: f"{m.group(1)}{_ABBREVIATION_PERIOD_PLACEHOLDER}", str(value or "")
+    )
     chunks = []
-    for chunk in _SENTENCE_SPLIT_RE.split(str(value or "")):
+    for chunk in _SENTENCE_SPLIT_RE.split(protected):
         clean = chunk.strip(" \t\r\n.")
+        clean = clean.replace(_ABBREVIATION_PERIOD_PLACEHOLDER, ".")
         if not clean:
             continue
         lowered = clean.lower()
@@ -722,6 +731,8 @@ _FINANCE_INTENT_MARKERS = (
     "money owed",
     "owe",
     "owed",
+    "pay",
+    "paid",
     "payable",
     "payables",
     "payment",

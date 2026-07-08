@@ -61,7 +61,7 @@ def test_morning_brief_uses_structured_facts_and_skips_empty_sections(tmp_path) 
 
     brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 7))
 
-    assert "St. Anne's two-event PDF: $1,095 as of 2026-07-06" in brief
+    assert "St. Anne's two-event PDF still owes $1,095" in brief
     assert "7:00 PM St. Anne's helper preview" in brief
     assert "Tomorrow should not appear" not in brief
     assert "decision" not in brief.lower()
@@ -89,6 +89,57 @@ def test_morning_brief_does_not_launder_unstructured_money(tmp_path) -> None:
 
     assert "$1,095" not in brief
     assert "Loose Note" not in brief
+
+
+def test_morning_brief_uses_approved_humanizer_for_known_amount(tmp_path) -> None:
+    """Task 127: money items render via operator_surface_guard.render_operator_money_
+    status_line -- no raw snake_case status token, month code shown as a name in parens."""
+    root = tmp_path / "read_models"
+    _write_json(
+        root / "receivable_status.json",
+        {
+            "items": [
+                {
+                    "client": "Live Arts MD",
+                    "month": "2026-06",
+                    "open_minor_units": 109500,
+                    "currency": "USD",
+                    "payment_status": "needs_reconcile",
+                    "as_of": "2026-07-07",
+                }
+            ]
+        },
+    )
+
+    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 7))
+
+    assert "Live Arts MD (June) still owes $1,095 — needs your reconcile" in brief
+    assert "needs_reconcile" not in brief
+    assert "2026-06" not in brief
+
+
+def test_morning_brief_includes_unknown_amount_item_as_attention_line(tmp_path) -> None:
+    """Task 127: a pending 'check expected' item is plate-worthy even with no confirmed
+    amount -- must not be silently dropped just because there's no number yet."""
+    root = tmp_path / "read_models"
+    _write_json(
+        root / "receivable_status.json",
+        {
+            "items": [
+                {
+                    "client": "Capital Hilton",
+                    "month": "2026-06",
+                    "payment_status": "open_amount_unknown",
+                    "as_of": "2026-07-07",
+                }
+            ]
+        },
+    )
+
+    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 7))
+
+    assert "Capital Hilton (June): check expected, amount not yet confirmed" in brief
+    assert "open_amount_unknown" not in brief
 
 
 def test_morning_brief_live_probe_quality_money_decisions_and_voice(tmp_path) -> None:
@@ -121,7 +172,10 @@ def test_morning_brief_live_probe_quality_money_decisions_and_voice(tmp_path) ->
 
     assert "live arts" in lowered
     assert "$1,095" in brief
-    assert "needs_reconcile" in lowered or "needs reconcile" in lowered
+    # Task 127: zero raw snake_case tokens -- the approved humanizer renders "needs your
+    # reconcile", never the machine status token.
+    assert "needs_reconcile" not in lowered
+    assert "needs your reconcile" in lowered
     assert "Intent:" not in brief
     assert "Hermes, synthesize current posture" not in brief
     assert "Approve Capital Hilton invoice review packet" in brief

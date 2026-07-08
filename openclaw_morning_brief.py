@@ -6,10 +6,11 @@ from __future__ import annotations
 import argparse
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 from typing import Any
 
@@ -17,6 +18,9 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = REPO_ROOT / "generated" / "read_models"
 MONEY_SOURCE_TOKENS = ("receivable", "invoice", "finance", "billing", "payment")
+# Task 127: mirrors operator_surface_guard._UNKNOWN_AMOUNT_STATUSES -- a pending
+# "check expected" item is plate-worthy even before the amount is confirmed.
+_UNKNOWN_AMOUNT_STATUS_TOKENS = {"open_amount_unknown", "amount_unknown", "unknown_amount"}
 EVENT_SOURCE_TOKENS = ("calendar", "gig", "schedule")
 DECISION_SOURCE_TOKENS = ("approval", "work_board", "attention", "reconcile", "review")
 ACTION_STATUSES = {"pending_approval", "needs_operator_review", "needs_reconcile", "approval_required"}
@@ -25,7 +29,7 @@ ACTION_STATUSES = {"pending_approval", "needs_operator_review", "needs_reconcile
 @dataclass(frozen=True)
 class MoneyItem:
     label: str
-    amount: float
+    amount: float | None
     currency: str
     as_of: str
     status: str = ""
@@ -86,7 +90,12 @@ def collect_open_money_items(root: Path) -> list[MoneyItem]:
             continue
         for obj, context in _iter_dicts(payload):
             amount = _structured_amount(obj)
-            if amount is None or not _is_open_money_status(obj):
+            status_token = str(obj.get("payment_status") or obj.get("status") or "").strip().lower()
+            # Task 127: a pending "check expected" item IS plate-worthy even with no
+            # confirmed amount -- don't drop it just because there's no number yet.
+            if amount is None and status_token not in _UNKNOWN_AMOUNT_STATUS_TOKENS:
+                continue
+            if amount is not None and not _is_open_money_status(obj):
                 continue
             as_of = _first_text(obj.get("as_of"), context.get("as_of"), obj.get("generated_at"), context.get("generated_at"))
             label = _money_label(obj, context)
@@ -98,7 +107,7 @@ def collect_open_money_items(root: Path) -> list[MoneyItem]:
                     amount=amount,
                     currency=str(obj.get("currency") or obj.get("currency_iso") or context.get("currency") or "USD"),
                     as_of=_date_part(as_of),
-                    status=str(obj.get("payment_status") or obj.get("status") or "").strip(),
+                    status=status_token,
                 )
             )
     return _dedupe_dataclasses(items)
@@ -225,21 +234,39 @@ def _is_open_money_status(obj: Mapping[str, Any]) -> bool:
     status = str(obj.get("status") or obj.get("payment_status") or "").strip().lower()
     if status in {"open", "open_not_paid", "unpaid", "outstanding", "unverified", "check_unverified", "needs_reconcile", "needs_operator_review"}:
         return True
+    if status in _UNKNOWN_AMOUNT_STATUS_TOKENS:
+        return True
     return bool(obj.get("open") is True)
+
+
+_MONTH_CODE_RE = re.compile(r"^\d{4}-\d{2}$")
+
+
+def _month_display(value: str) -> str:
+    try:
+        return datetime.strptime(value, "%Y-%m").strftime("%B")
+    except ValueError:
+        return value
 
 
 def _money_label(obj: Mapping[str, Any], context: Mapping[str, Any]) -> str:
     client = _display_token(_first_text(obj.get("client"), obj.get("client_name"), obj.get("client_display_name"), obj.get("client_ref"), context.get("client")))
-    project = _display_token(_first_text(obj.get("project"), obj.get("event"), obj.get("month"), obj.get("label"), obj.get("title"), obj.get("name")))
+    raw_project = _first_text(obj.get("project"), obj.get("event"), obj.get("month"), obj.get("label"), obj.get("title"), obj.get("name"))
+    if raw_project and _MONTH_CODE_RE.match(raw_project.strip()):
+        # A bare YYYY-MM month code reads as an operator-facing "(June)", not the raw token.
+        project = f"({_month_display(raw_project.strip())})"
+    else:
+        project = _display_token(raw_project)
     if client and project and project.lower() not in client.lower():
         return _compact(f"{client} {project}")
     return _compact(client or project or _first_text(obj.get("summary"), obj.get("description")) or "")
 
 
 def _format_money_item(item: MoneyItem) -> str:
-    status = str(item.status or "").strip()
-    status_text = f" {status}" if status in {"needs_reconcile", "open_not_paid", "unverified", "check_unverified", "needs_operator_review"} else ""
-    return f"{item.label}: {_format_amount(item.amount, item.currency)}{status_text} as of {item.as_of}"
+    from operator_surface_guard import render_operator_money_status_line
+
+    amount_text = _format_amount(item.amount, item.currency) if item.amount is not None else ""
+    return render_operator_money_status_line(entity=item.label, amount=amount_text, status=item.status).rstrip(".")
 
 
 def _format_amount(amount: float, currency: str) -> str:

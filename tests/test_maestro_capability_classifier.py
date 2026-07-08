@@ -240,6 +240,108 @@ def test_real_payment_send_command_still_routes_to_staging() -> None:
     assert gate_reason
 
 
+def test_payment_status_question_with_action_word_routes_to_brain_not_staging() -> None:
+    """Task 133: 'did St Anne's pay us?' contains the action-term 'pay' but is a QUESTION
+    about status, not an instruction to pay -- must not get hijacked into staging (same bug
+    class as 129, in the sibling classify_frontdoor_intent gate)."""
+    intent_class, allowed_to_call_handle, gate_reason = classify_frontdoor_intent(
+        "did St Anne's pay us?"
+    )
+
+    assert intent_class == "maestro_brain_freeform"
+    assert allowed_to_call_handle is True
+    assert gate_reason == ""
+
+
+def test_pay_the_invoice_instruction_still_routes_to_staging() -> None:
+    """The question-shape exemption must not swallow real instructions that happen to start
+    with an interrogative-looking word or otherwise aren't question-shaped."""
+    intent_class, allowed_to_call_handle, gate_reason = classify_frontdoor_intent(
+        "pay the St Anne's invoice now"
+    )
+
+    assert intent_class == "workflow_or_business_action"
+    assert allowed_to_call_handle is False
+    assert gate_reason == "workflow_or_business_action_routes_to_staging"
+
+
+def test_recurrence_rule_statement_classifies_as_its_own_intent() -> None:
+    """Task 136a: a rule STATEMENT is a third category, distinct from both a question and
+    an instruction -- 'I send St Anne's a new invoice on the first of every month'."""
+    intent_class, allowed_to_call_handle, gate_reason = classify_frontdoor_intent(
+        "I send St Anne's a new invoice on the first of every month"
+    )
+
+    assert intent_class == "recurrence_rule_statement"
+    assert allowed_to_call_handle is True
+    assert gate_reason == ""
+
+
+def test_recurrence_rule_statement_captured_via_maestro_intake_end_to_end(tmp_path: Path) -> None:
+    """Task 136a ACCEPTANCE: a fixture statement through the real intake -> recurrence
+    record in the store + plain confirmation reply."""
+    from recurrence_rule_store import RecurrenceRuleStore
+
+    rule_db_path = tmp_path / "rules.sqlite3"
+
+    result = answer_frontdoor_chat(
+        "I send St Anne's a new invoice on the first of every month",
+        session={"recurrence_rule_db_path": str(rule_db_path)},
+        source_surface="operator_maestro_chat",
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "recurrence_rule_statement"
+    assert "St. Anne's" in result.plain_summary
+    assert "monthly" in result.plain_summary
+    assert result.machine_proof["recurrence_rule_captured"] is True
+    assert result.machine_proof["local_model_invoked"] is False
+
+    with RecurrenceRuleStore(rule_db_path) as store:
+        persisted = store.latest_unsuperseded_for_client("st_annes", "invoice_send")
+    assert persisted is not None
+    assert persisted.schedule_day == 1
+    assert persisted.truth_status == "operator_directive"
+
+
+def test_recurrence_rule_correction_phrasing_not_swallowed_by_legacy_truth_store(
+    tmp_path: Path,
+) -> None:
+    """Task 136b#1 (Fable probe 2026-07-07): 'actually St Anne's invoices should go out on
+    the 15th of every month' is a CORRECTION phrasing with no 'send ... invoice' verb-object
+    shape. Before this fix it was swallowed by the legacy operator-truth-store intake
+    ('Operator truth updated...') -- two intakes competing for the same statement, violating
+    the no-leftovers doctrine. It must reach the rule store, supersede the prior version, and
+    the readback must include both old and new."""
+    from recurrence_rule_store import RecurrenceRuleStore
+
+    rule_db_path = tmp_path / "rules.sqlite3"
+    session = {"recurrence_rule_db_path": str(rule_db_path)}
+
+    step1 = answer_frontdoor_chat(
+        "I send St Anne's a new invoice on the first of every month",
+        session=session,
+        source_surface="operator_maestro_chat",
+    )
+    step2 = answer_frontdoor_chat(
+        "actually St Anne's invoices should go out on the 15th of every month",
+        session=session,
+        source_surface="operator_maestro_chat",
+    )
+
+    assert step1.intent_class == "recurrence_rule_statement"
+    assert step2.intent_class == "recurrence_rule_statement"
+    assert "Operator truth updated" not in step2.plain_summary
+    assert "was:" in step2.plain_summary
+    assert "first" in step2.plain_summary
+
+    with RecurrenceRuleStore(rule_db_path) as store:
+        latest = store.latest_unsuperseded_for_client("st_annes", "invoice_send")
+        history = store.all_versions_for_client("st_annes")
+    assert latest.schedule_day == 15
+    assert len(history) == 2, "correction must supersede, not overwrite"
+
+
 def test_calendar_prompt_stays_deterministic_without_brain_or_send(tmp_path: Path) -> None:
     session = _write_read_models(tmp_path)
 

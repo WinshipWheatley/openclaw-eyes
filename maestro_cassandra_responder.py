@@ -464,6 +464,13 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("empty", False, "empty_text")
     if _is_hermes_truthful_intent(normalized):
         return ("hermes_truthful_advisory", True, "")
+    if _is_recurrence_rule_statement_intent(text):
+        # Task 136b#1 (Fable probe 2026-07-07): a rule-shaped statement -- INCLUDING a
+        # correction phrasing with schedule words ("actually St Anne's invoices should go
+        # out on the 15th") -- must reach the rule store BEFORE the legacy operator-truth-
+        # store intake can claim it. Two intakes competing for the same statement violates
+        # the no-leftovers doctrine at the intake layer; checked first, unconditionally.
+        return ("recurrence_rule_statement", True, "")
     if _is_operator_truth_correction_intent(text):
         return ("operator_truth_correction", True, "")
     if _is_operator_truth_query_intent(normalized):
@@ -483,7 +490,7 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("ledger_reference_clarification", True, "")
     if ledger_resolution.get("status") == "RESOLVED" and ledger_resolution.get("blocked_action_requested") is not True:
         return ("maestro_brain_freeform", True, "")
-    if _is_workflow_or_business_action_intent(normalized):
+    if _is_workflow_or_business_action_intent(normalized) and not _is_general_question_shape(normalized):
         return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     if _is_date_awareness_intent(normalized):
         return ("date_awareness", True, "")
@@ -605,6 +612,42 @@ def answer_frontdoor_chat(
                 **_adapter_machine_proof(handle_called=False),
                 "operator_truth_store_written": bool(records),
                 "operator_truth_entities": labels,
+            },
+        )
+
+    if intent_class == "recurrence_rule_statement":
+        from recurrence_rule_intake import capture_recurrence_rule_statement
+        from recurrence_rule_store import DEFAULT_DB_PATH as _DEFAULT_RULE_DB_PATH
+        from recurrence_rule_store import RecurrenceRuleStore
+
+        rule_db_path = (
+            (session or {}).get("recurrence_rule_db_path") if isinstance(session, Mapping) else None
+        ) or _DEFAULT_RULE_DB_PATH
+        with RecurrenceRuleStore(rule_db_path) as store:
+            capture = capture_recurrence_rule_statement(text, store=store, source_ref=source_surface)
+        if capture is None:
+            answer = "I couldn't quite parse that as a recurring rule. No rule was recorded."
+            captured = False
+            needs_review = False
+        else:
+            answer = str(capture["reply"])
+            captured = capture["status"] == "captured"
+            needs_review = capture["status"] == "needs_operator_review"
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=answer,
+            plain_summary=answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "recurrence_rule_captured": captured,
+                "recurrence_rule_needs_operator_review": needs_review,
+                "protected_generate_called": False,
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
             },
         )
 
@@ -2160,6 +2203,16 @@ def _is_system_health_readback_intent(text: str) -> bool:
     )
 
 
+def _is_recurrence_rule_statement_intent(text: str) -> bool:
+    """Task 136a: 'I send St Anne's a new invoice on the first of every month' is an operator
+    STATEMENT of a recurring business rule -- a third category, distinct from both a question
+    and an instruction. Checked early, before advisory/action/question classification, so it
+    is never mistaken for either."""
+    from recurrence_rule_intake import detect_recurrence_rule_statement
+
+    return detect_recurrence_rule_statement(text) is not None
+
+
 def _status_capability_readback_focus(text: str) -> str:
     if any(
         phrase in text
@@ -2308,3 +2361,22 @@ def _is_workflow_or_business_action_intent(text: str) -> bool:
         "create calendar",
     )
     return any(term in text for term in action_terms)
+
+
+_GENERAL_QUESTION_OPENERS = (
+    "who", "what", "when", "where", "which", "how",
+    "does", "did", "is", "are", "can",
+)
+
+
+def _is_general_question_shape(text: str) -> bool:
+    """Task 133: a question-shaped text (interrogative opener or trailing '?') must never be
+    classified as a business action just because it contains an action-shaped word --
+    'did St Anne's pay us?' contains 'pay' but asks about status, not a payment request."""
+    normalized = str(text or "").strip()
+    if not normalized:
+        return False
+    if normalized.endswith("?"):
+        return True
+    first_word = normalized.split(" ", 1)[0].rstrip("?,.!;:")
+    return first_word in _GENERAL_QUESTION_OPENERS
