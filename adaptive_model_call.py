@@ -130,17 +130,23 @@ def _result_has_text(result: Any) -> bool:
 
 
 def _snapshot_kwargs(snapshot: Any) -> dict[str, Any]:
-    resident = {}
-    resident_fn = getattr(snapshot, "resident_vram_by_model_gb", None)
-    if callable(resident_fn):
+    def _mapping_from(method_name: str) -> dict[str, Any]:
+        method = getattr(snapshot, method_name, None)
+        if not callable(method):
+            return {}
         try:
-            resident = dict(resident_fn())
+            return dict(method())
         except Exception:
-            resident = {}
+            return {}
+
     return {
         "available_vram_gb": getattr(snapshot, "available_vram_gb", None),
         "available_ram_gb": getattr(snapshot, "available_ram_gb", None),
-        "resident_vram_by_model_gb": resident,
+        "resident_vram_by_model_gb": _mapping_from("resident_vram_by_model_gb"),
+        # Task 146: pass the per-model offload truth (size_vram/size from /api/ps) so the
+        # retry selector can refuse residency preference for a mostly-CPU-offloaded model.
+        # Snapshots without the method yield {} -> fraction UNKNOWN -> selection unchanged.
+        "offload_fraction_by_model": _mapping_from("offload_fraction_by_model"),
         "system_load_1m": getattr(snapshot, "system_load_1m", None),
         "cpu_count": getattr(snapshot, "cpu_count", None),
     }
