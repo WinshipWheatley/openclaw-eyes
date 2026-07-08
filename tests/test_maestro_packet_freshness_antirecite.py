@@ -536,6 +536,121 @@ def test_superb_money_answer_is_operator_clean_and_amount_evidenced(monkeypatch,
         assert token not in answer
 
 
+def test_model_paraphrase_that_drops_amount_falls_back_to_deterministic_topic_text(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Task 132, live evidence (msg 1277): the model re-narrated the evidenced $1,095 as
+    'the amounts are still unverified or unknown', dropping the number. The reply must never
+    ship that -- fall back to the topic's own verbatim text (grounded > eloquent)."""
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    def _bad_paraphrase(text, *, context_packet=None, **_kwargs):
+        return (
+            "Well, here's the elephant in the room: both Live Arts and Capital Hilton are "
+            "flagged open and the amounts are still unverified or unknown, so you'll want to "
+            "take a look when you get a chance, no rush though since it's not urgent right now."
+        )
+
+    result = maestro.answer_frontdoor_chat(
+        "who owes me money right now?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=_bad_paraphrase,
+    )
+
+    answer = result.plain_summary
+    lowered = answer.lower()
+    assert result.status == "ANSWER_READY"
+    assert "$1,095" in answer
+    assert "needs your reconcile" in lowered
+    assert "amount unverified" in lowered
+    assert "elephant in the room" not in lowered
+    assert "unverified or unknown" not in lowered
+
+
+def test_model_reply_with_verbatim_amounts_passes_through(monkeypatch, tmp_path: Path) -> None:
+    """A faithful model reply -- leads with the topic's verbatim lines, adds a short grounded
+    sentence -- is NOT overridden; the guard only fires on a real mismatch."""
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    def _faithful_reply(text, *, context_packet=None, **_kwargs):
+        facts = context_packet.get("facts", ()) if context_packet else ()
+        topic = next(
+            (f for f in facts if f.get("provenance") == "derived_answer_topic" and f.get("topic") == "finance_invoice_reconciliation"),
+            None,
+        )
+        assert topic is not None
+        return str(topic["value"]) + " Worth a look when you have a minute."
+
+    result = maestro.answer_frontdoor_chat(
+        "who owes me money right now?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=_faithful_reply,
+    )
+
+    assert "Worth a look when you have a minute." in result.plain_summary
+    assert "$1,095" in result.plain_summary
+
+
+def test_overly_verbose_money_reply_falls_back_to_deterministic_topic_text(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Verbosity cap: even a reply that keeps the amounts verbatim must stay concise for a
+    money question (~5 sentences); an over-long reply falls back to the topic text."""
+    monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+    read_models = _seed_read_models(tmp_path)
+    _copy_month_bounded_receivables(read_models)
+    truth_path = _seed_truth(
+        monkeypatch,
+        tmp_path,
+        "St Anne's invoice truth is reviewed; current money answers should use month-bounded receivables.",
+    )
+
+    def _verbose_reply(text, *, context_packet=None, **_kwargs):
+        facts = context_packet.get("facts", ()) if context_packet else ()
+        topic = next(
+            (f for f in facts if f.get("provenance") == "derived_answer_topic" and f.get("topic") == "finance_invoice_reconciliation"),
+            None,
+        )
+        lead = str(topic["value"])
+        filler = " ".join(f"Sentence number {i} of extra color." for i in range(1, 8))
+        return f"{lead} {filler}"
+
+    result = maestro.answer_frontdoor_chat(
+        "who owes me money right now?",
+        session={
+            "read_model_root": read_models.as_posix(),
+            "operator_truth_store_path": truth_path.as_posix(),
+        },
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=_verbose_reply,
+    )
+
+    assert "$1,095" in result.plain_summary
+    assert "Sentence number" not in result.plain_summary
+
+
 def test_plate_question_answers_attention_money_and_upcoming_from_packet(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
     read_models = _seed_read_models(tmp_path)
