@@ -63,6 +63,7 @@ class OpenClawPytestSandbox:
         self.isolated_google_token = self.sandbox_root / "secrets" / "token.json"
         self.isolated_mac_response_bridge = self.sandbox_root / "mission_control_responses" / "to_mac"
         self.isolated_send_hold = self.redirect_root / "mnt_e" / "openclaw" / "orchestration" / "SEND_HOLD.md"
+        self.isolated_model_slot_lock = self.sandbox_root / "model_slot" / "model.lock"
 
         self.live_business_ledger = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite").resolve(strict=False)
         self.live_home_root = Path("/home/openclaw").resolve(strict=False)
@@ -98,6 +99,9 @@ class OpenClawPytestSandbox:
         os.environ["OPENCLAW_EXPENSE_LOG_PATH"] = str(self.isolated_expense_log)
         os.environ["OPENCLAW_GOOGLE_TOKEN_FILE"] = str(self.isolated_google_token)
         os.environ["OPENCLAW_RESPONSE_BRIDGE_ROOT"] = str(self.isolated_mac_response_bridge)
+        # Task 131: never let a test run contend with (or be blocked by) the real box's
+        # single model-call slot lock, or vice versa.
+        os.environ["OPENCLAW_MODEL_SLOT_LOCK_PATH"] = str(self.isolated_model_slot_lock)
         os.environ["OPENCLAW_TEST_REPO_ROOT"] = str(self.repo_root)
         os.environ["OPENCLAW_TEST_MODE"] = "1"
         os.environ["OPENCLAW_SEND_HOLD"] = "1"

@@ -1410,4 +1410,6 @@ generated/system_knowledge/*.sqlite
 !tests/test_listener_resilience.py
 !adaptive_model_call.py
 !tests/test_adaptive_model_call.py
+!model_slot_lease.py
+!tests/test_model_slot_lease.py
 !tests/test_hermes_observer.py

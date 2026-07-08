@@ -5406,6 +5406,14 @@ def process_inbound_email_replies() -> list[dict]:
             if not draft_body:
                 lines.append("I saw it, but I didn't auto-reply because the grounded reply path wasn't clear enough.")
                 send_telegram("\n".join(lines))
+                # Task 131: the degraded path was invisible in the conversation trace -- a
+                # blindspot when the actual cause is model-slot contention, not a real gap.
+                _log_conversation(
+                    inbound_text,
+                    ["\n".join(lines)],
+                    route="degraded_model_path",
+                    metadata={"message_id": message_id, "status": "no_draft_path"},
+                )
                 processed.append({"message_id": message_id, "status": "no_draft_path", "drafted": False})
                 continue
 

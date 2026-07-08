@@ -4,10 +4,17 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable, Mapping
+from pathlib import Path
 from typing import Any
 
 import chief_llm
 from frontdoor_resource_probe import probe_frontdoor_resources
+from model_slot_lease import (
+    DEFAULT_MODEL_SLOT_ACK_THRESHOLD_SECONDS,
+    DEFAULT_MODEL_SLOT_MAX_WAIT_SECONDS,
+    ModelSlotTimeoutError,
+    acquire_model_slot,
+)
 
 
 resolve_local_model = chief_llm.resolve_local_model
@@ -18,6 +25,7 @@ OllamaCallFn = Callable[..., str]
 ResolveModelFn = Callable[..., tuple[str, str]]
 SelectModelFn = Callable[..., tuple[str | None, str]]
 ResourceProbeFn = Callable[[], Any]
+ModelSlotWaitingFn = Callable[[float], None]
 
 
 def _call_ollama_once(
@@ -67,6 +75,52 @@ def _call_ollama_once(
             call_kwargs = {key: value for key, value in kwargs.items() if key in allowed}
     result = ollama_call_fn(prompt, **call_kwargs)
     return result if return_metadata else str(result or "")
+
+
+def _call_ollama_once_with_slot(
+    ollama_call_fn: OllamaCallFn,
+    prompt: str,
+    *,
+    timeout: int | float,
+    model: str,
+    task_class: str | None,
+    attempts: int | None,
+    think: bool | None,
+    num_predict: int | None,
+    options: Mapping[str, Any] | None,
+    keep_alive: str | None,
+    return_metadata: bool,
+    model_slot_lock_path: str | Path | None,
+    model_slot_max_wait_seconds: float,
+    model_slot_ack_threshold_seconds: float,
+    on_model_slot_waiting: ModelSlotWaitingFn | None,
+) -> Any:
+    """Task 131: acquire the box's single model-call slot before calling the model. Waiting
+    beats failing for operator-interactive traffic -- a concurrent caller QUEUES instead of
+    instant-degrading. A timed-out wait is treated as an honest empty response (same shape as
+    a model producing nothing), so callers' existing empty-result handling applies unchanged."""
+    try:
+        with acquire_model_slot(
+            lock_path=model_slot_lock_path,
+            max_wait_seconds=model_slot_max_wait_seconds,
+            ack_threshold_seconds=model_slot_ack_threshold_seconds,
+            on_waiting=on_model_slot_waiting,
+        ):
+            return _call_ollama_once(
+                ollama_call_fn,
+                prompt,
+                timeout=timeout,
+                model=model,
+                task_class=task_class,
+                attempts=attempts,
+                think=think,
+                num_predict=num_predict,
+                options=options,
+                keep_alive=keep_alive,
+                return_metadata=return_metadata,
+            )
+    except ModelSlotTimeoutError:
+        return {} if return_metadata else ""
 
 
 def _result_has_text(result: Any) -> bool:
@@ -132,6 +186,10 @@ def adaptive_model_call(
     resource_probe_fn: ResourceProbeFn | None = None,
     route_logger: RouteLogger | None = None,
     retry: bool = True,
+    model_slot_lock_path: str | Path | None = None,
+    model_slot_max_wait_seconds: float = DEFAULT_MODEL_SLOT_MAX_WAIT_SECONDS,
+    model_slot_ack_threshold_seconds: float = DEFAULT_MODEL_SLOT_ACK_THRESHOLD_SECONDS,
+    on_model_slot_waiting: ModelSlotWaitingFn | None = None,
 ) -> str:
     """Call a local model once, then one adaptive retry on empty output.
 
@@ -139,6 +197,11 @@ def adaptive_model_call(
     timeout. The retry reuses the front-door resource-aware allowlist so a cold
     or contended large model can downshift to a small proven local model before
     the caller emits its honest degraded fallback.
+
+    Task 131: both the primary and retry calls acquire the box's single model-call slot
+    first (OLLAMA_NUM_PARALLEL=1) -- a concurrent caller queues for its turn instead of
+    starving behind another call and honest-failing. ``on_model_slot_waiting`` lets the
+    caller send one brief "on it" ack if the wait crosses ``model_slot_ack_threshold_seconds``.
     """
 
     ollama_call_fn = ollama_call_fn or chief_llm.ollama_call
@@ -158,7 +221,7 @@ def adaptive_model_call(
             validation_outcome=validation_outcome,
             model=primary_model,
         )
-    result = _call_ollama_once(
+    result = _call_ollama_once_with_slot(
         ollama_call_fn,
         prompt,
         timeout=timeout,
@@ -170,6 +233,10 @@ def adaptive_model_call(
         options=options,
         keep_alive=keep_alive,
         return_metadata=return_metadata,
+        model_slot_lock_path=model_slot_lock_path,
+        model_slot_max_wait_seconds=model_slot_max_wait_seconds,
+        model_slot_ack_threshold_seconds=model_slot_ack_threshold_seconds,
+        on_model_slot_waiting=on_model_slot_waiting,
     )
     if _result_has_text(result) or not retry:
         return result
@@ -191,7 +258,7 @@ def adaptive_model_call(
             validation_outcome="empty_response",
             model=retry_model,
         )
-    return _call_ollama_once(
+    return _call_ollama_once_with_slot(
         ollama_call_fn,
         prompt,
         timeout=timeout,
@@ -203,6 +270,10 @@ def adaptive_model_call(
         options=options,
         keep_alive=keep_alive,
         return_metadata=return_metadata,
+        model_slot_lock_path=model_slot_lock_path,
+        model_slot_max_wait_seconds=model_slot_max_wait_seconds,
+        model_slot_ack_threshold_seconds=model_slot_ack_threshold_seconds,
+        on_model_slot_waiting=on_model_slot_waiting,
     )
 
 
