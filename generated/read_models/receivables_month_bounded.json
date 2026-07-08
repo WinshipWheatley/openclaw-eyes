@@ -13,7 +13,7 @@
     "money_answers_source": "receivables_month_bounded rows only; do not infer totals from narrative.",
     "settle_past_no_compound": "Rows with payment_status=settled force open_minor_units=0 and do not resurface as owed."
   },
-  "generated_at": "2026-07-07T10:00:00+00:00",
+  "generated_at": "2026-07-08T01:24:07+00:00",
   "read_model_id": "receivables_month_bounded",
   "rows": [
     {
@@ -160,7 +160,8 @@
     "facts_path": "",
     "g2c_current_receivable_count": 0,
     "g2c_db_path": "/home/openclaw/state/gig_to_cash/gig_to_cash.sqlite3",
-    "g2c_db_present": false
+    "g2c_db_present": false,
+    "recurrence_rule_derived_fact_count": 0
   },
   "summary": {
     "client_count": 3,

@@ -1,3 +1,15 @@
+"""finance_state — hand-maintained per-account workflow narrative (finance_state.json).
+
+Task 140 (ONE money truth): this module is DEPRECATED as a money-claims source.
+finance_state.json is a stale, hand-edited narrative file (last substantive
+update 2026-04-11) whose client keys and amounts drift from the ledger
+(e.g. live_arts_maryland_recurring vs the ledger's live_arts_md). Money-class
+questions (who owes / how much open / did they pay) are answered from
+receivables_month_bounded via money_truth.py BEFORE any path in this module
+runs — see cassandra_brain._handle_money_truth_question. What remains
+legitimate here is workflow/status NARRATIVE (next actions, document status),
+not amount claims. Do not add new money-amount consumers to this file.
+"""
 from __future__ import annotations
 
 import json
@@ -6,6 +18,9 @@ from pathlib import Path
 
 
 FINANCE_STATE_PATH = Path("/home/openclaw/finance_state.json")
+
+# Task 140 disposition marker: money AMOUNT claims must come from money_truth.py.
+MONEY_CLAIMS_DEPRECATED = True
 
 _PAYMENT_HINTS = (
     "payment",

@@ -37,6 +37,7 @@ GUARDIAN_READ_MODELS = (
     "guardian_draft_approval_request_contract.json", # Capital Hilton send approval status
     "agent_presence.json",                         # fleet online state
     "guardian_hitl_surface_disposition.json",      # per-surface disposition
+    "receivables_month_bounded.json",              # the ONE money truth (task 140)
 )
 
 
@@ -340,6 +341,55 @@ def _draft_approval_facts(path: Path, payload: Mapping[str, Any]) -> list[dict[s
     return facts
 
 
+def _finance_receivables_facts(
+    path: Path, payload: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Task 140: the money picture from the ONE truth (receivables_month_bounded).
+
+    Anti-confabulation: an absent/empty read-model is a flagged data gap
+    ("not tracked yet"), never "none outstanding".
+    """
+    facts: list[dict[str, Any]] = []
+    fresh = _freshness(path, payload)
+    src = _display_ref(path)
+    provenance = "generated_read_model:money_truth"
+
+    lines: list[str] = []
+    if payload:
+        try:
+            from money_truth import money_lines
+
+            lines = money_lines(payload)
+        except Exception:
+            lines = []
+
+    if not lines:
+        _append_fact(
+            facts,
+            topic="finance_invoice_reconciliation",
+            label="Money picture gap",
+            value=(
+                "Money is not tracked yet — receivables_month_bounded has no rows here. "
+                "That's a data gap, not a zero balance; never report 'none outstanding' from it."
+            ),
+            source_ref=src,
+            provenance=provenance,
+            freshness=fresh,
+        )
+        return facts
+
+    _append_fact(
+        facts,
+        topic="finance_invoice_reconciliation",
+        label="Current money owed answer topic",
+        value="Money: " + " ".join(lines),
+        source_ref=src,
+        provenance=provenance,
+        freshness=fresh,
+    )
+    return facts
+
+
 def _agent_presence_facts(path: Path, payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Basic fleet online state relevant to Guardian context."""
     facts: list[dict[str, Any]] = []
@@ -406,6 +456,13 @@ def _guardian_read_model_facts(
     presence_path = root / "agent_presence.json"
     if "agent_presence.json" in payloads:
         facts.extend(_agent_presence_facts(presence_path, payloads["agent_presence.json"]))
+
+    # 6. Money picture — the ONE truth (task 140). Runs even when the file is
+    # absent so the gap is flagged instead of silently omitted.
+    finance_path = root / "receivables_month_bounded.json"
+    facts.extend(
+        _finance_receivables_facts(finance_path, payloads.get("receivables_month_bounded.json", {}))
+    )
 
     return facts, refs, proof
 

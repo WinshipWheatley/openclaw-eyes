@@ -86,11 +86,12 @@ def test_did_i_get_email_allows_gmail_polling(mock_broker):
     gmail_calls = [call for call in mock_broker.call_args_list if "gmail" in call[0][1]]
     assert len(gmail_calls) > 0
 
-def test_who_owes_me_money_allows_payment_polling(mock_broker):
+def test_who_owes_me_money_answers_from_money_truth_not_gmail(mock_broker):
+    # Task 140: a read-only money question is answered from the ONE money truth
+    # (receivables_month_bounded) — it is not Gmail work and must not poll.
     cassandra_brain.handle("Who owes me money?")
-    # This triggers payment_verify which calls gmail.read.metadata
     gmail_calls = [call for call in mock_broker.call_args_list if "gmail" in call[0][1]]
-    assert len(gmail_calls) > 0
+    assert len(gmail_calls) == 0
 
 def test_generic_check_denies_gmail(mock_broker):
     cassandra_brain.handle("can you check this?")
@@ -121,9 +122,12 @@ def test_hilton_payment_route(mock_deps):
     assert "payment_verify" in routes
 
 def test_who_owes_me_money_route(mock_deps):
+    # Task 140: money-class read questions ride the money_truth lane,
+    # never payment_verify (that lane keeps only arrival verification).
     cassandra_brain.handle("Who owes me money?")
     routes = [log["route"] for log in mock_deps]
-    assert "payment_verify" in routes
+    assert "money_truth" in routes
+    assert "payment_verify" not in routes
 
 def test_find_emails_from_experian_route(mock_deps):
     cassandra_brain.handle("Find emails from Experian")

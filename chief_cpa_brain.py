@@ -2,8 +2,10 @@
 chief_cpa_brain.py
 
 Tracks income, expenses, and tax categories for Winship Live sole
-proprietorship. Reads billing brain invoices/payments as income.
-Flags deductions and estimates quarterly tax owed.
+proprietorship. Income (invoices/payments) is derived from the ONE money
+truth — generated/read_models/receivables_month_bounded.json via
+money_truth.py (task 140). The legacy billing_records.csv toy export
+binding is RETIRED. Flags deductions and estimates quarterly tax owed.
 
 Triggered by:
   - "what did I make this month" / "income this month"
@@ -17,7 +19,6 @@ Saves to:
   - openclaw-vault/Business/CPA Log.md               (Obsidian)
 """
 
-import csv
 import json
 import re
 from datetime import datetime, date
@@ -38,7 +39,8 @@ from chief_llm import external_model_packet_policy, ollama_json, nemotron_call
 BUSINESS_DIR  = Path("/mnt/c/OpenClawShared/business")
 EXPENSE_JSON  = BUSINESS_DIR / "expense_log.json"
 CPA_LOG_MD    = Path("/mnt/c/OpenClawShared/openclaw-vault/Business/CPA Log.md")
-BILLING_CSV   = Path("/home/openclaw/OpenClaw/exports/billing_records.csv")
+# Task 140: BILLING_CSV (the billing_records.csv toy export) is RETIRED.
+# Income records now derive from the money truth read-model (money_truth.py).
 TAX_DOCS_PATH = Path("/mnt/c/OpenClaw/data/tax_docs")
 
 # ── 2025 Tax Return Baseline ───────────────────────────────────────────────────
@@ -119,44 +121,44 @@ DEDUCTION_CATEGORIES = {
     "legal":          "Legal & Professional Fees — lawyer, accountant, contract review",
 }
 
-# ── Income: read billing CSV ───────────────────────────────────────────────────
+# ── Income: derived from the ONE money truth (task 140) ──────────────────────
 
 def _load_billing_income() -> list[dict]:
-    """Read all INVOICE and PAYMENT rows from billing_records.csv."""
-    if not BILLING_CSV.exists():
+    """Derive invoice/payment income records from receivables_month_bounded.
+
+    Replaces the retired billing_records.csv toy export. Month-granular rows
+    become dated records on the first of their month (the read-model is
+    month-bounded); amounts are ledger-evidenced only.
+    """
+    try:
+        from money_truth import load_money_truth, money_rows
+    except Exception:
         return []
     records = []
-    try:
-        with BILLING_CSV.open(encoding="utf-8", newline="") as f:
-            for row in csv.DictReader(f):
-                mode = row.get("mode", "").upper()
-                if mode == "INVOICE":
-                    try:
-                        amount = float(row.get("amount_total", 0) or 0)
-                    except ValueError:
-                        amount = 0
-                    records.append({
-                        "type":        "invoice",
-                        "date":        row.get("timestamp", "")[:10],
-                        "client":      row.get("client_name", ""),
-                        "project":     row.get("project_or_event", ""),
-                        "amount":      amount,
-                        "invoice_num": row.get("invoice_number", ""),
-                    })
-                elif mode == "PAYMENT":
-                    try:
-                        amount = float(row.get("payment_amount", 0) or 0)
-                    except ValueError:
-                        amount = 0
-                    records.append({
-                        "type":        "payment",
-                        "date":        row.get("timestamp", "")[:10],
-                        "invoice_num": row.get("invoice_number", ""),
-                        "amount":      amount,
-                        "payment_date": row.get("payment_date", ""),
-                    })
-    except Exception:
-        pass
+    for row in money_rows(load_money_truth()):
+        month = str(row.get("month") or "").strip()
+        date_str = f"{month}-01" if month else ""
+        client = str(row.get("client_display_name") or row.get("client_ref") or "").strip()
+        invoiced = row.get("invoiced_minor_units")
+        if isinstance(invoiced, int) and invoiced > 0:
+            records.append({
+                "type":        "invoice",
+                "date":        date_str,
+                "client":      client,
+                "project":     "",
+                "amount":      invoiced / 100,
+                "invoice_num": "",
+            })
+        paid = row.get("paid_minor_units")
+        if isinstance(paid, int) and paid > 0:
+            records.append({
+                "type":        "payment",
+                "date":        date_str,
+                "invoice_num": "",
+                "amount":      paid / 100,
+                "payment_date": date_str,
+                "client":      client,
+            })
     return records
 
 
@@ -240,7 +242,12 @@ def log_entry(amount: float, description: str, category: str = "other",
 
 
 def get_recent_income(days: int = 1) -> list[dict]:
-    """Return income entries from the last N days, newest first."""
+    """Return operator-logged income EVENTS (expense_log.json) from the last N days.
+
+    Task 140 boundary: these are conversational log entries, NOT receivables
+    truth. Money claims to the operator (who owes what) must come from
+    money_truth.py — never from this log.
+    """
     from datetime import date as _date, timedelta
     cutoff = (_date.today() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
     data = _load_expenses()

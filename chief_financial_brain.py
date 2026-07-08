@@ -2,13 +2,18 @@
 chief_financial_brain.py
 
 Financial reporting specialist for Finance Operations domain.
-Owns the money layer: income by period, outstanding invoices,
-P&L summary, payment history, quarterly tax projections.
+Owns the money layer: money owed to the operator, income by period,
+payment history, quarterly tax projections.
+
+Task 140 (ONE money truth): this brain is bound to the shared money source —
+generated/read_models/receivables_month_bounded.json via money_truth.py.
+The legacy billing_records.jsonl/.csv toy-export binding is RETIRED (it
+carried stale placeholder rows and drove the "Outstanding — none / YTD $0.00"
+lie while $1,095+ was open). Empty ledger data renders "not tracked yet" —
+NEVER "Outstanding — none": no data is a data gap, not a zero balance.
 
 This is distinct from chief_analytics_brain.py, which covers
 cross-domain metrics (album progress, content pipeline, activity).
-This brain covers only: billing records, invoices, payments, and
-financial position.
 
 Triggered by:
   - "financial report" / "p&l" / "profit and loss"
@@ -21,10 +26,8 @@ Saves to:
   - openclaw-vault/Business/Financial Report.md
 """
 
-import csv
-import json
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from adaptive_model_call import adaptive_ollama_text
@@ -36,8 +39,6 @@ def _local_model_call(*args, **kwargs):
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-BILLING_JSONL = Path("/home/openclaw/OpenClaw/exports/billing_records.jsonl")
-BILLING_CSV   = Path("/home/openclaw/OpenClaw/exports/billing_records.csv")
 FINANCIAL_MD  = Path("/mnt/c/OpenClawShared/openclaw-vault/Business/Financial Report.md")
 
 # ── 2025 tax baseline (from filed return) ─────────────────────────────────────
@@ -64,30 +65,22 @@ FED_TAX_RATE   = 0.22     # estimated federal bracket
 STATE_TAX_RATE = 0.05     # estimated state
 
 
-# ── Record loader ─────────────────────────────────────────────────────────────
+# ── Record loader — the ONE money truth ───────────────────────────────────────
 
 def _load_records() -> list[dict]:
-    records = []
-    if BILLING_JSONL.exists():
-        for line in BILLING_JSONL.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line:
-                try:
-                    records.append(json.loads(line))
-                except Exception:
-                    pass
-    elif BILLING_CSV.exists():
-        with BILLING_CSV.open(encoding="utf-8", newline="") as f:
-            for row in csv.DictReader(f):
-                records.append(row)
-    return records
+    """Load receivable month rows from the shared money truth read-model.
 
+    Task 140: the only money source is receivables_month_bounded.json.
+    (The old billing_records.jsonl/.csv toy export — with its
+    record_type-vs-'mode' field bug — is retired.)
+    """
+    from money_truth import load_money_truth, money_rows
 
-def _parse_amount(val) -> float:
-    try:
-        return float(str(val).replace(",", "").strip() or "0")
-    except (ValueError, TypeError):
-        return 0.0
+    payload = load_money_truth()
+    rows = money_rows(payload)
+    for row in rows:
+        row["_generated_at"] = str(payload.get("generated_at") or "")
+    return rows
 
 
 def _parse_date(val: str) -> datetime | None:
@@ -102,76 +95,60 @@ def _parse_date(val: str) -> datetime | None:
 # ── Financial analysis ────────────────────────────────────────────────────────
 
 def _analyze(records: list[dict]) -> dict:
+    """Aggregate the ledger rows. `records` are receivables_month_bounded rows."""
     now = datetime.now()
-    ytd_start  = datetime(now.year, 1, 1)
-    month_ago  = now - timedelta(days=30)
-    week_ago   = now - timedelta(days=7)
+    this_year  = f"{now.year:04d}"
+    this_month = f"{now.year:04d}-{now.month:02d}"
 
-    income_ytd = income_month = income_week = 0.0
+    income_ytd = income_month = 0.0
     outstanding_total = 0.0
-    outstanding_invoices: list[dict] = []
-    payments: list[dict] = []
+    unknown_amount_clients: list[dict] = []
+    outstanding_rows: list[dict] = []
+    pending_send_rows: list[dict] = []
+    settled_rows: list[dict] = []
     income_by_client: dict[str, float] = defaultdict(float)
-    income_by_project: dict[str, float] = defaultdict(float)
 
     for r in records:
-        rtype = r.get("record_type", r.get("type", "")).upper()
+        client = str(r.get("client_display_name") or r.get("client_ref") or "Unknown").strip()
+        month = str(r.get("month") or "").strip()
+        status = str(r.get("payment_status") or "unknown").strip().lower()
+        amount_known = bool(r.get("amount_known", True))
+        open_minor = r.get("open_minor_units")
+        paid_minor = r.get("paid_minor_units")
 
-        if rtype in ("PAYMENT", "RECEIPT"):
-            amount = _parse_amount(r.get("payment_amount") or r.get("amount_received"))
-            date   = _parse_date(r.get("payment_date") or r.get("date_created", ""))
-            client = r.get("client_name", "Unknown")
-            project = r.get("project_or_event", "Unknown")
+        if isinstance(paid_minor, int) and paid_minor > 0:
+            paid = paid_minor / 100
+            if month.startswith(this_year):
+                income_ytd += paid
+                income_by_client[client] += paid
+            if month == this_month:
+                income_month += paid
 
-            if date:
-                if date >= ytd_start:
-                    income_ytd += amount
-                    income_by_client[client] += amount
-                    income_by_project[project] += amount
-                if date >= month_ago:
-                    income_month += amount
-                if date >= week_ago:
-                    income_week += amount
+        if status == "expected_uninvoiced":
+            pending_send_rows.append({"client": client, "month": month, "status": status})
+        elif status == "settled" or bool(r.get("settled_past_no_compound")):
+            settled_rows.append({"client": client, "month": month})
+        elif not amount_known or open_minor is None:
+            unknown_amount_clients.append({"client": client, "month": month, "status": status})
+        elif int(open_minor or 0) > 0 or bool(r.get("needs_reconcile")):
+            balance = int(open_minor or 0) / 100
+            outstanding_total += balance
+            outstanding_rows.append(
+                {
+                    "client": client,
+                    "month": month,
+                    "balance": balance,
+                    "status": "needs_reconcile" if r.get("needs_reconcile") else status,
+                }
+            )
 
-            payments.append({
-                "date":    (date.strftime("%Y-%m-%d") if date else "—"),
-                "client":  client,
-                "project": project,
-                "amount":  amount,
-            })
-
-        elif rtype == "INVOICE":
-            amount = _parse_amount(r.get("amount_total"))
-            deposit = _parse_amount(r.get("deposit_amount") or 0)
-            due_date = r.get("due_date", "")
-            inv_num  = r.get("invoice_number", "—")
-            client   = r.get("client_name", "Unknown")
-            project  = r.get("project_or_event", "Unknown")
-            status   = r.get("status", "").lower()
-
-            # Consider outstanding if no matching payment and not marked paid
-            if status not in ("paid", "receipt"):
-                balance = amount - deposit
-                if balance > 0:
-                    outstanding_total += balance
-                    outstanding_invoices.append({
-                        "invoice_number": inv_num,
-                        "client":  client,
-                        "project": project,
-                        "amount":  amount,
-                        "deposit": deposit,
-                        "balance": balance,
-                        "due":     due_date or "—",
-                    })
-
-    # Quarterly tax projection on YTD income
+    # Quarterly tax projection on YTD received income
     net_income = income_ytd
-    se_tax_projected   = net_income * SE_TAX_RATE
-    fed_tax_projected  = net_income * FED_TAX_RATE
+    se_tax_projected    = net_income * SE_TAX_RATE
+    fed_tax_projected   = net_income * FED_TAX_RATE
     state_tax_projected = net_income * STATE_TAX_RATE
     total_tax_projected = se_tax_projected + fed_tax_projected + state_tax_projected
 
-    # Days until next quarterly deadline
     today_str = now.strftime("%Y-%m-%d")
     next_deadline = next(
         ((label, d) for label, d in QUARTERLY_DEADLINES if d >= today_str),
@@ -179,14 +156,14 @@ def _analyze(records: list[dict]) -> dict:
     )
 
     return {
-        "income_week":  income_week,
         "income_month": income_month,
         "income_ytd":   income_ytd,
         "outstanding_total":    outstanding_total,
-        "outstanding_invoices": outstanding_invoices,
-        "payments":     sorted(payments, key=lambda x: x["date"], reverse=True)[:10],
+        "outstanding_rows":     outstanding_rows,
+        "unknown_amount_clients": unknown_amount_clients,
+        "pending_send_rows":    pending_send_rows,
+        "settled_rows":         settled_rows,
         "top_clients":  sorted(income_by_client.items(), key=lambda x: x[1], reverse=True)[:5],
-        "top_projects": sorted(income_by_project.items(), key=lambda x: x[1], reverse=True)[:5],
         "tax_projection": {
             "net_income":  net_income,
             "se_tax":      se_tax_projected,
@@ -196,6 +173,8 @@ def _analyze(records: list[dict]) -> dict:
         },
         "next_deadline": next_deadline,
         "record_count":  len(records),
+        "not_tracked":   len(records) == 0,
+        "as_of": str(records[0].get("_generated_at") or "")[:10] if records else "",
         "baseline_2025": BASELINE_2025,
     }
 
@@ -207,36 +186,42 @@ def _fmt(amount: float) -> str:
 
 
 def _build_report(data: dict) -> str:
+    from money_truth import NOT_TRACKED_LINE, money_lines
+
     today = datetime.now().strftime("%Y-%m-%d")
     lines = [f"**Financial Report — {today}**", ""]
 
-    # Income
+    # No data is a DATA GAP, never a clean zero. "Outstanding — none" is banned.
+    if data["not_tracked"]:
+        lines += [
+            f"**Money** — {NOT_TRACKED_LINE}",
+            "",
+            "No income, outstanding, or tax numbers are claimed from empty data.",
+            "_Source: receivables_month_bounded (the one money truth)._",
+        ]
+        return "\n".join(lines)
+
+    # Money owed to you — the shared humanized lines (fleet-identical facts)
+    lines += ["**Money owed to you**"]
+    for line in money_lines():
+        lines.append(f"  {line}")
+    summary = f"  Outstanding total (known amounts): {_fmt(data['outstanding_total'])}"
+    if data["unknown_amount_clients"]:
+        summary += f" — plus {len(data['unknown_amount_clients'])} item(s) with amount not yet confirmed"
+    lines += [summary, ""]
+
+    # Income (ledger paid amounts, month-bounded)
     lines += [
-        "**Income**",
-        f"  This week:  {_fmt(data['income_week'])}",
+        "**Income (received, from ledger)**",
         f"  This month: {_fmt(data['income_month'])}",
         f"  YTD {datetime.now().year}:    {_fmt(data['income_ytd'])}",
         f"  Prior year: {_fmt(data['baseline_2025']['total_income'])} (2025 filed)",
         "",
     ]
 
-    # Outstanding
-    if data["outstanding_invoices"]:
-        lines += [f"**Outstanding ({_fmt(data['outstanding_total'])})**"]
-        for inv in data["outstanding_invoices"][:5]:
-            lines.append(
-                f"  [{inv['invoice_number']}] {inv['client']} — "
-                f"{_fmt(inv['balance'])} due {inv['due']}"
-            )
-        if len(data["outstanding_invoices"]) > 5:
-            lines.append(f"  ... and {len(data['outstanding_invoices']) - 5} more")
-        lines.append("")
-    else:
-        lines += ["**Outstanding** — none", ""]
-
     # Top clients
     if data["top_clients"] and any(v > 0 for _, v in data["top_clients"]):
-        lines += ["**Top clients (YTD)**"]
+        lines += ["**Top clients (YTD received)**"]
         for client, amt in data["top_clients"]:
             if amt > 0:
                 lines.append(f"  {client}: {_fmt(amt)}")
@@ -259,13 +244,8 @@ def _build_report(data: dict) -> str:
             lines.append(f"  Next deadline: {label} — {date} ({days_out} days)")
         lines.append("")
 
-    # Recent payments
-    if data["payments"]:
-        lines += ["**Recent payments**"]
-        for p in data["payments"][:5]:
-            if p["amount"] > 0:
-                lines.append(f"  {p['date']} | {p['client']} | {_fmt(p['amount'])}")
-
+    as_of = f", as of {data['as_of']}" if data.get("as_of") else ""
+    lines.append(f"_Source: receivables_month_bounded (the one money truth){as_of}._")
     return "\n".join(lines)
 
 
@@ -280,13 +260,18 @@ Write 2-3 sentences:
 - Lead with the most important financial fact right now (income trend, outstanding balance, or tax exposure)
 - Note one thing that needs attention
 - Be direct and specific with numbers
+- Only use numbers that appear in the report above; never invent totals
 
 No bullet points. No headers."""
 
 
 def _build_narrative(report: str) -> str:
     prompt = _NARRATIVE_PROMPT.format(report=report)
-    result = _local_model_call(prompt, timeout=20).strip()
+    try:
+        result = _local_model_call(prompt, timeout=20).strip()
+    except Exception as e:
+        print(f"[chief_financial] narrative LLM error: {e}", flush=True)
+        result = ""
     return result if result else ""
 
 
@@ -298,6 +283,7 @@ def _write_financial_md(report: str, narrative: str) -> None:
         "---\n"
         "type: financial-report\n"
         f"last_updated: {today}\n"
+        "source: receivables_month_bounded\n"
         "---\n\n"
         "# Financial Report\n\n"
         "_Managed by `chief_financial_brain.py`. Say 'financial report' to refresh._\n\n"
@@ -305,8 +291,11 @@ def _write_financial_md(report: str, narrative: str) -> None:
     if narrative:
         content += f"## Summary\n\n{narrative}\n\n"
     content += "## Details\n\n" + report.replace("**", "").strip() + "\n"
-    FINANCIAL_MD.parent.mkdir(parents=True, exist_ok=True)
-    FINANCIAL_MD.write_text(content, encoding="utf-8")
+    try:
+        FINANCIAL_MD.parent.mkdir(parents=True, exist_ok=True)
+        FINANCIAL_MD.write_text(content, encoding="utf-8")
+    except OSError as e:
+        print(f"[chief_financial] vault write skipped: {e}", flush=True)
 
 
 # ── Public entry point ────────────────────────────────────────────────────────

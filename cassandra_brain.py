@@ -2719,10 +2719,75 @@ def _detect_payment_verify_intent(text: str) -> bool:
     return _looks_like_payment_verify_query(text)
 
 
+def _payment_verify_ledger_line(text: str) -> str:
+    """Money-truth line for the entity asked about (task 140 one-source binding)."""
+    try:
+        from money_truth import render_money_answer
+        return render_money_answer("cassandra", question=text)
+    except Exception:
+        return ""
+
+
+def _parse_payment_verify_blocks(ctx: str) -> list[dict]:
+    """Parse the From/Subject/Snippet blocks out of the payment-verify context."""
+    blocks: list[dict] = []
+    current: dict = {}
+    for raw in ctx.splitlines():
+        line = raw.strip()
+        if line.startswith("From:"):
+            if current:
+                blocks.append(current)
+            current = {"from_name": line.split("From:", 1)[1].strip()}
+        elif line.startswith("Subject:") and current is not None:
+            current["subject"] = line.split("Subject:", 1)[1].strip()
+        elif line.startswith("Snippet:") and current is not None:
+            current["snippet"] = line.split("Snippet:", 1)[1].strip()
+    if current:
+        blocks.append(current)
+    return [b for b in blocks if b.get("from_name") or b.get("subject")]
+
+
+def _first_correlated_payment_match(text: str, ctx: str) -> dict | None:
+    """Relevance threshold (task 140): a Gmail message only counts as a verified
+    payment match when sender/client/amount actually correlate with the question
+    and the ledger. A newsletter can never be a 'verified match'."""
+    try:
+        from money_truth import payment_evidence_correlates
+    except Exception:
+        return None
+    extra_terms: list[str] = []
+    try:
+        extra_terms.extend(_reality_entity_terms(text))
+    except Exception:
+        pass
+    try:
+        extra_terms.extend(finance_entity_terms(text))
+    except Exception:
+        pass
+    for block in _parse_payment_verify_blocks(ctx):
+        try:
+            if payment_evidence_correlates(
+                text,
+                sender=block.get("from_name", ""),
+                subject=block.get("subject", ""),
+                snippet=block.get("snippet", ""),
+                extra_entity_terms=extra_terms,
+            ):
+                return block
+        except Exception:
+            continue
+    return None
+
+
 def _handle_payment_verification_request(text: str) -> str | None:
     """
-    Route payment verification queries to Gmail metadata and logs.
+    Route payment verification queries to Gmail metadata plus the money truth.
     Returns a direct Cassandra reply or None to fall through to LLM.
+
+    Task 140: the toy income-log fallback (chief_cpa_brain.get_recent_income /
+    billing_records.csv lineage) is retired here — misses answer from the
+    receivables_month_bounded ledger instead, and a "verified match" now
+    requires sender/amount/client correlation.
     """
     if not _detect_payment_verify_intent(text):
         return None
@@ -2736,43 +2801,64 @@ def _handle_payment_verification_request(text: str) -> str | None:
         return None
 
     if "[VERIFIED PAYMENT DATA — no recent Gmail notifications found]" in ctx:
-        # Check logs before giving up
-        try:
-            from chief_cpa_brain import get_recent_income
-            # Extract possible entity like "Hilton"
-            m = re.search(r"(?:the\s+)?([A-Za-z0-9]{3,20})\s+payment", text, re.I)
-            if not m:
-                m = re.search(r"payment\s+from\s+([A-Za-z0-9]{3,20})", text, re.I)
-            entity = m.group(1).lower() if m else None
-            logs = get_recent_income(days=7)
-            if entity:
-                match = next((e for e in logs if entity in (e.get("payer") or "").lower()), None)
-                if match:
-                    return f"I don't see a Gmail notification for that, but I do have a {match.get('payer')} payment logged for ${match['amount']} on {match['date']}."
-        except Exception:
-            pass
+        ledger_line = _payment_verify_ledger_line(text)
+        if ledger_line:
+            return f"No Gmail payment notification for that yet. Ledger truth: {ledger_line}"
         return "I checked your recent Gmail notifications but didn't see any matching that payment yet."
 
     if "Gmail unreachable" in ctx:
         return "I tried to check your Gmail for payment notifications but the service is unreachable right now."
 
     if "From:" in ctx:
-        # Extract first match for a direct answer
-        try:
-            lines = ctx.splitlines()
-            from_name = ""
-            subject = ""
-            for l in lines:
-                if "From:" in l: from_name = l.split("From:")[1].strip()
-                if "Subject:" in l: subject = l.split("Subject:")[1].strip()
-                if from_name and subject: break
-            if from_name and subject:
-                return f"I've verified a matching notification in your Gmail: {subject} from {from_name}."
-        except Exception:
-            pass
+        match = _first_correlated_payment_match(text, ctx)
+        if match is not None:
+            return (
+                f"I've verified a matching payment notification in your Gmail: "
+                f"{match.get('subject', '(no subject)')} from {match.get('from_name', 'Unknown')}."
+            )
+        ledger_line = _payment_verify_ledger_line(text)
+        base = (
+            "I see recent payment-ish emails, but none that actually correlate with that payment — "
+            "sender, client, and amount have to line up before I call it verified."
+        )
+        if ledger_line:
+            return f"{base} Ledger truth: {ledger_line}"
+        return base
 
     # Fall through to LLM for nuanced answers if we can't format a simple one
     return None
+
+
+def _handle_money_truth_question(text: str, state: dict | None = None) -> str | None:
+    """Task 140: answer read-only money-class questions from the ONE money truth.
+
+    receivables_month_bounded (via money_truth.py) is the only money source.
+    Movement asks ("pay X $N") and genuine arrival verification stay on their
+    own gated lanes; operator session-fact corrections still outrank the
+    read-model snapshot (they fall through to the finance-status path).
+    """
+    try:
+        from money_truth import classify_money_question, render_money_answer, route_line
+    except Exception:
+        return None
+    if classify_money_question(text) != "money_read":
+        return None
+    try:
+        found_override = _get_session_fact_override(text, state or {}) if state is not None else None
+    except Exception:
+        found_override = None
+    if found_override is not None:
+        # Operator session correction outranks the read-model snapshot.
+        _, override = found_override
+        summary = str(override.get("summary") or override.get("value") or "").strip()
+        if summary:
+            return summary if summary.endswith((".", "!", "?")) else summary + "."
+        return None
+    try:
+        answer = render_money_answer("cassandra", question=text)
+    except Exception:
+        return None
+    return f"{route_line('cassandra')} {answer}"
 
 
 def _handle_finance_status_request(text: str, state: dict | None = None) -> str | None:
@@ -5483,6 +5569,21 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
         if term in q:
             return GmailIntentDecision(True, f"Explicit email term trigger: '{term}'", "email_search", term)
 
+    # Task 140: read-only money QUESTIONS are answered from the ONE money truth
+    # (receivables_month_bounded via money_truth.py) — they are not Gmail work
+    # and must never ride the payment_verify lane. payment_verify keeps ONLY
+    # genuine did-a-payment-arrive verification.
+    try:
+        from money_truth import classify_money_question
+        if classify_money_question(q) == "money_read":
+            return GmailIntentDecision(
+                False,
+                "Money-class read question answers from the shared money truth (one source).",
+                "money_truth",
+            )
+    except Exception:
+        pass
+
     # Materially specific business/payment terms: allowed
     business_terms = (
         "invoice", "payment", "paid", "unpaid", "receivable",
@@ -6907,6 +7008,20 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [recall_reply]
     except Exception as _e:
         pass  # briefing module unavailable — fall through to LLM
+
+    # Task 140: money-class READ questions answer from the ONE money truth
+    # (receivables_month_bounded) — never a second money pipeline. Session
+    # fact corrections from the operator still outrank the snapshot.
+    money_truth_reply = _handle_money_truth_question(query, state)
+    if money_truth_reply is not None:
+        save_state(state)
+        _log_conversation(text, [money_truth_reply], route="money_truth", metadata={
+            "event_id": event_id,
+            "ops_packet": ops_packet.to_dict(),
+            "model_called": False,
+            "money_or_ledger_mutation_performed": False,
+        })
+        return [money_truth_reply]
 
     if _should_route_finance_status_before_intake(query, gmail_decision):
         finance_reply = _handle_finance_status_request(query, state)

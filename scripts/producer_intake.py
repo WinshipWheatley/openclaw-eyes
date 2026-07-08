@@ -102,8 +102,38 @@ def is_taste_dna_question(text):
     return any(marker in lowered for marker in _TASTE_DNA_MARKERS)
 
 
+def _money_route_response(text):
+    """Task 140: money-class questions are not Niles's desk — route in one warm
+    line and include the answer from the ONE money truth (money_truth.py)."""
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _root = str(_Path(__file__).resolve().parents[1])
+        if _root not in _sys.path:
+            _sys.path.insert(0, _root)
+        from money_truth import classify_money_question, render_money_answer, route_line
+    except Exception:
+        return None
+    if classify_money_question(text) != "money_read":
+        return None
+    line = route_line("niles")
+    try:
+        picture = render_money_answer("niles", question=text)
+    except Exception:
+        picture = ""
+    if picture:
+        return f"{line} {picture}"
+    return f"{line} (Couldn't read the ledger just now — ask Maestro directly.)"
+
+
 def get_niles_response(text, producer_input):
     text_l = text.lower()
+
+    # Money-class branch BEFORE anything else reaches the catch-all (task 140):
+    # Niles never answers money from his rig KB — route + answer from the one truth.
+    money_reply = _money_route_response(text)
+    if money_reply is not None:
+        return money_reply
 
     # Boring + Spacious Template
     if "boring" in text_l and "spacious" in text_l:
