@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from chief_file_io import load_json, save_json
+import adaptive_model_call
 from chief_llm import (
     external_language_model_call,
     external_model_packet_policy,
@@ -2718,10 +2719,75 @@ def _detect_payment_verify_intent(text: str) -> bool:
     return _looks_like_payment_verify_query(text)
 
 
+def _payment_verify_ledger_line(text: str) -> str:
+    """Money-truth line for the entity asked about (task 140 one-source binding)."""
+    try:
+        from money_truth import render_money_answer
+        return render_money_answer("cassandra", question=text)
+    except Exception:
+        return ""
+
+
+def _parse_payment_verify_blocks(ctx: str) -> list[dict]:
+    """Parse the From/Subject/Snippet blocks out of the payment-verify context."""
+    blocks: list[dict] = []
+    current: dict = {}
+    for raw in ctx.splitlines():
+        line = raw.strip()
+        if line.startswith("From:"):
+            if current:
+                blocks.append(current)
+            current = {"from_name": line.split("From:", 1)[1].strip()}
+        elif line.startswith("Subject:") and current is not None:
+            current["subject"] = line.split("Subject:", 1)[1].strip()
+        elif line.startswith("Snippet:") and current is not None:
+            current["snippet"] = line.split("Snippet:", 1)[1].strip()
+    if current:
+        blocks.append(current)
+    return [b for b in blocks if b.get("from_name") or b.get("subject")]
+
+
+def _first_correlated_payment_match(text: str, ctx: str) -> dict | None:
+    """Relevance threshold (task 140): a Gmail message only counts as a verified
+    payment match when sender/client/amount actually correlate with the question
+    and the ledger. A newsletter can never be a 'verified match'."""
+    try:
+        from money_truth import payment_evidence_correlates
+    except Exception:
+        return None
+    extra_terms: list[str] = []
+    try:
+        extra_terms.extend(_reality_entity_terms(text))
+    except Exception:
+        pass
+    try:
+        extra_terms.extend(finance_entity_terms(text))
+    except Exception:
+        pass
+    for block in _parse_payment_verify_blocks(ctx):
+        try:
+            if payment_evidence_correlates(
+                text,
+                sender=block.get("from_name", ""),
+                subject=block.get("subject", ""),
+                snippet=block.get("snippet", ""),
+                extra_entity_terms=extra_terms,
+            ):
+                return block
+        except Exception:
+            continue
+    return None
+
+
 def _handle_payment_verification_request(text: str) -> str | None:
     """
-    Route payment verification queries to Gmail metadata and logs.
+    Route payment verification queries to Gmail metadata plus the money truth.
     Returns a direct Cassandra reply or None to fall through to LLM.
+
+    Task 140: the toy income-log fallback (chief_cpa_brain.get_recent_income /
+    billing_records.csv lineage) is retired here — misses answer from the
+    receivables_month_bounded ledger instead, and a "verified match" now
+    requires sender/amount/client correlation.
     """
     if not _detect_payment_verify_intent(text):
         return None
@@ -2735,43 +2801,64 @@ def _handle_payment_verification_request(text: str) -> str | None:
         return None
 
     if "[VERIFIED PAYMENT DATA — no recent Gmail notifications found]" in ctx:
-        # Check logs before giving up
-        try:
-            from chief_cpa_brain import get_recent_income
-            # Extract possible entity like "Hilton"
-            m = re.search(r"(?:the\s+)?([A-Za-z0-9]{3,20})\s+payment", text, re.I)
-            if not m:
-                m = re.search(r"payment\s+from\s+([A-Za-z0-9]{3,20})", text, re.I)
-            entity = m.group(1).lower() if m else None
-            logs = get_recent_income(days=7)
-            if entity:
-                match = next((e for e in logs if entity in (e.get("payer") or "").lower()), None)
-                if match:
-                    return f"I don't see a Gmail notification for that, but I do have a {match.get('payer')} payment logged for ${match['amount']} on {match['date']}."
-        except Exception:
-            pass
+        ledger_line = _payment_verify_ledger_line(text)
+        if ledger_line:
+            return f"No Gmail payment notification for that yet. Ledger truth: {ledger_line}"
         return "I checked your recent Gmail notifications but didn't see any matching that payment yet."
 
     if "Gmail unreachable" in ctx:
         return "I tried to check your Gmail for payment notifications but the service is unreachable right now."
 
     if "From:" in ctx:
-        # Extract first match for a direct answer
-        try:
-            lines = ctx.splitlines()
-            from_name = ""
-            subject = ""
-            for l in lines:
-                if "From:" in l: from_name = l.split("From:")[1].strip()
-                if "Subject:" in l: subject = l.split("Subject:")[1].strip()
-                if from_name and subject: break
-            if from_name and subject:
-                return f"I've verified a matching notification in your Gmail: {subject} from {from_name}."
-        except Exception:
-            pass
+        match = _first_correlated_payment_match(text, ctx)
+        if match is not None:
+            return (
+                f"I've verified a matching payment notification in your Gmail: "
+                f"{match.get('subject', '(no subject)')} from {match.get('from_name', 'Unknown')}."
+            )
+        ledger_line = _payment_verify_ledger_line(text)
+        base = (
+            "I see recent payment-ish emails, but none that actually correlate with that payment — "
+            "sender, client, and amount have to line up before I call it verified."
+        )
+        if ledger_line:
+            return f"{base} Ledger truth: {ledger_line}"
+        return base
 
     # Fall through to LLM for nuanced answers if we can't format a simple one
     return None
+
+
+def _handle_money_truth_question(text: str, state: dict | None = None) -> str | None:
+    """Task 140: answer read-only money-class questions from the ONE money truth.
+
+    receivables_month_bounded (via money_truth.py) is the only money source.
+    Movement asks ("pay X $N") and genuine arrival verification stay on their
+    own gated lanes; operator session-fact corrections still outrank the
+    read-model snapshot (they fall through to the finance-status path).
+    """
+    try:
+        from money_truth import classify_money_question, render_money_answer, route_line
+    except Exception:
+        return None
+    if classify_money_question(text) != "money_read":
+        return None
+    try:
+        found_override = _get_session_fact_override(text, state or {}) if state is not None else None
+    except Exception:
+        found_override = None
+    if found_override is not None:
+        # Operator session correction outranks the read-model snapshot.
+        _, override = found_override
+        summary = str(override.get("summary") or override.get("value") or "").strip()
+        if summary:
+            return summary if summary.endswith((".", "!", "?")) else summary + "."
+        return None
+    try:
+        answer = render_money_answer("cassandra", question=text)
+    except Exception:
+        return None
+    return f"{route_line('cassandra')} {answer}"
 
 
 def _handle_finance_status_request(text: str, state: dict | None = None) -> str | None:
@@ -2793,6 +2880,219 @@ def _handle_finance_status_request(text: str, state: dict | None = None) -> str 
             f"{reply} If that's stale, tell me what to change."
         )
     return reply
+
+
+def _detect_clara_client_voice_draft_intent(text: str) -> bool:
+    """True for client-facing draft wording asks, not status/payment lookup asks."""
+    t = " ".join(str(text or "").lower().split())
+    if not t:
+        return False
+
+    # Operator-objective requests often contain "show me the draft before
+    # sending", but their primary intent is gated lookup/follow-up orchestration,
+    # not immediate Clara client-copy generation.
+    email_lookup = any(
+        term in t
+        for term in (
+            "email",
+            "emails",
+            "gmail",
+            "reply",
+            "replied",
+            "responded",
+            "response",
+            "responese",
+            "recieved",
+            "received",
+        )
+    )
+    followup = any(
+        term in t
+        for term in ("follow up", "follow-up", "followup", "send a follow", "send it", "send a reply")
+    )
+    review_first = any(
+        term in t
+        for term in (
+            "show me the draft",
+            "show the draft",
+            "before you send",
+            "before sending",
+            "don't send until",
+            "do not send until",
+        )
+    )
+    if email_lookup and followup and review_first:
+        return False
+
+    direct_draft_shape = bool(
+        re.search(r"\b(draft|write|compose)\b.{0,80}\b(warm\s+)?(note|message|email)\b", t)
+    )
+    question_copy_shape = any(marker in t for marker in ("what should i ask", "what should i say"))
+    if not (direct_draft_shape or question_copy_shape):
+        return False
+
+    client_copy_shape_markers = (
+        "warm",
+        "note",
+        "message",
+        "email",
+        "ask",
+        "say",
+        "wording",
+    )
+    client_context_markers = (
+        "client",
+        "draper",
+        "glenn",
+        "st. anne",
+        "st anne",
+        "invoice",
+        "capital hilton",
+        "live arts",
+    )
+    if not any(marker in t for marker in client_copy_shape_markers):
+        return False
+    if not any(marker in t for marker in client_context_markers):
+        return False
+    create_invoice_only = re.search(r"\b(create|make|generate)\b.*\binvoice\b", t)
+    note_or_message = any(marker in t for marker in ("note", "message", "email", "ask", "say", "word"))
+    if create_invoice_only and not note_or_message:
+        return False
+    return True
+
+
+def _clara_client_voice_draft_spec(text: str) -> dict[str, Any] | None:
+    t = " ".join(str(text or "").lower().split())
+    if any(marker in t for marker in ("st. anne", "st anne", "draper", "glenn")):
+        return {
+            "client_ref": "st_annes",
+            "workflow_ref": "st_annes_invoice_workflow",
+            "client_display_name": "St. Anne's",
+            "recipient_package": {
+                "to_recipients": (
+                    {
+                        "display_name": "Draper Carter",
+                        "role": "primary_invoice_contact",
+                        "lane": "to",
+                        "email": "draper.carter@gmail.com",
+                        "email_status": "KNOWN_OPERATOR_PROVIDED",
+                        "confirmation_status": "CONFIRMED_BY_RECEIPT",
+                        "proof_ref": "operator_known_email:draper.carter@gmail.com",
+                        "email_invented": False,
+                    },
+                ),
+                "cc_recipients": (),
+                "recipient_confirmation_status": "CONFIRMED_BY_RECEIPT",
+                "recipient_info_missing": (),
+                "recipient_email_invented": False,
+                "confirmation_receipt_required": "operator_known_contact",
+            },
+            "invoice_period_label": "the current St. Anne's invoice",
+            "invoice_data": {
+                "client_name": "St. Anne's",
+                "coverage_label": "the current St. Anne's invoice",
+            },
+            "contact": {
+                "name": "Draper Carter",
+                "email": "draper.carter@gmail.com",
+                "role": "intermediary",
+                "forward_to": "Glenn",
+            },
+        }
+    if "capital hilton" in t:
+        return {
+            "client_ref": "capital_hilton",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "client_display_name": "Capital Hilton",
+            "recipient_package": {
+                "to_recipients": (
+                    {
+                        "display_name": "Annette",
+                        "role": "finance_primary",
+                        "lane": "to",
+                        "email": None,
+                        "email_status": "MISSING",
+                        "confirmation_status": "CANDIDATE_UNCONFIRMED",
+                        "proof_ref": None,
+                        "email_invented": False,
+                    },
+                ),
+                "cc_recipients": (),
+                "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
+                "recipient_info_missing": ("Annette",),
+                "recipient_email_invented": False,
+                "confirmation_receipt_required": "recipient_confirmation_receipt",
+            },
+            "invoice_period_label": "the current Capital Hilton invoice",
+            "invoice_data": {
+                "client_name": "Capital Hilton",
+                "coverage_label": "the current Capital Hilton invoice",
+            },
+            "contact": {"name": "Annette"},
+        }
+    if "live arts" in t:
+        return {
+            "client_ref": "live_arts_md",
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "client_display_name": "Live Arts MD",
+            "recipient_package": {
+                "to_recipients": (
+                    {
+                        "display_name": "Dane",
+                        "role": "primary_invoice_contact",
+                        "lane": "to",
+                        "email": None,
+                        "email_status": "MISSING",
+                        "confirmation_status": "CANDIDATE_UNCONFIRMED",
+                        "proof_ref": None,
+                        "email_invented": False,
+                    },
+                ),
+                "cc_recipients": (),
+                "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
+                "recipient_info_missing": ("Dane",),
+                "recipient_email_invented": False,
+                "confirmation_receipt_required": "recipient_confirmation_receipt",
+            },
+            "invoice_period_label": "the current Live Arts MD invoice",
+            "invoice_data": {
+                "client_name": "Live Arts MD",
+                "coverage_label": "the current Live Arts MD invoice",
+            },
+            "contact": {"name": "Dane"},
+        }
+    return None
+
+
+def _handle_clara_client_voice_draft_request(text: str) -> tuple[str, dict[str, Any]] | None:
+    if not _detect_clara_client_voice_draft_intent(text):
+        return None
+    spec = _clara_client_voice_draft_spec(text)
+    if spec is None:
+        return None
+    from clara_invoice_email_draft_package import build_clara_invoice_email_draft_package
+
+    draft = build_clara_invoice_email_draft_package(
+        client_ref=spec["client_ref"],
+        workflow_ref=spec["workflow_ref"],
+        client_display_name=spec["client_display_name"],
+        recipient_package=spec["recipient_package"],
+        attachment_ready=False,
+        attachment_refs=(),
+        invoice_period_label=spec["invoice_period_label"],
+        supplier_portal_required=False,
+        first_contact_intro_required=False,
+        present_receipts=("clara_email_draft_receipt",),
+        invoice_data=spec["invoice_data"],
+        contact=spec["contact"],
+    )
+    reply = (
+        "Clara draft (review only - not sent):\n"
+        f"Subject: {draft['subject']}\n\n"
+        f"{draft['body']}\n\n"
+        "Nothing has been sent; this is only a draft for review."
+    )
+    return reply, draft
 
 
 def _looks_like_operator_financial_event(text: str) -> bool:
@@ -5192,6 +5492,14 @@ def process_inbound_email_replies() -> list[dict]:
             if not draft_body:
                 lines.append("I saw it, but I didn't auto-reply because the grounded reply path wasn't clear enough.")
                 send_telegram("\n".join(lines))
+                # Task 131: the degraded path was invisible in the conversation trace -- a
+                # blindspot when the actual cause is model-slot contention, not a real gap.
+                _log_conversation(
+                    inbound_text,
+                    ["\n".join(lines)],
+                    route="degraded_model_path",
+                    metadata={"message_id": message_id, "status": "no_draft_path"},
+                )
                 processed.append({"message_id": message_id, "status": "no_draft_path", "drafted": False})
                 continue
 
@@ -5260,6 +5568,21 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
     for term in email_terms:
         if term in q:
             return GmailIntentDecision(True, f"Explicit email term trigger: '{term}'", "email_search", term)
+
+    # Task 140: read-only money QUESTIONS are answered from the ONE money truth
+    # (receivables_month_bounded via money_truth.py) — they are not Gmail work
+    # and must never ride the payment_verify lane. payment_verify keeps ONLY
+    # genuine did-a-payment-arrive verification.
+    try:
+        from money_truth import classify_money_question
+        if classify_money_question(q) == "money_read":
+            return GmailIntentDecision(
+                False,
+                "Money-class read question answers from the shared money truth (one source).",
+                "money_truth",
+            )
+    except Exception:
+        pass
 
     # Materially specific business/payment terms: allowed
     business_terms = (
@@ -6200,16 +6523,18 @@ def _call(
             )
 
     model, lane = resolve_local_model(prompt, task_class=task_class)
-    _log_model_route(
+    timeout = 90 if lane == "deep" else 60
+    result = adaptive_model_call.adaptive_model_call(
+        prompt,
         task_class=task_class,
-        preferred_lane=lane,
-        chosen_lane=lane,
-        reason=f"policy route via shared local router for {task_class}",
-        escalation=False,
+        timeout=timeout,
+        primary_model=model,
+        primary_lane=lane,
         validation_outcome=validation_outcome,
-        model=model,
+        ollama_call_fn=ollama_call,
+        resolve_model_fn=resolve_local_model,
+        route_logger=_log_model_route,
     )
-    result = ollama_call(prompt, timeout=90 if lane == "deep" else 60, model=model)
     if result or not allow_deep_escalation:
         return result
 
@@ -6225,7 +6550,18 @@ def _call(
             model=strong_model,
         )
         print(f"[cassandra] escalating {task_class} from {lane} to {strong_lane}", flush=True)
-        return ollama_call(prompt, timeout=60, model=strong_model)
+        return adaptive_model_call.adaptive_model_call(
+            prompt,
+            task_class="cassandra_user_reply",
+            timeout=60,
+            primary_model=strong_model,
+            primary_lane=strong_lane,
+            validation_outcome="empty_response",
+            ollama_call_fn=ollama_call,
+            resolve_model_fn=resolve_local_model,
+            route_logger=_log_model_route,
+            retry=False,
+        )
 
     if task_class == "cassandra_user_reply":
         return result
@@ -6244,22 +6580,33 @@ def _call(
         model=deep_model,
     )
     print(f"[cassandra] escalating {task_class} from {lane} to {deep_lane}", flush=True)
-    result = ollama_call(prompt, timeout=90, model=deep_model)
+    result = adaptive_model_call.adaptive_model_call(
+        prompt,
+        task_class=task_class,
+        timeout=90,
+        primary_model=deep_model,
+        primary_lane=deep_lane,
+        validation_outcome="empty_response",
+        ollama_call_fn=ollama_call,
+        resolve_model_fn=resolve_local_model,
+        route_logger=_log_model_route,
+        retry=False,
+    )
     return result
 
 
 def _call_hidden_extract_classify_json(prompt: str, *, validation_label: str) -> dict | None:
     model, lane = resolve_local_model(prompt, task_class="cassandra_extract_classify")
-    _log_model_route(
+    raw = adaptive_model_call.adaptive_model_call(
+        prompt,
         task_class="cassandra_extract_classify",
-        preferred_lane=lane,
-        chosen_lane=lane,
-        reason=f"policy route via shared local router for {validation_label}",
-        escalation=False,
-        validation_outcome=None,
-        model=model,
+        timeout=20,
+        primary_model=model,
+        primary_lane=lane,
+        ollama_call_fn=ollama_call,
+        resolve_model_fn=resolve_local_model,
+        route_logger=_log_model_route,
     )
-    raw = ollama_call(prompt, timeout=20, model=model)
     if not raw:
         _log_model_route(
             task_class="cassandra_extract_classify",
@@ -6461,6 +6808,29 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         )
         return reply
 
+    clara_draft_result = _handle_clara_client_voice_draft_request(query)
+    if clara_draft_result is not None:
+        clara_reply, clara_draft = clara_draft_result
+        save_state(state)
+        _log_conversation(
+            text,
+            [clara_reply],
+            route="clara_client_voice_draft",
+            metadata={
+                "event_id": event_id,
+                "ops_packet": ops_packet.to_dict(),
+                "draft_ref": clara_draft.get("draft_ref"),
+                "selected_voice": clara_draft.get("selected_voice"),
+                "client_ref": clara_draft.get("client_ref"),
+                "gmail_polled": False,
+                "gmail_draft_created": False,
+                "email_send_performed": False,
+                "ledger_mutation_performed": False,
+                "payment_lookup_performed": False,
+            },
+        )
+        return [clara_reply]
+
     objective_result = _handle_operator_objective(
         query,
         source_channel="telegram",
@@ -6611,6 +6981,20 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [recall_reply]
     except Exception as _e:
         pass  # briefing module unavailable — fall through to LLM
+
+    # Task 140: money-class READ questions answer from the ONE money truth
+    # (receivables_month_bounded) — never a second money pipeline. Session
+    # fact corrections from the operator still outrank the snapshot.
+    money_truth_reply = _handle_money_truth_question(query, state)
+    if money_truth_reply is not None:
+        save_state(state)
+        _log_conversation(text, [money_truth_reply], route="money_truth", metadata={
+            "event_id": event_id,
+            "ops_packet": ops_packet.to_dict(),
+            "model_called": False,
+            "money_or_ledger_mutation_performed": False,
+        })
+        return [money_truth_reply]
 
     if _should_route_finance_status_before_intake(query, gmail_decision):
         finance_reply = _handle_finance_status_request(query, state)
@@ -7190,8 +7574,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     save_state(state)
 
     result = [reply] if reply else [
-        "Cassandra is degraded: the model path returned no usable answer. "
-        "I did not send or change anything. I can still answer deterministic status, date, and capability questions."
+        "I couldn't put together a good answer just now. Nothing was sent or changed. "
+        "Try me again in a minute."
     ]
     _log_conversation(
         text,

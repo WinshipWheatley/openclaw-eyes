@@ -440,6 +440,8 @@
 !chief_content_brain.py
 !chief_brand_brain.py
 !chief_financial_brain.py
+!money_truth.py
+!tests/test_money_one_source_fleetwide.py
 !chief_scheduler_brain.py
 !chief_notify.py
 !chief_morning_synthesis.py

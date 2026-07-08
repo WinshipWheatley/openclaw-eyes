@@ -3,6 +3,12 @@
 This module intentionally does not send messages, write ledgers, or call a model.
 It only classifies the small set of operator-facing prompts that must not collapse
 into the approval-status responder.
+
+Task 140: read-only money QUESTIONS ("who owes me money?", "what's outstanding?")
+get a `money_status` intent answered from the ONE money truth
+(receivables_month_bounded via money_truth.py) — never the "I cannot tell what
+you want me to protect" catch-all. Active money MOVEMENT ("pay Sarah $500 now")
+stays `money_block` and never receives a ledger answer (141 guard-rail).
 """
 
 from __future__ import annotations
@@ -155,6 +161,9 @@ def classify_nonapproval_prompt(text: str) -> str | None:
         return "money_block"
     if re.search(r"\$\s*\d", t) and _has_any(t, ("send", "wire", "pay", "transfer", "money")):
         return "money_block"
+    # Task 140: read-only money questions (movement was already caught above).
+    if _is_money_read_question(t):
+        return "money_status"
     if _approval_hold_reason(t) is not None:
         return "guardian_judgment_block"
     if _has_any(t, ("is it safe to send", "safe to send", "should i send")):
@@ -195,6 +204,27 @@ def classify_nonapproval_prompt(text: str) -> str | None:
     return None
 
 
+def _is_money_read_question(t: str) -> bool:
+    """Shared money-class classifier (money_truth). Fail-closed to None intent."""
+    try:
+        from money_truth import classify_money_question
+        return classify_money_question(t) == "money_read"
+    except Exception:
+        return False
+
+
+def _money_status_answer() -> str:
+    """Read-only money answer from the ONE truth. Never invents certainty."""
+    try:
+        from money_truth import render_money_answer
+        return render_money_answer("guardian")
+    except Exception:
+        return (
+            "Money picture unavailable right now — the receivables read-model did not load. "
+            "Not claiming zero."
+        )
+
+
 def _approval_status_reply(surface: str) -> str:
     if surface == "guardian":
         return "No pending approval requests."
@@ -220,6 +250,8 @@ def _chief_reply(intent: str) -> str:
             "No money moved. SEND_HOLD blocks payments and transfers; Chief can only stage a bounded "
             "review packet for explicit approval."
         )
+    if intent == "money_status":
+        return f"From the shared money ledger: {_money_status_answer()} Read-only; nothing was sent or moved."
     if intent == "next_move":
         return (
             "Chief handles approvals and safe operational routing. For a next-best-move call, ask "
@@ -261,6 +293,8 @@ def _guardian_reply(intent: str) -> str:
             "No money moved. I block money actions under SEND_HOLD. They need exact scope, proof, and "
             "explicit approval before anything can run."
         )
+    if intent == "money_status":
+        return f"Read-only money check — the ledger picture: {_money_status_answer()} No money moved."
     if intent == "safety_judgment":
         return (
             "I can make a safety call, but I need the actual message, recipient, and intended action. "
