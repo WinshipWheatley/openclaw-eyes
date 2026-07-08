@@ -930,11 +930,17 @@ def select_frontdoor_model(
         return card_fitting[0], "frontdoor_step_down_system_load"
     if vram_fitting:
         selected = vram_fitting[-1]
-        reason = (
-            "frontdoor_step_down_vram_contention"
-            if card_fitting and selected != card_fitting[-1]
-            else "frontdoor_largest_fitting"
-        )
+        is_resident = float(resident_vram_by_model_gb.get(selected, 0.0)) > 0.0
+        if card_fitting and selected != card_fitting[-1]:
+            reason = "frontdoor_step_down_vram_contention"
+        elif is_resident:
+            # Operator policy 2026-07-07: reusing an already-resident model has ~zero marginal
+            # VRAM cost, so it's the default over evicting-and-reloading a "colder" fit. Labeled
+            # distinctly from frontdoor_largest_fitting so the audit can tell residency-driven
+            # selections apart from a fresh free-VRAM fit.
+            reason = "frontdoor_resident_reuse"
+        else:
+            reason = "frontdoor_largest_fitting"
         return selected, reason
     if card_fitting:
         if available_vram_gb is not None:
