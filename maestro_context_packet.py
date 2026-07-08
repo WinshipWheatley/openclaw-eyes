@@ -2036,6 +2036,7 @@ def _select_skill_tier(skill: Mapping[str, Any], question: str) -> dict[str, Any
         available_vram_gb = None
         available_ram_gb = None
         resident_vram_by_model_gb: dict[str, float] = {}
+        offload_fraction_by_model: dict[str, float] = {}
         try:
             from frontdoor_resource_probe import probe_frontdoor_resources
 
@@ -2043,6 +2044,11 @@ def _select_skill_tier(skill: Mapping[str, Any], question: str) -> dict[str, Any
             available_vram_gb = resource_snapshot.available_vram_gb
             available_ram_gb = resource_snapshot.available_ram_gb
             resident_vram_by_model_gb = resource_snapshot.resident_vram_by_model_gb()
+            # Task 146: offload truth (size_vram/size per resident model); missing
+            # method -> {} = fraction UNKNOWN -> selection unchanged (fail open).
+            offload_fn = getattr(resource_snapshot, "offload_fraction_by_model", None)
+            if callable(offload_fn):
+                offload_fraction_by_model = dict(offload_fn())
         except Exception:
             pass
         model_selected, model_reason = select_frontdoor_model(
@@ -2050,6 +2056,7 @@ def _select_skill_tier(skill: Mapping[str, Any], question: str) -> dict[str, Any
             available_vram_gb=available_vram_gb,
             available_ram_gb=available_ram_gb,
             resident_vram_by_model_gb=resident_vram_by_model_gb,
+            offload_fraction_by_model=offload_fraction_by_model,
         )
     except Exception:
         model_selected, model_reason = None, "frontdoor_selector_unavailable"

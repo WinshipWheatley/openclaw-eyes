@@ -52,7 +52,12 @@ from telegram_agent_intake import record_cassandra_listener_text_update
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
 _LISTENER_LOCK_HANDLE = None
-_REQUEST_TIMEOUT_S = 60
+# Task 146 rider: TWO 60s clocks raced with ZERO margin -- this outer clock (wraps ALL of
+# handle() via bounded_reply_timeout) fired at the same instant as the inner 60s model-call
+# lane, so under CPU-offload slowness the operator saw the LISTENER degrade and the
+# self-heal blamed the wrong layer. Staggered to inner (60s) + grounded-work margin; the
+# inner model lane stays 60s so the model path still times out FIRST and reports honestly.
+_REQUEST_TIMEOUT_S = 90
 _WORKING_ACK_DELAY_S = 1.0
 _HEAVY_REQUEST_SEMAPHORE = asyncio.Semaphore(1)
 _WORKING_ON_IT = "Cassandra is working on it."

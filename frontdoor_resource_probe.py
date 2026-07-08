@@ -57,6 +57,23 @@ class FrontdoorResourceSnapshot:
                 by_model[name] = float(size)
         return by_model
 
+    def offload_fraction_by_model(self) -> dict[str, float]:
+        """Task 146: {model: size_vram/size} as recorded straight from /api/ps.
+
+        1.0 = fully GPU-resident; lower = partially CPU-offloaded ("resident" but NOT
+        fast -- the 2026-07-07 root cause was 6.0GB/2.4GB = 0.4, a 62s 20-token reply).
+        Only models whose ps entry carried a usable total ``size`` appear; a missing
+        entry means the fraction is UNKNOWN and selection must fail open to today's
+        residency behavior.
+        """
+        by_model: dict[str, float] = {}
+        for model in self.resident_models:
+            name = str(model.get("name") or "").strip()
+            fraction = model.get("offload_fraction")
+            if name and isinstance(fraction, (int, float)):
+                by_model[name] = float(fraction)
+        return by_model
+
     def gpu_fraction_by_model(self, sizes: Mapping[str, Any]) -> dict[str, float]:
         return gpu_fraction_by_model(self.resident_vram_by_model_gb(), sizes)
 
@@ -167,7 +184,19 @@ def _probe_ollama_ps(url: str, timeout: float) -> tuple[list[dict[str, Any]], li
         size_vram = model.get("size_vram")
         if not name or not isinstance(size_vram, (int, float)):
             continue
-        resident.append({"name": name, "size_vram_gb": _round_gb(float(size_vram) / 1e9)})
+        entry: dict[str, Any] = {"name": name, "size_vram_gb": _round_gb(float(size_vram) / 1e9)}
+        # Task 146: "resident" alone lies -- /api/ps reported a model resident with
+        # size=6.0GB but size_vram=2.4GB (60% CPU-offloaded, 62s for 20 tokens). Record
+        # offload_fraction = size_vram/size so selection and receipts can see partial
+        # offload. A missing/invalid total size leaves the fraction UNKNOWN (entry keeps
+        # today's exact shape) so downstream behavior fails open.
+        size_total = model.get("size")
+        if isinstance(size_total, (int, float)) and float(size_total) > 0:
+            entry["size_gb"] = _round_gb(float(size_total) / 1e9)
+            entry["offload_fraction"] = round(
+                max(0.0, min(1.0, float(size_vram) / float(size_total))), 3
+            )
+        resident.append(entry)
     return resident, []
 
 

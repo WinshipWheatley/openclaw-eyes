@@ -87,6 +87,10 @@ _FRONTDOOR_MODEL_HARD_DENY = frozenset({"gemma4:26b", "gemma4:31b"})
 _FRONTDOOR_MODEL_RAM_HEADROOM_GB = 4.0
 _FRONTDOOR_MODEL_MAX_GB_DEFAULT = 12.0
 _FRONTDOOR_SYSTEM_LOAD_1M_HIGH_DEFAULT = 4.0
+# Task 146: a "resident" model with offload_fraction (size_vram/size from /api/ps) below
+# this floor is mostly CPU-offloaded and NOT fast (live 2026-07-07: fraction 0.4 -> 62s
+# for 20 tokens) -- it loses residency preference in select_frontdoor_model.
+_FRONTDOOR_OFFLOAD_FRACTION_MIN_DEFAULT = 0.8
 _FRONTDOOR_SYSTEM_LOAD_PER_CPU_HIGH_DEFAULT = 0.75
 
 # Hardware-fit ceiling for ALL local-model lanes (not just the front-door). A model whose
@@ -842,6 +846,7 @@ def select_frontdoor_model(
     available_ram_gb: float | None = None,
     available_vram_gb: float | None = None,
     resident_vram_by_model_gb: dict[str, float] | None = None,
+    offload_fraction_by_model: dict[str, float] | None = None,
     system_load_1m: float | None = None,
     cpu_count: int | None = None,
     max_gb: float | None = None,
@@ -860,9 +865,21 @@ def select_frontdoor_model(
     The smallest-first ladder lets callers fall to smaller models at runtime when latency
     (measured live, not here) misses the budget.
 
+    Task 146 (offload truth): "resident" alone never wins. ``offload_fraction_by_model``
+    carries size_vram/size per resident model straight from /api/ps (see
+    FrontdoorResourceSnapshot.offload_fraction_by_model). A resident candidate whose known
+    fraction is below ``OPENCLAW_FRONTDOOR_OFFLOAD_FRACTION_MIN`` (default 0.8) is mostly
+    CPU-offloaded and NOT fast (live 2026-07-07: fraction 0.4 -> 62s for 20 tokens), so it
+    loses residency preference and competes as a plain free-VRAM fit; when that demotion
+    hands the win to a smaller fully-fitting model the reason is
+    ``frontdoor_offload_avoidance``. Fraction >= the floor or UNKNOWN (absent/None) keeps
+    today's behavior byte-identical -- fail open, never guess.
+
     Returns (model_or_None, reason): ``frontdoor_largest_fitting`` (GPU-resident/fast),
     ``frontdoor_largest_fitting_ram_spill`` (fits the card, spills to RAM),
-    ``frontdoor_step_down_system_load`` (high system load), or ``no_fitting_model``.
+    ``frontdoor_step_down_system_load`` (high system load),
+    ``frontdoor_offload_avoidance`` (partial-offload resident passed over), or
+    ``no_fitting_model``.
     gemma4:26b/31b never appear (not in the allowlist, also too big).
     installed/sizes/available_ram_gb/available_vram_gb are injectable for tests; default to
     live queries.
@@ -895,6 +912,11 @@ def select_frontdoor_model(
     if available_ram_gb is not None:
         ram_budget = float(available_ram_gb) - _FRONTDOOR_MODEL_RAM_HEADROOM_GB
     resident_vram_by_model_gb = dict(resident_vram_by_model_gb or {})
+    offload_fraction_by_model = dict(offload_fraction_by_model or {})
+    offload_fraction_min = _frontdoor_float_env(
+        "OPENCLAW_FRONTDOOR_OFFLOAD_FRACTION_MIN",
+        _FRONTDOOR_OFFLOAD_FRACTION_MIN_DEFAULT,
+    )
 
     # Walk smallest-first. A candidate with NO known size cannot be proven to fit, so it is
     # conservatively excluded. An EMPTY ``installed`` set means "couldn't enumerate" (mirrors
@@ -902,6 +924,7 @@ def select_frontdoor_model(
     # rather than read as "nothing installed".
     card_fitting: list[str] = []  # fits the card (+RAM) -> CAN run, possibly with RAM spill
     vram_fitting: list[str] = []  # ALSO fits free VRAM (or already resident) -> runs fast
+    offload_demoted: set[str] = set()  # resident but mostly CPU-offloaded -> NOT fast (146)
     for candidate in allowlist:
         if installed and candidate not in installed:
             continue
@@ -914,7 +937,20 @@ def select_frontdoor_model(
             continue  # not enough system RAM to back it even with spill
         card_fitting.append(candidate)
         resident_gb = float(resident_vram_by_model_gb.get(candidate, 0.0))
-        if resident_gb > 0.0:
+        fraction = offload_fraction_by_model.get(candidate)
+        partially_offloaded = (
+            isinstance(fraction, (int, float)) and float(fraction) < offload_fraction_min
+        )
+        if resident_gb > 0.0 and partially_offloaded:
+            # Task 146: /api/ps says "resident" but the KNOWN offload fraction says mostly
+            # CPU-offloaded (live 2026-07-07: size 6.0GB, size_vram 2.4GB -> 0.4, a 62s
+            # 20-token reply). Residency preference would keep re-selecting the slow model,
+            # so it competes as a plain free-VRAM fit instead. UNKNOWN fraction never lands
+            # here -- selection stays byte-identical to today (fail open).
+            offload_demoted.add(candidate)
+            if available_vram_gb is None or size_gb <= float(available_vram_gb):
+                vram_fitting.append(candidate)
+        elif resident_gb > 0.0:
             # Already loaded -> keep it (no reload/evict cost), counts as a GPU-resident fit.
             vram_fitting.append(candidate)
         elif available_vram_gb is None or size_gb <= float(available_vram_gb):
@@ -930,9 +966,20 @@ def select_frontdoor_model(
         return card_fitting[0], "frontdoor_step_down_system_load"
     if vram_fitting:
         selected = vram_fitting[-1]
-        is_resident = float(resident_vram_by_model_gb.get(selected, 0.0)) > 0.0
+        is_resident = (
+            float(resident_vram_by_model_gb.get(selected, 0.0)) > 0.0
+            and selected not in offload_demoted
+        )
         if card_fitting and selected != card_fitting[-1]:
-            reason = "frontdoor_step_down_vram_contention"
+            skipped_larger = card_fitting[card_fitting.index(selected) + 1 :]
+            if any(candidate in offload_demoted for candidate in skipped_larger):
+                # A larger "resident" candidate was passed over BECAUSE its known offload
+                # fraction says it is mostly CPU-offloaded: the fully-fitting smaller
+                # model wins. Labeled distinctly so the audit can count how often the
+                # offload truth (not generic VRAM contention) drove the step-down.
+                reason = "frontdoor_offload_avoidance"
+            else:
+                reason = "frontdoor_step_down_vram_contention"
         elif is_resident:
             # Operator policy 2026-07-07: reusing an already-resident model has ~zero marginal
             # VRAM cost, so it's the default over evicting-and-reloading a "colder" fit. Labeled

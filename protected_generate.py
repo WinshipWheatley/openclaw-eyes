@@ -1285,6 +1285,7 @@ def protected_generate_with_receipt(
     fd_available_vram_gb: float | None = None
     fd_available_ram_gb: float | None = None
     fd_resident_vram_by_model_gb: dict[str, float] = {}
+    fd_offload_fraction_by_model: dict[str, float] = {}
     fd_system_load_1m: float | None = None
     fd_cpu_count: int | None = None
     if front_door_profile:
@@ -1296,6 +1297,11 @@ def protected_generate_with_receipt(
             fd_available_vram_gb = _resource_snapshot.available_vram_gb
             fd_available_ram_gb = _resource_snapshot.available_ram_gb
             fd_resident_vram_by_model_gb = _resource_snapshot.resident_vram_by_model_gb()
+            # Task 146: offload truth (size_vram/size per resident model). Older
+            # snapshots without the method fail open to {} = fraction UNKNOWN.
+            _offload_fn = getattr(_resource_snapshot, "offload_fraction_by_model", None)
+            if callable(_offload_fn):
+                fd_offload_fraction_by_model = dict(_offload_fn())
             fd_system_load_1m = _resource_snapshot.system_load_1m
             fd_cpu_count = _resource_snapshot.cpu_count
         except Exception as exc:
@@ -1391,6 +1397,7 @@ def protected_generate_with_receipt(
                                 available_vram_gb=fd_available_vram_gb,
                                 available_ram_gb=fd_available_ram_gb,
                                 resident_vram_by_model_gb=fd_resident_vram_by_model_gb,
+                                offload_fraction_by_model=fd_offload_fraction_by_model,
                                 system_load_1m=fd_system_load_1m,
                                 cpu_count=fd_cpu_count,
                             )
