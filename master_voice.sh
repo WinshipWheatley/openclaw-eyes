@@ -26,9 +26,9 @@ sys.exit(1 if bad else 0)
 fi
 # --- end voice-layer leak guard ---
 
-WAV=/mnt/c/OpenClaw/logs/master_voice.wav
-OGG=/mnt/c/OpenClaw/logs/master_voice.ogg
-PYV=/home/openclaw/chief_env/bin/python; [ -x "$PYV" ] || PYV=python3
+WAV="${WAV:-/mnt/c/OpenClaw/logs/master_voice.wav}"
+OGG="${OGG:-/mnt/c/OpenClaw/logs/master_voice.ogg}"
+PYV="${PYV:-/home/openclaw/chief_env/bin/python}"; [ -x "$PYV" ] || PYV=python3
 redact_with_python() {
   "$PYV" -c 'import sys; sys.path.insert(0, "/home/openclaw"); from secret_log_redaction import redact_secrets; sys.stdout.write(redact_secrets(sys.stdin.read()))' 2>/dev/null \
     || printf '<redaction unavailable>'
@@ -41,7 +41,51 @@ if [ -z "$VOICE" ]; then
 fi
 SPEED="${KOKORO_SPEED:-1.05}"
 
-printf '%s' "$TXT" | AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" "$PYV" -c '
+# Provenance label so the operator can tell this is the Orchestrator relayed THROUGH
+# Maestro's lane — not Maestro talking about himself. Override via RELAY_LABEL.
+# Moved above the synth step (task 128) so it's available to the text-only fallback too.
+PROV="${RELAY_LABEL:-🎼 Orchestrator · relayed through Maestro}"
+export API="https://api.telegram.org/bot${MAESTRO_BOT_TOKEN}"
+export CHAT="${TELEGRAM_AUTHORIZED_USER_ID}"
+
+# Telegram limits: media caption <= 1024 chars, text message <= 4096. Never silently
+# truncate (operator caught a cut-off brief 2026-06-20). Chunked under 4096 preferring
+# paragraph/line/word breaks. Shared by the long-brief voice followup AND the text-only
+# fallback (task 128) — one chunking implementation, both callers.
+send_chunked_text() {
+  printf '%s' "$1" | "$PYV" -c '
+import sys, os, json, urllib.request, urllib.parse
+sys.path.insert(0, "/home/openclaw")
+from secret_log_redaction import redact_secrets
+txt=sys.stdin.read().strip(); api=os.environ["API"]; chat=os.environ["CHAT"]; LIM=3900
+chunks=[]
+while txt:
+    if len(txt)<=LIM: chunks.append(txt); break
+    cut=txt.rfind("\n\n",0,LIM)
+    if cut<400: cut=txt.rfind("\n",0,LIM)
+    if cut<400: cut=txt.rfind(" ",0,LIM)
+    if cut<400: cut=LIM
+    chunks.append(txt[:cut].rstrip()); txt=txt[cut:].lstrip()
+for i,c in enumerate(chunks):
+    data=urllib.parse.urlencode({"chat_id":chat,"text":c}).encode()
+    try:
+        r=urllib.request.urlopen(api+"/sendMessage",data=data,timeout=20)
+        d=json.load(r); print(f"text {i+1}/{len(chunks)} ok:",d.get("ok"),"| err:",d.get("description"))
+    except Exception as e:
+        print(f"text {i+1} FAILED:",redact_secrets(str(e)))
+'
+}
+
+# Task 128: words > silence, always. If Kokoro synth fails on both GPU and CPU, the
+# operator must still get the message — as text, with an honest note that voice wasn't
+# available — never total silence.
+send_text_only_fallback() {
+  echo "text sent ok: true (voice unavailable fallback)"
+  send_chunked_text "$(printf '%s\n%s\n\n(voice unavailable)' "$PROV" "$TXT")"
+}
+
+KOKORO_SYNTH_PY="$(mktemp --suffix=.py)"
+cat > "$KOKORO_SYNTH_PY" <<'PYEOF'
 import sys, os, numpy as np, soundfile as sf
 sys.path.insert(0, "/home/openclaw")
 from kokoro import KPipeline
@@ -56,24 +100,27 @@ text = apply_pronunciation_lexicon(text)
 pipe = KPipeline(lang_code="a")
 chunks=[a for _,_,a in pipe(text, voice=os.environ["VOICE"], speed=float(os.environ["SPEED"]))]
 if not chunks: sys.exit(3)
-sf.write("/mnt/c/OpenClaw/logs/master_voice.wav", normalize_loudness(np.concatenate(chunks)), 24000)
+sf.write(os.environ["WAV"], normalize_loudness(np.concatenate(chunks)), 24000)
 print("[kokoro] ok agent=", os.environ["AGENT"], "voice=", os.environ["VOICE"], flush=True)
-' || { echo "KOKORO SYNTH FAILED"; exit 3; }
+PYEOF
 
-[ -s "$WAV" ] || { echo "WAV missing"; exit 4; }
+printf '%s' "$TXT" | AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" WAV="$WAV" "$PYV" "$KOKORO_SYNTH_PY"
+SYNTH_STATUS=$?
+if [ "$SYNTH_STATUS" -ne 0 ]; then
+  echo "KOKORO SYNTH FAILED (GPU) — retrying with CPU synth (CUDA_VISIBLE_DEVICES=)" >&2
+  printf '%s' "$TXT" | CUDA_VISIBLE_DEVICES="" AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" WAV="$WAV" "$PYV" "$KOKORO_SYNTH_PY"
+  SYNTH_STATUS=$?
+fi
+rm -f "$KOKORO_SYNTH_PY"
+if [ "$SYNTH_STATUS" -ne 0 ]; then
+  send_text_only_fallback
+  exit 0
+fi
+
+[ -s "$WAV" ] || { send_text_only_fallback; exit 0; }
 # pure vowels / crisp consonants: light presence + warmth, NO reverb, NO pitch tricks
-ffmpeg -y -loglevel error -i "$WAV" -af "equalizer=f=3000:t=q:w=2:g=1.5,equalizer=f=180:t=q:w=1:g=1" -c:a libopus -b:a 64k "$OGG" || { echo "FFMPEG FAILED"; exit 5; }
+ffmpeg -y -loglevel error -i "$WAV" -af "equalizer=f=3000:t=q:w=2:g=1.5,equalizer=f=180:t=q:w=1:g=1" -c:a libopus -b:a 64k "$OGG" || { echo "FFMPEG FAILED"; send_text_only_fallback; exit 0; }
 
-# Provenance label so the operator can tell this is the Orchestrator relayed THROUGH
-# Maestro's lane — not Maestro talking about himself. Override via RELAY_LABEL.
-PROV="${RELAY_LABEL:-🎼 Orchestrator · relayed through Maestro}"
-export API="https://api.telegram.org/bot${MAESTRO_BOT_TOKEN}"
-export CHAT="${TELEGRAM_AUTHORIZED_USER_ID}"
-
-# Telegram limits: media caption <= 1024 chars, text message <= 4096. Never silently
-# truncate (operator caught a cut-off brief 2026-06-20). Short briefs ride in the
-# caption; long briefs get a short caption + the FULL text as follow-up message(s),
-# chunked under 4096 preferring paragraph/line/word breaks. The Kokoro audio is always full.
 FULL="$(printf '%s\n%s' "$PROV" "$TXT")"
 if [ "${#FULL}" -le 950 ]; then
   CAP="$FULL"; LONG=0
@@ -102,25 +149,5 @@ fi
 rm -f "$VOICE_RESPONSE"
 
 if [ "$LONG" = "1" ]; then
-  printf '%s' "$TXT" | "$PYV" -c '
-import sys, os, json, urllib.request, urllib.parse
-sys.path.insert(0, "/home/openclaw")
-from secret_log_redaction import redact_secrets
-txt=sys.stdin.read().strip(); api=os.environ["API"]; chat=os.environ["CHAT"]; LIM=3900
-chunks=[]
-while txt:
-    if len(txt)<=LIM: chunks.append(txt); break
-    cut=txt.rfind("\n\n",0,LIM)
-    if cut<400: cut=txt.rfind("\n",0,LIM)
-    if cut<400: cut=txt.rfind(" ",0,LIM)
-    if cut<400: cut=LIM
-    chunks.append(txt[:cut].rstrip()); txt=txt[cut:].lstrip()
-for i,c in enumerate(chunks):
-    data=urllib.parse.urlencode({"chat_id":chat,"text":c}).encode()
-    try:
-        r=urllib.request.urlopen(api+"/sendMessage",data=data,timeout=20)
-        d=json.load(r); print(f"text {i+1}/{len(chunks)} ok:",d.get("ok"),"| err:",d.get("description"))
-    except Exception as e:
-        print(f"text {i+1} FAILED:",redact_secrets(str(e)))
-'
+  send_chunked_text "$TXT"
 fi
