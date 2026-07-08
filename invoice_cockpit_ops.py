@@ -419,10 +419,16 @@ class RealCockpitOps:
                 return _recipient_from_contact(contact, email=email)
         return {"name": "", "email": email}
 
-    def _issued_invoice_payload(self, invoice_data: dict[str, Any] | None) -> dict[str, Any]:
+    def _issued_invoice_payload(
+        self, invoice_data: dict[str, Any] | None, *, stage: str = "finalized"
+    ) -> dict[str, Any]:
         data = dict(invoice_data or {})
-        data["invoice_status"] = "issued"
-        data["lifecycle_state"] = "issued"
+        # Task 134: "test" stage is a workflow-test-mode REVIEW, not a real issuance -- keep
+        # the status distinct so it can never be mistaken for an actual send, and never
+        # consume the real invoice-number counter.
+        data["invoice_status"] = "issued" if stage == "finalized" else "test_reviewed"
+        data["lifecycle_state"] = "issued" if stage == "finalized" else "test_reviewed"
+        data["invoice_stage"] = stage
         invoice_number = str(data.get("invoice_number") or "")
         if "draft" in invoice_number.casefold() or not invoice_number.strip():
             import invoice_generator
@@ -430,7 +436,7 @@ class RealCockpitOps:
             invoice_generator.TRACKER_DIR = Path(
                 os.environ.get("OPENCLAW_INVOICE_TRACKER_DIR", str(invoice_generator.TRACKER_DIR))
             )
-            data["invoice_number"] = invoice_generator.get_next_invoice_number()
+            data["invoice_number"] = invoice_generator.get_next_invoice_number(preview=(stage != "finalized"))
         return data
 
     def _finalized_real_attachment(
@@ -439,9 +445,12 @@ class RealCockpitOps:
         attachment: str,
         attachment_sha256: str,
         invoice_data: dict[str, Any] | None,
+        stage: str = "finalized",
     ) -> tuple[dict[str, Any], str, str]:
-        issued_data = self._issued_invoice_payload(invoice_data)
-        if not _needs_issued_invoice_pdf(invoice_data, attachment):
+        issued_data = self._issued_invoice_payload(invoice_data, stage=stage)
+        # "test" stage always regenerates so the TEST watermark + draft scrub apply -- never
+        # trust a pre-existing attachment (e.g. a real Mac-Codex receipt PDF) for that stage.
+        if stage == "finalized" and not _needs_issued_invoice_pdf(invoice_data, attachment):
             return issued_data, attachment, attachment_sha256
 
         import invoice_generator
@@ -462,11 +471,13 @@ class RealCockpitOps:
         attachment: str,
         attachment_sha256: str,
         invoice_data: dict[str, Any] | None,
+        stage: str = "finalized",
     ) -> tuple[dict[str, Any], str, str]:
         return self._finalized_real_attachment(
             attachment=attachment,
             attachment_sha256=attachment_sha256,
             invoice_data=invoice_data if isinstance(invoice_data, dict) else {},
+            stage=stage,
         )
 
     # -- invoice preparation: real Codex-Mac receipt first, fallback generator second --
@@ -588,10 +599,15 @@ class RealCockpitOps:
             import google_access_broker as broker
             from clara_invoice_email_draft_package import build_general_client_invoice_body
             if mode == "test":
+                # Task 134: test-mode sends are recipient-locked but must still show the
+                # operator the TRUE final copy -- finalized rendering (no "draft" wording)
+                # with a TEST watermark, previewing the number without consuming the real
+                # counter.
                 issued_data, issued_attachment, issued_digest = self._finalized_real_attachment(
                     attachment=attachment,
                     attachment_sha256=attachment_sha256,
                     invoice_data=invoice_data if isinstance(invoice_data, dict) else {},
+                    stage="test",
                 )
                 recipient = self._recipient_for_invoice(invoice_data=issued_data)
                 subject = f"Invoice — {issued_data.get('client_name','')}".strip()
