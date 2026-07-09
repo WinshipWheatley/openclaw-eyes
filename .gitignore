@@ -1427,3 +1427,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_hermes_observer.py
 !tests/test_maestro_bare_status.py
 !tests/test_cassandra_ops_status_staleness.py
+!tests/test_chief_bare_status.py
