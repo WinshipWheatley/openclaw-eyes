@@ -126,14 +126,30 @@ def _money_route_response(text):
     return f"{line} (Couldn't read the ledger just now — ask Maestro directly.)"
 
 
+def _operator_refusal_reply(text):
+    """Task 149: refusal-first tap, hoisted into the intake SUBPROCESS itself (not just
+    the listener). This process is spawned fresh from disk per message, so a code fix
+    here is immune to a stale/un-restarted long-running listener process -- root cause
+    #3 of the live-path trace: niles-listener.service ran a Jun-30 binary through a
+    deploy that omitted it from the restart list, so the listener-side task-141 tap was
+    never actually loaded into memory."""
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _root = str(_Path(__file__).resolve().parents[1])
+        if _root not in _sys.path:
+            _sys.path.insert(0, _root)
+        from operator_refusal_guard import refusal_reply_for_text
+    except Exception:
+        return None
+    try:
+        return refusal_reply_for_text(text, agent="niles", surface="niles_producer_intake")
+    except Exception:
+        return None
+
+
 def get_niles_response(text, producer_input):
     text_l = text.lower()
-
-    # Money-class branch BEFORE anything else reaches the catch-all (task 140):
-    # Niles never answers money from his rig KB — route + answer from the one truth.
-    money_reply = _money_route_response(text)
-    if money_reply is not None:
-        return money_reply
 
     # Boring + Spacious Template
     if "boring" in text_l and "spacious" in text_l:
@@ -175,9 +191,23 @@ def main():
     parser.add_argument("--explain", action="store_true")
     args = parser.parse_args()
 
-    # Deterministic X32-lane routing (trust-tier-1: files/planning only, hardware
-    # gated). Fails open: any non-X32 ask or error falls through to the legacy path.
+    # Task 149: single-pipeline ordering, hoisted refusal-first + money-first. Previously
+    # the X32 lane ran unconditionally before get_niles_response, so LANE ORDER decided
+    # everything -- a bare "who owes me money right now?" could be shadowed by the X32
+    # rig_knowledge classifier (root cause #1: bare "rig" substring-matched inside
+    # "right") before money ever got a chance. Fails open at each tap: any non-matching
+    # ask or internal error falls through to the next stage, ending at the legacy path.
     if args.human_only:
+        refusal = _operator_refusal_reply(args.text)
+        if refusal is not None:
+            print(refusal)
+            return
+
+        money_reply = _money_route_response(args.text)
+        if money_reply is not None:
+            print(money_reply)
+            return
+
         try:
             import sys as _sys
             from pathlib import Path as _Path

@@ -63,6 +63,30 @@ def test_ordinary_production_questions_are_not_stolen():
     assert cap.detect_x32_intent("I'm ready to record vocals") is None
 
 
+def test_money_question_never_classifies_rig_knowledge():
+    """Task 149 root cause #1: bare 'rig' substring-matched inside 'right' ('who owes me
+    money RIGht now?'), shadowing the money branch before it ever got a chance."""
+    assert cap.detect_x32_intent("who owes me money right now?") is None
+    assert cap.detect_x32_intent("is everything all right with the mix?") is None
+    assert cap.detect_x32_intent("that sounds right to me") is None
+
+
+def test_word_boundary_marker_matching_does_not_false_positive_on_substrings():
+    """Task 149: word-boundary fix generalized across detect_x32_intent's marker sets,
+    not just _RIG_KB_MARKERS -- 'patch' inside 'dispatch', 'reach' inside 'reachable'."""
+    assert cap._marker_matches(" dispatch the task ", ("patch",)) is False
+    assert cap._marker_matches(" the mixer is unreachable ", ("reach",)) is False
+    assert cap._marker_matches(" patch the cable ", ("patch",)) is True
+    assert cap._marker_matches(" is it reachable ", ("reach", "reachable")) is True
+
+
+def test_show_profile_and_setup_intents_still_match_with_word_boundaries():
+    """Acceptance: the fix must not regress the legitimate matches."""
+    assert cap.detect_x32_intent("here's the input list for the show") == "show_profile"
+    assert cap.detect_x32_intent("prep the desk for soundcheck") == "x32_setup"
+    assert cap.detect_x32_intent("what channel is the DL16 stagebox on?") == "rig_knowledge"
+
+
 def test_show_profile_builds_scene_artifact(tmp_path: Path):
     result = cap.maybe_handle_x32(INPUT_LIST_TEXT, show_profile_dir=tmp_path)
     assert result is not None and result["handled"] is True

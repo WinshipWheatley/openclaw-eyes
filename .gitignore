@@ -1430,3 +1430,6 @@ generated/system_knowledge/*.sqlite
 !tests/test_chief_bare_status.py
 !tests/test_niles_bare_status.py
 !tests/test_guardian_bare_status.py
+!scripts/restart_openclaw_listeners.sh
+!scripts/assert_listeners_current.py
+!tests/test_assert_listeners_current.py
