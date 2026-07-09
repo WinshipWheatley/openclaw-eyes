@@ -15,11 +15,20 @@ from typing import Any
 import interpreter_lm
 import invoice_cockpit_executor as ex
 import invoice_send_workflow as wf
+from clarify_session_contract import (
+    ACTION_CAPTURE,
+    ACTION_REFUSE,
+    clarify_session_disposition,
+    stamp_clarify_session,
+    touch_clarify_session,
+)
 from invoice_cockpit_client_registry import DEFAULT_CLIENT_MODELS
 
 REFUSED = "refused"
+REFUSED_BY_GUARD = "refused_by_guard"
 UNKNOWN_CLIENT = "unknown_client"
 AWAITING_INVOICE_CLIENT = "awaiting_invoice_client"
+COCKPIT_AGENT = "cassandra"
 
 _INTERPRETER_NO_TRIGGER = object()
 _INTERPRETER_NEEDS_CLIENT = object()
@@ -330,6 +339,7 @@ def handle_invoice_cockpit_message(
     store: Any,
     client_models: Mapping[str, Mapping[str, Any]] | Iterable[Mapping[str, Any]] | None = None,
     client_resolver: Callable[[str], Mapping[str, Any] | None] | None = None,
+    surface: str = "",
 ) -> dict[str, Any]:
     session = store.load()
     if session is not None and re.search(
@@ -340,6 +350,31 @@ def handle_invoice_cockpit_message(
         store.clear()
         _safe_telegram_message(ops, "Okay - cancelled the invoice flow. Nothing was sent.")
         return {"handled": True, "stage": "cancelled"}
+
+    # ── Task 142 clarify-session contract — evaluated BEFORE any session resume.
+    # The live lane-hostage: this session was operator-global and intercepted
+    # EVERY message on EVERY channel. Now: refusal (141) fires above the session,
+    # the session is scoped to the surface that started it, it expires on TTL
+    # (default 30min) and on unrelated input, and unrelated question/instruction
+    # traffic passes through to normal routing untouched.
+    if session is not None:
+        disposition = clarify_session_disposition(
+            session,
+            text,
+            agent=COCKPIT_AGENT,
+            surface=surface,
+            answers_pending=lambda reply: wf._classify(reply) != "clarify",
+        )
+        if disposition.action == ACTION_REFUSE:
+            result = _safe_telegram_message(ops, disposition.reply or "")
+            return {"handled": True, "stage": REFUSED_BY_GUARD, "results": [result]}
+        if disposition.action != ACTION_CAPTURE:
+            if disposition.expire_session:
+                store.clear()
+            # Scope-mismatch keeps the session alive for its own channel; either
+            # way this message is NEVER captured — normal routing continues.
+            return {"handled": False, "pass_through_reason": disposition.reason}
+        touch_clarify_session(session)
 
     previous_stage = None
     pre_results: list[dict[str, Any]] = []
@@ -423,6 +458,9 @@ def handle_invoice_cockpit_message(
         )
         state["client_ref"] = str(client_model.get("client_ref") or "")
         state["client_model"] = dict(client_model)
+        # Task 142: scope the new clarify session to the surface that started it
+        # and start its TTL lease.
+        stamp_clarify_session(state, surface=surface)
     else:
         previous_stage = str(session.get("stage") or "")
         state, actions = wf.handle_reply(session, text)

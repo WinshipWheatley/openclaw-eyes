@@ -485,6 +485,11 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("inbox_gmail_metadata", False, "gmail_metadata_queries_use_existing_staging_path_for_truthful_proof")
     if _is_calendar_or_briefing_intent(normalized):
         return ("calendar_or_briefing", False, "calendar_or_briefing_routes_to_staging")
+    # Task 142: dispatch instructions ("...needs to go out — get it to the right
+    # agent") route to staging BEFORE ledger-reference resolution can claim them
+    # as freeform — an instruction must never end in the overview digest.
+    if _is_dispatch_instruction_intent(normalized) and not _is_general_question_shape(normalized):
+        return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     ledger_resolution = _ledger_resolution_for_text(normalized)
     if ledger_resolution.get("status") == "NEEDS_CLARIFICATION":
         return ("ledger_reference_clarification", True, "")
@@ -604,6 +609,53 @@ def answer_frontdoor_chat(
                 "protected_generate_called": False,
                 "maestro_context_packet_used": False,
                 "operator_refusal_guard": True,
+                "workflow_package_staged": False,
+            },
+        )
+
+    # ── Task 142 (classification-time) unclassified-input contract ──────────
+    # SECOND tap, still before intent classification, ledger/fact resolution,
+    # and answer-topic matching. Live probe proof: "blorp fizzle invoice
+    # quantum?" carried the bare "invoice" substring, fact resolution derived a
+    # money answer topic, and _enforce_answer_topic_presentation stamped the
+    # full attention/money digest over the reply — so coherence and identity
+    # must be decided HERE. The same checks inside protected_generate's
+    # grounded fallback remain as belt-and-braces. Fail-open on import errors.
+    _contract_intent: str | None = None
+    _contract_answer: str | None = None
+    try:
+        from protected_generate import (
+            identity_persona_reply,
+            is_identity_question,
+            is_low_coherence_text,
+            low_coherence_reply_line,
+        )
+
+        if is_identity_question(text):
+            _contract_intent = "identity_persona_core"
+            _contract_answer = identity_persona_reply(agent)
+        elif is_low_coherence_text(text):
+            _contract_intent = "gibberish_low_coherence"
+            _contract_answer = low_coherence_reply_line(agent)
+    except Exception:
+        _contract_intent = None
+        _contract_answer = None
+    if _contract_answer is not None and _contract_intent is not None:
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=_contract_intent,
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(_contract_answer),
+            plain_summary=_contract_answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=filtered_session(session),
+            machine_proof={
+                "cassandra_handle_called": False,
+                "model_call_performed": False,
+                "external_llm_invoked": False,
+                "protected_generate_called": False,
+                "maestro_context_packet_used": False,
+                "unclassified_input_contract": _contract_intent,
                 "workflow_package_staged": False,
             },
         )
@@ -2365,6 +2417,35 @@ def _is_advisory_interrogative_intent(text: str) -> bool:
             text,
         )
     )
+
+
+# Task 142: dispatch-instruction shapes. Live pass-2 proof: "the PA rental
+# invoice for Live Arts needs to go out — get it to the right agent" carried no
+# send-verb the older matchers knew, fell to maestro_brain_freeform, and the
+# grounded fallback answered it with a business digest. An instruction that
+# hands work to the system must route to staging (the normal instruction path),
+# never to the digest. Question shapes are excluded by the same
+# _is_general_question_shape override the workflow gate already uses.
+_DISPATCH_INSTRUCTION_IDIOMS = (
+    "needs to go out",
+    "need to go out",
+    "needs to be sent",
+    "need to be sent",
+    "get it to",
+    "get this to",
+    "get it over to",
+    "send it out",
+    "hand it off",
+    "hand this off",
+    "hand it to",
+    "route it",
+    "route this",
+    "make sure it goes out",
+)
+
+
+def _is_dispatch_instruction_intent(text: str) -> bool:
+    return any(idiom in text for idiom in _DISPATCH_INSTRUCTION_IDIOMS)
 
 
 def _is_workflow_or_business_action_intent(text: str) -> bool:

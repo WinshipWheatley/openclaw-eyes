@@ -81,10 +81,17 @@ def _normalize(text: str) -> str:
 # Money movement: an active verb that moves money PLUS an explicit amount.
 _MONEY_VERB_RE = re.compile(
     r"\b(send|sends|sending|sent|pay|pays|paying|transfer|transfers|transferring|"
-    r"wire|wires|wiring|zelle|venmo|paypal|remit|remits|disburse|disburses)\b"
+    r"wire|wires|wiring|zelle|venmo|paypal|remit|remits|disburse|disburses|"
+    r"shoot|shoots|shooting|toss|tosses|tossing|slide|slides|sliding|front|fronts|fronting)\b"
 )
+# Amounts: $500 / 500 bucks / five hundred dollars / bare "500" when the verb
+# targets a PERSON ("shoot draper 500") — paraphrase robustness (100-ways doctrine).
+_WORD_NUM = r"(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|grand|k)"
 _MONEY_AMOUNT_RE = re.compile(
-    r"(\$\s?\d[\d,]*(?:\.\d+)?|\b\d[\d,]*(?:\.\d+)?\s?(?:dollars|bucks|usd)\b)"
+    r"(\$\s?\d[\d,]*(?:\.\d+)?"
+    r"|\b\d[\d,]*(?:\.\d+)?\s?(?:dollars|bucks|usd|grand)\b"
+    r"|\b" + _WORD_NUM + r"(?:[\s-]" + _WORD_NUM + r")*\s+(?:dollars|bucks|usd)\b"
+    r"|\b\d[\d,]{1,8}\b(?![\s,]*(?:invoices?|bills?|files?|songs?|tracks?|tests?|items?)))"
 )
 # Sending a DOCUMENT that mentions an amount (an invoice, a bill, a statement)
 # is the normal staged workflow, not money movement — it must flow to the

@@ -107,7 +107,12 @@ from chief_fundo_release import handle as fundo_release_handle
 from chief_website_creative import handle as website_creative_handle
 from chief_website_coordinator import handle as website_coordinator_handle
 from chief_website_qa import handle as website_qa_handle
-from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
+from chief_billing_brain import (
+    handle as billing_handle,
+    get_questions as billing_questions,
+    BILLING_SURFACE,
+)
+from clarify_session_contract import stamp_clarify_session
 from chief_content_brain import handle as content_handle
 from chief_brand_brain import handle as brand_handle
 from chief_marketing_brain import (
@@ -987,12 +992,22 @@ def _route_message_inner(text: str) -> dict:
         replies = brainstorm_handle(text)
         return {"intent": "brainstorm_capture", "replies": replies}
 
+    # ── Billing clarify-session resume — task 142 ordering contract ──────────
+    # refusal check (the 141 tap at the very top of _route_message_inner) →
+    # session-relevance check (inside billing_handle: TTL, surface scope,
+    # unrelated-input pass-through) → session resume. The live 12h stuck
+    # session ate a delete bait; now billing_handle returns [] whenever the
+    # session declines to capture (expired / unrelated / desynced inner state),
+    # and routing continues as if no session existed.
     if session.get("status") == "active" and session.get("active_workflow") == "billing":
         replies = billing_handle(text)
-        return {
-            "intent": "billing_continue",
-            "replies": replies,
-        }
+        if replies:
+            return {
+                "intent": "billing_continue",
+                "replies": replies,
+            }
+        # Session refused capture and (if stale) already reset itself —
+        # fall through to normal routing for this message.
 
     # ── Explicit intents checked before billing keyword match ─────────────────
     # These must run before billing_mode_from_text to prevent collisions
@@ -1125,14 +1140,15 @@ def _route_message_inner(text: str) -> dict:
         while first_step < len(questions) and questions[first_step][0] in prefilled:
             first_step += 1
         set_workflow("billing", billing_mode)
-        set_workflow_state({
+        # Task 142: stamp the clarify session (TTL lease + surface scope).
+        set_workflow_state(stamp_clarify_session({
             "active": True,
             "mode": billing_mode,
             "step": first_step,
             "answers": prefilled,
             "last_field": None,
             "last_prompt": None,
-        })
+        }, surface=BILLING_SURFACE))
         if first_step < len(questions):
             first_q = questions[first_step][1]
             if prefilled:
@@ -1274,14 +1290,15 @@ def _route_message_inner(text: str) -> dict:
         while first_step < len(questions) and questions[first_step][0] in prefilled:
             first_step += 1
         set_workflow("billing", billing_mode)
-        set_workflow_state({
+        # Task 142: stamp the clarify session (TTL lease + surface scope).
+        set_workflow_state(stamp_clarify_session({
             "active": True,
             "mode": billing_mode,
             "step": first_step,
             "answers": prefilled,
             "last_field": None,
             "last_prompt": None,
-        })
+        }, surface=BILLING_SURFACE))
         if first_step < len(questions):
             first_q = questions[first_step][1]
             if prefilled:
