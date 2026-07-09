@@ -2544,6 +2544,37 @@ def _build_cassandra_capability_packet() -> dict:
     return capabilities
 
 
+# Task 143 STALENESS RULE: doc-derived orientation content carries no explicit as_of field,
+# so freshness is inferred from the latest embedded YYYY-MM-DD date in the doc body (receipt
+# lines, e.g. "2026-05-11 17:09 [PASS] ..."). A doc whose latest embedded date is older than
+# this SLA must not be presented as current -- kills the 55-day-stale-doc-as-now failure class.
+OPS_ORIENTATION_STALE_SLA_DAYS = 14
+_EMBEDDED_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+
+
+def _markdown_doc_latest_date(content: str):
+    from datetime import date
+
+    latest = None
+    for match in _EMBEDDED_DATE_RE.findall(content or ""):
+        try:
+            parsed = date.fromisoformat(match)
+        except ValueError:
+            continue
+        if latest is None or parsed > latest:
+            latest = parsed
+    return latest
+
+
+def _operator_doc_is_stale(content: str, *, sla_days: int = OPS_ORIENTATION_STALE_SLA_DAYS) -> bool:
+    from datetime import date
+
+    latest = _markdown_doc_latest_date(content)
+    if latest is None:
+        return False  # no embedded date found -- fail-open, don't block on unknown freshness
+    return (date.today() - latest).days > sla_days
+
+
 def _build_ops_status_packet(query: str) -> dict:
     """Build Cassandra's deterministic orientation packet; this is context, not voice."""
     current_state_path = Path("Operator/GENERATED_CURRENT_STATE.md")
@@ -2574,7 +2605,18 @@ def _build_ops_status_packet(query: str) -> dict:
         unsafe_beyond = _extract_markdown_section(next_md, "Unsafe Beyond")
         confirmed = _extract_markdown_section(current_md, "Confirmed System State")
 
-        # Fallback to get_orientation_snapshot if extraction fails to find something
+        # Task 143 STALENESS RULE: a doc whose latest embedded date is past the SLA must not
+        # be presented as current, even though extraction succeeded. Clear its values before
+        # the fallback so a failed snapshot results in an honest refusal below, not a silent
+        # fall-through to stale doc content.
+        is_stale = _operator_doc_is_stale(current_md + "\n" + next_md)
+        if is_stale:
+            lane = None
+            next_move = None
+            unsafe_beyond = ""
+            confirmed = ""
+
+        # Fallback to get_orientation_snapshot if extraction failed, or the doc was stale
         # (This is a read-only fallback, does not write files)
         if not lane or not next_move:
             try:
@@ -2584,6 +2626,19 @@ def _build_ops_status_packet(query: str) -> dict:
                 next_move = next_move or snapshot.get("next_safe_move")
             except Exception:
                 pass
+
+        if is_stale and (not lane or not next_move):
+            return {
+                "packet_type": "cassandra_orientation_status_v1",
+                "query": query,
+                "status": "stale_surfaces",
+                "safe_operator_reply": (
+                    f"Orientation status surfaces are stale (last documented update is more "
+                    f"than {OPS_ORIENTATION_STALE_SLA_DAYS} days old) and no fresher snapshot "
+                    "is available. Run 'python scripts/generate_operator_status.py --write' "
+                    "to refresh before I report current-state."
+                ),
+            }
 
         confirmed_facts = []
         for fact in _clean_ops_bullets(confirmed):

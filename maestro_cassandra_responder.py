@@ -39,6 +39,13 @@ CAPABILITY_INDEX_READ_MODEL = "openclaw_capability_index.json"
 AGENT_PRESENCE_READ_MODEL = "agent_presence.json"
 CHIEF_STATUS_READ_MODEL = "chief_status_rail.json"
 SYNC_HEALTH_READ_MODEL = "sync_health.json"
+HELM_ATTENTION_READ_MODEL = "helm_operator_attention_package.json"
+RECEIVABLES_MONTH_BOUNDED_READ_MODEL = "receivables_month_bounded.json"
+# Task 143: bare-status doctrine. These read-models refresh on a fast (~5min)
+# or near-daily cadence -- a value older than this SLA is presented as stale
+# rather than silently passed off as current (kills the June-orientation-as-
+# now failure class).
+BARE_STATUS_FRESHNESS_SLA_DAYS = 3
 ALLOWED_SESSION_KEYS = (
     "system_knowledge_repo_root",
     "system_knowledge_ledger_path",
@@ -606,6 +613,27 @@ def answer_frontdoor_chat(
                 "operator_refusal_guard": True,
                 "workflow_package_staged": False,
             },
+        )
+
+    # ── Bare-status short-circuit (task 143) — SECOND tap, before intent
+    # classification, workflow-package staging, or any model call. A bare
+    # "status?" has no co-occurring qualifier term for classify_frontdoor_intent's
+    # status_capability_readback matcher to catch, so without this it falls all
+    # the way through to maestro_brain_freeform / the gate-smoke staging
+    # fallback (pass-1 finding: "staged as diagnostic_package_gate_smoke").
+    # Hit by both live callers of answer_frontdoor_chat regardless of
+    # source_surface, since it runs before that check too.
+    if _is_bare_status_query(text):
+        _status_answer = build_maestro_bare_status_answer(session=session)
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_bare_status_readback",
+            allowed_to_call_handle=False,
+            one_line_answer=_status_answer["one_line_answer"],
+            plain_summary=_status_answer["plain_summary"],
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=filtered_session(session),
+            machine_proof=_status_answer["machine_proof"],
         )
 
     intent_class, allowed, reason = classify_frontdoor_intent(text)
@@ -1659,6 +1687,114 @@ def build_hermes_truthful_advisory_answer(text: str) -> dict[str, Any]:
         "one_line_answer": _one_line_answer(one_line),
         "plain_summary": _strip_internal_state_leaks(plain),
         "machine_proof": base_proof,
+    }
+
+
+_BARE_STATUS_PHRASES = frozenset(
+    {
+        "status",
+        "status update",
+        "status check",
+        "status please",
+        "quick status",
+        "whats the status",
+        "what is the status",
+        "give me a status",
+        "give me a status update",
+    }
+)
+
+
+def _is_bare_status_query(text: str) -> bool:
+    """Task 143: a bare status ask ("status?", "what's the status") -- distinct from the
+    longer capability-transparency phrasing that routes to status_capability_readback."""
+    stripped = str(text or "").strip().rstrip("?!.").strip()
+    normalized = _normalize(stripped).replace("'", "")
+    return normalized in _BARE_STATUS_PHRASES
+
+
+def _read_model_stale_days(payload: Mapping[str, Any]) -> int | None:
+    """Return the age in days of a read-model's own generated_at/as_of timestamp, or None
+    when no timestamp is present (caller should treat unknown as "cannot verify freshness",
+    not as fresh)."""
+    from read_model_freshness_audit import _parse_date, _timestamp_from_payload, _today
+
+    if not payload:
+        return None
+    parsed = _parse_date(_timestamp_from_payload(payload))
+    if parsed is None:
+        return None
+    return (_today() - parsed).days
+
+
+def build_maestro_bare_status_answer(*, session: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Task 143 (CLASS #4): terse, current, Maestro-scoped bare-status readback -- 2-4 short
+    lines built deterministically from live read-models (no model call). Stale sources are
+    flagged rather than presented as current (STALENESS RULE)."""
+    root = _read_model_root_from_session(session)
+    helm_payload, helm_path = _read_json_read_model(root, HELM_ATTENTION_READ_MODEL)
+    receivables_payload, receivables_path = _read_json_read_model(root, RECEIVABLES_MONTH_BOUNDED_READ_MODEL)
+    presence_payload, presence_path = _read_json_read_model(root, AGENT_PRESENCE_READ_MODEL)
+
+    lines: list[str] = []
+    proof_refs: list[str] = []
+    stale_sources: list[str] = []
+
+    def _usability(payload: Mapping[str, Any]) -> tuple[bool, bool]:
+        """Return (usable, is_stale). A payload that is simply missing/empty is not
+        "stale" -- there is nothing to flag, it's just absent from this line."""
+        if not payload:
+            return False, False
+        days = _read_model_stale_days(payload)
+        if days is not None and days > BARE_STATUS_FRESHNESS_SLA_DAYS:
+            return False, True
+        return True, False
+
+    helm_usable, helm_stale = _usability(helm_payload)
+    if helm_usable:
+        plate_count = len(helm_payload.get("primary_cards") or ())
+        lines.append(f"Plate: {plate_count} headline item{'s' if plate_count != 1 else ''}.")
+        proof_refs.append(helm_path.as_posix())
+    elif helm_stale:
+        stale_sources.append(HELM_ATTENTION_READ_MODEL)
+
+    receivables_usable, receivables_stale = _usability(receivables_payload)
+    if receivables_usable:
+        open_by_client = receivables_payload.get("summary", {}).get("open_minor_units_by_client", {})
+        open_count = sum(1 for amount in open_by_client.values() if isinstance(amount, (int, float)) and amount > 0)
+        lines.append(f"Money: {open_count} client{'s' if open_count != 1 else ''} with open amounts.")
+        proof_refs.append(receivables_path.as_posix())
+    elif receivables_stale:
+        stale_sources.append(RECEIVABLES_MONTH_BOUNDED_READ_MODEL)
+
+    presence_usable, presence_stale = _usability(presence_payload)
+    if presence_usable:
+        online = presence_payload.get("online_count")
+        total = presence_payload.get("agent_count")
+        lines.append(f"Fleet: {online}/{total} agents online.")
+        proof_refs.append(presence_path.as_posix())
+    elif presence_stale:
+        stale_sources.append(AGENT_PRESENCE_READ_MODEL)
+
+    if stale_sources:
+        lines.append(f"(stale, excluded: {', '.join(stale_sources)})")
+
+    if not lines:
+        plain = "I don't have current status data to report -- the usual read models are missing or stale."
+    else:
+        plain = "\n".join(lines)
+
+    return {
+        "one_line_answer": _one_line_answer(plain),
+        "plain_summary": plain,
+        "machine_proof": {
+            "maestro_bare_status_readback_performed": True,
+            "source_truth_refs": tuple(proof_refs),
+            "stale_sources_excluded": tuple(stale_sources),
+            "external_llm_invoked": False,
+            "protected_generate_called": False,
+            "workflow_package_staged": False,
+        },
     }
 
 
