@@ -386,11 +386,38 @@ class TestEnrichEnforcementEndToEnd:
         )
         assert "OpenClawResponseForMac" not in out.operator_message, "the leak must NOT ship"
 
-    def test_flag_off_leak_passes_through(self, monkeypatch, tmp_path):
+    def test_continuity_capsule_flag_off_does_not_disable_the_guard(self, monkeypatch, tmp_path):
+        """Task 144 (CLASS #5): the guard used to be piggybacked on
+        OPENCLAW_CONTINUITY_CAPSULE (an unrelated conversation-memory flag), so it was
+        dormant whenever that flag was off (its default). Now it has its own flag,
+        default ON -- OPENCLAW_CONTINUITY_CAPSULE being off must NOT disable it."""
         _clear_flag(monkeypatch)
+        monkeypatch.delenv("OPENCLAW_OPERATOR_SURFACE_GUARD", raising=False)
+        from openclaw_request_processor import _enrich_operator_surface
+        resp = self._make_response(self._LEAK, request_type="STATUS")
+        out = _enrich_operator_surface(resp, self._req_file(tmp_path), self._EXPORT_ROOT)
+        assert self._FALLBACK_MARK in out.operator_message, (
+            "the guard must run regardless of the (unrelated) continuity-capsule flag"
+        )
+
+    def test_operator_surface_guard_flag_off_disables_the_guard(self, monkeypatch, tmp_path):
+        """The new dedicated flag is the real kill switch."""
+        monkeypatch.setenv("OPENCLAW_OPERATOR_SURFACE_GUARD", "0")
         from openclaw_request_processor import _enrich_operator_surface
         resp = self._make_response(self._LEAK, request_type="STATUS")
         out = _enrich_operator_surface(resp, self._req_file(tmp_path), self._EXPORT_ROOT)
         assert self._FALLBACK_MARK not in out.operator_message, (
-            "flag OFF: the enforcing validator must NOT run (no regression)"
+            "OPENCLAW_OPERATOR_SURFACE_GUARD=0: the enforcing validator must NOT run"
         )
+
+    def test_no_env_vars_set_at_all_guard_still_runs_by_default(self, monkeypatch, tmp_path):
+        """Doctrine: 'no raw internals, ever, anywhere' -- with zero env configuration at
+        all (the real out-of-the-box state), a leak must still be caught."""
+        monkeypatch.delenv("OPENCLAW_CONTINUITY_CAPSULE", raising=False)
+        monkeypatch.delenv("OPENCLAW_OPERATOR_SURFACE_GUARD", raising=False)
+        from openclaw_request_processor import _enrich_operator_surface, _operator_surface_guard_enabled
+
+        assert _operator_surface_guard_enabled() is True
+        resp = self._make_response(self._LEAK, request_type="STATUS")
+        out = _enrich_operator_surface(resp, self._req_file(tmp_path), self._EXPORT_ROOT)
+        assert self._FALLBACK_MARK in out.operator_message
