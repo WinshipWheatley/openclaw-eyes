@@ -32,7 +32,7 @@ _INTERPRETER_NEEDS_CLIENT = object()
 # alias-scoring, which matches on the client name alone and misrouted it into the
 # unrelated "Rates, Clients, Venues Review" data-room wizard.
 _TRIGGER = re.compile(
-    r"^\s*(?:please\s+|hey[, ]+|ok(?:ay)?[, ]+)?(?:send|e-?mail|generate|prepare|create|draft|make|get)\b[^?\n]{0,80}\binvoice\b",
+    r"^\s*(?:please\s+|hey[, ]+|ok(?:ay)?[, ]+)?(?:send|e-?mail|generate|prep(?:are)?|create|draft|make|get|build|ready(?:\s+up)?)\b[^?\n]{0,80}\binvoice\b",
     re.IGNORECASE,
 )
 
