@@ -110,3 +110,32 @@ def test_ordinary_production_question_still_falls_through_to_legacy_path():
     output = result.stdout
     assert "Niles:" in output
     assert "dub" in output.lower()
+
+
+def test_who_are_you_answers_deterministically_not_the_canned_production_line():
+    """Pass-1 live evidence: Niles "played his canned line" for an identity ask --
+    the generic production-advice catch-all, not a real self-description."""
+    result = subprocess.run(
+        ["python3", "scripts/producer_intake.py", "--text", "who are you and what do you do for me?", "--human-only"],
+        capture_output=True, text=True,
+    )
+    output = result.stdout.strip()
+    assert "niles" in output.lower()
+    assert "keep it practical" not in output.lower()
+    assert "main goal: groove, melody, or arrangement" not in output.lower()
+
+
+
+
+def test_identity_answer_reached_before_x32_lane():
+    """Ordering sanity: identity is checked first so no future X32 marker can shadow
+    it (the exact bug class task 149 root-caused for the money branch)."""
+    result = subprocess.run(
+        ["python3", "scripts/producer_intake.py", "--text", "introduce yourself", "--human-only"],
+        capture_output=True, text=True,
+    )
+    output = result.stdout.strip()
+    assert "gated at my trust tier" not in output.lower()
+    assert "niles" in output.lower()
+
+

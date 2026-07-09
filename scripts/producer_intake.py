@@ -213,6 +213,22 @@ def main():
             print(refusal)
             return
 
+        # ── Identity persona core (task 142 hook, task 145 wiring) — after the
+        # refusal tap, before money/X32, so no marker addition can shadow it.
+        try:
+            import sys as _sys
+            from pathlib import Path as _Path
+            _root = str(_Path(__file__).resolve().parents[1])
+            if _root not in _sys.path:
+                _sys.path.insert(0, _root)
+            from protected_generate import identity_persona_reply, is_identity_question
+
+            if is_identity_question(args.text):
+                print(identity_persona_reply("niles"))
+                return
+        except Exception:
+            pass
+
         money_reply = _money_route_response(args.text)
         if money_reply is not None:
             print(money_reply)

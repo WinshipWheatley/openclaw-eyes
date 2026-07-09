@@ -6823,6 +6823,37 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
         )
         return [_refusal_text]
 
+    # ── Identity persona core (task 142 hook, task 145 wiring) — SECOND tap,
+    # before intent classification or any model call. Task 142 built
+    # is_identity_question/identity_persona_reply and wired them into
+    # maestro_cassandra_responder.answer_frontdoor_chat -- Cassandra's PROBE
+    # path, not this, her REAL Telegram surface (cassandra_listener.py ->
+    # handle()). Without this tap, "who are you and what do you do for me?"
+    # fell through to the general LLM branch, which is exactly how the pass-1
+    # evidence happened: generic-assistant-with-emoji wording, zero "Clara",
+    # and cross-domain bleed (another agent's work items) from whatever the
+    # model pulled into context. Deterministic and packet-free by
+    # construction -- cross-domain bleed is structurally impossible here.
+    try:
+        from protected_generate import identity_persona_reply, is_identity_question
+
+        if is_identity_question(query):
+            _identity_text = identity_persona_reply("cassandra")
+            _log_conversation(
+                text,
+                [_identity_text],
+                route="identity_persona_core",
+                metadata={
+                    "model_called": False,
+                    "external_calls_performed": False,
+                    "runtime_mutation_performed": False,
+                    "business_action_performed": False,
+                },
+            )
+            return [_identity_text]
+    except Exception:
+        pass
+
     # Deterministic Intent (Business Ops Spine Step 2)
     ops_intent = classify_business_ops_intent(query)
     system_knowledge_query = _is_system_knowledge_registry_query(query)
