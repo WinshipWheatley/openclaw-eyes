@@ -937,7 +937,8 @@ _IDENTITY_INTENT_MARKERS = (
     "introduce yourself",
     "tell me about yourself",
     "what do you do",
-    "what can you do",
+    # NOTE: "what can you do" is deliberately NOT identity — it is a live
+    # status-capability ask handled by the capability readback path.
     "are you a bot",
     "are you an ai",
     "are you a robot",
@@ -1054,16 +1055,30 @@ _COHERENCE_LEXICON = frozenset(
     understand until up update us use very wait walk want was watch way we week weekend well went
     were what when where which while who whole why will with within without wonder word work working
     would wrap wrong yeah year yes yesterday yet you your
-    account agenda album amount approval audio balance band bill board book brief briefing business
-    calendar cash chart chief church client concert contact contract copy cost date deal deposit
-    desk detail digest document dollar draft drum due email event expense fee file finance gate gear
-    gig guitar inbox instrument invoice item keys ledger mail meeting message mic mix money month
-    note number overview owe owed paid pay payable payment phone photo plate post practice price
-    project quarter rate receipt receivable reconcile record recording rehearsal reminder rental
-    report rundown recap schedule service session setlist show sing song sound soundcheck speaker
-    spreadsheet stage studio summary summarize task tax tech text total track vendor venue vocal
-    voice wedding
+    account agenda agent album amount approval audio balance band bill board book brief briefing
+    business calendar cash chart chief church client concert contact contract copy cost current data
+    date deal deposit desk detail digest document dollar door draft drum due email event expense fee
+    file finance front gate gear gig guitar health inbox instrument invoice item keys ledger mail
+    meeting message mic mix mode model money month note number overview owe owed paid pay payable
+    payment phone photo plate post practice price project quarter rate read receipt receivable
+    reconcile record recording rehearsal reminder rental reply report request response room route
+    rundown recap schedule service session setlist show sing song sound soundcheck speaker
+    spreadsheet stack stage studio summary summarize system task tax tech test text total track
+    vendor venue vocal voice wedding
     cassandra chief guardian hermes maestro niles openclaw clara winship
+    """.split()
+)
+
+# Grammatical-shape evidence: real English asks carry function-word scaffolding
+# ("give me a ... on the ...") that pure word salad lacks. Two or more distinct
+# scaffolding words = a real sentence shape, never gibberish — this keeps the
+# coherence check from over-reaching on long technical asks whose jargon falls
+# outside the lexicon.
+_COHERENCE_FUNCTION_WORDS = frozenset(
+    """
+    a an and are but by can could did do does for from get give has have how i if in into is it me
+    my of on or our should so that the their them then there these this those to was we were what
+    when where which who why will with would you your
     """.split()
 )
 
@@ -1100,6 +1115,9 @@ def _is_gibberish(prompt: str) -> bool:
     words = _ALPHA_WORD_RE.findall(text)
     if not words:
         return True  # non-empty but no words at all (pure symbol noise)
+    scaffolding = {w.lower() for w in words if w.lower() in _COHERENCE_FUNCTION_WORDS}
+    if len(scaffolding) >= 2:
+        return False  # grammatical shape: a real sentence, whatever its jargon
     unrecognized = sum(
         1 for index, word in enumerate(words) if not _coherence_word_recognized(word, index)
     )
@@ -1125,6 +1143,30 @@ def _is_instruction_intent(prompt: str) -> bool:
     except Exception:
         return False
     return is_instruction_shaped(prompt) and not is_question_shaped(prompt)
+
+
+# ── Task 142 public contract surface for CLASSIFICATION-TIME callers ──────────
+# Live pass-2 iteration: "blorp fizzle invoice quantum?" leaked the money digest
+# through answer_frontdoor_chat because the bare "invoice" substring let fact
+# resolution derive an answer topic upstream — the fallback-level checks below
+# never ran. Front-door classifiers call these BEFORE fact resolution /
+# answer-topic matching; the fallback-level checks stay as belt-and-braces.
+
+
+def is_low_coherence_text(text: str) -> bool:
+    return _is_gibberish(text)
+
+
+def low_coherence_reply_line(agent: str) -> str:
+    return _gibberish_line(agent)
+
+
+def is_identity_question(text: str) -> bool:
+    return _is_identity_intent(text)
+
+
+def identity_persona_reply(agent: str) -> str:
+    return _identity_grounded_answer(agent)
 
 
 def _fallback_grounded_answer(

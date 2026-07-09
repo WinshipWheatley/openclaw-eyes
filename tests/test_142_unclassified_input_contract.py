@@ -214,6 +214,10 @@ def test_gibberish_detection_is_coherence_based_not_keyword_based():
     # Proper nouns are not gibberish
     assert not pg._is_gibberish("email Megan Rivas about the June rental")
     assert not pg._is_gibberish("did Capital Hilton pay?")
+    # Grammatical shape wins over out-of-lexicon jargon (live probe class)
+    assert not pg._is_gibberish(
+        "give me a system-health read on the current OpenClaw front door and agent response stack"
+    )
 
 
 @pytest.mark.parametrize("agent", ALL_AGENTS)
@@ -614,6 +618,103 @@ def test_frontdoor_status_and_question_shapes_unaffected():
     for text in ("what's on my plate?", "did St Anne's pay us?"):
         intent_class, allowed, reason = classify_frontdoor_intent(text)
         assert intent_class != "workflow_or_business_action", (text, intent_class)
+
+
+# ── END-TO-END through answer_frontdoor_chat (classification-time contract) ──
+# Live probe (2026-07-09): both texts leaked the attention/money DIGEST through
+# the full frontdoor flow despite green fallback-level tests — fact resolution
+# claimed "invoice" upstream and _enforce_answer_topic_presentation stamped the
+# digest. The contract must therefore be decided at classification time.
+
+IDENTITY_COMPOUND = "who are you and what do you do for me?"
+
+
+def _spy_protected_generate(text, *, context_packet):
+    # Stands in for the normal freeform answer path (packet + model/digest).
+    return {
+        "text": "SPY-DIGEST: Live Arts owes $1,095.",
+        "receipt": {"status": "ANSWER_READY"},
+    }
+
+
+@pytest.fixture()
+def frontdoor_packet_stub(monkeypatch):
+    """Deterministic packet build so the freeform path runs in the sandbox
+    (no live read-models) and the spy digest proves the flow reached it."""
+    import packet_engine
+
+    def _stub_packet(**kwargs):
+        return {
+            "schema_version": "maestro_context_packet_v0",
+            "packet_id": "maestro_context_packet:test142",
+            "facts": [],
+            "source_refs": [],
+            "packet_engine_receipt": {"failures": ()},
+        }
+
+    monkeypatch.setattr(packet_engine, "build_agent_packet", _stub_packet)
+
+
+def test_e2e_gibberish_never_gets_digest_through_frontdoor():
+    import maestro_cassandra_responder as maestro
+
+    result = maestro.answer_frontdoor_chat(GIBBERISH, protected_generate_fn=_spy_protected_generate)
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "gibberish_low_coherence"
+    assert result.plain_summary == pg._gibberish_line("maestro")
+    assert "$1,095" not in str(result.plain_summary)
+    assert result.machine_proof.get("protected_generate_called") is False
+    assert result.machine_proof.get("maestro_context_packet_used") is False
+
+
+def test_e2e_identity_compound_ask_gets_persona_core_through_frontdoor():
+    import maestro_cassandra_responder as maestro
+
+    result = maestro.answer_frontdoor_chat(
+        IDENTITY_COMPOUND, protected_generate_fn=_spy_protected_generate
+    )
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "identity_persona_core"
+    summary = str(result.plain_summary)
+    assert "I'm Maestro" in summary
+    assert "router" in summary.lower()
+    assert "$1,095" not in summary
+    assert result.machine_proof.get("protected_generate_called") is False
+
+
+def test_e2e_guard_rail_plate_and_status_still_reach_the_digest_path(frontdoor_packet_stub):
+    # Live-verified correct behavior 142 must NOT break: overview/status asks
+    # keep flowing to the normal packet/digest path (freeform + protected
+    # generate), never to the warm-line or persona branches.
+    import maestro_cassandra_responder as maestro
+
+    for text in ("what's on my plate?", "status?"):
+        result = maestro.answer_frontdoor_chat(text, protected_generate_fn=_spy_protected_generate)
+        assert result.intent_class == "maestro_brain_freeform", (text, result.intent_class)
+        assert result.plain_summary == "SPY-DIGEST: Live Arts owes $1,095.", text
+
+
+def test_e2e_real_terse_ask_with_content_term_answers_normally(frontdoor_packet_stub):
+    # "invoice status?" is a REAL ask that happens to carry a content term —
+    # the coherence check must not overreach and claim it.
+    import maestro_cassandra_responder as maestro
+
+    result = maestro.answer_frontdoor_chat(
+        "invoice status?", protected_generate_fn=_spy_protected_generate
+    )
+    assert result.intent_class == "maestro_brain_freeform"
+    assert result.plain_summary == "SPY-DIGEST: Live Arts owes $1,095."
+
+
+def test_e2e_capability_ask_keeps_status_capability_readback():
+    # "what can you do?" is a capability readback ask, NOT identity — the
+    # persona branch must not over-claim it (existing live-good behavior).
+    import maestro_cassandra_responder as maestro
+
+    result = maestro.answer_frontdoor_chat(
+        "what can you do?", protected_generate_fn=_spy_protected_generate
+    )
+    assert result.intent_class == "status_capability_readback"
 
 
 # ═══════════════ F. cassandra guided-review wizard (rates wizard) ═════════════

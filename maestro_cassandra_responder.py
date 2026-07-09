@@ -613,6 +613,53 @@ def answer_frontdoor_chat(
             },
         )
 
+    # ── Task 142 (classification-time) unclassified-input contract ──────────
+    # SECOND tap, still before intent classification, ledger/fact resolution,
+    # and answer-topic matching. Live probe proof: "blorp fizzle invoice
+    # quantum?" carried the bare "invoice" substring, fact resolution derived a
+    # money answer topic, and _enforce_answer_topic_presentation stamped the
+    # full attention/money digest over the reply — so coherence and identity
+    # must be decided HERE. The same checks inside protected_generate's
+    # grounded fallback remain as belt-and-braces. Fail-open on import errors.
+    _contract_intent: str | None = None
+    _contract_answer: str | None = None
+    try:
+        from protected_generate import (
+            identity_persona_reply,
+            is_identity_question,
+            is_low_coherence_text,
+            low_coherence_reply_line,
+        )
+
+        if is_identity_question(text):
+            _contract_intent = "identity_persona_core"
+            _contract_answer = identity_persona_reply(agent)
+        elif is_low_coherence_text(text):
+            _contract_intent = "gibberish_low_coherence"
+            _contract_answer = low_coherence_reply_line(agent)
+    except Exception:
+        _contract_intent = None
+        _contract_answer = None
+    if _contract_answer is not None and _contract_intent is not None:
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=_contract_intent,
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(_contract_answer),
+            plain_summary=_contract_answer,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=filtered_session(session),
+            machine_proof={
+                "cassandra_handle_called": False,
+                "model_call_performed": False,
+                "external_llm_invoked": False,
+                "protected_generate_called": False,
+                "maestro_context_packet_used": False,
+                "unclassified_input_contract": _contract_intent,
+                "workflow_package_staged": False,
+            },
+        )
+
     intent_class, allowed, reason = classify_frontdoor_intent(text)
     forwarded_session = filtered_session(session)
     if intent_class == "calendar_or_briefing":
