@@ -830,6 +830,96 @@ def _operator_refusal_reply(text: str) -> str | None:
         return None
 
 
+# Task 143 (CLASS #4): bare-status doctrine. A bare "status?" gets a short, current,
+# Chief-scoped answer (services health + builds/approvals pending) built deterministically
+# from live read-models -- no model call, distinct from _chief_fallback_reply's LLM path and
+# from chief_nli's album-session-scoped status matcher.
+_BARE_STATUS_PHRASES = frozenset(
+    {
+        "status",
+        "status update",
+        "status check",
+        "status please",
+        "quick status",
+        "whats the status",
+        "what is the status",
+        "give me a status",
+        "give me a status update",
+    }
+)
+_CHIEF_STATUS_FRESHNESS_SLA_DAYS = 3
+
+
+def _is_bare_status_query(text: str) -> bool:
+    stripped = str(text or "").strip().rstrip("?!.").strip()
+    normalized = stripped.lower().replace("'", "")
+    normalized = " ".join(normalized.split())
+    return normalized in _BARE_STATUS_PHRASES
+
+
+def _read_json_read_model(root: _Path, filename: str) -> tuple[dict, _Path]:
+    path = root / filename
+    try:
+        import json
+
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}, path
+    return (payload if isinstance(payload, dict) else {}), path
+
+
+def _read_model_stale_days(payload: dict) -> int | None:
+    from read_model_freshness_audit import _parse_date, _timestamp_from_payload, _today
+
+    if not payload:
+        return None
+    parsed = _parse_date(_timestamp_from_payload(payload))
+    if parsed is None:
+        return None
+    return (_today() - parsed).days
+
+
+def build_chief_bare_status_answer() -> str:
+    root = _Path("generated/read_models")
+    presence_payload, _ = _read_json_read_model(root, "agent_presence.json")
+    rail_payload, _ = _read_json_read_model(root, "chief_status_rail.json")
+    board_payload, _ = _read_json_read_model(root, "work_board.json")
+
+    lines: list[str] = []
+    stale_sources: list[str] = []
+
+    presence_days = _read_model_stale_days(presence_payload)
+    if presence_payload and (presence_days is None or presence_days <= _CHIEF_STATUS_FRESHNESS_SLA_DAYS):
+        online = presence_payload.get("online_count")
+        total = presence_payload.get("agent_count")
+        lines.append(f"Services: {online}/{total} agents online.")
+    elif presence_payload:
+        stale_sources.append("agent_presence.json")
+
+    rail_days = _read_model_stale_days(rail_payload)
+    if rail_payload and (rail_days is None or rail_days <= _CHIEF_STATUS_FRESHNESS_SLA_DAYS):
+        rail_status = str(rail_payload.get("chief_current_status") or "").strip()
+        if rail_status:
+            lines.append(f"Rail: {rail_status}.")
+    elif rail_payload:
+        stale_sources.append("chief_status_rail.json")
+
+    board_days = _read_model_stale_days(board_payload)
+    if board_payload and (board_days is None or board_days <= _CHIEF_STATUS_FRESHNESS_SLA_DAYS):
+        pending_approval = board_payload.get("pending_approval_count")
+        needs_review = board_payload.get("needs_review_count")
+        lines.append(f"Builds: {pending_approval} pending approval, {needs_review} need review.")
+    elif board_payload:
+        stale_sources.append("work_board.json")
+
+    if stale_sources:
+        lines.append(f"(stale, excluded: {', '.join(stale_sources)})")
+
+    if not lines:
+        return "I don't have current status data to report -- the usual read models are missing or stale."
+    return "\n".join(lines)
+
+
 def _route_message_inner(text: str) -> dict:
     # ── Refusal-first guard (task 141) — the pipeline's FIRST tap, before the
     # approval gate, client intake, clarify sessions, NLI, or any model call.
@@ -846,6 +936,15 @@ def _route_message_inner(text: str) -> dict:
 
     t_lower = text.strip().lower()
     t_upper = text.strip().upper()
+
+    # ── Bare-status short-circuit (task 143) — SECOND tap, before the approval gate,
+    # session machinery, or _chief_fallback_reply's model call. Distinct from chief_nli's
+    # album-session-scoped status matcher (which needs an active workflow session to be
+    # meaningful) and from _chief_fallback_reply's LLM fallback (pass-1: bare "status?" got
+    # "no specific operational response" because looks_like_inspection/scheduler_intent both
+    # require multi-word phrases a bare "status?" lacks).
+    if _is_bare_status_query(text):
+        return {"intent": "chief_bare_status_readback", "reply": build_chief_bare_status_answer()}
 
     # ── Approval gate — HIGHEST PRIORITY. Claude Code approvals interrupt everything.
     # Requires CODE DECISION format (e.g. "A3F2 1") — same model as Guardian.
@@ -1408,6 +1507,28 @@ def route_message(text: str) -> dict:
         result = {"intent": "error", "reply": "Chief hit a snag routing that. Try again."}
     intent = result.get("intent", "unknown")
     _log_route(_h, intent, _llm_fallback_fired)
+    return _guard_route_result(result)
+
+
+def _guard_route_result(result: dict) -> dict:
+    """Task 144 (CLASS #5): guard every reply/replies field before it leaves the router --
+    covers all of _route_message_inner's branches (album/billing/CPA/analytics/goals/generic
+    fallback) from one wrap point. Fail-open: import/guard errors leave the result
+    untouched."""
+    try:
+        from operator_surface_guard import guard_operator_reply
+    except Exception:
+        return result
+    if isinstance(result.get("reply"), str):
+        result = {**result, "reply": guard_operator_reply(result["reply"], agent_role="CHIEF")}
+    if isinstance(result.get("replies"), list):
+        result = {
+            **result,
+            "replies": [
+                guard_operator_reply(r, agent_role="CHIEF") if isinstance(r, str) else r
+                for r in result["replies"]
+            ],
+        }
     return result
 
 

@@ -2544,6 +2544,37 @@ def _build_cassandra_capability_packet() -> dict:
     return capabilities
 
 
+# Task 143 STALENESS RULE: doc-derived orientation content carries no explicit as_of field,
+# so freshness is inferred from the latest embedded YYYY-MM-DD date in the doc body (receipt
+# lines, e.g. "2026-05-11 17:09 [PASS] ..."). A doc whose latest embedded date is older than
+# this SLA must not be presented as current -- kills the 55-day-stale-doc-as-now failure class.
+OPS_ORIENTATION_STALE_SLA_DAYS = 14
+_EMBEDDED_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+
+
+def _markdown_doc_latest_date(content: str):
+    from datetime import date
+
+    latest = None
+    for match in _EMBEDDED_DATE_RE.findall(content or ""):
+        try:
+            parsed = date.fromisoformat(match)
+        except ValueError:
+            continue
+        if latest is None or parsed > latest:
+            latest = parsed
+    return latest
+
+
+def _operator_doc_is_stale(content: str, *, sla_days: int = OPS_ORIENTATION_STALE_SLA_DAYS) -> bool:
+    from datetime import date
+
+    latest = _markdown_doc_latest_date(content)
+    if latest is None:
+        return False  # no embedded date found -- fail-open, don't block on unknown freshness
+    return (date.today() - latest).days > sla_days
+
+
 def _build_ops_status_packet(query: str) -> dict:
     """Build Cassandra's deterministic orientation packet; this is context, not voice."""
     current_state_path = Path("Operator/GENERATED_CURRENT_STATE.md")
@@ -2574,7 +2605,18 @@ def _build_ops_status_packet(query: str) -> dict:
         unsafe_beyond = _extract_markdown_section(next_md, "Unsafe Beyond")
         confirmed = _extract_markdown_section(current_md, "Confirmed System State")
 
-        # Fallback to get_orientation_snapshot if extraction fails to find something
+        # Task 143 STALENESS RULE: a doc whose latest embedded date is past the SLA must not
+        # be presented as current, even though extraction succeeded. Clear its values before
+        # the fallback so a failed snapshot results in an honest refusal below, not a silent
+        # fall-through to stale doc content.
+        is_stale = _operator_doc_is_stale(current_md + "\n" + next_md)
+        if is_stale:
+            lane = None
+            next_move = None
+            unsafe_beyond = ""
+            confirmed = ""
+
+        # Fallback to get_orientation_snapshot if extraction failed, or the doc was stale
         # (This is a read-only fallback, does not write files)
         if not lane or not next_move:
             try:
@@ -2584,6 +2626,19 @@ def _build_ops_status_packet(query: str) -> dict:
                 next_move = next_move or snapshot.get("next_safe_move")
             except Exception:
                 pass
+
+        if is_stale and (not lane or not next_move):
+            return {
+                "packet_type": "cassandra_orientation_status_v1",
+                "query": query,
+                "status": "stale_surfaces",
+                "safe_operator_reply": (
+                    f"Orientation status surfaces are stale (last documented update is more "
+                    f"than {OPS_ORIENTATION_STALE_SLA_DAYS} days old) and no fresher snapshot "
+                    "is available. Run 'python scripts/generate_operator_status.py --write' "
+                    "to refresh before I report current-state."
+                ),
+            }
 
         confirmed_facts = []
         for fact in _clean_ops_bullets(confirmed):
@@ -2798,7 +2853,7 @@ def _handle_payment_verification_request(text: str) -> str | None:
 
     ctx = _fetch_payment_verify_context(text)
     if not ctx:
-        return None
+        return _payment_verify_never_silent_fallback(text)
 
     if "[VERIFIED PAYMENT DATA — no recent Gmail notifications found]" in ctx:
         ledger_line = _payment_verify_ledger_line(text)
@@ -2825,8 +2880,25 @@ def _handle_payment_verification_request(text: str) -> str | None:
             return f"{base} Ledger truth: {ledger_line}"
         return base
 
-    # Fall through to LLM for nuanced answers if we can't format a simple one
-    return None
+    # Task 148 (NEVER-SILENT): any other ctx shape (Gmail fetch error, an unrecognized
+    # marker) previously fell straight through to None here -- silence, not even an
+    # error line, on a real question ("did the Capital Hilton check arrive?"). Words >
+    # silence (the 128 doctrine): always surface an honest, ledger-grounded line instead.
+    return _payment_verify_never_silent_fallback(text)
+
+
+def _payment_verify_never_silent_fallback(text: str) -> str:
+    """Task 148: the payment-verify lane must never return a bare None on a genuine
+    payment-verify question -- ground the honest "not yet confirmed" line in the ONE
+    money truth (receivables_month_bounded via money_truth.py) rather than staying
+    silent."""
+    ledger_line = _payment_verify_ledger_line(text)
+    if ledger_line:
+        return f"No confirmed arrival evidence for that yet. Ledger truth: {ledger_line}"
+    return (
+        "I don't have confirmed arrival evidence for that payment yet, and I couldn't "
+        "read the ledger just now — ask again in a moment."
+    )
 
 
 def _handle_money_truth_question(text: str, state: dict | None = None) -> str | None:
@@ -5593,6 +5665,24 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
         if term in q:
             return GmailIntentDecision(True, f"Material business term trigger: '{term}'", "payment_verify", term)
 
+    # Task 148 (NEVER-SILENT): a genuine payment-ARRIVAL-verify shape ("did the check
+    # arrive?", "has that cleared?") without any of the literal business_terms above was
+    # falling through to the default deny below -- silently skipping the payment_verify
+    # lane entirely, never even reaching _handle_payment_verification_request's own
+    # (now-fixed) never-silent fallback. NOT a bare reuse of _looks_like_payment_verify_
+    # query: that classifier is too loose for this gate on its own -- "check" appears in
+    # BOTH its query-word set and its verb set, so it alone would wrongly satisfy the
+    # classifier on "can you check this?"/"LLM health check" (confirmed via a regression
+    # this exact change introduced and then had to narrow). Require "check" co-occurring
+    # with an explicit arrival-state term -- the actual discriminating signal in the live
+    # evidence ("check arrive"), not "check" alone.
+    _payment_arrival_terms = (
+        "arrive", "arrived", "come through", "cleared", "clear", "posted",
+        "land", "hit the account",
+    )
+    if "check" in q and any(term in q for term in _payment_arrival_terms):
+        return GmailIntentDecision(True, "Payment-arrival check query shape detected.", "payment_verify")
+
     # Do not allow generic verbs alone: check, verify, status, health, look, find, search.
     # These are already implicitly denied by falling through, but we could be explicit if needed.
 
@@ -6681,6 +6771,21 @@ def _call_hidden_extract_classify_json(prompt: str, *, validation_label: str) ->
 # ── Main handler ──────────────────────────────────────────────────────────────
 
 def handle(text: str, session: dict | None = None) -> list[str]:
+    """Task 144 (CLASS #5): operator-surface-guarded entry point. Wraps _handle_unguarded
+    so every exit path of the real handler -- refusal guard, ops-status, general LLM
+    branch, all of them -- passes through the leak guard before reaching the operator,
+    without needing to touch each internal return point individually. Fail-open: a safe
+    reply is returned byte-identical; only a genuine leak gets substituted."""
+    replies = _handle_unguarded(text, session)
+    try:
+        from operator_surface_guard import guard_operator_reply
+
+        return [guard_operator_reply(r, agent_role="CASSANDRA") for r in replies]
+    except Exception:
+        return replies
+
+
+def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     session_meta = dict(session or {})
     # --- Explicit Gmail inbox queries: force live Gmail read, bypass LLM and context blending ---
     inbox_list_patterns = [

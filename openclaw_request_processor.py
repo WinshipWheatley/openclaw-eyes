@@ -680,6 +680,21 @@ def _continuity_enabled() -> bool:
     return os.environ.get("OPENCLAW_CONTINUITY_CAPSULE", "0").lower() in ("1", "true")
 
 
+# Task 144 (CLASS #5): the operator-surface leak guard in _enrich_operator_surface used to
+# be piggybacked on _continuity_enabled() (an unrelated conversation-memory feature flag
+# that defaults OFF) -- meaning the ONE real substitute-on-leak block anywhere in the fleet
+# was dormant by default. Split into its own flag, default ON (doctrine: "no raw internals,
+# ever, anywhere" -- not "only when an unrelated memory feature happens to be on").
+def _operator_surface_guard_enabled() -> bool:
+    """Return False only when OPENCLAW_OPERATOR_SURFACE_GUARD is explicitly disabled."""
+    return os.environ.get("OPENCLAW_OPERATOR_SURFACE_GUARD", "1").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
+
 def json_safe(value: Any) -> Any:
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
@@ -8481,28 +8496,20 @@ def _enrich_operator_surface(
         )
         if isinstance(enriched, str) and enriched.strip() and enriched != message:
             response = replace(response, operator_message=enriched)
-        # ── RESPONSE VALIDATION Stage 1 — operator_surface_guard (flag-gated) ─
-        # When ON: call check_operator_surface on the final operator_message; if
-        # safe_for_operator is False (machine-contract leak detected), SUBSTITUTE
-        # a deterministic prose-only safe fallback instead of shipping the leak.
-        # When OFF: the block is never entered — current print-only behavior,
-        # response returned unchanged (byte-identical to pre-edit).
-        if _continuity_enabled():
+        # ── RESPONSE VALIDATION Stage 1 — operator_surface_guard (task 144) ───
+        # Task 144 (CLASS #5): this used to be gated behind _continuity_enabled(), an
+        # unrelated conversation-memory flag that defaults OFF -- meaning the one real
+        # substitute-on-leak block in the whole fleet was dormant by default. Now its own
+        # flag, default ON. When explicitly disabled: byte-identical to pre-task-144
+        # behavior (print-only, response returned unchanged).
+        if _operator_surface_guard_enabled():
             try:
-                from operator_surface_guard import check_operator_surface
+                from operator_surface_guard import guard_operator_reply
                 _surface_text = response.operator_message
                 if isinstance(_surface_text, str) and _surface_text.strip():
-                    _guard_result = check_operator_surface(
-                        _surface_text,
-                        agent_role=agent_id,
-                        high_risk_context=not decorate_ok,
-                    )
-                    if not _guard_result.safe_for_operator:
-                        _safe_fallback = (
-                            "Routed for review. The response contained content "
-                            "that requires operator-surface validation before delivery."
-                        )
-                        return replace(response, operator_message=_safe_fallback)
+                    _guarded_text = guard_operator_reply(_surface_text, agent_role=agent_id)
+                    if _guarded_text != _surface_text:
+                        return replace(response, operator_message=_guarded_text)
             except Exception:
                 pass  # fail-safe: never block a response due to guard error
         return response

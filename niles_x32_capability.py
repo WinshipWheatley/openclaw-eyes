@@ -354,25 +354,34 @@ def _handle_live_mix(
     }
 
 
+def _marker_matches(text: str, markers: tuple[str, ...]) -> bool:
+    """Word-boundary-safe marker match. Task 149 root cause: a bare substring check
+    ("rig" in "right") false-positives inside unrelated English words -- "who owes me
+    money RIGht now?" classified rig_knowledge via "rig" in "right". \\b anchors each
+    marker to real word boundaries; multi-word markers ("stage box") still match as a
+    phrase since \\b only requires boundaries at the marker's own start/end."""
+    return any(re.search(rf"\b{re.escape(marker)}\b", text) for marker in markers)
+
+
 def detect_x32_intent(text: str) -> str | None:
     lowered = " " + str(text or "").lower() + " "
     if _parse_live_mix_intent(text) is not None:
         return "live_mix"
-    if any(marker in lowered for marker in _PROFILE_MARKERS):
+    if _marker_matches(lowered, _PROFILE_MARKERS):
         return "show_profile"
     channels = _parsed_channels(text)
     if len(channels) >= 3 and any(c.get("category") != "other" for c in channels):
         return "show_profile"
     if "scene corpus" in lowered or "analyze the scenes" in lowered or "foundational profile" in lowered:
         return "scene_corpus"
-    if any(marker in lowered for marker in _RIG_KB_MARKERS):
+    if _marker_matches(lowered, _RIG_KB_MARKERS):
         return "rig_knowledge"
-    has_desk = any(marker in lowered for marker in _DESK_MARKERS)
+    has_desk = _marker_matches(lowered, _DESK_MARKERS)
     if not has_desk:
         return None
-    if any(marker in lowered for marker in _STATUS_MARKERS):
+    if _marker_matches(lowered, _STATUS_MARKERS):
         return "x32_status"
-    if any(marker in lowered for marker in _SETUP_MARKERS):
+    if _marker_matches(lowered, _SETUP_MARKERS):
         return "x32_setup"
     return None
 

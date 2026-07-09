@@ -33,10 +33,15 @@ COCKPIT_AGENT = "cassandra"
 _INTERPRETER_NO_TRIGGER = object()
 _INTERPRETER_NEEDS_CLIENT = object()
 
-# "send the St Anne's invoice", "email the Capital Hilton invoice", "invoice for Draper" ...
-# Must be an IMPERATIVE command, not a casual mention or a question.
+# "send the St Anne's invoice", "email the Capital Hilton invoice", "invoice for Draper",
+# "get the St Anne's July invoice ready for my review" (task 148) ...
+# Must be an IMPERATIVE command, not a casual mention or a question. "get" was added in
+# task 148: an invoice prepare/review ask ("get the invoice ready for my review") was
+# missing this trigger entirely, so it fell through to cassandra_guided_review's
+# alias-scoring, which matches on the client name alone and misrouted it into the
+# unrelated "Rates, Clients, Venues Review" data-room wizard.
 _TRIGGER = re.compile(
-    r"^\s*(?:please\s+|hey[, ]+|ok(?:ay)?[, ]+)?(?:send|e-?mail|generate|prepare|create|draft|make)\b[^?\n]{0,80}\binvoice\b",
+    r"^\s*(?:please\s+|hey[, ]+|ok(?:ay)?[, ]+)?(?:send|e-?mail|generate|prep(?:are)?|create|draft|make|get|build|ready(?:\s+up)?)\b[^?\n]{0,80}\binvoice\b",
     re.IGNORECASE,
 )
 

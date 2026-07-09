@@ -275,6 +275,16 @@ _ABSOLUTE_PATH_RE = re.compile(r"(?:/home/|/mnt/|C:\\|D:\\|E:\\)[A-Za-z0-9_./ \\
 # Hash leakage: sha256/sha1 hex strings of 16+ chars.
 _HASH_RE = re.compile(r"\b[0-9a-f]{16,64}\b")
 
+# Task 144 (CLASS #5): bare internal-flag assignment leakage, e.g. a raw capability-packet
+# key echoed verbatim by a model ("livegmailaccessenabled=False", "mail_send_enabled=True")
+# -- the root cause of the Cassandra Q4 leak (_build_cassandra_capability_packet's raw
+# snake_case dict keys reaching a model prompt, then getting parroted back). Deliberately
+# limited to boolean/None literals, not bare digits: "identifier=True/False/None" is
+# distinctly Python-idiom (no one writes that in English prose), while "identifier=<number>"
+# is a common, legitimate human-authored summary style (e.g. "atlas roots=1, directories=2")
+# that would otherwise false-positive on every count-style status line.
+_BARE_ASSIGNMENT_RE = re.compile(r"\b[a-z][a-z0-9_]{3,}=(?:True|False|None)\b")
+
 
 @dataclass(frozen=True)
 class LeakCheckResult:
@@ -306,6 +316,8 @@ def check_machine_contract_leak(text: str, audience: str = "ELIWINSHIP") -> Leak
         reasons.append("stack_trace_present")
     if _RECEIPT_FIELD_RE.search(text):
         reasons.append("receipt_field_pattern_present")
+    if _BARE_ASSIGNMENT_RE.search(text):
+        reasons.append("bare_internal_flag_assignment_present")
 
     # ELIWINSHIP-only checks
     if audience == "ELIWINSHIP":
@@ -535,6 +547,36 @@ def check_operator_surface_dict(
         "leak_check": asdict(result.leak_check),
         "comedy_gate": asdict(result.comedy_gate),
     }
+
+
+# Task 144 (CLASS #5): the one real substitute-on-leak fallback, shared verbatim so every
+# guarded pipeline ships the same operator-facing text (previously this string lived only
+# inside openclaw_request_processor.py's flag-gated _enrich_operator_surface block).
+SAFE_FALLBACK_REPLY_TEXT = (
+    "Routed for review. The response contained content that requires operator-surface "
+    "validation before delivery."
+)
+
+
+def guard_operator_reply(text: str, *, agent_role: str = "OPENCLAW_SYSTEM") -> str:
+    """Task 144: the fleet-wide reply-assembly guard point. Every agent-brain reply
+    reaching an operator-facing Telegram/chat surface should pass through this before
+    send.
+
+    Fail-CLOSED on a genuine leak: the caught pattern never reaches the operator, a safe
+    fallback string ships instead. Fail-OPEN on a guard error: never raises, never blocks
+    an otherwise-safe reply -- returns the original text unchanged if the check itself
+    cannot run.
+    """
+    try:
+        if not isinstance(text, str) or not text.strip():
+            return text
+        result = check_operator_surface(text, agent_role=agent_role)
+        if not result.safe_for_operator:
+            return SAFE_FALLBACK_REPLY_TEXT
+        return text
+    except Exception:
+        return text
 
 
 # ---------------------------------------------------------------------------

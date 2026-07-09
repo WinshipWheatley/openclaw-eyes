@@ -80,7 +80,16 @@ GUARDIAN_STALE_CARRYOVER_REPLY = honest_short_fail(
 
 
 def guardian_resilient_reply(text: str) -> str:
-    return str(clean_stale_carryover(text, failure_text=GUARDIAN_STALE_CARRYOVER_REPLY))
+    """Task 144 (CLASS #5): every Guardian Telegram reply in this listener flows through
+    here (HITL typed-reply, no-pending status, malformed-decision Q&A, decision receipt) --
+    the single choke point to guard the whole pipeline from one wrap."""
+    cleaned = str(clean_stale_carryover(text, failure_text=GUARDIAN_STALE_CARRYOVER_REPLY))
+    try:
+        from operator_surface_guard import guard_operator_reply
+
+        return guard_operator_reply(cleaned, agent_role="GUARDIAN")
+    except Exception:
+        return cleaned
 
 
 def _fire_agent_voice(agent: str, text: str, update) -> None:

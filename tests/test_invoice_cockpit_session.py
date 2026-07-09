@@ -500,6 +500,36 @@ def test_trigger_is_imperative_only_not_casual_mentions():
         assert cs._detect_invoice_trigger(casual) is None, casual
 
 
+def test_get_invoice_ready_for_review_reaches_the_cockpit_end_to_end():
+    """Task 148 acceptance: the exact live-evidence text must reach the SAME cockpit
+    flow as the pre-existing "prepare" phrasing, staged for approval -- not the guided-
+    review data-room wizard."""
+    store, ops = FakeStore(), FakeOps()
+    result = cs.handle_invoice_cockpit_message(
+        "get the St Anne's July invoice ready for my review", ops=ops, store=store
+    )
+
+    assert result["handled"] is True
+    assert result["stage"] == wf.AWAITING_INVOICE_APPROVAL
+    assert _prepare_calls(ops)[0][1]["client_ref"] == "st_annes"
+
+
+def test_get_invoice_ready_for_review_is_a_trigger():
+    """Task 148 live evidence: "get the St Anne's July invoice ready for my review" was
+    missing this trigger entirely (verb list had no "get"), so it fell through to
+    cassandra_guided_review's client-name alias scoring and got misrouted into the
+    unrelated "Rates, Clients, Venues Review" data-room wizard."""
+    client = cs._detect_invoice_trigger("get the St Anne's July invoice ready for my review")
+    assert client is not None
+    assert "st anne" in client.lower()
+
+    assert cs._detect_invoice_trigger("get the Capital Hilton invoice ready") is not None
+    # "get" must still respect the imperative-only boundary -- a genuine question stays
+    # excluded regardless of the new verb.
+    assert cs._detect_invoice_trigger("how do I get an invoice sent to them?") is None
+    assert cs._detect_invoice_trigger("did you get the invoice yet?") is None
+
+
 def test_cockpit_session_has_no_client_ref_specific_branching():
     source = Path(cs.__file__).read_text(encoding="utf-8")
 

@@ -122,7 +122,7 @@ _DESTRUCTIVE_SCOPE_RE = re.compile(
     r"database(?:s)?|db|sqlite|tables?|"
     r"emails?|inbox|sent\s+mail|messages?|threads?|calendar|events?|contacts?|registry|"
     r"approvals?|approval\s+queue|gates?|"
-    r"x-?32|console|board|mixer|mixing\s+desk|album|masters?|stems?|"
+    r"x-?32|console|board|mixer|mixing\s+desk|desk|scenes?|show\s+files?|snapshots?|patch(?:es)?\s+list|album|masters?|stems?|sessions?|takes?|"
     r"backups?|history|memory|state|everything|all\s+of\s+it|it\s+all)\b"
 )
 
