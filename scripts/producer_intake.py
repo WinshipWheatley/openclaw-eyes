@@ -175,6 +175,30 @@ def main():
     parser.add_argument("--explain", action="store_true")
     args = parser.parse_args()
 
+    # ── Identity persona core (task 142 hook, task 145 wiring) — checked before
+    # the X32 lane. Task 142 built is_identity_question/identity_persona_reply
+    # and wired them into maestro_cassandra_responder.answer_frontdoor_chat --
+    # Niles' PROBE path, not his REAL Telegram surface (producer_listener.py ->
+    # this subprocess). Without this tap, "who are you and what do you do for
+    # me?" fell through to get_niles_response's generic production-advice
+    # catch-all ("played his canned line" -- pass-1 evidence). Checked first,
+    # ahead of X32, so no future X32 marker addition can silently shadow it
+    # (the exact class of bug task 149 root-caused for the money branch).
+    if args.human_only:
+        try:
+            import sys as _sys
+            from pathlib import Path as _Path
+            _root = str(_Path(__file__).resolve().parents[1])
+            if _root not in _sys.path:
+                _sys.path.insert(0, _root)
+            from protected_generate import identity_persona_reply, is_identity_question
+
+            if is_identity_question(args.text):
+                print(identity_persona_reply("niles"))
+                return
+        except Exception:
+            pass
+
     # Deterministic X32-lane routing (trust-tier-1: files/planning only, hardware
     # gated). Fails open: any non-X32 ask or error falls through to the legacy path.
     if args.human_only:

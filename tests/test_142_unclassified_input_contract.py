@@ -239,6 +239,15 @@ def test_identity_routes_to_persona_core(agent):
     assert agent in lowered, f"{agent} identity answer missing name: {answer}"
     assert "$1,095" not in answer
     assert answer != pg._NO_PACKET_ANSWER
+    if agent == "guardian":
+        # Task 145 guard-rail: Guardian's identity/capability answer is already the
+        # fleet reference (chief_nonapproval_responder._guardian_reply's "capability"
+        # branch, live-verified as superb) -- pinned verbatim, not generated from the
+        # generic PERSONA_CORES template, so it never diverges from today's.
+        from chief_nonapproval_responder import _guardian_reply
+
+        assert answer == _guardian_reply("capability")
+        return
     # grounded in the persona core registry when importable
     from packet_engine import PERSONA_CORES
 

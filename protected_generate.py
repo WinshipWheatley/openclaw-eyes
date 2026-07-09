@@ -1003,6 +1003,19 @@ def _identity_grounded_answer(agent: str) -> str:
     importable (the ONE persona source), else the per-agent template above."""
     name = str(agent or "maestro").strip().lower() or "maestro"
     display = name.capitalize()
+    # Task 145 guard-rail: Guardian's identity/capability answer is already the fleet
+    # reference (chief_nonapproval_responder._guardian_reply's "capability" branch,
+    # hand-authored, live-verified as superb) -- pin it verbatim here rather than
+    # generating a differently-worded answer from the generic PERSONA_CORES template,
+    # so this hook (used for cross-agent probing) never diverges from what Guardian's
+    # own live Telegram surface already says.
+    if name == "guardian":
+        try:
+            from chief_nonapproval_responder import _guardian_reply
+
+            return _guardian_reply("capability")
+        except Exception:
+            pass
     core: Mapping[str, Any] | None = None
     try:
         from packet_engine import PERSONA_CORES

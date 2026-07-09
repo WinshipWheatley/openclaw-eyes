@@ -844,6 +844,25 @@ def _route_message_inner(text: str) -> dict:
             "ledger_touched": False,
         }
 
+    # ── Identity persona core (task 142 hook, task 145 wiring) — SECOND tap,
+    # before the approval gate or any model call. Task 142 built
+    # is_identity_question/identity_persona_reply and wired them into
+    # maestro_cassandra_responder.answer_frontdoor_chat -- Chief's PROBE path,
+    # not his REAL Telegram surface (chief_router.route_message). Without
+    # this tap, "who are you and what do you do for me?" fell through to
+    # _chief_fallback_reply's model call (classify_nonapproval_prompt's
+    # "capability" intent doesn't match literal "who are you" phrasing
+    # either, so the existing canned-string bank was never reachable for
+    # this exact ask). Deterministic and packet-free -- no cross-domain
+    # bleed is possible.
+    try:
+        from protected_generate import identity_persona_reply, is_identity_question
+
+        if is_identity_question(text):
+            return {"intent": "identity_persona_core", "reply": identity_persona_reply("chief")}
+    except Exception:
+        pass
+
     t_lower = text.strip().lower()
     t_upper = text.strip().upper()
 
