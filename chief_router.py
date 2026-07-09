@@ -1490,6 +1490,28 @@ def route_message(text: str) -> dict:
         result = {"intent": "error", "reply": "Chief hit a snag routing that. Try again."}
     intent = result.get("intent", "unknown")
     _log_route(_h, intent, _llm_fallback_fired)
+    return _guard_route_result(result)
+
+
+def _guard_route_result(result: dict) -> dict:
+    """Task 144 (CLASS #5): guard every reply/replies field before it leaves the router --
+    covers all of _route_message_inner's branches (album/billing/CPA/analytics/goals/generic
+    fallback) from one wrap point. Fail-open: import/guard errors leave the result
+    untouched."""
+    try:
+        from operator_surface_guard import guard_operator_reply
+    except Exception:
+        return result
+    if isinstance(result.get("reply"), str):
+        result = {**result, "reply": guard_operator_reply(result["reply"], agent_role="CHIEF")}
+    if isinstance(result.get("replies"), list):
+        result = {
+            **result,
+            "replies": [
+                guard_operator_reply(r, agent_role="CHIEF") if isinstance(r, str) else r
+                for r in result["replies"]
+            ],
+        }
     return result
 
 

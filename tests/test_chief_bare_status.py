@@ -124,3 +124,44 @@ class TestRouteMessageBareStatus:
 
         with pytest.raises(_GuardMustNotPass):
             chief_router._route_message_inner("prepare the St Anne's invoice for my review")
+
+
+class TestChiefOperatorSurfaceGuard:
+    """Task 144 (CLASS #5): route_message guards every reply before it leaves the router."""
+
+    def test_leaked_reply_is_substituted(self, monkeypatch):
+        import operator_surface_guard
+
+        def _fake_inner(text):
+            return {"intent": "generic", "replies": ["Debug dump: content_hash=abc123"]}
+
+        monkeypatch.setattr(chief_router, "_route_message_inner", _fake_inner)
+        monkeypatch.setattr(chief_router, "_log_route", lambda *a, **k: None)
+
+        result = chief_router.route_message("anything")
+
+        assert result["replies"] == [operator_surface_guard.SAFE_FALLBACK_REPLY_TEXT]
+
+    def test_safe_reply_passes_through_unchanged(self, monkeypatch):
+        def _fake_inner(text):
+            return {"intent": "generic", "replies": ["All good, nothing pending."]}
+
+        monkeypatch.setattr(chief_router, "_route_message_inner", _fake_inner)
+        monkeypatch.setattr(chief_router, "_log_route", lambda *a, **k: None)
+
+        result = chief_router.route_message("anything")
+
+        assert result["replies"] == ["All good, nothing pending."]
+
+    def test_single_reply_field_also_guarded(self, monkeypatch):
+        import operator_surface_guard
+
+        def _fake_inner(text):
+            return {"intent": "operator_refusal_guard", "reply": '{"leak": "json_start"}'}
+
+        monkeypatch.setattr(chief_router, "_route_message_inner", _fake_inner)
+        monkeypatch.setattr(chief_router, "_log_route", lambda *a, **k: None)
+
+        result = chief_router.route_message("anything")
+
+        assert result["reply"] == operator_surface_guard.SAFE_FALLBACK_REPLY_TEXT
