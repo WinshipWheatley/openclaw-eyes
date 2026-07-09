@@ -19,6 +19,19 @@ from chief_session_manager import (
     set_workflow_state,
     mark_complete,
 )
+from clarify_session_contract import (
+    ACTION_CAPTURE,
+    ACTION_REFUSE,
+    clarify_session_disposition,
+    stamp_clarify_session,
+    touch_clarify_session,
+)
+
+# Task 142: one surface label for the whole Chief lane — the Telegram listener
+# and the chief_input.log daemon loop share ONE session store, so they must
+# share ONE scope (surface scoping exists for genuinely separate channels,
+# e.g. the Cassandra vs Maestro cockpit lanes).
+BILLING_SURFACE = "chief"
 
 INPUT_LOG = Path("/mnt/c/OpenClaw/logs/chief_input.log")
 STATE_FILE = Path("/mnt/c/OpenClaw/logs/chief_replied.log")
@@ -276,14 +289,45 @@ def _llm_normalize_billing_answer(field: str, raw: str) -> str:
     return result if result else raw
 
 
+def billing_session_disposition(session: dict, text: str):
+    """Task 142 clarify-session contract for the billing intake wizard.
+
+    Live pass-2 evidence: this exact session stayed alive 12+ hours and ate a
+    delete bait as the next field answer. Order is the contract: refusal (141)
+    fires above the session; the session expires on TTL and on unrelated input;
+    corrections ("hold up", "change that") are the wizard's own pending answers
+    and stay in-session.
+    """
+    return clarify_session_disposition(
+        session,
+        text,
+        agent="chief",
+        surface=BILLING_SURFACE,
+        answers_pending=looks_like_correction,
+    )
+
+
 def handle(text: str) -> list[str]:
     """Process a billing answer directly.
-    Returns reply strings to send. Returns [] if no active session.
+    Returns reply strings to send. Returns [] if no active session, or when the
+    task-142 contract passes the message through (expired session / unrelated
+    input) — the caller then continues normal routing.
     Does not call send_reply() — caller is responsible for delivery.
     """
     session = load_session()
     if not session.get("active"):
         return []
+
+    # ── Task 142: refusal check → session-relevance check → session resume ──
+    disposition = billing_session_disposition(session, text)
+    if disposition.action == ACTION_REFUSE:
+        return [disposition.reply or ""]
+    if disposition.action != ACTION_CAPTURE:
+        if disposition.expire_session:
+            reset_session()
+            clear_listener_billing_session()
+        return []
+    touch_clarify_session(session)
 
     questions = get_questions(session["mode"])
     step = session.get("step", 0)
@@ -357,52 +401,67 @@ if __name__ == "__main__":
                     continue
 
                 if session.get("active"):
-                    questions = get_questions(session["mode"])
-                    step = session.get("step", 0)
-
-                    if looks_like_correction(payload):
-                        last_field = session.get("last_field")
-                        replacement = extract_replacement_value(payload)
-
-                        if last_field and replacement:
-                            session["answers"][last_field] = replacement
-                            save_session(session)
-
-                            current_prompt = ordinal_prompt(session["mode"], step)
-                            send_reply(f"Updated {last_field} to {replacement}.")
-                            if current_prompt:
-                                send_reply(current_prompt)
-                            else:
-                                send_reply("Correction saved.")
-                        elif last_field:
-                            current_value = session["answers"].get(last_field, "")
-                            send_reply(
-                                f"Okay. What should {last_field} be instead? Current value: {current_value}"
-                            )
-                        else:
-                            send_reply("Correction noted, but I could not identify the last field to change.")
+                    # ── Task 142: refusal check → session-relevance check → resume ──
+                    # This daemon loop is a pipeline of its own; the stuck-session
+                    # class (12h billing session eating a delete bait) dies here too.
+                    disposition = billing_session_disposition(session, payload)
+                    if disposition.action == ACTION_REFUSE:
+                        send_reply(disposition.reply or "")
                         break
-
-                    if step < len(questions):
-                        field, prompt = questions[step]
-                        session["answers"][field] = payload
-                        session["last_field"] = field
-                        session["last_prompt"] = prompt
-                        session["step"] = step + 1
-                        save_session(session)
-
-                        if session["step"] < len(questions):
-                            next_prompt = questions[session["step"]][1]
-                            send_reply(next_prompt)
-                        else:
-                            record = build_record(session)
-                            save_record(record)
-                            send_reply(
-                                f"{session['mode'].title()} capture complete. Saved {record.get('invoice_number', 'record')} to billing records."
-                            )
+                    if disposition.action != ACTION_CAPTURE:
+                        if disposition.expire_session:
                             reset_session()
                             clear_listener_billing_session()
-                    break
+                        session = load_session()
+                        # NOT captured — fall through to the trigger checks below.
+                    else:
+                        touch_clarify_session(session)
+                        questions = get_questions(session["mode"])
+                        step = session.get("step", 0)
+
+                        if looks_like_correction(payload):
+                            last_field = session.get("last_field")
+                            replacement = extract_replacement_value(payload)
+
+                            if last_field and replacement:
+                                session["answers"][last_field] = replacement
+                                save_session(session)
+
+                                current_prompt = ordinal_prompt(session["mode"], step)
+                                send_reply(f"Updated {last_field} to {replacement}.")
+                                if current_prompt:
+                                    send_reply(current_prompt)
+                                else:
+                                    send_reply("Correction saved.")
+                            elif last_field:
+                                current_value = session["answers"].get(last_field, "")
+                                send_reply(
+                                    f"Okay. What should {last_field} be instead? Current value: {current_value}"
+                                )
+                            else:
+                                send_reply("Correction noted, but I could not identify the last field to change.")
+                            break
+
+                        if step < len(questions):
+                            field, prompt = questions[step]
+                            session["answers"][field] = payload
+                            session["last_field"] = field
+                            session["last_prompt"] = prompt
+                            session["step"] = step + 1
+                            save_session(session)
+
+                            if session["step"] < len(questions):
+                                next_prompt = questions[session["step"]][1]
+                                send_reply(next_prompt)
+                            else:
+                                record = build_record(session)
+                                save_record(record)
+                                send_reply(
+                                    f"{session['mode'].title()} capture complete. Saved {record.get('invoice_number', 'record')} to billing records."
+                                )
+                                reset_session()
+                                clear_listener_billing_session()
+                        break
 
                 if upper == "INVOICE":
                     session = {
@@ -413,7 +472,7 @@ if __name__ == "__main__":
                         "last_field": None,
                         "last_prompt": None,
                     }
-                    save_session(session)
+                    save_session(stamp_clarify_session(session, surface=BILLING_SURFACE))
                     send_reply(CREATE_INVOICE_QUESTIONS[0][1])
                     break
 
@@ -426,7 +485,7 @@ if __name__ == "__main__":
                         "last_field": None,
                         "last_prompt": None,
                     }
-                    save_session(session)
+                    save_session(stamp_clarify_session(session, surface=BILLING_SURFACE))
                     send_reply(PAYMENT_UPDATE_QUESTIONS[0][1])
                     break
 
@@ -439,7 +498,7 @@ if __name__ == "__main__":
                         "last_field": None,
                         "last_prompt": None,
                     }
-                    save_session(session)
+                    save_session(stamp_clarify_session(session, surface=BILLING_SURFACE))
                     send_reply(FOLLOW_UP_QUESTIONS[0][1])
                     break
 
@@ -452,7 +511,7 @@ if __name__ == "__main__":
                         "last_field": None,
                         "last_prompt": None,
                     }
-                    save_session(session)
+                    save_session(stamp_clarify_session(session, surface=BILLING_SURFACE))
                     send_reply(RECEIPT_QUESTIONS[0][1])
                     break
 

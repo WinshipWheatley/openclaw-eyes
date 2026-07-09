@@ -912,7 +912,231 @@ def _team_grounded_answer() -> str | None:
     return "Your team: " + " ".join(lines)
 
 
-def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | str | None) -> str:
+# ── Task 142: the unclassified-input contract ────────────────────────────────
+# Live pass-2 evidence: the zero-content overview digest ate (a) identity
+# questions ("who are you" reduced to terms={'who'} and substring-scored random
+# facts), (b) gibberish ("blorp fizzle invoice quantum?" matched _is_finance_intent
+# on the bare "invoice" substring and got a confident business digest), and
+# (c) instructions ("the PA rental invoice for Live Arts needs to go out — get it
+# to the right agent" got the digest instead of routing/staging).
+# Contract: identity → persona core; gibberish → ONE warm in-voice line;
+# instructions → never a digest. Guard-rail: coherence is judged independent of
+# keyword presence AND brevity — a short real ask ("status?", "invoices?") must
+# still reach the existing digest/answer paths.
+
+_IDENTITY_INTENT_MARKERS = (
+    "who is this",
+    "who am i talking to",
+    "who am i speaking to",
+    "who am i speaking with",
+    "who am i chatting with",
+    "what's your name",
+    "whats your name",
+    "what is your name",
+    "your name?",
+    "introduce yourself",
+    "tell me about yourself",
+    "what do you do",
+    "what can you do",
+    "are you a bot",
+    "are you an ai",
+    "are you a robot",
+    "are you real",
+    "are you human",
+    "are you a person",
+    "what kind of assistant",
+    "what kind of bot",
+)
+# "who/what are you" is identity only as a terminal ask — "what are you saying"
+# / "who are you talking to" are clarification metas and must stay honest
+# (the existing _NO_PACKET_ANSWER path), never a persona monologue.
+_IDENTITY_TERMINAL_MARKERS = ("who are you", "what are you")
+_IDENTITY_TERMINAL_TAILS = frozenset({"", "exactly", "anyway", "then", "again", "really", "though"})
+
+
+def _is_identity_intent(prompt: str) -> bool:
+    lowered = " ".join(str(prompt or "").lower().split())
+    if any(marker in lowered for marker in _IDENTITY_INTENT_MARKERS):
+        return True
+    for marker in _IDENTITY_TERMINAL_MARKERS:
+        index = lowered.find(marker)
+        if index < 0:
+            continue
+        tail = lowered[index + len(marker):].strip(" ?!.,")
+        if tail in _IDENTITY_TERMINAL_TAILS:
+            return True
+    return False
+
+
+# Per-agent identity lines used only if packet_engine is unimportable — the
+# persona registry (packet_engine.PERSONA_CORES) is the ONE source when present.
+_IDENTITY_FALLBACK_LINES = {
+    "maestro": "I'm Maestro — the warm operator router for OpenClaw. I route your questions, ground answers in the packet, and never take side effects.",
+    "chief": "I'm Chief — the operations lead for OpenClaw. I summarize operational state, flag blockers, and keep the SEND_HOLD and money gates intact.",
+    "cassandra": "I'm Cassandra — Clara's client-warm specialist voice. I draft and reason about client-facing work without loosening any source-of-truth boundary.",
+    "guardian": "I'm Guardian — the safety boundary reviewer. I review risk and keep send, payment, and ledger actions gated.",
+    "niles": "I'm Niles — the playful audio and vibes specialist. I help with audio, music, and creative work without inventing facts.",
+    "hermes": "I'm Hermes — the sidecar status and routing-boundary reviewer. I explain route posture without dispatching anything.",
+}
+
+
+def _identity_grounded_answer(agent: str) -> str:
+    """First-person self-description from packet_engine.PERSONA_CORES when
+    importable (the ONE persona source), else the per-agent template above."""
+    name = str(agent or "maestro").strip().lower() or "maestro"
+    display = name.capitalize()
+    core: Mapping[str, Any] | None = None
+    try:
+        from packet_engine import PERSONA_CORES
+
+        candidate = PERSONA_CORES.get(name)
+        if isinstance(candidate, Mapping):
+            core = candidate
+    except Exception:
+        core = None
+    if core is not None:
+        identity = str(core.get("identity") or "").strip().rstrip(".")
+        duties = str(core.get("duties") or "").strip().rstrip(".")
+        prefix = f"{display} is "
+        if identity.lower().startswith(prefix.lower()):
+            first = f"I'm {display} — {identity[len(prefix):]}."
+        elif identity:
+            first = f"I'm {display}. {identity}."
+        else:
+            first = f"I'm {display}."
+        if duties:
+            return f"{first} My lane: {duties[0].lower()}{duties[1:]}."
+        return first
+    return _IDENTITY_FALLBACK_LINES.get(
+        name,
+        f"I'm {display}, part of the OpenClaw crew — ask me what's on your plate and I'll ground it in the packet.",
+    )
+
+
+# ONE warm in-voice line for zero-coherence input. NEVER a business digest,
+# NEVER a workflow intake, NEVER an internals dump.
+_GIBBERISH_LINES = {
+    "maestro": "Not sure I follow — what do you need?",
+    "chief": "That didn't parse on my end — what do you need?",
+    "cassandra": "I didn't quite catch that — what can I help you with?",
+    "guardian": "I did not understand that request. State it plainly and I'll take it from there.",
+    "niles": "That one got scrambled on the way in — run it by me again?",
+    "hermes": "Message unclear. Say it plain and I'll route it.",
+}
+
+
+def _gibberish_line(agent: str) -> str:
+    return _GIBBERISH_LINES.get(
+        str(agent or "maestro").strip().lower(), _GIBBERISH_LINES["maestro"]
+    )
+
+
+# Recognizable-word lexicon for the coherence check: common English function
+# words + the operator's business/studio vocabulary. Deliberately generous —
+# a real ask should sail through; only genuinely zero-coherence text fails.
+_COHERENCE_LEXICON = frozenset(
+    """
+    a about above actually after again against ago ahead all almost also always am an and any anything
+    are around as ask asking at away back bad be because been before behind being below best better
+    between big bit both bring but by call came can cannot cant care catch change check clear close
+    come coming could day did do does doing done down during each early either else end enough even
+    ever every everything explain far fast few figure fill find fine first fix follow for from full
+    get give go going gone good got great had half hand happen happening hard has have having he
+    hear heard hello help her here hey hi him his hold home hope how i if in indeed instead into is
+    it its just keep kind know last late later least leave left less let like line list little live
+    long look looking lot make making many may maybe me mean meant might mine more morning most move
+    much must my need never new next nice night no none not nothing now of off ok okay old on once
+    one only open or other our out over own past pending people place plan please point put question
+    quick quite ready real really recent right run said same say see seem send sent set she should
+    show side since so some someone something soon sorry sort sound speak start state status still
+    stop such sure take talk tell than thanks that the their them then there these they thing things
+    think this those through time to today together tomorrow tonight too took top try turn under
+    understand until up update us use very wait walk want was watch way we week weekend well went
+    were what when where which while who whole why will with within without wonder word work working
+    would wrap wrong yeah year yes yesterday yet you your
+    account agenda album amount approval audio balance band bill board book brief briefing business
+    calendar cash chart chief church client concert contact contract copy cost date deal deposit
+    desk detail digest document dollar draft drum due email event expense fee file finance gate gear
+    gig guitar inbox instrument invoice item keys ledger mail meeting message mic mix money month
+    note number overview owe owed paid pay payable payment phone photo plate post practice price
+    project quarter rate receipt receivable reconcile record recording rehearsal reminder rental
+    report rundown recap schedule service session setlist show sing song sound soundcheck speaker
+    spreadsheet stage studio summary summarize task tax tech text total track vendor venue vocal
+    voice wedding
+    cassandra chief guardian hermes maestro niles openclaw clara winship
+    """.split()
+)
+
+_COHERENCE_SUFFIXES = ("'s", "s'", "es", "s", "ing", "ed", "ly")
+_ALPHA_WORD_RE = re.compile(r"[A-Za-z][A-Za-z']*")
+
+
+def _coherence_word_recognized(word: str, index: int) -> bool:
+    lowered = word.lower().strip("'")
+    if lowered in _COHERENCE_LEXICON:
+        return True
+    # Proper nouns (clients, venues, people) are content, not noise — but a
+    # sentence-initial capital is just capitalization, not evidence.
+    if index > 0 and word[:1].isupper():
+        return True
+    for suffix in _COHERENCE_SUFFIXES:
+        if lowered.endswith(suffix) and lowered[: -len(suffix)] in _COHERENCE_LEXICON:
+            return True
+    return False
+
+
+def _is_gibberish(prompt: str) -> bool:
+    """Coherence check, independent of keyword presence AND of brevity.
+
+    Keyword presence ("invoice") inside incoherence is NOT intent: the ratio of
+    unrecognizable words decides, never an overview/finance/plate marker. A
+    short real ask ("status?", "invoices?") stays coherent by construction.
+    """
+    text = str(prompt or "").strip()
+    if not text:
+        return False
+    if any(ch.isdigit() for ch in text):
+        return False  # amounts/dates/times are content
+    words = _ALPHA_WORD_RE.findall(text)
+    if not words:
+        return True  # non-empty but no words at all (pure symbol noise)
+    unrecognized = sum(
+        1 for index, word in enumerate(words) if not _coherence_word_recognized(word, index)
+    )
+    if unrecognized >= 2:
+        return (unrecognized / len(words)) >= 0.5
+    # single-token keyboard mash ("asdfghjkl") — still gibberish
+    return len(words) == 1 and unrecognized == 1 and len(words[0]) >= 5
+
+
+# Instructions are tasks, not questions — they must NEVER be answered with a
+# status digest. The normal instruction path (routing/staging) lives upstream;
+# this fallback stays honest about having dispatched nothing.
+_INSTRUCTION_FALLBACK_ANSWER = (
+    "That's a task, not a status question — I won't answer it with a digest. "
+    "Nothing was routed or sent from here; hand it to the owning agent's lane, "
+    "or ask me for status and I'll give you the rundown."
+)
+
+
+def _is_instruction_intent(prompt: str) -> bool:
+    try:
+        from clarify_session_contract import is_instruction_shaped, is_question_shaped
+    except Exception:
+        return False
+    return is_instruction_shaped(prompt) and not is_question_shaped(prompt)
+
+
+def _fallback_grounded_answer(
+    prompt: str, context_packet: Mapping[str, Any] | str | None, agent: str = "maestro"
+) -> str:
+    # Task 142 contract — checked BEFORE any keyword-marker intent gate:
+    # identity → persona core; gibberish → one warm line (coherence decides,
+    # never a keyword inside incoherence); instructions → never a digest.
+    if _is_identity_intent(prompt):
+        return _identity_grounded_answer(agent)
+    if _is_gibberish(prompt):
+        return _gibberish_line(agent)
     # Pure-social message with no factual/schedule intent: never deflect with "won't invent
     # it" — there's no fact at stake. The conversational lane has the MODEL write these; this
     # single line is only the rare model-down backstop (a repeat = the model was unreachable).
@@ -922,6 +1146,8 @@ def _fallback_grounded_answer(prompt: str, context_packet: Mapping[str, Any] | s
             return team
     if _is_social_intent(prompt):
         return _social_backstop(prompt)
+    if _is_instruction_intent(prompt):
+        return _INSTRUCTION_FALLBACK_ANSWER
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
     facts = _eligible_fallback_facts(facts)
@@ -1525,7 +1751,7 @@ def protected_generate_with_receipt(
             route = f"deterministic_fallback_{fd_fallback_reason}"
 
     if not raw_output:
-        raw_output = _fallback_grounded_answer(raw_prompt, context_packet)
+        raw_output = _fallback_grounded_answer(raw_prompt, context_packet, agent=agent)
 
     text = ledger.rehydrate(raw_output)
     # Strip a leading "<AgentName>:" the front-door model occasionally echoes from the

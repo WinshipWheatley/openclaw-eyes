@@ -465,7 +465,9 @@ def test_telegram_dryrun_full_form_resolution_has_no_unresolved_questions(tmp_pa
         review_root=review_root,
         read_model_root=read_model_root,
         promotion_review_path=promotion,
-        generated_at_utc="2026-06-12T12:59:00+00:00",
+        # Task 142: clarify sessions expire after ~30 idle minutes, so the
+        # closing turn must land inside the TTL window of the last answer.
+        generated_at_utc="2026-06-12T12:25:00+00:00",
     )
     session = _load_session(done)
     total_resolved = len(session["answered_questions"]) + len(session["skipped_questions"]) + len(session["deferred_questions"])

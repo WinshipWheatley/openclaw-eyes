@@ -2849,6 +2849,76 @@ def _mark_current_question(
     _refresh_session_lists(session)
 
 
+# ── Task 142 clarify-session contract (fail-open import: an older runtime
+# without the shared module keeps the wizard's legacy behavior). ─────────────
+try:
+    from clarify_session_contract import (
+        is_instruction_shaped as _contract_is_instruction_shaped,
+        is_question_shaped as _contract_is_question_shaped,
+        iso_timestamp_expired as _contract_iso_expired,
+        refusal_reply as _contract_refusal_reply,
+    )
+except Exception:  # pragma: no cover - contract module always ships with repo
+    def _contract_is_instruction_shaped(text: str) -> bool:
+        return False
+
+    def _contract_is_question_shaped(text: str) -> bool:
+        return False
+
+    def _contract_iso_expired(iso_text: str, **_kwargs: Any) -> bool:
+        return False
+
+    def _contract_refusal_reply(text: str, **_kwargs: Any):
+        return None
+
+
+def _wizard_recognizes_in_session_interaction(
+    session: Mapping[str, Any], raw_text: str, *, now: str
+) -> bool:
+    """True when the active wizard itself understands this text as one of its
+    OWN interactions — coach explanation asks ("what does that mean?"),
+    candidate confirmations, recording-scope questions, chatter, and
+    health/system-status notes. Those stay in-session; only genuinely
+    unrelated question/instruction traffic passes through (task 142)."""
+    if classify_guided_review_non_answer(raw_text):
+        return True
+    try:
+        pending = _active_pending_interaction(session, now=now)
+    except Exception:
+        pending = None
+    try:
+        natural = parse_natural_reply_intent(raw_text, pending or None)
+    except Exception:
+        return False
+    kind = str((natural or {}).get("intent") or "")
+    return kind not in ("", "ambiguous")
+
+
+def _expire_guided_review_session(
+    session: dict[str, Any],
+    *,
+    review_root: Path,
+    now: str,
+    reason: str,
+) -> None:
+    """Task 142: expire a guided-review session (TTL or unrelated input) so the
+    wizard releases the channel. Persists the terminal status and drops the
+    active index; _find_active_session never resumes an 'expired' session."""
+    session["status"] = "expired"
+    session["updated_at_utc"] = now
+    session["expired_reason"] = reason
+    try:
+        _persist_session(session, review_root=review_root)
+    except (OSError, ValueError):
+        pass
+    index = _active_index_path(review_root)
+    try:
+        if index.exists():
+            index.unlink()
+    except OSError:
+        pass
+
+
 def _persist_session(
     session: Mapping[str, Any],
     *,
@@ -4290,6 +4360,46 @@ def process_guided_review_message(
         session = dict(active)
         _stamp_run_mode_context(session, session.get("run_mode_context") or resolved_run_mode_context)
         control = _control_text(raw_text)
+
+        # ── Task 142 clarify-session contract: refusal → TTL → surface scope →
+        # unrelated pass-through, all BEFORE the wizard resumes. Live pass-2
+        # proof of the class: an active wizard swallowed an unrelated payment
+        # question ("did the Capital Hilton check arrive?" got NO reply at all).
+        refusal = _contract_refusal_reply(raw_text, agent="cassandra", surface=surface)
+        if refusal is not None:
+            return _response(
+                session=session,
+                reply_text=refusal,
+                review_root=root,
+                read_model_root=read_model_root,
+                handled=True,
+            )
+        session_surface = str(session.get("surface") or "")
+        if session_surface and surface and session_surface != surface:
+            # Scoped to another channel: never capture; the session survives
+            # for its own channel and this message routes normally.
+            return None
+        if _contract_iso_expired(
+            str(session.get("updated_at_utc") or session.get("created_at_utc") or ""),
+            now_iso=now,
+        ):
+            _expire_guided_review_session(session, review_root=root, now=now, reason="ttl_expired")
+            return None
+        _start_requested = bool(
+            live_start_request or gemini_start_request or lm_brain_start_request or data_room_start_request
+        )
+        if (
+            not control
+            and not resolution.get("should_resume_active_session")
+            and not topic
+            and not _start_requested
+            and (_contract_is_question_shaped(raw_text) or _contract_is_instruction_shaped(raw_text))
+            and not _wizard_recognizes_in_session_interaction(session, raw_text, now=now)
+        ):
+            # Unrelated question/instruction: pass through untouched + expire.
+            _expire_guided_review_session(session, review_root=root, now=now, reason="unrelated_input")
+            return None
+
         if topic and not _topic_record(topic).get("start_allowed", False):
             return None
         if not control and not resolution.get("should_resume_active_session") and not topic and _looks_like_non_review_operator_action(raw_text):

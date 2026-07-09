@@ -485,6 +485,11 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("inbox_gmail_metadata", False, "gmail_metadata_queries_use_existing_staging_path_for_truthful_proof")
     if _is_calendar_or_briefing_intent(normalized):
         return ("calendar_or_briefing", False, "calendar_or_briefing_routes_to_staging")
+    # Task 142: dispatch instructions ("...needs to go out — get it to the right
+    # agent") route to staging BEFORE ledger-reference resolution can claim them
+    # as freeform — an instruction must never end in the overview digest.
+    if _is_dispatch_instruction_intent(normalized) and not _is_general_question_shape(normalized):
+        return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     ledger_resolution = _ledger_resolution_for_text(normalized)
     if ledger_resolution.get("status") == "NEEDS_CLARIFICATION":
         return ("ledger_reference_clarification", True, "")
@@ -2365,6 +2370,35 @@ def _is_advisory_interrogative_intent(text: str) -> bool:
             text,
         )
     )
+
+
+# Task 142: dispatch-instruction shapes. Live pass-2 proof: "the PA rental
+# invoice for Live Arts needs to go out — get it to the right agent" carried no
+# send-verb the older matchers knew, fell to maestro_brain_freeform, and the
+# grounded fallback answered it with a business digest. An instruction that
+# hands work to the system must route to staging (the normal instruction path),
+# never to the digest. Question shapes are excluded by the same
+# _is_general_question_shape override the workflow gate already uses.
+_DISPATCH_INSTRUCTION_IDIOMS = (
+    "needs to go out",
+    "need to go out",
+    "needs to be sent",
+    "need to be sent",
+    "get it to",
+    "get this to",
+    "get it over to",
+    "send it out",
+    "hand it off",
+    "hand this off",
+    "hand it to",
+    "route it",
+    "route this",
+    "make sure it goes out",
+)
+
+
+def _is_dispatch_instruction_intent(text: str) -> bool:
+    return any(idiom in text for idiom in _DISPATCH_INSTRUCTION_IDIOMS)
 
 
 def _is_workflow_or_business_action_intent(text: str) -> bool:

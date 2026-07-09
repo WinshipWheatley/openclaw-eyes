@@ -258,7 +258,12 @@ def _try_invoice_cockpit(text: str) -> bool:
         from invoice_cockpit_session import handle_invoice_cockpit_message
         from invoice_cockpit_ops import RealCockpitOps, JsonSessionStore
         result = handle_invoice_cockpit_message(
-            text, ops=RealCockpitOps(contact_name=""), store=JsonSessionStore()
+            text,
+            ops=RealCockpitOps(contact_name=""),
+            store=JsonSessionStore(),
+            # Task 142: scope the cockpit clarify session to THIS channel so it
+            # can never intercept another surface's traffic (live lane-hostage).
+            surface="cassandra_telegram",
         )
         return bool(result.get("handled"))
     except Exception:
