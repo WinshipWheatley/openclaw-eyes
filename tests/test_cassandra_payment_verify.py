@@ -1083,3 +1083,73 @@ def test_calendar_context_supports_work_on_phrase(monkeypatch):
     ctx = cassandra_brain._fetch_calendar_context("What do you show for work on March 27?")
 
     assert ctx.startswith("[CALENDAR DATA")
+
+
+# ---------------------------------------------------------------------------
+# Task 148 (NEVER-SILENT): the payment-verify lane must never return bare None on a
+# genuine payment-verify question -- ground the honest "not yet confirmed" line in the
+# ONE money truth instead of silently falling through to nothing.
+# ---------------------------------------------------------------------------
+
+
+def test_empty_context_returns_ledger_grounded_fallback_not_none(monkeypatch):
+    import cassandra_brain
+
+    monkeypatch.setattr(cassandra_brain, "_known_payment_status_reply", lambda text: None, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda text: "", raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_payment_verify_ledger_line",
+        lambda text: "Capital Hilton (June): check expected, amount not yet confirmed.",
+        raising=False,
+    )
+
+    reply = cassandra_brain._handle_payment_verification_request("did the Capital Hilton check arrive?")
+
+    assert reply is not None
+    assert "No confirmed arrival evidence" in reply
+    assert "Capital Hilton" in reply
+
+
+def test_unrecognized_context_shape_returns_ledger_grounded_fallback_not_none(monkeypatch):
+    """Live evidence: the exact reported bug -- 'did the Capital Hilton check arrive?'
+    got NO REPLY AT ALL. This pins the fix for the fall-through path (ctx present but
+    matches none of the three recognized markers, e.g. a Gmail-fetch-error variant)."""
+    import cassandra_brain
+
+    monkeypatch.setattr(cassandra_brain, "_known_payment_status_reply", lambda text: None, raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_fetch_payment_verify_context",
+        lambda text: "[VERIFIED PAYMENT DATA — error during Gmail fetch]",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_payment_verify_ledger_line",
+        lambda text: "Capital Hilton (June): check expected, amount not yet confirmed.",
+        raising=False,
+    )
+
+    reply = cassandra_brain._handle_payment_verification_request("did the Capital Hilton check arrive?")
+
+    assert reply is not None
+    assert reply != ""
+    assert "No confirmed arrival evidence" in reply
+    assert "Capital Hilton" in reply
+
+
+def test_never_silent_fallback_replies_even_without_a_ledger_line(monkeypatch):
+    """Even when the ledger itself can't be read, the lane must still reply -- never
+    silently return None."""
+    import cassandra_brain
+
+    monkeypatch.setattr(cassandra_brain, "_known_payment_status_reply", lambda text: None, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda text: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_payment_verify_ledger_line", lambda text: "", raising=False)
+
+    reply = cassandra_brain._handle_payment_verification_request("did the Capital Hilton check arrive?")
+
+    assert reply is not None
+    assert reply != ""
+    assert "couldn't read the ledger" in reply

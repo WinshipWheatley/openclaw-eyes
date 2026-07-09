@@ -100,6 +100,30 @@ def test_generic_check_denies_gmail(mock_broker):
         capability = args[1]
         assert "gmail" not in capability
 
+
+def test_payment_arrival_check_allows_payment_verify_not_generic_check():
+    """Task 148 (NEVER-SILENT) live evidence: "did the Capital Hilton check arrive?" got
+    no reply at all -- decide_gmail_intent's business_terms list didn't recognize "check"
+    + "arrive" as payment-related at all, so the payment_verify branch never got a
+    chance. Must be narrower than bare "check" (test_generic_check_denies_gmail, above,
+    pins that "can you check this?" alone stays denied)."""
+    decision = cassandra_brain.decide_gmail_intent("did the Capital Hilton check arrive?")
+    assert decision.allowed is True
+    assert decision.category == "payment_verify"
+
+
+def test_llm_health_check_still_denies_despite_check_word():
+    """Regression pin: adding the payment-arrival check must not resurrect "check" alone
+    as a trigger -- "LLM health check" has no arrival term and must stay denied."""
+    decision = cassandra_brain.decide_gmail_intent("LLM health check")
+    assert decision.allowed is False
+
+
+def test_has_it_cleared_is_also_recognized():
+    decision = cassandra_brain.decide_gmail_intent("has the Capital Hilton check cleared yet?")
+    assert decision.allowed is True
+    assert decision.category == "payment_verify"
+
 def test_check_my_email_allows_gmail(mock_broker):
     cassandra_brain.handle("check my email")
     gmail_calls = [call for call in mock_broker.call_args_list if "gmail" in call[0][1]]

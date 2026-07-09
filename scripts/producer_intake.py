@@ -151,6 +151,16 @@ def _operator_refusal_reply(text):
 def get_niles_response(text, producer_input):
     text_l = text.lower()
 
+    # Money-class branch BEFORE anything else reaches the catch-all (task 140). Kept
+    # here too (not just hoisted into main()'s top-level ordering, task 149) because
+    # get_niles_response is itself a tested public entry point
+    # (test_money_one_source_fleetwide.py calls it directly, bypassing main()) --
+    # removing it broke that contract. Redundant-but-harmless when reached via main(),
+    # which already checks money first.
+    money_reply = _money_route_response(text)
+    if money_reply is not None:
+        return money_reply
+
     # Boring + Spacious Template
     if "boring" in text_l and "spacious" in text_l:
         return "Alright — sounds like the chorus needs an arrival point, not more clutter. Keep the space. Try one clear lift: stronger drum/bass pocket, one upper melody, or a single widened texture. Don't solve boring by stacking parts. Next move: decide whether the boredom is coming from groove, melody, or arrangement change."

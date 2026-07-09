@@ -2853,7 +2853,7 @@ def _handle_payment_verification_request(text: str) -> str | None:
 
     ctx = _fetch_payment_verify_context(text)
     if not ctx:
-        return None
+        return _payment_verify_never_silent_fallback(text)
 
     if "[VERIFIED PAYMENT DATA — no recent Gmail notifications found]" in ctx:
         ledger_line = _payment_verify_ledger_line(text)
@@ -2880,8 +2880,25 @@ def _handle_payment_verification_request(text: str) -> str | None:
             return f"{base} Ledger truth: {ledger_line}"
         return base
 
-    # Fall through to LLM for nuanced answers if we can't format a simple one
-    return None
+    # Task 148 (NEVER-SILENT): any other ctx shape (Gmail fetch error, an unrecognized
+    # marker) previously fell straight through to None here -- silence, not even an
+    # error line, on a real question ("did the Capital Hilton check arrive?"). Words >
+    # silence (the 128 doctrine): always surface an honest, ledger-grounded line instead.
+    return _payment_verify_never_silent_fallback(text)
+
+
+def _payment_verify_never_silent_fallback(text: str) -> str:
+    """Task 148: the payment-verify lane must never return a bare None on a genuine
+    payment-verify question -- ground the honest "not yet confirmed" line in the ONE
+    money truth (receivables_month_bounded via money_truth.py) rather than staying
+    silent."""
+    ledger_line = _payment_verify_ledger_line(text)
+    if ledger_line:
+        return f"No confirmed arrival evidence for that yet. Ledger truth: {ledger_line}"
+    return (
+        "I don't have confirmed arrival evidence for that payment yet, and I couldn't "
+        "read the ledger just now — ask again in a moment."
+    )
 
 
 def _handle_money_truth_question(text: str, state: dict | None = None) -> str | None:
@@ -5647,6 +5664,24 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
     for term in business_terms:
         if term in q:
             return GmailIntentDecision(True, f"Material business term trigger: '{term}'", "payment_verify", term)
+
+    # Task 148 (NEVER-SILENT): a genuine payment-ARRIVAL-verify shape ("did the check
+    # arrive?", "has that cleared?") without any of the literal business_terms above was
+    # falling through to the default deny below -- silently skipping the payment_verify
+    # lane entirely, never even reaching _handle_payment_verification_request's own
+    # (now-fixed) never-silent fallback. NOT a bare reuse of _looks_like_payment_verify_
+    # query: that classifier is too loose for this gate on its own -- "check" appears in
+    # BOTH its query-word set and its verb set, so it alone would wrongly satisfy the
+    # classifier on "can you check this?"/"LLM health check" (confirmed via a regression
+    # this exact change introduced and then had to narrow). Require "check" co-occurring
+    # with an explicit arrival-state term -- the actual discriminating signal in the live
+    # evidence ("check arrive"), not "check" alone.
+    _payment_arrival_terms = (
+        "arrive", "arrived", "come through", "cleared", "clear", "posted",
+        "land", "hit the account",
+    )
+    if "check" in q and any(term in q for term in _payment_arrival_terms):
+        return GmailIntentDecision(True, "Payment-arrival check query shape detected.", "payment_verify")
 
     # Do not allow generic verbs alone: check, verify, status, health, look, find, search.
     # These are already implicitly denied by falling through, but we could be explicit if needed.
