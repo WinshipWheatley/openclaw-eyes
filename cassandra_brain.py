@@ -6736,6 +6736,21 @@ def _call_hidden_extract_classify_json(prompt: str, *, validation_label: str) ->
 # ── Main handler ──────────────────────────────────────────────────────────────
 
 def handle(text: str, session: dict | None = None) -> list[str]:
+    """Task 144 (CLASS #5): operator-surface-guarded entry point. Wraps _handle_unguarded
+    so every exit path of the real handler -- refusal guard, ops-status, general LLM
+    branch, all of them -- passes through the leak guard before reaching the operator,
+    without needing to touch each internal return point individually. Fail-open: a safe
+    reply is returned byte-identical; only a genuine leak gets substituted."""
+    replies = _handle_unguarded(text, session)
+    try:
+        from operator_surface_guard import guard_operator_reply
+
+        return [guard_operator_reply(r, agent_role="CASSANDRA") for r in replies]
+    except Exception:
+        return replies
+
+
+def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     session_meta = dict(session or {})
     # --- Explicit Gmail inbox queries: force live Gmail read, bypass LLM and context blending ---
     inbox_list_patterns = [

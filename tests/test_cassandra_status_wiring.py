@@ -126,6 +126,55 @@ def test_ops_status_deterministic_fallback_is_operator_facing():
     assert "This handoff is the train" not in reply
     assert "choose one bounded next lane" not in reply
 
+def test_handle_guards_a_leaked_reply_before_it_reaches_the_operator():
+    """Task 144 (CLASS #5): handle() wraps _handle_unguarded so a leak from ANY internal
+    branch (here: the ops-status model path) gets substituted with the safe fallback,
+    not shipped to the operator."""
+    import operator_surface_guard
+
+    with patch(
+        "cassandra_brain._answer_ops_status_inquiry",
+        return_value=(
+            "Here's the readback: livegmailaccessenabled=False (data gap)",
+            {"packet_type": "cassandra_orientation_status_v1", "status": "ready"},
+        ),
+    ), \
+         patch("cassandra_brain.save_state"), \
+         patch("cassandra_brain.load_state", return_value={"human_cues": []}), \
+         patch("cassandra_brain.is_focus_mode", return_value=False), \
+         patch("cassandra_brain.is_social_mode", return_value=False), \
+         patch("cassandra_brain._pii_tokenize", return_value=("safe", MockPIIContext())), \
+         patch("cassandra_brain._pii_rehydrate_reply", side_effect=lambda r, c: r), \
+         patch("cassandra_brain.record_cassandra_packet_event", return_value=123):
+
+        replies = handle("where are we at")
+
+    assert replies == [operator_surface_guard.SAFE_FALLBACK_REPLY_TEXT]
+    assert "livegmailaccessenabled" not in replies[0]
+
+
+def test_handle_still_returns_safe_replies_unchanged():
+    """Sanity check: the guard wrap must not alter or block a genuinely safe reply."""
+    with patch(
+        "cassandra_brain._answer_ops_status_inquiry",
+        return_value=(
+            "Cassandra Status: all clear.",
+            {"packet_type": "cassandra_orientation_status_v1", "status": "ready"},
+        ),
+    ), \
+         patch("cassandra_brain.save_state"), \
+         patch("cassandra_brain.load_state", return_value={"human_cues": []}), \
+         patch("cassandra_brain.is_focus_mode", return_value=False), \
+         patch("cassandra_brain.is_social_mode", return_value=False), \
+         patch("cassandra_brain._pii_tokenize", return_value=("safe", MockPIIContext())), \
+         patch("cassandra_brain._pii_rehydrate_reply", side_effect=lambda r, c: r), \
+         patch("cassandra_brain.record_cassandra_packet_event", return_value=123):
+
+        replies = handle("where are we at")
+
+    assert replies == ["Cassandra Status: all clear."]
+
+
 def test_ops_status_missing_surfaces():
     """
     Test behavior when status files are missing.

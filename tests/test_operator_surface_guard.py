@@ -127,6 +127,38 @@ class TestLeakDetection:
         assert result.machine_proof["external_action_performed"] is False
         assert result.machine_proof["check_performed"] is True
 
+    def test_bare_internal_flag_assignment_is_leaked(self):
+        """Task 144 (CLASS #5): root cause of the Cassandra Q4 leak -- a raw capability-
+        packet key echoed verbatim by a model."""
+        text = "Here's what I found: livegmailaccessenabled=False (data gap)."
+        result = guard.check_machine_contract_leak(text)
+        assert result.is_leak is True
+        assert "bare_internal_flag_assignment_present" in result.reasons
+
+    def test_snake_case_bare_assignment_is_leaked(self):
+        text = "Status: mail_send_enabled=True, audit_only=False"
+        result = guard.check_machine_contract_leak(text)
+        assert result.is_leak is True
+
+    def test_bare_assignment_leak_flagged_regardless_of_audience(self):
+        text = "calendar_mutation_enabled=None"
+        result = guard.check_machine_contract_leak(text, audience="TECHNICAL")
+        assert result.is_leak is True
+
+    def test_natural_sentence_with_equals_sign_is_not_flagged(self):
+        text = "The answer is 2 + 2 = 4, nothing fancy."
+        result = guard.check_machine_contract_leak(text)
+        assert result.is_leak is False
+
+    def test_human_authored_count_summary_is_not_flagged(self):
+        """Regression: 'atlas roots=1, directories=2' (a legitimate summary-line style
+        used elsewhere in the codebase, e.g. format_system_knowledge_answer) must not
+        false-positive on the bare-assignment leak pattern -- only boolean/None literals
+        are Python-idiom enough to be a real signal; bare digits are common human prose."""
+        text = "In orbit: atlas roots=1, directories=2, Graphiffy nodes=0, sampled nodes=3."
+        result = guard.check_machine_contract_leak(text)
+        assert result.is_leak is False
+
 
 # ---------------------------------------------------------------------------
 # 2. Zero-Error Gate
@@ -435,3 +467,40 @@ class TestContractReadModel:
         assert "high_risk_suppression" in rules
         assert "golden_ratio" in rules
         assert "rank_floor" in rules
+
+
+# ---------------------------------------------------------------------------
+# 7. guard_operator_reply — the fleet-wide substitute-on-leak entry point (task 144)
+# ---------------------------------------------------------------------------
+
+
+class TestGuardOperatorReply:
+    def test_safe_text_passes_through_unchanged(self):
+        text = "Your invoice is ready to review whenever you have a moment."
+        assert guard.guard_operator_reply(text) == text
+
+    def test_leaked_text_is_substituted_with_safe_fallback(self):
+        text = "Here's the readback: livegmailaccessenabled=False (data gap)."
+        result = guard.guard_operator_reply(text)
+        assert result == guard.SAFE_FALLBACK_REPLY_TEXT
+        assert "livegmailaccessenabled" not in result
+
+    def test_json_leak_is_substituted(self):
+        text = '{"content_hash": "abc123", "status": "ok"}'
+        result = guard.guard_operator_reply(text)
+        assert result == guard.SAFE_FALLBACK_REPLY_TEXT
+
+    def test_empty_text_passes_through(self):
+        assert guard.guard_operator_reply("") == ""
+        assert guard.guard_operator_reply("   ") == "   "
+
+    def test_non_string_input_passes_through_unchanged(self):
+        assert guard.guard_operator_reply(None) is None
+
+    def test_guard_error_fails_open_returns_original_text(self, monkeypatch):
+        def _boom(*args, **kwargs):
+            raise RuntimeError("guard internals broke")
+
+        monkeypatch.setattr(guard, "check_operator_surface", _boom)
+        text = "Perfectly normal reply text."
+        assert guard.guard_operator_reply(text) == text
