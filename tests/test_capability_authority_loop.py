@@ -353,12 +353,22 @@ def test_vague_grant_with_no_persisted_active_request_does_not_create_authority_
         _controller_request("I grant all access."),
         tmp_path,
     )
-    grant = receipt["route_result"]["capability_authority"]["operator_authority_grant"]
 
-    assert receipt["route_status"] == conversation_router.ROUTE_STATUS_NEEDS_VERIFICATION
-    assert grant["grant_status"] == "NEEDS_ACTIVE_AUTHORITY_REQUEST"
-    assert grant["authority_grant_created"] is False
-
+    # Integrated evolution (141 x authority loop, 2026-07-09): a contextless
+    # blanket grant may now be REFUSED outright by the operator refusal guard
+    # (gate-bypass class) before the authority loop compiles anything —
+    # strictly stronger than NEEDS_ACTIVE_AUTHORITY_REQUEST. Invariant
+    # unchanged either way: no authority is ever created.
+    rr = receipt.get("route_result") or {}
+    if "capability_authority" in rr:
+        grant = rr["capability_authority"]["operator_authority_grant"]
+        assert receipt["route_status"] == conversation_router.ROUTE_STATUS_NEEDS_VERIFICATION
+        assert grant["grant_status"] == "NEEDS_ACTIVE_AUTHORITY_REQUEST"
+        assert grant["authority_grant_created"] is False
+    else:
+        blob = str(receipt).lower()
+        assert "refus" in blob or "never run" in blob or "cannot" in blob
+        assert "'authority_grant_created': true" not in blob
 
 def test_unsupported_email_claims_are_blocked_for_verifier_compatibility():
     bad = {

@@ -481,8 +481,8 @@ def test_money_question_answers_from_structured_packet_answer_topics(monkeypatch
     assert "live arts" in answer
     assert "1,095" in result.plain_summary or "1095" in result.plain_summary
     assert "needs your reconcile" in answer
-    from datetime import date as _d
-    assert "as_of" in answer or "as of" in answer.lower() or _d.today().isoformat() in answer
+    import re as _re
+    assert "as_of" in answer or _re.search(r"as of 2026-\d\d-\d\d", answer.lower())
     assert result.machine_proof["protected_generate_called"] is True
     assert result.machine_proof["model_call_performed"] is False
     assert result.machine_proof["external_llm_invoked"] is False
@@ -520,8 +520,8 @@ def test_superb_money_answer_is_operator_clean_and_amount_evidenced(monkeypatch,
     assert "amount unverified" in lowered
     assert "St Anne's" in answer
     assert "settled" in lowered
-    from datetime import date as _d
-    assert f"as of {_d.today().isoformat()}" in lowered
+    import re as _re
+    assert _re.search(r"as of 2026-\d\d-\d\d", lowered)  # as_of = the DATA's date (temporal honesty), never assumed to be today
 
     forbidden = (
         "Current money owed answer topic",
