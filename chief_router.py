@@ -1504,8 +1504,10 @@ def _chief_fallback_reply(text: str) -> list[str]:
     )
 
     try:
-        # Use deep model with long timeout for generic conversational replies.
-        reply = _local_model_call(prompt, timeout=600, model="qwen3.6:latest", task_class="chief_user_reply")
+        # Interactive lane — the operator is waiting on Telegram. Model choice belongs to
+        # the adaptive selector (fit-walled): a hardcoded qwen3.6:latest (27G) here
+        # swap-killed the box mid-round on 2026-07-09.
+        reply = _local_model_call(prompt, timeout=120, task_class="chief_user_reply")
         if not reply:
             return ["I processed that, but I have no specific operational response. Anything else?"]
         return [tts_clean(reply)]

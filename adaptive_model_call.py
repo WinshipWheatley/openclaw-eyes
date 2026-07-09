@@ -152,6 +152,41 @@ def _snapshot_kwargs(snapshot: Any) -> dict[str, Any]:
     }
 
 
+def _enforce_model_fit(
+    primary_model: str,
+    *,
+    task_class: str | None,
+    lane: str | None,
+    model_sizes_fn: Callable[[], Mapping[str, float]] | None = None,
+) -> tuple[bool, str]:
+    """Hardware-fit wall for EXPLICIT caller-passed models (2026-07-09 incident:
+    a pre-doctrine chief_router call site hardcoded qwen3.6:latest (27G) on an
+    interactive lane and swap-killed the whole box; the resolver's own choices
+    already respect the ceilings, but explicit overrides bypassed them).
+
+    Returns (fits, reason). Unknown size fails OPEN (allow + say so) — the wall
+    exists to stop known-oversized loads, not to block when ollama is unreachable.
+    """
+    try:
+        sizes = (model_sizes_fn or chief_llm._ollama_model_sizes)()
+        size_gb = sizes.get(primary_model)
+        if size_gb is None:
+            return True, f"model_fit_unknown_size:{primary_model}"
+        ceiling = (
+            chief_llm._ASYNC_MODEL_CEILING_GB
+            if chief_llm._is_async_workload(task_class, lane)
+            else chief_llm._INTERACTIVE_MODEL_CEILING_GB
+        )
+        if float(size_gb) > float(ceiling):
+            return False, (
+                f"model_fit_wall_demotion:{primary_model}:{size_gb:.1f}GB>"
+                f"{ceiling:.1f}GB_ceiling"
+            )
+        return True, f"model_fit_ok:{primary_model}:{size_gb:.1f}GB"
+    except Exception as exc:
+        return True, f"model_fit_probe_error:{type(exc).__name__}"
+
+
 def _choose_retry_model(
     *,
     primary_model: str,
@@ -196,6 +231,7 @@ def adaptive_model_call(
     model_slot_max_wait_seconds: float = DEFAULT_MODEL_SLOT_MAX_WAIT_SECONDS,
     model_slot_ack_threshold_seconds: float = DEFAULT_MODEL_SLOT_ACK_THRESHOLD_SECONDS,
     on_model_slot_waiting: ModelSlotWaitingFn | None = None,
+    model_sizes_fn: Callable[[], Mapping[str, float]] | None = None,
 ) -> str:
     """Call a local model once, then one adaptive retry on empty output.
 
@@ -215,8 +251,30 @@ def adaptive_model_call(
     select_model_fn = select_model_fn or select_frontdoor_model
     resource_probe_fn = resource_probe_fn or probe_frontdoor_resources
 
+    explicit_model = primary_model is not None
     if primary_model is None or primary_lane is None:
         primary_model, primary_lane = resolve_model_fn(prompt, lane=lane, task_class=task_class)
+    if explicit_model:
+        fits, fit_reason = _enforce_model_fit(
+            primary_model, task_class=task_class, lane=lane, model_sizes_fn=model_sizes_fn
+        )
+        if not fits:
+            demoted_model, demoted_lane = resolve_model_fn(prompt, lane=lane, task_class=task_class)
+            print(
+                f"[adaptive_model_call] {fit_reason} -> demoted to {demoted_model}",
+                flush=True,
+            )
+            if route_logger is not None:
+                route_logger(
+                    task_class=task_class,
+                    preferred_lane=primary_lane,
+                    chosen_lane=demoted_lane,
+                    reason=fit_reason,
+                    escalation=False,
+                    validation_outcome=validation_outcome,
+                    model=demoted_model,
+                )
+            primary_model, primary_lane = demoted_model, demoted_lane
     if route_logger is not None:
         route_logger(
             task_class=task_class,

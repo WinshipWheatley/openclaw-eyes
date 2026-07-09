@@ -37,6 +37,10 @@ def test_adaptive_model_call_retries_downshifted_model_after_empty_primary() -> 
         select_model_fn=fake_selector,
         resource_probe_fn=fake_probe,
         route_logger=lambda **kwargs: routes.append(kwargs),
+        # 2026-07-09 model-fit wall: explicit models are now demoted when their KNOWN size
+        # breaches the lane ceiling. This test's intent (primary attempt honors the caller's
+        # model) survives via the unknown-size fail-open path — sizes injected empty.
+        model_sizes_fn=lambda: {},
     )
 
     assert result == "draft answer"
@@ -68,6 +72,10 @@ def test_adaptive_model_call_returns_empty_after_single_retry() -> None:
             cpu_count=4,
             resident_vram_by_model_gb=lambda: {},
         ),
+        # 2026-07-09 model-fit wall: explicit models are now demoted when their KNOWN size
+        # breaches the lane ceiling. This test's intent (primary attempt honors the caller's
+        # model) survives via the unknown-size fail-open path — sizes injected empty.
+        model_sizes_fn=lambda: {},
     )
 
     assert result == ""
@@ -88,6 +96,10 @@ def test_adaptive_model_call_supports_legacy_ollama_fixture_without_attempts() -
         primary_model="gemma4:31b",
         primary_lane="strong",
         ollama_call_fn=legacy_ollama,
+        # 2026-07-09 model-fit wall: explicit models are now demoted when their KNOWN size
+        # breaches the lane ceiling. This test's intent (primary attempt honors the caller's
+        # model) survives via the unknown-size fail-open path — sizes injected empty.
+        model_sizes_fn=lambda: {},
     )
 
     assert result == "legacy answer"
@@ -111,6 +123,10 @@ def test_adaptive_ollama_text_preserves_explicit_model_without_resolving() -> No
         task_class="chief_evidence_synthesis",
         ollama_call_fn=fake_ollama,
         resolve_model_fn=fail_resolve,
+        # 2026-07-09 model-fit wall: explicit models are now demoted when their KNOWN size
+        # breaches the lane ceiling. This test's intent (primary attempt honors the caller's
+        # model) survives via the unknown-size fail-open path — sizes injected empty.
+        model_sizes_fn=lambda: {},
     )
 
     assert result == "explicit model answer"
