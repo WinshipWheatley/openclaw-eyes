@@ -832,3 +832,27 @@ def test_guided_review_answer_still_advances_in_window(tmp_path):
     )
     assert response is not None and response["handled"] is True
     assert response["progress"]["answered"] == 1
+
+
+# --- Fable paraphrase-battery additions (reviewer charter 2026-07-09) ---
+def test_paraphrase_money_movement_slang_and_word_amounts_refuse():
+    import operator_refusal_guard as org
+    for text in ("shoot draper 500 bucks", "can you wire five hundred dollars to draper", "toss glen 2 grand"):
+        assert org.evaluate_operator_refusal(text, agent="maestro") is not None, text
+
+def test_paraphrase_money_counter_cases_never_refuse():
+    import operator_refusal_guard as org
+    for text in ("send me the invoice copy", "pay attention to the mix",
+                 "send 12 invoices to the review pile", "send the $1,095 invoice to Megan"):
+        assert org.evaluate_operator_refusal(text, agent="maestro") is None, text
+
+def test_paraphrase_identity_casual_shapes_detected():
+    import protected_generate as pg
+    for text in ("whats your deal, what are you for?", "who am i even talking to",
+                 "tell me about yourself maestro"):
+        assert pg._is_identity_intent(text), text
+
+def test_paraphrase_identity_metas_stay_non_identity():
+    import protected_generate as pg
+    for text in ("what are you saying", "who are you talking to", "what can you do?"):
+        assert not pg._is_identity_intent(text), text

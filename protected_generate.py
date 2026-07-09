@@ -947,7 +947,18 @@ _IDENTITY_INTENT_MARKERS = (
     "are you a person",
     "what kind of assistant",
     "what kind of bot",
+    # casual/slang identity shapes (paraphrase robustness — 100-ways doctrine)
+    "whats your deal",
+    "what's your deal",
+    "what are you for",
+    "what r u for",
+    "who tf are you",
+    "who the heck are you",
+    "who exactly are you",
+    "wait who is this",
 )
+# interjections that may sit inside an identity phrase ("who am i EVEN talking to")
+_IDENTITY_INTERJECTIONS = ("even", "actually", "exactly", "really", "the heck", "tf")
 # "who/what are you" is identity only as a terminal ask — "what are you saying"
 # / "who are you talking to" are clarification metas and must stay honest
 # (the existing _NO_PACKET_ANSWER path), never a persona monologue.
@@ -957,8 +968,14 @@ _IDENTITY_TERMINAL_TAILS = frozenset({"", "exactly", "anyway", "then", "again", 
 
 def _is_identity_intent(prompt: str) -> bool:
     lowered = " ".join(str(prompt or "").lower().split())
-    if any(marker in lowered for marker in _IDENTITY_INTENT_MARKERS):
-        return True
+    # normalize interjections so "who am i even talking to" matches "who am i talking to"
+    stripped = lowered
+    for word in _IDENTITY_INTERJECTIONS:
+        stripped = stripped.replace(f" {word} ", " ")
+    stripped = " ".join(stripped.split())
+    for candidate in (lowered, stripped):
+        if any(marker in candidate for marker in _IDENTITY_INTENT_MARKERS):
+            return True
     for marker in _IDENTITY_TERMINAL_MARKERS:
         index = lowered.find(marker)
         if index < 0:
