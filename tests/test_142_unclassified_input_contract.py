@@ -697,10 +697,15 @@ def test_e2e_guard_rail_plate_and_status_still_reach_the_digest_path(frontdoor_p
     # generate), never to the warm-line or persona branches.
     import maestro_cassandra_responder as maestro
 
-    for text in ("what's on my plate?", "status?"):
-        result = maestro.answer_frontdoor_chat(text, protected_generate_fn=_spy_protected_generate)
-        assert result.intent_class == "maestro_brain_freeform", (text, result.intent_class)
-        assert result.plain_summary == "SPY-DIGEST: Live Arts owes $1,095.", text
+    result = maestro.answer_frontdoor_chat("what's on my plate?", protected_generate_fn=_spy_protected_generate)
+    assert result.intent_class == "maestro_brain_freeform", result.intent_class
+    assert result.plain_summary == "SPY-DIGEST: Live Arts owes $1,095."
+    # integrated evolution (142 x 143): bare "status?" now short-circuits to the
+    # terse readback BY DESIGN — it must never fall to the warm-line/persona
+    # branches (the 142 guard-rail's true intent), and never to staging.
+    status = maestro.answer_frontdoor_chat("status?", protected_generate_fn=_spy_protected_generate)
+    assert status.intent_class == "maestro_bare_status_readback", status.intent_class
+    assert "staging" not in (status.plain_summary or "").lower()
 
 
 def test_e2e_real_terse_ask_with_content_term_answers_normally(frontdoor_packet_stub):
