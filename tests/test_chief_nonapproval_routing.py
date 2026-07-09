@@ -10,6 +10,13 @@ def _route_without_side_effects(monkeypatch, text: str) -> dict:
 
 
 def test_chief_approval_status_query_stays_fast(monkeypatch):
+    # Task 143: _approval_status_reply now reads the real approval-brain state (it used
+    # to be hardcoded to always claim zero) -- pin it deterministically here rather than
+    # depending on whatever the live /mnt/c/OpenClaw/logs/approval_pending.json happens
+    # to hold when this test runs.
+    import chief_approval_brain
+
+    monkeypatch.setattr(chief_approval_brain, "has_pending_approval", lambda: False)
     result = _route_without_side_effects(monkeypatch, "what are my open approvals?")
 
     assert result["intent"] == "approval_status"

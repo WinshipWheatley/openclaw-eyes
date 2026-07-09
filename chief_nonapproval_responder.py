@@ -127,10 +127,31 @@ def _approval_hold_reason(t: str) -> str | None:
     return None
 
 
+# Task 143 (CLASS #4): a bare "status?" has no co-occurring "approval" word for the
+# qualifier-pair matcher below, so it fell through to the generic "clarification" reply
+# (pass-1 GOTCHA finding). These bounded bare-status phrases route to the same
+# approval_status intent as the explicit phrasing.
+_BARE_STATUS_PHRASES = frozenset(
+    {
+        "status",
+        "status update",
+        "status check",
+        "status please",
+        "quick status",
+        "whats the status",
+        "what is the status",
+        "give me a status",
+        "give me a status update",
+    }
+)
+
+
 def looks_like_approval_status_query(text: str) -> bool:
     t = _norm(text)
     if not t:
         return False
+    if t.rstrip("?!.").strip() in _BARE_STATUS_PHRASES:
+        return True
     if _has_any(
         t,
         (
@@ -226,9 +247,23 @@ def _money_status_answer() -> str:
 
 
 def _approval_status_reply(surface: str) -> str:
-    if surface == "guardian":
-        return "No pending approval requests."
-    return "No pending approval requests."
+    """Task 143: live approval status -- the prior hardcoded "No pending approval
+    requests." ignored actual state entirely, always claiming zero regardless of truth.
+    Imports the module (not the bare functions) so tests -- and any future caller --
+    monkeypatch the one real source of truth (chief_approval_brain) directly, rather than
+    a re-exported name bound in some other module's namespace."""
+    try:
+        import chief_approval_brain
+
+        if not chief_approval_brain.has_pending_approval():
+            return "No pending approval requests."
+        pending_id, _options = chief_approval_brain.get_pending_info()
+        label = f" ({pending_id})" if pending_id else ""
+        if surface == "guardian":
+            return f"1 pending approval request{label}, awaiting a decision."
+        return f"1 pending approval request{label} — reply with the code and your decision."
+    except Exception:
+        return "Approval status is unavailable right now — the approval brain did not respond. Not claiming zero."
 
 
 def _chief_reply(intent: str) -> str:

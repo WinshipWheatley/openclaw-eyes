@@ -1429,3 +1429,4 @@ generated/system_knowledge/*.sqlite
 !tests/test_cassandra_ops_status_staleness.py
 !tests/test_chief_bare_status.py
 !tests/test_niles_bare_status.py
+!tests/test_guardian_bare_status.py
