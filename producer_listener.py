@@ -94,6 +94,73 @@ def _operator_refusal_reply(text: str) -> str | None:
         return None
 
 
+# Task 143 (CLASS #4): bare-status doctrine. A bare "status?" gets a short, current,
+# Niles-scoped answer (studio/rig state + tracks in flight) -- no model call, no network
+# ping (a live X32 ping could hang past the shared <5s budget), distinct from the normal
+# production-intent parser (which has zero status awareness and would treat "status" as an
+# unrecognized production question).
+_BARE_STATUS_PHRASES = frozenset(
+    {
+        "status",
+        "status update",
+        "status check",
+        "status please",
+        "quick status",
+        "whats the status",
+        "what is the status",
+        "give me a status",
+        "give me a status update",
+    }
+)
+_NILES_TRACK_REGISTRY_STALE_SLA_DAYS = 30
+
+
+def _is_bare_status_query(text: str) -> bool:
+    stripped = str(text or "").strip().rstrip("?!.").strip()
+    normalized = stripped.lower().replace("'", "")
+    normalized = " ".join(normalized.split())
+    return normalized in _BARE_STATUS_PHRASES
+
+
+def build_niles_bare_status_answer() -> str:
+    import json
+    from pathlib import Path
+
+    lines: list[str] = []
+
+    try:
+        from niles_x32_capability import _handle_status
+
+        rig_reply = _handle_status(allow_network=False, controller_factory=None)["reply"]
+        lines.append(f"Rig: {rig_reply}")
+    except Exception:
+        pass
+
+    try:
+        from read_model_freshness_audit import _parse_date, _timestamp_from_payload, _today
+
+        registry_path = Path("generated/read_models/niles_track_registry.json")
+        payload = json.loads(registry_path.read_text(encoding="utf-8"))
+        parsed_date = _parse_date(_timestamp_from_payload(payload))
+        stale = (
+            parsed_date is not None
+            and (_today() - parsed_date).days > _NILES_TRACK_REGISTRY_STALE_SLA_DAYS
+        )
+        if stale:
+            lines.append("Tracks: registry data is stale, excluded.")
+        else:
+            track_count = payload.get("track_count")
+            status_summary = payload.get("status_summary") or {}
+            summary_text = ", ".join(f"{count} {status}" for status, count in status_summary.items())
+            lines.append(f"Tracks: {track_count} in flight ({summary_text})." if summary_text else f"Tracks: {track_count} in flight.")
+    except Exception:
+        pass
+
+    if not lines:
+        return "I don't have current status data to report -- the usual read models are missing or stale."
+    return "\n".join(lines)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.effective_user or update.effective_user.id != AUTHORIZED_USER_ID:
         return
@@ -124,6 +191,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text.lower() in ("/start", "/help"):
         await update.message.reply_text("Niles online. Producer intake active.")
+        return
+
+    if _is_bare_status_query(text):
+        status_reply = build_niles_bare_status_answer()
+        await update.message.reply_text(status_reply)
+        _fire_agent_voice("niles", status_reply, update)
         return
 
     # Direct input
