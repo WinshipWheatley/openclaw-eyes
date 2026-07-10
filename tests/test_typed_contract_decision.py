@@ -647,3 +647,68 @@ def test_preserve_receipt_sink_prunes_oldest_rows_to_fixed_bound(monkeypatch, tm
     assert decisions[0].receipt.decision_id not in durable_ids
     assert decisions[1].receipt.decision_id in durable_ids
     assert decisions[2].receipt.decision_id in durable_ids
+
+
+# ── Fable review additions (2026-07-10): live-composition vote fixes ──────────
+# The live qwen3 model narrates prose around its JSON even with think=False and
+# once emitted the PROMPT'S OWN template object. These lock in the extraction
+# parser, the identity slang widening, and the env kill-switch semantics.
+
+
+def test_parse_semantic_vote_extracts_json_after_prose_preamble():
+    from typed_contract_decision import ContractLabel, _parse_semantic_vote
+
+    raw = (
+        "We are classifying the message. Steps: think carefully.\n"
+        '{"label":"status","confidence":0.9,"session_relevant":false} done.'
+    )
+    parsed = _parse_semantic_vote(raw)
+    assert parsed is not None
+    assert parsed[0] is ContractLabel.STATUS
+
+
+def test_parse_semantic_vote_rejects_prose_only_and_template_object():
+    from typed_contract_decision import _parse_semantic_vote
+
+    assert _parse_semantic_vote("We are to return exactly one JSON object.") is None
+    # The model once echoed the prompt's template — must stay invalid.
+    assert _parse_semantic_vote('{"label":"<label>","confidence":0.0,"session_relevant":false}') is None
+
+
+def test_identity_matcher_covers_slang_and_handle_phrasings():
+    from typed_contract_decision import _is_identity
+
+    assert _is_identity("wait so whats ur whole job exactly lol")
+    assert _is_identity("remind me what it is you actually handle around here?")
+
+
+def test_slangy_identity_ask_is_identity_not_low_coherence():
+    from typed_contract_decision import ContractContext, ContractLabel, decide_contract
+
+    ctx = ContractContext(
+        agent="maestro",
+        surface="operator_maestro_chat",
+        source_message_id="t",
+        active_session=False,
+        session_kind="",
+        session_field="",
+        session_snapshot={},
+    )
+    decision = decide_contract(
+        "wait so whats ur whole job exactly lol",
+        context=ctx,
+        semantic_vote_enabled=False,
+    )
+    assert ContractLabel(str(decision.receipt.label)) is ContractLabel.IDENTITY
+
+
+def test_vote_env_kill_switch_overrides_default_true():
+    from typed_contract_decision import semantic_vote_enabled_for_adapter
+
+    assert semantic_vote_enabled_for_adapter("maestro", default=True, environ={}) is True
+    assert (
+        semantic_vote_enabled_for_adapter(
+            "maestro", default=True, environ={"OPENCLAW_CONTRACT_VOTE_ADAPTERS": "off"}
+        )
+        is False
+    )

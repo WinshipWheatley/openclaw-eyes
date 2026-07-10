@@ -575,3 +575,15 @@ def test_active_cockpit_cannot_capture_operator_corrected_money_read(
 
     assert replies == ["Live Arts MD is fully reconciled as of this afternoon."]
     assert logged[-1] == "money_truth"
+
+
+# ── Fable review addition (2026-07-10): arrival-verb morphology ───────────────
+
+
+def test_hitting_the_account_is_payment_arrival_verify():
+    from money_truth import classify_money_question
+
+    assert (
+        classify_money_question("any sign of the hilton check hitting the account yet?")
+        == "payment_arrival_verify"
+    )

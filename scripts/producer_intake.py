@@ -173,7 +173,7 @@ def _typed_contract_reply(text):
             text,
             context=ContractContext(agent="niles", surface="niles_producer_intake"),
             status_renderer=render_niles_status,
-            semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles_subprocess"),
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles_subprocess", default=True),
         )
     except Exception:
         return None

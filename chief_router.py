@@ -1043,7 +1043,7 @@ def _route_message_inner(text: str) -> dict:
             status_renderer=build_chief_bare_status_answer,
             handoff_stager=_stage_handoff,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
-                "chief", default=_contract_context.active_session
+                "chief", default=True
             ),
             session_answer_predicate=_session_answer,
         )

@@ -6926,7 +6926,7 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             status_renderer=lambda: _handle_ops_status_inquiry(query),
             handoff_stager=_stage_handoff,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
-                "cassandra_brain", default=_contract_context.active_session
+                "cassandra_brain", default=True
             ),
         )
     except Exception as exc:

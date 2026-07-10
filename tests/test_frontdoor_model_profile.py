@@ -1294,3 +1294,27 @@ def test_pgwr_frontdoor_keeps_non_leading_label_intact(tmp_path):
         front_door_profile=True,
     )
     assert outcome.text == body
+
+
+# ── Fable review addition (2026-07-10): grammar-constrained vote output ───────
+
+
+def test_options_format_key_hoists_to_top_level_payload(monkeypatch):
+    import json as _json
+
+    import chief_llm
+
+    with _capture_ollama_payload(monkeypatch, response_text="{}") as captured:
+        chief_llm.ollama_call(
+            "classify",
+            model="qwen3:8b-q4_K_M",
+            task_class="contract_semantic_vote",
+            attempts=1,
+            think=False,
+            num_predict=160,
+            options={"format": "json", "temperature": 0},
+        )
+    payload = _json.loads(captured["payload_bytes"].decode("utf-8"))
+    assert payload["format"] == "json"
+    assert "format" not in payload.get("options", {})
+    assert payload["options"]["temperature"] == 0

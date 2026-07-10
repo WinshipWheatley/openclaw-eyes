@@ -71,13 +71,13 @@ _REAL_REVIEW_TRIGGER = re.compile(
 _MISSING_EMAIL_MARKERS = {"", "unknown", "missing", "none", "null", "n/a", "na", "tbd"}
 _FINALIZED_REVIEW_CLAUSE_RE = re.compile(
     r"(?:"
-    r"\b(?:prep|prepare|get|make|surface|pull\s+up|show)\b"
+    r"\b(?:prep(?:ping)?|prepar(?:e|ing)|get(?:ting)?|hav(?:e|ing)|mak(?:e|ing)|set(?:ting)?\s+up|surface|pull\s+up|show)\b"
     r"[^;.!?\n]{0,120}\binvoice\b[^;.!?\n]{0,120}"
-    r"(?:\bready\b|\bfor\s+(?:my\s+)?review\b|\blook\s+(?:it\s+)?over\b|"
+    r"(?:\bready\b|\bfor\s+(?:my\s+)?review\b|\blook\s+(?:it\s+)?over\b|\beyeball\b|"
     r"\bfinal(?:ized)?\b|"
     r"\breview\s+(?:the\s+)?(?:final(?:ized)?\s+)?(?:copy|invoice)\b)"
     r"|"
-    r"\b(?:prep|prepare|get|make|surface|pull\s+up|show)\b[^;.!?\n]{0,60}"
+    r"\b(?:prep(?:ping)?|prepar(?:e|ing)|get(?:ting)?|hav(?:e|ing)|mak(?:e|ing)|set(?:ting)?\s+up|surface|pull\s+up|show)\b[^;.!?\n]{0,60}"
     r"\bfinal(?:ized)?\b[^;.!?\n]{0,80}\binvoice\b"
     r")",
     re.IGNORECASE,

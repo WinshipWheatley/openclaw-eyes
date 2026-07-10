@@ -1322,6 +1322,10 @@ def ollama_call(
     merged_options: dict = dict(options) if isinstance(options, dict) else {}
     if num_predict is not None:
         merged_options["num_predict"] = num_predict
+    # Reserved key: Ollama's grammar-constrained output lives at the TOP level of
+    # the payload, not under options. Callers opt in via options={"format": "json"};
+    # without it the payload stays byte-identical to before.
+    response_format = merged_options.pop("format", None)
     for candidate_model in models_to_try:
         # Operator policy 2026-06-29: a big (spilling) model must not be killed mid-generation ->
         # stretch its timeout. Small card-fitting models keep the caller's short real-time timeout.
@@ -1335,6 +1339,8 @@ def ollama_call(
             payload_dict["think"] = bool(think)
         if merged_options:
             payload_dict["options"] = dict(merged_options)
+        if response_format:
+            payload_dict["format"] = response_format
         if keep_alive is not None and str(keep_alive).strip():
             payload_dict["keep_alive"] = str(keep_alive).strip()
         payload = json.dumps(payload_dict).encode("utf-8")

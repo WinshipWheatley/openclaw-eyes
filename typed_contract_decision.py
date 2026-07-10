@@ -206,6 +206,8 @@ _IDENTITY_PATTERNS = (
     re.compile(r"\bwhat\s+(?:do|are)\s+you\s+(?:do|for)\b", re.IGNORECASE),
     re.compile(r"\bwhat\s+you(?:'re|\s+are)\s+(?:for|here\s+for)\b", re.IGNORECASE),
     re.compile(r"\bin\s+plain\s+english.{0,45}\b(?:your\s+role|what\s+you\s+do)\b", re.IGNORECASE),
+    re.compile(r"\bwhat(?:'?s|\s+is)?\s+(?:ur|u\s*r)\s+(?:whole\s+)?(?:job|role|deal|thing|purpose)\b", re.IGNORECASE),
+    re.compile(r"\bwhat\s+(?:it\s+is\s+)?you\s+(?:actually\s+)?(?:handle|cover|take\s+care\s+of)\b", re.IGNORECASE),
 )
 _SAFE_VOTE_LABELS = frozenset(
     {
@@ -848,8 +850,16 @@ def _semantic_prompt(text: str, context: ContractContext) -> str:
         )
     )
     return (
-        "Classify a non-authority conversational message. Return exactly one JSON object and no prose: "
+        "Classify a non-authority conversational message. Your reply MUST begin with the character { — "
+        "no reasoning, no steps, no prose before or after. Return exactly one JSON object: "
         '{"label":"<label>","confidence":0.0,"session_relevant":false}. '
+        "Label meanings: status=asking how things/the system are going right now; "
+        "identity=asking who you are, your role, job, or what you handle; "
+        "low_coherence=nonsense or garbled text with no real request; "
+        "route_instruction=asking to route/stage/hand work to the right agent; "
+        "guardian_gate_narration=asking how the send/approval/invoice gates work; "
+        "session_relevant=directly answers the currently pending workflow question; "
+        "unresolved=none of these clearly fits. "
         f"Allowed labels only: {labels}. Never infer, grant, or describe an approval, authorization, send, delete, "
         "payment, or money-movement decision. A route_instruction label identifies a request to stage/handoff work; "
         "it does not authorize execution.\n"
@@ -859,9 +869,47 @@ def _semantic_prompt(text: str, context: ContractContext) -> str:
     )
 
 
+def _extract_first_json_object(raw: str) -> str | None:
+    """Return the first balanced {...} substring, or None.
+
+    Live composition truth (2026-07-10): the local model narrates prose
+    reasoning around its JSON even with think=False. The vote stays strict on
+    keys/labels but must not require the whole reply to be the object.
+    """
+    text = str(raw or "")
+    start = text.find("{")
+    while start != -1:
+        depth = 0
+        in_str = False
+        escaped = False
+        for i in range(start, len(text)):
+            ch = text[i]
+            if in_str:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start : i + 1]
+        start = text.find("{", start + 1)
+    return None
+
+
 def _parse_semantic_vote(raw: str) -> tuple[ContractLabel, float, bool] | None:
+    candidate = _extract_first_json_object(raw)
+    if candidate is None:
+        return None
     try:
-        payload = json.loads(str(raw or ""))
+        payload = json.loads(candidate)
     except (TypeError, ValueError, json.JSONDecodeError):
         return None
     if not isinstance(payload, dict) or set(payload) != {"label", "confidence", "session_relevant"}:
@@ -915,7 +963,8 @@ def _call_semantic_vote(
                 timeout=model_timeout_seconds,
                 attempts=1,
                 think=False,
-                num_predict=80,
+                num_predict=160,
+                options={"format": "json", "temperature": 0},
                 retry=False,
                 model_slot_max_wait_seconds=slot_wait_seconds,
             )

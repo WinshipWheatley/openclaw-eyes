@@ -370,7 +370,7 @@ def nonapproval_response_for_text(text: str, *, surface: str = "chief") -> NonAp
                 text,
                 context=ContractContext(agent="guardian", surface="guardian_listener"),
                 status_renderer=lambda: _approval_status_reply("guardian"),
-                semantic_vote_enabled=semantic_vote_enabled_for_adapter("guardian"),
+                semantic_vote_enabled=semantic_vote_enabled_for_adapter("guardian", default=True),
             )
         except Exception:
             typed = None

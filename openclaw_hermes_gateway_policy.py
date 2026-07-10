@@ -434,7 +434,7 @@ def truthful_reply_for_text(text: str) -> str | None:
             raw,
             context=ContractContext(agent="hermes", surface="hermes_gateway_policy"),
             status_renderer=render_hermes_status,
-            semantic_vote_enabled=semantic_vote_enabled_for_adapter("hermes_status"),
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter("hermes_status", default=True),
         )
     except Exception:
         _typed = None

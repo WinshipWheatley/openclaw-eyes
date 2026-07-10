@@ -478,7 +478,7 @@ async def _run_cassandra_handle_async(
             status_renderer=_status_renderer,
             handoff_stager=_stage_handoff,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
-                "cassandra", default=_contract_context.active_session
+                "cassandra", default=True
             ),
         )
     except Exception as exc:

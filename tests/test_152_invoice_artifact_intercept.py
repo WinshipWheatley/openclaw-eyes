@@ -572,3 +572,28 @@ def test_task151_compound_seam_runs_money_and_real_artifact_once(
     assert replies[1].kind == "document"
     assert Path(replies[1].document_path).resolve() == FINALIZED_PDF.resolve()
     _assert_runtime_unchanged(finalized_environment)
+
+
+# ── Fable review additions (2026-07-10): paraphrase-battery misses fixed ──────
+
+
+def test_review_trigger_accepts_have_ready_to_eyeball():
+    from invoice_cockpit_session import _detect_finalized_artifact_review
+
+    assert _detect_finalized_artifact_review(
+        "can you have the st annes july invoice ready for me to eyeball?"
+    )
+
+
+def test_review_trigger_accepts_getting_set_up_for_review():
+    from invoice_cockpit_session import _detect_finalized_artifact_review
+
+    assert _detect_finalized_artifact_review(
+        "would you mind getting the July St. Anne's invoice set up for my review?"
+    )
+
+
+def test_rates_wizard_ask_still_not_artifact_review():
+    from invoice_cockpit_session import _detect_finalized_artifact_review
+
+    assert _detect_finalized_artifact_review("review my rates and clients") is None

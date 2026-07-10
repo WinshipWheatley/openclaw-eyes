@@ -397,7 +397,7 @@ _MOVEMENT_MONEY_WORD_RE = re.compile(
 _ARRIVAL_SUBJECT_RE = re.compile(r"\b(payment|check|deposit|funds|money|invoice)\b")
 _ARRIVAL_VERB_RE = re.compile(
     r"\b(come through|came through|come in|came in|arrive[ds]?|land(?:ed)?|clear(?:ed)?|"
-    r"hit the account|posted|post yet|show(?:ed)? up|in my account|in the account|in the bank)\b"
+    r"hit(?:ting|s)? the (?:bank )?account|posted|post yet|show(?:ed)? up|in my account|in the account|in the bank)\b"
 )
 _ARRIVAL_QUESTION_RE = re.compile(
     r"^(?:did|has|have|is|are|was|were|can|could|would|do\s+you\s+know|"

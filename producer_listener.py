@@ -176,7 +176,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 source_message_id=str(getattr(update, "update_id", "") or ""),
             ),
             status_renderer=build_niles_bare_status_answer,
-            semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles"),
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles", default=True),
         )
     except Exception:
         _typed = None

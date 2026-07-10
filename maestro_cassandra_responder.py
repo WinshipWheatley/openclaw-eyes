@@ -719,7 +719,7 @@ def answer_frontdoor_chat(
             status_renderer=_status_renderer,
             handoff_stager=_handoff_stager,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
-                "maestro", default=_contract_context.active_session
+                "maestro", default=True
             ),
         )
     except Exception as exc:
