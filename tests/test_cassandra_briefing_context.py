@@ -321,10 +321,19 @@ def test_non_morning_brief_uses_deterministic_fallback_after_llm_failures(monkey
         "resolve_local_model",
         lambda prompt, task_class=None: ("gemma4:e4b", "strong"),
     )
+    action_slice = {
+        "status": "fresh",
+        "as_of": "2026-04-19T12:00:00+00:00",
+        "timestamp_source": "frontmatter:as_of",
+        "lines": ["finish the active lane"],
+    }
+    monkeypatch.setattr(bb.ops, "read_ops_actions_slice", lambda: action_slice)
     monkeypatch.setattr(
-        bb,
+        bb.ops,
         "build_action_summary",
-        lambda: "Pending (1):\n  [PRIORITY] finish the active lane\nCompleted (0):\n  (none)",
+        lambda *, action_slice=None: (
+            "Pending (1):\n  [PRIORITY] finish the active lane\nCompleted (0):\n  (none)"
+        ),
     )
 
     def fake_ollama_call(prompt, timeout=0, model=None, task_class=None, **kwargs):

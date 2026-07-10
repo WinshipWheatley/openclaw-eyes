@@ -830,6 +830,47 @@ def _build_briefing_prompt(slot: str, context: str, directive: str, task_class: 
     )
 
 
+def _without_pending_actions_section(context: str) -> str:
+    """Remove Cassandra's legacy raw Ops Actions block from a snapshot."""
+    kept: list[str] = []
+    dropping = False
+    for raw in str(context or "").splitlines():
+        if raw.strip() == "Pending actions:":
+            dropping = True
+            continue
+        if dropping:
+            if not raw.strip() or raw.startswith((" ", "\t")):
+                continue
+            dropping = False
+        kept.append(raw)
+    return "\n".join(kept).strip()
+
+
+def _ops_slice_context(action_slice: dict) -> str:
+    status = str(action_slice.get("status") or "invalid")
+    as_of = action_slice.get("as_of") or "unknown"
+    source = action_slice.get("timestamp_source") or "none"
+    lines = action_slice.get("lines") or []
+    if status == "fresh":
+        body = "\n".join(f"  {line}" for line in lines) if lines else "  (none)"
+        return (
+            f"Ops Actions slice: fresh; source as of {as_of} via {source}.\n"
+            f"Current admitted actions:\n{body}"
+        )
+    return (
+        f"Ops Actions slice: {status}; source as of {as_of} via {source}. "
+        "No current priority is claimed from this slice."
+    )
+
+
+def _build_scheduled_brief_context() -> str:
+    """Build model context with one age-gated Ops Actions representation."""
+    canonical = _without_pending_actions_section(build_context_snapshot())
+    action_slice = ops.read_ops_actions_slice()
+    parts = [part for part in (canonical, _ops_slice_context(action_slice)) if part]
+    return "\n\n".join(parts)
+
+
 # ── Compatibility re-exports ──────────────────────────────────────────────────
 
 def build_action_summary(n_actions: int = 12) -> str:
@@ -978,7 +1019,7 @@ def _build_morning_stack_inputs() -> dict[str, str]:
     if fixture_inputs:
         return fixture_inputs
 
-    context = build_context_snapshot()
+    context = _build_scheduled_brief_context()
     try:
         from cassandra_briefing_morning_context import build_morning_briefing_context
         morning_context = build_morning_briefing_context()
@@ -1098,7 +1139,7 @@ def generate_briefing_bundle(slot: str) -> dict:
 
     from chief_llm import agent_default_lane
     _, _, directive = SLOTS[slot]
-    context = build_context_snapshot()
+    context = _build_scheduled_brief_context()
     prompt = (
         f"{_PERSONA_BRIEF}\n\n"
         f"Current context:\n{context}\n\n"
@@ -1124,7 +1165,20 @@ def generate_briefing_bundle(slot: str) -> dict:
 
 def _bounded_ops_slot_fallback(slot: str) -> str:
     ts = datetime.now().strftime("%H:%M")
-    action_summary = build_action_summary()
+    action_slice = ops.read_ops_actions_slice()
+    if action_slice["status"] != "fresh":
+        status = action_slice["status"]
+        as_of = action_slice["as_of"]
+        if as_of:
+            as_of_note = f" as of {as_of[:10]}"
+        else:
+            as_of_note = " with no usable as-of timestamp"
+        return tts_clean(
+            f"[{ts} — {slot} fallback] Ops Actions slice is {status}{as_of_note}. "
+            "No current priority is claimed from it."
+        )
+
+    action_summary = ops.build_action_summary(action_slice=action_slice)
     pending: list[str] = []
     completed: list[str] = []
     section = None
@@ -1277,7 +1331,7 @@ def generate_briefing(slot: str) -> str:
         else:
             context = morning_reference["prompt_context"]
     else:
-        context = build_context_snapshot()
+        context = _build_scheduled_brief_context()
 
     prompt = _build_briefing_prompt(slot, context, directive, task_class)
 

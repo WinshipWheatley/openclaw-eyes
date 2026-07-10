@@ -26,6 +26,7 @@ SOURCE_MODULE = "chief_morning_synthesis.py"
 MAX_SOURCE_CHARS = 6_000
 MAX_LINE_CHARS = 220
 FRESH_AFTER_HOURS = 12
+OPS_ACTIONS_FRESH_AFTER_HOURS = 24
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,88 @@ def _freshness(path: Path, now: datetime) -> tuple[str, str]:
     return modified_at, f"stale: source last changed {modified_at}"
 
 
+def _frontmatter(content: str) -> tuple[dict[str, str], bool]:
+    lines = content.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}, True
+    closing = next(
+        (index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---"),
+        None,
+    )
+    if closing is None:
+        return {}, False
+    fields: dict[str, str] = {}
+    for raw in lines[1:closing]:
+        if ":" not in raw:
+            continue
+        key, value = raw.split(":", 1)
+        key = key.strip().lower()
+        if key:
+            fields[key] = value.strip().strip("\"'")
+    return fields, True
+
+
+def _parse_artifact_time(value: str, now: datetime) -> datetime | None:
+    normalized = str(value or "").strip().strip("\"'")
+    if not normalized or normalized.lower() == "null":
+        return None
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=now.tzinfo)
+    return parsed.astimezone(now.tzinfo)
+
+
+def _ops_actions_context_freshness(
+    content: str,
+    *,
+    now: datetime,
+    fallback_freshness: str,
+) -> tuple[str, bool]:
+    """Resolve embedded source age, not the context artifact's write time."""
+    fields, valid = _frontmatter(content)
+    if not valid:
+        return "invalid: Ops Actions Context frontmatter is unclosed", False
+
+    declared_status = fields.get("slice_status", "").strip().lower()
+    legacy_freshness = fields.get("freshness", "").strip().lower()
+    as_of_key = next(
+        (
+            key
+            for key in ("slice_as_of", "as_of", "updated", "generated_at")
+            if key in fields
+        ),
+        None,
+    )
+    as_of = _parse_artifact_time(fields.get(as_of_key, ""), now) if as_of_key else None
+    as_of_text = as_of.isoformat(timespec="seconds") if as_of else "unknown"
+
+    if declared_status in {"stale", "missing", "invalid"}:
+        return f"{declared_status}: source as of {as_of_text}", False
+    if legacy_freshness.startswith(("stale", "missing", "invalid")):
+        status = legacy_freshness.split(":", 1)[0]
+        return f"{status}: source as of {as_of_text}", False
+    if declared_status and declared_status != "fresh":
+        return f"invalid: unknown slice status {declared_status}", False
+    if as_of_key is not None and as_of is None:
+        return f"invalid: unreadable {as_of_key} timestamp", False
+    if as_of is not None:
+        age_hours = (now - as_of).total_seconds() / 3600
+        if age_hours < -(5 / 60):
+            return f"invalid: future source timestamp {as_of_text}", False
+        if age_hours > OPS_ACTIONS_FRESH_AFTER_HOURS:
+            return f"stale: source as of {as_of_text}", False
+        return f"fresh: source as of {as_of_text}", True
+
+    # Legacy artifacts without an embedded source timestamp retain the file
+    # timestamp behavior, but stale file-level evidence is never admitted.
+    return fallback_freshness, fallback_freshness.startswith("fresh")
+
+
 def _read_snapshot(artifact: UpstreamArtifact, now: datetime) -> ArtifactSnapshot:
     modified_at, freshness = _freshness(artifact.path, now)
     if not artifact.path.exists():
@@ -100,6 +183,15 @@ def _read_snapshot(artifact: UpstreamArtifact, now: datetime) -> ArtifactSnapsho
             freshness="unreadable source",
             content="",
         )
+
+    if artifact.label == "Ops Actions Context":
+        freshness, admitted = _ops_actions_context_freshness(
+            content,
+            now=now,
+            fallback_freshness=freshness,
+        )
+        if not admitted:
+            content = ""
 
     return ArtifactSnapshot(
         label=artifact.label,
@@ -239,7 +331,8 @@ def build_chief_morning_synthesis_markdown(
     stale_or_missing = [
         f"{snapshot.label}: {snapshot.freshness}"
         for snapshot in snapshots
-        if not snapshot.exists or snapshot.freshness.startswith("stale")
+        if not snapshot.exists
+        or snapshot.freshness.startswith(("stale", "missing", "invalid", "unreadable"))
     ]
     if not stale_or_missing:
         stale_or_missing = ["All selected upstream artifacts are fresh by the 24-hour synthesis rule."]
