@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenClaw one-shot boot integrity assertion
+Documentation=file://@REPO_ROOT@/docs/operations/OPENCLAW_BOOT_INTEGRITY.md
+DefaultDependencies=no
+After=default.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+ExecStart=@REPO_ROOT@/scripts/openclaw_boot_check.sh --source user-systemd
+TimeoutStartSec=300
+SuccessExitStatus=1 2
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
