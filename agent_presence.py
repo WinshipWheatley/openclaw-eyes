@@ -11,8 +11,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import subprocess
+import tempfile
+import uuid
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -91,6 +94,7 @@ class PresenceAgentConfig:
     display_name: str
     lane_id: str
     desired_state: str
+    primary_surface_id: str
     surfaces: tuple[RuntimeSurface, ...]
     metadata_available_paths: tuple[str, ...] = ()
     notes: str = ""
@@ -145,6 +149,27 @@ class AgentRecoveryResult:
 
 
 DEFAULT_RECOVERY_ACTIONS: tuple[RecoveryActionSeed, ...] = (
+    RecoveryActionSeed(
+        recovery_action_id="maestro_systemd_user_start",
+        agent_id="maestro",
+        action_kind="systemd_user_start",
+        command_label="Start Maestro listener",
+        command_argv=("systemctl", "--user", "start", "maestro-listener.service"),
+        working_directory=str(ROOT),
+        status_check_kind="systemd_user_is_active",
+        status_check_argv=("systemctl", "--user", "is-active", "maestro-listener.service"),
+        log_path=None,
+        heartbeat_path=None,
+        safe_to_attempt=False,
+        requires_operator_approval=True,
+        cooldown_seconds=900,
+        max_attempts_per_hour=1,
+        receipt_required=True,
+        discovered_from="systemd/user/maestro-listener.service.in",
+        confidence="medium",
+        classification="safe_start_candidate",
+        notes="Maestro is Telegram-facing; recovery remains blocked unless a future explicit lane allows it.",
+    ),
     RecoveryActionSeed(
         recovery_action_id="chief_systemd_user_start",
         agent_id="chief",
@@ -241,14 +266,14 @@ DEFAULT_RECOVERY_ACTIONS: tuple[RecoveryActionSeed, ...] = (
         notes="Guardian listener path exists, but it is Telegram-facing and remains blocked unless a future lane grants recovery.",
     ),
     RecoveryActionSeed(
-        recovery_action_id="niles_producer_script_start",
+        recovery_action_id="niles_systemd_user_start",
         agent_id="niles",
-        action_kind="script_start",
-        command_label="Start Producer/Niles listener script",
-        command_argv=("bash", "scripts/run_producer_listener.sh"),
+        action_kind="systemd_user_start",
+        command_label="Start Niles listener",
+        command_argv=("systemctl", "--user", "start", "niles-listener.service"),
         working_directory=str(ROOT),
-        status_check_kind="process_name",
-        status_check_argv=None,
+        status_check_kind="systemd_user_is_active",
+        status_check_argv=("systemctl", "--user", "is-active", "niles-listener.service"),
         log_path=None,
         heartbeat_path=None,
         safe_to_attempt=False,
@@ -256,10 +281,10 @@ DEFAULT_RECOVERY_ACTIONS: tuple[RecoveryActionSeed, ...] = (
         cooldown_seconds=900,
         max_attempts_per_hour=1,
         receipt_required=True,
-        discovered_from="scripts/run_producer_listener.sh; producer_listener.py",
-        confidence="low",
-        classification="needs_operator_review",
-        notes="Producer/Niles launcher requires secret-backed environment and may call Telegram; not safe for automatic recovery.",
+        discovered_from="installed niles-listener.service; producer_listener.py; scripts/run_producer_listener.sh",
+        confidence="medium",
+        classification="safe_start_candidate",
+        notes="Niles is Telegram-facing; recovery remains blocked unless a future explicit lane allows it.",
     ),
     RecoveryActionSeed(
         recovery_action_id="hermes_systemd_user_start",
@@ -308,10 +333,22 @@ DEFAULT_RECOVERY_ACTIONS: tuple[RecoveryActionSeed, ...] = (
 
 AGENT_CONFIGS: tuple[PresenceAgentConfig, ...] = (
     PresenceAgentConfig(
+        agent_id="maestro",
+        display_name="Maestro",
+        lane_id="operator_orchestration",
+        desired_state="online",
+        primary_surface_id="maestro_listener_service",
+        surfaces=(
+            RuntimeSurface("maestro_listener_service", "telegram_bot", "systemd/user/maestro-listener.service.in", "maestro-listener.service", "maestro_listener.py", "current_active", "systemd_restart"),
+        ),
+        notes="Maestro's listener is the authoritative operator-facing runtime unit.",
+    ),
+    PresenceAgentConfig(
         agent_id="chief",
         display_name="Chief",
         lane_id="system_orchestration",
         desired_state="online",
+        primary_surface_id="chief_listener_service",
         surfaces=(
             RuntimeSurface("chief_listener_service", "systemd_service", "systemd/user/chief-listener.service.in", "chief-listener.service", "chief_listener.py", "current_active", "systemd_restart"),
             RuntimeSurface("chief_worker_service", "systemd_service", "systemd/user/chief-worker.service.in", "chief-worker.service", "chief_worker.py", "current_active", "systemd_restart"),
@@ -326,6 +363,7 @@ AGENT_CONFIGS: tuple[PresenceAgentConfig, ...] = (
         display_name="Cassandra",
         lane_id="operator_comms",
         desired_state="online",
+        primary_surface_id="cassandra_listener_service",
         surfaces=(
             RuntimeSurface("cassandra_listener_service", "telegram_bot", "systemd/user/cassandra-listener.service.in", "cassandra-listener.service", "cassandra_listener.py", "current_active", "systemd_restart"),
             RuntimeSurface("cassandra_watcher_service", "local_service", "systemd/user/cassandra-watcher.service.in", "cassandra-watcher.service", "cassandra_watcher.py", "current_active", "systemd_restart"),
@@ -338,6 +376,7 @@ AGENT_CONFIGS: tuple[PresenceAgentConfig, ...] = (
         display_name="Guardian",
         lane_id="safety_security",
         desired_state="online",
+        primary_surface_id="guardian_listener_service",
         surfaces=(
             RuntimeSurface("guardian_listener_service", "telegram_bot", "systemd/user/chief-guardian-listener.service.in", "chief-guardian-listener.service", "chief_guardian_listener.py", "current_active", "systemd_restart"),
         ),
@@ -348,8 +387,9 @@ AGENT_CONFIGS: tuple[PresenceAgentConfig, ...] = (
         display_name="Niles",
         lane_id="music_art_production",
         desired_state="online",
+        primary_surface_id="niles_listener_service",
         surfaces=(
-            RuntimeSurface("niles_producer_listener", "script", "producer_listener.py", None, "producer_listener.py", "partial_overlap", "script_start", "Producer/Niles listener path exists, but secret-backed launcher is not safe for automatic recovery."),
+            RuntimeSurface("niles_listener_service", "telegram_bot", "producer_listener.py", "niles-listener.service", "producer_listener.py", "current_active", "systemd_restart", "The installed Niles unit executes producer_listener.py; this unit is the primary presence authority."),
             RuntimeSurface("niles_producer_intake", "script", "scripts/producer_intake.py", None, "producer_intake.py", "candidate_to_extend", "none", "Metadata/intake surface, not proof of online listener presence."),
         ),
         metadata_available_paths=("generated/producer/producer_compiled_context.json",),
@@ -360,17 +400,23 @@ AGENT_CONFIGS: tuple[PresenceAgentConfig, ...] = (
         display_name="Hermes",
         lane_id="advisory_synthesis",
         desired_state="online",
+        primary_surface_id="hermes_gateway_service",
         surfaces=(
             RuntimeSurface("hermes_gateway_service", "systemd_service", "systemd/user/hermes-gateway.service.in", "hermes-gateway.service", "hermes_cli.main", "current_active", "systemd_restart"),
         ),
         metadata_available_paths=("hermes_advisory_packet.py", "docs/operations/HERMES_ADVISORY_PACKET_CONTRACT.md"),
         notes="Hermes gateway has a narrow installer/restart path, but this lane does not invoke it.",
     ),
+)
+
+
+SUPPLEMENTAL_CONFIGS: tuple[PresenceAgentConfig, ...] = (
     PresenceAgentConfig(
         agent_id="report_bridge",
         display_name="Report Bridge",
         lane_id="node_report_intake",
         desired_state="unknown_review",
+        primary_surface_id="",
         surfaces=(),
         metadata_available_paths=("report_bridge.py", "generated/read_models/report_bridge.json"),
         notes="Report Bridge is sanitized metadata/package intake, not a live daemon in v0.",
@@ -801,6 +847,12 @@ def seed_recovery_actions(
     overrides = action_overrides or {}
     conn = sqlite3.connect(path)
     try:
+        # Task 154 makes the installed Niles unit authoritative. Remove the
+        # superseded script-start seed so an upgraded ledger cannot select it.
+        conn.execute(
+            "DELETE FROM agent_recovery_actions WHERE recovery_action_id = ?",
+            ("niles_producer_script_start",),
+        )
         for seed in DEFAULT_RECOVERY_ACTIONS:
             override = overrides.get(seed.agent_id, {})
             effective = seed
@@ -888,15 +940,18 @@ LIMIT 1
 def _surface_state(
     *,
     surface: RuntimeSurface,
+    primary_surface_id: str,
     repo_root: str | Path,
     process_counts: dict[str, int],
     service_states: dict[str, str],
+    observed_at: str,
 ) -> dict[str, Any]:
     source = _resolve_repo_path(surface.source_path, repo_root=repo_root)
     service_state = service_states.get(surface.service_name or "", "not_applicable")
     process_count = process_counts.get(surface.process_name or "", 0)
     return {
         "surface_id": surface.surface_id,
+        "presence_role": "primary" if surface.surface_id == primary_surface_id else "auxiliary",
         "surface_kind": surface.surface_kind,
         "source_path": surface.source_path,
         "service_name": surface.service_name,
@@ -907,7 +962,16 @@ def _surface_state(
         "process_count": process_count,
         "safe_recovery_kind": surface.safe_recovery_kind,
         "notes": surface.notes,
+        "observed_at": observed_at,
     }
+
+
+def _surface_is_active(surface_state: dict[str, Any]) -> bool:
+    """Use the configured unit as authority; process counts are fallback-only."""
+
+    if surface_state.get("service_name"):
+        return surface_state.get("service_state") == "active"
+    return int(surface_state.get("process_count") or 0) > 0
 
 
 def _actual_state_for_agent(
@@ -915,64 +979,70 @@ def _actual_state_for_agent(
     config: PresenceAgentConfig,
     surface_states: list[dict[str, Any]],
     repo_root: str | Path,
+    observed_at: str,
 ) -> dict[str, Any]:
     runtime_surface_found = any(item["surface_found"] for item in surface_states)
-    active_surfaces = [
+    primary = next((item for item in surface_states if item["presence_role"] == "primary"), None)
+    active_auxiliary = [
         item
         for item in surface_states
-        if item.get("service_state") == "active" or int(item.get("process_count") or 0) > 0
+        if item["presence_role"] == "auxiliary"
+        and _surface_is_active(item)
     ]
     metadata_available = any(_resolve_repo_path(path, repo_root=repo_root).exists() for path in config.metadata_available_paths)
-    if not surface_states and metadata_available:
+    if primary is None:
         return {
-            "actual_state": "metadata_available",
-            "presence_source": "read_model",
-            "runtime_surface_found": False,
-            "runtime_surface_kind": "metadata_only",
-            "last_seen_at": utc_now(),
-            "reason": "Metadata/read-model surface is available; no live runtime surface is configured.",
+            "actual_state": "not_configured",
+            "presence_source": "unknown",
+            "runtime_surface_found": runtime_surface_found,
+            "runtime_surface_kind": "unknown",
+            "last_seen_at": None,
+            "reason": "No authoritative primary runtime unit is configured for this core agent.",
+            "blocker": "primary runtime unit not configured",
+        }
+    primary_active = _surface_is_active(primary)
+    if primary_active:
+        auxiliary_total = sum(1 for item in surface_states if item["presence_role"] == "auxiliary")
+        source = "service_check" if primary.get("service_name") else "process_check"
+        detail = f"; {len(active_auxiliary)}/{auxiliary_total} auxiliary surface(s) active" if auxiliary_total else ""
+        return {
+            "actual_state": "online",
+            "presence_source": source,
+            "runtime_surface_found": runtime_surface_found,
+            "runtime_surface_kind": primary["surface_kind"],
+            "last_seen_at": observed_at,
+            "reason": f"Authoritative primary unit {primary.get('service_name') or primary.get('process_name')} is active{detail}.",
             "blocker": None,
         }
-    if not runtime_surface_found and not metadata_available:
+    if not primary["surface_found"] and not metadata_available:
         return {
             "actual_state": "not_configured",
             "presence_source": "unknown",
             "runtime_surface_found": False,
             "runtime_surface_kind": "unknown",
             "last_seen_at": None,
-            "reason": "No runtime or metadata surface was found in the repo.",
-            "blocker": "runtime status path not discovered",
-        }
-    if active_surfaces:
-        expected_count = max(1, len([item for item in surface_states if item["surface_found"]]))
-        actual_state = "online" if len(active_surfaces) >= expected_count else "degraded"
-        return {
-            "actual_state": actual_state,
-            "presence_source": "service_check" if any(item.get("service_state") == "active" for item in active_surfaces) else "process_check",
-            "runtime_surface_found": runtime_surface_found,
-            "runtime_surface_kind": ",".join(sorted({item["surface_kind"] for item in surface_states if item["surface_found"]})) or "unknown",
-            "last_seen_at": utc_now(),
-            "reason": f"{len(active_surfaces)} runtime surface(s) show active process/service evidence.",
-            "blocker": None if actual_state == "online" else "only some expected runtime surfaces show active evidence",
+            "reason": "The authoritative primary runtime unit has no discovered repo surface.",
+            "blocker": "primary runtime status path not discovered",
         }
     if runtime_surface_found:
+        auxiliary_note = f" {len(active_auxiliary)} auxiliary surface(s) are active, but they do not establish core presence." if active_auxiliary else ""
         return {
             "actual_state": "offline",
             "presence_source": "runtime_surface",
             "runtime_surface_found": True,
-            "runtime_surface_kind": ",".join(sorted({item["surface_kind"] for item in surface_states if item["surface_found"]})) or "unknown",
+            "runtime_surface_kind": primary["surface_kind"],
             "last_seen_at": None,
-            "reason": "Runtime surfaces exist, but no active local process/service evidence was found.",
-            "blocker": "expected runtime evidence missing",
+            "reason": f"Authoritative primary unit {primary.get('service_name') or primary.get('process_name')} is not active.{auxiliary_note}",
+            "blocker": "expected primary runtime evidence missing",
         }
     return {
-        "actual_state": "metadata_available" if metadata_available else "unknown",
+        "actual_state": "not_configured" if metadata_available else "unknown",
         "presence_source": "read_model" if metadata_available else "unknown",
         "runtime_surface_found": False,
         "runtime_surface_kind": "metadata_only" if metadata_available else "unknown",
-        "last_seen_at": utc_now() if metadata_available else None,
-        "reason": "Metadata is available, but live runtime evidence is not configured.",
-        "blocker": None if metadata_available else "presence evidence unavailable",
+        "last_seen_at": None,
+        "reason": "Metadata is available, but the authoritative primary runtime unit was not discovered." if metadata_available else "Presence evidence is unavailable.",
+        "blocker": "primary runtime evidence unavailable" if metadata_available else "presence evidence unavailable",
     }
 
 
@@ -1063,8 +1133,8 @@ def build_agent_presence_snapshot(
     path = init_agent_presence_schema(db_path)
     seed_agent_lane_registry(db_path=path)
     seed_desired_states(db_path=path, desired_state_overrides=desired_state_overrides)
-    now = utc_now()
-    clearance_action_overrides, clearance_policy_overrides = _active_recovery_clearance_overrides(path, now=now)
+    started_at = utc_now()
+    clearance_action_overrides, clearance_policy_overrides = _active_recovery_clearance_overrides(path, now=started_at)
     effective_action_overrides = {agent: dict(override) for agent, override in (recovery_action_overrides or {}).items()}
     for agent, override in clearance_action_overrides.items():
         merged = dict(effective_action_overrides.get(agent, {}))
@@ -1076,7 +1146,7 @@ def build_agent_presence_snapshot(
         merged.update(override)
         effective_policy_overrides[agent] = merged
     seed_recovery_actions(db_path=path, action_overrides=effective_action_overrides)
-    resolved_run_id = run_id or _row_id("agentpresence", now)
+    resolved_run_id = run_id or _row_id("agentpresence", started_at, uuid.uuid4().hex)
     discovered_process_counts = process_counts if process_counts is not None else _process_snapshot()
     service_names = tuple(
         surface.service_name
@@ -1085,6 +1155,7 @@ def build_agent_presence_snapshot(
         if surface.service_name
     )
     discovered_service_states = service_states if service_states is not None else _systemd_user_state(service_names)
+    observation_completed_at = utc_now()
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     agent_rows: list[dict[str, Any]] = []
@@ -1114,7 +1185,7 @@ INSERT INTO agent_presence_runs (
 ) VALUES (?, ?, ?, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 ON CONFLICT(run_id) DO NOTHING
 """.strip(),
-            (resolved_run_id, AGENT_PRESENCE_VERSION, now),
+            (resolved_run_id, AGENT_PRESENCE_VERSION, started_at),
         )
         seed_by_id = _agent_seed_by_id()
         for config in AGENT_CONFIGS:
@@ -1123,13 +1194,20 @@ ON CONFLICT(run_id) DO NOTHING
             surface_states = [
                 _surface_state(
                     surface=surface,
+                    primary_surface_id=config.primary_surface_id,
                     repo_root=repo_root,
                     process_counts=discovered_process_counts,
                     service_states=discovered_service_states,
+                    observed_at=observation_completed_at,
                 )
                 for surface in config.surfaces
             ]
-            actual = _actual_state_for_agent(config=config, surface_states=surface_states, repo_root=repo_root)
+            actual = _actual_state_for_agent(
+                config=config,
+                surface_states=surface_states,
+                repo_root=repo_root,
+                observed_at=observation_completed_at,
+            )
             recovery_action = _recovery_action_for_agent(conn, config.agent_id)
             policy = _policy_for_agent(
                 config=config,
@@ -1140,8 +1218,6 @@ ON CONFLICT(run_id) DO NOTHING
                 policy_overrides=effective_policy_overrides,
             )
             expected_online = bool(desired_row["expected_online"])
-            if actual["actual_state"] == "metadata_available":
-                expected_online = False
             receipt_id = _row_id("agentpresencereceipt", resolved_run_id, config.agent_id, policy["recovery_status"])
             blocker = actual["blocker"]
             if policy["recovery_status"] == "blocked" and expected_online and actual["actual_state"] in {"offline", "degraded", "unknown", "not_configured"}:
@@ -1217,7 +1293,7 @@ ON CONFLICT(agent_id) DO UPDATE SET
                     receipt_id,
                     1 if agent_row["telegram_ready_metadata"] else 0,
                     stable_json(NO_AUTHORITY_FLAGS),
-                    now,
+                    observation_completed_at,
                 ),
             )
             conn.execute(
@@ -1243,7 +1319,7 @@ INSERT OR REPLACE INTO agent_recovery_policies (
                     policy["next_allowed_attempt_at"],
                     1,
                     policy["policy_reason"],
-                    now,
+                    observation_completed_at,
                 ),
             )
             receipt_payload = {
@@ -1269,7 +1345,7 @@ INSERT OR REPLACE INTO agent_recovery_receipts (
                     policy["recovery_kind"],
                     f"Presence recovery status for {config.agent_id}: {policy['recovery_status']}; no recovery command executed.",
                     stable_json(receipt_payload),
-                    now,
+                    observation_completed_at,
                 ),
             )
             for surface_state in surface_states:
@@ -1295,10 +1371,10 @@ INSERT INTO agent_presence_runtime_surfaces (
                         int(surface_state["process_count"] or 0),
                         surface_state["safe_recovery_kind"],
                         surface_state["notes"],
-                        now,
+                        surface_state["observed_at"],
                     ),
                 )
-                check_status = "online" if surface_state["service_state"] == "active" or int(surface_state["process_count"] or 0) > 0 else "not_running"
+                check_status = "online" if _surface_is_active(surface_state) else "not_running"
                 conn.execute(
                     """
 INSERT INTO agent_presence_checks (
@@ -1314,7 +1390,7 @@ INSERT INTO agent_presence_checks (
                         surface_state["surface_id"],
                         check_status,
                         stable_json(surface_state),
-                        now,
+                        surface_state["observed_at"],
                     ),
                 )
             if blocker:
@@ -1333,7 +1409,7 @@ INSERT INTO agent_presence_blockers (
                         "warning" if desired_state != "hard_kill" else "info",
                         blocker,
                         _next_safe_move(agent_row),
-                        now,
+                        observation_completed_at,
                     ),
                 )
         counts = Counter(row["actual_state"] for row in agent_rows)
@@ -1365,8 +1441,8 @@ ON CONFLICT(run_id) DO UPDATE SET
             (
                 resolved_run_id,
                 AGENT_PRESENCE_VERSION,
-                now,
-                now,
+                started_at,
+                observation_completed_at,
                 len(agent_rows),
                 expected_online_count,
                 counts["online"],
@@ -1451,6 +1527,7 @@ def build_agent_presence_report(
     db_path: str | Path | None = None,
     report: str = "summary",
     agent: str | None = None,
+    run_id: str | None = None,
 ) -> dict[str, Any]:
     if report not in REPORTS:
         raise ValueError(f"unknown agent presence report: {report}")
@@ -1458,8 +1535,8 @@ def build_agent_presence_report(
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     try:
-        run_id = _latest_run_id(conn)
-        if not run_id:
+        resolved_run_id = run_id or _latest_run_id(conn)
+        if not resolved_run_id:
             return {
                 "status": "empty",
                 "report": report,
@@ -1468,7 +1545,11 @@ def build_agent_presence_report(
                 "counts": {},
                 "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
             }
-        params: list[Any] = [run_id]
+        run_row = conn.execute(
+            "SELECT created_at, completed_at FROM agent_presence_runs WHERE run_id = ?",
+            (resolved_run_id,),
+        ).fetchone()
+        params: list[Any] = [resolved_run_id]
         where = "WHERE run_id = ?"
         if agent:
             where += " AND agent_id = ?"
@@ -1488,7 +1569,7 @@ ORDER BY agent_id
 """.strip(),
             tuple(params),
         ).fetchall()
-        all_rows = [_agent_dict(row) for row in conn.execute("SELECT * FROM agent_presence_agents WHERE run_id = ?", (run_id,)).fetchall()]
+        all_rows = [_agent_dict(row) for row in conn.execute("SELECT * FROM agent_presence_agents WHERE run_id = ?", (resolved_run_id,)).fetchall()]
         items = [_agent_dict(row) for row in rows]
         state_counts = Counter(row["actual_state"] for row in all_rows)
         desired_counts = Counter(row["desired_state"] for row in all_rows)
@@ -1498,13 +1579,27 @@ ORDER BY agent_id
             """
 SELECT agent_id, surface_kind, source_path, service_name, process_name,
        surface_found, classification, service_state, process_count,
-       safe_recovery_kind, recovery_allowed, notes
+       safe_recovery_kind, recovery_allowed, notes, observed_at
 FROM agent_presence_runtime_surfaces
 WHERE run_id = ?
 ORDER BY agent_id, runtime_surface_id
 """.strip(),
-            (run_id,),
+            (resolved_run_id,),
         )
+        primary_keys = {
+            (config.agent_id, surface.source_path, surface.service_name, surface.process_name)
+            for config in AGENT_CONFIGS
+            for surface in config.surfaces
+            if surface.surface_id == config.primary_surface_id
+        }
+        for surface in surfaces:
+            key = (
+                surface["agent_id"],
+                surface["source_path"],
+                surface.get("service_name"),
+                surface.get("process_name"),
+            )
+            surface["presence_role"] = "primary" if key in primary_keys else "auxiliary"
         actions = _dict_rows(
             conn,
             """
@@ -1559,7 +1654,9 @@ LIMIT 20
             "report": report,
             "agent": agent,
             "db_path": path,
-            "run_id": run_id,
+            "run_id": resolved_run_id,
+            "observation_started_at": str(run_row["created_at"]) if run_row else None,
+            "observation_completed_at": str(run_row["completed_at"]) if run_row else None,
             "agent_count": len(all_rows),
             "counts": {
                 "by_actual_state": dict(sorted(state_counts.items())),
@@ -2409,8 +2506,7 @@ def recover_agent(
     finally:
         conn.close()
     if refresh_after:
-        build_agent_presence_snapshot(db_path=db_path, repo_root=repo_root)
-        export_agent_presence_read_model(db_path=db_path)
+        export_agent_presence_read_model(db_path=db_path, repo_root=repo_root)
     return AgentRecoveryResult(
         agent_id=agent_id,
         status="succeeded" if succeeded else "failed",
@@ -2468,8 +2564,41 @@ def format_agent_recovery_result(result: AgentRecoveryResult) -> str:
     return "\n".join(lines)
 
 
-def build_agent_presence_read_model(db_path: str | Path | None = None) -> dict[str, Any]:
-    report = build_agent_presence_report(db_path=db_path, report="summary")
+def _supplemental_presence(
+    *,
+    repo_root: str | Path,
+    observed_at: str | None,
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for config in SUPPLEMENTAL_CONFIGS:
+        present_paths = [
+            path
+            for path in config.metadata_available_paths
+            if _resolve_repo_path(path, repo_root=repo_root).exists()
+        ]
+        items.append(
+            {
+                "supplemental_id": config.agent_id,
+                "display_name": config.display_name,
+                "lane_id": config.lane_id,
+                "actual_state": "metadata_available" if present_paths else "not_configured",
+                "presence_source": "read_model" if present_paths else "unknown",
+                "observed_at": observed_at,
+                "evidence_paths": present_paths,
+                "included_in_agent_denominator": False,
+                "notes": config.notes,
+            }
+        )
+    return items
+
+
+def build_agent_presence_read_model(
+    db_path: str | Path | None = None,
+    *,
+    run_id: str | None = None,
+    repo_root: str | Path = ROOT,
+) -> dict[str, Any]:
+    report = build_agent_presence_report(db_path=db_path, report="summary", run_id=run_id)
     items = report.get("items", [])
     by_agent = {item["agent_id"]: item for item in items}
     counts = report.get("counts", {})
@@ -2488,15 +2617,53 @@ def build_agent_presence_read_model(db_path: str | Path | None = None) -> dict[s
     attempts_by_agent: dict[str, list[dict[str, Any]]] = {}
     for attempt in report.get("recent_recovery_attempts", []):
         attempts_by_agent.setdefault(attempt["agent_id"], []).append(attempt)
+    surfaces_by_agent: dict[str, list[dict[str, Any]]] = {}
+    for surface in report.get("runtime_surfaces", []):
+        surfaces_by_agent.setdefault(surface["agent_id"], []).append(surface)
     enriched_items: list[dict[str, Any]] = []
     for item in items:
         enriched = dict(item)
+        agent_surfaces = surfaces_by_agent.get(item["agent_id"], [])
+        primary = next((surface for surface in agent_surfaces if surface["presence_role"] == "primary"), None)
+        expected_auxiliary = [
+            surface
+            for surface in agent_surfaces
+            if surface["presence_role"] == "auxiliary" and surface.get("classification") == "current_active"
+        ]
+        active_auxiliary = [
+            surface
+            for surface in expected_auxiliary
+            if _surface_is_active(surface)
+        ]
+        if item["actual_state"] != "online":
+            detail_state = "unavailable"
+        elif len(active_auxiliary) < len(expected_auxiliary):
+            detail_state = "degraded"
+        else:
+            detail_state = "healthy"
+        enriched["primary_unit"] = (
+            {
+                "service_name": primary.get("service_name"),
+                "process_name": primary.get("process_name"),
+                "observed_at": primary.get("observed_at"),
+            }
+            if primary
+            else None
+        )
+        enriched["presence_detail_state"] = detail_state
+        enriched["expected_auxiliary_count"] = len(expected_auxiliary)
+        enriched["active_auxiliary_count"] = len(active_auxiliary)
         enriched["recovery_actions"] = actions_by_agent.get(item["agent_id"], [])
         enriched["last_recovery_attempt"] = (attempts_by_agent.get(item["agent_id"]) or [None])[0]
         enriched_items.append(enriched)
+    observation_completed_at = report.get("observation_completed_at")
+    generated_at = observation_completed_at
     return {
         "schema_version": READ_MODEL_VERSION,
-        "generated_at": utc_now(),
+        "generated_at": generated_at,
+        "run_id": report.get("run_id"),
+        "observation_started_at": report.get("observation_started_at"),
+        "observation_completed_at": observation_completed_at,
         "source_ledger_path": str(db_path or DEFAULT_DB_PATH),
         "agent_count": report.get("agent_count", 0),
         "expected_online_count": counts.get("expected_online", 0),
@@ -2508,6 +2675,10 @@ def build_agent_presence_read_model(db_path: str | Path | None = None) -> dict[s
         "maintenance_hard_kill_count": counts.get("maintenance_or_hard_kill", 0),
         "cassandra_presence": next((item for item in enriched_items if item["agent_id"] == "cassandra"), by_agent.get("cassandra")),
         "agents": enriched_items,
+        "supplemental_surfaces": _supplemental_presence(
+            repo_root=repo_root,
+            observed_at=generated_at,
+        ),
         "runtime_surfaces": report.get("runtime_surfaces", []),
         "recovery_actions": report.get("recovery_actions", []),
         "recovery_clearances": report.get("recovery_clearances", []),
@@ -2528,6 +2699,8 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# OpenClaw Agent Presence",
         "",
+        f"Run: `{payload.get('run_id') or 'none'}`",
+        f"Observed through: `{payload.get('observation_completed_at') or 'unknown'}`",
         f"Agents: {payload['agent_count']}",
         f"Expected online: {payload['expected_online_count']}",
         f"Online: {payload['online_count']}",
@@ -2558,6 +2731,13 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
             f"source={item['presence_source']} recovery={item['recovery_status']} "
             f"action={item.get('recovery_action_id') or 'none'}"
         )
+    if payload.get("supplemental_surfaces"):
+        lines.extend(["", "Supplemental (not in agent denominator):"])
+        for item in payload["supplemental_surfaces"]:
+            lines.append(
+                f"- `{item['supplemental_id']}` actual={item['actual_state']} "
+                f"source={item['presence_source']} included_in_agent_denominator=`false`"
+            )
     if payload["recovery_actions"]:
         lines.extend(["", "Recovery actions:"])
         for action in payload["recovery_actions"]:
@@ -2600,21 +2780,72 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _atomic_write_text(path: Path, text: str) -> None:
+    """Replace one read-model file atomically after its full payload is durable."""
+
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+            temporary_path = Path(handle.name)
+        os.chmod(temporary_path, 0o644)
+        os.replace(temporary_path, path)
+        temporary_path = None
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 def export_agent_presence_read_model(
     *,
     db_path: str | Path | None = None,
     export_root: str | Path = DEFAULT_EXPORT_ROOT,
     repo_root: str | Path = ROOT,
+    run_id: str | None = None,
+    process_counts: dict[str, int] | None = None,
+    service_states: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    payload = build_agent_presence_read_model(db_path=db_path)
+    snapshot = build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=repo_root,
+        run_id=run_id,
+        process_counts=process_counts,
+        service_states=service_states,
+    )
+    payload = build_agent_presence_read_model(
+        db_path=db_path,
+        run_id=snapshot.run_id,
+        repo_root=repo_root,
+    )
+    expected_agent_ids = {config.agent_id for config in AGENT_CONFIGS}
+    payload_agent_ids = {item.get("agent_id") for item in payload.get("agents", [])}
+    if (
+        payload.get("run_id") != snapshot.run_id
+        or not payload.get("observation_completed_at")
+        or payload.get("generated_at") != payload.get("observation_completed_at")
+        or payload.get("agent_count") != snapshot.agent_count
+        or payload.get("online_count") != snapshot.online_count
+        or payload_agent_ids != expected_agent_ids
+    ):
+        raise RuntimeError("presence export refused: completed observation run could not be read back atomically")
     root = Path(export_root)
     if not root.is_absolute():
         root = Path(repo_root) / root
     root.mkdir(parents=True, exist_ok=True)
     json_path = root / JSON_EXPORT_NAME
     operator_path = root / OPERATOR_EXPORT_NAME
-    json_path.write_text(stable_json(payload), encoding="utf-8")
-    operator_path.write_text(_operator_markdown(payload), encoding="utf-8")
+    _atomic_write_text(json_path, stable_json(payload))
+    _atomic_write_text(operator_path, _operator_markdown(payload))
     return {
         "json_path": _display_path(json_path, repo_root=repo_root),
         "operator_path": _display_path(operator_path, repo_root=repo_root),
@@ -2623,6 +2854,9 @@ def export_agent_presence_read_model(
         "online_count": payload["online_count"],
         "offline_unexpected_count": payload["offline_unexpected_count"],
         "cassandra_actual_state": (payload.get("cassandra_presence") or {}).get("actual_state"),
+        "run_id": payload["run_id"],
+        "generated_at": payload["generated_at"],
+        "observation_completed_at": payload["observation_completed_at"],
     }
 
 

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from agent_presence import build_agent_presence_report, format_agent_presence_report, stable_json
+from agent_presence import AGENT_CONFIGS, build_agent_presence_report, format_agent_presence_report, stable_json
 from business_ops_ledger import DEFAULT_DB_PATH
 
 
@@ -19,7 +19,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Query OpenClaw agent presence.")
     parser.add_argument("--db", default=DEFAULT_DB_PATH)
     parser.add_argument("--report", choices=("summary", "offline", "expected-online", "recovery-available"), default="summary")
-    parser.add_argument("--agent", choices=("chief", "cassandra", "guardian", "niles", "hermes", "report_bridge"))
+    parser.add_argument("--agent", choices=tuple(config.agent_id for config in AGENT_CONFIGS))
     parser.add_argument("--format", choices=("operator", "json"), default="operator")
     return parser.parse_args(argv)
 

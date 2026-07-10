@@ -94,7 +94,10 @@ READ_MODEL_REFRESH_REGISTRY: dict[str, dict[str, Any]] = {
     #    drift once they do go stale) -----------------------------------
     "agent_presence.json": {
         "refreshable": True,
-        "reason": "Pure local export from the governed business-ops SQLite ledger; no network, no external mount.",
+        "reason": (
+            "Atomically probes local primary units, writes a new governed presence run, then exports that exact "
+            "completed run; read-only systemd/process observation, no network, no service mutation, no external mount."
+        ),
         "steps": [refresh_step("scripts/export_agent_presence_read_model.py", "--format", "json")],
     },
     "niles_track_registry.json": {

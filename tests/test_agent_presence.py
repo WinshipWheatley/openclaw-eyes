@@ -3,11 +3,14 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from agent_presence import (
     AGENT_CONFIGS,
     NO_AUTHORITY_FLAGS,
     agent_presence_table_names,
     build_agent_presence_report,
+    build_agent_presence_read_model,
     build_agent_presence_snapshot,
     approve_agent_recovery_clearance,
     build_agent_recovery_status_report,
@@ -17,16 +20,18 @@ from agent_presence import (
 )
 from scripts.approve_agent_recovery_clearance import main as approve_clearance_main
 from scripts.check_agent_presence import main as check_main
+from scripts.check_agent_recovery_status import AGENTS as RECOVERY_STATUS_AGENT_IDS
 from scripts.check_agent_recovery_status import main as recovery_status_main
 from scripts.export_agent_presence_read_model import main as export_main
 from scripts.query_agent_recovery_clearances import main as query_clearances_main
 from scripts.query_agent_presence import main as query_main
 from scripts.request_cassandra_recovery_guardian_approval import run_guardian_clearance_flow
+from scripts.recover_agent import AGENTS as RECOVERY_AGENT_IDS
 from scripts.recover_agent import main as recover_main
 from scripts.request_agent_recovery_clearance import main as request_clearance_main
 
 
-CORE_AGENT_IDS = {"chief", "cassandra", "guardian", "niles", "hermes", "report_bridge"}
+CORE_AGENT_IDS = {"maestro", "chief", "cassandra", "guardian", "niles", "hermes"}
 
 
 def _row(db_path: Path, sql: str, params=()):
@@ -71,6 +76,15 @@ def _service_states(value: str = "inactive") -> dict[str, str]:
     }
 
 
+def _primary_service_names() -> set[str]:
+    return {
+        surface.service_name
+        for config in AGENT_CONFIGS
+        for surface in config.surfaces
+        if surface.surface_id == config.primary_surface_id and surface.service_name
+    }
+
+
 def test_schema_initializes(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
 
@@ -91,6 +105,14 @@ def test_schema_initializes(tmp_path):
 
 def test_core_agents_are_represented_and_lane_registry_alone_does_not_mark_online(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
+
+    assert {config.agent_id for config in AGENT_CONFIGS} == CORE_AGENT_IDS
+    assert set(RECOVERY_AGENT_IDS) == CORE_AGENT_IDS
+    assert set(RECOVERY_STATUS_AGENT_IDS) == CORE_AGENT_IDS
+    assert all(
+        sum(surface.surface_id == config.primary_surface_id for surface in config.surfaces) == 1
+        for config in AGENT_CONFIGS
+    )
 
     result = build_agent_presence_snapshot(
         db_path=db_path,
@@ -115,8 +137,12 @@ ORDER BY agent_id
     assert all(row["runtime_surface_found"] == 0 for row in rows)
     assert _row(
         db_path,
-        "SELECT actual_state FROM agent_presence_agents WHERE agent_id = 'report_bridge'",
+        "SELECT actual_state FROM agent_presence_agents WHERE agent_id = 'maestro'",
     )["actual_state"] == "not_configured"
+    assert _row(
+        db_path,
+        "SELECT actual_state FROM agent_presence_agents WHERE agent_id = 'report_bridge'",
+    ) is None
 
 
 def test_runtime_surfaces_are_recorded_without_secret_or_message_actions(tmp_path):
@@ -153,7 +179,7 @@ FROM agent_recovery_actions
 ORDER BY agent_id
 """,
     )
-    assert {row["agent_id"] for row in actions} == CORE_AGENT_IDS
+    assert CORE_AGENT_IDS <= {row["agent_id"] for row in actions}
     cassandra_action = [row for row in actions if row["agent_id"] == "cassandra"][0]
     assert cassandra_action["action_kind"] == "systemd_user_start"
     assert cassandra_action["safe_to_attempt"] == 0
@@ -170,7 +196,7 @@ WHERE run_id = 'presence_surface_fixture'
     )) == (0, 0, 0)
 
 
-def test_service_or_process_evidence_can_mark_online_or_degraded(tmp_path):
+def test_primary_service_is_authoritative_and_auxiliary_services_only_affect_detail(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     repo_root = _fixture_repo(tmp_path)
     states = _service_states("inactive")
@@ -188,23 +214,30 @@ def test_service_or_process_evidence_can_mark_online_or_degraded(tmp_path):
         db_path,
         "SELECT actual_state, presence_source, blocker FROM agent_presence_agents WHERE agent_id = 'cassandra'",
     )
-    assert cassandra["actual_state"] == "degraded"
+    assert cassandra["actual_state"] == "online"
     assert cassandra["presence_source"] == "service_check"
-    assert "only some expected runtime surfaces" in cassandra["blocker"]
+    assert cassandra["blocker"] is None
+    detail = build_agent_presence_read_model(db_path=db_path, repo_root=repo_root)
+    cassandra_detail = next(item for item in detail["agents"] if item["agent_id"] == "cassandra")
+    assert cassandra_detail["presence_detail_state"] == "degraded"
+    assert cassandra_detail["active_auxiliary_count"] == 0
 
+    states["cassandra-listener.service"] = "inactive"
     states["cassandra-watcher.service"] = "active"
     states["cassandra-briefing-scheduler.service"] = "active"
     build_agent_presence_snapshot(
         db_path=db_path,
         repo_root=repo_root,
-        run_id="presence_online_fixture",
-        process_counts={},
+        run_id="presence_auxiliary_only_fixture",
+        process_counts={"cassandra_listener.py": 1},
         service_states=states,
     )
-    assert _row(
+    cassandra = _row(
         db_path,
-        "SELECT actual_state FROM agent_presence_agents WHERE agent_id = 'cassandra'",
-    )["actual_state"] == "online"
+        "SELECT actual_state, reason FROM agent_presence_agents WHERE agent_id = 'cassandra'",
+    )
+    assert cassandra["actual_state"] == "offline"
+    assert "primary" in cassandra["reason"].lower()
 
 
 def test_desired_state_boundaries_prevent_recovery(tmp_path):
@@ -264,7 +297,7 @@ WHERE agent_id = 'chief'
     assert chief["expected_online"] == 1
     assert chief["autorecovery_allowed"] == 0
     assert chief["recovery_status"] == "blocked"
-    assert chief["blocker"] == "expected runtime evidence missing"
+    assert chief["blocker"] == "expected primary runtime evidence missing"
     assert _row(
         db_path,
         "SELECT SUM(attempted) AS attempted FROM agent_recovery_receipts WHERE run_id = 'presence_blocked_fixture'",
@@ -630,19 +663,18 @@ def test_report_bridge_can_be_metadata_available_without_fake_online(tmp_path):
         service_states={},
     )
 
-    row = _row(
+    assert _row(
         db_path,
-        """
-SELECT desired_state, actual_state, expected_online, presence_source, runtime_surface_kind
-FROM agent_presence_agents
-WHERE agent_id = 'report_bridge'
-""",
-    )
-    assert row["desired_state"] == "unknown_review"
-    assert row["actual_state"] == "metadata_available"
-    assert row["expected_online"] == 0
-    assert row["presence_source"] == "read_model"
-    assert row["runtime_surface_kind"] == "metadata_only"
+        "SELECT actual_state FROM agent_presence_agents WHERE agent_id = 'report_bridge'",
+    ) is None
+
+    payload = build_agent_presence_read_model(db_path=db_path, repo_root=repo_root)
+    assert payload["agent_count"] == 6
+    assert {item["agent_id"] for item in payload["agents"]} == CORE_AGENT_IDS
+    report_bridge = payload["supplemental_surfaces"][0]
+    assert report_bridge["supplemental_id"] == "report_bridge"
+    assert report_bridge["actual_state"] == "metadata_available"
+    assert report_bridge["included_in_agent_denominator"] is False
 
 
 def test_query_reports_and_scripts_work(tmp_path, capsys):
@@ -660,7 +692,7 @@ def test_query_reports_and_scripts_work(tmp_path, capsys):
         process_counts={},
         service_states=_service_states("inactive"),
     )
-    for agent in ("cassandra", "chief", "guardian", "niles", "hermes", "report_bridge"):
+    for agent in ("maestro", "cassandra", "chief", "guardian", "niles", "hermes"):
         assert query_main(["--db", str(db_path), "--agent", agent]) == 0
         out = capsys.readouterr().out
         assert f"Agent: `{agent}`" in out
@@ -705,19 +737,31 @@ def test_query_reports_and_scripts_work(tmp_path, capsys):
     assert approval_payload["status"] == "approved"
 
 
-def test_read_model_export_contains_cassandra_and_no_authority(tmp_path, capsys):
+def test_read_model_export_refreshes_presence_and_preserves_run_evidence(tmp_path, capsys, monkeypatch):
     db_path = tmp_path / "ledger.sqlite"
     export_root = tmp_path / "read_models"
     repo_root = _fixture_repo(tmp_path)
-    build_agent_presence_snapshot(
+    stale = build_agent_presence_snapshot(
         db_path=db_path,
         repo_root=repo_root,
-        run_id="presence_export_fixture",
+        run_id="presence_export_stale_fixture",
         process_counts={},
         service_states=_service_states("inactive"),
     )
 
-    summary = export_agent_presence_read_model(db_path=db_path, export_root=export_root, repo_root=tmp_path)
+    monkeypatch.setattr(
+        "agent_presence._systemd_user_state",
+        lambda service_names: {
+            name: "active" if name in _primary_service_names() else "inactive"
+            for name in service_names
+        },
+    )
+    monkeypatch.setattr("agent_presence._process_snapshot", lambda: {})
+    summary = export_agent_presence_read_model(
+        db_path=db_path,
+        export_root=export_root,
+        repo_root=repo_root,
+    )
     assert export_main(["--db", str(db_path), "--export-root", str(export_root), "--format", "json"]) == 0
     script_summary = json.loads(capsys.readouterr().out)
     json_path = export_root / "agent_presence.json"
@@ -726,6 +770,14 @@ def test_read_model_export_contains_cassandra_and_no_authority(tmp_path, capsys)
 
     assert summary["agent_count"] == 6
     assert script_summary["agent_count"] == 6
+    assert summary["run_id"] != stale.run_id
+    assert read_model["run_id"] != stale.run_id
+    assert read_model["generated_at"] == read_model["observation_completed_at"]
+    assert read_model["online_count"] == 6
+    assert read_model["agent_count"] == 6
+    assert {item["agent_id"] for item in read_model["agents"]} == CORE_AGENT_IDS
+    assert all(surface["observed_at"] for surface in read_model["runtime_surfaces"])
+    assert sum(1 for surface in read_model["runtime_surfaces"] if surface["presence_role"] == "primary") == 6
     assert read_model["cassandra_presence"]["agent_id"] == "cassandra"
     assert read_model["cassandra_presence"]["actual_state"] in {"offline", "degraded", "online"}
     assert operator_path.exists()
@@ -733,6 +785,39 @@ def test_read_model_export_contains_cassandra_and_no_authority(tmp_path, capsys)
     for key, value in NO_AUTHORITY_FLAGS.items():
         assert read_model[key] is value
         assert read_model["no_authority_flags"][key] is value
+
+
+def test_export_refuses_incoherent_run_before_replacing_existing_snapshot(tmp_path, monkeypatch):
+    db_path = tmp_path / "ledger.sqlite"
+    repo_root = _fixture_repo(tmp_path)
+    export_root = tmp_path / "read_models"
+    export_root.mkdir()
+    json_path = export_root / "agent_presence.json"
+    json_path.write_text('{"sentinel":"old"}\n', encoding="utf-8")
+
+    monkeypatch.setattr(
+        "agent_presence.build_agent_presence_read_model",
+        lambda **_kwargs: {
+            "run_id": "racing_run",
+            "observation_completed_at": "2026-07-09T22:30:00+00:00",
+            "generated_at": "2026-07-09T22:30:00+00:00",
+            "agent_count": 0,
+            "online_count": 0,
+            "agents": [],
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="read back atomically"):
+        export_agent_presence_read_model(
+            db_path=db_path,
+            export_root=export_root,
+            repo_root=repo_root,
+            process_counts={},
+            service_states=_service_states("active"),
+        )
+
+    assert json_path.read_text(encoding="utf-8") == '{"sentinel":"old"}\n'
+    assert not (export_root / "agent_presence_OPERATOR.md").exists()
 
 
 def test_report_builder_can_answer_cassandra_question(tmp_path):

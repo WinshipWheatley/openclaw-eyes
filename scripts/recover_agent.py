@@ -11,11 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from agent_presence import format_agent_recovery_result, recover_agent, stable_json
+from agent_presence import AGENT_CONFIGS, format_agent_recovery_result, recover_agent, stable_json
 from business_ops_ledger import DEFAULT_DB_PATH
 
 
-AGENTS = ("chief", "cassandra", "guardian", "niles", "hermes", "report_bridge")
+AGENTS = tuple(config.agent_id for config in AGENT_CONFIGS)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:

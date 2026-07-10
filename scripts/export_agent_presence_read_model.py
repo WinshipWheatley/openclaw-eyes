@@ -33,6 +33,8 @@ def main(argv: list[str] | None = None) -> int:
         print("")
         print(f"JSON: `{summary['json_path']}`")
         print(f"Operator: `{summary['operator_path']}`")
+        print(f"Run: `{summary['run_id']}`")
+        print(f"Observed through: `{summary['observation_completed_at']}`")
         print(f"Agents: {summary['agent_count']}")
         print(f"Expected online: {summary['expected_online_count']}")
         print(f"Online: {summary['online_count']}")

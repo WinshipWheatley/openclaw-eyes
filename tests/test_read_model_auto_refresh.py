@@ -1,13 +1,15 @@
 """Tests for the read-model auto-refresh registry and runner.
 
-These tests never invoke a real generator script. They use a fake registry
-and a mocked subprocess-style runner so the suite stays hermetic and fast,
-per the Priority-3 build instructions.
+Most tests use a fake registry and mocked subprocess-style runner. The task
+154 acceptance case dispatches the real local presence exporter through that
+runner with injected read-only unit fixtures; it remains hermetic and never
+touches live services, secrets, network state, or external mounts.
 """
 
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -515,3 +517,135 @@ def test_real_registry_dry_run_end_to_end_is_safe(tmp_path: Path):
     assert result["summary"]["source_count"] >= 25
     names = {item["name"] for item in result["items"]}
     assert "reynolds_gig_setup_status.json" in names
+
+
+def test_real_agent_presence_auto_refresh_rebuilds_stale_ledger_from_active_primary_units(
+    tmp_path: Path,
+    monkeypatch,
+):
+    """Acceptance: stale DB -> real registry/exporter -> a new current 6/6 run."""
+
+    import agent_presence
+    from scripts.export_agent_presence_read_model import main as export_presence_main
+
+    db_path = tmp_path / "ledger.sqlite"
+    read_model_root = tmp_path / "generated" / "read_models"
+    stale = agent_presence.build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=Path(__file__).resolve().parents[1],
+        run_id="stale_presence_run",
+        process_counts={},
+        service_states={
+            surface.service_name: "inactive"
+            for config in agent_presence.AGENT_CONFIGS
+            for surface in config.surfaces
+            if surface.service_name
+        },
+    )
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            "UPDATE agent_presence_runs SET created_at = ?, completed_at = ? WHERE run_id = ?",
+            ("2025-01-01T00:00:00+00:00", "2025-01-01T00:00:01+00:00", stale.run_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    _write_read_model(
+        read_model_root,
+        "agent_presence.json",
+        generated_at="2025-01-01T00:00:01+00:00",
+    )
+
+    current_iso = "2026-07-09T22:30:00+00:00"
+    primary_services = {
+        surface.service_name
+        for config in agent_presence.AGENT_CONFIGS
+        for surface in config.surfaces
+        if surface.surface_id == config.primary_surface_id and surface.service_name
+    }
+    monkeypatch.setattr(agent_presence, "utc_now", lambda: current_iso)
+    monkeypatch.setattr(agent_presence, "_process_snapshot", lambda: {})
+    monkeypatch.setattr(
+        agent_presence,
+        "_systemd_user_state",
+        lambda service_names: {
+            name: "active" if name in primary_services else "inactive"
+            for name in service_names
+        },
+    )
+
+    def _run_real_presence_export(cmd, *, cwd, timeout):
+        assert cmd[1:] == [
+            "scripts/export_agent_presence_read_model.py",
+            "--format",
+            "json",
+        ]
+        rc = export_presence_main(
+            ["--db", str(db_path), "--export-root", str(read_model_root), "--format", "json"]
+        )
+        return _FakeCompletedProcess(returncode=rc)
+
+    result = run_auto_refresh(
+        14,
+        names=["agent_presence.json"],
+        registry=READ_MODEL_REFRESH_REGISTRY,
+        read_model_root=read_model_root,
+        repo_root=Path(__file__).resolve().parents[1],
+        dry_run=False,
+        runner=_FakeRunner(on_call=_run_real_presence_export),
+        now=lambda: datetime(2026, 7, 9, 22, 30, tzinfo=timezone.utc),
+    )
+
+    payload = json.loads((read_model_root / "agent_presence.json").read_text(encoding="utf-8"))
+    assert result["items"][0]["result"] == "refreshed"
+    assert payload["run_id"] != stale.run_id
+    assert payload["generated_at"] == current_iso
+    assert payload["observation_completed_at"] == current_iso
+    assert payload["agent_count"] == payload["online_count"] == 6
+    assert {item["agent_id"] for item in payload["agents"]} == {
+        "maestro",
+        "chief",
+        "cassandra",
+        "guardian",
+        "niles",
+        "hermes",
+    }
+    assert all(item["actual_state"] == "online" for item in payload["agents"])
+    assert all(surface["observed_at"] == current_iso for surface in payload["runtime_surfaces"])
+    exported_primary_units = sorted(
+        surface["service_name"]
+        for surface in payload["runtime_surfaces"]
+        if surface["presence_role"] == "primary"
+    )
+    assert exported_primary_units == sorted(primary_services)
+    assert all(
+        surface["service_state"] == "active"
+        for surface in payload["runtime_surfaces"]
+        if surface["presence_role"] == "primary"
+    )
+    report_bridge = next(
+        item for item in payload["supplemental_surfaces"] if item["supplemental_id"] == "report_bridge"
+    )
+    assert report_bridge["included_in_agent_denominator"] is False
+
+    print(
+        json.dumps(
+            {
+                "agent_count": payload["agent_count"],
+                "auto_refresh_result": result["items"][0]["result"],
+                "generated_at": payload["generated_at"],
+                "new_run_id": payload["run_id"],
+                "observation_completed_at": payload["observation_completed_at"],
+                "observed_at_values": sorted(
+                    {surface["observed_at"] for surface in payload["runtime_surfaces"]}
+                ),
+                "online_count": payload["online_count"],
+                "primary_units": exported_primary_units,
+                "report_bridge_in_denominator": report_bridge["included_in_agent_denominator"],
+                "roster": sorted(item["agent_id"] for item in payload["agents"]),
+                "stale_run_id": stale.run_id,
+            },
+            sort_keys=True,
+        )
+    )
