@@ -124,6 +124,7 @@ def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
         {
             "schema_version": "openclaw_capability_index_v0",
             "read_model_id": "openclaw_capability_index",
+            "generated_at": "2026-07-09T14:54:32+00:00",
             "generic_capabilities": [
                 {
                     "capability_id": "request_processing",
@@ -150,6 +151,7 @@ def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
         read_model_root / "agent_presence.json",
         {
             "schema_version": "agent_presence_read_model_v0",
+            "generated_at": "2026-07-09T14:54:32+00:00",
             "agents": [
                 {"agent_id": "chief", "display_name": "Chief", "actual_state": "online"},
                 {"agent_id": "cassandra", "display_name": "Cassandra", "actual_state": "online"},
@@ -161,6 +163,7 @@ def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
         read_model_root / "chief_status_rail.json",
         {
             "schema_version": "chief_status_rail_v0",
+            "generated_at": "2026-07-09T14:54:32+00:00",
             "chief_current_status": "safe_status_read_model_only",
             "chief_current_proven_role": {
                 "role_summary": "Chief is proven for visibility and planning, not runtime execution.",
@@ -663,8 +666,10 @@ def test_processor_routes_general_maestro_frontdoor_request_to_responder(monkeyp
     assert calls == [("what's today's date", {})]
 
 
-def test_processor_routes_general_status_query_to_truthful_responder(tmp_path):
+def test_processor_routes_general_status_query_to_truthful_responder(tmp_path, monkeypatch):
     read_model_root = _seed_read_models(tmp_path)
+    truthful_status_root = _seed_truthful_status_read_models(tmp_path)
+    monkeypatch.setattr(maestro, "DEFAULT_READ_MODEL_ROOT", truthful_status_root)
     request_path = tmp_path / "mission_control_operator_instruction_request_general_operator_instruction_status.json"
     request_path.write_text(
         json.dumps(

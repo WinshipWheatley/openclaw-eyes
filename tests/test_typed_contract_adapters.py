@@ -787,6 +787,7 @@ def _load_guardian_listener(monkeypatch):
     module = importlib.import_module("chief_guardian_listener")
     module = importlib.reload(module)
     monkeypatch.setattr(module, "record_telegram_listener_update_safe", lambda **kwargs: None)
+    monkeypatch.setattr(module, "claim_listener_update", lambda *args, **kwargs: True)
     return module
 
 
@@ -926,6 +927,7 @@ def _load_niles_listener(monkeypatch):
     module = importlib.import_module("producer_listener")
     module = importlib.reload(module)
     monkeypatch.setattr(module, "record_telegram_listener_update_safe", lambda **kwargs: None)
+    monkeypatch.setattr(module, "claim_listener_update", lambda *args, **kwargs: True)
     monkeypatch.setattr(module, "_fire_agent_voice", lambda *a, **k: None)
     return module
 

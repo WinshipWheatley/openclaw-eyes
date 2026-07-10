@@ -148,8 +148,41 @@ def test_listener_bridge_request_routes_through_pc_processor_for_date_answer(tmp
     assert response.detail_disclosure["email_send_performed"] is False
 
 
-def test_listener_bridge_request_delivers_capability_readback_not_generic_intro(tmp_path):
+def test_listener_bridge_request_delivers_capability_readback_not_generic_intro(tmp_path, monkeypatch):
+    import maestro_cassandra_responder as maestro
     import openclaw_request_processor as processor
+
+    # Freshness is part of the production status contract.  Keep this bridge
+    # test deterministic with an explicitly dated source set instead of
+    # depending on whichever ignored read models happen to exist in the
+    # developer checkout.
+    source_root = tmp_path / "status_sources"
+    source_root.mkdir()
+    generated_at = f"{date.today().isoformat()}T12:00:00+00:00"
+    (source_root / "openclaw_capability_index.json").write_text(
+        json.dumps(
+            {
+                "generated_at": generated_at,
+                "generic_capabilities": [
+                    {
+                        "capability_id": "request_processing",
+                        "capability_name": "Bounded request processor",
+                        "capability_status": "LIVE_IMPLEMENTED",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (source_root / "agent_presence.json").write_text(
+        json.dumps({"generated_at": generated_at, "agents": []}),
+        encoding="utf-8",
+    )
+    (source_root / "chief_status_rail.json").write_text(
+        json.dumps({"generated_at": generated_at, "chief_current_status": "read_model_only"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(maestro, "DEFAULT_READ_MODEL_ROOT", source_root)
 
     request = maestro_listener.build_operator_maestro_chat_request(
         "what can you help me with?",

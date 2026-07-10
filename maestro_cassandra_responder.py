@@ -2004,51 +2004,69 @@ def build_maestro_bare_status_answer(*, session: Mapping[str, Any] | None = None
 
     lines: list[str] = []
     proof_refs: list[str] = []
+    freshness_excluded_sources: list[str] = []
     stale_sources: list[str] = []
+    unverifiable_sources: list[str] = []
 
-    def _usability(payload: Mapping[str, Any]) -> tuple[bool, bool]:
-        """Return (usable, is_stale). A payload that is simply missing/empty is not
-        "stale" -- there is nothing to flag, it's just absent from this line."""
+    def _usability(payload: Mapping[str, Any]) -> tuple[bool, str]:
+        """Return ``(usable, exclusion_reason)`` for a present read model.
+
+        Missing/empty payloads have nothing to flag. A present payload without a
+        parseable source timestamp is unverifiable, never implicitly fresh.
+        """
         if not payload:
-            return False, False
+            return False, ""
         days = _read_model_stale_days(payload)
-        if days is not None and days > BARE_STATUS_FRESHNESS_SLA_DAYS:
-            return False, True
-        return True, False
+        if days is None:
+            return False, "unverifiable"
+        if days > BARE_STATUS_FRESHNESS_SLA_DAYS:
+            return False, "stale"
+        return True, ""
 
-    helm_usable, helm_stale = _usability(helm_payload)
+    def _record_exclusion(source: str, reason: str) -> None:
+        if not reason:
+            return
+        freshness_excluded_sources.append(source)
+        if reason == "stale":
+            stale_sources.append(source)
+        else:
+            unverifiable_sources.append(source)
+
+    helm_usable, helm_exclusion = _usability(helm_payload)
     if helm_usable:
         plate_count = len(helm_payload.get("primary_cards") or ())
         lines.append(f"Plate: {plate_count} headline item{'s' if plate_count != 1 else ''}.")
         proof_refs.append(helm_path.as_posix())
-    elif helm_stale:
-        stale_sources.append(HELM_ATTENTION_READ_MODEL)
+    else:
+        _record_exclusion(HELM_ATTENTION_READ_MODEL, helm_exclusion)
 
-    receivables_usable, receivables_stale = _usability(receivables_payload)
+    receivables_usable, receivables_exclusion = _usability(receivables_payload)
     if receivables_usable:
         open_by_client = receivables_payload.get("summary", {}).get("open_minor_units_by_client", {})
         open_count = sum(1 for amount in open_by_client.values() if isinstance(amount, (int, float)) and amount > 0)
         lines.append(f"Money: {open_count} client{'s' if open_count != 1 else ''} with open amounts.")
         proof_refs.append(receivables_path.as_posix())
-    elif receivables_stale:
-        stale_sources.append(RECEIVABLES_MONTH_BOUNDED_READ_MODEL)
+    else:
+        _record_exclusion(RECEIVABLES_MONTH_BOUNDED_READ_MODEL, receivables_exclusion)
 
-    presence_usable, presence_stale = _usability(presence_payload)
+    presence_usable, presence_exclusion = _usability(presence_payload)
     if presence_usable:
         online = presence_payload.get("online_count")
         total = presence_payload.get("agent_count")
         lines.append(f"Fleet: {online}/{total} agents online.")
         proof_refs.append(presence_path.as_posix())
-    elif presence_stale:
-        stale_sources.append(AGENT_PRESENCE_READ_MODEL)
-
-    if stale_sources:
-        lines.append(f"(stale, excluded: {', '.join(stale_sources)})")
+    else:
+        _record_exclusion(AGENT_PRESENCE_READ_MODEL, presence_exclusion)
 
     if not lines:
-        plain = "I don't have current status data to report -- the usual read models are missing or stale."
-    else:
-        plain = "\n".join(lines)
+        lines.append(
+            "I don't have current status data to report -- the usual read models are missing, stale, or unverifiable."
+        )
+    if freshness_excluded_sources:
+        lines.append(
+            f"(stale or unverifiable, excluded: {', '.join(freshness_excluded_sources)})"
+        )
+    plain = "\n".join(lines)
 
     return {
         "one_line_answer": _one_line_answer(plain),
@@ -2056,7 +2074,13 @@ def build_maestro_bare_status_answer(*, session: Mapping[str, Any] | None = None
         "machine_proof": {
             "maestro_bare_status_readback_performed": True,
             "source_truth_refs": tuple(proof_refs),
-            "stale_sources_excluded": tuple(stale_sources),
+            # Backward-compatible aggregate: this historical key represents
+            # every source excluded by the freshness gate, including undated
+            # sources that cannot be verified as fresh.
+            "stale_sources_excluded": tuple(freshness_excluded_sources),
+            "freshness_excluded_sources": tuple(freshness_excluded_sources),
+            "actually_stale_sources_excluded": tuple(stale_sources),
+            "unverifiable_sources_excluded": tuple(unverifiable_sources),
             "external_llm_invoked": False,
             "protected_generate_called": False,
             "workflow_package_staged": False,
@@ -2074,6 +2098,28 @@ def build_truthful_status_capability_answer(
     presence_payload, presence_path = _read_json_read_model(root, AGENT_PRESENCE_READ_MODEL)
     chief_payload, chief_path = _read_json_read_model(root, CHIEF_STATUS_READ_MODEL)
     readback_focus = _normalize_readback_focus(focus)
+
+    freshness_excluded_sources: list[str] = []
+    stale_sources: list[str] = []
+    unverifiable_sources: list[str] = []
+
+    def _age_gate(payload: Mapping[str, Any], source: str) -> dict[str, Any]:
+        if not payload:
+            return {}
+        days = _read_model_stale_days(payload)
+        if days is None:
+            freshness_excluded_sources.append(source)
+            unverifiable_sources.append(source)
+            return {}
+        if days > BARE_STATUS_FRESHNESS_SLA_DAYS:
+            freshness_excluded_sources.append(source)
+            stale_sources.append(source)
+            return {}
+        return dict(payload)
+
+    capability_payload = _age_gate(capability_payload, CAPABILITY_INDEX_READ_MODEL)
+    presence_payload = _age_gate(presence_payload, AGENT_PRESENCE_READ_MODEL)
+    chief_payload = _age_gate(chief_payload, CHIEF_STATUS_READ_MODEL)
 
     capabilities = [
         row
@@ -2119,14 +2165,21 @@ def build_truthful_status_capability_answer(
     )
 
     if not capability_payload:
-        one_line = "I cannot truthfully list capabilities yet because the capability index read model is missing."
-        plain = "\n".join(
-            [
-                one_line,
-                "",
-                "I will not invent a capability list. Ask again after `generated/read_models/openclaw_capability_index.json` is present.",
-            ]
+        one_line = (
+            "I cannot truthfully list capabilities yet because a current capability index "
+            "read model is unavailable."
         )
+        lines = [
+            one_line,
+            "",
+            "I will not invent a capability list. Ask again after `generated/read_models/openclaw_capability_index.json` is present and freshness-verifiable.",
+        ]
+        if freshness_excluded_sources:
+            lines.append(
+                "Stale or unverifiable sources excluded: "
+                f"{', '.join(freshness_excluded_sources)}."
+            )
+        plain = "\n".join(lines)
     else:
         online_phrase = (
             f"{len(online_agents)} agents are online in the presence read model"
@@ -2153,6 +2206,11 @@ def build_truthful_status_capability_answer(
             f"- Proven live-implemented rails: {_join_names(live_names)}.",
             f"- Safe non-executing readback rails: {_join_names(nonexec_names)}.",
         ]
+        if freshness_excluded_sources:
+            lines.append(
+                "- Stale or unverifiable sources excluded: "
+                f"{', '.join(freshness_excluded_sources)}."
+            )
         if roster_entries:
             lines.append(f"- Agent roster: {_join_names(roster_entries)}.")
         if next_safe_move:
@@ -2181,6 +2239,14 @@ def build_truthful_status_capability_answer(
             "agent_roster_summarized": bool(roster_entries),
             "chief_status_rail_used": bool(chief_payload),
             "source_truth_refs": proof_refs,
+            "freshness_excluded_sources": tuple(freshness_excluded_sources),
+            # Keep the established aggregate name aligned with bare status:
+            # undated sources are freshness-excluded even though the precise
+            # reason is recorded separately below.
+            "stale_sources_excluded": tuple(freshness_excluded_sources),
+            "actually_stale_sources_excluded": tuple(stale_sources),
+            "unverifiable_sources_excluded": tuple(unverifiable_sources),
+            "freshness_sla_days": BARE_STATUS_FRESHNESS_SLA_DAYS,
             "live_implemented_capability_count": len(live_capabilities),
             "nonexecuting_capability_count": len(nonexecuting_capabilities),
             "blocked_or_future_capability_count": len(blocked_or_future),

@@ -24,18 +24,24 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import queue
 import re
+import sqlite3
+import threading
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, Mapping
 
 
 SCHEMA_VERSION = "typed_contract_decision_v1"
 SEMANTIC_VOTE_ENV = "OPENCLAW_CONTRACT_VOTE_ADAPTERS"
 SEMANTIC_VOTE_TIMEOUT_ENV = "OPENCLAW_CONTRACT_VOTE_TIMEOUT_SECONDS"
+CONTRACT_RECEIPT_DB_ENV = "OPENCLAW_CONTRACT_RECEIPT_DB"
 DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 5.0
 SEMANTIC_CONFIDENCE_THRESHOLD = 0.72
+MAX_CONTRACT_PRESERVE_RECEIPTS = 4096
 _CASSANDRA_TELEGRAM_SURFACES = frozenset(
     {"telegram", "cassandra_telegram", "cassandra_brain.handle"}
 )
@@ -106,6 +112,8 @@ class ContractReceipt:
     authority_granted: bool = False
     session_preserved: bool = False
     receipt_pointer: str = ""
+    receipt_persisted: bool = False
+    receipt_persistence_status: str = "not_applicable"
     elapsed_ms: float = 0.0
     schema_version: str = SCHEMA_VERSION
 
@@ -335,8 +343,14 @@ def _receipt(
     receipt_pointer: str = "",
     started: float,
 ) -> ContractReceipt:
+    decision_id = _decision_id(text, context, label)
+    if action is DecisionAction.PRESERVE_SESSION and receipt_pointer.startswith("contract:"):
+        # A preserve reply exposes ``receipt_pointer`` to the caller.  Keep the
+        # durable primary key identical to that pointer even when the
+        # deterministic label that failed was STATUS or ROUTE_INSTRUCTION.
+        decision_id = receipt_pointer
     return ContractReceipt(
-        decision_id=_decision_id(text, context, label),
+        decision_id=decision_id,
         label=label.value,
         action=action.value,
         precedence=_PRECEDENCE[label],
@@ -350,6 +364,146 @@ def _receipt(
         receipt_pointer=receipt_pointer,
         elapsed_ms=round((time.monotonic() - started) * 1000.0, 3),
     )
+
+
+def contract_receipt_db_path(*, environ: Mapping[str, str] | None = None) -> Path:
+    """Return the token-free preserve-receipt sink path.
+
+    Deployments may override the file location, while the default remains in
+    the generated receipt tree and therefore outside source-controlled state.
+    """
+
+    env = environ if environ is not None else os.environ
+    configured = str(env.get(CONTRACT_RECEIPT_DB_ENV, "") or "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    return Path(__file__).resolve().parent / "generated" / "receipts" / "typed_contract_receipts.sqlite3"
+
+
+def _ensure_contract_receipt_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS contract_preserve_receipts (
+            decision_id TEXT PRIMARY KEY,
+            schema_version TEXT NOT NULL,
+            label TEXT NOT NULL,
+            action TEXT NOT NULL CHECK (action = 'preserve_session'),
+            precedence INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            reason_code TEXT NOT NULL,
+            model_called INTEGER NOT NULL,
+            semantic_vote_status TEXT NOT NULL,
+            confidence REAL NOT NULL,
+            created_at_epoch_ms INTEGER NOT NULL
+        )
+        """
+    )
+
+
+def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractReceipt:
+    """Persist one bounded, idempotent preserve receipt without request data."""
+
+    if (
+        receipt.action != DecisionAction.PRESERVE_SESSION.value
+        or not receipt.session_preserved
+        or not receipt.receipt_pointer.startswith("contract:")
+        or receipt.decision_id != receipt.receipt_pointer
+    ):
+        return receipt
+
+    try:
+        path = contract_receipt_db_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(str(path), timeout=0.25) as connection:
+            connection.execute("PRAGMA busy_timeout = 250")
+            _ensure_contract_receipt_schema(connection)
+            cursor = connection.execute(
+                """
+                INSERT OR IGNORE INTO contract_preserve_receipts (
+                    decision_id,
+                    schema_version,
+                    label,
+                    action,
+                    precedence,
+                    source,
+                    reason_code,
+                    model_called,
+                    semantic_vote_status,
+                    confidence,
+                    created_at_epoch_ms
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    receipt.decision_id,
+                    receipt.schema_version,
+                    receipt.label,
+                    receipt.action,
+                    receipt.precedence,
+                    receipt.source,
+                    receipt.reason,
+                    int(receipt.model_called),
+                    receipt.semantic_vote_status,
+                    receipt.confidence,
+                    int(time.time() * 1000),
+                ),
+            )
+            # Keep the newest bounded set.  No message, token, session
+            # snapshot, exception detail, or arbitrary context enters this
+            # table; only the typed receipt fields above are retained.
+            limit = max(1, int(MAX_CONTRACT_PRESERVE_RECEIPTS))
+            connection.execute(
+                """
+                DELETE FROM contract_preserve_receipts
+                WHERE rowid IN (
+                    SELECT rowid
+                    FROM contract_preserve_receipts
+                    ORDER BY rowid DESC
+                    LIMIT -1 OFFSET ?
+                )
+                """,
+                (limit,),
+            )
+        status = "inserted" if cursor.rowcount == 1 else "already_present"
+        return replace(receipt, receipt_persisted=True, receipt_persistence_status=status)
+    except Exception as exc:
+        # Preserve still fails closed if the evidence sink is unavailable; the
+        # typed receipt exposes only the exception class, never its message.
+        return replace(
+            receipt,
+            receipt_persisted=False,
+            receipt_persistence_status=f"error:{type(exc).__name__}",
+        )
+
+
+def resolve_contract_receipt(
+    decision_id: str,
+    *,
+    path: str | os.PathLike[str] | None = None,
+) -> dict[str, Any] | None:
+    """Resolve a durable preserve pointer without creating or mutating state."""
+
+    pointer = str(decision_id or "")
+    if not pointer.startswith("contract:"):
+        return None
+    db_path = Path(path) if path is not None else contract_receipt_db_path()
+    if not db_path.is_file():
+        return None
+    try:
+        with sqlite3.connect(str(db_path), timeout=0.25) as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                """
+                SELECT decision_id, schema_version, label, action, precedence,
+                       source, reason_code, model_called,
+                       semantic_vote_status, confidence, created_at_epoch_ms
+                FROM contract_preserve_receipts
+                WHERE decision_id = ?
+                """,
+                (pointer,),
+            ).fetchone()
+    except sqlite3.Error:
+        return None
+    return dict(row) if row is not None else None
 
 
 def _make_decision(
@@ -369,26 +523,28 @@ def _make_decision(
     receipt_pointer: str = "",
     started: float,
 ) -> ContractDecision:
+    receipt = _receipt(
+        text=text,
+        context=context,
+        label=label,
+        action=action,
+        source=source,
+        reason=reason,
+        model_called=model_called,
+        vote_status=vote_status,
+        confidence=confidence,
+        session_preserved=session_preserved,
+        receipt_pointer=receipt_pointer,
+        started=started,
+    )
+    receipt = _persist_contract_preserve_receipt(receipt)
     return ContractDecision(
         label=label,
         matches=matches or (label,),
         action=action,
         reply=reply,
         context=context,
-        receipt=_receipt(
-            text=text,
-            context=context,
-            label=label,
-            action=action,
-            source=source,
-            reason=reason,
-            model_called=model_called,
-            vote_status=vote_status,
-            confidence=confidence,
-            session_preserved=session_preserved,
-            receipt_pointer=receipt_pointer,
-            started=started,
-        ),
+        receipt=receipt,
     )
 
 
@@ -546,7 +702,41 @@ def _is_status(text: str) -> bool:
         return False
     if re.match(r"^\s*(?:update|set|change|mark|move)\b", normalized, re.IGNORECASE):
         return False
-    return any(pattern.search(normalized) for pattern in _STATUS_PATTERNS)
+
+    # A raw ``status`` noun is not enough to claim the fleet-status contract.
+    # Named client/project asks (live regression: ``Capital Hilton status``)
+    # belong to their grounded business owner, even when they do not also say
+    # invoice/payment.  Keep only bare status idioms and explicit
+    # agent/system-posture subjects here; the remaining humanized idioms below
+    # (``how are things on your end`` / ``what's happening``) stay valid.
+    if _STATUS_PATTERNS[0].search(normalized):
+        stripped = normalized.lower().rstrip("?!. ")
+        bare_status = {
+            "status",
+            "status update",
+            "status check",
+            "status please",
+            "quick status",
+            "whats the status",
+            "what's the status",
+            "what is the status",
+            "give me a status",
+            "give me a status update",
+        }
+        if stripped in bare_status:
+            return True
+        explicit_posture_subject = re.search(
+            r"(?:\b(?:you|your|system|fleet|agents?|services?|operations?|side|end|"
+            r"chief|maestro|cassandra|clara|guardian|niles|hermes)\b.{0,45}"
+            r"\b(?:status|state|posture)\b|"
+            r"\b(?:status|state|posture)\b.{0,45}\b(?:you|your|system|fleet|agents?|services?)\b)",
+            normalized,
+            re.IGNORECASE,
+        )
+        if explicit_posture_subject:
+            return True
+        return False
+    return any(pattern.search(normalized) for pattern in _STATUS_PATTERNS[1:])
 
 
 def _identity_reply(agent: str) -> str:
@@ -698,28 +888,62 @@ def _call_semantic_vote(
     adaptive_call_fn: AdaptiveCall | None,
     timeout_seconds: float,
 ) -> tuple[tuple[ContractLabel, float, bool] | None, str]:
-    if adaptive_call_fn is None:
-        from adaptive_model_call import adaptive_model_call as adaptive_call_fn
-
     # One end-to-end budget split between slot contention and model work.  The
     # prior same-value/same-value shape could consume roughly 2x the advertised
-    # timeout (5s waiting + 5s model).  Default 5s is now 2s slot + 3s model.
-    slot_wait_seconds = min(2.0, max(0.001, timeout_seconds * 0.4))
-    model_timeout_seconds = max(0.001, timeout_seconds - slot_wait_seconds)
+    # timeout (5s waiting + 5s model).  The synchronous adaptive implementation
+    # also cannot enforce that its own provider returns.  Run it in a daemon
+    # worker and enforce the advertised budget at this contract boundary.
     try:
-        raw = adaptive_call_fn(
-            _semantic_prompt(text, context),
-            task_class="contract_semantic_vote",
-            lane="frontdoor",
-            timeout=model_timeout_seconds,
-            attempts=1,
-            think=False,
-            num_predict=80,
-            retry=False,
-            model_slot_max_wait_seconds=slot_wait_seconds,
-        )
-    except Exception as exc:
-        return None, f"error:{type(exc).__name__}"
+        total_budget_seconds = float(timeout_seconds)
+    except (TypeError, ValueError):
+        total_budget_seconds = DEFAULT_SEMANTIC_TIMEOUT_SECONDS
+    if not 0 < total_budget_seconds <= 10:
+        total_budget_seconds = DEFAULT_SEMANTIC_TIMEOUT_SECONDS
+    slot_wait_seconds = min(2.0, max(0.001, total_budget_seconds * 0.4))
+    model_timeout_seconds = max(0.001, total_budget_seconds - slot_wait_seconds)
+    outcomes: queue.Queue[tuple[str, Any]] = queue.Queue(maxsize=1)
+
+    def invoke() -> None:
+        try:
+            call_fn = adaptive_call_fn
+            if call_fn is None:
+                from adaptive_model_call import adaptive_model_call as call_fn
+
+            raw = call_fn(
+                _semantic_prompt(text, context),
+                task_class="contract_semantic_vote",
+                lane="frontdoor",
+                timeout=model_timeout_seconds,
+                attempts=1,
+                think=False,
+                num_predict=80,
+                retry=False,
+                model_slot_max_wait_seconds=slot_wait_seconds,
+            )
+            outcome = ("result", raw)
+        except Exception as exc:
+            outcome = ("error", type(exc).__name__)
+        try:
+            outcomes.put_nowait(outcome)
+        except queue.Full:
+            # The caller has already crossed the wall and abandoned the
+            # one-result mailbox.  The daemon must never hold process exit.
+            return
+
+    deadline = time.monotonic() + total_budget_seconds
+    worker = threading.Thread(
+        target=invoke,
+        name="contract-semantic-vote",
+        daemon=True,
+    )
+    worker.start()
+    try:
+        outcome_kind, outcome_value = outcomes.get(timeout=max(0.0, deadline - time.monotonic()))
+    except queue.Empty:
+        return None, "deadline_exceeded"
+    if outcome_kind == "error":
+        return None, f"error:{outcome_value}"
+    raw = outcome_value
     parsed = _parse_semantic_vote(str(raw or ""))
     if parsed is None:
         return None, "timeout_or_invalid" if not str(raw or "").strip() else "invalid"
@@ -1070,6 +1294,7 @@ def decide_contract(
 
 
 __all__ = [
+    "CONTRACT_RECEIPT_DB_ENV",
     "ContractContext",
     "ContractDecision",
     "ContractLabel",
@@ -1077,9 +1302,11 @@ __all__ = [
     "DecisionAction",
     "HandoffResult",
     "active_session_from_mapping",
+    "contract_receipt_db_path",
     "decide_contract",
     "guardian_gate_narration_reply",
     "preserve_session_on_error",
+    "resolve_contract_receipt",
     "semantic_vote_enabled_for_adapter",
     "semantic_vote_timeout_seconds",
     "surface_scope_matches",

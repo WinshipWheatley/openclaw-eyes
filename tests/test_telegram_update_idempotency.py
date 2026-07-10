@@ -341,9 +341,14 @@ class _RawHermesAdapter:
         self.pending_album = None
         self.original_text_calls = 0
         self.original_media_calls = 0
+        self.original_callback_calls = 0
 
     def _should_process_message(self, _message, *, is_command=False):
         return True
+
+    def _is_callback_user_authorized(self, user_id):
+        self.timeline.append(f"callback-auth:{user_id}")
+        return str(user_id) == "operator"
 
     def _build_message_event(self, message, message_type, update_id=None):
         self.timeline.append(f"build:{update_id}:{message_type}")
@@ -380,6 +385,10 @@ class _RawHermesAdapter:
             self.pending_album = event
         else:
             self.pending_album.media_urls.extend(event.media_urls)
+
+    async def _handle_callback_query(self, update, _context):
+        self.original_callback_calls += 1
+        self.timeline.append(f"callback-work:{update.update_id}:{update.callback_query.data}")
 
 
 def _install_raw_hermes_fixture(monkeypatch, timeline: list[str]):
@@ -424,8 +433,8 @@ def _install_raw_hermes_fixture(monkeypatch, timeline: list[str]):
 def test_hermes_two_rapid_text_ids_are_each_claimed_before_batch_and_replay_is_suppressed(monkeypatch) -> None:
     timeline: list[str] = []
     _policy, runner, adapter, dispatched = _install_raw_hermes_fixture(monkeypatch, timeline)
-    first = SimpleNamespace(update_id=3101, message=_RawHermesMessage(text="first chunk"))
-    second = SimpleNamespace(update_id=3102, message=_RawHermesMessage(text="second chunk"))
+    first = SimpleNamespace(update_id=3101, message=_RawHermesMessage(text="Please summarize the"))
+    second = SimpleNamespace(update_id=3102, message=_RawHermesMessage(text="project notes from today."))
 
     asyncio.run(adapter._handle_text_message(first, SimpleNamespace()))
     asyncio.run(adapter._handle_text_message(second, SimpleNamespace()))
@@ -435,10 +444,50 @@ def test_hermes_two_rapid_text_ids_are_each_claimed_before_batch_and_replay_is_s
     assert timeline.count("claim:3101") == 2
     assert timeline.count("claim:3102") == 2
     assert adapter.original_text_calls == 2
-    assert adapter.pending_text.text == "first chunk\nsecond chunk"
+    assert adapter.pending_text.text == "Please summarize the\nproject notes from today."
     assert adapter.pending_text._openclaw_raw_update_preclaimed is True
     asyncio.run(runner._handle_message(adapter.pending_text))
     assert dispatched == [adapter.pending_text]
+
+
+def test_hermes_callback_authorizes_then_claims_before_vendor_work_and_suppresses_replay(monkeypatch) -> None:
+    timeline: list[str] = []
+    _policy, _runner, adapter, _dispatched = _install_raw_hermes_fixture(monkeypatch, timeline)
+    query = SimpleNamespace(data="ea:once:17", from_user=SimpleNamespace(id="operator"))
+    update = SimpleNamespace(update_id=5101, callback_query=query)
+
+    asyncio.run(adapter._handle_callback_query(update, SimpleNamespace()))
+    asyncio.run(adapter._handle_callback_query(update, SimpleNamespace()))
+
+    assert timeline.count("callback-auth:operator") == 2
+    assert timeline.count("claim:5101") == 2
+    assert timeline.count("callback-work:5101:ea:once:17") == 1
+    assert timeline.index("callback-auth:operator") < timeline.index("claim:5101")
+    assert timeline.index("claim:5101") < timeline.index("callback-work:5101:ea:once:17")
+    assert adapter.original_callback_calls == 1
+
+
+def test_hermes_unauthorized_or_empty_callback_never_claims_or_reaches_vendor_work(monkeypatch) -> None:
+    timeline: list[str] = []
+    _policy, _runner, adapter, _dispatched = _install_raw_hermes_fixture(monkeypatch, timeline)
+    unauthorized = SimpleNamespace(
+        update_id=5201,
+        callback_query=SimpleNamespace(data="mm:0", from_user=SimpleNamespace(id="stranger")),
+    )
+    empty = SimpleNamespace(
+        update_id=5202,
+        callback_query=SimpleNamespace(data="", from_user=SimpleNamespace(id="operator")),
+    )
+
+    asyncio.run(adapter._handle_callback_query(unauthorized, SimpleNamespace()))
+    asyncio.run(adapter._handle_callback_query(empty, SimpleNamespace()))
+
+    assert "callback-auth:stranger" in timeline
+    assert "callback-auth:operator" not in timeline
+    assert "claim:5201" not in timeline
+    assert "claim:5202" not in timeline
+    assert not any(item.startswith("callback-work:") for item in timeline)
+    assert adapter.original_callback_calls == 0
 
 
 def test_hermes_two_photo_album_ids_claim_before_cache_and_replays_do_no_work(monkeypatch) -> None:

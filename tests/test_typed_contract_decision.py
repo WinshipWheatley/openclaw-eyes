@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+import threading
 import time
 from dataclasses import replace
 
@@ -390,6 +392,18 @@ def test_temporal_invoice_status_is_not_generic_fleet_status():
     assert contract.ContractLabel.STATUS not in decision.matches
 
 
+def test_named_business_status_is_not_generic_fleet_status():
+    decision = contract.decide_contract(
+        "what's Winship's day / Capital Hilton status?",
+        context=_ctx(),
+        status_renderer=lambda: pytest.fail("generic fleet status renderer ran"),
+        semantic_vote_enabled=False,
+    )
+    assert decision.label is contract.ContractLabel.UNRESOLVED
+    assert decision.action is contract.DecisionAction.PASS_THROUGH
+    assert contract.ContractLabel.STATUS not in decision.matches
+
+
 def test_active_session_relevant_vote_captures_but_never_mutates():
     session = {"status": "active", "active_workflow": "billing", "step": 2}
     before = dict(session)
@@ -522,3 +536,114 @@ def test_forced_timeout_preserves_no_retry_with_end_to_end_budget():
     assert decision.action is contract.DecisionAction.PRESERVE_SESSION
     assert decision.receipt.session_preserved is True
     assert elapsed <= 0.5
+
+
+def test_semantic_vote_overrun_hits_real_wall_and_cannot_block_caller(monkeypatch, tmp_path):
+    db_path = tmp_path / "receipts.sqlite3"
+    monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(db_path))
+    seen = {}
+    entered = threading.Event()
+
+    def ignores_provider_timeout(_prompt, **kwargs):
+        seen.update(kwargs)
+        entered.set()
+        time.sleep(0.5)
+        return json.dumps({"label": "session_relevant", "confidence": 0.99, "session_relevant": True})
+
+    started = time.monotonic()
+    decision = contract.decide_contract(
+        "maybe that other thing",
+        context=_ctx(active_session=True, session_kind="guided_review"),
+        semantic_vote_enabled=True,
+        adaptive_call_fn=ignores_provider_timeout,
+        semantic_timeout_seconds=0.04,
+    )
+    elapsed = time.monotonic() - started
+
+    assert entered.wait(0.5)
+    assert seen["retry"] is False
+    assert seen["attempts"] == 1
+    assert seen["timeout"] + seen["model_slot_max_wait_seconds"] == pytest.approx(0.04)
+    assert decision.action is contract.DecisionAction.PRESERVE_SESSION
+    assert decision.receipt.semantic_vote_status == "deadline_exceeded"
+    assert decision.receipt.receipt_persisted is True
+    assert elapsed < 0.2
+
+
+def test_preserve_receipt_sink_is_idempotent_resolvable_and_payload_free(monkeypatch, tmp_path):
+    db_path = tmp_path / "generated" / "receipts" / "contract.sqlite3"
+    monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(db_path))
+    raw_marker = "RAW-MESSAGE-MUST-NOT-BE-STORED-49D2"
+    session_marker = "SESSION-DRAFT-MUST-NOT-BE-STORED-A86C"
+
+    direct = contract.decide_contract(
+        "what's your status?",
+        context=_ctx(),
+        status_renderer=lambda: "Services: 6/6 online.",
+    )
+    assert direct.action is contract.DecisionAction.DIRECT_ANSWER
+    assert direct.receipt.receipt_persistence_status == "not_applicable"
+    assert not db_path.exists()
+
+    context = _ctx(
+        active_session=True,
+        session_kind="guided_review",
+        session_snapshot={"status": "active", "draft": session_marker},
+    )
+    first = contract.decide_contract(
+        raw_marker,
+        context=context,
+        semantic_vote_enabled=False,
+    )
+    second = contract.decide_contract(
+        raw_marker,
+        context=context,
+        semantic_vote_enabled=False,
+    )
+
+    assert first.receipt.decision_id == first.receipt.receipt_pointer
+    assert first.receipt.receipt_persisted is True
+    assert first.receipt.receipt_persistence_status == "inserted"
+    assert second.receipt.decision_id == first.receipt.decision_id
+    assert second.receipt.receipt_persisted is True
+    assert second.receipt.receipt_persistence_status == "already_present"
+
+    with sqlite3.connect(db_path) as connection:
+        rows = connection.execute("SELECT * FROM contract_preserve_receipts").fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == first.receipt.decision_id
+    assert rows[0][3] == contract.DecisionAction.PRESERVE_SESSION.value
+
+    resolved = contract.resolve_contract_receipt(first.receipt.receipt_pointer, path=db_path)
+    assert resolved is not None
+    assert resolved["decision_id"] == first.receipt.decision_id
+    assert resolved["action"] == contract.DecisionAction.PRESERVE_SESSION.value
+    database_bytes = db_path.read_bytes()
+    assert raw_marker.encode() not in database_bytes
+    assert session_marker.encode() not in database_bytes
+
+
+def test_preserve_receipt_sink_prunes_oldest_rows_to_fixed_bound(monkeypatch, tmp_path):
+    db_path = tmp_path / "bounded.sqlite3"
+    monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(db_path))
+    monkeypatch.setattr(contract, "MAX_CONTRACT_PRESERVE_RECEIPTS", 2)
+    decisions = [
+        contract.decide_contract(
+            f"ambiguous preserve answer {index}",
+            context=_ctx(active_session=True, session_kind="billing"),
+            semantic_vote_enabled=False,
+        )
+        for index in range(3)
+    ]
+
+    with sqlite3.connect(db_path) as connection:
+        durable_ids = {
+            row[0]
+            for row in connection.execute(
+                "SELECT decision_id FROM contract_preserve_receipts ORDER BY rowid"
+            ).fetchall()
+        }
+    assert len(durable_ids) == 2
+    assert decisions[0].receipt.decision_id not in durable_ids
+    assert decisions[1].receipt.decision_id in durable_ids
+    assert decisions[2].receipt.decision_id in durable_ids

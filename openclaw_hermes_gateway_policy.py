@@ -368,6 +368,31 @@ def _raw_event_is_authorized(adapter: Any, event: Any) -> bool:
         return False
 
 
+def _raw_callback_is_authorized(adapter: Any, update: Any) -> bool:
+    """Authorize one PTB callback before its vendor handler can mutate state."""
+
+    query = getattr(update, "callback_query", None)
+    caller = getattr(query, "from_user", None)
+    caller_id = str(getattr(caller, "id", "") or "")
+    checker = getattr(adapter, "_is_callback_user_authorized", None)
+    if not caller_id or not callable(checker):
+        print(
+            "[hermes_listener] raw callback authorization binding unavailable; "
+            "refusing update before callback work.",
+            flush=True,
+        )
+        return False
+    try:
+        return bool(checker(caller_id))
+    except Exception as exc:
+        print(
+            f"[hermes_listener] raw callback authorization failed ({exc.__class__.__name__}); "
+            "refusing update.",
+            flush=True,
+        )
+        return False
+
+
 def _install_hermes_raw_update_claim_patch(telegram_adapter_cls: Any, message_type_cls: Any) -> None:
     """Patch raw PTB handlers so every update id is claimed before work."""
 
@@ -429,6 +454,30 @@ def _install_hermes_raw_update_claim_patch(telegram_adapter_cls: Any, message_ty
                 _RAW_PRECLAIMED_UPDATE_ID.reset(context_token)
 
         setattr(telegram_adapter_cls, handler_name, _openclaw_raw_handler)
+
+    original_callback_handler = getattr(telegram_adapter_cls, "_handle_callback_query", None)
+    if callable(original_callback_handler):
+
+        async def _openclaw_raw_callback_handler(
+            self: Any,
+            update: Any,
+            context: Any,
+        ) -> Any:
+            # Callback data is the cheapest shape discriminator.  Authorization
+            # must precede the durable claim, and the claim must precede every
+            # vendor callback branch (model switch, exec approval, update-file
+            # response, message edit, or callback acknowledgement).
+            query = getattr(update, "callback_query", None)
+            if query is None or not str(getattr(query, "data", "") or "").strip():
+                return None
+            if not _raw_callback_is_authorized(self, update):
+                return None
+            update_id = getattr(update, "update_id", None)
+            if not _claim_hermes_raw_update(update, update_id):
+                return None
+            return await original_callback_handler(self, update, context)
+
+        telegram_adapter_cls._handle_callback_query = _openclaw_raw_callback_handler
 
     telegram_adapter_cls._openclaw_raw_update_claim_patch = True
 

@@ -86,6 +86,21 @@ class TestBuildChiefBareStatusAnswer:
         assert "Services: 4/6 agents online." in answer
         assert "chief_status_rail.json" in answer
 
+    def test_undated_rail_is_unverifiable_and_excluded(self, tmp_path, monkeypatch):
+        _seed_fresh_read_models(tmp_path)
+        _write_json(
+            tmp_path / "generated" / "read_models" / "chief_status_rail.json",
+            {"chief_current_status": "safe_status_read_model_only"},
+        )
+        monkeypatch.chdir(tmp_path)
+
+        answer = chief_router.build_chief_bare_status_answer()
+
+        assert "Rail:" not in answer
+        assert "Services: 4/6 agents online." in answer
+        assert "chief_status_rail.json" in answer
+        assert "unverifiable" in answer
+
     def test_missing_read_models_produces_honest_no_data_answer(self, tmp_path, monkeypatch):
         (tmp_path / "generated" / "read_models").mkdir(parents=True)
         monkeypatch.chdir(tmp_path)

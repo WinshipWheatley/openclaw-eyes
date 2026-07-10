@@ -20,6 +20,7 @@ def _write_read_models(root: Path) -> dict[str, str]:
     (root / "openclaw_capability_index.json").write_text(
         json.dumps(
             {
+                "generated_at": "2026-07-09T14:54:32+00:00",
                 "generic_capabilities": [
                     {
                         "capability_id": "request_processing",
@@ -44,6 +45,7 @@ def _write_read_models(root: Path) -> dict[str, str]:
     (root / "agent_presence.json").write_text(
         json.dumps(
             {
+                "generated_at": "2026-07-09T14:54:32+00:00",
                 "online_count": 2,
                 "next_safe_move": "Review the staged Maestro lane packet before any runtime action.",
                 "agents": [
@@ -71,6 +73,7 @@ def _write_read_models(root: Path) -> dict[str, str]:
     (root / "chief_status_rail.json").write_text(
         json.dumps(
             {
+                "generated_at": "2026-07-09T14:54:32+00:00",
                 "chief_current_status": "safe_status_read_model_only",
                 "chief_current_proven_role": {
                     "role_summary": "Chief is proven for request-only coordination/status visibility.",
@@ -81,6 +84,20 @@ def _write_read_models(root: Path) -> dict[str, str]:
         encoding="utf-8",
     )
     return {"read_model_root": str(root)}
+
+
+def _set_read_model_generated_at(
+    session: dict[str, str],
+    filename: str,
+    generated_at: str | None,
+) -> None:
+    path = Path(session["read_model_root"]) / filename
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if generated_at is None:
+        payload.pop("generated_at", None)
+    else:
+        payload["generated_at"] = generated_at
+    path.write_text(json.dumps(payload), encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -374,3 +391,35 @@ def test_truthful_status_capability_answer_is_useful_for_each_readback_class(
 
     assert expected_text in answer["plain_summary"]
     assert answer["machine_proof"]["readback_focus"] == focus
+
+
+@pytest.mark.parametrize(
+    ("filename", "used_key", "unverified_text"),
+    [
+        ("openclaw_capability_index.json", "capability_index_used", "Bounded request processor"),
+        ("agent_presence.json", "agent_presence_used", "2 agents are online"),
+        ("chief_status_rail.json", "chief_status_rail_used", "Chief is proven"),
+    ],
+)
+@pytest.mark.parametrize(
+    "generated_at",
+    [None, "2026-05-26T00:00:00+00:00"],
+    ids=["undated", "stale"],
+)
+def test_truthful_status_capability_answer_excludes_unverifiable_or_stale_sources(
+    tmp_path: Path,
+    filename: str,
+    used_key: str,
+    unverified_text: str,
+    generated_at: str | None,
+) -> None:
+    session = _write_read_models(tmp_path)
+    _set_read_model_generated_at(session, filename, generated_at)
+
+    answer = build_truthful_status_capability_answer(session=session, focus="status")
+
+    assert unverified_text not in answer["plain_summary"]
+    assert filename in answer["plain_summary"]
+    assert filename in answer["machine_proof"]["freshness_excluded_sources"]
+    assert answer["machine_proof"][used_key] is False
+    assert filename not in " ".join(answer["machine_proof"]["source_truth_refs"])

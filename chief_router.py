@@ -886,37 +886,41 @@ def build_chief_bare_status_answer() -> str:
     board_payload, _ = _read_json_read_model(root, "work_board.json")
 
     lines: list[str] = []
-    stale_sources: list[str] = []
+    freshness_excluded_sources: list[str] = []
 
-    presence_days = _read_model_stale_days(presence_payload)
-    if presence_payload and (presence_days is None or presence_days <= _CHIEF_STATUS_FRESHNESS_SLA_DAYS):
+    def _usable(payload: dict, source: str) -> bool:
+        if not payload:
+            return False
+        days = _read_model_stale_days(payload)
+        if days is None or days > _CHIEF_STATUS_FRESHNESS_SLA_DAYS:
+            freshness_excluded_sources.append(source)
+            return False
+        return True
+
+    if _usable(presence_payload, "agent_presence.json"):
         online = presence_payload.get("online_count")
         total = presence_payload.get("agent_count")
         lines.append(f"Services: {online}/{total} agents online.")
-    elif presence_payload:
-        stale_sources.append("agent_presence.json")
 
-    rail_days = _read_model_stale_days(rail_payload)
-    if rail_payload and (rail_days is None or rail_days <= _CHIEF_STATUS_FRESHNESS_SLA_DAYS):
+    if _usable(rail_payload, "chief_status_rail.json"):
         rail_status = str(rail_payload.get("chief_current_status") or "").strip()
         if rail_status:
             lines.append(f"Rail: {rail_status}.")
-    elif rail_payload:
-        stale_sources.append("chief_status_rail.json")
 
-    board_days = _read_model_stale_days(board_payload)
-    if board_payload and (board_days is None or board_days <= _CHIEF_STATUS_FRESHNESS_SLA_DAYS):
+    if _usable(board_payload, "work_board.json"):
         pending_approval = board_payload.get("pending_approval_count")
         needs_review = board_payload.get("needs_review_count")
         lines.append(f"Builds: {pending_approval} pending approval, {needs_review} need review.")
-    elif board_payload:
-        stale_sources.append("work_board.json")
-
-    if stale_sources:
-        lines.append(f"(stale, excluded: {', '.join(stale_sources)})")
 
     if not lines:
-        return "I don't have current status data to report -- the usual read models are missing or stale."
+        lines.append(
+            "I don't have current status data to report -- the usual read models are missing, stale, or unverifiable."
+        )
+    if freshness_excluded_sources:
+        lines.append(
+            "(stale or unverifiable, excluded: "
+            f"{', '.join(freshness_excluded_sources)})"
+        )
     return "\n".join(lines)
 
 

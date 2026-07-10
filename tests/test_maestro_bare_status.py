@@ -95,6 +95,23 @@ class TestBuildMaestroBareStatusAnswer:
         assert "helm_operator_attention_package.json" in answer["machine_proof"]["stale_sources_excluded"]
         assert "helm_operator_attention_package.json" not in " ".join(answer["machine_proof"]["source_truth_refs"])
 
+    def test_undated_source_is_unverifiable_and_excluded_not_presented_as_current(self, tmp_path):
+        root = _seed_fresh_status_read_models(tmp_path)
+        _write_json(
+            root / "helm_operator_attention_package.json",
+            {"primary_cards": [{"id": "a"}, {"id": "b"}]},
+        )
+
+        answer = maestro.build_maestro_bare_status_answer(session={"read_model_root": root.as_posix()})
+
+        assert "Plate:" not in answer["plain_summary"]
+        assert "Money: 1 client with open amounts." in answer["plain_summary"]
+        assert "Fleet: 4/6 agents online." in answer["plain_summary"]
+        assert "helm_operator_attention_package.json" in answer["plain_summary"]
+        assert "helm_operator_attention_package.json" in answer["machine_proof"]["stale_sources_excluded"]
+        assert "helm_operator_attention_package.json" in answer["machine_proof"]["unverifiable_sources_excluded"]
+        assert "helm_operator_attention_package.json" not in " ".join(answer["machine_proof"]["source_truth_refs"])
+
     def test_missing_read_models_produces_honest_no_data_answer(self, tmp_path):
         root = tmp_path / "empty_read_models"
         root.mkdir()
@@ -146,9 +163,18 @@ class TestAnswerFrontdoorChatBareStatus:
         root.mkdir()
         _write_json(
             root / "openclaw_capability_index.json",
-            {"generic_capabilities": [{"capability_id": "request_processing", "capability_name": "Bounded request processor", "capability_status": "LIVE_IMPLEMENTED"}]},
+            {
+                "generated_at": "2026-07-09T14:54:32+00:00",
+                "generic_capabilities": [{"capability_id": "request_processing", "capability_name": "Bounded request processor", "capability_status": "LIVE_IMPLEMENTED"}],
+            },
         )
-        _write_json(root / "agent_presence.json", {"agents": [{"agent_id": "maestro", "actual_state": "online"}]})
+        _write_json(
+            root / "agent_presence.json",
+            {
+                "generated_at": "2026-07-09T14:54:32+00:00",
+                "agents": [{"agent_id": "maestro", "actual_state": "online"}],
+            },
+        )
 
         result = maestro.answer_frontdoor_chat(
             "Hermes, what's going on? What can you do now?",
