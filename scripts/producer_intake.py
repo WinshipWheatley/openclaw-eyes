@@ -148,6 +148,38 @@ def _operator_refusal_reply(text):
         return None
 
 
+def _typed_contract_reply(text):
+    """Task 151 subprocess mirror for stale-listener resilience.
+
+    The listener normally resolves this first.  A fresh subprocess still runs
+    the same typed contract so an old in-memory listener cannot regress to the
+    one-size catch-all after a code deploy.
+    """
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+
+        _root = str(_Path(__file__).resolve().parents[1])
+        if _root not in _sys.path:
+            _sys.path.insert(0, _root)
+        from agent_contract_renderers import render_niles_status
+        from typed_contract_decision import (
+            ContractContext,
+            decide_contract,
+            semantic_vote_enabled_for_adapter,
+        )
+
+        decision = decide_contract(
+            text,
+            context=ContractContext(agent="niles", surface="niles_producer_intake"),
+            status_renderer=render_niles_status,
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles_subprocess"),
+        )
+    except Exception:
+        return None
+    return str(decision.reply or "") if decision.handled else None
+
+
 def get_niles_response(text, producer_input):
     text_l = text.lower()
 
@@ -208,6 +240,13 @@ def main():
     # "right") before money ever got a chance. Fails open at each tap: any non-matching
     # ask or internal error falls through to the next stage, ending at the legacy path.
     if args.human_only:
+        typed_reply = _typed_contract_reply(args.text)
+        if typed_reply is not None:
+            print(typed_reply)
+            return
+        # Independent safety fallback: even if the typed-contract import/call
+        # fails, destructive studio scope still reaches the proven refusal
+        # guard before identity, money, X32, or the legacy catch-all.
         refusal = _operator_refusal_reply(args.text)
         if refusal is not None:
             print(refusal)

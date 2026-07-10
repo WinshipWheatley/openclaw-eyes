@@ -5384,6 +5384,15 @@ def _maestro_frontdoor_workflow_intent(raw_request: Mapping[str, Any]) -> dict[s
     except Exception:
         return {}
     workflow_ref = str(intent.get("workflow_ref") or "")
+    if workflow_ref in {
+        "live_arts_md_invoice_workflow",
+        "cassandra_receivables_nudge_handoff",
+    }:
+        # These two bounded handoff contracts are assembled by the typed
+        # Maestro adapter.  Diverting them to the generic workflow consumer
+        # first would bypass the shared decision/receipt and, for a compound
+        # money-read + nudge, discard the grounded money half.
+        return {}
     if workflow_ref and workflow_ref != "diagnostic_package_gate_smoke":
         return dict(intent)
     return {}
@@ -5431,6 +5440,7 @@ def _process_maestro_frontdoor_operator_instruction(
     machine_proof = maestro_cassandra_responder.machine_proof_for_result(result)
     local_model_invoked = bool(machine_proof.get("local_model_invoked", False))
     model_call_performed = bool(machine_proof.get("model_call_performed", False))
+    workflow_package_staged = bool(machine_proof.get("workflow_package_staged", False))
     response_adapter_called = bool(
         result.allowed_to_call_handle
         or machine_proof.get("protected_generate_called")
@@ -5504,7 +5514,7 @@ def _process_maestro_frontdoor_operator_instruction(
         "request_router_decision": dict(route_decision),
         "maestro_frontdoor_routing": {
             "source_surface": _maestro_frontdoor_surface(raw_request),
-            "workflow_package_staged": False,
+            "workflow_package_staged": workflow_package_staged,
             "default_deny_preserved": True,
             "route_to_staging_when_not_answer_ready": True,
         },
@@ -5512,7 +5522,7 @@ def _process_maestro_frontdoor_operator_instruction(
         "dynamic_card_response": card,
         "external_actions_locked": True,
         "model_or_worker_response_adapter_called": response_adapter_called,
-        "workflow_package_staged": False,
+        "workflow_package_staged": workflow_package_staged,
         "workflow_package_request_v0_emitted": False,
         "email_send_performed": False,
         "gmail_access_performed": False,
@@ -5543,8 +5553,16 @@ def _process_maestro_frontdoor_operator_instruction(
         operator_message=result.plain_summary,
         what_happened=(
             "OpenClaw recognized the general Maestro front-door chat surface.",
-            "The gated Maestro Cassandra responder answered before workflow-package staging.",
-            "No workflow package was staged for this allowed answer.",
+            (
+                "The typed Maestro contract staged one bounded, unclaimed workflow package and returned its receipt."
+                if workflow_package_staged
+                else "The gated Maestro Cassandra responder answered before generic workflow-package staging."
+            ),
+            (
+                "No worker claimed or executed the staged package."
+                if workflow_package_staged
+                else "No workflow package was staged for this allowed answer."
+            ),
             "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid marking, or external business action occurred.",
             model_runtime_sentence,
         ),

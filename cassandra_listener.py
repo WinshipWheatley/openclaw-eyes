@@ -351,6 +351,179 @@ async def _run_cassandra_handle_async(
     text: str,
     session_meta: dict,
 ) -> list[str | OriginBoundOutput]:
+    # Task 151: Cassandra's typed decision adapter sits in the listener before
+    # the invoice cockpit.  It is intentionally transport-neutral: handled
+    # answers return to the already-bound origin sender below; delegated
+    # finalized-invoice/payment domains continue to their existing owners.
+    _contract_context = None
+    _preserve_contract = None
+    try:
+        from invoice_cockpit_ops import DEFAULT_SESSION_PATH, JsonSessionStore
+        from typed_contract_decision import (
+            ContractContext,
+            ContractLabel,
+            HandoffResult,
+            active_session_from_mapping,
+            decide_contract,
+            preserve_session_on_error,
+            semantic_vote_enabled_for_adapter,
+            surface_scope_matches,
+        )
+        _preserve_contract = preserve_session_on_error
+
+        _cockpit_path = session_meta.get("invoice_cockpit_session_path") or DEFAULT_SESSION_PATH
+        _cockpit_session = JsonSessionStore(_cockpit_path).load() or {}
+        _guided_session = {}
+        try:
+            from cassandra_guided_review import get_active_guided_review_context
+
+            _guided_session = get_active_guided_review_context(
+                review_root=session_meta.get("guided_review_root")
+            ) or {}
+        except Exception:
+            _guided_session = {}
+        _incoming_surface = str(session_meta.get("surface") or "cassandra_telegram")
+        try:
+            from clarify_session_contract import (
+                clarify_session_expired as _clarify_session_expired,
+                clarify_session_scope_ok as _clarify_session_scope_ok,
+                iso_timestamp_expired as _iso_timestamp_expired,
+            )
+
+            _cockpit_active = bool(
+                _cockpit_session
+                and not _clarify_session_expired(_cockpit_session)
+                and _clarify_session_scope_ok(_cockpit_session, surface=_incoming_surface)
+            )
+            _guided_active = bool(
+                _guided_session
+                and not _iso_timestamp_expired(
+                    str(_guided_session.get("last_turn_at_utc") or "")
+                )
+                and surface_scope_matches(
+                    str(_guided_session.get("surface") or ""),
+                    _incoming_surface,
+                )
+            )
+        except Exception:
+            # A failed eligibility read must not resurrect a stale lease.
+            _cockpit_active = False
+            _guided_active = False
+        _active_snapshot = (
+            _cockpit_session if _cockpit_active else (_guided_session if _guided_active else {})
+        )
+        _session_kind = "invoice_cockpit" if _cockpit_active else (
+            "guided_review" if _guided_active else ""
+        )
+        _contract_context = ContractContext(
+            agent="cassandra",
+            surface=_incoming_surface,
+            source_message_id=str(session_meta.get("source_message_id") or ""),
+            active_session=_cockpit_active or _guided_active,
+            session_kind=_session_kind,
+            session_field=str(
+                _active_snapshot.get("current_question_id")
+                or _active_snapshot.get("state")
+                or _active_snapshot.get("step")
+                or ""
+            ),
+            session_snapshot=dict(_active_snapshot),
+        )
+
+        def _status_renderer() -> str:
+            from cassandra_brain import _handle_ops_status_inquiry
+
+            return str(_handle_ops_status_inquiry(text))
+
+        def _stage_handoff(raw_text: str, _context: ContractContext) -> HandoffResult:
+            from workflow_package_queue import (
+                DEFAULT_SQLITE_PATH,
+                classify_intent,
+                render_cassandra_nudge_handoff_reply,
+                render_live_arts_handoff_reply,
+                stage_cassandra_receivables_nudge_handoff,
+                stage_live_arts_invoice_handoff,
+            )
+
+            _sqlite_path = _Path(session_meta.get("workflow_package_sqlite_path") or DEFAULT_SQLITE_PATH)
+            _created_at = str(session_meta.get("contract_created_at") or "") or None
+            if classify_intent(raw_text).get("workflow_ref") == "cassandra_receivables_nudge_handoff":
+                staged = stage_cassandra_receivables_nudge_handoff(
+                    raw_text,
+                    source_surface="cassandra_telegram",
+                    sqlite_path=_sqlite_path,
+                    created_at=_created_at,
+                )
+                _reply = render_cassandra_nudge_handoff_reply(staged)
+            else:
+                staged = stage_live_arts_invoice_handoff(
+                    raw_text,
+                    source_surface="cassandra_telegram",
+                    sqlite_path=_sqlite_path,
+                    created_at=_created_at,
+                )
+                _reply = render_live_arts_handoff_reply(staged)
+            return HandoffResult(
+                reply=_reply,
+                receipt_pointer=str(staged["receipt"]["receipt_ref"]),
+                package_id=str(staged["package"]["package_id"]),
+            )
+
+        _contract_decision = decide_contract(
+            text,
+            context=_contract_context,
+            status_renderer=_status_renderer,
+            handoff_stager=_stage_handoff,
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter(
+                "cassandra", default=_contract_context.active_session
+            ),
+        )
+    except Exception as exc:
+        print(
+            f"[typed_contract][cassandra] {type(exc).__name__}; "
+            f"active_session={bool(_contract_context and _contract_context.active_session)}",
+            flush=True,
+        )
+        if _contract_context is not None and _contract_context.active_session and _preserve_contract is not None:
+            _contract_decision = _preserve_contract(
+                text,
+                context=_contract_context,
+                error_type=type(exc).__name__,
+            )
+        else:
+            _contract_decision = None
+
+    if _contract_decision is not None and _contract_decision.handled:
+        return [str(_contract_decision.reply or "")]
+
+    # A true compound payment/read + finalized-review ask must not lose one
+    # half to the cockpit's early return.  Sequence a grounded money read first,
+    # then invoke the existing cockpit exactly once with the original text.  151
+    # supplies this composition seam; 152 still owns artifact reuse/selection,
+    # and 155 still owns Capital-Hilton temporal payment verification.
+    if _contract_decision is not None:
+        _match_set = set(_contract_decision.matches)
+        _money_labels = {ContractLabel.MONEY_READ, ContractLabel.PAYMENT_ARRIVAL}
+        if ContractLabel.FINALIZED_INVOICE_REVIEW in _match_set and _match_set.intersection(_money_labels):
+            try:
+                from money_truth import render_money_answer
+
+                _money_reply = str(render_money_answer("cassandra", question=text))
+            except TypeError:
+                _money_reply = str(render_money_answer("cassandra"))
+            except Exception:
+                _money_reply = (
+                    "The shared receivables read-model is unavailable right now. "
+                    "I am not claiming the balance is zero."
+                )
+            _compound_cockpit = await asyncio.to_thread(_try_invoice_cockpit, text, session_meta)
+            if _compound_cockpit is None:
+                _compound_cockpit = [
+                    "I couldn't stage the finalized invoice review from that compound phrasing. "
+                    "Nothing was generated or sent."
+                ]
+            return [_money_reply, *_compound_cockpit]
+
     # ── Refusal-first guard (task 141) — FIRST tap, before the invoice-cockpit
     # clarify session and before cassandra_brain.handle (so a destructive or
     # money-movement bait can never be eaten by a clarify session or time out

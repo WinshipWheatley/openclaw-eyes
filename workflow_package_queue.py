@@ -37,6 +37,8 @@ PROJECT_ROOM_COMPILER_NOT_READY_STATUS = "PROJECT_ROOM_PACKAGE_COMPILER_INTEGRAT
 SUPPORTED_PACKAGE_TYPES = (
     "st_annes_work_log_event",
     "st_annes_monthly_invoice_rollup",
+    "live_arts_md_invoice_workflow",
+    "cassandra_receivables_nudge_handoff",
     "capital_hilton_invoice_operator_assist",
     "capital_hilton_proposal_followup",
     "diagnostic_package_gate_smoke",
@@ -556,8 +558,60 @@ def _st_annes_review_dry_run_semantics(text: str) -> bool:
     )
 
 
+def _live_arts_invoice_handoff_semantics(text: str) -> bool:
+    if "live arts" not in text or not any(term in text for term in ("invoice", "bill", "billing")):
+        return False
+    if text.startswith(("should i ", "could i ", "would i ")) or any(
+        phrase in text for phrase in ("is it safe", "do you think")
+    ):
+        return False
+    return any(
+        phrase in text
+        for phrase in (
+            "hand ",
+            "handoff",
+            "hand off",
+            "route ",
+            "routing ",
+            "stage ",
+            "get it to",
+            "get this to",
+            "right agent",
+            "which agent",
+            "out the door",
+            "needs to go out",
+            "needs to be handled",
+            "needs to be sent out",
+        )
+    )
+
+
+def _receivables_nudge_handoff_semantics(text: str) -> bool:
+    return bool(
+        any(term in text for term in ("draft", "write", "prepare", "stage"))
+        and any(term in text for term in ("nudge", "follow up", "follow-up", "reminder"))
+        and any(term in text for term in ("biggest", "largest", "whoever", "who owes", "outstanding"))
+    )
+
+
 def classify_intent(source_text: str) -> dict[str, Any]:
     text = _normalized_operator_text(source_text)
+    if _live_arts_invoice_handoff_semantics(text):
+        return {
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "world": "invoice_operations",
+            "client_ref": "live_arts_md",
+            "confidence": "high",
+            "intent_reason": "Detected a bounded Live Arts invoice handoff instruction.",
+        }
+    if _receivables_nudge_handoff_semantics(text):
+        return {
+            "workflow_ref": "cassandra_receivables_nudge_handoff",
+            "world": "invoice_operations",
+            "client_ref": None,
+            "confidence": "high",
+            "intent_reason": "Detected a bounded receivables-nudge handoff to Cassandra.",
+        }
     st_annes_mentioned = _mentions_st_annes(text)
     service_event_terms = (
         "church",
@@ -692,6 +746,30 @@ def _capability_gate(
             "provider_policy": "local_noop_worker_only",
             "provider_required": False,
             "blocked_actions": (),
+        }
+    if workflow_ref == "live_arts_md_invoice_workflow":
+        return {
+            "gate_ref": "capability_gate:live_arts_md_invoice_handoff",
+            "status": "ALLOW_DRY_RUN",
+            "reason": "A Cassandra invoice-lane handoff record may be staged for operator review only.",
+            "provider_policy": "local_queue_record_only_no_worker_claim",
+            "provider_required": False,
+            "blocked_actions": (
+                "email_send",
+                "ledger_posting",
+                "workbook_write",
+                "pdf_export",
+                "worker_execution",
+            ),
+        }
+    if workflow_ref == "cassandra_receivables_nudge_handoff":
+        return {
+            "gate_ref": "capability_gate:cassandra_receivables_nudge_handoff",
+            "status": "ALLOW_DRY_RUN",
+            "reason": "A nudge-draft handoff may be queued for Cassandra review only.",
+            "provider_policy": "local_queue_record_only_no_worker_claim",
+            "provider_required": False,
+            "blocked_actions": ("email_send", "ledger_posting", "draft_send", "worker_execution"),
         }
     if workflow_ref == "st_annes_monthly_invoice_rollup":
         if _st_annes_review_dry_run_requested(source_text):
@@ -1104,6 +1182,39 @@ def operator_display_for_package(
             "proof_caption": "Proof available.",
             "show_machine_details_by_default": False,
         }
+    if workflow_ref == "live_arts_md_invoice_workflow":
+        return {
+            **voice_fields,
+            "headline": "Live Arts invoice handoff staged",
+            "subheadline": "Cassandra's invoice lane is the bounded target; no worker has claimed it.",
+            "status_label": "Needs review",
+            "tone": "calm",
+            "plain_summary": "A dry-run queue record was created for Cassandra's invoice lane.",
+            "next_safe_action": "Review the package before Cassandra claims any work.",
+            "why_it_matters": "Routing intent is recorded separately from send or ledger authority.",
+            "primary_fact": "Nothing was sent.",
+            "secondary_facts": [
+                "No worker executed or claimed the package.",
+                "No ledger, workbook, or invoice artifact was changed.",
+            ],
+            "proof_caption": "Queue receipt available.",
+            "show_machine_details_by_default": False,
+        }
+    if workflow_ref == "cassandra_receivables_nudge_handoff":
+        return {
+            **voice_fields,
+            "headline": "Receivables nudge handoff staged",
+            "subheadline": "Cassandra is the review target; no worker has claimed it.",
+            "status_label": "Needs review",
+            "tone": "calm",
+            "plain_summary": "A dry-run nudge brief was queued for Cassandra.",
+            "next_safe_action": "Cassandra can resolve the largest evidenced receivable and draft copy for review.",
+            "why_it_matters": "The money read and draft handoff stay separate from send authority.",
+            "primary_fact": "Nothing was sent.",
+            "secondary_facts": ["No worker executed or claimed the package.", "No ledger entry changed."],
+            "proof_caption": "Queue receipt available.",
+            "show_machine_details_by_default": False,
+        }
     if workflow_ref == "capital_hilton_proposal_followup":
         return {
             **voice_fields,
@@ -1231,7 +1342,12 @@ def create_package(
         authority_boundary=AUTHORITY_BOUNDARY_DEFAULT,
     )
     package_id = "workflow_package:" + _short_hash(source_surface, protected_hash, workflow_ref, created_at)
-    worker_ref = "noop_worker:" + workflow_ref
+    handoff_workers = {
+        "live_arts_md_invoice_workflow": "cassandra_invoice_lane",
+        "cassandra_receivables_nudge_handoff": "cassandra_receivables_lane",
+    }
+    bounded_handoff = workflow_ref in handoff_workers
+    worker_ref = handoff_workers.get(workflow_ref, "noop_worker:" + workflow_ref)
     result_status = _worker_result_status(status)
     source_room_context = _source_room_context_for_workflow(workflow_ref)
     project_room_gate = compile_project_room_package_gate(source_room_context)
@@ -1284,14 +1400,18 @@ def create_package(
         "worker_assignment": {
             "assignment_ref": "worker_assignment:" + _short_hash(package_id, worker_ref),
             "worker_ref": worker_ref,
-            "worker_kind": "dry_run_noop_worker",
-            "assigned": True,
+            "worker_kind": "bounded_handoff_target" if bounded_handoff else "dry_run_noop_worker",
+            "assigned": False if bounded_handoff else True,
             "live_action_authority": False,
         },
         "worker_result": {
             "result_ref": "worker_result:" + _short_hash(package_id, result_status),
             "result_status": result_status,
-            "summary": "Dry-run worker recorded package state only.",
+            "summary": (
+                "Bounded handoff queued; no worker claimed or executed it."
+                if bounded_handoff
+                else "Dry-run worker recorded package state only."
+            ),
             "live_worker_executed": False,
             "dry_run_proof_bundle_emitted": bool(dry_run_proof_bundle),
             "local_pdf_proof_rendered": any(ref["artifact_kind"] == "pdf_proof" for ref in proof_refs),
@@ -1314,6 +1434,141 @@ def create_package(
         "business_action_gate_result": business_action_gate,
     }
     return package
+
+
+def stage_live_arts_invoice_handoff(
+    source_text: str,
+    *,
+    source_surface: str = "operator_maestro_chat",
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    created_at: str | None = None,
+) -> dict[str, Any]:
+    """Persist one bounded, unclaimed Live Arts -> Cassandra dry-run package.
+
+    This is a queue/receipt operation only.  It performs no worker execution,
+    send, ledger mutation, workbook write, or PDF generation and grants no
+    authority.  ``record_package`` persists both the unassigned worker row and
+    operator-review receipt in the governed queue database.
+    """
+
+    package = create_package(
+        source_text,
+        source_surface=source_surface,
+        created_at=created_at,
+    )
+    if package.get("workflow_ref") != "live_arts_md_invoice_workflow":
+        raise ValueError("source text is not a Live Arts invoice handoff instruction")
+
+    assignment = dict(package["worker_assignment"])
+    assignment.update(
+        {
+            "worker_ref": "cassandra_invoice_lane",
+            "worker_kind": "bounded_handoff_target",
+            "assigned": False,
+            "live_action_authority": False,
+        }
+    )
+    package["worker_assignment"] = assignment
+
+    worker_result = dict(package["worker_result"])
+    worker_result.update(
+        {
+            "summary": "Queue record persisted; no worker claimed or executed the handoff.",
+            "live_worker_executed": False,
+            "email_send_performed": False,
+            "ledger_mutation_performed": False,
+            "workbook_mutation_performed": False,
+            "pdf_export_performed": False,
+        }
+    )
+    package["worker_result"] = worker_result
+
+    receipt = {
+        "receipt_ref": str(package["operator_review_receipt"]["receipt_ref"]),
+        "package_id": str(package["package_id"]),
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "target_agent": "cassandra",
+        "target_world_ref": "finance",
+        "target_thread_ref": "live_arts_md",
+        "status": "STAGED_UNCLAIMED",
+        "worker_claimed": False,
+        "worker_executed": False,
+        "send_performed": False,
+        "ledger_mutation_performed": False,
+        "business_action_authority_granted": False,
+    }
+    package["handoff_receipt"] = receipt
+    record_package(Path(sqlite_path), package)
+    return {"package": package, "receipt": receipt}
+
+
+def render_live_arts_handoff_reply(result: Mapping[str, Any]) -> str:
+    receipt = result.get("receipt") if isinstance(result, Mapping) else None
+    receipt_ref = str((receipt or {}).get("receipt_ref") or "receipt unavailable")
+    return (
+        "I staged a bounded dry-run queue record for Cassandra's Live Arts invoice lane. "
+        "Cassandra has not claimed or executed it. Nothing was sent, posted to the ledger, or changed. "
+        f"Receipt: {receipt_ref}."
+    )
+
+
+def stage_cassandra_receivables_nudge_handoff(
+    source_text: str,
+    *,
+    source_surface: str = "operator_maestro_chat",
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    created_at: str | None = None,
+) -> dict[str, Any]:
+    package = create_package(source_text, source_surface=source_surface, created_at=created_at)
+    if package.get("workflow_ref") != "cassandra_receivables_nudge_handoff":
+        raise ValueError("source text is not a receivables-nudge handoff")
+    assignment = dict(package["worker_assignment"])
+    assignment.update(
+        {
+            "worker_ref": "cassandra_receivables_lane",
+            "worker_kind": "bounded_handoff_target",
+            "assigned": False,
+            "live_action_authority": False,
+        }
+    )
+    package["worker_assignment"] = assignment
+    worker_result = dict(package["worker_result"])
+    worker_result.update(
+        {
+            "summary": "Nudge brief queued; no worker claimed, drafted, or sent it.",
+            "live_worker_executed": False,
+            "email_send_performed": False,
+            "ledger_mutation_performed": False,
+        }
+    )
+    package["worker_result"] = worker_result
+    receipt = {
+        "receipt_ref": str(package["operator_review_receipt"]["receipt_ref"]),
+        "package_id": str(package["package_id"]),
+        "workflow_ref": "cassandra_receivables_nudge_handoff",
+        "target_agent": "cassandra",
+        "target_world_ref": "finance",
+        "target_thread_ref": "receivables",
+        "status": "STAGED_UNCLAIMED",
+        "worker_claimed": False,
+        "worker_executed": False,
+        "send_performed": False,
+        "ledger_mutation_performed": False,
+        "business_action_authority_granted": False,
+    }
+    package["handoff_receipt"] = receipt
+    record_package(Path(sqlite_path), package)
+    return {"package": package, "receipt": receipt}
+
+
+def render_cassandra_nudge_handoff_reply(result: Mapping[str, Any]) -> str:
+    receipt = result.get("receipt") if isinstance(result, Mapping) else None
+    receipt_ref = str((receipt or {}).get("receipt_ref") or "receipt unavailable")
+    return (
+        "I staged a bounded dry-run nudge brief for Cassandra to resolve against the largest evidenced receivable. "
+        "Cassandra has not claimed or sent it. Nothing was sent or changed in the ledger. "
+        f"Receipt: {receipt_ref}."
+    )
 
 
 def build_contract_read_model(

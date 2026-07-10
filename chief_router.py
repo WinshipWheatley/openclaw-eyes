@@ -921,6 +921,164 @@ def build_chief_bare_status_answer() -> str:
 
 
 def _route_message_inner(text: str) -> dict:
+    # Task 151: typed contract adapter at Chief's real router.  This runs
+    # before append_history/session mutation.  Strict authority tokens are
+    # labeled PASS_THROUGH and continue to the existing ID-bound parser;
+    # semantic voting can never authorize them.
+    _contract_context = None
+    _preserve_contract = None
+    try:
+        from typed_contract_decision import (
+            ContractContext,
+            DecisionAction,
+            HandoffResult,
+            active_session_from_mapping,
+            decide_contract,
+            preserve_session_on_error,
+            semantic_vote_enabled_for_adapter,
+        )
+        _preserve_contract = preserve_session_on_error
+
+        _contract_session = load_session()
+        _contract_active = active_session_from_mapping(_contract_session)
+        if _contract_active and str(_contract_session.get("active_workflow") or "") == "billing":
+            # Task 142 owns billing-session TTL/surface expiry.  The typed
+            # layer must not preserve a stale session before billing_handle
+            # gets the chance to expire and clear it.
+            try:
+                from clarify_session_contract import (
+                    clarify_session_expired as _clarify_session_expired,
+                    clarify_session_scope_ok as _clarify_session_scope_ok,
+                )
+
+                _billing_session = _contract_session.get("workflow_state")
+                _contract_active = bool(
+                    isinstance(_billing_session, dict)
+                    and not _clarify_session_expired(_billing_session)
+                    and _clarify_session_scope_ok(_billing_session, surface=BILLING_SURFACE)
+                )
+            except Exception:
+                # Eligibility uncertainty cannot turn a possibly stale lease
+                # into an active one.  Fall through to the established owner.
+                _contract_active = False
+        try:
+            _authority_pending = bool(has_pending_approval() or has_pending_choice())
+        except Exception:
+            _authority_pending = False
+        _contract_context = ContractContext(
+            agent="chief",
+            surface="chief_router",
+            active_session=_contract_active,
+            session_kind=str(_contract_session.get("active_workflow") or ""),
+            session_field=str(_contract_session.get("last_field") or ""),
+            authority_pending=_authority_pending,
+            session_snapshot=dict(_contract_session),
+        )
+
+        def _stage_handoff(raw_text: str, _context: ContractContext) -> HandoffResult:
+            from workflow_package_queue import (
+                DEFAULT_SQLITE_PATH,
+                classify_intent,
+                render_cassandra_nudge_handoff_reply,
+                render_live_arts_handoff_reply,
+                stage_cassandra_receivables_nudge_handoff,
+                stage_live_arts_invoice_handoff,
+            )
+
+            if classify_intent(raw_text).get("workflow_ref") == "cassandra_receivables_nudge_handoff":
+                staged = stage_cassandra_receivables_nudge_handoff(
+                    raw_text, source_surface="chief_router", sqlite_path=DEFAULT_SQLITE_PATH
+                )
+                _reply = render_cassandra_nudge_handoff_reply(staged)
+            else:
+                staged = stage_live_arts_invoice_handoff(
+                    raw_text, source_surface="chief_router", sqlite_path=DEFAULT_SQLITE_PATH
+                )
+                _reply = render_live_arts_handoff_reply(staged)
+            return HandoffResult(
+                reply=_reply,
+                receipt_pointer=str(staged["receipt"]["receipt_ref"]),
+                package_id=str(staged["package"]["package_id"]),
+            )
+
+        def _session_answer(raw_text: str) -> bool:
+            if str(_contract_session.get("active_workflow") or "") != "billing":
+                return False
+            try:
+                from chief_billing_brain import get_questions, looks_like_correction
+
+                if looks_like_correction(raw_text):
+                    return True
+                questions = get_questions(str(_billing_session.get("mode") or ""))
+                step = int(_billing_session.get("step") or 0)
+                field = str(questions[step][0]) if 0 <= step < len(questions) else ""
+                candidate = str(raw_text or "").strip()
+                if field in {"amount_total", "deposit_amount", "payment_amount", "amount_received"}:
+                    return bool(re.search(r"(?:\$\s*)?\d+(?:[,.]\d{1,2})?", candidate))
+                if field in {"service_date", "due_date", "payment_date", "next_follow_up_date"}:
+                    return bool(
+                        re.search(r"\b\d{1,4}[-/]\d{1,2}(?:[-/]\d{1,4})?\b", candidate)
+                        or re.search(
+                            r"\b(?:today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
+                            r"january|february|march|april|may|june|july|august|september|october|november|december)\b",
+                            candidate,
+                            re.IGNORECASE,
+                        )
+                    )
+                if field == "client_email":
+                    return bool(re.search(r"\b[^\s@]+@[^\s@]+\.[^\s@]+\b", candidate))
+                if field == "notes":
+                    return candidate.lower() in {"none", "no", "no notes", "nothing", "n/a"}
+                return False
+            except Exception:
+                return False
+
+        _contract_decision = decide_contract(
+            text,
+            context=_contract_context,
+            status_renderer=build_chief_bare_status_answer,
+            handoff_stager=_stage_handoff,
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter(
+                "chief", default=_contract_context.active_session
+            ),
+            session_answer_predicate=_session_answer,
+        )
+    except Exception as exc:
+        print(
+            f"[typed_contract][chief] {type(exc).__name__}; "
+            f"active_session={bool(_contract_context and _contract_context.active_session)}",
+            flush=True,
+        )
+        if _contract_context is not None and _contract_context.active_session and _preserve_contract is not None:
+            _contract_decision = _preserve_contract(
+                text,
+                context=_contract_context,
+                error_type=type(exc).__name__,
+            )
+        else:
+            _contract_decision = None
+
+    if _contract_decision is not None and _contract_decision.handled:
+        _intent_by_label = {
+            "refusal": "operator_refusal_guard",
+            "status": "chief_bare_status_readback",
+            "identity": "identity_persona_core",
+            "low_coherence": "gibberish_low_coherence",
+            "route_instruction": "live_arts_invoice_handoff",
+            "money_read": "money_status",
+            "guardian_gate_narration": "guardian_gate_narration",
+            "unresolved": "typed_contract_session_preserved",
+        }
+        return {
+            "intent": _intent_by_label.get(_contract_decision.label.value, _contract_decision.label.value),
+            "reply": str(_contract_decision.reply or ""),
+            "send_performed": False,
+            "ledger_touched": False,
+            "workflow_package_staged": _contract_decision.action is DecisionAction.STAGE_HANDOFF,
+            "contract_decision": _contract_decision.receipt.to_dict(),
+            "contract_matches": [label.value for label in _contract_decision.matches],
+        }
+
     # ── Refusal-first guard (task 141) — the pipeline's FIRST tap, before the
     # approval gate, client intake, clarify sessions, NLI, or any model call.
     # Destructive/money-movement/gate-bypass asks get an instant plain-English

@@ -94,6 +94,8 @@ BLOCKING_PACKAGE_STATUSES = {
 THREAD_TARGETS_BY_WORKFLOW_REF = {
     "st_annes_work_log_event": ("finance", "st_annes"),
     "st_annes_monthly_invoice_rollup": ("finance", "st_annes"),
+    "live_arts_md_invoice_workflow": ("finance", "live_arts_md"),
+    "cassandra_receivables_nudge_handoff": ("finance", "receivables"),
     "capital_hilton_invoice_operator_assist": ("finance", "capital_hilton"),
     "capital_hilton_proposal_followup": ("business_development", "capital_hilton"),
 }

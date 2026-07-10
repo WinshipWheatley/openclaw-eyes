@@ -123,42 +123,9 @@ def _is_bare_status_query(text: str) -> bool:
 
 
 def build_niles_bare_status_answer() -> str:
-    import json
-    from pathlib import Path
+    from agent_contract_renderers import render_niles_status
 
-    lines: list[str] = []
-
-    try:
-        from niles_x32_capability import _handle_status
-
-        rig_reply = _handle_status(allow_network=False, controller_factory=None)["reply"]
-        lines.append(f"Rig: {rig_reply}")
-    except Exception:
-        pass
-
-    try:
-        from read_model_freshness_audit import _parse_date, _timestamp_from_payload, _today
-
-        registry_path = Path("generated/read_models/niles_track_registry.json")
-        payload = json.loads(registry_path.read_text(encoding="utf-8"))
-        parsed_date = _parse_date(_timestamp_from_payload(payload))
-        stale = (
-            parsed_date is not None
-            and (_today() - parsed_date).days > _NILES_TRACK_REGISTRY_STALE_SLA_DAYS
-        )
-        if stale:
-            lines.append("Tracks: registry data is stale, excluded.")
-        else:
-            track_count = payload.get("track_count")
-            status_summary = payload.get("status_summary") or {}
-            summary_text = ", ".join(f"{count} {status}" for status, count in status_summary.items())
-            lines.append(f"Tracks: {track_count} in flight ({summary_text})." if summary_text else f"Tracks: {track_count} in flight.")
-    except Exception:
-        pass
-
-    if not lines:
-        return "I don't have current status data to report -- the usual read models are missing or stale."
-    return "\n".join(lines)
+    return render_niles_status()
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -177,7 +144,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         operator_message=True,
         route_intent=True,
     )
-    _queue_for_memory(text)  # feed Niles persistent memory (niles_memory_worker tails this)
+
+    # Task 151: typed contract before the memory queue and subprocess.  This is
+    # the long-running listener defense; scripts/producer_intake.py mirrors it
+    # so a stale listener still gets the same decision in the fresh subprocess.
+    try:
+        from typed_contract_decision import (
+            ContractContext,
+            decide_contract,
+            semantic_vote_enabled_for_adapter,
+        )
+
+        _typed = decide_contract(
+            text,
+            context=ContractContext(
+                agent="niles",
+                surface="niles_producer_listener",
+                source_message_id=str(getattr(update, "update_id", "") or ""),
+            ),
+            status_renderer=build_niles_bare_status_answer,
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles"),
+        )
+    except Exception:
+        _typed = None
+    if _typed is not None and _typed.handled:
+        _typed_reply = str(_typed.reply or "")
+        await update.message.reply_text(_typed_reply)
+        _fire_agent_voice("niles", _typed_reply, update)
+        return
 
     # ── Refusal-first guard (task 141) — FIRST tap, before the producer
     # intake subprocess (no model, no timeout). "wipe the X32" refuses with
@@ -198,6 +192,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(status_reply)
         _fire_agent_voice("niles", status_reply, update)
         return
+
+    _queue_for_memory(text)  # feed Niles persistent memory only after contract decisions
 
     # Direct input
     typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, update.effective_chat.id))

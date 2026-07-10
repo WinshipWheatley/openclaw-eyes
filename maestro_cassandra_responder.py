@@ -51,6 +51,14 @@ ALLOWED_SESSION_KEYS = (
     "system_knowledge_ledger_path",
     "system_knowledge_atlas_path",
 )
+CONTRACT_SESSION_SCALAR_KEYS = (
+    "source_message_id",
+    "status",
+    "active_workflow",
+    "pending_field",
+    "current_question_id",
+    "context_type",
+)
 SESSION_PATH_KEY_ALIASES = {
     "repo_root": "system_knowledge_repo_root",
     "system_knowledge_repo_root": "system_knowledge_repo_root",
@@ -352,12 +360,40 @@ def _add_safe_session_value(session: dict[str, Any], key: str, value: Any) -> No
         session[canonical_key] = safe_value
 
 
+def _add_safe_contract_scalar(session: dict[str, Any], key: str, value: Any) -> None:
+    if key not in CONTRACT_SESSION_SCALAR_KEYS or value in (None, ""):
+        return
+    if isinstance(value, bool):
+        text = "true" if value else "false"
+    elif isinstance(value, (str, int)):
+        text = str(value).strip()
+    else:
+        return
+    if not text or len(text) > 128 or "\n" in text or "\r" in text:
+        return
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:@ -]{0,127}", text):
+        return
+    if key == "status" and text.lower() not in {
+        "active",
+        "paused",
+        "waiting",
+        "inactive",
+        "completed",
+        "cancelled",
+        "expired",
+    }:
+        return
+    session[key] = text
+
+
 def filtered_session(session: Mapping[str, Any] | None = None) -> dict[str, Any]:
     filtered: dict[str, Any] = {}
     if not session:
         return filtered
     for key in ALLOWED_SESSION_KEYS:
         _add_safe_session_value(filtered, key, session.get(key))
+    for key in CONTRACT_SESSION_SCALAR_KEYS:
+        _add_safe_contract_scalar(filtered, key, session.get(key))
     return filtered
 
 
@@ -367,9 +403,12 @@ def session_from_request(request: Mapping[str, Any]) -> dict[str, Any]:
         _add_safe_session_value(session, key, request.get(key))
     context = request.get("context") if isinstance(request.get("context"), Mapping) else {}
     current_context = request.get("current_context") if isinstance(request.get("current_context"), Mapping) else {}
-    for source in (context, current_context):
+    request_session = request.get("session") if isinstance(request.get("session"), Mapping) else {}
+    for source in (request, request_session, context, current_context):
         for key in SESSION_PATH_KEY_ALIASES:
             _add_safe_session_value(session, key, source.get(key))
+        for key in CONTRACT_SESSION_SCALAR_KEYS:
+            _add_safe_contract_scalar(session, key, source.get(key))
     return session
 
 
@@ -586,6 +625,182 @@ def answer_frontdoor_chat(
     _capsule: Any | None = None,
     agent: str = "maestro",
 ) -> MaestroCassandraResult:
+    # Task 151: one typed decision contract, adapted at this real Maestro
+    # assembly point before legacy regex taps, sessions, digest, or model work.
+    # Authority/domain pass-through decisions deliberately continue into their
+    # established owners; safe/deterministic answers return here directly.
+    _contract_context = None
+    _preserve_contract = None
+    _contract_status_answer = None
+    try:
+        from typed_contract_decision import (
+            ContractContext,
+            DecisionAction,
+            HandoffResult,
+            active_session_from_mapping,
+            decide_contract,
+            preserve_session_on_error,
+            semantic_vote_enabled_for_adapter,
+        )
+        _preserve_contract = preserve_session_on_error
+
+        _contract_context = ContractContext(
+            agent=agent,
+            surface=source_surface,
+            source_message_id=str((session or {}).get("source_message_id") or ""),
+            active_session=active_session_from_mapping(session),
+            session_kind=str((session or {}).get("active_workflow") or (session or {}).get("context_type") or ""),
+            session_field=str((session or {}).get("pending_field") or (session or {}).get("current_question_id") or ""),
+            session_snapshot=dict(session or {}),
+        )
+
+        def _status_renderer() -> str:
+            nonlocal _contract_status_answer
+            _status_text = _normalize(text)
+            _rich_status_markers = (
+                "status readback",
+                "who are the agents",
+                "what does each agent do",
+                "what does each do",
+                "agent roster",
+                "agent list",
+                "system-wide next safe move",
+                "system wide next safe move",
+                "next safe move",
+                "next safest move",
+                "safe next move",
+            )
+            if any(marker in _status_text for marker in _rich_status_markers):
+                _contract_status_answer = build_truthful_status_capability_answer(
+                    session=session,
+                    focus=_status_capability_readback_focus(_status_text),
+                )
+            else:
+                _contract_status_answer = build_maestro_bare_status_answer(session=session)
+            return str(_contract_status_answer["plain_summary"])
+
+        def _handoff_stager(raw_text: str, _context: ContractContext) -> HandoffResult:
+            from workflow_package_queue import (
+                DEFAULT_SQLITE_PATH,
+                classify_intent,
+                render_cassandra_nudge_handoff_reply,
+                render_live_arts_handoff_reply,
+                stage_cassandra_receivables_nudge_handoff,
+                stage_live_arts_invoice_handoff,
+            )
+
+            _sqlite_path = Path((session or {}).get("workflow_package_sqlite_path") or DEFAULT_SQLITE_PATH)
+            _created_at = str((session or {}).get("contract_created_at") or "") or None
+            if classify_intent(raw_text).get("workflow_ref") == "cassandra_receivables_nudge_handoff":
+                staged = stage_cassandra_receivables_nudge_handoff(
+                    raw_text,
+                    source_surface=source_surface,
+                    sqlite_path=_sqlite_path,
+                    created_at=_created_at,
+                )
+                _reply = render_cassandra_nudge_handoff_reply(staged)
+            else:
+                staged = stage_live_arts_invoice_handoff(
+                    raw_text,
+                    source_surface=source_surface,
+                    sqlite_path=_sqlite_path,
+                    created_at=_created_at,
+                )
+                _reply = render_live_arts_handoff_reply(staged)
+            return HandoffResult(
+                reply=_reply,
+                receipt_pointer=str(staged["receipt"]["receipt_ref"]),
+                package_id=str(staged["package"]["package_id"]),
+            )
+
+        _contract_decision = decide_contract(
+            text,
+            context=_contract_context,
+            status_renderer=_status_renderer,
+            handoff_stager=_handoff_stager,
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter(
+                "maestro", default=_contract_context.active_session
+            ),
+        )
+    except Exception as exc:
+        print(
+            f"[typed_contract][maestro] {type(exc).__name__}; "
+            f"active_session={bool(_contract_context and _contract_context.active_session)}",
+            flush=True,
+        )
+        if _contract_context is not None and _contract_context.active_session and _preserve_contract is not None:
+            _contract_decision = _preserve_contract(
+                text,
+                context=_contract_context,
+                error_type=type(exc).__name__,
+            )
+        else:
+            _contract_decision = None
+
+    if _contract_decision is not None and _contract_decision.handled:
+        _handoff_workflow_ref = ""
+        if any(label.value == "route_instruction" for label in _contract_decision.matches):
+            try:
+                from workflow_package_queue import classify_intent as _classify_handoff_intent
+
+                _handoff_workflow_ref = str(
+                    _classify_handoff_intent(text).get("workflow_ref") or ""
+                )
+            except Exception:
+                _handoff_workflow_ref = ""
+        _intent_by_label = {
+            "refusal": "operator_refusal_guard",
+            "status": (
+                "status_capability_readback"
+                if (_contract_status_answer or {}).get("machine_proof", {}).get(
+                    "status_capability_readback_performed"
+                )
+                else "maestro_bare_status_readback"
+            ),
+            "identity": "identity_persona_core",
+            "low_coherence": "gibberish_low_coherence",
+            "route_instruction": (
+                "cassandra_receivables_nudge_handoff"
+                if _handoff_workflow_ref == "cassandra_receivables_nudge_handoff"
+                else "live_arts_invoice_handoff"
+            ),
+            "money_read": "money_read",
+            "guardian_gate_narration": "guardian_gate_narration",
+            "unresolved": "typed_contract_session_preserved",
+        }
+        _contract_reply = str(_contract_decision.reply or "").strip()
+        _contract_lines = _contract_reply.splitlines()
+        _contract_intent_class = _intent_by_label.get(
+            _contract_decision.label.value, _contract_decision.label.value
+        )
+        if _contract_decision.action is DecisionAction.STAGE_HANDOFF:
+            _contract_intent_class = (
+                "cassandra_receivables_nudge_handoff"
+                if _handoff_workflow_ref == "cassandra_receivables_nudge_handoff"
+                else "live_arts_invoice_handoff"
+            )
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=_contract_intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=_contract_lines[0] if _contract_lines else _contract_reply,
+            plain_summary=_contract_reply,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=filtered_session(session),
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                **dict((_contract_status_answer or {}).get("machine_proof") or {}),
+                "model_call_performed": _contract_decision.receipt.model_called,
+                "external_llm_invoked": False,
+                "protected_generate_called": False,
+                "maestro_context_packet_used": False,
+                "workflow_package_staged": _contract_decision.action is DecisionAction.STAGE_HANDOFF,
+                "typed_contract_handoff_workflow_ref": _handoff_workflow_ref,
+                "typed_contract_decision": _contract_decision.receipt.to_dict(),
+                "typed_contract_matches": [label.value for label in _contract_decision.matches],
+            },
+        )
+
     # ── Refusal-first guard (task 141) — FIRST tap, before intent
     # classification, workflow-package staging, clarify sessions, or any
     # model call. A refusal returns ANSWER_READY so the processor renders it

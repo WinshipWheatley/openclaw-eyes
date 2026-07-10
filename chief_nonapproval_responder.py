@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
+from typing import Any, Mapping
 
 
 @dataclass(frozen=True)
@@ -23,14 +24,18 @@ class NonApprovalResponse:
     reply: str
     send_performed: bool = False
     ledger_touched: bool = False
+    receipt: Mapping[str, Any] | None = None
 
     def as_route_result(self) -> dict:
-        return {
+        result = {
             "intent": self.intent,
             "reply": self.reply,
             "send_performed": self.send_performed,
             "ledger_touched": self.ledger_touched,
         }
+        if self.receipt is not None:
+            result["contract_decision"] = dict(self.receipt)
+        return result
 
 
 def _norm(text: str) -> str:
@@ -352,6 +357,41 @@ def _guardian_reply(intent: str) -> str:
 
 
 def nonapproval_response_for_text(text: str, *, surface: str = "chief") -> NonApprovalResponse | None:
+    if surface == "guardian":
+        try:
+            from typed_contract_decision import (
+                ContractContext,
+                ContractLabel,
+                decide_contract,
+                semantic_vote_enabled_for_adapter,
+            )
+
+            typed = decide_contract(
+                text,
+                context=ContractContext(agent="guardian", surface="guardian_listener"),
+                status_renderer=lambda: _approval_status_reply("guardian"),
+                semantic_vote_enabled=semantic_vote_enabled_for_adapter("guardian"),
+            )
+        except Exception:
+            typed = None
+        # The listener's strict refusal/authority parsers own those top-tier
+        # labels.  This nonapproval adapter consumes only safe/direct contracts.
+        if typed is not None and typed.handled and typed.label not in {
+            ContractLabel.REFUSAL,
+            ContractLabel.AUTHORITY_TOKEN,
+        }:
+            intent_by_label = {
+                ContractLabel.STATUS: "approval_status",
+                ContractLabel.IDENTITY: "capability",
+                ContractLabel.LOW_COHERENCE: "clarification",
+                ContractLabel.MONEY_READ: "money_status",
+                ContractLabel.GUARDIAN_GATE_NARRATION: "guardian_gate_narration",
+            }
+            return NonApprovalResponse(
+                intent=intent_by_label.get(typed.label, typed.label.value),
+                reply=str(typed.reply or ""),
+                receipt=typed.receipt.to_dict(),
+            )
     intent = classify_nonapproval_prompt(text)
     if intent is None:
         return None

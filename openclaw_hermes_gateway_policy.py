@@ -156,6 +156,28 @@ def truthful_reply_for_text(text: str) -> str | None:
     if _refusal is not None:
         return _refusal
 
+    # Task 151: deterministic Hermes status (and other safe direct contracts)
+    # before the sidecar worker.  Real send/pay actions were already refused
+    # above; authority tokens and delegated domains pass through unchanged.
+    try:
+        from agent_contract_renderers import render_hermes_status
+        from typed_contract_decision import (
+            ContractContext,
+            decide_contract,
+            semantic_vote_enabled_for_adapter,
+        )
+
+        _typed = decide_contract(
+            raw,
+            context=ContractContext(agent="hermes", surface="hermes_gateway_policy"),
+            status_renderer=render_hermes_status,
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter("hermes_status"),
+        )
+    except Exception:
+        _typed = None
+    if _typed is not None and _typed.handled:
+        return str(_typed.reply or "")
+
     target = _route_target(raw)
     if target:
         return "\n".join(

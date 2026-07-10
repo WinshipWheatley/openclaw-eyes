@@ -6823,6 +6823,131 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
         )
         return [_refusal_text]
 
+    # Task 151: direct brain callers (tests, internal adapters, non-Telegram
+    # surfaces) consume the same typed contract before packet assembly, guided
+    # review, intake, or model work.  The production listener has the first
+    # adapter so a handled Telegram turn never reaches this duplicate defense.
+    _contract_context = None
+    _preserve_contract = None
+    try:
+        from typed_contract_decision import (
+            ContractContext,
+            HandoffResult,
+            active_session_from_mapping,
+            decide_contract,
+            preserve_session_on_error,
+            semantic_vote_enabled_for_adapter,
+            surface_scope_matches,
+        )
+        _preserve_contract = preserve_session_on_error
+
+        _guided_context = {}
+        try:
+            from cassandra_guided_review import get_active_guided_review_context
+
+            _guided_context = get_active_guided_review_context(
+                review_root=session_meta.get("guided_review_root")
+            ) or {}
+        except Exception:
+            _guided_context = {}
+        try:
+            from clarify_session_contract import iso_timestamp_expired as _iso_timestamp_expired
+
+            _guided_active = bool(
+                active_session_from_mapping(_guided_context)
+                and not _iso_timestamp_expired(
+                    str(_guided_context.get("last_turn_at_utc") or "")
+                )
+                and surface_scope_matches(
+                    str(_guided_context.get("surface") or ""),
+                    str(session_meta.get("surface") or "cassandra_brain.handle"),
+                )
+            )
+        except Exception:
+            _guided_active = False
+        _contract_context = ContractContext(
+            agent="cassandra",
+            surface=str(session_meta.get("surface") or "cassandra_brain.handle"),
+            source_message_id=str(session_meta.get("source_message_id") or ""),
+            active_session=_guided_active,
+            session_kind="guided_review" if _guided_active else "",
+            session_field=str(_guided_context.get("current_question_id") or ""),
+            session_snapshot=dict(_guided_context) if _guided_active else {},
+        )
+
+        def _stage_handoff(raw_text: str, _context: ContractContext) -> HandoffResult:
+            from workflow_package_queue import (
+                DEFAULT_SQLITE_PATH,
+                classify_intent,
+                render_cassandra_nudge_handoff_reply,
+                render_live_arts_handoff_reply,
+                stage_cassandra_receivables_nudge_handoff,
+                stage_live_arts_invoice_handoff,
+            )
+
+            _sqlite_path = Path(session_meta.get("workflow_package_sqlite_path") or DEFAULT_SQLITE_PATH)
+            _created_at = str(session_meta.get("contract_created_at") or "") or None
+            if classify_intent(raw_text).get("workflow_ref") == "cassandra_receivables_nudge_handoff":
+                staged = stage_cassandra_receivables_nudge_handoff(
+                    raw_text,
+                    source_surface=_contract_context.surface,
+                    sqlite_path=_sqlite_path,
+                    created_at=_created_at,
+                )
+                _reply = render_cassandra_nudge_handoff_reply(staged)
+            else:
+                staged = stage_live_arts_invoice_handoff(
+                    raw_text,
+                    source_surface=_contract_context.surface,
+                    sqlite_path=_sqlite_path,
+                    created_at=_created_at,
+                )
+                _reply = render_live_arts_handoff_reply(staged)
+            return HandoffResult(
+                reply=_reply,
+                receipt_pointer=str(staged["receipt"]["receipt_ref"]),
+                package_id=str(staged["package"]["package_id"]),
+            )
+
+        _contract_decision = decide_contract(
+            query,
+            context=_contract_context,
+            status_renderer=lambda: _handle_ops_status_inquiry(query),
+            handoff_stager=_stage_handoff,
+            semantic_vote_enabled=semantic_vote_enabled_for_adapter(
+                "cassandra_brain", default=_contract_context.active_session
+            ),
+        )
+    except Exception as exc:
+        print(
+            f"[typed_contract][cassandra_brain] {type(exc).__name__}; "
+            f"active_session={bool(_contract_context and _contract_context.active_session)}",
+            flush=True,
+        )
+        if _contract_context is not None and _contract_context.active_session and _preserve_contract is not None:
+            _contract_decision = _preserve_contract(
+                query,
+                context=_contract_context,
+                error_type=type(exc).__name__,
+            )
+        else:
+            _contract_decision = None
+    if _contract_decision is not None and _contract_decision.handled:
+        _contract_reply = str(_contract_decision.reply or "")
+        _log_conversation(
+            text,
+            [_contract_reply],
+            route=f"typed_contract:{_contract_decision.label.value}",
+            metadata={
+                "typed_contract_decision": _contract_decision.receipt.to_dict(),
+                "typed_contract_matches": [label.value for label in _contract_decision.matches],
+                "model_called": _contract_decision.receipt.model_called,
+                "external_calls_performed": False,
+                "business_action_performed": False,
+            },
+        )
+        return [_contract_reply]
+
     # ── Identity persona core (task 142 hook, task 145 wiring) — SECOND tap,
     # before intent classification or any model call. Task 142 built
     # is_identity_question/identity_persona_reply and wired them into

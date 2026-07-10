@@ -404,6 +404,64 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # parse_reply_code returns ("", error_msg) on any mismatch or format failure.
     decision, error = parse_reply_code(text, _pending_id, options=_options)
     if error:
+        # Task 151: only after the strict HITL/CODE parser has declined the
+        # message may the safe conversational contract answer it.  This keeps
+        # authority deterministic and lets gate narration/status avoid the
+        # pending-session ELI5 model path.
+        _typed_context = None
+        _preserve_contract = None
+        try:
+            from typed_contract_decision import (
+                ContractContext,
+                ContractLabel,
+                decide_contract,
+                preserve_session_on_error,
+                semantic_vote_enabled_for_adapter,
+            )
+            _preserve_contract = preserve_session_on_error
+            _typed_context = ContractContext(
+                agent="guardian",
+                surface="guardian_listener",
+                source_message_id=str(getattr(update, "update_id", "") or ""),
+                active_session=True,
+                session_kind="guardian_pending_approval",
+                session_field=str(_pending_id),
+                authority_pending=True,
+                session_snapshot={"status": "active", "pending_id": str(_pending_id)},
+            )
+
+            _typed = decide_contract(
+                text,
+                context=_typed_context,
+                status_renderer=lambda: f"1 pending approval request ({_pending_id}), awaiting a decision.",
+                semantic_vote_enabled=semantic_vote_enabled_for_adapter("guardian", default=True),
+            )
+        except Exception as exc:
+            print(
+                f"[typed_contract][guardian] {type(exc).__name__}; active_session=true",
+                flush=True,
+            )
+            if _typed_context is not None and _preserve_contract is not None:
+                _typed = _preserve_contract(
+                    text,
+                    context=_typed_context,
+                    error_type=type(exc).__name__,
+                )
+            else:
+                await update.message.reply_text(
+                    guardian_resilient_reply(
+                        "I couldn't classify that against the pending approval, so I left the approval unchanged. "
+                        "Receipt: contract:guardian-adapter-error."
+                    )
+                )
+                return
+        if _typed is not None and _typed.handled and _typed.label not in {
+            ContractLabel.REFUSAL,
+            ContractLabel.AUTHORITY_TOKEN,
+        }:
+            await update.message.reply_text(guardian_resilient_reply(str(_typed.reply or "")))
+            return
+
         # CHAT-WITH-GUARDIAN: if the message clearly isn't a decision attempt (doesn't
         # start with the 4-char reply code), treat it as a free-form QUESTION about THIS
         # pending approval and answer it conversationally (bounded local LM, fail-closed),

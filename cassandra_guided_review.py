@@ -1229,6 +1229,7 @@ def get_active_guided_review_context(
         "topic": topic,
         "topic_display_name": str(session.get("topic_display_name") or _topic_display_name(topic)),
         "status": str(session.get("status") or "active"),
+        "surface": str(session.get("surface") or ""),
         "last_turn_at_utc": str(session.get("updated_at_utc") or session.get("created_at_utc") or ""),
         "resume_phrase": "continue Data Room",
         "source_session_ref": _session_path(_review_root(review_root), session_id).as_posix(),
@@ -4385,6 +4386,89 @@ def process_guided_review_message(
         ):
             _expire_guided_review_session(session, review_root=root, now=now, reason="ttl_expired")
             return None
+
+        # Task 151: second Cassandra session boundary.  The listener normally
+        # resolves safe contracts first, but this public review API is also
+        # called directly.  An uncertain/timeout vote returns a response from
+        # the unchanged in-memory snapshot and performs no persistence.
+        _typed_context = None
+        _preserve_contract = None
+        try:
+            from typed_contract_decision import (
+                ContractContext,
+                decide_contract,
+                preserve_session_on_error,
+                semantic_vote_enabled_for_adapter,
+            )
+            _preserve_contract = preserve_session_on_error
+
+            _typed_context = ContractContext(
+                agent="cassandra",
+                surface=surface or "guided_review",
+                active_session=True,
+                session_kind="guided_review",
+                session_field=str(session.get("current_question_id") or ""),
+                session_snapshot=dict(session),
+            )
+
+            def _typed_session_answer(candidate: str) -> bool:
+                if _wizard_recognizes_in_session_interaction(session, candidate, now=now):
+                    return True
+                question = _question_by_id(
+                    session, str(session.get("current_question_id") or "")
+                )
+                answer_topic = _answer_topic_hint(candidate)
+                return bool(
+                    question
+                    and answer_topic
+                    and answer_topic == _question_topic_hint(question)
+                )
+
+            _typed_decision = decide_contract(
+                raw_text,
+                context=_typed_context,
+                semantic_vote_enabled=semantic_vote_enabled_for_adapter(
+                    "cassandra_guided_review", default=True
+                ),
+                session_answer_predicate=_typed_session_answer,
+            )
+        except Exception as exc:
+            print(
+                f"[typed_contract][cassandra_guided_review] {type(exc).__name__}; active_session=true",
+                flush=True,
+            )
+            if _typed_context is not None and _preserve_contract is not None:
+                _typed_decision = _preserve_contract(
+                    raw_text,
+                    context=_typed_context,
+                    error_type=type(exc).__name__,
+                )
+            else:
+                # Import failure at a known-active boundary still fails closed;
+                # no wizard function or persistence runs after this response.
+                return _response(
+                    session=session,
+                    reply_text=(
+                        "I couldn't verify whether that answers the open guided review step, "
+                        "so I left it unchanged. Receipt: contract:guided-review-adapter-error."
+                    ),
+                    review_root=root,
+                    read_model_root=read_model_root,
+                    handled=True,
+                )
+        if _typed_decision is not None and _typed_decision.handled:
+            _typed_response = _response(
+                session=session,
+                reply_text=str(_typed_decision.reply or ""),
+                review_root=root,
+                read_model_root=read_model_root,
+                handled=True,
+            )
+            _typed_response["typed_contract_decision"] = _typed_decision.receipt.to_dict()
+            _typed_response["typed_contract_matches"] = [
+                label.value for label in _typed_decision.matches
+            ]
+            return _typed_response
         _start_requested = bool(
             live_start_request or gemini_start_request or lm_brain_start_request or data_room_start_request
         )
