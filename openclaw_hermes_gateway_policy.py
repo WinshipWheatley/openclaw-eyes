@@ -9,6 +9,7 @@ external messages, move money, start services, or write route receipts.
 from __future__ import annotations
 
 import contextvars
+import hashlib
 import os
 import re
 from typing import Any
@@ -53,8 +54,98 @@ _CAPABILITY_PHRASES = (
     "what is hermes",
     "who are you",
 )
-_SEND_OR_MONEY_RE = re.compile(
-    r"\b(send|email|message|text|telegram|notify|reply|forward|post|deliver|pay|payment|money|wire|ach|transfer|refund|charge)\b",
+_ACTION_CLAUSE_PREFIX = (
+    r"(?:^|[,;:.!?]\s*|\b(?:and|then|also)\s+)"
+    r"(?:please\s+|go\s+ahead\s+and\s+|"
+    r"i\s+(?:need|want)\s+you\s+to\s+|"
+    r"i\s+(?:authorize|instruct)\s+hermes\s+to\s+|"
+    r"hermes\s+(?:must|should|needs?\s+to)\s+|"
+    r"(?:can|could|would|will)\s+you(?:\s+please)?\s+)?"
+)
+_LIVE_ACTION_CLAUSE_RE = re.compile(
+    _ACTION_CLAUSE_PREFIX
+    + r"(?:send|email|message|text|telegram|notify|reply|forward|post|deliver|"
+    r"pay|wire|transfer|refund|charge)\b",
+    re.IGNORECASE,
+)
+_MONEY_MOVE_ACTION_CLAUSE_RE = re.compile(
+    _ACTION_CLAUSE_PREFIX
+    + r"move\b[^.?!]{0,60}(?:\$\s*\d[\d,]*(?:\.\d+)?|"
+    r"\b(?:money|funds?|payments?|cash|dollars?|bucks?|usd|account)\b)",
+    re.IGNORECASE,
+)
+_NOUN_MONEY_ACTION_CLAUSE_RE = re.compile(
+    _ACTION_CLAUSE_PREFIX
+    + r"(?:initiate|execute|make|process|start|put|go\s+ahead\s+with)\b[^.?!]{0,50}"
+    r"\b(?:ach\s+transfers?|wires?|payments?|refunds?|charges?)\b",
+    re.IGNORECASE,
+)
+_PASSIVE_ACTION_CLAUSE_RE = re.compile(
+    _ACTION_CLAUSE_PREFIX
+    + r"(?:have|get)\b[^.?!]{0,40}\b(?:invoices?|bills?|payments?)\b"
+    r"[^.?!]{0,30}\b(?:paid|sent|wired|transferred|delivered)\b",
+    re.IGNORECASE,
+)
+_MODAL_PASSIVE_ACTION_CLAUSE_RE = re.compile(
+    r"(?:^|[,;:.!?]\s*|\b(?:and|then|also)\s+)"
+    r"(?:can|could|would|will)\s+(?:this|that|the|my|our)\s+"
+    r"(?:invoices?|bills?|payments?|wires?|transfers?|refunds?)\b"
+    r"[^.?!]{0,35}\b(?:be\s+)?(?:sent|paid|made|wired|transferred|processed|executed|initiated)\b",
+    re.IGNORECASE,
+)
+_DIRECT_PASSIVE_ACTION_CLAUSE_RE = re.compile(
+    r"(?:^|[,;:.!?]\s*|\b(?:and|then|also)\s+)"
+    r"i\s+(?:need|want)\s+(?:this|that|the|my|our)\s+"
+    r"(?:invoices?|bills?|payments?|wires?|transfers?|refunds?)\b"
+    r"[^.?!]{0,35}\b(?:sent|paid|made|wired|transferred|processed|executed|initiated)\b",
+    re.IGNORECASE,
+)
+_IN_CHAT_INFORMATION_REQUEST_RE = re.compile(
+    r"(?:^|[,;:.!?]\s*|\b(?:and|then|also)\s+)"
+    r"(?:(?:can|could|would|will)\s+you(?:\s+please)?\s+|please\s+)?"
+    r"(?:send|message|text)\s+me\b"
+    r"(?:(?!\b(?:and|then)\b|[;.!?]).){0,120}",
+    re.IGNORECASE,
+)
+_SEND_HISTORY_PATTERNS = (
+    re.compile(
+        r"^\s*(?:did|have|has|had)\s+(?:you|we|hermes|the\s+system)\b"
+        r"[^?]{0,100}\b(?:send|sent|pay|paid|wire|wired|transfer|transferred|"
+        r"deliver|delivered|post|posted|message|messaged|email|emailed)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*(?:what|which|when|where|how\s+many)\b[^?]{0,120}"
+        r"\b(?:sent|paid|made|wired|transferred|delivered|posted|messaged|emailed|"
+        r"went\s+out|gone\s+out)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*(?:was|were|is|are|has|have|had|did)\b[^?]{0,140}"
+        r"\b(?:sent|paid|made|wired|transferred|delivered|posted|messaged|emailed|"
+        r"go\s+out|went\s+out|gone\s+out|initiated)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*(?:do\s+you\s+know|(?:can|could|would)\s+you(?:\s+please)?\s+"
+        r"(?:tell|show|check|confirm)(?:\s+me)?)\b[^?]{0,180}"
+        r"\b(?:sent|paid|made|wired|transferred|delivered|posted|emailed|"
+        r"went\s+out|gone\s+out)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:send|sent|delivery|message|email|payment|transfer)\s+(?:history|log)\b",
+        re.IGNORECASE,
+    ),
+)
+_ACTION_GUIDANCE_RE = re.compile(
+    r"^\s*(?:(?:should|could|would)\s+i\s+(?:send|pay|wire|transfer|move)\b|"
+    r"(?:should|could|would)\s+i\s+go\s+ahead\s+with\b[^?]{0,80}"
+    r"\b(?:payments?|wires?|transfers?|refunds?|charges?)\b|"
+    r"(?:(?:how\s+(?:do|can|should|would)\s+(?:i|we)|"
+    r"(?:can|could|would)\s+you(?:\s+please)?\s+(?:explain|describe)|"
+    r"explain|describe|walk\s+me\s+through|what(?:'s|\s+is)\s+the\s+safe\s+way)\b)"
+    r".{0,160}\b(?:send|pay|wire|ach|transfer|payment|money)\b)",
     re.IGNORECASE,
 )
 _LEAK_PATTERNS = (
@@ -136,8 +227,151 @@ def _is_capability_prompt(text: str) -> bool:
     )
 
 
-def _is_send_or_money_action(text: str) -> bool:
-    return bool(_SEND_OR_MONEY_RE.search(text))
+def _money_question_class(text: str) -> str:
+    try:
+        from money_truth import classify_money_question
+
+        return str(classify_money_question(text) or "")
+    except Exception:
+        return ""
+
+
+def _is_send_history_question(text: str) -> bool:
+    normalized = _normalize(text)
+    return any(pattern.search(normalized) for pattern in _SEND_HISTORY_PATTERNS)
+
+
+def _is_action_guidance_question(text: str) -> bool:
+    return bool(_ACTION_GUIDANCE_RE.search(_normalize(text)))
+
+
+def _is_send_or_money_action(
+    text: str,
+    *,
+    money_class: str = "",
+    send_history: bool = False,
+) -> bool:
+    """True only for a requested action, not a question about that action.
+
+    ``send me a breakdown`` and ``message me the balance`` are ordinary
+    same-chat information requests.  Remove that bounded clause only when the
+    shared money classifier has already proven it is a read; any later action
+    clause (``..., then pay the vendor``) remains visible and still refuses.
+    """
+
+    candidate = _normalize(text)
+    if money_class == "money_read" or send_history:
+        candidate = _IN_CHAT_INFORMATION_REQUEST_RE.sub(" ", candidate)
+    return bool(
+        _LIVE_ACTION_CLAUSE_RE.search(candidate)
+        or _MONEY_MOVE_ACTION_CLAUSE_RE.search(candidate)
+        or _NOUN_MONEY_ACTION_CLAUSE_RE.search(candidate)
+        or _PASSIVE_ACTION_CLAUSE_RE.search(candidate)
+        or _MODAL_PASSIVE_ACTION_CLAUSE_RE.search(candidate)
+        or _DIRECT_PASSIVE_ACTION_CLAUSE_RE.search(candidate)
+    )
+
+
+def _action_denial_reply() -> str:
+    return "\n".join(
+        [
+            "Hermes cannot send messages, trigger payments, or move money from this surface.",
+            "This request is denied for live action and can only be staged for an operator-controlled review path.",
+            "No external send, payment, ledger mutation, route receipt, service start, or agent dispatch occurred.",
+            "SEND_HOLD remains in force.",
+        ]
+    )
+
+
+def _send_history_reply() -> str:
+    return " ".join(
+        [
+            "Hermes has no canonical send-history read model bound to this surface, so I am not claiming that any message or payment was sent.",
+            "Use Cassandra's or Guardian's receipt-backed delivery record for a proof-bearing answer.",
+            "Nothing was sent or paid by this read.",
+        ]
+    )
+
+
+def _action_guidance_reply() -> str:
+    return " ".join(
+        [
+            "Read-only guidance: an outbound send or money move must be staged with the exact payload and recipient, reviewed by Guardian, and carry explicit operator approval.",
+            "The dispatch-time SEND_HOLD and recipient lock must pass again before any adapter may act.",
+            "Hermes cannot initiate or verify an ACH transfer from this surface; nothing was sent or moved by this explanation.",
+        ]
+    )
+
+
+def _payment_arrival_reply(text: str) -> str:
+    try:
+        from money_truth import render_payment_verification_ledger
+
+        ledger = str(render_payment_verification_ledger(text)).strip()
+    except Exception:
+        ledger = (
+            "Receivables (receivables_month_bounded, as of unavailable): "
+            "the bounded payment read-model is unavailable, which is a data gap, not proof of arrival."
+        )
+    return (
+        f"{ledger} This read does not prove bank settlement or an outbound send. "
+        "Nothing was sent, paid, or moved by this answer."
+    )
+
+
+def _guard_refusal_reply(
+    text: str,
+    *,
+    allow_informational_money: bool,
+) -> str | None:
+    """Render the shared refusal unless the only hit is historical money.
+
+    The shared guard intentionally treats verb+amount as movement.  Grammar
+    such as ``did you send $500 already?`` is history, not authority, so this
+    adapter may ignore only that guard reason after a positive information
+    classification.  It masks that one matched verb/amount and re-evaluates,
+    so a destructive or blanket-approval compound remains refusal-first.
+    """
+
+    try:
+        from operator_refusal_guard import (
+            REASON_MONEY,
+            evaluate_operator_refusal,
+            log_refusal_receipt,
+        )
+
+        candidate = str(text or "")
+        for _attempt in range(4):
+            decision = evaluate_operator_refusal(
+                candidate,
+                agent="hermes",
+                surface="hermes_gateway",
+            )
+            if decision is None:
+                return None
+            if decision.reason_class != REASON_MONEY or not allow_informational_money:
+                # Re-evaluation can operate on a safely masked candidate.  The
+                # refusal receipt still binds to the original operator text.
+                decision.receipt["text_sha256"] = hashlib.sha256(
+                    str(text or "").encode("utf-8")
+                ).hexdigest()
+                log_refusal_receipt(decision)
+                return decision.refusal_text
+
+            previous = candidate
+            for matched in decision.matched:
+                candidate = re.sub(
+                    re.escape(str(matched)),
+                    " ",
+                    candidate,
+                    count=1,
+                    flags=re.IGNORECASE,
+                )
+            if candidate == previous:
+                return None
+        return None
+    except Exception:
+        return None
 
 
 def truthful_reply_for_text(text: str) -> str | None:
@@ -147,19 +381,43 @@ def truthful_reply_for_text(text: str) -> str | None:
     if not raw:
         return None
 
+    money_class = _money_question_class(raw)
+    send_history = _is_send_history_question(raw)
+    requested_action = _is_send_or_money_action(
+        raw,
+        money_class=money_class,
+        send_history=send_history,
+    )
+    action_guidance = _is_action_guidance_question(raw)
+    positively_informational = bool(
+        action_guidance
+        or send_history
+        or money_class in {"money_read", "payment_arrival_verify"}
+    )
+
     # ── Refusal-first guard (task 141) — FIRST tap, before route/send/money
     # checks or any gateway model fallthrough. Adds the destructive-scope and
     # gate-bypass classes Hermes' own send/money matcher misses ("wipe the
     # X32", "approve everything"); the money class keeps Hermes' verbatim
     # reference denial. Fail-open: guard errors fall through unchanged.
-    try:
-        from operator_refusal_guard import refusal_reply_for_text as _refusal_reply_for_text
-
-        _refusal = _refusal_reply_for_text(raw, agent="hermes", surface="hermes_gateway")
-    except Exception:
-        _refusal = None
+    # Money-movement vocabulary also appears in past-tense and explanatory
+    # questions.  Ignore the money guard only after a positive information
+    # classification and only when no requested-action clause is present.
+    _refusal = _guard_refusal_reply(
+        raw,
+        allow_informational_money=positively_informational and not requested_action,
+    )
     if _refusal is not None:
         return _refusal
+    if requested_action:
+        return _action_denial_reply()
+
+    if action_guidance:
+        return _action_guidance_reply()
+    if money_class == "payment_arrival_verify":
+        return _payment_arrival_reply(raw)
+    if send_history:
+        return _send_history_reply()
 
     # Task 151: deterministic Hermes status (and other safe direct contracts)
     # before the sidecar worker.  Real send/pay actions were already refused
@@ -191,16 +449,6 @@ def truthful_reply_for_text(text: str) -> str | None:
                 "No agent handoff ran, no route receipt was written, and no message was sent.",
                 "Hermes can describe adapter and protocol boundaries or recommend a review packet.",
                 "A real handoff needs a sanctioned bridge with a receipt.",
-                "SEND_HOLD remains in force.",
-            ]
-        )
-
-    if _is_send_or_money_action(raw):
-        return "\n".join(
-            [
-                "Hermes cannot send messages, trigger payments, or move money from this surface.",
-                "This request is denied for live action and can only be staged for an operator-controlled review path.",
-                "No external send, payment, ledger mutation, route receipt, service start, or agent dispatch occurred.",
                 "SEND_HOLD remains in force.",
             ]
         )

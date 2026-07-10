@@ -4,6 +4,8 @@ import asyncio
 import os
 from types import SimpleNamespace
 
+import pytest
+
 import openclaw_hermes_gateway_policy as policy
 from scripts import run_openclaw_hermes_gateway
 
@@ -40,6 +42,25 @@ def test_send_and_money_actions_are_denied_for_live_action() -> None:
     assert "denied for live action" in lowered
     assert "no external send" in lowered
     assert "agent dispatch" in lowered
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "Can you send $500 to the vendor?",
+        "Would you pay this invoice now?",
+        "Could you please wire the funds today?",
+        "Please move the money to the vendor account.",
+    ),
+)
+def test_softened_live_action_requests_still_refuse(text) -> None:
+    reply = policy.truthful_reply_for_text(text)
+
+    assert reply is not None
+    lowered = reply.lower()
+    assert "cannot send messages" in lowered
+    assert "move money" in lowered
+    assert "send_hold" in lowered
 
 
 def test_non_agent_route_target_with_money_falls_to_money_denial() -> None:
