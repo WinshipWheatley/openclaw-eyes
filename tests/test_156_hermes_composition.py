@@ -12,6 +12,8 @@ import time
 from types import MethodType
 from types import SimpleNamespace
 
+import importlib.util
+
 import pytest
 
 import agent_contract_renderers
@@ -360,6 +362,10 @@ def test_installed_wrapper_plus_actual_sidecar_intercepts_contracts_before_worke
         _restore_gateway_modules(previous_gateway_modules)
 
 
+@pytest.mark.skipif(
+    importlib.util.find_spec("pytest_asyncio") is None,
+    reason="needs the sidecar venv (pytest-asyncio); gate clean-room python lacks it",
+)
 @pytest.mark.asyncio
 async def test_installed_wrapper_cancels_actual_sidecar_and_retains_session_lease(
     monkeypatch,

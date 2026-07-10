@@ -381,6 +381,7 @@ def test_requested_month_filters_a_newer_same_client_artifact(monkeypatch, tmp_p
 
 
 def test_review_my_rates_and_clients_still_reaches_existing_wizard_owner(monkeypatch, tmp_path):
+    pytest.importorskip("telegram", reason="gate clean-room python lacks telegram; runs under chief_env")
     import cassandra_listener
 
     calls: list[tuple[str, dict]] = []
@@ -430,6 +431,7 @@ def test_real_rates_clients_guided_review_still_opens(tmp_path):
 
 
 def test_listener_to_real_brain_opens_rates_clients_wizard(tmp_path):
+    pytest.importorskip("telegram", reason="gate clean-room python lacks telegram; runs under chief_env")
     import cassandra_guided_review as guided
     import cassandra_listener
 
@@ -467,6 +469,7 @@ def test_missing_finalized_artifact_becomes_one_honest_origin_bound_line(
     monkeypatch,
     tmp_path,
 ):
+    pytest.importorskip("telegram", reason="gate clean-room python lacks telegram; runs under chief_env")
     import cassandra_listener
 
     empty_invoices = tmp_path / "empty-invoices"

@@ -456,6 +456,7 @@ def test_explicit_no_gmail_payment_question_is_ledger_only(
 def test_listener_compound_runs_payment_verifier_then_cockpit_exactly_once(
     monkeypatch, tmp_path
 ):
+    pytest.importorskip("telegram", reason="gate clean-room python lacks telegram; runs under chief_env")
     import cassandra_brain
     monkeypatch.setenv("CASSANDRA_BOT_TOKEN", "test-token")
     monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "12345")
@@ -509,6 +510,7 @@ def test_listener_compound_runs_payment_verifier_then_cockpit_exactly_once(
 def test_active_cockpit_cannot_capture_operator_corrected_money_read(
     monkeypatch, tmp_path
 ):
+    pytest.importorskip("telegram", reason="gate clean-room python lacks telegram; runs under chief_env")
     import cassandra_brain
     import invoice_cockpit_ops
     from clarify_session_contract import stamp_clarify_session
