@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterable, Mapping
+from datetime import date
+from pathlib import Path
 from typing import Any
 
 import interpreter_lm
@@ -18,6 +20,7 @@ import invoice_send_workflow as wf
 from clarify_session_contract import (
     ACTION_CAPTURE,
     ACTION_REFUSE,
+    REASON_SCOPE,
     clarify_session_disposition,
     stamp_clarify_session,
     touch_clarify_session,
@@ -29,6 +32,7 @@ REFUSED = "refused"
 REFUSED_BY_GUARD = "refused_by_guard"
 UNKNOWN_CLIENT = "unknown_client"
 AWAITING_INVOICE_CLIENT = "awaiting_invoice_client"
+FINALIZED_ARTIFACT_REVIEW = "finalized_artifact_review"
 COCKPIT_AGENT = "cassandra"
 
 _INTERPRETER_NO_TRIGGER = object()
@@ -65,6 +69,33 @@ _REAL_REVIEW_TRIGGER = re.compile(
 )
 
 _MISSING_EMAIL_MARKERS = {"", "unknown", "missing", "none", "null", "n/a", "na", "tbd"}
+_FINALIZED_REVIEW_CLAUSE_RE = re.compile(
+    r"(?:"
+    r"\b(?:prep|prepare|get|make|surface|pull\s+up|show)\b"
+    r"[^;.!?\n]{0,120}\binvoice\b[^;.!?\n]{0,120}"
+    r"(?:\bready\b|\bfor\s+(?:my\s+)?review\b|\blook\s+(?:it\s+)?over\b|"
+    r"\bfinal(?:ized)?\b|"
+    r"\breview\s+(?:the\s+)?(?:final(?:ized)?\s+)?(?:copy|invoice)\b)"
+    r"|"
+    r"\b(?:prep|prepare|get|make|surface|pull\s+up|show)\b[^;.!?\n]{0,60}"
+    r"\bfinal(?:ized)?\b[^;.!?\n]{0,80}\binvoice\b"
+    r")",
+    re.IGNORECASE,
+)
+_MONTH_NUMBERS = {
+    "january": 1,
+    "february": 2,
+    "march": 3,
+    "april": 4,
+    "may": 5,
+    "june": 6,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "october": 10,
+    "november": 11,
+    "december": 12,
+}
 
 
 def _detect_invoice_trigger(text: str) -> str | None:
@@ -109,6 +140,60 @@ def _detect_real_review_trigger(text: str) -> str | None:
     client = match.group("client").strip().rstrip(".!,")
     client = re.sub(r"\b(?:the\s+)?invoice\s*$", "", client, flags=re.IGNORECASE).strip()
     return client or None
+
+
+def _requested_invoice_period(text: str) -> str | None:
+    normalized = str(text or "").casefold()
+    months = "|".join(_MONTH_NUMBERS)
+    # Bind the month to the invoice phrase, not to an earlier payment clause.
+    # `compare May payment, then get the July invoice ready` must select July.
+    month_match = re.search(
+        r"\b(?P<month>" + months + r")\b(?:\s+(?P<year>20\d{2}))?\s+invoice\b",
+        normalized,
+    )
+    if month_match is None:
+        month_match = re.search(
+            r"\binvoice\b[^;.!?\n]{0,30}\b(?:for\s+)?(?P<month>" + months + r")\b"
+            r"(?:\s+(?P<year>20\d{2}))?",
+            normalized,
+        )
+    if month_match is None:
+        return None
+    year = int(month_match.group("year")) if month_match.group("year") else date.today().year
+    return f"{year:04d}-{_MONTH_NUMBERS[month_match.group('month')]:02d}"
+
+
+def _detect_finalized_artifact_review(
+    text: str,
+    *,
+    client_models: Mapping[str, Mapping[str, Any]] | Iterable[Mapping[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    """Detect a bounded existing-artifact review before interpreter/session claims."""
+
+    normalized = str(text or "").replace("’", "'")
+    # A period is otherwise a deliberate clause boundary, but `St. Anne's` is
+    # the canonical registry spelling rather than a sentence break.
+    normalized = re.sub(r"\bSt\.(?=\s+[A-Z])", "St", normalized, flags=re.IGNORECASE)
+    if _FINALIZED_REVIEW_CLAUSE_RE.search(normalized) is None:
+        return None
+    client_model = resolve_client_model(normalized, client_models)
+    if client_model is None:
+        # Preserve the ordinary unknown-client path for generic review asks.
+        before_invoice = re.search(
+            r"\b(?:prep|prepare|get|make|surface|pull\s+up|show)\b\s+(?:the\s+)?(?:[A-Za-z]+\s+)?(.+?)\s+invoice\b",
+            normalized,
+            re.IGNORECASE,
+        )
+        after_invoice = re.search(r"\binvoice\s+for\s+(.+?)(?:\s+and\b|\s+so\b|[?.!,]|$)", normalized, re.IGNORECASE)
+        requested = (before_invoice or after_invoice)
+        if requested is None:
+            return None
+        client_text = requested.group(1).strip()
+        client_model = {"display_name": client_text, "requested_client_text": client_text}
+    return {
+        "client_model": dict(client_model),
+        "requested_period": _requested_invoice_period(normalized),
+    }
 
 
 def _client_match_key(value: Any) -> str:
@@ -358,6 +443,7 @@ def handle_invoice_cockpit_message(
     surface: str = "",
 ) -> dict[str, Any]:
     session = store.load()
+    finalized_review = _detect_finalized_artifact_review(text, client_models=client_models)
     if session is not None and re.search(
         r"\b(cancel|nevermind|never mind|forget it|stop the invoice|quit)\b",
         str(text or ""),
@@ -386,7 +472,13 @@ def handle_invoice_cockpit_message(
             return _structured_result(
                 {"handled": True, "stage": REFUSED_BY_GUARD, "results": [result]}
             )
-        if disposition.action != ACTION_CAPTURE:
+        if finalized_review is not None and disposition.reason != REASON_SCOPE:
+            # A specific finalized-artifact contract supersedes an older
+            # clarify step on the same surface. Refusal was evaluated first;
+            # now clear the stale/other invoice review and continue in this
+            # same call instead of falling through to a wizard or model.
+            session = None
+        elif disposition.action != ACTION_CAPTURE:
             if disposition.expire_session:
                 store.clear()
             # Scope-mismatch keeps the session alive for its own channel; either
@@ -394,11 +486,67 @@ def handle_invoice_cockpit_message(
             return _structured_result(
                 {"handled": False, "pass_through_reason": disposition.reason}
             )
-        touch_clarify_session(session)
+        else:
+            touch_clarify_session(session)
 
     previous_stage = None
     pre_results: list[dict[str, Any]] = []
     if session is None:
+        if finalized_review is not None:
+            client_model = dict(finalized_review["client_model"])
+            if client_resolver is not None:
+                resolved = client_resolver(str(client_model.get("requested_client_text") or ""))
+                if resolved:
+                    client_model = dict(resolved)
+            requested_period = finalized_review.get("requested_period")
+            try:
+                invoice_data, pdf_path, digest = ops.prepare_existing_finalized_invoice(
+                    client_model,
+                    requested_period=requested_period,
+                )
+                number = str(invoice_data.get("invoice_number") or Path(pdf_path).stem.split("__", 1)[0])
+                client_name = str(client_model.get("display_name") or client_model.get("client_name") or "client")
+                state, actions = wf.start_invoice_send(
+                    client_name,
+                    invoice_data,
+                    pdf_path,
+                    digest,
+                    real_review=False,
+                )
+                state["artifact_reused"] = True
+                state["requested_period"] = requested_period
+                state["client_ref"] = str(client_model.get("client_ref") or "")
+                state["client_model"] = dict(client_model)
+                stamp_clarify_session(state, surface=surface)
+                actions[0]["prompt"] = (
+                    f"Finalized invoice {number} is ready for your review. Nothing was sent."
+                )
+                results = ex.execute_actions(actions, ops)
+            except Exception as exc:
+                return _structured_result(
+                    {
+                        "handled": True,
+                        "stage": FINALIZED_ARTIFACT_REVIEW,
+                        "requested_period": requested_period,
+                        "error": "could not surface the existing finalized invoice",
+                        "internal_error_type": type(exc).__name__,
+                    }
+                )
+            store.save(state)
+            return _structured_result(
+                {
+                    "handled": True,
+                    "stage": state.get("stage"),
+                    "requested_period": requested_period,
+                    "client_model": client_model,
+                    "invoice_data": invoice_data,
+                    "attachment": pdf_path,
+                    "attachment_sha256": digest,
+                    "artifact_reused": True,
+                    "results": results,
+                }
+            )
+
         real_review_requested = False
         real_review_client = _detect_real_review_trigger(text)
         if real_review_client:
@@ -567,6 +715,7 @@ def handle_invoice_cockpit_message(
 
 
 __all__ = [
+    "FINALIZED_ARTIFACT_REVIEW",
     "AWAITING_INVOICE_CLIENT",
     "DEFAULT_CLIENT_MODELS",
     "REFUSED",
@@ -575,4 +724,5 @@ __all__ = [
     "resolve_client_model",
     "_detect_invoice_trigger",
     "_detect_real_review_trigger",
+    "_detect_finalized_artifact_review",
 ]

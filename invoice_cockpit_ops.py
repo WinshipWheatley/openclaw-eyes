@@ -26,8 +26,13 @@ from origin_bound_output import (
 
 DEFAULT_SESSION_PATH = Path("/home/openclaw/state/invoice_cockpit/session.json")
 DEFAULT_REAL_INVOICE_INCOMING_DIR = Path("/home/openclaw/state/invoice_cockpit/incoming")
+DEFAULT_FINALIZED_INVOICE_DIR = Path("/home/openclaw/state/invoices")
 REAL_INVOICE_SCHEMA_VERSION = "ST_ANNES_JUNE_INVOICE_V0"
 _ALLOWLISTED_INBOX = "winshiplive@gmail.com"
+_FINALIZED_INVOICE_RE = re.compile(
+    r"^WL-(?P<year>\d{4})-(?P<sequence>\d{4,})__(?P<client>.+)\.pdf$",
+    re.IGNORECASE,
+)
 
 
 def _client_slug(value: str) -> str:
@@ -37,6 +42,79 @@ def _client_slug(value: str) -> str:
 
 def _incoming_dir() -> Path:
     return Path(os.environ.get("OPENCLAW_INVOICE_COCKPIT_INCOMING_DIR") or DEFAULT_REAL_INVOICE_INCOMING_DIR)
+
+
+def _finalized_invoice_dir() -> Path:
+    return Path(os.environ.get("OPENCLAW_INVOICES_DIR") or DEFAULT_FINALIZED_INVOICE_DIR)
+
+
+def _finalized_pdf_issue_period(path: Path) -> tuple[str, str] | None:
+    """Return (`YYYY-MM`, `YYYY-MM-DD`) from the artifact's printed Issue Date.
+
+    Month-bound review requests fail closed if the finalized PDF cannot prove
+    its own issue month; a higher WL sequence alone is not temporal evidence.
+    """
+
+    try:
+        import pdfplumber
+
+        with pdfplumber.open(path) as document:
+            text = "\n".join((page.extract_text() or "") for page in document.pages[:2])
+    except Exception:
+        return None
+    match = re.search(r"\bIssue\s+Date\s+(?P<date>20\d{2}-\d{2}-\d{2})\b", text, re.IGNORECASE)
+    if match is None:
+        return None
+    issue_date = match.group("date")
+    return issue_date[:7], issue_date
+
+
+def _finalized_invoice_candidates(
+    client: Any,
+    *,
+    requested_period: str | None = None,
+) -> list[tuple[int, int, Path, str]]:
+    """Return canonical finalized artifacts without consulting draft receipts.
+
+    Only `WL-YYYY-NNNN__Client.pdf` names inside the configured invoice
+    directory qualify.  The June incoming receipt/PDF and any DRAFT filename
+    are therefore outside this lookup by construction.
+    """
+
+    root = _finalized_invoice_dir()
+    if not root.is_dir():
+        return []
+    try:
+        resolved_root = root.resolve(strict=True)
+    except OSError:
+        return []
+    wanted_clients = set(_client_slug_candidates(client))
+    explicit_year_match = re.match(r"^(?P<year>\d{4})-(?:0[1-9]|1[0-2])$", str(requested_period or ""))
+    explicit_year = int(explicit_year_match.group("year")) if explicit_year_match else None
+    candidates: list[tuple[int, int, Path, str]] = []
+    for path in root.iterdir():
+        match = _FINALIZED_INVOICE_RE.fullmatch(path.name)
+        if match is None or "draft" in path.name.casefold() or not path.is_file():
+            continue
+        try:
+            resolved = path.resolve(strict=True)
+        except OSError:
+            continue
+        if resolved.parent != resolved_root:
+            continue
+        year = int(match.group("year"))
+        if explicit_year is not None and year != explicit_year:
+            continue
+        artifact_client = _registry_client_slug(match.group("client"))
+        if wanted_clients and artifact_client not in wanted_clients:
+            continue
+        issue_period = _finalized_pdf_issue_period(resolved)
+        if requested_period:
+            if issue_period is None or issue_period[0] != requested_period:
+                continue
+        issue_date = issue_period[1] if issue_period is not None else ""
+        candidates.append((year, int(match.group("sequence")), resolved, issue_date))
+    return sorted(candidates, key=lambda row: (row[0], row[1]), reverse=True)
 
 
 def _read_json(path: Path) -> dict[str, Any] | None:
@@ -533,6 +611,53 @@ class RealCockpitOps:
             invoice_data=invoice_data if isinstance(invoice_data, dict) else {},
             stage=stage,
         )
+
+    def prepare_existing_finalized_invoice(
+        self,
+        client: Any,
+        *,
+        requested_period: str | None = None,
+    ) -> tuple[dict[str, Any], str, str]:
+        """Surface the newest matching finalized artifact, read-only.
+
+        This is intentionally separate from :meth:`prepare_invoice`: review
+        requests must never hydrate the legacy June receipt, allocate an
+        invoice number, regenerate a PDF, draft copy, invoke a broker, or send.
+        """
+
+        candidates = _finalized_invoice_candidates(client, requested_period=requested_period)
+        if not candidates:
+            display = _clean_text(
+                _dict_first(client, "display_name", "client_name", "client_ref")
+                if isinstance(client, dict)
+                else client
+            ) or "requested client"
+            raise FileNotFoundError(f"no finalized invoice artifact found for {display}")
+        year, sequence, pdf, issue_date = candidates[0]
+        digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
+        display_name = _clean_text(
+            _dict_first(client, "display_name", "client_name", "client_display_name", "client_ref")
+            if isinstance(client, dict)
+            else client
+        )
+        data = {
+            "invoice_number": f"WL-{year:04d}-{sequence:04d}",
+            "client_name": display_name or pdf.stem.split("__", 1)[-1].replace("_", " "),
+            "client_ref": (
+                str(_dict_first(client, "client_ref", "slug") or "")
+                if isinstance(client, dict)
+                else _client_slug(str(client or ""))
+            ),
+            "invoice_status": "issued",
+            "lifecycle_state": "issued",
+            "invoice_stage": "existing_finalized_artifact",
+            "requested_period": requested_period,
+            "issue_date": issue_date,
+            "attachment_filename": pdf.name,
+            "rendered_pdf_path": str(pdf),
+            "source": "existing_finalized_artifact",
+        }
+        return data, str(pdf), digest
 
     # -- invoice preparation: real Codex-Mac receipt first, fallback generator second --
     def prepare_invoice(self, client: str):

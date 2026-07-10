@@ -282,10 +282,12 @@ def _try_invoice_cockpit(
     )
     try:
         from invoice_cockpit_session import handle_invoice_cockpit_message
-        from invoice_cockpit_ops import RealCockpitOps, JsonSessionStore
+        from invoice_cockpit_ops import DEFAULT_SESSION_PATH, RealCockpitOps, JsonSessionStore
 
         bound_ops = ops if ops is not None else RealCockpitOps(contact_name="", origin=origin)
-        bound_store = store if store is not None else JsonSessionStore()
+        bound_store = store if store is not None else JsonSessionStore(
+            (session_meta or {}).get("invoice_cockpit_session_path") or DEFAULT_SESSION_PATH
+        )
         result = handle_invoice_cockpit_message(
             text,
             ops=bound_ops,

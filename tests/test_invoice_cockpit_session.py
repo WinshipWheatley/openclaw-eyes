@@ -33,6 +33,20 @@ class FakeOps:
         client_name = client.get("display_name") if isinstance(client, dict) else client
         return {"client_name": client_name, "client_email": self.client_email}, "/tmp/i.pdf", "h"
 
+    def prepare_existing_finalized_invoice(self, client, *, requested_period=None):
+        self.calls.append(("existing_finalized", client, requested_period))
+        client_name = client.get("display_name") if isinstance(client, dict) else client
+        return (
+            {
+                "client_name": client_name,
+                "client_email": self.client_email,
+                "invoice_number": "WL-2026-0009",
+                "invoice_status": "issued",
+            },
+            "/tmp/WL-2026-0009__St_Annes.pdf",
+            "issuedhash",
+        )
+
     def telegram_pdf(self, path, caption):
         self.calls.append(("pdf", path, caption))
         return {"ok": True}
@@ -511,7 +525,9 @@ def test_get_invoice_ready_for_review_reaches_the_cockpit_end_to_end():
 
     assert result["handled"] is True
     assert result["stage"] == wf.AWAITING_INVOICE_APPROVAL
-    assert _prepare_calls(ops)[0][1]["client_ref"] == "st_annes"
+    existing = [call for call in ops.calls if call[0] == "existing_finalized"]
+    assert existing[0][1]["client_ref"] == "st_annes"
+    assert existing[0][2] == "2026-07"
 
 
 def test_get_invoice_ready_for_review_is_a_trigger():
