@@ -1,10 +1,11 @@
 """IB-3 real integrations — the production ops the cockpit executor calls, plus a JSON session store.
 
 Reuses the proven pieces: invoice PDF (invoice_generator), Clara draft (clara_invoice_email_draft_
-package), attachment + test-mode send (google_access_broker + global_run_mode_context), Telegram
-(the Maestro bot). TEST sends redirect to the operator inbox and are always safe; the REAL send is
-refused while SEND_HOLD is active. Fails soft — an op error becomes {"ok": False, "error": ...},
-never an exception that kills the listener.
+package), and attachment + test-mode send (google_access_broker + global_run_mode_context).
+Telegram-facing methods return origin-bound transport intents; this module never chooses a bot or
+chat. TEST sends redirect to the operator inbox and are always safe; the REAL send is refused while
+SEND_HOLD is active. Fails soft — an op error becomes {"ok": False, "error": ...}, never an
+exception that kills the listener.
 """
 
 from __future__ import annotations
@@ -15,6 +16,13 @@ import os
 import re
 from pathlib import Path
 from typing import Any
+
+from origin_bound_output import (
+    GENERIC_SAFE_FAILURE,
+    OriginBoundOutput,
+    OutputOrigin,
+    receipt_pointer,
+)
 
 DEFAULT_SESSION_PATH = Path("/home/openclaw/state/invoice_cockpit/session.json")
 DEFAULT_REAL_INVOICE_INCOMING_DIR = Path("/home/openclaw/state/invoice_cockpit/incoming")
@@ -246,15 +254,6 @@ class JsonSessionStore:
             pass
 
 
-def _telegram(method: str, **kw):
-    import requests
-    from chief_guardian_sender import _chat_id  # reuse resolved chat
-    tok = os.environ.get("MAESTRO_BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat = os.environ.get("TELEGRAM_CHAT_ID") or _chat_id()
-    kw.setdefault("data", {})["chat_id"] = chat
-    return requests.post(f"https://api.telegram.org/bot{tok}/{method}", timeout=30, **kw).json()
-
-
 def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
 
@@ -389,9 +388,64 @@ def _needs_issued_invoice_pdf(invoice_data: dict[str, Any] | None, attachment: s
 class RealCockpitOps:
     """Production ops. Instantiate under the agent runtime (env/creds loaded)."""
 
-    def __init__(self, contact_name: str = "", contacts_db_path: str | None = None):
+    def __init__(
+        self,
+        contact_name: str = "",
+        contacts_db_path: str | None = None,
+        *,
+        origin: OutputOrigin | None = None,
+    ):
         self.contact_name = contact_name
         self.contacts_db_path = contacts_db_path or os.environ.get("OPENCLAW_CONTACTS_DB_PATH")
+        self.origin = origin
+        self._origin_output_sequence = 0
+
+    def _origin_text_output(
+        self,
+        text: str,
+        *,
+        purpose: str,
+        reply_markup: dict[str, Any] | None = None,
+        internal: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if self.origin is None:
+            raise RuntimeError("origin output requested without an origin binding")
+        self._origin_output_sequence += 1
+        receipt = receipt_pointer(
+            "invoice-cockpit",
+            self.origin,
+            salt=f"{purpose}:{self._origin_output_sequence}",
+        )
+        output = OriginBoundOutput.guarded_text(
+            origin=self.origin,
+            delivery_id=receipt,
+            receipt_pointer=receipt,
+            operator_text=text,
+            generic_text=GENERIC_SAFE_FAILURE,
+            reply_markup=reply_markup,
+            internal=internal,
+        )
+        return {"ok": True, "origin_output": output}
+
+    def _origin_document_output(self, pdf_path: str, caption: str) -> dict[str, Any]:
+        if self.origin is None:
+            raise RuntimeError("origin output requested without an origin binding")
+        self._origin_output_sequence += 1
+        receipt = receipt_pointer(
+            "invoice-cockpit",
+            self.origin,
+            salt=f"document:{self._origin_output_sequence}",
+        )
+        output = OriginBoundOutput.guarded_document(
+            origin=self.origin,
+            delivery_id=receipt,
+            receipt_pointer=receipt,
+            document_path=pdf_path,
+            caption=caption,
+            generic_text=GENERIC_SAFE_FAILURE,
+            internal={"document_path": str(pdf_path or "")},
+        )
+        return {"ok": True, "origin_output": output}
 
     def _registry(self):
         from contacts_registry import ContactsRegistry, DEFAULT_CONTACTS_DB_PATH
@@ -505,18 +559,14 @@ class RealCockpitOps:
         return data, str(pdf), digest
 
     def telegram_pdf(self, pdf_path: str, caption: str):
-        try:
-            with open(pdf_path, "rb") as fh:
-                return {"ok": bool(_telegram("sendDocument", data={"caption": caption},
-                                             files={"document": (Path(pdf_path).name, fh, "application/pdf")}).get("ok"))}
-        except Exception as exc:
-            return {"ok": False, "error": str(exc)}
+        if self.origin is not None:
+            return self._origin_document_output(pdf_path, caption)
+        return {"ok": False, "error": "origin binding required for Telegram document output"}
 
     def telegram_message(self, text: str):
-        try:
-            return {"ok": bool(_telegram("sendMessage", data={"text": text}).get("ok"))}
-        except Exception as exc:
-            return {"ok": False, "error": str(exc)}
+        if self.origin is not None:
+            return self._origin_text_output(text, purpose="message")
+        return {"ok": False, "error": "origin binding required for Telegram text output"}
 
     def clara_draft_and_guardian(self, client, invoice_data, pdf_path):
         try:
@@ -530,34 +580,24 @@ class RealCockpitOps:
             return {"ok": False, "error": str(exc)}
 
     def guardian_approval_board(self, approval: dict[str, Any]):
-        class _TelegramBoardOps:
-            def send(self, text: str, buttons: dict | None = None) -> int:
-                payload: dict[str, Any] = {"text": text}
-                if buttons:
-                    payload["reply_markup"] = json.dumps(buttons)
-                result = _telegram("sendMessage", data=payload)
-                return int(((result.get("result") or {}).get("message_id")) or 0)
+        if self.origin is not None:
+            try:
+                from guardian_approval_board import _buttons
+                from guardian_approval_humanizer import humanize_approval, render_operator_message
 
-            def edit(self, message_id: int, text: str, buttons: dict | None = None) -> None:
-                payload: dict[str, Any] = {"message_id": message_id, "text": text}
-                if buttons:
-                    payload["reply_markup"] = json.dumps(buttons)
-                _telegram("editMessageText", data=payload)
-
-            def delete(self, message_id: int) -> None:
-                _telegram("deleteMessage", data={"message_id": message_id})
-
-        try:
-            import guardian_approval_board
-
-            state_db = os.environ.get(
-                "OPENCLAW_INVOICE_GUARDIAN_BOARD_DB",
-                "/home/openclaw/.openclaw/guardian/invoice_approval_board.sqlite",
-            )
-            result = guardian_approval_board.sync_board([approval], ops=_TelegramBoardOps(), state_db=state_db)
-            return {"ok": True, "board": result}
-        except Exception as exc:
-            return {"ok": False, "error": str(exc)}
+                human = humanize_approval(approval)
+                text = render_operator_message(human)
+                approval_id = str(approval.get("id") or approval.get("approval_id") or "")
+                buttons = _buttons(approval_id, kind=human.get("kind", "generic"))
+                return self._origin_text_output(
+                    text,
+                    purpose="guardian_approval",
+                    reply_markup=buttons,
+                    internal={"approval": dict(approval)},
+                )
+            except Exception as exc:
+                return {"ok": False, "error": str(exc)}
+        return {"ok": False, "error": "origin binding required for Guardian approval output"}
 
     def apply_edit(self, invoice_data, instruction):
         try:

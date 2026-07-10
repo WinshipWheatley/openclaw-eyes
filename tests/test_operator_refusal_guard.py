@@ -428,7 +428,7 @@ def test_cassandra_tap_refuses_before_cockpit_clarify_and_brain(monkeypatch):
 
 def test_cassandra_tap_passes_draft_discard_through(monkeypatch):
     listener = _load_cassandra_listener(monkeypatch)
-    monkeypatch.setattr(listener, "_try_invoice_cockpit", lambda text: False)
+    monkeypatch.setattr(listener, "_try_invoice_cockpit", lambda text, meta: None)
     monkeypatch.setattr(
         listener, "cassandra_handle", lambda text, meta: ["DRAFT-DISCARD-OK"]
     )
@@ -438,7 +438,7 @@ def test_cassandra_tap_passes_draft_discard_through(monkeypatch):
 
 def test_cassandra_tap_passes_legit_invoice_request_through(monkeypatch):
     listener = _load_cassandra_listener(monkeypatch)
-    monkeypatch.setattr(listener, "_try_invoice_cockpit", lambda text: False)
+    monkeypatch.setattr(listener, "_try_invoice_cockpit", lambda text, meta: None)
     monkeypatch.setattr(
         listener, "cassandra_handle", lambda text, meta: ["INVOICE-STAGED-FOR-REVIEW"]
     )

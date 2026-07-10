@@ -47,6 +47,14 @@ from cassandra_sender import send_voice_note
 from cassandra_voice import speak, synthesize_for_voice_note
 from cassandra_whisper_relay import relay_transcript, transcribe_audio
 from listener_resilience import bounded_reply_timeout, clean_stale_carryover
+from origin_bound_output import (
+    GENERIC_SAFE_FAILURE,
+    OriginBoundOutput,
+    OriginDeliveryTracker,
+    OutputOrigin,
+    collect_origin_outputs,
+    receipt_pointer,
+)
 from telegram_agent_intake import record_cassandra_listener_text_update
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
@@ -87,6 +95,7 @@ _APPROVAL_WAIT_NOTICE = "Guardian approval is still pending. Once you approve or
 _APPROVAL_STALLED_NOTICE = "Guardian approval is still pending longer than expected. Chief is investigating while I keep waiting for the result."
 _CHAT_REQUEST_TOKENS: dict[int, int] = {}
 _TIMEOUT_SENTINEL = object()
+_ORIGIN_DELIVERY_TRACKER = OriginDeliveryTracker()
 
 # ── Producer integration ─────────────────────────────────────────────────────
 
@@ -251,23 +260,81 @@ def _lightweight_recovery_reply(text: str) -> list[str] | None:
     return None
 
 
-def _try_invoice_cockpit(text: str) -> bool:
-    """IB-3 invoice cockpit intercept. Returns True if the cockpit handled the message (it sends its
-    own Telegram replies). Fail-OPEN: any error => False => normal Cassandra routing continues."""
+def _try_invoice_cockpit(
+    text: str,
+    session_meta: dict | None = None,
+    *,
+    ops=None,
+    store=None,
+) -> list[OriginBoundOutput] | None:
+    """Run the cockpit without giving it Telegram credentials.
+
+    ``None`` means the cockpit did not claim the request.  A list (including a
+    guarded failure output) means it did, and the bound Cassandra adapter owns the
+    sole eventual send.
+    """
+
+    origin = OutputOrigin.from_session_meta(
+        session_meta,
+        default_surface="cassandra_telegram",
+        default_bot_identity="cassandra",
+    )
     try:
         from invoice_cockpit_session import handle_invoice_cockpit_message
         from invoice_cockpit_ops import RealCockpitOps, JsonSessionStore
+
+        bound_ops = ops if ops is not None else RealCockpitOps(contact_name="", origin=origin)
+        bound_store = store if store is not None else JsonSessionStore()
         result = handle_invoice_cockpit_message(
             text,
-            ops=RealCockpitOps(contact_name=""),
-            store=JsonSessionStore(),
+            ops=bound_ops,
+            store=bound_store,
             # Task 142: scope the cockpit clarify session to THIS channel so it
             # can never intercept another surface's traffic (live lane-hostage).
             surface="cassandra_telegram",
         )
-        return bool(result.get("handled"))
-    except Exception:
-        return False
+        if not result.get("handled"):
+            return None
+        outputs = collect_origin_outputs(result)
+        if outputs:
+            return outputs
+
+        receipt = receipt_pointer("invoice-cockpit", origin, salt=text)
+        if result.get("error"):
+            operator_text = (
+                "I couldn't prepare that invoice for review. Nothing was sent. "
+                f"Receipt: {receipt}."
+            )
+        else:
+            operator_text = (
+                "The invoice workflow handled that step without running an unapproved send. "
+                f"Receipt: {receipt}."
+            )
+        return [
+            OriginBoundOutput.guarded_text(
+                origin=origin,
+                delivery_id=receipt,
+                receipt_pointer=receipt,
+                operator_text=operator_text,
+                generic_text=GENERIC_SAFE_FAILURE,
+                internal={"cockpit_result": result},
+            )
+        ]
+    except Exception as exc:
+        receipt = receipt_pointer("invoice-cockpit", origin, salt=text)
+        return [
+            OriginBoundOutput.guarded_text(
+                origin=origin,
+                delivery_id=receipt,
+                receipt_pointer=receipt,
+                operator_text=(
+                    "I couldn't prepare that invoice for review. Nothing was sent. "
+                    f"Receipt: {receipt}."
+                ),
+                generic_text=GENERIC_SAFE_FAILURE,
+                internal={"exception_type": type(exc).__name__, "exception": str(exc)},
+            )
+        ]
 
 
 def _operator_refusal_reply(text: str) -> str | None:
@@ -280,7 +347,10 @@ def _operator_refusal_reply(text: str) -> str | None:
         return None
 
 
-async def _run_cassandra_handle_async(text: str, session_meta: dict) -> list[str]:
+async def _run_cassandra_handle_async(
+    text: str,
+    session_meta: dict,
+) -> list[str | OriginBoundOutput]:
     # ── Refusal-first guard (task 141) — FIRST tap, before the invoice-cockpit
     # clarify session and before cassandra_brain.handle (so a destructive or
     # money-movement bait can never be eaten by a clarify session or time out
@@ -289,10 +359,11 @@ async def _run_cassandra_handle_async(text: str, session_meta: dict) -> list[str
     refusal = _operator_refusal_reply(text)
     if refusal is not None:
         return [refusal]
-    # IB-3: the invoice-send cockpit intercepts an invoice trigger or an active invoice session and
-    # drives it via Telegram itself; on handle, no further Cassandra reply is needed. Fail-open.
-    if await asyncio.to_thread(_try_invoice_cockpit, text):
-        return []
+    # IB-3: helpers return transport-neutral outputs; only this listener's bound
+    # adapter may deliver them.
+    cockpit_outputs = await asyncio.to_thread(_try_invoice_cockpit, text, session_meta)
+    if cockpit_outputs is not None:
+        return cockpit_outputs
     return await asyncio.to_thread(cassandra_handle, text, session_meta)
 
 
@@ -301,8 +372,8 @@ async def _run_cassandra_with_backpressure(run_cassandra, text: str, session_met
         return await run_cassandra(text, session_meta)
 
 
-async def _trigger_chief_investigation_async(text: str, session_meta: dict) -> None:
-    await asyncio.to_thread(investigate_cassandra_timeout, text, session_meta)
+async def _trigger_chief_investigation_async(text: str, session_meta: dict):
+    return await asyncio.to_thread(investigate_cassandra_timeout, text, session_meta)
 
 
 def _pending_cassandra_approval_state() -> tuple[str, dict]:
@@ -372,6 +443,100 @@ async def _send_delayed_status(
         await send_reply(message)
 
 
+def _telegram_reply_markup(markup):
+    if not markup:
+        return None
+    try:
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+        rows = []
+        for row in markup.get("inline_keyboard", []):
+            rows.append(
+                [
+                    InlineKeyboardButton(
+                        text=str(button.get("text") or ""),
+                        callback_data=str(button.get("callback_data") or ""),
+                    )
+                    for button in row
+                ]
+            )
+        return InlineKeyboardMarkup(rows)
+    except Exception:
+        # Test doubles may not expose Telegram's markup classes.  Keeping the
+        # transport-neutral shape is safer than falling back to a global bot.
+        return markup
+
+
+async def _dispatch_origin_bound_output(
+    output: OriginBoundOutput,
+    *,
+    bound_origin: OutputOrigin,
+    send_text,
+    send_document,
+    tracker: OriginDeliveryTracker = _ORIGIN_DELIVERY_TRACKER,
+) -> bool:
+    """Verify, deduplicate, and deliver through one already-bound adapter."""
+
+    if not tracker.claim(output, bound_origin=bound_origin):
+        return False
+
+    try:
+        visible = output.visible_text()
+        if output.kind == "document" and output.origin.is_operator:
+            if not output.document_path or not _Path(output.document_path).is_file() or send_document is None:
+                await send_text(
+                    "I couldn't attach the prepared invoice. Nothing was sent. "
+                    f"Receipt: {output.receipt_pointer}.",
+                    reply_markup=None,
+                )
+            else:
+                await send_document(output.document_path, visible)
+            return True
+
+        reply_markup = (
+            _telegram_reply_markup(output.reply_markup)
+            if output.origin.is_operator and output.reply_markup
+            else None
+        )
+        await send_text(visible, reply_markup=reply_markup)
+        return True
+    except Exception:
+        # A failed transport attempt is not a delivery.  Let a replay retry;
+        # only a completed bound send is suppressed as a duplicate.
+        tracker.release(output)
+        raise
+
+
+async def _escalate_failure_and_deliver(
+    *,
+    text: str,
+    session_meta: dict,
+    escalate_failure,
+    send_reply,
+    should_deliver,
+    fallback_text: str,
+) -> None:
+    try:
+        diagnosis = await escalate_failure(text, session_meta)
+    except Exception as exc:
+        print(
+            f"[cassandra_listener] failure investigation error: {type(exc).__name__}",
+            flush=True,
+        )
+        diagnosis = None
+    if not should_deliver():
+        return
+    output = getattr(diagnosis, "output", None)
+    if isinstance(output, OriginBoundOutput):
+        print(
+            f"[cassandra_listener] origin-bound failure receipt={output.receipt_pointer}",
+            flush=True,
+        )
+        await send_reply(output)
+    else:
+        await send_reply(fallback_text)
+
+
 def _is_generic_quiet_reply(reply: str) -> bool:
     normalized = " ".join(str(reply or "").lower().split())
     return "something went quiet" in normalized or "quiet on my end" in normalized
@@ -385,6 +550,11 @@ async def _send_reply_batch_or_degraded(
 ) -> list[str]:
     delivered: list[str] = []
     for reply in replies or []:
+        if isinstance(reply, OriginBoundOutput):
+            if should_deliver():
+                await send_reply(reply)
+                delivered.append(reply.visible_text())
+            continue
         text = str(
             clean_stale_carryover(
                 reply,
@@ -411,7 +581,7 @@ async def _run_request_with_timeout_contract(
     run_cassandra=_run_cassandra_handle_async,
     escalate_failure=_trigger_chief_investigation_async,
     should_deliver=lambda: True,
-) -> list[str] | None:
+) -> list[str | OriginBoundOutput] | None:
     recovery_reply = _lightweight_recovery_reply(text)
     if _HEAVY_REQUEST_SEMAPHORE.locked() and recovery_reply is not None:
         await _send_reply_batch_or_degraded(
@@ -458,19 +628,36 @@ async def _run_request_with_timeout_contract(
                 if approval_state == "waiting":
                     await send_reply(_APPROVAL_WAIT_NOTICE)
                 else:
-                    if approval_state == "stalled":
-                        await send_reply(_APPROVAL_STALLED_NOTICE)
-                    else:
-                        await send_reply(_ESCALATION_NOTICE)
-                    asyncio.create_task(escalate_failure(text, session_meta))
+                    asyncio.create_task(
+                        _escalate_failure_and_deliver(
+                            text=text,
+                            session_meta=session_meta,
+                            escalate_failure=escalate_failure,
+                            send_reply=send_reply,
+                            should_deliver=should_deliver,
+                            fallback_text=(
+                                _APPROVAL_STALLED_NOTICE
+                                if approval_state == "stalled"
+                                else _ESCALATION_NOTICE
+                            ),
+                        )
+                    )
             asyncio.create_task(_deliver_late_result(task, send_reply=send_reply, should_deliver=should_deliver))
             return None
     except Exception as exc:
         working_ack_task.cancel()
         print(f"[cassandra_listener] request runtime error: {exc}", flush=True)
         if should_deliver():
-            await send_reply(_HANDLER_EXCEPTION_NOTICE)
-            asyncio.create_task(escalate_failure(text, session_meta | {"runtime_error": str(exc)}))
+            asyncio.create_task(
+                _escalate_failure_and_deliver(
+                    text=text,
+                    session_meta=session_meta | {"runtime_error": str(exc)},
+                    escalate_failure=escalate_failure,
+                    send_reply=send_reply,
+                    should_deliver=should_deliver,
+                    fallback_text=_HANDLER_EXCEPTION_NOTICE,
+                )
+            )
         return None
 
     working_ack_task.cancel()
@@ -543,9 +730,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     request_token = _claim_chat_request(sender_chat_id)
+    source_message_id = str(getattr(update, "update_id", "")) or ""
+    session_meta = {
+        "surface": "cassandra_telegram",
+        "bot_identity": "cassandra",
+        "sender_name": sender_name,
+        "sender_chat_id": sender_chat_id,
+        "source_message_id": source_message_id,
+        "source_user_label": source_user_label,
+    }
+    bound_origin = OutputOrigin.from_session_meta(
+        session_meta,
+        default_surface="cassandra_telegram",
+        default_bot_identity="cassandra",
+    )
 
-    async def _send_to_prompt(reply_text: str):
-        await update.message.reply_text(reply_text)
+    async def _send_bound_text(reply_text: str, reply_markup=None):
+        if reply_markup is None:
+            await update.message.reply_text(reply_text)
+        else:
+            await update.message.reply_text(reply_text, reply_markup=reply_markup)
+
+    async def _send_bound_document(document_path: str, caption: str):
+        with _Path(document_path).open("rb") as document:
+            await update.message.reply_document(document=document, caption=caption)
+
+    async def _send_to_prompt(reply):
+        if isinstance(reply, OriginBoundOutput):
+            await _dispatch_origin_bound_output(
+                reply,
+                bound_origin=bound_origin,
+                send_text=_send_bound_text,
+                send_document=_send_bound_document,
+            )
+            return
+        await _send_bound_text(str(reply), reply_markup=None)
 
     # Producer: Handle intake
     producer_payload = extract_producer_payload(text)
@@ -593,12 +812,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             replies = await _run_request_with_timeout_contract(
                 text=text,
-                session_meta={
-                    "sender_name": sender_name,
-                    "sender_chat_id": sender_chat_id,
-                    "source_message_id": str(getattr(update, "update_id", "")) or "",
-                    "source_user_label": source_user_label,
-                },
+                session_meta=session_meta,
                 send_reply=_send_to_prompt,
                 is_authorized_user=is_authorized_user,
                 should_deliver=lambda: True,
@@ -606,19 +820,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             _log_cassandra_route(text, "cassandra")
         except Exception as e:
             print(f"[cassandra_listener] error: {e}", flush=True)
-            await update.message.reply_text(_UNHANDLED_LISTENER_NOTICE)
-            asyncio.create_task(
-                _trigger_chief_investigation_async(
+            try:
+                diagnosis = await _trigger_chief_investigation_async(
                     text,
-                    {
-                        "sender_name": sender_name,
-                        "sender_chat_id": sender_chat_id,
-                        "source_message_id": str(getattr(update, "update_id", "")) or "",
-                        "source_user_label": source_user_label,
-                        "listener_error": str(e),
-                    },
+                    session_meta | {"listener_error": str(e)},
                 )
-            )
+                await _send_to_prompt(diagnosis.output)
+            except Exception:
+                await _send_to_prompt(_UNHANDLED_LISTENER_NOTICE)
             return
     finally:
         typing_task.cancel()
@@ -634,10 +843,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if not replies:
             return
+        text_replies = [str(reply) for reply in replies if not isinstance(reply, OriginBoundOutput)]
+        if not text_replies:
+            return
         suppress = _suppress_voice(text)
-        speak(" ".join(replies), suppress=suppress)
+        speak(" ".join(text_replies), suppress=suppress)
         if not suppress:
-            wav_path = synthesize_for_voice_note(" ".join(replies))
+            wav_path = synthesize_for_voice_note(" ".join(text_replies))
             if wav_path is not None:
                 send_voice_note(str(wav_path), chat_id=str(sender_chat_id))
     except Exception as e:

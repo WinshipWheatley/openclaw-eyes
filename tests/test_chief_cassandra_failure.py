@@ -4,6 +4,16 @@ import json
 from datetime import datetime
 
 
+def _origin_meta(source_message_id: str) -> dict:
+    return {
+        "surface": "cassandra_telegram",
+        "bot_identity": "cassandra",
+        "sender_chat_id": 4242,
+        "source_message_id": source_message_id,
+        "source_user_label": "operator",
+    }
+
+
 def test_investigate_timeout_reports_pending_approval(monkeypatch, tmp_path):
     import chief_cassandra_failure as failure
 
@@ -20,40 +30,25 @@ def test_investigate_timeout_reports_pending_approval(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    sent: list[tuple[str, str | None]] = []
     monkeypatch.setattr(failure, "_APPROVAL_PENDING", pending_path, raising=False)
-    monkeypatch.setattr(
-        failure,
-        "notify_chief",
-        lambda text, parse_mode=None: sent.append((text, parse_mode)),
-        raising=False,
+    result = failure.investigate_cassandra_timeout(
+        "Can you email Winship and ask if it worked?",
+        _origin_meta("pending-approval"),
     )
 
-    failure.investigate_cassandra_timeout("Can you email Winship and ask if it worked?")
-
-    assert sent[0] == (
-        "Chief is working on Cassandra's failure for: Can you email Winship and ask if it worked?",
-        None,
-    )
-    assert "Outcome: Winship must fix it manually" in sent[1][0]
-    assert "Guardian approval" in sent[1][0]
+    assert "Outcome: Winship must fix it manually" in result.internal_report
+    assert "Guardian approval" in result.internal_report
+    assert "Guardian approval" not in result.output.visible_text()
+    assert result.receipt_pointer in result.output.visible_text()
 
 
 def test_investigate_timeout_reports_policy_block_before_runtime(monkeypatch, tmp_path):
     import chief_cassandra_failure as failure
 
-    sent: list[tuple[str, str | None]] = []
     monkeypatch.setattr(failure, "_APPROVAL_PENDING", tmp_path / "approval_pending.json", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_CORRESPONDENCE_LOG", tmp_path / "cassandra_correspondence.jsonl", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_LISTENER_LOG", tmp_path / "cassandra_listener.out", raising=False)
     monkeypatch.setattr(failure, "_POLISH_TASKS_DIR", tmp_path / "tasks", raising=False)
-    monkeypatch.setattr(
-        failure,
-        "notify_chief",
-        lambda text, parse_mode=None: sent.append((text, parse_mode)),
-        raising=False,
-    )
-
     (tmp_path / "cassandra_correspondence.jsonl").write_text(
         json.dumps(
             {
@@ -67,42 +62,37 @@ def test_investigate_timeout_reports_policy_block_before_runtime(monkeypatch, tm
         encoding="utf-8",
     )
 
-    failure.investigate_cassandra_timeout("Please send Winship a note")
+    result = failure.investigate_cassandra_timeout(
+        "Please send Winship a note",
+        _origin_meta("policy-block"),
+    )
 
-    assert "Outcome: Cassandra cannot do this because it is outside her lane / permission / scope" in sent[1][0]
-    assert "denied at approval gate" in sent[1][0]
+    assert "Outcome: Cassandra cannot do this because it is outside her lane / permission / scope" in result.internal_report
+    assert "denied at approval gate" in result.internal_report
+    assert "denied at approval gate" not in result.output.visible_text()
 
 
 def test_investigate_timeout_reports_runtime_timeout_and_queues_task(monkeypatch, tmp_path):
     import chief_cassandra_failure as failure
 
-    sent: list[tuple[str, str | None]] = []
     monkeypatch.setattr(failure, "_APPROVAL_PENDING", tmp_path / "approval_pending.json", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_CORRESPONDENCE_LOG", tmp_path / "cassandra_correspondence.jsonl", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_LISTENER_LOG", tmp_path / "cassandra_listener.out", raising=False)
     monkeypatch.setattr(failure, "_POLISH_TASKS_DIR", tmp_path / "tasks", raising=False)
-    monkeypatch.setattr(
-        failure,
-        "notify_chief",
-        lambda text, parse_mode=None: sent.append((text, parse_mode)),
-        raising=False,
-    )
-
     (tmp_path / "cassandra_listener.out").write_text(
         "[cassandra_listener] error: mock timeout downstream\n",
         encoding="utf-8",
     )
 
-    failure.investigate_cassandra_timeout("What is the current capital hilton status now?")
-
-    assert sent[0] == (
-        "Chief is working on Cassandra's failure for: What is the current capital hilton status now?",
-        None,
+    result = failure.investigate_cassandra_timeout(
+        "What is the current capital hilton status now?",
+        _origin_meta("runtime-timeout"),
     )
-    assert "Outcome: Sent to polish loop for repair; Chief will verify the result" in sent[1][0]
-    assert "mock timeout downstream" in sent[1][0]
-    assert "chief-cassandra-failure-" in sent[1][0]
-    assert "harness-test the result and report WORKING" in sent[1][0]
+    assert "Outcome: Sent to polish loop for repair; Chief will verify the result" in result.internal_report
+    assert "mock timeout downstream" in result.internal_report
+    assert "chief-cassandra-failure-" in result.internal_report
+    assert "harness-test the result and report WORKING" in result.internal_report
+    assert "mock timeout downstream" not in result.output.visible_text()
 
     task_files = list((tmp_path / "tasks").glob("*chief-cassandra-failure-*.md"))
     assert len(task_files) == 1
@@ -120,20 +110,12 @@ def test_investigate_timeout_reports_runtime_timeout_and_queues_task(monkeypatch
 def test_investigate_timeout_prefers_fresh_timestamped_cassandra_evidence(monkeypatch, tmp_path):
     import chief_cassandra_failure as failure
 
-    sent: list[tuple[str, str | None]] = []
     monkeypatch.setattr(failure, "_APPROVAL_PENDING", tmp_path / "approval_pending.json", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_CORRESPONDENCE_LOG", tmp_path / "cassandra_correspondence.jsonl", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_LISTENER_LOG", tmp_path / "cassandra_listener.out", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_MODEL_ROUTE_LOG", tmp_path / "cassandra_model_routes.jsonl", raising=False)
     monkeypatch.setattr(failure, "_EXTERNAL_LLM_LOG", tmp_path / "external_llm_log.csv", raising=False)
     monkeypatch.setattr(failure, "_POLISH_TASKS_DIR", tmp_path / "tasks", raising=False)
-    monkeypatch.setattr(
-        failure,
-        "notify_chief",
-        lambda text, parse_mode=None: sent.append((text, parse_mode)),
-        raising=False,
-    )
-
     (tmp_path / "cassandra_listener.out").write_text(
         "[cassandra_listener] error: name 'deep' is not defined\n",
         encoding="utf-8",
@@ -156,18 +138,19 @@ def test_investigate_timeout_prefers_fresh_timestamped_cassandra_evidence(monkey
         encoding="utf-8",
     )
 
-    failure.investigate_cassandra_timeout(
-        "Cassandra, put Doctor Appointment on my calendar tomorrow at 2:30 PM for 45 minutes."
+    result = failure.investigate_cassandra_timeout(
+        "Cassandra, put Doctor Appointment on my calendar tomorrow at 2:30 PM for 45 minutes.",
+        _origin_meta("fresh-evidence"),
     )
 
-    assert "parse-failed" in sent[1][0]
-    assert "name 'deep' is not defined" not in sent[1][0]
+    assert "parse-failed" in result.internal_report
+    assert "name 'deep' is not defined" not in result.internal_report
+    assert "parse-failed" not in result.output.visible_text()
 
 
 def test_investigate_timeout_reports_orientation_local_model_timeout(monkeypatch, tmp_path):
     import chief_cassandra_failure as failure
 
-    sent: list[tuple[str, str | None]] = []
     monkeypatch.setattr(failure, "_APPROVAL_PENDING", tmp_path / "approval_pending.json", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_CORRESPONDENCE_LOG", tmp_path / "cassandra_correspondence.jsonl", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_LISTENER_LOG", tmp_path / "cassandra_listener.out", raising=False)
@@ -175,13 +158,6 @@ def test_investigate_timeout_reports_orientation_local_model_timeout(monkeypatch
     monkeypatch.setattr(failure, "_EXTERNAL_LLM_LOG", tmp_path / "external_llm_log.csv", raising=False)
     monkeypatch.setattr(failure, "_OLLAMA_DIAGNOSTICS_LOG", tmp_path / "ollama_diagnostics.jsonl", raising=False)
     monkeypatch.setattr(failure, "_POLISH_TASKS_DIR", tmp_path / "tasks", raising=False)
-    monkeypatch.setattr(
-        failure,
-        "notify_chief",
-        lambda text, parse_mode=None: sent.append((text, parse_mode)),
-        raising=False,
-    )
-
     (tmp_path / "cassandra_model_routes.jsonl").write_text(
         json.dumps(
             {
@@ -209,29 +185,25 @@ def test_investigate_timeout_reports_orientation_local_model_timeout(monkeypatch
         encoding="utf-8",
     )
 
-    failure.investigate_cassandra_timeout("Cassandra test, draft a text-only answer: where are we?")
+    result = failure.investigate_cassandra_timeout(
+        "Cassandra test, draft a text-only answer: where are we?",
+        _origin_meta("orientation-timeout"),
+    )
 
-    assert "orientation/status reply exhausted the listener budget" in sent[1][0]
-    assert "falling through to local Ollama `gemma4:26b`" in sent[1][0]
-    assert "no configured external Cassandra language model" in sent[1][0]
+    assert "orientation/status reply exhausted the listener budget" in result.internal_report
+    assert "falling through to local Ollama `gemma4:26b`" in result.internal_report
+    assert "no configured external Cassandra language model" in result.internal_report
+    assert "gemma4:26b" not in result.output.visible_text()
 
 
 def test_investigate_timeout_reports_calendar_delete_gap_in_plain_text(monkeypatch, tmp_path):
     import chief_cassandra_failure as failure
 
-    sent: list[tuple[str, str | None]] = []
     monkeypatch.setattr(failure, "_APPROVAL_PENDING", tmp_path / "approval_pending.json", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_CORRESPONDENCE_LOG", tmp_path / "cassandra_correspondence.jsonl", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_LISTENER_LOG", tmp_path / "cassandra_listener.out", raising=False)
     monkeypatch.setattr(failure, "_CASSANDRA_CONVO_LOG", tmp_path / "cassandra_conversations.jsonl", raising=False)
     monkeypatch.setattr(failure, "_POLISH_TASKS_DIR", tmp_path / "tasks", raising=False)
-    monkeypatch.setattr(
-        failure,
-        "notify_chief",
-        lambda text, parse_mode=None: sent.append((text, parse_mode)),
-        raising=False,
-    )
-
     request = "Cassandra, remove the two Doctor Appointment events tomorrow at 2:30 PM from my calendar."
     (tmp_path / "cassandra_conversations.jsonl").write_text(
         json.dumps(
@@ -246,9 +218,11 @@ def test_investigate_timeout_reports_calendar_delete_gap_in_plain_text(monkeypat
         encoding="utf-8",
     )
 
-    failure.investigate_cassandra_timeout(request)
+    result = failure.investigate_cassandra_timeout(
+        request,
+        _origin_meta("calendar-delete-gap"),
+    )
 
-    assert sent[0] == (f"Chief is working on Cassandra's failure for: {request}", None)
-    assert "did not execute the requested calendar deletion" in sent[1][0]
-    assert "no wired calendar-delete capability" in sent[1][0]
-    assert sent[1][1] is None
+    assert "did not execute the requested calendar deletion" in result.internal_report
+    assert "no wired calendar-delete capability" in result.internal_report
+    assert "calendar-delete" not in result.output.visible_text()

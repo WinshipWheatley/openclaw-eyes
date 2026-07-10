@@ -8,10 +8,16 @@ Keeps policy-denial checks ahead of deeper runtime investigation.
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from chief_notify import send as notify_chief
+from origin_bound_output import (
+    GENERIC_SAFE_FAILURE,
+    OriginBoundOutput,
+    OutputOrigin,
+    receipt_pointer,
+)
 
 _APPROVAL_PENDING = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 _CASSANDRA_CONVO_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_conversations.jsonl")
@@ -22,6 +28,16 @@ _EXTERNAL_LLM_LOG = Path("/mnt/c/OpenClaw/logs/external_llm_log.csv")
 _OLLAMA_DIAGNOSTICS_LOG = Path("/mnt/c/OpenClaw/logs/ollama_diagnostics.jsonl")
 _POLISH_TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
 _APPROVAL_TIMEOUT_S = 86400
+
+
+@dataclass(frozen=True, slots=True)
+class CassandraFailureDiagnosis:
+    """Internal diagnosis plus the sole audience-safe output for its origin."""
+
+    origin: OutputOrigin
+    receipt_pointer: str
+    output: OriginBoundOutput
+    internal_report: str
 
 
 def _truncate(text: str, limit: int) -> str:
@@ -388,8 +404,43 @@ def _build_report(summary: str) -> str:
     )
 
 
-def investigate_cassandra_timeout(user_text: str, session_meta: dict | None = None) -> None:
-    del session_meta  # reserved for future narrowing without changing the call surface
+def investigate_cassandra_timeout(
+    user_text: str,
+    session_meta: dict | None = None,
+) -> CassandraFailureDiagnosis:
+    """Diagnose a Cassandra failure without owning or selecting any transport.
+
+    The listener supplies the immutable origin metadata and is the only caller allowed
+    to send ``result.output``.  Detailed model/log/repair evidence stays in
+    ``internal_report`` and is never rendered into chat.
+    """
+
     summary = _request_summary(user_text)
-    notify_chief(f"Chief is working on Cassandra's failure for: {summary}", parse_mode=None)
-    notify_chief(_build_report(summary), parse_mode=None)
+    origin = OutputOrigin.from_session_meta(
+        session_meta,
+        default_surface="cassandra_telegram",
+        default_bot_identity="cassandra",
+    )
+    internal_report = _build_report(summary)
+    receipt = receipt_pointer("cassandra-failure", origin, salt=summary)
+    operator_text = (
+        "Cassandra couldn't finish that request. Nothing was sent or changed. "
+        f"Chief recorded it for review. Receipt: {receipt}."
+    )
+    output = OriginBoundOutput.guarded_text(
+        origin=origin,
+        delivery_id=receipt,
+        receipt_pointer=receipt,
+        operator_text=operator_text,
+        generic_text=GENERIC_SAFE_FAILURE,
+        internal={"diagnosis": internal_report, "request_summary": summary},
+    )
+    return CassandraFailureDiagnosis(
+        origin=origin,
+        receipt_pointer=receipt,
+        output=output,
+        internal_report=internal_report,
+    )
+
+
+__all__ = ["CassandraFailureDiagnosis", "investigate_cassandra_timeout"]

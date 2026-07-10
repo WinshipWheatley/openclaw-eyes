@@ -23,6 +23,7 @@ from clarify_session_contract import (
     touch_clarify_session,
 )
 from invoice_cockpit_client_registry import DEFAULT_CLIENT_MODELS
+from origin_bound_output import collect_origin_outputs
 
 REFUSED = "refused"
 REFUSED_BY_GUARD = "refused_by_guard"
@@ -206,9 +207,19 @@ def _safe_telegram_message(ops: Any, text: str) -> dict[str, Any]:
         return {"ok": False, "error": str(exc), "text": text}
 
 
+def _structured_result(payload: dict[str, Any]) -> dict[str, Any]:
+    """Attach transport-neutral outputs for the origin-bound listener adapter."""
+
+    result = dict(payload)
+    result["origin_outputs"] = collect_origin_outputs(result)
+    return result
+
+
 def _ask_which_client(ops: Any) -> dict[str, Any]:
     result = _safe_telegram_message(ops, "Which client should I prepare the invoice for?")
-    return {"handled": True, "stage": AWAITING_INVOICE_CLIENT, "results": [result]}
+    return _structured_result(
+        {"handled": True, "stage": AWAITING_INVOICE_CLIENT, "results": [result]}
+    )
 
 
 def _is_placeholder_client(value: Any) -> bool:
@@ -353,8 +364,8 @@ def handle_invoice_cockpit_message(
         re.IGNORECASE,
     ):
         store.clear()
-        _safe_telegram_message(ops, "Okay - cancelled the invoice flow. Nothing was sent.")
-        return {"handled": True, "stage": "cancelled"}
+        result = _safe_telegram_message(ops, "Okay - cancelled the invoice flow. Nothing was sent.")
+        return _structured_result({"handled": True, "stage": "cancelled", "results": [result]})
 
     # ── Task 142 clarify-session contract — evaluated BEFORE any session resume.
     # The live lane-hostage: this session was operator-global and intercepted
@@ -372,13 +383,17 @@ def handle_invoice_cockpit_message(
         )
         if disposition.action == ACTION_REFUSE:
             result = _safe_telegram_message(ops, disposition.reply or "")
-            return {"handled": True, "stage": REFUSED_BY_GUARD, "results": [result]}
+            return _structured_result(
+                {"handled": True, "stage": REFUSED_BY_GUARD, "results": [result]}
+            )
         if disposition.action != ACTION_CAPTURE:
             if disposition.expire_session:
                 store.clear()
             # Scope-mismatch keeps the session alive for its own channel; either
             # way this message is NEVER captured — normal routing continues.
-            return {"handled": False, "pass_through_reason": disposition.reason}
+            return _structured_result(
+                {"handled": False, "pass_through_reason": disposition.reason}
+            )
         touch_clarify_session(session)
 
     previous_stage = None
@@ -393,7 +408,7 @@ def handle_invoice_cockpit_message(
         else:
             interpreted = _interpreter_invoice_trigger(text)
             if interpreted is _INTERPRETER_NO_TRIGGER:
-                return {"handled": False}
+                return _structured_result({"handled": False})
             if interpreted is _INTERPRETER_NEEDS_CLIENT:
                 return _ask_which_client(ops)
 
@@ -403,7 +418,7 @@ def handle_invoice_cockpit_message(
                 else (_detect_invoice_trigger(text) or _detect_fuzzy_email_trigger(text))
             )
         if not requested_client:
-            return {"handled": False}
+            return _structured_result({"handled": False})
         if _is_placeholder_client(requested_client):
             return _ask_which_client(ops)
 
@@ -417,7 +432,9 @@ def handle_invoice_cockpit_message(
                 ops,
                 f"I don't have that client in the invoice registry: {requested_client}.",
             )
-            return {"handled": True, "stage": UNKNOWN_CLIENT, "results": [result]}
+            return _structured_result(
+                {"handled": True, "stage": UNKNOWN_CLIENT, "results": [result]}
+            )
         if "client_ref" in client_model:
             client_model["client_ref"] = _client_ref_slug(client_model.get("client_ref"))
         client_model.setdefault("display_name", client_model.get("client_display_name") or requested_client)
@@ -436,7 +453,14 @@ def handle_invoice_cockpit_message(
         preflight = _preflight_client_route(client_model, ops)
         if preflight is not None:
             stage, results = preflight
-            return {"handled": True, "stage": stage, "client_model": client_model, "results": results}
+            return _structured_result(
+                {
+                    "handled": True,
+                    "stage": stage,
+                    "client_model": client_model,
+                    "results": results,
+                }
+            )
 
         for note_key in ("operator_note", "dual_path_note", "routing_note", "status_note"):
             note = str(client_model.get(note_key) or "").strip()
@@ -452,7 +476,9 @@ def handle_invoice_cockpit_message(
                     invoice_data=invoice_data,
                 )
         except Exception as exc:
-            return {"handled": True, "error": f"could not prepare the invoice: {exc}"}
+            return _structured_result(
+                {"handled": True, "error": f"could not prepare the invoice: {exc}"}
+            )
         client_name = str(client_model.get("display_name") or requested_client)
         state, actions = wf.start_invoice_send(
             client_name,
@@ -535,7 +561,9 @@ def handle_invoice_cockpit_message(
         store.clear()
     else:
         store.save(state)
-    return {"handled": True, "stage": state.get("stage"), "results": results}
+    return _structured_result(
+        {"handled": True, "stage": state.get("stage"), "results": results}
+    )
 
 
 __all__ = [
