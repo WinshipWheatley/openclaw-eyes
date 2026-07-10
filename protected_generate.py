@@ -1114,15 +1114,72 @@ _COHERENCE_FUNCTION_WORDS = frozenset(
 
 _COHERENCE_SUFFIXES = ("'s", "s'", "es", "s", "ing", "ed", "ly")
 _ALPHA_WORD_RE = re.compile(r"[A-Za-z][A-Za-z']*")
+_COHERENCE_CONTRACTION_RE = re.compile(r"^([a-z]+)'(m|re|ve|d|ll|s|t)$")
+_COHERENCE_CONTRACTION_AUXILIARIES = {
+    "m": "am",
+    "re": "are",
+    "ve": "have",
+    "d": "would",
+    "ll": "will",
+    "s": "is",
+}
+_COHERENCE_CONTRACTION_BASES = frozenset(
+    {
+        "i", "we", "you", "they", "he", "she", "it", "that", "what",
+        "who", "where", "how", "here", "there",
+    }
+)
+_COHERENCE_NEGATIVE_AUXILIARIES = frozenset(
+    {
+        "do", "does", "did", "is", "are", "was", "were", "can", "could",
+        "would", "should", "will", "shall", "have", "has", "had", "must",
+        "need", "might",
+    }
+)
+_COHERENCE_IRREGULAR_CONTRACTIONS = {
+    "can't": frozenset({"can", "not"}),
+    "won't": frozenset({"will", "not"}),
+    "shan't": frozenset({"shall", "not"}),
+    "ain't": frozenset({"is", "not"}),
+}
+_APOSTROPHE_TRANSLATION = str.maketrans({"‘": "'", "’": "'", "ʼ": "'", "＇": "'"})
+
+
+def _coherence_contraction_functions(word: str) -> frozenset[str]:
+    """Expand standard auxiliary contractions into grammatical scaffolding."""
+
+    lowered = str(word or "").lower().translate(_APOSTROPHE_TRANSLATION)
+    irregular = _COHERENCE_IRREGULAR_CONTRACTIONS.get(lowered)
+    if irregular:
+        return irregular
+    match = _COHERENCE_CONTRACTION_RE.fullmatch(lowered)
+    if not match:
+        return frozenset()
+    base, suffix = match.groups()
+    if suffix == "t":
+        auxiliary = base[:-1] if base.endswith("n") else base
+        if auxiliary in _COHERENCE_NEGATIVE_AUXILIARIES:
+            return frozenset({auxiliary, "not"})
+        return frozenset()
+    if base not in _COHERENCE_CONTRACTION_BASES:
+        return frozenset()
+    return frozenset({base, _COHERENCE_CONTRACTION_AUXILIARIES[suffix]})
 
 
 def _coherence_word_recognized(word: str, index: int) -> bool:
     lowered = word.lower().strip("'")
     if lowered in _COHERENCE_LEXICON:
         return True
+    if _coherence_contraction_functions(lowered):
+        return True
     # Proper nouns (clients, venues, people) are content, not noise — but a
     # sentence-initial capital is just capitalization, not evidence.
     if index > 0 and word[:1].isupper():
+        return True
+    # reply -> replies is the one common plural morphology not represented by
+    # a removable suffix.  Treat it like the other ordinary inflections so a
+    # grammatical imperative is not rejected merely for using a plural noun.
+    if lowered.endswith("ies") and f"{lowered[:-3]}y" in _COHERENCE_LEXICON:
         return True
     for suffix in _COHERENCE_SUFFIXES:
         if lowered.endswith(suffix) and lowered[: -len(suffix)] in _COHERENCE_LEXICON:
@@ -1137,7 +1194,7 @@ def _is_gibberish(prompt: str) -> bool:
     unrecognizable words decides, never an overview/finance/plate marker. A
     short real ask ("status?", "invoices?") stays coherent by construction.
     """
-    text = str(prompt or "").strip()
+    text = str(prompt or "").strip().translate(_APOSTROPHE_TRANSLATION)
     if not text:
         return False
     if any(ch.isdigit() for ch in text):
@@ -1146,6 +1203,8 @@ def _is_gibberish(prompt: str) -> bool:
     if not words:
         return True  # non-empty but no words at all (pure symbol noise)
     scaffolding = {w.lower() for w in words if w.lower() in _COHERENCE_FUNCTION_WORDS}
+    for word in words:
+        scaffolding.update(_coherence_contraction_functions(word))
     if len(scaffolding) >= 2:
         return False  # grammatical shape: a real sentence, whatever its jargon
     unrecognized = sum(

@@ -2883,10 +2883,18 @@ def _wizard_recognizes_in_session_interaction(
     unrelated question/instruction traffic passes through (task 142)."""
     if classify_guided_review_non_answer(raw_text):
         return True
+    # The rich owner has two established command vocabularies that are more
+    # precise than the generic coherence heuristic.  Declaring them here lets
+    # precedence v2 do exactly what it promises: the session predicate may
+    # outrank LOW_COHERENCE, but no other deterministic contract label.
+    if _control_text(raw_text):
+        return True
     try:
         pending = _active_pending_interaction(session, now=now)
     except Exception:
         pending = None
+    if pending and _pending_reply_intent(raw_text) != "other":
+        return True
     try:
         natural = parse_natural_reply_intent(raw_text, pending or None)
     except Exception:

@@ -712,3 +712,114 @@ def test_vote_env_kill_switch_overrides_default_true():
         )
         is False
     )
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "I'm lost, orient me",
+        "check inner circle email replies",
+        "We're lost, reorient us",
+        "You're confusing me, help",
+        "We’re lost, reorient us",
+        "They’re lost, reorient them",
+        "Don't panic, reorient us",
+        "Can't focus, guide me",
+        "Isn't working, guide us",
+        "Haven't slept, orient me",
+        "There's chaos, reorient us",
+        "It'll break, help us",
+        "Mustn't panic, reorient us",
+        "Needn't worry, guide us",
+        "There’ll be chaos, reorient us",
+        "We‘re lost, reorient us",
+    ),
+)
+def test_real_english_without_business_scaffolding_is_not_low_coherence(text):
+    assert contract._is_low_coherence(text) is False
+
+
+def test_live_gibberish_sentinel_stays_low_coherence_after_morphology_floor():
+    assert contract._is_low_coherence("blorp fizzle invoice quantum?") is True
+    assert (
+        contract._is_low_coherence(
+            'What do you make of "blorp fizzle invoice quantum?"'
+        )
+        is True
+    )
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "The review should explain what it is you actually handle for billing.",
+        "What it is you actually handle for billing should be stated clearly.",
+        "What the review should explain is what it is you actually handle for billing.",
+        "What I want documented is what it is you actually handle for billing.",
+        "Tell me how the policy should explain what it is you actually handle for billing.",
+        "Who are you talking to?",
+        "Who are you currently talking to?",
+        "Who are you, talking to?",
+        "What it is you handle should stay private, right?",
+        "What it is you handle matters to the review, right?",
+        "What it is you handle affects billing, correct?",
+    ),
+)
+def test_session_owner_does_not_claim_declarative_identity_looking_answer(text):
+    context = contract.ContractContext(
+        agent="cassandra",
+        surface="telegram",
+        active_session=True,
+        session_kind="guided_review",
+        session_field="payment_privacy",
+        session_owner_handles_unknown=True,
+    )
+    decision = contract.decide_contract(
+        text,
+        context=context,
+        semantic_vote_enabled=False,
+        session_answer_predicate=lambda _text: True,
+    )
+
+    assert decision.label is contract.ContractLabel.SESSION_RELEVANT
+    assert decision.action is contract.DecisionAction.CAPTURE_SESSION
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "remind me what it is you actually handle around here?",
+        "wait so whats ur whole job exactly lol",
+        "Okay, remind me what it is you actually handle around here?",
+        "Please remind me what it is you actually handle around here?",
+        "So what do you do around here?",
+        "By the way, who are you?",
+        "Who am I even talking to?",
+        "Can you introduce yourself?",
+        "Could you tell me about yourself?",
+        "Remind me what's your role?",
+        "Can you please introduce yourself?",
+        "Can you just tell me about yourself?",
+        "What it is you handle, if anything?",
+        "Remind me what you handle because I forgot.",
+        "Tell me what it is you handle, if you don't mind?",
+        "What it is you handle around here, exactly?",
+    ),
+)
+def test_session_owner_still_answers_explicit_slang_identity_asks(text):
+    context = contract.ContractContext(
+        agent="cassandra",
+        surface="telegram",
+        active_session=True,
+        session_kind="guided_review",
+        session_owner_handles_unknown=True,
+    )
+    decision = contract.decide_contract(
+        text,
+        context=context,
+        semantic_vote_enabled=False,
+        session_answer_predicate=lambda _text: True,
+    )
+
+    assert decision.label is contract.ContractLabel.IDENTITY
+    assert decision.action is contract.DecisionAction.DIRECT_ANSWER

@@ -210,6 +210,66 @@ _IDENTITY_PATTERNS = (
     re.compile(r"\bwhat(?:'?s|\s+is)?\s+(?:ur|u\s*r)\s+(?:whole\s+)?(?:job|role|deal|thing|purpose)\b", re.IGNORECASE),
     re.compile(r"\bwhat\s+(?:it\s+is\s+)?you\s+(?:actually\s+)?(?:handle|cover|take\s+care\s+of)\b", re.IGNORECASE),
 )
+_IDENTITY_ASK_PREAMBLE_RE = re.compile(
+    r"^\s*(?:(?:okay|ok|well|so|please|anyway|hey|hi|wait(?:\s+so)?|"
+    r"hold\s+up|real\s+quick|by\s+the\s+way|btw)\b[\s,:;.!?—-]*)*"
+    r"(?:(?:cassandra|clara|maestro|chief|guardian|niles|hermes)\b[\s,:;.!?—-]*)?",
+    re.IGNORECASE,
+)
+_DIRECT_IDENTITY_ASK_RE = re.compile(
+    r"^(?:"
+    r"what(?:'?s|\s+is)\s+your\s+(?:name|job|role|deal|purpose)\b|"
+    r"what\s+(?:do|are)\s+you\s+(?:do|for)\b|"
+    r"what\s+you(?:'re|\s+are)\s+(?:for|here\s+for)\b|"
+    r"what(?:'?s|\s+is)?\s+(?:ur|u\s*r)\s+(?:whole\s+)?"
+    r"(?:job|role|deal|thing|purpose)\b|"
+    r"are\s+you\s+(?:an?\s+)?(?:bot|ai|robot|human|person)\b|"
+    r"are\s+you\s+real\b|what\s+kind\s+of\s+(?:assistant|bot)\b|"
+    r"introduce\s+yourself\b|tell\s+me\s+about\s+yourself\b|"
+    r"in\s+plain\s+english.{0,45}(?:your\s+role|what\s+you\s+do)\b"
+    r")",
+    re.IGNORECASE,
+)
+_DIRECT_WHO_IDENTITY_ASK_RE = re.compile(
+    r"^who\s+(?:is\s+this|(?:(?:tf|the\s+heck|exactly|really)\s+)*are\s+you|"
+    r"am\s+i\s+(?:(?:even|actually|exactly|really)\s+)*"
+    r"(?:talking|speaking|chatting)\s+(?:to|with))"
+    r"(?:\s*,?\s*(?:exactly|anyway|then|again|really|though|even))*\s*[?!.]*$",
+    re.IGNORECASE,
+)
+_IDENTITY_REQUEST_LEAD_RE = re.compile(
+    r"^(?:(?:tell|remind|explain)\s+me(?:\s+again)?|"
+    r"(?:can|could|would)\s+you\s+(?:tell|remind|explain)\s+me|"
+    r"walk\s+me\s+through)\s+",
+    re.IGNORECASE,
+)
+_IDENTITY_MODAL_LEAD_RE = re.compile(
+    r"^(?:can|could|would)\s+you\s+",
+    re.IGNORECASE,
+)
+_IDENTITY_REQUEST_FILLER_RE = re.compile(
+    r"^(?:(?:please|just|briefly|quickly|kindly)\s+)*",
+    re.IGNORECASE,
+)
+_IDENTITY_HANDLE_CLAUSE_RE = re.compile(
+    r"^what\s+(?:it\s+is\s+)?you\s+(?:actually\s+)?"
+    r"(?:handle|cover|take\s+care\s+of)\b",
+    re.IGNORECASE,
+)
+_IDENTITY_HANDLE_ALLOWED_TAIL_RE = re.compile(
+    r"^\s*(?:(?:around\s+here|here|day[- ]to[- ]day)|"
+    r"(?:for|in|on|within|at|as)\s+(?:me|us|you|"
+    r"billing|payments?|invoices?|clients?|openclaw|cassandra|"
+    r"this\s+(?:team|system|review|role)|the\s+(?:team|system)))?"
+    r"(?:\s*,?\s*(?:exactly|anyway|again|really))*"
+    r"(?:\s*,?\s*(?:if\s+anything|if\s+you\s+don'?t\s+mind|"
+    r"because\s+i\s+forgot|please))?\s*[?!.]*$",
+    re.IGNORECASE,
+)
+_TERMINAL_WHAT_ARE_YOU_RE = re.compile(
+    r"^what\s+are\s+you(?:\s+(?:exactly|anyway|then|again|really|though))*\s*[?!.]*$",
+    re.IGNORECASE,
+)
 _SAFE_VOTE_LABELS = frozenset(
     {
         ContractLabel.STATUS,
@@ -624,6 +684,49 @@ def _is_identity(text: str) -> bool:
     except Exception:
         pass
     return any(pattern.search(text) for pattern in _IDENTITY_PATTERNS)
+
+
+def _is_explicit_identity_ask(text: str) -> bool:
+    """True when an identity-shaped phrase is actually posed as an ask.
+
+    Broad identity phrases remain valuable on an open channel, but the same
+    words can appear inside a rich wizard answer (for example, a policy sentence
+    explaining what an agent handles).  At an owner-declared active session we
+    require conversational ask posture before interrupting that owner.
+    """
+
+    raw = " ".join(str(text or "").strip().split())
+    candidate = _IDENTITY_ASK_PREAMBLE_RE.sub("", raw, count=1)
+    modal = _IDENTITY_MODAL_LEAD_RE.match(candidate)
+    if modal:
+        candidate = candidate[modal.end():]
+    candidate = _IDENTITY_REQUEST_FILLER_RE.sub("", candidate, count=1)
+
+    def _direct_clause(value: str) -> bool:
+        return bool(
+            _DIRECT_IDENTITY_ASK_RE.search(value)
+            or _DIRECT_WHO_IDENTITY_ASK_RE.search(value)
+            or _TERMINAL_WHAT_ARE_YOU_RE.search(value)
+        )
+
+    if _direct_clause(candidate):
+        return True
+
+    # "what [it is] you handle" is deliberately broad in OPEN-channel
+    # identity matching, but is also ordinary prose inside a wizard answer.
+    # In a rich session it is an identity interruption only when directly
+    # requested or when the bare clause is punctuated as a question.
+    lead = _IDENTITY_REQUEST_LEAD_RE.match(candidate)
+    ask_clause = candidate[lead.end():] if lead else candidate
+    if lead and _direct_clause(ask_clause):
+        return True
+    handle_match = _IDENTITY_HANDLE_CLAUSE_RE.search(ask_clause)
+    if not handle_match:
+        return False
+    tail = ask_clause[handle_match.end():]
+    if not _IDENTITY_HANDLE_ALLOWED_TAIL_RE.fullmatch(tail):
+        return False
+    return lead is not None or ask_clause.rstrip().endswith("?")
 
 
 def _low_coherence_candidate(text: str) -> str:
@@ -1137,6 +1240,16 @@ def decide_contract(
     # nonsense is not a route/status instruction.  Refusal/authority were
     # already resolved above, and specific domains require coherent shapes.
     _identity_match = _is_identity(raw)
+    if (
+        _identity_match
+        and context.active_session
+        and context.session_owner_handles_unknown
+        and not _is_explicit_identity_ask(raw)
+    ):
+        # Precedence v2 remains intact: the session predicate does not outrank
+        # a real IDENTITY ask.  This only prevents a declarative owner answer
+        # from being mislabeled as an identity interruption.
+        _identity_match = False
     _low_coherence = _is_low_coherence(raw) and not _identity_match
     if _low_coherence and context.active_session and session_answer_predicate is not None:
         # A short in-session command ("why?", "skip", "examples") looks like

@@ -27,7 +27,7 @@ import fcntl
 import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from chief_file_io import load_json, save_json
 import adaptive_model_call
@@ -3472,6 +3472,87 @@ def verify_sender_on_channel(
     )
 
 
+def _inner_circle_topic_gate(
+    query: str,
+    session_meta: Mapping[str, Any],
+) -> tuple[str, str] | None:
+    """Apply designated-contact sensitivity before generic fact/status renderers.
+
+    Refusal remains the absolute first tap in ``_handle_unguarded``.  After
+    that boundary, a designated sender's per-contact policy must
+    decide whether facts may be disclosed before typed contracts, money truth,
+    finance status, packet intake, or model work can answer the content.
+    """
+
+    sender_name = session_meta.get("sender_name")
+    sender_chat_id = session_meta.get("sender_chat_id")
+    contact_entry = None
+    if sender_name and sender_chat_id not in (None, ""):
+        name_contact = _find_designated_contact(
+            sender_name=sender_name,
+            sender_chat_id=None,
+        )
+        if name_contact is not None and name_contact.get("tier") == "inner_circle":
+            contact_entry = verify_sender_on_channel(
+                sender_name=sender_name,
+                sender_id=str(sender_chat_id),
+                channel="telegram",
+            )
+            if contact_entry is None:
+                return (
+                    "I can't verify who this is. Winship will need to help me connect us.",
+                    "identity_challenge",
+                )
+    if contact_entry is None:
+        contact_entry = _find_designated_contact(
+            sender_name=sender_name,
+            sender_chat_id=sender_chat_id,
+        )
+    # The policy is fail-closed for every designated contact.  Inner-circle
+    # senders additionally require pinned-channel verification above; client
+    # and other designated tiers still classify through the policy, whose
+    # unknown lane escalates instead of disclosing through a generic renderer.
+    if contact_entry is None:
+        return None
+
+    from cassandra_contact_policy import classify_topic
+
+    lane = classify_topic(query, contact_entry["nickname"])
+    if lane == "allowed":
+        return None
+    if lane == "caution":
+        reply = (
+            "I have context on that, but I'd like to verify with Winship "
+            "before sharing. I'll follow up shortly."
+        )
+        notification = (
+            "Cassandra topic hold — caution lane.\n"
+            f"From: {contact_entry['display_name']} ({contact_entry['nickname']})\n"
+            f"Asked: {query}\n"
+            "Lane: caution — awaiting your confirmation."
+        )
+        route = "topic_gate_hold"
+    else:
+        reply = (
+            "That's something I'd need Winship to authorize. "
+            "I'll flag it for him."
+        )
+        notification = (
+            "Cassandra topic ESCALATION.\n"
+            f"From: {contact_entry['display_name']} ({contact_entry['nickname']})\n"
+            f"Asked: {query}\n"
+            "Lane: escalate — do not answer without your approval."
+        )
+        route = "topic_gate_escalate"
+    try:
+        from chief_notify import send as notify_winship
+
+        notify_winship(notification)
+    except Exception as exc:
+        print(f"[cassandra] topic-gate notify error: {exc}", flush=True)
+    return reply, route
+
+
 def pin_telegram_chat_id(nickname: str, chat_id: str | int) -> bool:
     """Updates contact_nicknames.json with a pinned telegram_chat_id for a nickname."""
     try:
@@ -6835,6 +6916,31 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
         )
         return [_refusal_text]
 
+    # Contact trust is an information-disclosure boundary, not a generic
+    # finance/status intent.  It therefore runs immediately after refusal and
+    # before every deterministic contract/read-model/packet path.
+    _topic_gate = _inner_circle_topic_gate(query, session_meta)
+    if _topic_gate is not None:
+        _topic_reply, _topic_route = _topic_gate
+        _topic_state = load_state()
+        _topic_state["last_interaction_at"] = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        if _topic_route == "identity_challenge":
+            log_chirp("unverified_sender", _topic_state)
+        save_state(_topic_state)
+        _log_conversation(
+            text,
+            [_topic_reply],
+            route=_topic_route,
+            metadata={
+                "event_id": None,
+                "model_called": False,
+                "business_action_performed": False,
+            },
+        )
+        return [_topic_reply]
+
     # Task 151: direct brain callers (tests, internal adapters, non-Telegram
     # surfaces) consume the same typed contract before packet assembly, guided
     # review, intake, or model work.  The production listener has the first
@@ -7593,73 +7699,6 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
 
     _update_cues(state, query)
     _remember_finance_entity(query, state)
-
-    # ── Topic-sensitivity gate for inner-circle contacts ──────────────────────
-    _sender_name = session_meta.get("sender_name")
-    _sender_chat_id = session_meta.get("sender_chat_id")
-    _contact_entry = None
-    if _sender_name and _sender_chat_id not in (None, ""):
-        _name_contact = _find_designated_contact(sender_name=_sender_name, sender_chat_id=None)
-        if _name_contact is not None and _name_contact.get("tier") == "inner_circle":
-            _verified_contact = verify_sender_on_channel(
-                sender_name=_sender_name,
-                sender_id=str(_sender_chat_id),
-                channel="telegram",
-            )
-            if _verified_contact is None:
-                _identity_reply = (
-                    "I can't verify who this is. Winship will need to help me connect us."
-                )
-                log_chirp("unverified_sender", state)
-                save_state(state)
-                _log_conversation(text, [_identity_reply], route="identity_challenge", metadata={"event_id": event_id})
-                return [_identity_reply]
-            _contact_entry = _verified_contact
-    if _contact_entry is None:
-        _contact_entry = _find_designated_contact(
-            sender_name=_sender_name, sender_chat_id=_sender_chat_id
-        )
-    if _contact_entry is not None:
-        from cassandra_contact_policy import classify_topic as _classify_topic
-        _lane = _classify_topic(query, _contact_entry["nickname"])
-        if _lane == "caution":
-            _hold_reply = (
-                "I have context on that, but I'd like to verify with Winship "
-                "before sharing. I'll follow up shortly."
-            )
-            try:
-                from chief_notify import send as _notify_winship
-                _notify_winship(
-                    f"Cassandra topic hold \u2014 caution lane.\n"
-                    f"From: {_contact_entry['display_name']} ({_contact_entry['nickname']})\n"
-                    f"Asked: {query}\n"
-                    f"Lane: caution \u2014 awaiting your confirmation."
-                )
-            except Exception as _e:
-                print(f"[cassandra] topic-gate notify error: {_e}", flush=True)
-            save_state(state)
-            _log_conversation(text, [_hold_reply], route="topic_gate_hold", metadata={"event_id": event_id})
-            return [_hold_reply]
-        if _lane == "escalate":
-            _escalate_reply = (
-                "That's something I'd need Winship to authorize. "
-                "I'll flag it for him."
-            )
-            try:
-                from chief_notify import send as _notify_winship
-                _notify_winship(
-                    f"Cassandra topic ESCALATION.\n"
-                    f"From: {_contact_entry['display_name']} ({_contact_entry['nickname']})\n"
-                    f"Asked: {query}\n"
-                    f"Lane: escalate \u2014 do not answer without your approval."
-                )
-            except Exception as _e:
-                print(f"[cassandra] topic-gate notify error: {_e}", flush=True)
-            save_state(state)
-            _log_conversation(text, [_escalate_reply], route="topic_gate_escalate", metadata={"event_id": event_id})
-            return [_escalate_reply]
-        # _lane == "allowed" → fall through to normal dispatch
-    # ── End topic-sensitivity gate ────────────────────────────────────────────
 
     # Pending income follow-up — check before financial detection
     pending = state.get("pending_income_followup")

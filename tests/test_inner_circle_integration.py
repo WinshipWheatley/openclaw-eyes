@@ -230,6 +230,7 @@ def test_b2_mom_caution_topic_holds_for_winship(stub_side_effects):
     reply = cb.handle("How much did the Hilton gig pay?", session=session)
     assert any("verify with Winship" in r or "check with Winship" in r for r in reply)
     assert "topic_gate_hold" in stub_side_effects["routes"]
+    assert "finance_status" not in stub_side_effects["routes"]
     assert len(stub_side_effects["notify_calls"]) >= 1
     assert "caution" in stub_side_effects["notify_calls"][0].lower()
 
@@ -260,6 +261,7 @@ def test_b5b_draper_financial_query_escalates_per_spec(stub_side_effects):
     reply = cb.handle("How much did the Hilton gig pay?", session=session)
     assert any("Winship to authorize" in r or "flag it for him" in r for r in reply)
     assert "topic_gate_escalate" in stub_side_effects["routes"]
+    assert "finance_status" not in stub_side_effects["routes"]
 
 def test_b6_pii_request_always_escalates(stub_side_effects):
     for name in ["Henry Winship Wheatley III", "Susan Elizabeth Wheatley", "Draper Carter"]:

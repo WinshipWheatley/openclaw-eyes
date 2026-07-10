@@ -702,7 +702,10 @@ def test_guided_review_uncertain_vote_preserves_session_file_byte_for_byte(tmp_p
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(session, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     before = path.read_bytes()
-    monkeypatch.delenv("OPENCLAW_CONTRACT_VOTE_ADAPTERS", raising=False)
+    # Task 157 intent evolution: this is a vote-path test.  Fable's hermetic
+    # pytest default correctly disables live semantic votes unless the adapter
+    # opts in explicitly, so the fixture must name the seam it is exercising.
+    monkeypatch.setenv(contract.SEMANTIC_VOTE_ENV, "cassandra_guided_review")
     monkeypatch.setattr(contract, "_call_semantic_vote", lambda *a, **k: (None, "timeout_or_invalid"))
 
     result = guided.process_guided_review_message(
@@ -713,6 +716,8 @@ def test_guided_review_uncertain_vote_preserves_session_file_byte_for_byte(tmp_p
     )
     assert result["handled"] is True
     assert "left the open guided review step unchanged" in result["reply_text"]
+    assert result["typed_contract_decision"]["model_called"] is True
+    assert result["typed_contract_decision"]["semantic_vote_status"] == "timeout_or_invalid"
     assert path.read_bytes() == before
 
 
@@ -725,7 +730,9 @@ def test_guided_review_semantic_route_without_stager_preserves_and_never_advance
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(session, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     before = path.read_bytes()
-    monkeypatch.delenv("OPENCLAW_CONTRACT_VOTE_ADAPTERS", raising=False)
+    # Task 157 intent evolution: explicitly opt into the mocked semantic vote;
+    # absence of the env now deliberately means hermetic owner passthrough.
+    monkeypatch.setenv(contract.SEMANTIC_VOTE_ENV, "cassandra_guided_review")
     monkeypatch.setattr(
         contract,
         "_call_semantic_vote",
@@ -738,6 +745,8 @@ def test_guided_review_semantic_route_without_stager_preserves_and_never_advance
         generated_at_utc=now,
     )
     assert result["typed_contract_decision"]["action"] == "preserve_session"
+    assert result["typed_contract_decision"]["model_called"] is True
+    assert result["typed_contract_decision"]["semantic_vote_status"] == "accepted"
     assert "Receipt: contract:" in result["reply_text"]
     assert path.read_bytes() == before
 

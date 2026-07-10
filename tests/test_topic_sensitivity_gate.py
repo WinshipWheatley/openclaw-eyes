@@ -155,23 +155,24 @@ class TestGateIntegration(unittest.TestCase):
             self.assertIn(result, ("allowed", "caution", "escalate"))
 
     def test_gate_position_before_dispatch(self):
-        """classify_topic call in handle() must appear before first _detect_lookup_intent call in handle()."""
+        """The early contact gate must precede typed and generic dispatch."""
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cassandra_brain.py")) as f:
             src = f.read()
-        # Scope to the handle() function body only (after its definition)
-        handle_start = src.index("def handle(text: str, session: dict | None = None)")
-        handle_body = src[handle_start:]
-        gate_pos = handle_body.index("classify_topic")
-        # _detect_lookup_intent is both defined and called; find the call (if _detect_lookup_intent)
-        lookup_call_pos = handle_body.index("if _detect_lookup_intent(")
-        self.assertLess(gate_pos, lookup_call_pos, "Topic gate must appear before dispatch handlers in handle()")
+        dispatch_start = src.index("def _handle_unguarded(text: str, session: dict | None = None)")
+        dispatch_body = src[dispatch_start:]
+        gate_pos = dispatch_body.index("_inner_circle_topic_gate(query, session_meta)")
+        contract_pos = dispatch_body.index("_contract_decision = decide_contract(")
+        lookup_pos = dispatch_body.index("if _detect_lookup_intent(")
+        self.assertLess(gate_pos, contract_pos, "Topic gate must precede typed contracts")
+        self.assertLess(gate_pos, lookup_pos, "Topic gate must precede generic dispatch")
 
     def test_gate_routes_logged(self):
-        """Gate route strings must be present in cassandra_brain.py."""
+        """Both gate outcomes must flow through the dynamic route logger."""
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cassandra_brain.py")) as f:
             src = f.read()
-        self.assertIn('route="topic_gate_hold"', src)
-        self.assertIn('route="topic_gate_escalate"', src)
+        self.assertIn('route = "topic_gate_hold"', src)
+        self.assertIn('route = "topic_gate_escalate"', src)
+        self.assertIn("route=_topic_route", src)
 
 
 if __name__ == "__main__":
