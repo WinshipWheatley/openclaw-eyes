@@ -100,18 +100,9 @@ def synthesize_agent_wav(
 
 
 def _token_env_for_agent(agent: str) -> str:
-    mapping = {
-        "maestro": ("MAESTRO_BOT_TOKEN", "TELEGRAM_BOT_TOKEN"),
-        "cassandra": ("CASSANDRA_BOT_TOKEN",),
-        "chief": ("TELEGRAM_BOT_TOKEN", "CHIEF_BOT_TOKEN"),
-        "guardian": ("GUARDIAN_BOT_TOKEN",),
-        "niles": ("NILES_BOT_TOKEN", "PRODUCER_BOT_TOKEN"),
-        "hermes": ("HERMES_BOT_TOKEN",),
-    }
-    for env_name in mapping[agent]:
-        if os.environ.get(env_name):
-            return env_name
-    raise RuntimeError(f"No Telegram bot token configured for agent voice lane {agent!r}.")
+    from telegram_listener_integrity import resolve_role_bot_token_env
+
+    return resolve_role_bot_token_env(agent)
 
 
 def _chat_id_for_agent(agent: str, chat_id: str | int | None) -> str:

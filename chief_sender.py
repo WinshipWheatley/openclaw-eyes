@@ -3,8 +3,9 @@ import sys
 import requests
 
 import chief_env
+from telegram_listener_integrity import resolve_role_bot_token
 
-BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+BOT_TOKEN = resolve_role_bot_token("chief")
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 def send_message(text: str) -> None:
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"

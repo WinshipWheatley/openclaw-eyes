@@ -430,7 +430,7 @@ def _gen_config_hardening() -> list[TaskCandidate]:
         ("harden-env-validation", "quick",
          "Add .chief.env validation at startup",
          ["Add a validate_env() function to start_chief.sh that checks all required env vars are set",
-          "Required vars: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, PII_VAULT_KEY",
+          "Required bot vars are role-namespaced (MAESTRO_BOT_TOKEN, CHIEF_BOT_TOKEN, and each listener role); never use one generic bot token",
           "Exit with clear error message if any are missing"],
          "start_chief.sh exits cleanly with helpful message when env vars missing"),
         ("harden-task-frontmatter", "quick",

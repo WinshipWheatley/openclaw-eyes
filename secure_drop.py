@@ -49,10 +49,14 @@ def default_slots() -> dict[str, SecretSlot]:
     a slot must exist here before secure_drop will write it."""
     return {
         "maestro_bot_token": SecretSlot(
-            key="TELEGRAM_BOT_TOKEN", env_file=DEFAULT_ENV_FILE,
-            label="Maestro / billing-brain Telegram bot token (the one that leaked; rotate via BotFather)",
+            key="MAESTRO_BOT_TOKEN", env_file=DEFAULT_ENV_FILE,
+            label="Maestro Telegram bot token",
             restart_services=("maestro-listener", "openclaw-request-response",
                               "chief-worker", "chief-watcher-brain"),
+        ),
+        "chief_bot_token": SecretSlot(
+            key="CHIEF_BOT_TOKEN", env_file=DEFAULT_ENV_FILE,
+            label="Chief Telegram bot token", restart_services=("chief-listener",),
         ),
         "cassandra_bot_token": SecretSlot(
             key="CASSANDRA_BOT_TOKEN", env_file=DEFAULT_ENV_FILE,
@@ -63,8 +67,13 @@ def default_slots() -> dict[str, SecretSlot]:
             label="Guardian Telegram bot token", restart_services=("chief-guardian-listener",),
         ),
         "niles_bot_token": SecretSlot(
-            key="PRODUCER_BOT_TOKEN", env_file=DEFAULT_ENV_FILE,
+            key="NILES_BOT_TOKEN", env_file=DEFAULT_ENV_FILE,
             label="Niles / producer Telegram bot token", restart_services=("niles-listener",),
+        ),
+        "hitl_notify_secret": SecretSlot(
+            key="HITL_NOTIFY_SECRET", env_file=DEFAULT_ENV_FILE,
+            label="Dedicated HMAC secret for signed Guardian HITL callbacks",
+            restart_services=("chief-listener", "chief-guardian-listener"),
         ),
         "openrouter_api_key": SecretSlot(
             key="OPENROUTER_API_KEY", env_file=DEFAULT_ENV_FILE,

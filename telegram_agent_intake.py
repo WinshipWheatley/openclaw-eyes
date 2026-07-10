@@ -14,13 +14,15 @@ import sqlite3
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 from agent_presence import init_agent_presence_schema
-from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
+from business_ops_ledger import init_business_ops_ledger, resolve_business_ops_ledger_path
 from intent_router import init_intent_router_schema, route_operator_intent
 from operator_action_inbox import init_operator_action_inbox_schema
+from telegram_listener_integrity import VerifiedTelegramBotIdentity, get_verified_bot_identity
 from work_board import DEFAULT_BOARD_ID, init_work_board_schema
 
 
@@ -143,6 +145,208 @@ class TelegramIntakeCheckResult:
     receive_ready_count: int
     blocker_count: int
     telegram_send_allowed: bool
+
+
+class TelegramUpdateClaimDisposition(str, Enum):
+    """Durable admission result for one platform update."""
+
+    CLAIMED = "claimed"
+    DUPLICATE = "duplicate"
+    ERROR = "error"
+
+
+@dataclass(frozen=True)
+class TelegramUpdateClaimResult:
+    disposition: TelegramUpdateClaimDisposition
+    claim_key: str | None
+    source_channel: str
+    telegram_update_id: str | None
+    bot_role: str
+    reason: str | None = None
+
+    @property
+    def claimed(self) -> bool:
+        return self.disposition is TelegramUpdateClaimDisposition.CLAIMED
+
+
+_TELEGRAM_UPDATE_CLAIMS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS telegram_update_id_claims (
+  claim_key TEXT PRIMARY KEY,
+  bot_identity_key TEXT NOT NULL,
+  bot_role TEXT NOT NULL,
+  expected_bot_username TEXT NOT NULL,
+  actual_bot_username TEXT NOT NULL,
+  actual_bot_id INTEGER NOT NULL,
+  telegram_update_id TEXT NOT NULL,
+  source_channel TEXT NOT NULL,
+  claimed_at TEXT NOT NULL,
+  UNIQUE (bot_identity_key, telegram_update_id)
+)
+""".strip()
+
+
+def claim_telegram_update(
+    *,
+    source_channel: str,
+    telegram_update_id: object | None,
+    verified_identity: VerifiedTelegramBotIdentity,
+    db_path: str | Path | None = None,
+) -> TelegramUpdateClaimResult:
+    """Atomically claim a Telegram update in the governed business DB.
+
+    The unique key is the identity proven by ``getMe`` plus Telegram's exact
+    update id.  ``source_channel`` is retained as audit data but is not allowed
+    to make the same bot/update pair process twice through two cross-wired
+    adapters.  This guarantees one application handler/reply batch per claim;
+    Telegram does not offer a transaction spanning SQLite and ``sendMessage``.
+    A crash after claim but before send can lose the reply; a crash after
+    Telegram accepts the send leaves delivery uncertain because this claim
+    table intentionally does not pretend to be an atomic delivery receipt.
+    """
+
+    channel = str(source_channel or "").strip()
+    role = str(getattr(verified_identity, "role", "") or "").strip().lower()
+    if not channel:
+        return TelegramUpdateClaimResult(
+            TelegramUpdateClaimDisposition.ERROR,
+            None,
+            channel,
+            None,
+            role,
+            "missing_source_channel",
+        )
+    if telegram_update_id is None or str(telegram_update_id).strip() == "":
+        return TelegramUpdateClaimResult(
+            TelegramUpdateClaimDisposition.ERROR,
+            None,
+            channel,
+            None,
+            role,
+            "missing_update_id",
+        )
+
+    update_id = str(telegram_update_id).strip()
+    identity_key = str(getattr(verified_identity, "identity_key", "") or "").strip()
+    try:
+        verified_bot_id = int(getattr(verified_identity, "actual_bot_id", 0) or 0)
+    except (TypeError, ValueError):
+        verified_bot_id = 0
+    if (
+        not identity_key
+        or not role
+        or verified_bot_id <= 0
+        or not str(getattr(verified_identity, "actual_username", "") or "").strip()
+    ):
+        return TelegramUpdateClaimResult(
+            TelegramUpdateClaimDisposition.ERROR,
+            None,
+            channel,
+            update_id,
+            role,
+            "identity_not_verified",
+        )
+    claim_key = _row_id("tgclaim", identity_key, update_id)
+    path = str(db_path) if db_path is not None else resolve_business_ops_ledger_path()
+
+    conn: sqlite3.Connection | None = None
+    try:
+        Path(path).expanduser().parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(path, timeout=5.0, isolation_level=None)
+        conn.execute("PRAGMA busy_timeout = 5000")
+        conn.execute(_TELEGRAM_UPDATE_CLAIMS_SCHEMA)
+        conn.execute("BEGIN IMMEDIATE")
+        cursor = conn.execute(
+            """
+INSERT INTO telegram_update_id_claims (
+  claim_key, bot_identity_key, bot_role, expected_bot_username,
+  actual_bot_username, actual_bot_id, telegram_update_id, source_channel,
+  claimed_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(bot_identity_key, telegram_update_id) DO NOTHING
+""".strip(),
+            (
+                claim_key,
+                identity_key,
+                role,
+                verified_identity.expected_username,
+                verified_identity.actual_username,
+                verified_bot_id,
+                update_id,
+                channel,
+                utc_now(),
+            ),
+        )
+        conn.commit()
+        disposition = (
+            TelegramUpdateClaimDisposition.CLAIMED
+            if cursor.rowcount == 1
+            else TelegramUpdateClaimDisposition.DUPLICATE
+        )
+        return TelegramUpdateClaimResult(disposition, claim_key, channel, update_id, role)
+    except Exception as exc:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return TelegramUpdateClaimResult(
+            TelegramUpdateClaimDisposition.ERROR,
+            claim_key,
+            channel,
+            update_id,
+            role,
+            f"claim_store_unavailable:{exc.__class__.__name__}",
+        )
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def claim_listener_update(
+    update: object,
+    *,
+    role: str,
+    source_channel: str,
+    telegram_update_id: object | None = None,
+    db_path: str | Path | None = None,
+) -> bool:
+    """Fail-closed listener admission guard with token-free diagnostics."""
+
+    normalized_role = str(role or "").strip().lower()
+    verified_identity = get_verified_bot_identity(normalized_role)
+    if verified_identity is None:
+        print(
+            f"[{normalized_role}_listener] UPDATE CLAIM ERROR: identity_not_verified; "
+            "refusing update before routing, memory, session, model, action, or reply.",
+            flush=True,
+        )
+        return False
+    resolved_update_id = (
+        telegram_update_id
+        if telegram_update_id is not None
+        else getattr(update, "update_id", None)
+    )
+    result = claim_telegram_update(
+        source_channel=source_channel,
+        telegram_update_id=resolved_update_id,
+        verified_identity=verified_identity,
+        db_path=db_path,
+    )
+    if result.disposition is TelegramUpdateClaimDisposition.CLAIMED:
+        return True
+    if result.disposition is TelegramUpdateClaimDisposition.DUPLICATE:
+        print(
+            f"[{normalized_role}_listener] duplicate Telegram update suppressed: "
+            f"update_id={result.telegram_update_id} source_channel={source_channel}.",
+            flush=True,
+        )
+        return False
+    print(
+        f"[{normalized_role}_listener] UPDATE CLAIM ERROR: {result.reason or 'unavailable'}; "
+        "refusing update before routing, memory, session, model, action, or reply.",
+        flush=True,
+    )
+    return False
 
 
 def utc_now() -> str:
@@ -303,6 +507,7 @@ CREATE TABLE IF NOT EXISTS telegram_agent_blockers (
   resolved INTEGER NOT NULL DEFAULT 0
 )
 """.strip(),
+        _TELEGRAM_UPDATE_CLAIMS_SCHEMA,
         "CREATE INDEX IF NOT EXISTS idx_telegram_agent_updates_run ON telegram_agent_update_records(run_id)",
         "CREATE INDEX IF NOT EXISTS idx_telegram_agent_updates_agent ON telegram_agent_update_records(agent_target)",
         "CREATE INDEX IF NOT EXISTS idx_telegram_agent_routes_status ON telegram_agent_route_results(status)",
@@ -310,7 +515,7 @@ CREATE TABLE IF NOT EXISTS telegram_agent_blockers (
 
 
 def init_telegram_agent_intake_schema(db_path: str | Path | None = None) -> str:
-    path = str(db_path or DEFAULT_DB_PATH)
+    path = resolve_business_ops_ledger_path(db_path)
     init_business_ops_ledger(path)
     init_operator_action_inbox_schema(path)
     init_intent_router_schema(path)

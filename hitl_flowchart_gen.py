@@ -80,7 +80,7 @@ def _load_key_paths() -> dict[str, str]:
     return {
         "pending_queue": "/mnt/c/OpenClaw/logs/approval_pending.json",
         "audit_log": "/mnt/c/OpenClawShared/openclaw-vault/System/Approval Log.md",
-        "guardian_token": "GUARDIAN_BOT_TOKEN (env) → fallback: TELEGRAM_BOT_TOKEN",
+        "guardian_token": "GUARDIAN_BOT_TOKEN (env) → plain-status fallback: CHIEF_BOT_TOKEN",
     }
 
 

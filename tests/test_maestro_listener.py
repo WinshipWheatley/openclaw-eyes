@@ -12,6 +12,11 @@ import maestro_listener
 FIXED_NOW = "2026-06-19T15:18:00+00:00"
 
 
+@pytest.fixture(autouse=True)
+def _claimed_update(monkeypatch):
+    monkeypatch.setattr(maestro_listener, "claim_listener_update", lambda *args, **kwargs: True)
+
+
 class FakeUser:
     def __init__(self, user_id: int):
         self.id = user_id
@@ -287,7 +292,7 @@ def test_authorized_date_question_replies_from_bridge_and_sends_typing(monkeypat
     assert records[0]["operator_message"] is True
 
 
-def test_unauthorized_user_records_metadata_but_does_not_reply_or_write_bridge(monkeypatch):
+def test_unauthorized_user_does_not_enter_governed_business_intake_or_reply(monkeypatch):
     monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
     records: list[dict] = []
     writes: list[dict] = []
@@ -299,9 +304,7 @@ def test_unauthorized_user_records_metadata_but_does_not_reply_or_write_bridge(m
 
     assert update.message.replies == []
     assert writes == []
-    assert records
-    assert records[0]["operator_message"] is False
-    assert records[0]["source_user_label"] == "unverified_sender"
+    assert records == []
 
 
 def test_blocked_or_unknown_bridge_response_is_explicit_not_silent(monkeypatch):

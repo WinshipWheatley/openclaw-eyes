@@ -5,7 +5,7 @@ Sends approval requests via the dedicated Guardian bot channel.
 
 Bot priority fallback chain:
     1. GUARDIAN_BOT_TOKEN   — dedicated approval bot (required for buttons)
-    2. TELEGRAM_BOT_TOKEN   — Chief bot (plain status-message fallback only)
+    2. CHIEF_BOT_TOKEN      — Chief bot (plain status-message fallback only)
 
 Cassandra bot is intentionally excluded from the fallback chain.
 Cassandra is an executive assistant layer, not an approval authority.
@@ -30,6 +30,7 @@ import requests
 
 import chief_env
 from secret_log_redaction import redact_secrets
+from telegram_listener_integrity import resolve_role_bot_token
 
 
 LOGGER = logging.getLogger(__name__)
@@ -48,9 +49,9 @@ def _token(*, require_guardian: bool = False) -> str:
     if require_guardian:
         raise GuardianConfigurationError(
             "GUARDIAN_BOT_TOKEN is required for button-bearing Guardian "
-            "approval messages; refusing to fall back to TELEGRAM_BOT_TOKEN."
+            "approval messages; refusing to fall back to CHIEF_BOT_TOKEN."
         )
-    return os.environ["TELEGRAM_BOT_TOKEN"]
+    return resolve_role_bot_token("chief")
 
 
 def _chat_id() -> str:

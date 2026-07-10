@@ -7,7 +7,8 @@ import types
 
 
 def import_chief_listener(monkeypatch):
-    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("CHIEF_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("CHIEF_EXPECTED_BOT_USERNAME", "chief_test_bot")
     monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "12345")
     telegram = types.ModuleType("telegram")
     telegram.Update = type("Update", (), {})
@@ -67,6 +68,11 @@ def test_run_listener_awaits_lifecycle_once_in_order(monkeypatch):
             self.post_init = self._post_init
             self.running = False
             self._stop_event = stop_event
+            self.bot = self
+
+        async def get_me(self):
+            calls.append("get_me")
+            return types.SimpleNamespace(username="chief_test_bot", id=1234)
 
         async def initialize(self):
             calls.append("initialize")
@@ -95,6 +101,7 @@ def test_run_listener_awaits_lifecycle_once_in_order(monkeypatch):
 
     assert calls == [
         "initialize",
+        "get_me",
         "post_init",
         "start_polling",
         "start",

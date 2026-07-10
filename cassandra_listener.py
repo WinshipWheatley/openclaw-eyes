@@ -55,7 +55,8 @@ from origin_bound_output import (
     collect_origin_outputs,
     receipt_pointer,
 )
-from telegram_agent_intake import record_cassandra_listener_text_update
+from telegram_agent_intake import claim_listener_update, record_cassandra_listener_text_update
+from telegram_listener_integrity import install_identity_preflight, run_verified_polling
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
@@ -845,9 +846,20 @@ async def _run_request_with_timeout_contract(
 # ── Message handler ───────────────────────────────────────────────────────────
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
     sender_name = update.effective_user.full_name if update.effective_user else None
     sender_chat_id = update.effective_chat.id if update.effective_chat else None
     sender_user_id = update.effective_user.id if update.effective_user else None
+    is_authorized_user = bool(update.effective_user and update.effective_user.id == AUTHORIZED_USER_ID)
+    is_designated_contact = False if is_authorized_user else is_designated_contact_sender(
+        sender_name=sender_name,
+        sender_chat_id=sender_chat_id,
+    )
+    if not is_authorized_user and not is_designated_contact:
+        return
+    if not claim_listener_update(update, role="cassandra", source_channel="cassandra_listener"):
+        return
     print(
         "[chatid-pin] "
         f"sender_name_present={str(bool(sender_name)).lower()} "
@@ -873,18 +885,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 flush=True,
             )
 
-    if not update.message or not update.message.text:
-        return
-
     text = update.message.text.strip()
     if not text:
         return
-
-    is_authorized_user = bool(update.effective_user and update.effective_user.id == AUTHORIZED_USER_ID)
-    is_designated_contact = is_designated_contact_sender(
-        sender_name=sender_name,
-        sender_chat_id=sender_chat_id,
-    )
     if is_authorized_user:
         source_user_label = "operator"
     elif is_designated_contact:
@@ -899,9 +902,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         operator_message=is_authorized_user,
         route_intent=is_authorized_user,
     )
-    if not is_authorized_user and not is_designated_contact:
-        return
-
     request_token = _claim_chat_request(sender_chat_id)
     source_message_id = str(getattr(update, "update_id", "")) or ""
     session_meta = {
@@ -1046,6 +1046,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not update.message or not update.message.voice:
         return
+    if not claim_listener_update(update, role="cassandra", source_channel="cassandra_listener"):
+        return
 
     if not _FFMPEG_AVAILABLE:
         print("[cassandra_listener] voice input skipped: ffmpeg not on PATH", flush=True)
@@ -1113,13 +1115,23 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"[VOICE_SIDE_EFFECT] cassandra_listener voice_reply_error: {e}", flush=True)
 
 
+def build_application():
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    install_identity_preflight(application, "cassandra")
+    return application
+
+
+async def run_listener(application=None, stop_event: asyncio.Event | None = None) -> None:
+    application = application or build_application()
+    await run_verified_polling(application, "cassandra", stop_event=stop_event)
+
+
 def main() -> None:
     _acquire_listener_lock()
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_handler(MessageHandler(filters.VOICE, handle_voice))
     print("Cassandra online.", flush=True)
-    app.run_polling()
+    asyncio.run(run_listener())
 
 
 if __name__ == "__main__":

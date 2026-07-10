@@ -4,15 +4,26 @@ import sys
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 from scripts.producer_telegram_route import extract_producer_payload, truncate_producer_output
-from telegram_agent_intake import record_telegram_listener_update_safe
+from telegram_agent_intake import claim_listener_update, record_telegram_listener_update_safe
+from telegram_listener_integrity import (
+    install_identity_preflight,
+    resolve_role_bot_token,
+    run_verified_polling,
+)
 
 # Environment setup
-BOT_TOKEN = os.environ.get("PRODUCER_BOT_TOKEN")
-AUTHORIZED_USER_ID = os.environ.get("PRODUCER_AUTHORIZED_USER_ID")
+BOT_TOKEN = resolve_role_bot_token("niles")
+AUTHORIZED_USER_ID = os.environ.get("TELEGRAM_AUTHORIZED_USER_ID") or os.environ.get("PRODUCER_AUTHORIZED_USER_ID")
 
-if not BOT_TOKEN or not AUTHORIZED_USER_ID:
-    print("PRODUCER_BOT_TOKEN and PRODUCER_AUTHORIZED_USER_ID must be set.", file=sys.stderr)
+if not AUTHORIZED_USER_ID:
+    print("TELEGRAM_AUTHORIZED_USER_ID must be set for Niles.", file=sys.stderr)
     sys.exit(1)
+if not os.environ.get("TELEGRAM_AUTHORIZED_USER_ID") and os.environ.get("PRODUCER_AUTHORIZED_USER_ID"):
+    print(
+        "[niles_listener] LOUD WARNING: PRODUCER_AUTHORIZED_USER_ID is a legacy alias; "
+        "configure TELEGRAM_AUTHORIZED_USER_ID for the shared operator identity.",
+        file=sys.stderr,
+    )
 
 AUTHORIZED_USER_ID = int(AUTHORIZED_USER_ID)
 
@@ -133,6 +144,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not update.message or not update.message.text:
         return
+    if not claim_listener_update(update, role="niles", source_channel="niles_producer_listener"):
+        return
 
     text = update.message.text.strip()
     record_telegram_listener_update_safe(
@@ -204,12 +217,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     finally:
         typing_task.cancel()
 
+def build_application():
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.COMMAND, handle_message))
+    install_identity_preflight(application, "niles")
+    return application
+
+
+async def run_listener(application=None, stop_event: asyncio.Event | None = None) -> None:
+    application = application or build_application()
+    await run_verified_polling(application, "niles", stop_event=stop_event)
+
+
 def main() -> None:
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_handler(MessageHandler(filters.COMMAND, handle_message))
     print("Niles/Producer online.", flush=True)
-    app.run_polling()
+    asyncio.run(run_listener())
 
 if __name__ == "__main__":
     main()

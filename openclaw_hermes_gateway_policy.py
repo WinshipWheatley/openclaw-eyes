@@ -8,6 +8,7 @@ external messages, move money, start services, or write route receipts.
 
 from __future__ import annotations
 
+import contextvars
 import os
 import re
 from typing import Any
@@ -69,6 +70,10 @@ _STALL_FAILURE_REPLY = "\n".join(
         "No requested send, agent dispatch, route receipt, or money action occurred.",
         "Ask Fable or the operator to check Hermes gateway health and Ollama contention before retrying.",
     ]
+)
+_RAW_PRECLAIMED_UPDATE_ID: contextvars.ContextVar[object | None] = contextvars.ContextVar(
+    "openclaw_hermes_raw_preclaimed_update_id",
+    default=None,
 )
 
 
@@ -261,6 +266,173 @@ def _event_is_authorized_for_intercept(runner: Any, event: Any) -> bool:
     return False
 
 
+def _event_is_telegram(event: Any) -> bool:
+    platform = getattr(getattr(event, "source", None), "platform", None)
+    return str(getattr(platform, "value", platform) or "").strip().lower() == "telegram"
+
+
+def _claim_hermes_telegram_event(event: Any) -> bool:
+    """Defense-in-depth for synthetic events or an unpatched adapter path."""
+
+    from telegram_agent_intake import claim_listener_update
+
+    return claim_listener_update(
+        event,
+        role="hermes",
+        source_channel="hermes_gateway",
+        telegram_update_id=getattr(event, "platform_update_id", None),
+    )
+
+
+def _claim_hermes_raw_update(event: Any, update_id: object | None) -> bool:
+    """Durably claim one authorized raw PTB update before batching/cache work."""
+
+    from telegram_agent_intake import claim_listener_update
+
+    return claim_listener_update(
+        event,
+        role="hermes",
+        source_channel="hermes_gateway",
+        telegram_update_id=update_id,
+    )
+
+
+def _raw_message_type(message: Any, handler_name: str, message_type_cls: Any) -> Any:
+    if handler_name == "_handle_text_message":
+        return message_type_cls.TEXT
+    if handler_name == "_handle_command":
+        return message_type_cls.COMMAND
+    if handler_name == "_handle_location_message":
+        return message_type_cls.LOCATION
+    for attribute, type_name in (
+        ("sticker", "STICKER"),
+        ("photo", "PHOTO"),
+        ("video", "VIDEO"),
+        ("audio", "AUDIO"),
+        ("voice", "VOICE"),
+        ("document", "DOCUMENT"),
+    ):
+        if getattr(message, attribute, None):
+            return getattr(message_type_cls, type_name)
+    return message_type_cls.DOCUMENT
+
+
+def _raw_update_passes_cheap_checks(adapter: Any, update: Any, handler_name: str) -> bool:
+    message = getattr(update, "message", None)
+    if message is None:
+        return False
+    if handler_name in {"_handle_text_message", "_handle_command"} and not getattr(message, "text", None):
+        return False
+    if handler_name == "_handle_location_message":
+        venue = getattr(message, "venue", None)
+        location = getattr(venue, "location", None) if venue else getattr(message, "location", None)
+        if location is None:
+            return False
+        if getattr(location, "latitude", None) is None or getattr(location, "longitude", None) is None:
+            return False
+    try:
+        return bool(
+            adapter._should_process_message(
+                message,
+                is_command=handler_name == "_handle_command",
+            )
+        )
+    except TypeError:
+        # Older/fake adapters may not accept the keyword for non-command paths.
+        return bool(adapter._should_process_message(message))
+    except Exception as exc:
+        print(
+            f"[hermes_listener] raw update trigger check failed ({exc.__class__.__name__}); refusing update.",
+            flush=True,
+        )
+        return False
+
+
+def _raw_event_is_authorized(adapter: Any, event: Any) -> bool:
+    handler = getattr(adapter, "_message_handler", None)
+    runner = getattr(handler, "__self__", None)
+    checker = getattr(runner, "_is_user_authorized", None)
+    if not callable(checker):
+        print(
+            "[hermes_listener] raw update authorization binding unavailable; refusing update before batching/cache.",
+            flush=True,
+        )
+        return False
+    try:
+        return bool(checker(event.source))
+    except Exception as exc:
+        print(
+            f"[hermes_listener] raw update authorization failed ({exc.__class__.__name__}); refusing update.",
+            flush=True,
+        )
+        return False
+
+
+def _install_hermes_raw_update_claim_patch(telegram_adapter_cls: Any, message_type_cls: Any) -> None:
+    """Patch raw PTB handlers so every update id is claimed before work."""
+
+    if getattr(telegram_adapter_cls, "_openclaw_raw_update_claim_patch", False):
+        return
+
+    original_build_event = telegram_adapter_cls._build_message_event
+
+    def _openclaw_build_message_event(self: Any, *args: Any, **kwargs: Any) -> Any:
+        event = original_build_event(self, *args, **kwargs)
+        raw_update_id = _RAW_PRECLAIMED_UPDATE_ID.get()
+        event_update_id = kwargs.get("update_id")
+        if event_update_id is None and len(args) >= 3:
+            event_update_id = args[2]
+        if raw_update_id is not None and str(event_update_id) == str(raw_update_id):
+            event._openclaw_raw_update_preclaimed = True
+        return event
+
+    telegram_adapter_cls._build_message_event = _openclaw_build_message_event
+
+    for handler_name in (
+        "_handle_text_message",
+        "_handle_command",
+        "_handle_location_message",
+        "_handle_media_message",
+    ):
+        original_handler = getattr(telegram_adapter_cls, handler_name)
+
+        async def _openclaw_raw_handler(
+            self: Any,
+            update: Any,
+            context: Any,
+            *,
+            _handler_name: str = handler_name,
+            _original_handler: Any = original_handler,
+        ) -> Any:
+            if not _raw_update_passes_cheap_checks(self, update, _handler_name):
+                return None
+            update_id = getattr(update, "update_id", None)
+            message = update.message
+            msg_type = _raw_message_type(message, _handler_name, message_type_cls)
+            try:
+                claim_event = original_build_event(self, message, msg_type, update_id=update_id)
+            except Exception as exc:
+                print(
+                    f"[hermes_listener] raw update source build failed ({exc.__class__.__name__}); refusing update.",
+                    flush=True,
+                )
+                return None
+            if not _raw_event_is_authorized(self, claim_event):
+                return None
+            if not _claim_hermes_raw_update(claim_event, update_id):
+                return None
+
+            context_token = _RAW_PRECLAIMED_UPDATE_ID.set(update_id)
+            try:
+                return await _original_handler(self, update, context)
+            finally:
+                _RAW_PRECLAIMED_UPDATE_ID.reset(context_token)
+
+        setattr(telegram_adapter_cls, handler_name, _openclaw_raw_handler)
+
+    telegram_adapter_cls._openclaw_raw_update_claim_patch = True
+
+
 def _install_hermes_voice_patch(runner_cls: Any) -> None:
     """Give the conversational Hermes the fleet Kokoro voice (am_echo), on by default.
 
@@ -327,7 +499,13 @@ def _install_hermes_voice_patch(runner_cls: Any) -> None:
     runner_cls._openclaw_hermes_voice_patch = True
 
 
-def install_gateway_policy_patch(*, gateway_run_module: Any | None = None, base_adapter_cls: type | None = None) -> bool:
+def install_gateway_policy_patch(
+    *,
+    gateway_run_module: Any | None = None,
+    base_adapter_cls: type | None = None,
+    telegram_adapter_cls: type | None = None,
+    message_type_cls: Any | None = None,
+) -> bool:
     """Patch Hermes GatewayRunner after the ignored runtime is importable."""
 
     if gateway_run_module is None:
@@ -338,7 +516,11 @@ def install_gateway_policy_patch(*, gateway_run_module: Any | None = None, base_
         original_handle_message = runner_cls._handle_message
 
         async def _openclaw_handle_message(self: Any, event: Any) -> Any:
-            if _event_is_authorized_for_intercept(self, event):
+            authorized = _event_is_authorized_for_intercept(self, event)
+            raw_preclaimed = bool(getattr(event, "_openclaw_raw_update_preclaimed", False))
+            if authorized and _event_is_telegram(event) and not raw_preclaimed and not _claim_hermes_telegram_event(event):
+                return None
+            if authorized:
                 command = event.get_command() if callable(getattr(event, "get_command", None)) else None
                 if not command:
                     reply = truthful_reply_for_text(getattr(event, "text", "") or "")
@@ -357,6 +539,19 @@ def install_gateway_policy_patch(*, gateway_run_module: Any | None = None, base_
         runner_cls._openclaw_truthful_gateway_patch = True
 
     _install_hermes_voice_patch(runner_cls)
+
+    if telegram_adapter_cls is None or message_type_cls is None:
+        try:
+            from gateway.platforms.telegram import TelegramAdapter as discovered_telegram_adapter  # type: ignore[import-not-found]
+            from gateway.platforms.base import MessageType as discovered_message_type  # type: ignore[import-not-found]
+
+            telegram_adapter_cls = telegram_adapter_cls or discovered_telegram_adapter
+            message_type_cls = message_type_cls or discovered_message_type
+        except Exception:
+            telegram_adapter_cls = None
+            message_type_cls = None
+    if telegram_adapter_cls is not None and message_type_cls is not None:
+        _install_hermes_raw_update_claim_patch(telegram_adapter_cls, message_type_cls)
 
     if base_adapter_cls is None:
         try:

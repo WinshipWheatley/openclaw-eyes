@@ -10,10 +10,15 @@ import json
 import os
 import urllib.request
 
+from telegram_listener_integrity import resolve_role_bot_token
+
 
 def send(text: str, reply_markup: dict | None = None, parse_mode: str | None = "Markdown") -> None:
     """Send a Telegram message to the authorized user. Silent on failure."""
-    token   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    try:
+        token = resolve_role_bot_token("chief")
+    except RuntimeError:
+        return
     user_id = os.environ.get("TELEGRAM_AUTHORIZED_USER_ID", "")
     if not token or not user_id:
         return

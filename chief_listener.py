@@ -3,7 +3,6 @@ import hashlib
 import json
 import os
 import re
-import signal
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -15,10 +14,15 @@ from chief_router import route_message
 from chief_validator_brain import validate_reply
 from chief_queue_brain import check_pending_queue
 from chief_output_utils import tts_clean
-from telegram_agent_intake import record_telegram_listener_update_safe
+from telegram_agent_intake import claim_listener_update, record_telegram_listener_update_safe
+from telegram_listener_integrity import (
+    install_identity_preflight,
+    resolve_role_bot_token,
+    run_verified_polling,
+)
 
 LOG_PATH = Path("/mnt/c/OpenClaw/logs/chief_input.log")
-BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+BOT_TOKEN = resolve_role_bot_token("chief")
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
 
 
@@ -123,10 +127,12 @@ def extract_snapshot_name(output: str) -> str | None:
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != AUTHORIZED_USER_ID:
+    if not update.effective_user or update.effective_user.id != AUTHORIZED_USER_ID:
         return
 
     if not update.message or not update.message.text:
+        return
+    if not claim_listener_update(update, role="chief", source_channel="chief_listener"):
         return
 
     text = update.message.text.strip()
@@ -470,6 +476,8 @@ async def handle_callback(update: Update, _context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if not query or query.from_user.id != AUTHORIZED_USER_ID:
         return
+    if not claim_listener_update(update, role="chief", source_channel="chief_listener"):
+        return
     await query.answer()  # dismiss the loading spinner
     callback_data = query.data or ""
     try:
@@ -543,52 +551,13 @@ def build_application():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.post_init = _post_startup_queue
+    install_identity_preflight(application, "chief")
     return application
 
 
 async def run_listener(application=None, stop_event: asyncio.Event | None = None) -> None:
     application = application or build_application()
-    updater = application.updater
-    if updater is None:
-        raise RuntimeError("Chief listener application must have an updater.")
-
-    loop = asyncio.get_running_loop()
-    stop_event = stop_event or asyncio.Event()
-    registered_signals: list[signal.Signals] = []
-    polling_started = False
-    app_started = False
-    initialized = False
-
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(sig, stop_event.set)
-            registered_signals.append(sig)
-        except (NotImplementedError, RuntimeError):
-            pass
-
-    try:
-        await application.initialize()
-        initialized = True
-        if application.post_init:
-            await application.post_init(application)
-        await updater.start_polling()
-        polling_started = True
-        await application.start()
-        app_started = True
-        await stop_event.wait()
-    finally:
-        for sig in registered_signals:
-            try:
-                loop.remove_signal_handler(sig)
-            except (NotImplementedError, RuntimeError):
-                pass
-
-        if polling_started:
-            await updater.stop()
-        if app_started and application.running:
-            await application.stop()
-        if initialized:
-            await application.shutdown()
+    await run_verified_polling(application, "chief", stop_event=stop_event)
 
 
 def main() -> None:

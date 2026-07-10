@@ -92,5 +92,7 @@ def test_value_never_in_receipt_or_confirmation(tmp_path, monkeypatch, capsys):
 def test_default_registry_has_maestro_token_slot():
     reg = sd.default_slots()
     assert "maestro_bot_token" in reg
-    assert reg["maestro_bot_token"].key in ("MAESTRO_BOT_TOKEN", "TELEGRAM_BOT_TOKEN")
+    assert reg["maestro_bot_token"].key == "MAESTRO_BOT_TOKEN"
+    assert reg["chief_bot_token"].key == "CHIEF_BOT_TOKEN"
+    assert reg["niles_bot_token"].key == "NILES_BOT_TOKEN"
     assert str(reg["maestro_bot_token"].env_file).endswith(".chief.env")

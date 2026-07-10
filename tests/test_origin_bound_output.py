@@ -271,6 +271,7 @@ def test_cassandra_listener_assembly_preserves_origin_and_sends_replayed_result_
         return [output]
 
     monkeypatch.setattr(listener, "_run_request_with_timeout_contract", fake_contract)
+    monkeypatch.setattr(listener, "claim_listener_update", lambda *args, **kwargs: True)
     monkeypatch.setattr(listener, "record_cassandra_listener_text_update", lambda **_kwargs: None)
     monkeypatch.setattr(listener, "_log_cassandra_route", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(listener, "speak", lambda *_args, **_kwargs: None)

@@ -62,8 +62,8 @@ class _FakeBot:
 
 
 def _load_producer_listener(monkeypatch):
-    monkeypatch.setenv("PRODUCER_BOT_TOKEN", "test-token")
-    monkeypatch.setenv("PRODUCER_AUTHORIZED_USER_ID", "123")
+    monkeypatch.setenv("NILES_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
     fake_filters = types.SimpleNamespace(
         TEXT=_FakeFilter(), COMMAND=_FakeFilter(), VOICE=_FakeFilter()
     )
@@ -90,6 +90,7 @@ def _load_producer_listener(monkeypatch):
     import producer_listener
 
     module = importlib.reload(producer_listener)
+    monkeypatch.setattr(module, "claim_listener_update", lambda *args, **kwargs: True)
     monkeypatch.setattr(module, "record_telegram_listener_update_safe", lambda **kwargs: None)
     monkeypatch.setattr(module, "_queue_for_memory", lambda text: None)
     monkeypatch.setattr(module, "_fire_agent_voice", lambda *a, **k: None)

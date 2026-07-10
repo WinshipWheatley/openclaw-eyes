@@ -55,6 +55,11 @@ from hitl_pending_store import WAITING_FOR_APPROVAL
 _TOKEN_TTL_SECONDS = 86400  # 24 hours
 _LOGS_DIR = Path("/mnt/c/OpenClaw/logs")
 _NOTIFY_LOG = _LOGS_DIR / "hitl_notifications.jsonl"
+_NOTIFY_SECRET_WARNING_EMITTED = False
+
+
+class HitlNotificationConfigurationError(RuntimeError):
+    """Raised when signed Guardian callbacks cannot be configured safely."""
 
 # Risk classification by action type
 _HIGH_RISK_TYPES: frozenset[str] = frozenset({
@@ -69,17 +74,48 @@ _MEDIUM_RISK_TYPES: frozenset[str] = frozenset({
 def _notify_secret() -> bytes:
     """Return HMAC secret for notification tokens.
 
-    Uses HITL_NOTIFY_SECRET if set. Falls back to TELEGRAM_BOT_TOKEN so the
-    system stays functional before a dedicated secret is configured, but that
-    fallback is intentionally weak — set HITL_NOTIFY_SECRET in .chief.env for
-    production use.
+    The signing key is its own authority boundary.  Bot tokens and public
+    constants are never acceptable fallbacks because either would couple
+    callback authorization to an unrelated transport identity.
     """
+    global _NOTIFY_SECRET_WARNING_EMITTED
+
     import chief_env
 
     chief_env.load_env()
-    secret = os.environ.get("HITL_NOTIFY_SECRET", "")
+    secret = os.environ.get("HITL_NOTIFY_SECRET", "").strip()
     if not secret:
-        secret = os.environ.get("TELEGRAM_BOT_TOKEN", "hitl-default-secret")
+        if not _NOTIFY_SECRET_WARNING_EMITTED:
+            print(
+                "[hitl_notify] LOUD CONFIGURATION ERROR: HITL_NOTIFY_SECRET is required; "
+                "refusing to generate or validate approval tokens.",
+                flush=True,
+            )
+            _NOTIFY_SECRET_WARNING_EMITTED = True
+        raise HitlNotificationConfigurationError("HITL_NOTIFY_SECRET is required for signed HITL callbacks.")
+    transport_tokens = tuple(
+        value.strip()
+        for name in (
+            "MAESTRO_BOT_TOKEN",
+            "CHIEF_BOT_TOKEN",
+            "TELEGRAM_BOT_TOKEN",
+            "CASSANDRA_BOT_TOKEN",
+            "GUARDIAN_BOT_TOKEN",
+            "NILES_BOT_TOKEN",
+            "PRODUCER_BOT_TOKEN",
+            "HERMES_BOT_TOKEN",
+        )
+        if (value := os.environ.get(name, "")) and value.strip()
+    )
+    if any(_hmac.compare_digest(secret, token) for token in transport_tokens):
+        if not _NOTIFY_SECRET_WARNING_EMITTED:
+            print(
+                "[hitl_notify] LOUD CONFIGURATION ERROR: HITL_NOTIFY_SECRET must be distinct "
+                "from every Telegram transport token; refusing signed callbacks.",
+                flush=True,
+            )
+            _NOTIFY_SECRET_WARNING_EMITTED = True
+        raise HitlNotificationConfigurationError("HITL_NOTIFY_SECRET must be distinct from bot tokens.")
     return secret.encode()
 
 
@@ -148,7 +184,11 @@ def validate_token(raw_token: str) -> dict:
         return {"ok": False, "action_id": action_id, "decision": decision,
                 "error": "token_expired"}
 
-    expected_sig = _sign(action_id, decision, exp_unix)
+    try:
+        expected_sig = _sign(action_id, decision, exp_unix)
+    except HitlNotificationConfigurationError:
+        return {"ok": False, "action_id": action_id, "decision": decision,
+                "error": "hitl_notify_secret_unavailable"}
     if not _hmac.compare_digest(provided_sig, expected_sig):
         return {"ok": False, "action_id": action_id, "decision": decision,
                 "error": "invalid_signature"}
@@ -357,8 +397,16 @@ def send_pending_notification(action_id: str) -> bool:
                       {"reason": f"status={action['status']}"})
         return False
 
-    message  = format_notification(action)
-    keyboard = _build_keyboard(action_id)
+    try:
+        message = format_notification(action)
+        keyboard = _build_keyboard(action_id)
+    except HitlNotificationConfigurationError:
+        print(
+            f"[hitl_notify] notification refused for {action_id}: dedicated signing secret unavailable",
+            flush=True,
+        )
+        _audit_notify(action_id, "send_failed", {"error": "hitl_notify_secret_unavailable"})
+        return False
     try:
         send_approval(message, reply_markup=keyboard)
         print(f"[hitl_notify] notification sent for {action_id}", flush=True)

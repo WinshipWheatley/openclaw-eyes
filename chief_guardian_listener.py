@@ -15,7 +15,7 @@ Both paths enforce the same security guarantees:
 
 Activation:
   Set GUARDIAN_BOT_TOKEN in .chief.env to a bot token distinct from
-  TELEGRAM_BOT_TOKEN and CASSANDRA_BOT_TOKEN. Then start_chief.sh will
+  CHIEF_BOT_TOKEN and CASSANDRA_BOT_TOKEN. Then start_chief.sh will
   launch this listener automatically.
 
   If GUARDIAN_BOT_TOKEN is not set, do NOT start this listener. The Chief
@@ -32,8 +32,8 @@ Security:
   All other senders are silently ignored.
 """
 
+import asyncio
 import os
-import sys
 
 from telegram import Update, InlineKeyboardMarkup
 from telegram.error import BadRequest as TelegramBadRequest, Forbidden as TelegramForbidden
@@ -44,7 +44,12 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
-from telegram_agent_intake import record_telegram_listener_update_safe
+from telegram_agent_intake import claim_listener_update, record_telegram_listener_update_safe
+from telegram_listener_integrity import (
+    install_identity_preflight,
+    resolve_role_bot_token,
+    run_verified_polling,
+)
 from chief_nonapproval_responder import guardian_no_pending_reply
 from listener_resilience import clean_stale_carryover, honest_short_fail
 
@@ -60,17 +65,7 @@ def _operator_refusal_reply(text: str) -> str | None:
 
 # Guardian bot must be explicitly configured — this listener should not
 # start on the Chief or Cassandra token.
-_token = os.environ.get("GUARDIAN_BOT_TOKEN")
-if not _token:
-    print(
-        "[chief_guardian_listener] GUARDIAN_BOT_TOKEN is not set. "
-        "This listener should only start when a dedicated approval bot is configured. "
-        "Exiting.",
-        flush=True,
-    )
-    sys.exit(1)
-
-BOT_TOKEN = _token
+BOT_TOKEN = resolve_role_bot_token("guardian")
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
 GUARDIAN_STALE_CARRYOVER_REPLY = honest_short_fail(
     "Guardian",
@@ -147,7 +142,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
     # Auth check — only the authorized user's taps are processed.
     if not update.effective_user or update.effective_user.id != AUTHORIZED_USER_ID:
-        await query.answer()
+        return
+    if not claim_listener_update(update, role="guardian", source_channel="guardian_listener"):
         return
 
     # Acknowledge the tap immediately to stop the Telegram loading spinner.
@@ -348,6 +344,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     if not update.message or not update.message.text:
         return
+    if not claim_listener_update(update, role="guardian", source_channel="guardian_listener"):
+        return
 
     text = update.message.text.strip()
     record_telegram_listener_update_safe(
@@ -495,9 +493,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.message.reply_text(guardian_resilient_reply(reply))
 
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CallbackQueryHandler(handle_callback_query))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+def build_application():
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application.add_handler(CallbackQueryHandler(handle_callback_query))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    install_identity_preflight(application, "guardian")
+    return application
 
-print("Guardian approval listener online.", flush=True)
-app.run_polling()
+
+async def run_listener(application=None, stop_event: asyncio.Event | None = None) -> None:
+    application = application or build_application()
+    await run_verified_polling(application, "guardian", stop_event=stop_event)
+
+
+def main() -> None:
+    print("Guardian approval listener online.", flush=True)
+    asyncio.run(run_listener())
+
+
+if __name__ == "__main__":
+    main()

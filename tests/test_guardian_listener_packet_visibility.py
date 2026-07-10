@@ -78,6 +78,7 @@ class _ReplyMessage:
 
 def test_guardian_no_pending_reply_builds_packet_but_does_not_show_raw_packet(monkeypatch) -> None:
     listener = _load_listener(monkeypatch)
+    monkeypatch.setattr(listener, "claim_listener_update", lambda *args, **kwargs: True)
     monkeypatch.setattr(listener, "record_telegram_listener_update_safe", lambda **kwargs: None)
 
     import chief_approval_brain

@@ -504,6 +504,7 @@ def test_handle_message_keeps_original_prompt_delivery_after_newer_prompt(monkey
         return ["Correlated answer."]
 
     monkeypatch.setattr(listener, "_run_request_with_timeout_contract", fake_contract, raising=False)
+    monkeypatch.setattr(listener, "claim_listener_update", lambda *args, **kwargs: True, raising=False)
     monkeypatch.setattr(listener, "record_cassandra_listener_text_update", lambda **kwargs: None, raising=False)
     monkeypatch.setattr(listener, "_log_cassandra_route", lambda text, intent: None, raising=False)
     monkeypatch.setattr(listener, "speak", lambda *args, **kwargs: None, raising=False)

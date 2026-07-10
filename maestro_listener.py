@@ -16,12 +16,13 @@ import os
 import re
 import shlex
 import shutil
-import signal
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
 from listener_resilience import clean_stale_carryover, honest_short_fail
+from telegram_agent_intake import claim_listener_update
+from telegram_listener_integrity import install_identity_preflight, run_verified_polling
 
 try:
     from telegram import Update
@@ -910,16 +911,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     auth_id = authorized_user_id()
     is_authorized_user = bool(update.effective_user and update.effective_user.id == auth_id)
-    source_user_label = "operator" if is_authorized_user else "unverified_sender"
+    if not is_authorized_user:
+        return
+    if not claim_listener_update(update, role="maestro", source_channel="maestro_listener"):
+        return
     source_message_id = str(getattr(update, "update_id", "")) or None
     record_maestro_intake_metadata(
         text=text,
         source_message_id=source_message_id,
-        source_user_label=source_user_label,
-        operator_message=is_authorized_user,
+        source_user_label="operator",
+        operator_message=True,
     )
-    if not is_authorized_user:
-        return
 
     chat_id = update.effective_chat.id if update.effective_chat else auth_id
     message_id = str(getattr(update.message, "message_id", "") or getattr(update, "update_id", "") or _short_hash(text))
@@ -1013,6 +1015,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     auth_id = authorized_user_id()
     if not update.effective_user or update.effective_user.id != auth_id:
         return
+    if not claim_listener_update(update, role="maestro", source_channel="maestro_listener"):
+        return
 
     message_id = str(getattr(update.message, "message_id", "") or getattr(update, "update_id", "") or "photo")
     chat_id = update.effective_chat.id if update.effective_chat else auth_id
@@ -1090,51 +1094,13 @@ def build_application():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     image_filter = filters.PHOTO | filters.Document.IMAGE
     application.add_handler(MessageHandler(image_filter, handle_photo))
+    install_identity_preflight(application, "maestro")
     return application
 
 
 async def run_listener(application=None, stop_event: asyncio.Event | None = None) -> None:
     application = application or build_application()
-    updater = application.updater
-    if updater is None:
-        raise RuntimeError("Maestro listener application must have an updater.")
-
-    loop = asyncio.get_running_loop()
-    stop_event = stop_event or asyncio.Event()
-    registered_signals: list[signal.Signals] = []
-    polling_started = False
-    app_started = False
-    initialized = False
-
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(sig, stop_event.set)
-            registered_signals.append(sig)
-        except (NotImplementedError, RuntimeError):
-            pass
-
-    try:
-        await application.initialize()
-        initialized = True
-        if application.post_init:
-            await application.post_init(application)
-        await updater.start_polling()
-        polling_started = True
-        await application.start()
-        app_started = True
-        await stop_event.wait()
-    finally:
-        for sig in registered_signals:
-            try:
-                loop.remove_signal_handler(sig)
-            except (NotImplementedError, RuntimeError):
-                pass
-        if polling_started:
-            await updater.stop()
-        if app_started and application.running:
-            await application.stop()
-        if initialized:
-            await application.shutdown()
+    await run_verified_polling(application, "maestro", stop_event=stop_event)
 
 
 def main() -> None:
