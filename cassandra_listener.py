@@ -496,6 +496,16 @@ async def _run_cassandra_handle_async(
         else:
             _contract_decision = None
 
+    _pure_cassandra_money_read = bool(
+        _contract_decision is not None
+        and tuple(_contract_decision.matches) == (ContractLabel.MONEY_READ,)
+    )
+    if _pure_cassandra_money_read:
+        # Bypass any active invoice cockpit: the brain's override-aware,
+        # deterministic money helper must decide between an operator correction
+        # and the bounded ledger before a session can capture this turn.
+        return await asyncio.to_thread(cassandra_handle, text, session_meta)
+
     if _contract_decision is not None and _contract_decision.handled:
         return [str(_contract_decision.reply or "")]
 
@@ -507,13 +517,35 @@ async def _run_cassandra_handle_async(
     if _contract_decision is not None:
         _match_set = set(_contract_decision.matches)
         _money_labels = {ContractLabel.MONEY_READ, ContractLabel.PAYMENT_ARRIVAL}
-        if ContractLabel.FINALIZED_INVOICE_REVIEW in _match_set and _match_set.intersection(_money_labels):
-            try:
-                from money_truth import render_money_answer
+        try:
+            from money_truth import classify_money_question as _classify_money_question
 
-                _money_reply = str(render_money_answer("cassandra", question=text))
-            except TypeError:
-                _money_reply = str(render_money_answer("cassandra"))
+            _shared_payment_arrival = (
+                _classify_money_question(text) == "payment_arrival_verify"
+            )
+        except Exception:
+            _shared_payment_arrival = False
+        if (
+            ContractLabel.FINALIZED_INVOICE_REVIEW in _match_set
+            and (_match_set.intersection(_money_labels) or _shared_payment_arrival)
+        ):
+            try:
+                from money_truth import classify_money_question, render_money_answer
+
+                if (
+                    ContractLabel.PAYMENT_ARRIVAL in _match_set
+                    or classify_money_question(text) == "payment_arrival_verify"
+                ):
+                    from cassandra_brain import (
+                        _handle_payment_verification_request as _verify_payment_arrival,
+                    )
+
+                    _money_reply = str(
+                        await asyncio.to_thread(_verify_payment_arrival, text)
+                        or "No confirmed arrival evidence is available. Nothing was marked paid."
+                    )
+                else:
+                    _money_reply = str(render_money_answer("cassandra", question=text))
             except Exception:
                 _money_reply = (
                     "The shared receivables read-model is unavailable right now. "

@@ -86,7 +86,13 @@ def _client_display(row: Mapping[str, Any]) -> str:
 
 
 def _month_name(row: Mapping[str, Any]) -> str:
-    return operator_surface_value(str(row.get("month") or "").strip())
+    raw = str(row.get("month") or "").strip()
+    matched = re.fullmatch(r"(\d{4})-(0[1-9]|1[0-2])", raw)
+    if not matched:
+        return operator_surface_value(raw)
+    # Task 155: rendering the year is part of temporal honesty.  "May" alone
+    # is ambiguous once the ledger contains more than one May.
+    return f"{operator_surface_value(raw)} {matched.group(1)}"
 
 
 def _norm_question(text: str) -> str:
@@ -110,13 +116,137 @@ def _client_phrases(row: Mapping[str, Any]) -> set[str]:
     return phrases
 
 
-def _rows_for_question(rows: Sequence[Mapping[str, Any]], question: str) -> list[Mapping[str, Any]]:
-    """Filter rows to the client named in the question; full picture when no client named."""
+_MONTH_NUMBERS = {
+    "january": "01",
+    "february": "02",
+    "march": "03",
+    "april": "04",
+    "may": "05",
+    "june": "06",
+    "july": "07",
+    "august": "08",
+    "september": "09",
+    "october": "10",
+    "november": "11",
+    "december": "12",
+}
+
+
+def _requested_temporal_scope(
+    question: str,
+    *,
+    default_year: str = "",
+) -> tuple[set[str], set[str]]:
+    """Return exact periods plus any year-only filter.
+
+    Month/year pairs stay paired, never cartesian.  A named month without a
+    year binds to the read-model's as-of year, so "back in May" in a July 2026
+    snapshot means May 2026 rather than every May ever recorded.
+    """
+    q = str(question or "").lower()
+    temporal_years = set(
+        re.findall(r"\b(?:in|during|for|from|since|through|year)\s+(20\d{2})\b", q)
+    )
+    periods: set[str] = set()
+    paired_months: set[str] = set()
+
+    for year, month in re.findall(r"\b(20\d{2})[-/](0[1-9]|1[0-2])\b", q):
+        periods.add(f"{year}-{month}")
+        temporal_years.add(year)
+    for month, year in re.findall(r"\b(0?[1-9]|1[0-2])[-/](20\d{2})\b", q):
+        periods.add(f"{year}-{month.zfill(2)}")
+        temporal_years.add(year)
+
+    month_names = "|".join(_MONTH_NUMBERS)
+    for name, year in re.findall(rf"\b({month_names})\s+(20\d{{2}})\b", q):
+        month = _MONTH_NUMBERS[name]
+        periods.add(f"{year}-{month}")
+        paired_months.add(month)
+        temporal_years.add(year)
+    for year, name in re.findall(rf"\b(20\d{{2}})\s+({month_names})\b", q):
+        month = _MONTH_NUMBERS[name]
+        periods.add(f"{year}-{month}")
+        paired_months.add(month)
+        temporal_years.add(year)
+
+    named_months = {
+        number
+        for name, number in _MONTH_NUMBERS.items()
+        if name != "may" and re.search(rf"\b{re.escape(name)}\b", q)
+    }
+    may_is_temporal = bool(
+        "05" in paired_months
+        or re.search(r"\b(?:in|during|for|from|since|through|by)\s+may\b", q)
+        or re.search(
+            rf"\bmay\s+(?:vs\.?|versus|compared\s+(?:with|to)|and|to)\s+(?:{month_names})\b",
+            q,
+        )
+    )
+    if may_is_temporal:
+        named_months.add("05")
+    for month in named_months - paired_months:
+        bind_year = next(iter(temporal_years)) if len(temporal_years) == 1 else default_year
+        if bind_year:
+            periods.add(f"{bind_year}-{month}")
+
+    year_only = temporal_years if not named_months and not periods else set()
+    return periods, year_only
+
+
+def _rows_for_question(
+    rows: Sequence[Mapping[str, Any]],
+    question: str,
+    *,
+    default_year: str = "",
+) -> list[Mapping[str, Any]]:
+    """Filter rows to every explicitly named client and period.
+
+    Once the operator names a month/year, an empty temporal match stays empty;
+    falling back to every client row would silently blend periods again.
+    """
     q = _norm_question(question)
     if not q:
         return list(rows)
-    matched = [row for row in rows if any(p in q for p in _client_phrases(row))]
-    return matched or list(rows)
+    client_matched = [row for row in rows if any(p in q for p in _client_phrases(row))]
+    scoped: list[Mapping[str, Any]] = client_matched or list(rows)
+
+    periods, year_only = _requested_temporal_scope(question, default_year=default_year)
+    if not periods and not year_only:
+        return scoped
+    temporal: list[Mapping[str, Any]] = []
+    for row in scoped:
+        matched = re.fullmatch(r"(\d{4})-(0[1-9]|1[0-2])", str(row.get("month") or "").strip())
+        if not matched:
+            continue
+        row_year, row_month = matched.groups()
+        if periods and f"{row_year}-{row_month}" not in periods:
+            continue
+        if year_only and row_year not in year_only:
+            continue
+        temporal.append(row)
+    return temporal
+
+
+def _temporal_scope_label(question: str, payload: Mapping[str, Any] | None) -> str:
+    as_of = money_truth_as_of(payload)
+    default_year = as_of[:4] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", as_of) else ""
+    periods, years = _requested_temporal_scope(question, default_year=default_year)
+    labels = []
+    for period in sorted(periods):
+        year, _month = period.split("-", 1)
+        labels.append(f"{operator_surface_value(period)} {year}")
+    labels.extend(sorted(years))
+    return " and ".join(labels)
+
+
+def _no_matching_rows_answer(question: str, payload: Mapping[str, Any] | None) -> str:
+    label = _temporal_scope_label(question, payload)
+    if money_rows(payload) and label:
+        return (
+            f"No receivable row matches {label} in receivables_month_bounded. "
+            "That is a scoped data gap, not a zero balance."
+        )
+    return NOT_TRACKED_LINE
 
 
 def _ensure_period(line: str) -> str:
@@ -131,7 +261,9 @@ def money_lines(payload: Mapping[str, Any] | None = None, *, question: str = "")
     then the settled tail. Empty read-model -> [] (callers render NOT_TRACKED_LINE).
     """
     payload = payload if payload is not None else load_money_truth()
-    rows = _rows_for_question(money_rows(payload), question)
+    as_of = money_truth_as_of(payload)
+    default_year = as_of[:4] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", as_of) else ""
+    rows = _rows_for_question(money_rows(payload), question, default_year=default_year)
     open_lines: list[str] = []
     pending_lines: list[str] = []
     settled_months: dict[str, list[str]] = {}
@@ -182,13 +314,32 @@ def render_money_answer(
     """The shared money answer text (agent framing is the caller's route_line)."""
     payload = payload if payload is not None else load_money_truth(path)
     lines = money_lines(payload, question=question)
-    if not lines:
-        return NOT_TRACKED_LINE
-    text = " ".join(lines)
+    text = " ".join(lines) if lines else _no_matching_rows_answer(question, payload)
+    if text == NOT_TRACKED_LINE:
+        return text
     as_of = money_truth_as_of(payload)
     if as_of:
         text = f"{text} (as of {as_of})"
     return text
+
+
+def render_payment_verification_ledger(
+    question: str,
+    *,
+    payload: Mapping[str, Any] | None = None,
+    path: str | Path | None = None,
+) -> str:
+    """Render the bounded receivables side of a payment verification answer.
+
+    Payment-notification metadata is only evidence; this explicit source and
+    as-of label prevents it from being laundered into bank-settlement truth.
+    The label remains present even when the read-model is temporarily missing.
+    """
+    payload = payload if payload is not None else load_money_truth(path)
+    lines = money_lines(payload, question=question)
+    answer = " ".join(lines) if lines else _no_matching_rows_answer(question, payload)
+    as_of = money_truth_as_of(payload) or "unavailable"
+    return f"Receivables (receivables_month_bounded, as of {as_of}): {answer}"
 
 
 _ROUTE_LINES = {
@@ -248,6 +399,31 @@ _ARRIVAL_VERB_RE = re.compile(
     r"\b(come through|came through|come in|came in|arrive[ds]?|land(?:ed)?|clear(?:ed)?|"
     r"hit the account|posted|post yet|show(?:ed)? up|in my account|in the account|in the bank)\b"
 )
+_ARRIVAL_QUESTION_RE = re.compile(
+    r"^(?:did|has|have|is|are|was|were|can|could|would|do\s+you\s+know|"
+    r"what(?:'s|\s+is)|where(?:'s|\s+is))\b|\bwhether\b"
+)
+_PAYMENT_STATUS_RE = re.compile(
+    r"\b(?:status|state)\b[^.?!]{0,70}\b(?:payment|deposit|funds)\b"
+    r"|\b(?:payment|deposit|funds)\b[^.?!]{0,70}\b(?:status|state)\b"
+)
+_CHECK_STATUS_RE = re.compile(
+    r"\b(?:status|state)\b\s+(?:of|for|on)\b[^.?!]{0,50}"
+    r"\b(?:hilton|capital|client|customer|vendor|payer|payment|money|invoice)\b"
+    r"[^.?!]{0,35}\b(?:check|cheque)\b"
+    r"|\b(?:hilton|capital|client|customer|vendor|payer|payment|money|invoice)\b[^.?!]{0,60}"
+    r"\b(?:check|cheque)\b[^.?!]{0,40}\b(?:status|state)\b"
+)
+_DID_CLIENT_PAY_RE = re.compile(
+    r"\b(?:did|has|have)\b[^.?!]{0,80}\b(?:pay|paid)\b[^.?!]{0,30}\b(?:us|me)\b"
+    r"|\b(?:are|were)\s+(?:we|you)\s+paid\b"
+)
+_NONFINANCIAL_CHECK_RE = re.compile(
+    r"\b(?:background|health|deployment|system|smoke|integrity)\s+(?:check|cheque)\b"
+)
+_FINANCIAL_CHECK_CONTEXT_RE = re.compile(
+    r"\b(?:payment|deposit|funds|money|invoice|remittance|bank|account)\b"
+)
 _INVOICE_ACTION_RE = re.compile(
     r"\b(create|generate|draft|write|make|prepare|send|upload|attach|fix)\b[^.?!]{0,60}\binvoice"
 )
@@ -281,10 +457,23 @@ def classify_money_question(text: str) -> str | None:
         return "money_movement"
     if _MOVEMENT_MONEY_WORD_RE.search(t):
         return "money_movement"
+    question_shaped = bool("?" in str(text or "") or _ARRIVAL_QUESTION_RE.search(t))
+    nonfinancial_check_only = bool(
+        _NONFINANCIAL_CHECK_RE.search(t) and not _FINANCIAL_CHECK_CONTEXT_RE.search(t)
+    )
+    if question_shaped and (
+        (
+            _ARRIVAL_SUBJECT_RE.search(t)
+            and _ARRIVAL_VERB_RE.search(t)
+            and not nonfinancial_check_only
+        )
+        or _PAYMENT_STATUS_RE.search(t)
+        or _CHECK_STATUS_RE.search(t)
+        or _DID_CLIENT_PAY_RE.search(t)
+    ):
+        return "payment_arrival_verify"
     if _INVOICE_ACTION_RE.search(t):
         return None
-    if _ARRIVAL_SUBJECT_RE.search(t) and _ARRIVAL_VERB_RE.search(t):
-        return "payment_arrival_verify"
     if any(marker in t for marker in _READ_MARKERS):
         return "money_read"
     return None
@@ -375,6 +564,7 @@ __all__ = [
     "money_truth_as_of",
     "money_lines",
     "render_money_answer",
+    "render_payment_verification_ledger",
     "route_line",
     "finance_answer_topic_fact",
     "classify_money_question",

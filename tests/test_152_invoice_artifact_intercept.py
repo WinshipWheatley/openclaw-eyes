@@ -544,10 +544,14 @@ def test_task151_compound_seam_runs_money_and_real_artifact_once(
     monkeypatch,
     tmp_path,
 ):
+    import cassandra_brain
     import cassandra_listener
-    import money_truth
 
-    monkeypatch.setattr(money_truth, "render_money_answer", lambda *_a, **_k: "MONEY-TRUTH")
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_handle_payment_verification_request",
+        lambda _text: "PAYMENT-VERIFY-TRUTH",
+    )
     replies = asyncio.run(
         cassandra_listener._run_cassandra_handle_async(
             "did St Anne's pay us, and if not can you get their invoice ready for my review while you're at it?",
@@ -563,7 +567,7 @@ def test_task151_compound_seam_runs_money_and_real_artifact_once(
     )
 
     assert len(replies) == 2
-    assert replies[0] == "MONEY-TRUTH"
+    assert replies[0] == "PAYMENT-VERIFY-TRUTH"
     assert isinstance(replies[1], OriginBoundOutput)
     assert replies[1].kind == "document"
     assert Path(replies[1].document_path).resolve() == FINALIZED_PDF.resolve()

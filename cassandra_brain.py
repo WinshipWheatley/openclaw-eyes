@@ -2767,20 +2767,30 @@ def _handle_ops_status_inquiry(query: str) -> str:
 
 
 def _detect_payment_verify_intent(text: str) -> bool:
-    """Return True if the message is asking to verify an external payment status."""
-    from cassandra_capability import PAYMENT_METADATA_CONNECTED
-    if not PAYMENT_METADATA_CONNECTED:
+    """Return True for the shared payment-arrival question contract.
+
+    The route remains available when Gmail metadata is disconnected because
+    the bounded receivables answer must never become silence or a model call.
+    """
+    try:
+        from money_truth import classify_money_question
+
+        return classify_money_question(text) == "payment_arrival_verify"
+    except Exception:
         return False
-    return _looks_like_payment_verify_query(text)
 
 
 def _payment_verify_ledger_line(text: str) -> str:
     """Money-truth line for the entity asked about (task 140 one-source binding)."""
     try:
-        from money_truth import render_money_answer
-        return render_money_answer("cassandra", question=text)
+        from money_truth import render_payment_verification_ledger
+
+        return render_payment_verification_ledger(text)
     except Exception:
-        return ""
+        return (
+            "Receivables (receivables_month_bounded, as of unavailable): "
+            "the bounded ledger could not be read."
+        )
 
 
 def _parse_payment_verify_blocks(ctx: str) -> list[dict]:
@@ -2847,38 +2857,54 @@ def _handle_payment_verification_request(text: str) -> str | None:
     if not _detect_payment_verify_intent(text):
         return None
 
-    known_reply = _known_payment_status_reply(text)
-    if known_reply is not None:
-        return known_reply
+    ledger_line = _payment_verify_ledger_line(text)
+    if not str(ledger_line or "").strip():
+        ledger_line = (
+            "Receivables (receivables_month_bounded, as of unavailable): I couldn't "
+            "read the ledger just now, so I am not claiming the balance is zero."
+        )
+    metadata_decision = decide_gmail_intent(text)
+    if not metadata_decision.allowed:
+        return (
+            "I did not check Gmail metadata because you asked for no Gmail/tools. "
+            f"{ledger_line}"
+        )
 
     ctx = _fetch_payment_verify_context(text)
     if not ctx:
-        return _payment_verify_never_silent_fallback(text)
+        return (
+            "No confirmed arrival evidence is available from Gmail metadata. "
+            "Notification metadata is not bank-settlement proof. "
+            f"{ledger_line}"
+        )
 
     if "[VERIFIED PAYMENT DATA — no recent Gmail notifications found]" in ctx:
-        ledger_line = _payment_verify_ledger_line(text)
-        if ledger_line:
-            return f"No Gmail payment notification for that yet. Ledger truth: {ledger_line}"
-        return "I checked your recent Gmail notifications but didn't see any matching that payment yet."
+        return (
+            "No correlated Gmail payment notification was found. Notification metadata is not "
+            f"bank-settlement proof. {ledger_line}"
+        )
 
     if "Gmail unreachable" in ctx:
-        return "I tried to check your Gmail for payment notifications but the service is unreachable right now."
+        return (
+            "Gmail payment metadata is unreachable right now, so it supplies no arrival evidence. "
+            f"{ledger_line}"
+        )
 
     if "From:" in ctx:
         match = _first_correlated_payment_match(text, ctx)
         if match is not None:
             return (
-                f"I've verified a matching payment notification in your Gmail: "
-                f"{match.get('subject', '(no subject)')} from {match.get('from_name', 'Unknown')}."
+                "I found a correlated payment-related Gmail notification: "
+                f"{match.get('subject', '(no subject)')} from {match.get('from_name', 'Unknown')}. "
+                "That notification metadata does not prove bank settlement. "
+                f"{ledger_line}"
             )
-        ledger_line = _payment_verify_ledger_line(text)
         base = (
             "I see recent payment-ish emails, but none that actually correlate with that payment — "
-            "sender, client, and amount have to line up before I call it verified."
+            "sender, client, and amount have to line up. Notification metadata is not "
+            "bank-settlement proof."
         )
-        if ledger_line:
-            return f"{base} Ledger truth: {ledger_line}"
-        return base
+        return f"{base} {ledger_line}"
 
     # Task 148 (NEVER-SILENT): any other ctx shape (Gmail fetch error, an unrecognized
     # marker) previously fell straight through to None here -- silence, not even an
@@ -2893,12 +2919,7 @@ def _payment_verify_never_silent_fallback(text: str) -> str:
     money truth (receivables_month_bounded via money_truth.py) rather than staying
     silent."""
     ledger_line = _payment_verify_ledger_line(text)
-    if ledger_line:
-        return f"No confirmed arrival evidence for that yet. Ledger truth: {ledger_line}"
-    return (
-        "I don't have confirmed arrival evidence for that payment yet, and I couldn't "
-        "read the ledger just now — ask again in a moment."
-    )
+    return f"No confirmed arrival evidence for that yet. {ledger_line}"
 
 
 def _handle_money_truth_question(text: str, state: dict | None = None) -> str | None:
@@ -5632,13 +5653,30 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
     if any(phrase in q for phrase in ("no gmail", "no email", "no tools", "without gmail", "without email")):
         return GmailIntentDecision(False, "User explicitly requested no Gmail/tools.", "none")
 
+    # Task 155: payment-arrival questions are a specific domain contract.  Run
+    # the shared classifier before generic email terms so grammatical "from"
+    # cannot turn "the check from Hilton" into email_search.
+    try:
+        from money_truth import classify_money_question
+
+        money_class = classify_money_question(q)
+    except Exception:
+        money_class = None
+    if money_class == "payment_arrival_verify":
+        return GmailIntentDecision(
+            True,
+            "Shared payment-arrival classifier selected deterministic verification.",
+            "payment_verify",
+            money_class,
+        )
+
     # Explicit email terms: allowed
     email_terms = (
         "email", "gmail", "inbox", "message", "unread", "sender",
         "subject", "from", "reply", "draft", "thread", "attachment"
     )
     for term in email_terms:
-        if term in q:
+        if re.search(rf"(?<!\w){re.escape(term)}(?!\w)", q):
             return GmailIntentDecision(True, f"Explicit email term trigger: '{term}'", "email_search", term)
 
     # Task 140: read-only money QUESTIONS are answered from the ONE money truth
@@ -5646,8 +5684,7 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
     # and must never ride the payment_verify lane. payment_verify keeps ONLY
     # genuine did-a-payment-arrive verification.
     try:
-        from money_truth import classify_money_question
-        if classify_money_question(q) == "money_read":
+        if money_class == "money_read":
             return GmailIntentDecision(
                 False,
                 "Money-class read question answers from the shared money truth (one source).",
@@ -5664,27 +5701,6 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
     for term in business_terms:
         if term in q:
             return GmailIntentDecision(True, f"Material business term trigger: '{term}'", "payment_verify", term)
-
-    # Task 148 (NEVER-SILENT): a genuine payment-ARRIVAL-verify shape ("did the check
-    # arrive?", "has that cleared?") without any of the literal business_terms above was
-    # falling through to the default deny below -- silently skipping the payment_verify
-    # lane entirely, never even reaching _handle_payment_verification_request's own
-    # (now-fixed) never-silent fallback. NOT a bare reuse of _looks_like_payment_verify_
-    # query: that classifier is too loose for this gate on its own -- "check" appears in
-    # BOTH its query-word set and its verb set, so it alone would wrongly satisfy the
-    # classifier on "can you check this?"/"LLM health check" (confirmed via a regression
-    # this exact change introduced and then had to narrow). Require "check" co-occurring
-    # with an explicit arrival-state term -- the actual discriminating signal in the live
-    # evidence ("check arrive"), not "check" alone.
-    _payment_arrival_terms = (
-        "arrive", "arrived", "come through", "cleared", "clear", "posted",
-        "land", "hit the account",
-    )
-    if "check" in q and any(term in q for term in _payment_arrival_terms):
-        return GmailIntentDecision(True, "Payment-arrival check query shape detected.", "payment_verify")
-
-    # Do not allow generic verbs alone: check, verify, status, health, look, find, search.
-    # These are already implicitly denied by falling through, but we could be explicit if needed.
 
     return GmailIntentDecision(False, "No explicit email or business intent detected; defaulting to deny.", "none")
 
@@ -5836,18 +5852,12 @@ _PAYMENT_VERIFY_RESCUE_MARKERS = (
 
 
 def _looks_like_payment_verify_query(text: str) -> bool:
-    t = (text or "").lower()
-    # Explicitly exclude general email checks from being treated as payment verification
-    # even if "check" is present.
-    if "email" in t and "check" in t:
-        # If "payment", "paid", "invoice" etc are NOT present, it's likely just email.
-        business_markers = ("payment", "paid", "invoice", "deposit", "hilton", "zelle", "venmo", "owes", "owed")
-        if not any(bm in t for bm in business_markers):
-            return False
+    try:
+        from money_truth import classify_money_question
 
-    if not any(w in t for w in _PAY_VERIFY_QUERY_WORDS):
+        return classify_money_question(text) == "payment_arrival_verify"
+    except Exception:
         return False
-    return any(v in t for v in _PAY_VERIFY_VERBS)
 
 
 def _needs_payment_verify_rescue(query: str, reply: str) -> bool:
@@ -6832,6 +6842,7 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     try:
         from typed_contract_decision import (
             ContractContext,
+            ContractLabel,
             HandoffResult,
             active_session_from_mapping,
             decide_contract,
@@ -6932,6 +6943,34 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             )
         else:
             _contract_decision = None
+    _pure_cassandra_money_read = bool(
+        _contract_decision is not None
+        and tuple(_contract_decision.matches) == (ContractLabel.MONEY_READ,)
+    )
+    if _pure_cassandra_money_read:
+        # The typed layer identifies the domain, but Cassandra's existing
+        # money helper owns operator-correction authority.  Taking the generic
+        # typed snapshot reply here would let an older read-model overrule the
+        # operator's session correction.
+        _money_state = load_state()
+        _money_reply = _handle_money_truth_question(query, _money_state)
+        if _money_reply is not None:
+            _log_conversation(
+                text,
+                [_money_reply],
+                route="money_truth",
+                metadata={
+                    "typed_contract_decision": _contract_decision.receipt.to_dict(),
+                    "typed_contract_matches": [
+                        label.value for label in _contract_decision.matches
+                    ],
+                    "model_called": False,
+                    "external_calls_performed": False,
+                    "business_action_performed": False,
+                },
+            )
+            return [_money_reply]
+
     if _contract_decision is not None and _contract_decision.handled:
         _contract_reply = str(_contract_decision.reply or "")
         _log_conversation(
@@ -6947,6 +6986,38 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             },
         )
         return [_contract_reply]
+
+    # Task 155: specific payment-arrival questions run before generic business
+    # packet assembly, email/finance routing, sessions, and every model path.
+    # Gmail contributes read-only notification metadata; the bounded
+    # receivables snapshot remains the settlement-status authority.
+    try:
+        from money_truth import classify_money_question
+
+        _money_contract = classify_money_question(query)
+    except Exception:
+        _money_contract = None
+    if _money_contract == "payment_arrival_verify":
+        _payment_gmail_decision = decide_gmail_intent(query)
+        _payment_reply = _handle_payment_verification_request(query)
+        if _payment_reply is None:
+            _payment_reply = _payment_verify_never_silent_fallback(query)
+        _log_conversation(
+            text,
+            [_payment_reply],
+            route="payment_verify",
+            metadata={
+                "model_called": False,
+                "ops_packet_assembled": False,
+                "gmail_metadata_checked": bool(
+                    _payment_gmail_decision.allowed
+                    and _payment_gmail_decision.category == "payment_verify"
+                ),
+                "bank_settlement_claimed_from_metadata": False,
+                "authority_source": "receivables_month_bounded",
+            },
+        )
+        return [_payment_reply]
 
     # ── Identity persona core (task 142 hook, task 145 wiring) — SECOND tap,
     # before intent classification or any model call. Task 142 built

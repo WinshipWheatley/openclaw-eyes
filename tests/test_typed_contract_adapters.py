@@ -470,9 +470,13 @@ def test_cassandra_finalized_review_delegates_to_existing_cockpit(monkeypatch):
 
 def test_cassandra_compound_money_then_finalized_review_sequences_both_once(monkeypatch):
     listener = _load_cassandra_listener(monkeypatch)
-    import money_truth
+    import cassandra_brain
 
-    monkeypatch.setattr(money_truth, "render_money_answer", lambda *a, **k: "MONEY-HALF-GROUNDED")
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_handle_payment_verification_request",
+        lambda text: "PAYMENT-HALF-GROUNDED",
+    )
     calls = []
 
     def cockpit(text, meta):
@@ -490,7 +494,7 @@ def test_cassandra_compound_money_then_finalized_review_sequences_both_once(monk
             {"surface": "cassandra_telegram", "source_user_label": "operator"},
         )
     )
-    assert replies == ["MONEY-HALF-GROUNDED", "FINALIZED-REVIEW-HALF"]
+    assert replies == ["PAYMENT-HALF-GROUNDED", "FINALIZED-REVIEW-HALF"]
     assert len(calls) == 1
 
 
@@ -922,6 +926,10 @@ def test_guardian_pending_semantic_route_without_stager_never_reaches_eli5(monke
 def _load_niles_listener(monkeypatch):
     monkeypatch.setenv("PRODUCER_BOT_TOKEN", "test-token")
     monkeypatch.setenv("PRODUCER_AUTHORIZED_USER_ID", "123")
+    # Listener adapters prefer the fleet-wide canonical authorization variable
+    # when a prior adapter test left it set; pin both names to the same user so
+    # test order cannot make Niles silently reject the fixture update.
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
     _install_telegram_stubs(monkeypatch)
     sys.modules.pop("producer_listener", None)
     module = importlib.import_module("producer_listener")

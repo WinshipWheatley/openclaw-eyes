@@ -165,12 +165,6 @@ SessionAnswerPredicate = Callable[[str], bool]
 _AUTHORITY_CODE_RE = re.compile(
     r"^[A-Z0-9]{4}\s+(?:1|2|3|YES|NO|APPROVE|DENY)(?:\b|\s*-)", re.IGNORECASE
 )
-_PAYMENT_NOUN_RE = re.compile(r"\b(?:payment|check|cheque|deposit|paid|remittance)\b", re.IGNORECASE)
-_PAYMENT_STATE_RE = re.compile(
-    r"\b(?:arriv(?:e|ed)|come\s+through|came\s+through|clear(?:ed)?|land(?:ed)?|received|"
-    r"show(?:ed)?\s+up|status|where\s+(?:is|are|does)|did\s+we\s+get|have\s+we\s+got)\b",
-    re.IGNORECASE,
-)
 _INVOICE_RE = re.compile(r"\b(?:invoice|bill)\b", re.IGNORECASE)
 _FINALIZED_REVIEW_RE = re.compile(
     r"\b(?:prep|prepare|get|make|surface|pull\s+up|show)\b.{0,90}"
@@ -574,8 +568,13 @@ def _is_authority_token(text: str, context: ContractContext) -> bool:
 
 def _is_payment_arrival(text: str) -> bool:
     normalized = _normalize(text)
-    if _PAYMENT_NOUN_RE.search(normalized) and _PAYMENT_STATE_RE.search(normalized):
-        return True
+    try:
+        from money_truth import classify_money_question
+
+        if classify_money_question(normalized) == "payment_arrival_verify":
+            return True
+    except Exception:
+        pass
     # Invoice state/status belongs to the invoice/payment domain even when it
     # is phrased as a read or mutation.  This branch intentionally delegates;
     # the generic fleet-status renderer must never answer about an invoice.

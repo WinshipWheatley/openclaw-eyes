@@ -50,7 +50,7 @@ def test_hilton_payment_question_routes_directly(monkeypatch):
     assert logged[-1]["route"] == "payment_verify"
 
 
-def test_payment_question_rescues_file_style_llm_fallback(monkeypatch):
+def test_payment_question_preempts_file_style_llm_fallback(monkeypatch):
     import cassandra_brain
 
     logged = []
@@ -76,10 +76,10 @@ def test_payment_question_rescues_file_style_llm_fallback(monkeypatch):
 
     assert replies == ["I checked your recent Gmail notifications but didn't see any matching that payment yet."]
     assert "path" not in replies[0].lower()
-    assert logged[-1]["route"] == "payment_verify_rescue"
+    assert logged[-1]["route"] == "payment_verify"
 
 
-def test_payment_question_rescues_generic_payment_limit_reply(monkeypatch):
+def test_payment_question_preempts_generic_payment_limit_reply(monkeypatch):
     import cassandra_brain
 
     logged = []
@@ -106,10 +106,10 @@ def test_payment_question_rescues_generic_payment_limit_reply(monkeypatch):
 
     assert replies == ["I tried to check your Gmail for payment notifications but the service is unreachable right now."]
     assert "account is the source of truth" not in replies[0].lower()
-    assert logged[-1]["route"] == "payment_verify_rescue"
+    assert logged[-1]["route"] == "payment_verify"
 
 
-def test_hilton_payment_question_prefers_canonical_reality(tmp_path, monkeypatch):
+def test_hilton_payment_question_rejects_legacy_reality_as_current_truth(tmp_path, monkeypatch):
     import cassandra_brain
     import finance_state
 
@@ -145,13 +145,24 @@ def test_hilton_payment_question_prefers_canonical_reality(tmp_path, monkeypatch
     monkeypatch.setattr(
         cassandra_brain,
         "_fetch_payment_verify_context",
-        lambda query: (_ for _ in ()).throw(AssertionError("canonical Hilton answer should short-circuit Gmail lookup")),
+        lambda query: "[VERIFIED PAYMENT DATA — no recent Gmail notifications found]",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_payment_verify_ledger_line",
+        lambda query: (
+            "Receivables (receivables_month_bounded, as of 2026-07-09): "
+            "Capital Hilton: check expected, amount not yet confirmed."
+        ),
         raising=False,
     )
 
     replies = cassandra_brain.handle("Did the Hilton payment come through?")
 
-    assert replies == ["Capital Hilton already paid 400 dollars for the first gig via Venmo. The next payment is not confirmed yet."]
+    assert "receivables_month_bounded" in replies[0]
+    assert "as of 2026-07-09" in replies[0]
+    assert "400 dollars" not in replies[0]
     assert logged[-1]["route"] == "payment_verify"
 
 

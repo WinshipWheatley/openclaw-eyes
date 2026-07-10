@@ -211,7 +211,7 @@ def test_classifier_read_arrival_and_action_split():
 
     assert classify_money_question(MONEY_QUESTION) == "money_read"
     assert classify_money_question("what's outstanding?") == "money_read"
-    assert classify_money_question("did St Anne's pay us?") == "money_read"
+    assert classify_money_question("did St Anne's pay us?") == "payment_arrival_verify"
     assert classify_money_question("Did the Hilton payment come through?") == "payment_arrival_verify"
     assert classify_money_question("did the check clear?") == "payment_arrival_verify"
     assert classify_money_question("create an invoice for St Anne's") is None
@@ -336,10 +336,11 @@ def test_cassandra_did_st_annes_pay_us_is_money_class(tmp_path, monkeypatch, mon
 
     replies = cassandra_brain.handle("did St Anne's pay us?")
 
-    assert logged[-1]["route"] == "money_truth"
+    assert logged[-1]["route"] == "payment_verify"
     assert "St. Anne" in replies[0]
     assert "settled" in replies[0]
     assert "ready to send" in replies[0]
+    assert "receivables_month_bounded" in replies[0]
 
 
 def test_cassandra_session_override_outranks_money_truth(tmp_path, monkeypatch, money_fixture):
@@ -429,7 +430,9 @@ def test_cassandra_correlated_payment_notification_still_verifies(tmp_path, monk
     reply = cassandra_brain._handle_payment_verification_request("Did the Hilton payment come through?")
 
     assert reply is not None
-    assert "I've verified a matching payment notification" in reply
+    assert "correlated payment-related Gmail notification" in reply
+    assert "does not prove bank settlement" in reply
+    assert "receivables_month_bounded" in reply
     assert "Capital Hilton" in reply
 
 

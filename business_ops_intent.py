@@ -7,8 +7,11 @@ Unifies keyword-based intent detection across Gmail, Calendar, Payments, and Fil
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Optional
+
+from money_truth import classify_money_question
 
 
 @dataclass(frozen=True)
@@ -18,6 +21,11 @@ class IntentFrame:
     domain: str
     confidence: float
     trigger: Optional[str] = None
+
+
+def _contains_term(text: str, term: str) -> bool:
+    """Match an intent term as words, never as an arbitrary substring."""
+    return bool(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text))
 
 
 def classify_business_ops_intent(query: str) -> IntentFrame:
@@ -37,7 +45,14 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
     if q == "monitored_email_conversation":
         return IntentFrame("monitored_email_conversation", "automated", "email", 1.0)
 
-    # 3. Status / Orientation (High priority for explicit orientation)
+    # 3. Specific payment reads.  This shared classifier must run before
+    # status and email: ordinary grammar ("check from Capital Hilton") is not
+    # an email-search instruction merely because it contains the word "from".
+    money_class = classify_money_question(q)
+    if money_class == "payment_arrival_verify":
+        return IntentFrame("payment_verify", "read_only", "payment", 1.0, money_class)
+
+    # 4. Status / Orientation (High priority for explicit orientation)
     # Explicit OpenClaw orientation/status questions (High confidence)
     explicit_status_phrases = (
         "where are we", "openclaw status", "system status", "orientation",
@@ -50,16 +65,22 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
             # Overriding 'thread' or 'subject' if 'catch me up' or 'orientation' is present
             return IntentFrame("ops_status", "read_only", "logging", 1.0, "explicit_status")
 
-    # 4. Email / Gmail
+    # 5. Email / Gmail
     email_terms = (
         "email", "gmail", "inbox", "message", "unread", "sender",
         "subject", "from", "reply", "draft", "thread", "attachment"
     )
     for term in email_terms:
-        if term in q:
+        if _contains_term(q, term):
             return IntentFrame("email_search", "read_only", "email", 0.9, term)
 
-    # 5. Calendar
+    # A user who explicitly asks to find an email keeps the email lane even if
+    # the quoted subject is money-shaped.  Bare money reads use the shared
+    # ledger classifier after that explicit instruction has had its turn.
+    if money_class == "money_read":
+        return IntentFrame("money_read", "read_only", "payment", 1.0, money_class)
+
+    # 6. Calendar
     calendar_terms = (
         "calendar", "schedule", "appointment", "meeting", "event",
         "tomorrow morning", "tomorrow afternoon", "this week", "next week",
@@ -69,17 +90,17 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
         if term in q:
             return IntentFrame("calendar_read", "read_only", "calendar", 0.9, term)
 
-    # 6. Payment / Billing
+    # 7. Payment / Billing
     payment_terms = (
         "invoice", "payment", "paid", "unpaid", "receivable",
         "owes", "owed", "client follow-up", "balance", "overdue",
-        "deposit", "cleared", "transfer", "funds"
+        "deposit", "transfer", "funds"
     )
     for term in payment_terms:
         if term in q:
             return IntentFrame("payment_verify", "read_only", "payment", 0.9, term)
 
-    # 7. File / Path
+    # 8. File / Path
     file_terms = (
         "file", "path", "exist", "directory", "folder", "/mnt", "/home",
         ".py", ".md", ".json", ".sh", ".txt", ".csv"
@@ -88,7 +109,7 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
         if term in q:
             return IntentFrame("file_verify", "read_only", "file", 0.8, term)
 
-    # 8. Contacts
+    # 9. Contacts
     contact_terms = (
         "number for", "phone number", "phone for", "contact for",
         "do i have a number", "do i have contact", "what's the number",
@@ -99,7 +120,7 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
         if term in q:
             return IntentFrame("contacts_read", "read_only", "contacts", 0.9, term)
 
-    # 9. Fuzzy/Natural Operator Phrases (Lower priority than specific domains)
+    # 10. Fuzzy/Natural Operator Phrases (Lower priority than specific domains)
     fuzzy_status_phrases = (
         "what's up", "where are we at", "how are things looking",
         "what should i know", "what's going on", "remind me what's current",
