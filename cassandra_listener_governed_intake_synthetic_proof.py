@@ -8,6 +8,7 @@ messages, switch callers, activate agents, or grant runtime authority.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import sqlite3
@@ -134,38 +135,152 @@ def inspect_cassandra_listener_receive_wiring(listener_path: str | Path = ROOT /
 
     target = rooted(listener_path)
     source = target.read_text(encoding="utf-8")
-    handle_index = source.find("async def handle_message")
-    hook_index = source.find("record_cassandra_listener_text_update(", handle_index)
-    unverified_return_index = source.find("if not is_authorized_user and not is_designated_contact:", handle_index)
-    first_reply_index = source.find(".reply_text(", handle_index)
-    runtime_request_index = source.find("_run_request_with_timeout_contract(", handle_index)
+    tree = ast.parse(source, filename=str(target))
+
+    def position(node: ast.AST | None) -> tuple[int, int] | None:
+        if node is None or not hasattr(node, "lineno"):
+            return None
+        return (node.lineno, node.col_offset)
+
+    def before(left: ast.AST | None, right: ast.AST | None) -> bool:
+        left_position = position(left)
+        right_position = position(right)
+        return left_position is not None and right_position is not None and left_position < right_position
+
+    def imported_from(module: str, symbol: str) -> bool:
+        return any(
+            isinstance(node, ast.ImportFrom)
+            and node.module == module
+            and any(alias.name == symbol for alias in node.names)
+            for node in tree.body
+        )
+
+    def call_name(node: ast.Call) -> str | None:
+        if isinstance(node.func, ast.Name):
+            return node.func.id
+        if isinstance(node.func, ast.Attribute):
+            return node.func.attr
+        return None
+
+    def first_call(function: ast.AsyncFunctionDef, names: set[str]) -> ast.Call | None:
+        calls = [
+            node
+            for node in ast.walk(function)
+            if isinstance(node, ast.Call) and call_name(node) in names
+        ]
+        return min(calls, key=lambda node: position(node) or (sys.maxsize, sys.maxsize), default=None)
+
+    def is_authorization_rejection(node: ast.AST) -> bool:
+        if not isinstance(node, ast.If) or not isinstance(node.test, ast.BoolOp) or not isinstance(node.test.op, ast.And):
+            return False
+        rejected_names = {
+            value.operand.id
+            for value in node.test.values
+            if isinstance(value, ast.UnaryOp)
+            and isinstance(value.op, ast.Not)
+            and isinstance(value.operand, ast.Name)
+        }
+        return rejected_names == {"is_authorized_user", "is_designated_contact"} and any(
+            isinstance(statement, ast.Return) for statement in node.body
+        )
+
+    handle = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.AsyncFunctionDef) and node.name == "handle_message"
+        ),
+        None,
+    )
+    authorization_rejection = (
+        min(
+            (node for node in ast.walk(handle) if is_authorization_rejection(node)),
+            key=lambda node: position(node) or (sys.maxsize, sys.maxsize),
+            default=None,
+        )
+        if handle is not None
+        else None
+    )
+    claim_call = first_call(handle, {"claim_listener_update"}) if handle is not None else None
+    hook_call = first_call(handle, {"record_cassandra_listener_text_update"}) if handle is not None else None
+    first_reply_call = (
+        first_call(
+            handle,
+            {"reply_text", "reply_document", "_send_bound_text", "_send_bound_document", "_send_to_prompt"},
+        )
+        if handle is not None
+        else None
+    )
+    first_runtime_call = (
+        first_call(
+            handle,
+            {
+                "_run_request_with_timeout_contract",
+                "_run_producer_intake",
+                "_trigger_chief_investigation_async",
+                "send_voice_note",
+                "speak",
+                "synthesize_for_voice_note",
+            },
+        )
+        if handle is not None
+        else None
+    )
+    text_strip = None
+    if handle is not None:
+        text_strip = next(
+            (
+                node.value
+                for node in ast.walk(handle)
+                if isinstance(node, ast.Assign)
+                and any(isinstance(target_node, ast.Name) and target_node.id == "text" for target_node in node.targets)
+                and isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Attribute)
+                and node.value.func.attr == "strip"
+            ),
+            None,
+        )
+    hook_keywords = {
+        keyword.arg: keyword.value
+        for keyword in hook_call.keywords
+        if keyword.arg is not None
+    } if hook_call is not None else {}
+    source_user_label_bound = isinstance(hook_keywords.get("source_user_label"), ast.Name) and (
+        hook_keywords["source_user_label"].id == "source_user_label"
+    )
+    operator_gated_route = all(
+        isinstance(hook_keywords.get(keyword), ast.Name)
+        and hook_keywords[keyword].id == "is_authorized_user"
+        for keyword in ("operator_message", "route_intent")
+    )
+
+    hook_imported = imported_from("telegram_agent_intake", "record_cassandra_listener_text_update")
+    claim_imported = imported_from("telegram_agent_intake", "claim_listener_update")
+    authorization_rejection_before_claim = before(authorization_rejection, claim_call)
+    claim_before_governed_intake = before(claim_call, hook_call)
+    claim_before_reply = before(claim_call, first_reply_call)
+    claim_before_runtime = before(claim_call, first_runtime_call)
+    hook_after_text_strip = before(text_strip, hook_call)
+    unverified_dropped_before_metadata = before(authorization_rejection, hook_call)
+    unverified_metadata_only = before(hook_call, authorization_rejection) and operator_gated_route
     source_channel_declared = 'source_channel=AGENT_METADATA["cassandra"]["source_channel"]' in Path(
         ROOT / "telegram_agent_intake.py"
     ).read_text(encoding="utf-8")
 
-    def line_no(index: int) -> int | None:
-        if index < 0:
-            return None
-        return source[:index].count("\n") + 1
-
-    hook_present = hook_index >= 0
-    hook_after_text_strip = source.find("text = update.message.text.strip()", handle_index) < hook_index if hook_present else False
-    hook_before_unverified_return = hook_present and unverified_return_index > hook_index
-    hook_before_reply = hook_present and first_reply_index > hook_index
-    hook_before_runtime_brain = hook_present and runtime_request_index > hook_index
-    operator_gated_route = (
-        "operator_message=is_authorized_user" in source[hook_index : hook_index + 500]
-        and "route_intent=is_authorized_user" in source[hook_index : hook_index + 500]
-    )
     wiring_proven = all(
         (
-            "from telegram_agent_intake import record_cassandra_listener_text_update" in source,
-            hook_present,
+            hook_imported,
+            claim_imported,
+            hook_call is not None,
+            claim_call is not None,
+            authorization_rejection is not None,
+            authorization_rejection_before_claim,
+            claim_before_governed_intake,
+            claim_before_reply,
+            claim_before_runtime,
             hook_after_text_strip,
-            hook_before_unverified_return,
-            hook_before_reply,
-            hook_before_runtime_brain,
-            "source_user_label=source_user_label" in source[hook_index : hook_index + 500],
+            unverified_dropped_before_metadata,
+            source_user_label_bound,
             operator_gated_route,
             source_channel_declared,
         )
@@ -173,15 +288,22 @@ def inspect_cassandra_listener_receive_wiring(listener_path: str | Path = ROOT /
     return {
         "listener_path": display_path(target),
         "live_receive_wired": wiring_proven,
-        "hook_imported": "from telegram_agent_intake import record_cassandra_listener_text_update" in source,
-        "hook_call_present": hook_present,
-        "hook_line": line_no(hook_index),
+        "hook_imported": hook_imported,
+        "claim_imported": claim_imported,
+        "hook_call_present": hook_call is not None,
+        "claim_call_present": claim_call is not None,
+        "authorization_rejection_present": authorization_rejection is not None,
+        "hook_line": hook_call.lineno if hook_call is not None else None,
+        "claim_line": claim_call.lineno if claim_call is not None else None,
+        "authorization_rejection_line": authorization_rejection.lineno if authorization_rejection is not None else None,
         "hook_after_text_strip": hook_after_text_strip,
-        "hook_before_unverified_sender_return": hook_before_unverified_return,
-        "hook_before_reply_text": hook_before_reply,
-        "hook_before_runtime_brain": hook_before_runtime_brain,
+        "authorization_rejection_before_claim": authorization_rejection_before_claim,
+        "claim_before_governed_intake": claim_before_governed_intake,
+        "claim_before_any_reply": claim_before_reply,
+        "claim_before_any_runtime": claim_before_runtime,
         "operator_message_gates_routing": operator_gated_route,
-        "unverified_sender_metadata_only": hook_before_unverified_return,
+        "unverified_sender_dropped_before_metadata": unverified_dropped_before_metadata,
+        "unverified_sender_metadata_only": unverified_metadata_only,
         "source_channel": LIVE_SOURCE_CHANNEL,
         "source_channel_declared_in_helper": source_channel_declared,
         "listener_imported_or_executed": False,
@@ -401,7 +523,8 @@ def format_operator_packet(payload: dict[str, Any]) -> str:
         "## What Is Proven",
         "- A Cassandra-targeted synthetic Telegram-style update can be stored as governed Repo A intake metadata.",
         "- The live `cassandra_listener.py` receive path calls the governed Cassandra intake helper.",
-        "- The live hook is before unverified-sender return, reply handling, and Cassandra runtime brain calls.",
+        "- The live handler drops unverified senders before claiming an update ID or recording governed metadata.",
+        "- The durable update-ID claim is before governed intake, reply handling, and Cassandra runtime calls.",
         "- The message is routed through deterministic intent records and surfaced on the Work Board.",
         "- A planning-only Agent Work Packet can be built from the routed intent.",
         "- Only hash and bounded excerpt metadata are retained; no full raw body is stored.",

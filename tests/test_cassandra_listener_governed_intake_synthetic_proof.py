@@ -4,6 +4,8 @@ import re
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 import cassandra_listener_governed_intake_synthetic_proof as proof
 from scripts.export_cassandra_listener_governed_intake_synthetic_proof import main as cli_main
 
@@ -45,19 +47,101 @@ def test_live_listener_receive_path_is_wired_before_reply_or_runtime_paths():
 
     assert wiring["live_receive_wired"] is True
     assert wiring["hook_imported"] is True
+    assert wiring["claim_imported"] is True
     assert wiring["hook_call_present"] is True
+    assert wiring["claim_call_present"] is True
+    assert wiring["authorization_rejection_present"] is True
     assert wiring["hook_after_text_strip"] is True
-    assert wiring["hook_before_unverified_sender_return"] is True
-    assert wiring["hook_before_reply_text"] is True
-    assert wiring["hook_before_runtime_brain"] is True
+    assert wiring["authorization_rejection_before_claim"] is True
+    assert wiring["claim_before_governed_intake"] is True
+    assert wiring["claim_before_any_reply"] is True
+    assert wiring["claim_before_any_runtime"] is True
     assert wiring["operator_message_gates_routing"] is True
-    assert wiring["unverified_sender_metadata_only"] is True
+    assert wiring["unverified_sender_dropped_before_metadata"] is True
+    assert wiring["unverified_sender_metadata_only"] is False
     assert wiring["source_channel"] == "cassandra_listener"
     assert wiring["listener_imported_or_executed"] is False
     assert wiring["service_restarted"] is False
     assert wiring["send_authority_added"] is False
     assert wiring["reply_authority_added"] is False
     assert wiring["runtime_authority_changed"] is False
+
+
+_LISTENER_PROOF_STATEMENTS = {
+    "reject": """if not is_authorized_user and not is_designated_contact:\n    return""",
+    "claim": """if not claim_listener_update(update, role=\"cassandra\", source_channel=\"cassandra_listener\"):\n    return""",
+    "text": "text = update.message.text.strip()",
+    "hook": """record_cassandra_listener_text_update(
+    text=text,
+    source_user_label=source_user_label,
+    operator_message=is_authorized_user,
+    route_intent=is_authorized_user,
+)""",
+    "reply": "await update.message.reply_text(\"ok\")",
+    "runtime": "await _run_request_with_timeout_contract(text=text)",
+}
+
+
+def _write_listener_proof_fixture(tmp_path: Path, order: tuple[str, ...]) -> Path:
+    body = "\n".join(
+        "\n".join(f"    {line}" for line in _LISTENER_PROOF_STATEMENTS[statement].splitlines())
+        for statement in order
+    )
+    target = tmp_path / "cassandra_listener.py"
+    target.write_text(
+        """from telegram_agent_intake import (
+    claim_listener_update,
+    record_cassandra_listener_text_update,
+)
+
+async def handle_message(update, context):
+    is_authorized_user = True
+    is_designated_contact = False
+    source_user_label = "operator"
+"""
+        + body
+        + "\n",
+        encoding="utf-8",
+    )
+    return target
+
+
+def test_ast_wiring_proof_accepts_grouped_import_and_required_security_order(tmp_path):
+    target = _write_listener_proof_fixture(
+        tmp_path,
+        ("reject", "claim", "text", "hook", "reply", "runtime"),
+    )
+
+    wiring = proof.inspect_cassandra_listener_receive_wiring(target)
+
+    assert wiring["hook_imported"] is True
+    assert wiring["claim_imported"] is True
+    assert wiring["authorization_rejection_before_claim"] is True
+    assert wiring["claim_before_governed_intake"] is True
+    assert wiring["claim_before_any_reply"] is True
+    assert wiring["claim_before_any_runtime"] is True
+    assert wiring["unverified_sender_dropped_before_metadata"] is True
+    assert wiring["live_receive_wired"] is True
+
+
+@pytest.mark.parametrize(
+    ("order", "failed_assertion"),
+    (
+        (("claim", "reject", "text", "hook", "reply", "runtime"), "authorization_rejection_before_claim"),
+        (("text", "hook", "reject", "claim", "reply", "runtime"), "unverified_sender_dropped_before_metadata"),
+        (("reject", "reply", "claim", "text", "hook", "runtime"), "claim_before_any_reply"),
+        (("reject", "runtime", "claim", "text", "hook", "reply"), "claim_before_any_runtime"),
+    ),
+)
+def test_ast_wiring_proof_rejects_each_unsafe_order(tmp_path, order, failed_assertion):
+    target = _write_listener_proof_fixture(tmp_path, order)
+
+    wiring = proof.inspect_cassandra_listener_receive_wiring(target)
+
+    assert wiring[failed_assertion] is False
+    assert wiring["live_receive_wired"] is False
+    if failed_assertion == "unverified_sender_dropped_before_metadata":
+        assert wiring["unverified_sender_metadata_only"] is True
 
 
 def test_raw_full_body_is_not_stored_and_bounded_excerpt_hash_rules_are_respected(tmp_path):
