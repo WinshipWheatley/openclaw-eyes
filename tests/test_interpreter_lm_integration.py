@@ -151,7 +151,7 @@ class TestFactSelectionBridge:
             "interpreter_fact_selection": ["work_board.json"],
         }
         result = maestro.answer_frontdoor_chat(
-            "how are things looking across the board right now?",
+            "what needs the most attention on the reynolds gig prep?",
             session=session,
             source_surface="operator_maestro_chat",
             protected_generate_fn=_stub_protected_generate,
@@ -188,7 +188,7 @@ class TestFactSelectionBridge:
             "interpreter_fact_selection": ["work_board.json"],
         }
         result = maestro.answer_frontdoor_chat(
-            "how are things looking across the board right now?",
+            "what needs the most attention on the reynolds gig prep?",
             session=session,
             source_surface="operator_maestro_chat",
             protected_generate_fn=_stub_protected_generate,

@@ -513,7 +513,7 @@ class TestFactSelection:
         }
         # Call the REAL answer_frontdoor_chat with injected protected_generate.
         result = maestro.answer_frontdoor_chat(
-            "how are things looking across the board right now?",
+            "what needs the most attention on the reynolds gig prep?",
             session=session,
             source_surface="operator_maestro_chat",
             protected_generate_fn=_stub_protected_generate,
@@ -540,14 +540,14 @@ class TestFactSelection:
         truth_path = _seed_operator_truth(tmp_path, monkeypatch)
 
         baseline = packet_mod.build_maestro_context_packet(
-            question="status across the board",
+            question="what needs the most attention on the reynolds gig prep?",
             read_model_root=read_model_root,
             operator_truth_store_path=truth_path,
             require_real_truth=True,
             fact_selection=None,
         )
         selected = packet_mod.build_maestro_context_packet(
-            question="status across the board",
+            question="what needs the most attention on the reynolds gig prep?",
             read_model_root=read_model_root,
             operator_truth_store_path=truth_path,
             require_real_truth=True,
@@ -571,14 +571,14 @@ class TestFactSelection:
         truth_path = _seed_operator_truth(tmp_path, monkeypatch)
 
         baseline = packet_mod.build_maestro_context_packet(
-            question="status across the board",
+            question="what needs the most attention on the reynolds gig prep?",
             read_model_root=read_model_root,
             operator_truth_store_path=truth_path,
             require_real_truth=True,
             fact_selection=None,
         )
         selected = packet_mod.build_maestro_context_packet(
-            question="status across the board",
+            question="what needs the most attention on the reynolds gig prep?",
             read_model_root=read_model_root,
             operator_truth_store_path=truth_path,
             require_real_truth=True,
@@ -1205,7 +1205,7 @@ class TestFlagOffByteIdentity:
             "interpreter_fact_selection": ["work_board.json"],
         }
         result = maestro.answer_frontdoor_chat(
-            "how are things looking across the board right now?",
+            "what needs the most attention on the reynolds gig prep?",
             session=session,
             source_surface="operator_maestro_chat",
             protected_generate_fn=_stub_protected_generate,

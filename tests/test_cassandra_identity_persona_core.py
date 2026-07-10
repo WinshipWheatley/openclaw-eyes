@@ -67,7 +67,9 @@ def test_who_are_you_answers_deterministically_with_clara_and_no_emoji(monkeypat
     assert "clara" in replies[0].lower()
     assert not any(ch in replies[0] for ch in "😊🙂😀🤖")
     assert "i'm your ai assistant" not in replies[0].lower()
-    assert logged[-1]["route"] == "identity_persona_core"
+    # 2026-07-10 wave: the typed contract now owns identity routing; the reply
+    # content is byte-identical, only the route label moved.
+    assert logged[-1]["route"] in {"identity_persona_core", "typed_contract:identity"}
 
 
 def test_identity_answer_never_mentions_another_agents_domain(monkeypatch):

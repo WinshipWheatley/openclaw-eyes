@@ -5673,10 +5673,12 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
     # Explicit email terms: allowed
     email_terms = (
         "email", "gmail", "inbox", "message", "unread", "sender",
-        "subject", "from", "reply", "draft", "thread", "attachment"
+        "subject", "from", "reply", "replies", "draft", "thread", "attachment"
     )
     for term in email_terms:
-        if re.search(rf"(?<!\w){re.escape(term)}(?!\w)", q):
+        # s? keeps plurals ("send the intro emails") — the 2026-07-10 word-
+        # bounding regression denied the whole outreach lane on the plural.
+        if re.search(rf"(?<!\w){re.escape(term)}s?(?!\w)", q):
             return GmailIntentDecision(True, f"Explicit email term trigger: '{term}'", "email_search", term)
 
     # Task 140: read-only money QUESTIONS are answered from the ONE money truth
@@ -6923,10 +6925,12 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
         _contract_decision = decide_contract(
             query,
             context=_contract_context,
-            status_renderer=lambda: _handle_ops_status_inquiry(query),
+            # Fuzzy status must reach the REAL state-aware ops-status path, not
+            # the deterministic fallback formatter (2026-07-10 battery).
+            status_renderer=lambda: _answer_ops_status_inquiry(query, load_state())[0],
             handoff_stager=_stage_handoff,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
-                "cassandra_brain", default=True
+                "cassandra_brain"
             ),
         )
     except Exception as exc:

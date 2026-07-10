@@ -1,5 +1,20 @@
 from __future__ import annotations
 
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _bypass_money_read_contract(monkeypatch):
+    """2026-07-10 wave: the typed contract front-answers money reads
+    deterministically (no model). These tests exercise the 132 anti-launder +
+    packet answer-topic layers that remain as defense-in-depth on the brain
+    path, so route money asks past the contract for this file only."""
+    import typed_contract_decision as _tcd
+
+    monkeypatch.setattr(_tcd, "_is_money_read", lambda _t: False)
+    monkeypatch.setattr(_tcd, "_is_payment_arrival", lambda _t: False)
+
+
 import json
 from datetime import date
 from pathlib import Path

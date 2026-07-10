@@ -4409,6 +4409,7 @@ def process_guided_review_message(
                 session_kind="guided_review",
                 session_field=str(session.get("current_question_id") or ""),
                 session_snapshot=dict(session),
+                session_owner_handles_unknown=True,
             )
 
             def _typed_session_answer(candidate: str) -> bool:
@@ -4428,7 +4429,7 @@ def process_guided_review_message(
                 raw_text,
                 context=_typed_context,
                 semantic_vote_enabled=semantic_vote_enabled_for_adapter(
-                    "cassandra_guided_review", default=True
+                    "cassandra_guided_review"
                 ),
                 session_answer_predicate=_typed_session_answer,
             )

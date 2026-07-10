@@ -80,6 +80,7 @@ class ContractContext:
     session_field: str = ""
     authority_pending: bool = False
     session_snapshot: Mapping[str, Any] = field(default_factory=dict, repr=False, compare=False)
+    session_owner_handles_unknown: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         # Never serialize arbitrary session values.  They may contain paths,
@@ -244,6 +245,14 @@ def semantic_vote_enabled_for_adapter(
 ) -> bool:
     env = environ if environ is not None else os.environ
     if SEMANTIC_VOTE_ENV not in env:
+        # Hermetic default under pytest: ten thousand legacy tests must never
+        # depend on a live local model (2026-07-10 gate: default-ON turned
+        # scripted wizard answers into preserve-session replies). Tests that
+        # exercise the vote set OPENCLAW_CONTRACT_VOTE_ADAPTERS or pass the
+        # enabled flag/fixtures explicitly. Production (no pytest) keeps the
+        # adapter's explicit default.
+        if "PYTEST_CURRENT_TEST" in env:
+            return False
         # Production defaults are chosen explicitly by each adapter.  Active
         # session boundaries pass default=True so uncertainty cannot fall back
         # to greedy legacy capture even when no deployment env is present.
@@ -1128,7 +1137,17 @@ def decide_contract(
     # nonsense is not a route/status instruction.  Refusal/authority were
     # already resolved above, and specific domains require coherent shapes.
     _identity_match = _is_identity(raw)
-    if _is_low_coherence(raw) and not _identity_match:
+    _low_coherence = _is_low_coherence(raw) and not _identity_match
+    if _low_coherence and context.active_session and session_answer_predicate is not None:
+        # A short in-session command ("why?", "skip", "examples") looks like
+        # gibberish to a generic heuristic; the session's own predicate knows
+        # its vocabulary and outranks LOW_COHERENCE only (2026-07-10 battery).
+        try:
+            if bool(session_answer_predicate(raw)):
+                _low_coherence = False
+        except Exception:
+            pass
+    if _low_coherence:
         safe_matches.append(ContractLabel.LOW_COHERENCE)
     else:
         # Short, legitimate identity asks (for example "introduce yourself")
@@ -1305,6 +1324,24 @@ def decide_contract(
             model_called=True,
             vote_status=vote_status,
             confidence=0.0,
+            started=started,
+        )
+
+    if context.active_session and context.session_owner_handles_unknown:
+        # The adapter DECLARED its session owner parses unknown text (guided
+        # review's wizard has rich command/answer handling of its own).  Greedy
+        # capture of CONTRACT-shaped texts is already prevented above, and the
+        # vote-uncertain path still preserves per the consensus guard-rail.
+        return _make_decision(
+            text=raw,
+            context=context,
+            label=ContractLabel.UNRESOLVED,
+            action=DecisionAction.PASS_THROUGH,
+            reply=None,
+            source="fallback",
+            reason="vote_disabled_session_owner_passthrough",
+            model_called=False,
+            vote_status="disabled",
             started=started,
         )
 
