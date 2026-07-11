@@ -641,6 +641,111 @@ class OpenClawResponseForMac:
     next_safe_move: str
     proof_to_response: dict[str, Any] = field(default_factory=dict)
     proof_to_response_status: str = ""
+    # Durable across dataclasses.replace() publication substitutions. The
+    # final JSON builder rehydrates this exact receipt into both required
+    # bridge fields even when Guardian replaces the candidate proof payload.
+    typed_contract_trace: dict[str, Any] = field(default_factory=dict)
+
+
+def _merge_typed_contract_trace(
+    trace: dict[str, Any],
+    entry: Mapping[str, Any] | None,
+) -> None:
+    receipt = entry.get("typed_contract_decision") if isinstance(entry, Mapping) else None
+    if not isinstance(receipt, Mapping) or not str(receipt.get("decision_id") or ""):
+        return
+    existing = trace.get("typed_contract_decision")
+    if not isinstance(existing, Mapping):
+        trace.update(entry)
+        return
+    if dict(existing) == dict(receipt) and trace.get("typed_contract_matches") == entry.get(
+        "typed_contract_matches"
+    ):
+        return
+    trace["typed_contract_trace_conflict"] = {
+        "status": "decision_conflict",
+        "first": dict(existing),
+        "second": dict(receipt),
+    }
+
+
+def _record_typed_contract_trace(
+    trace: dict[str, Any],
+    result: maestro_cassandra_responder.MaestroCassandraResult,
+) -> None:
+    _merge_typed_contract_trace(
+        trace,
+        maestro_cassandra_responder.typed_contract_trace_for_result(result),
+    )
+
+
+def _attach_typed_contract_trace(
+    response: OpenClawResponseForMac,
+    trace: Mapping[str, Any] | None,
+) -> OpenClawResponseForMac:
+    if not isinstance(trace, Mapping):
+        return response
+    receipt = trace.get("typed_contract_decision")
+    if not isinstance(receipt, Mapping) or not str(receipt.get("decision_id") or ""):
+        return response
+    matches = trace.get("typed_contract_matches")
+    bounded_matches = (
+        [str(item) for item in matches if str(item)]
+        if isinstance(matches, (list, tuple))
+        else []
+    )
+    proof = dict(response.proof_to_response or {})
+    proof["typed_contract_decision"] = dict(receipt)
+    proof["typed_contract_matches"] = list(bounded_matches)
+    detail = dict(response.detail_disclosure or {})
+    detail["typed_contract_decision"] = dict(receipt)
+    detail["typed_contract_matches"] = list(bounded_matches)
+    conflict = trace.get("typed_contract_trace_conflict")
+    durable_trace = {
+        "typed_contract_decision": dict(receipt),
+        "typed_contract_matches": list(bounded_matches),
+    }
+    if isinstance(conflict, Mapping):
+        proof["typed_contract_trace_conflict"] = dict(conflict)
+        detail["typed_contract_trace_conflict"] = dict(conflict)
+        durable_trace["typed_contract_trace_conflict"] = dict(conflict)
+    return replace(
+        response,
+        proof_to_response=proof,
+        detail_disclosure=detail,
+        typed_contract_trace=durable_trace,
+    )
+
+
+def _rehydrate_typed_contract_trace_payload(
+    payload: dict[str, Any],
+    trace: Mapping[str, Any] | None,
+) -> None:
+    """Restore a durable receipt after any dataclass-level publication substitution."""
+
+    if not isinstance(trace, Mapping):
+        return
+    receipt = trace.get("typed_contract_decision")
+    if not isinstance(receipt, Mapping) or not str(receipt.get("decision_id") or ""):
+        return
+    matches = trace.get("typed_contract_matches")
+    bounded_matches = (
+        [str(item) for item in matches if str(item)]
+        if isinstance(matches, (list, tuple))
+        else []
+    )
+    proof = dict(payload.get("proof_to_response") or {})
+    detail = dict(payload.get("detail_disclosure") or {})
+    proof["typed_contract_decision"] = dict(receipt)
+    proof["typed_contract_matches"] = list(bounded_matches)
+    detail["typed_contract_decision"] = dict(receipt)
+    detail["typed_contract_matches"] = list(bounded_matches)
+    conflict = trace.get("typed_contract_trace_conflict")
+    if isinstance(conflict, Mapping):
+        proof["typed_contract_trace_conflict"] = dict(conflict)
+        detail["typed_contract_trace_conflict"] = dict(conflict)
+    payload["proof_to_response"] = proof
+    payload["detail_disclosure"] = detail
 
 
 @dataclass(frozen=True)
@@ -2048,6 +2153,22 @@ def _voice_authorship_fields(response: OpenClawResponseForMac, layered_fields: M
 
 
 def _brain_receipt_for_response(response: OpenClawResponseForMac) -> dict[str, Any]:
+    durable_trace = (
+        response.typed_contract_trace
+        if isinstance(response.typed_contract_trace, Mapping)
+        else {}
+    )
+
+    def _with_durable_trace(candidate: Mapping[str, Any]) -> dict[str, Any]:
+        merged = dict(candidate)
+        decision = durable_trace.get("typed_contract_decision")
+        if isinstance(decision, Mapping) and str(decision.get("decision_id") or ""):
+            merged["typed_contract_decision"] = dict(decision)
+            merged["typed_contract_matches"] = list(
+                durable_trace.get("typed_contract_matches") or []
+            )
+        return merged
+
     proof_response = response.proof_to_response if isinstance(response.proof_to_response, Mapping) else {}
     if proof_response and (
         proof_response.get("protected_generate_called") is True
@@ -2055,7 +2176,7 @@ def _brain_receipt_for_response(response: OpenClawResponseForMac) -> dict[str, A
         or proof_response.get("protected_generate_route")
         or proof_response.get("route")
     ):
-        return dict(proof_response)
+        return _with_durable_trace(proof_response)
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     card = detail.get("dynamic_card_response") if isinstance(detail.get("dynamic_card_response"), Mapping) else {}
     proof = card.get("proof") if isinstance(card.get("proof"), Mapping) else {}
@@ -2066,8 +2187,8 @@ def _brain_receipt_for_response(response: OpenClawResponseForMac) -> dict[str, A
         or machine_proof.get("protected_generate_route")
         or machine_proof.get("route")
     ):
-        return dict(machine_proof)
-    return {}
+        return _with_durable_trace(machine_proof)
+    return _with_durable_trace({})
 
 
 def _brain_receipt_route(receipt: Mapping[str, Any]) -> str:
@@ -2084,18 +2205,41 @@ def _brain_receipt_model_id(receipt: Mapping[str, Any]) -> str:
     ).strip()
 
 
-def _brain_receipt_model_performed(receipt: Mapping[str, Any]) -> bool:
-    return receipt.get("model_call_performed") is True
+def _brain_receipt_model_performed(receipt: Mapping[str, Any]) -> bool | None:
+    if receipt.get("model_call_performed") is True:
+        return True
+    typed_receipt = receipt.get("typed_contract_decision")
+    if isinstance(typed_receipt, Mapping):
+        if typed_receipt.get("model_called") is True:
+            return True
+        if (
+            typed_receipt.get("model_called") is None
+            and str(typed_receipt.get("model_call_status") or "") == "unknown"
+        ):
+            return None
+    return False
 
 
-def _brain_receipt_local_invoked(receipt: Mapping[str, Any]) -> bool:
+def _brain_receipt_local_invoked(receipt: Mapping[str, Any]) -> bool | None:
     route = _brain_receipt_route(receipt)
-    return bool(receipt.get("local_model_invoked") is True or route.startswith("local_ollama"))
+    if receipt.get("local_model_invoked") is True or route.startswith("local_ollama"):
+        return True
+    if receipt.get("model_call_performed") is True:
+        return False
+    if _brain_receipt_model_performed(receipt) in {True, None}:
+        return None
+    return False
 
 
-def _brain_receipt_external_invoked(receipt: Mapping[str, Any]) -> bool:
+def _brain_receipt_external_invoked(receipt: Mapping[str, Any]) -> bool | None:
     route = _brain_receipt_route(receipt)
-    return bool(receipt.get("external_llm_invoked") is True or route.startswith("external"))
+    if receipt.get("external_llm_invoked") is True or route.startswith("external"):
+        return True
+    if receipt.get("model_call_performed") is True:
+        return False
+    if _brain_receipt_model_performed(receipt) in {True, None}:
+        return None
+    return False
 
 
 def _any_truthy_key(mappings: tuple[Mapping[str, Any], ...], keys: tuple[str, ...]) -> bool:
@@ -2229,16 +2373,52 @@ def _humor_health_gate(
 
 
 def _model_backend_selection_from_brain_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    typed_receipt = receipt.get("typed_contract_decision")
+    typed_model_call_unknown = (
+        isinstance(typed_receipt, Mapping)
+        and str(typed_receipt.get("model_call_status") or "") == "unknown"
+    )
+    typed_model_called = (
+        typed_receipt.get("model_called") is True
+        if isinstance(typed_receipt, Mapping)
+        else False
+    )
     if not receipt or (
         receipt.get("protected_generate_called") is not True
         and "model_call_performed" not in receipt
         and not _brain_receipt_route(receipt)
+        and not typed_model_call_unknown
+        and not typed_model_called
     ):
         return {}
     route = _brain_receipt_route(receipt)
     model_id = _brain_receipt_model_id(receipt)
     model_performed = _brain_receipt_model_performed(receipt)
+    if model_performed is None:
+        return {
+            "selected_model_backend": "UNKNOWN_UNPROVEN",
+            "selected_model_id": model_id,
+            "selected_worker_type": route or "TYPED_CONTRACT_ADAPTER_ERROR",
+            "allowed_tools_plugins": (),
+            "model_selection_reason": (
+                "The typed-contract adapter failed before model-call activity could be proved; "
+                "the final receipt keeps model-call status unknown."
+            ),
+            "credit_budget_policy": "Model-credit use is unknown for the failed typed-contract attempt.",
+        }
     if model_performed:
+        if typed_model_called and receipt.get("model_call_performed") is not True:
+            return {
+                "selected_model_backend": "UNKNOWN_CALL_ATTEMPTED",
+                "selected_model_id": model_id,
+                "selected_worker_type": route or "TYPED_CONTRACT_SEMANTIC_VOTE",
+                "allowed_tools_plugins": (),
+                "model_selection_reason": (
+                    "The typed-contract receipt proves a model call was attempted, but does not prove "
+                    "a delivered answer or backend family."
+                ),
+                "credit_budget_policy": "Model or runtime use may have occurred for the typed-contract attempt.",
+            }
         if _brain_receipt_local_invoked(receipt):
             backend = "LOCAL_OLLAMA"
             budget = "Local Ollama front-door brain answered this turn; no postpaid cloud model credits were used."
@@ -2282,10 +2462,13 @@ def _model_backend_selection_fields(
     proof_response = response.proof_to_response if isinstance(response.proof_to_response, Mapping) else {}
     proof_backend = str(proof_response.get("selected_model_backend") or "").strip()
     proof_candidate_source = str(proof_response.get("candidate_source") or "").strip()
+    reconciled_brain_receipt = _brain_receipt_for_response(response)
+    reconciled_model_call = _brain_receipt_model_performed(reconciled_brain_receipt)
     if (
         proof_backend
         and proof_candidate_source == "lm2_room_backed_worker_structured_output_retry"
         and proof_response.get("model_call_performed") is False
+        and reconciled_model_call is False
     ):
         return {
             "selected_model_backend": proof_backend,
@@ -2297,9 +2480,7 @@ def _model_backend_selection_fields(
             ),
             "credit_budget_policy": "No new model credits or local runtime call were used; the response cites an existing verified LM2 result.",
         }
-    brain_receipt_fields = _model_backend_selection_from_brain_receipt(
-        _brain_receipt_for_response(response)
-    )
+    brain_receipt_fields = _model_backend_selection_from_brain_receipt(reconciled_brain_receipt)
     if brain_receipt_fields:
         return brain_receipt_fields
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
@@ -3441,13 +3622,20 @@ def _process_workflow_package_request(
     generated_at: str | None,
     classification: RequestClassification,
     lm1_shared_seam: Mapping[str, Any] | None = None,
+    _typed_contract_trace: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac:
     result = workflow_package_request_consumer.consume_workflow_package_request(
         raw_request,
         source_request_filename=request_path.name,
         generated_at=generated_at,
         lm1_shared_seam=lm1_shared_seam,
+        frontdoor_contract_already_attempted=bool(
+            isinstance(_typed_contract_trace, Mapping)
+            and _typed_contract_trace.get("typed_contract_decision")
+        ),
     )
+    typed_contract_trace = dict(_typed_contract_trace or {})
+    _merge_typed_contract_trace(typed_contract_trace, result.typed_contract_trace)
     receipt = result.receipt
     package = result.package or {}
     package_status = str(receipt.get("package_status") or "NOT_CREATED")
@@ -3466,7 +3654,11 @@ def _process_workflow_package_request(
         workflow_ref == "system_question_answer"
         and str(receipt.get("raw_internal_status") or "") == "RESPONSE_READY"
     )
-    response_ready = package_recorded or system_question_answered
+    business_question_answered = (
+        workflow_ref == "business_question_answer"
+        and str(receipt.get("package_status") or "") == "ANSWER_READY"
+    )
+    response_ready = package_recorded or system_question_answered or business_question_answered
     internal_status = "RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON"
     blocker = str(receipt.get("blocker") or "")
     operator_display = (
@@ -3521,8 +3713,12 @@ def _process_workflow_package_request(
             "System question answered from local read models, wiki refs, and SQLite metadata; no package queue row was written."
             if system_question_answered
             else (
-                f"Package status {package_status}; capability gate {capability_status}. "
-                "The queue recorded only a no-op worker result and a closed business action gate."
+                "Business question answered through Maestro's grounded responder; no package queue row was written."
+                if business_question_answered
+                else (
+                    f"Package status {package_status}; capability gate {capability_status}. "
+                    "The queue recorded only a no-op worker result and a closed business action gate."
+                )
             )
         ),
         "proof_refs": receipt_proof_refs,
@@ -3543,7 +3739,7 @@ def _process_workflow_package_request(
         "blocker": blocker,
         "no_external_authority_granted": True,
     }
-    return OpenClawResponseForMac(
+    response = OpenClawResponseForMac(
         source_request_id=result.request_id,
         source_request_filename=request_path.name,
         workflow_ref=workflow_ref,
@@ -3557,11 +3753,15 @@ def _process_workflow_package_request(
             (
                 "PC detected system-question intent and routed it to the local system_question_answer workflow."
                 if system_question_answered
-                else "PC routed the instruction into the Workflow Package Queue V0 dry-run registry."
+                else (
+                    "PC detected business-question intent and routed it through Maestro's grounded responder."
+                    if business_question_answered
+                    else "PC routed the instruction into the Workflow Package Queue V0 dry-run registry."
+                )
             ),
             (
                 "PC returned a speaker-shaped operator display with proof refs collapsed."
-                if system_question_answered
+                if system_question_answered or business_question_answered
                 else "PC returned a scoped Mac response with the package status."
             ),
             "No Telegram live connection, email, Gmail, browser, Coupa, workbook mutation, PDF export, ledger mutation, submit, paid marking, or business-state mutation occurred.",
@@ -3570,9 +3770,13 @@ def _process_workflow_package_request(
             "System-question intent matched the local deterministic answer workflow."
             if system_question_answered
             else (
-            f"Workflow Package Queue classified the instruction as {workflow_ref} with package status {package_status}."
-            if package_recorded
-            else f"Envelope validation blockers: {blocker}."
+                "Business-question intent matched Maestro's grounded answer workflow."
+                if business_question_answered
+                else (
+                    f"Workflow Package Queue classified the instruction as {workflow_ref} with package status {package_status}."
+                    if package_recorded
+                    else f"Envelope validation blockers: {blocker}."
+                )
             )
         ),
         how_to_fix=next_safe_action,
@@ -3605,7 +3809,7 @@ def _process_workflow_package_request(
                 "routing_note": routing_note,
                 "package_status": package_status,
                 "capability_gate_status": capability_status,
-                "noop_worker_only": not system_question_answered,
+                "noop_worker_only": not (system_question_answered or business_question_answered),
                 "system_question_answer_local_only": system_question_answered,
             },
         ),
@@ -3628,6 +3832,7 @@ def _process_workflow_package_request(
         readback_files=(),
         next_safe_move=next_safe_action,
     )
+    return _attach_typed_contract_trace(response, typed_contract_trace)
 
 
 def _process_client_invoice_audit_handoff_request(
@@ -5146,14 +5351,27 @@ def _controller_event_dynamic_card(receipt: Mapping[str, Any]) -> dict[str, Any]
     card.setdefault("controller_event_type", str(receipt.get("controller_event_type") or ""))
     card.setdefault("authority_boundary", dict(operator_controller_event_router.AUTHORITY_BOUNDARY))
     card.setdefault("machine_proof", {})
+    model_receipt = dict(receipt.get("machine_proof") or {})
+    typed_decision = receipt.get("typed_contract_decision")
+    if isinstance(typed_decision, Mapping):
+        model_receipt["typed_contract_decision"] = dict(typed_decision)
+    model_call_performed = _brain_receipt_model_performed(model_receipt)
+    local_model_invoked = _brain_receipt_local_invoked(model_receipt)
+    external_model_invoked = _brain_receipt_external_invoked(model_receipt)
     card["machine_proof"].update(
         {
             "ledger_mutation_performed": False,
             "paid_marking_performed": False,
             "business_action_performed": False,
-            "external_llm_invoked": False,
+            "model_call_performed": model_call_performed,
+            "external_llm_invoked": external_model_invoked,
             "external_provider_connected": False,
-            "local_model_runtime_connected": False,
+            "local_model_runtime_connected": local_model_invoked,
+            "typed_contract_model_call_status": (
+                str(typed_decision.get("model_call_status") or "")
+                if isinstance(typed_decision, Mapping)
+                else ""
+            ),
         }
     )
     return card
@@ -5214,6 +5432,33 @@ def _process_operator_controller_event_request(
         artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
         proof_to_response_sqlite_path=proof_to_response_sqlite_path,
         generated_at=generated_at,
+    )
+    typed_contract_trace = {
+        "typed_contract_decision": dict(receipt.get("typed_contract_decision") or {}),
+        "typed_contract_matches": list(receipt.get("typed_contract_matches") or []),
+    }
+    controller_contract_receipt = typed_contract_trace["typed_contract_decision"]
+    controller_model_call_status = str(
+        controller_contract_receipt.get("model_call_status") or ""
+    )
+    controller_model_call_unknown = controller_model_call_status == "unknown"
+    controller_machine_proof = (
+        receipt.get("machine_proof")
+        if isinstance(receipt.get("machine_proof"), Mapping)
+        else {}
+    )
+    controller_model_activity_proved = any(
+        controller_machine_proof.get(key) is True
+        for key in (
+            "model_invoked",
+            "model_call_performed",
+            "external_llm_invoked",
+            "local_model_runtime_connected",
+            "local_model_invoked",
+        )
+    )
+    controller_model_call_evidence_unresolved = (
+        controller_model_call_unknown and not controller_model_activity_proved
     )
     request_id = str(receipt.get("request_id") or raw_request.get("request_id") or f"missing_request_id_{request_path.stem}")
     event_type = str(receipt.get("controller_event_type") or raw_request.get("controller_event_type") or "")
@@ -5281,10 +5526,11 @@ def _process_operator_controller_event_request(
         "route_ref": str(receipt.get("route_ref") or ""),
         "route_receipt_ref": str(receipt.get("route_receipt_ref") or ""),
         "no_external_authority_granted": True,
+        "typed_contract_model_call_status": controller_model_call_status or "known",
     }
     current_world = str(receipt.get("current_world_ref") or raw_request.get("current_world_ref") or "unknown")
     current_thread = str(receipt.get("current_thread_ref") or raw_request.get("current_thread_ref") or "unknown")
-    return OpenClawResponseForMac(
+    response = OpenClawResponseForMac(
         source_request_id=request_id,
         source_request_filename=request_path.name,
         workflow_ref=f"{current_world}/{current_thread}",
@@ -5296,7 +5542,15 @@ def _process_operator_controller_event_request(
             "OpenClaw recognized a Mission Control controller event.",
             "The event was routed through the Operator Controller Event Router.",
             "The router returned a verified concise agent response with the dynamic card kept as support.",
-            "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, push, external LLM, local model runtime, or business execution occurred.",
+            (
+                "The typed-contract adapter failed before model-call activity could be proved; model-call status is unknown. No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, push, or business execution occurred."
+                if controller_model_call_evidence_unresolved
+                else (
+                    "Downstream model activity is recorded, while the failed typed-contract attempt's own model-call status remains unknown. No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, push, or business execution occurred."
+                    if controller_model_call_unknown
+                    else "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, push, external LLM, local model runtime, or business execution occurred."
+                )
+            ),
         ),
         why_it_happened=(
             f"Controller event {event_type} routed to {receipt.get('backend_route')}."
@@ -5334,14 +5588,26 @@ def _process_operator_controller_event_request(
             "ledger_mutation_performed": False,
             "workbook_mutation_performed": False,
             "paid_marking_performed": False,
-            "external_llm_invoked": False,
-            "local_model_runtime_connected": False,
+            "external_llm_invoked": (
+                None
+                if controller_model_call_evidence_unresolved
+                else bool(controller_machine_proof.get("external_llm_invoked") is True)
+            ),
+            "local_model_runtime_connected": (
+                None
+                if controller_model_call_evidence_unresolved
+                else bool(
+                    controller_machine_proof.get("local_model_runtime_connected") is True
+                    or controller_machine_proof.get("local_model_invoked") is True
+                )
+            ),
         },
         readback_files=readback_files,
         next_safe_move=next_safe_move,
         proof_to_response=dict(primary_response),
         proof_to_response_status=proof_to_response_status,
     )
+    return _attach_typed_contract_trace(response, typed_contract_trace)
 
 
 def _normalized_request_kind(raw_request: Mapping[str, Any]) -> str:
@@ -5405,6 +5671,7 @@ def _process_maestro_frontdoor_operator_instruction(
     classification: RequestClassification,
     route_decision: Mapping[str, Any],
     _capsule: Any | None = None,
+    _typed_contract_trace: dict[str, Any] | None = None,
 ) -> OpenClawResponseForMac | None:
     if not _is_maestro_frontdoor_operator_instruction(raw_request):
         return None
@@ -5427,6 +5694,8 @@ def _process_maestro_frontdoor_operator_instruction(
         if "source_surface" not in str(exc):
             raise
         result = maestro_cassandra_responder.answer_frontdoor_chat(operator_text, session=session)
+    trace = _typed_contract_trace if _typed_contract_trace is not None else {}
+    _record_typed_contract_trace(trace, result)
     if result.status != "ANSWER_READY":
         return None
 
@@ -5438,8 +5707,25 @@ def _process_maestro_frontdoor_operator_instruction(
     external_llm_invoked = maestro_cassandra_responder.external_llm_invoked_for_result(result)
     result_payload = maestro_cassandra_responder.result_dict_for_receipt(result)
     machine_proof = maestro_cassandra_responder.machine_proof_for_result(result)
+    typed_contract_receipt = (
+        machine_proof.get("typed_contract_decision")
+        if isinstance(machine_proof.get("typed_contract_decision"), Mapping)
+        else {}
+    )
+    typed_contract_model_call_status = str(
+        typed_contract_receipt.get("model_call_status") or ""
+    )
     local_model_invoked = bool(machine_proof.get("local_model_invoked", False))
-    model_call_performed = bool(machine_proof.get("model_call_performed", False))
+    observed_model_call_performed = bool(machine_proof.get("model_call_performed", False))
+    typed_contract_model_call_unknown = typed_contract_model_call_status == "unknown"
+    model_call_evidence_unresolved = typed_contract_model_call_unknown and not (
+        external_llm_invoked or local_model_invoked or observed_model_call_performed
+    )
+    model_call_performed = (
+        None
+        if model_call_evidence_unresolved
+        else observed_model_call_performed
+    )
     workflow_package_staged = bool(machine_proof.get("workflow_package_staged", False))
     response_adapter_called = bool(
         result.allowed_to_call_handle
@@ -5531,19 +5817,32 @@ def _process_maestro_frontdoor_operator_instruction(
         "ledger_mutation_performed": False,
         "workbook_mutation_performed": False,
         "paid_marking_performed": False,
-        "external_llm_invoked": external_llm_invoked,
-        "local_model_runtime_connected": local_model_invoked,
+        "external_llm_invoked": (
+            None if model_call_evidence_unresolved else external_llm_invoked
+        ),
+        "local_model_runtime_connected": (
+            None if model_call_evidence_unresolved else local_model_invoked
+        ),
+        "typed_contract_model_call_status": typed_contract_model_call_status or "known",
     }
     model_runtime_sentence = (
-        "No external LLM, local model runtime, worker, or business execution occurred."
-        if not (external_llm_invoked or local_model_invoked or model_call_performed)
+        "The typed-contract adapter failed before model-call activity could be proved; model-call status is unknown. No worker or business execution occurred."
+        if model_call_evidence_unresolved
         else (
-            "The protected Maestro generation path recorded model_call_performed="
-            f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
-            f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+            "A downstream model call is recorded, while the failed typed-contract attempt's own model-call status remains unknown; no worker or business execution occurred."
+            if typed_contract_model_call_unknown
+            else (
+                "No external LLM, local model runtime, worker, or business execution occurred."
+                if not (external_llm_invoked or local_model_invoked or model_call_performed)
+                else (
+                    "The protected Maestro generation path recorded model_call_performed="
+                    f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
+                    f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+                )
+            )
         )
     )
-    return OpenClawResponseForMac(
+    response = OpenClawResponseForMac(
         source_request_id=request_id,
         source_request_filename=request_path.name,
         workflow_ref=f"{current_world}/{current_thread}",
@@ -5590,6 +5889,7 @@ def _process_maestro_frontdoor_operator_instruction(
         next_safe_move="Ask Maestro a follow-up if you need more.",
         proof_to_response=dict(machine_proof),
     )
+    return _attach_typed_contract_trace(response, trace)
 
 
 def _interpreter_enabled() -> bool:
@@ -5939,6 +6239,7 @@ def _try_interpreter_brain_divert(
     route_decision: Mapping[str, Any],
     _capsule: Any | None = None,
     lm1_shared_seam: Mapping[str, Any] | None = None,
+    _typed_contract_trace: dict[str, Any] | None = None,
 ) -> OpenClawResponseForMac | None:
     """Flag-gated interpreter-LM routing augmentation.
 
@@ -6025,6 +6326,9 @@ def _try_interpreter_brain_divert(
     except Exception:  # noqa: BLE001 — answer error → fall through
         return None
 
+    trace = _typed_contract_trace if _typed_contract_trace is not None else {}
+    _record_typed_contract_trace(trace, result)
+
     if result.status != "ANSWER_READY":
         return None  # brain said no → fall through to workflow consumer
 
@@ -6054,8 +6358,25 @@ def _try_interpreter_brain_divert(
             else ""
         ),
     }
+    typed_contract_receipt = (
+        machine_proof.get("typed_contract_decision")
+        if isinstance(machine_proof.get("typed_contract_decision"), Mapping)
+        else {}
+    )
+    typed_contract_model_call_status = str(
+        typed_contract_receipt.get("model_call_status") or ""
+    )
     local_model_invoked = bool(machine_proof.get("local_model_invoked", False))
-    model_call_performed = bool(machine_proof.get("model_call_performed", False))
+    observed_model_call_performed = bool(machine_proof.get("model_call_performed", False))
+    typed_contract_model_call_unknown = typed_contract_model_call_status == "unknown"
+    model_call_evidence_unresolved = typed_contract_model_call_unknown and not (
+        external_llm_invoked or local_model_invoked or observed_model_call_performed
+    )
+    model_call_performed = (
+        None
+        if model_call_evidence_unresolved
+        else observed_model_call_performed
+    )
     response_adapter_called = bool(
         result.allowed_to_call_handle
         or machine_proof.get("protected_generate_called")
@@ -6148,19 +6469,32 @@ def _try_interpreter_brain_divert(
         "ledger_mutation_performed": False,
         "workbook_mutation_performed": False,
         "paid_marking_performed": False,
-        "external_llm_invoked": external_llm_invoked,
-        "local_model_runtime_connected": local_model_invoked,
+        "external_llm_invoked": (
+            None if model_call_evidence_unresolved else external_llm_invoked
+        ),
+        "local_model_runtime_connected": (
+            None if model_call_evidence_unresolved else local_model_invoked
+        ),
+        "typed_contract_model_call_status": typed_contract_model_call_status or "known",
     }
     model_runtime_sentence = (
-        "No external LLM, local model runtime, worker, or business execution occurred."
-        if not (external_llm_invoked or local_model_invoked or model_call_performed)
+        "The typed-contract adapter failed before model-call activity could be proved; model-call status is unknown. No worker or business execution occurred."
+        if model_call_evidence_unresolved
         else (
-            "The protected Maestro generation path recorded model_call_performed="
-            f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
-            f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+            "A downstream model call is recorded, while the failed typed-contract attempt's own model-call status remains unknown; no worker or business execution occurred."
+            if typed_contract_model_call_unknown
+            else (
+                "No external LLM, local model runtime, worker, or business execution occurred."
+                if not (external_llm_invoked or local_model_invoked or model_call_performed)
+                else (
+                    "The protected Maestro generation path recorded model_call_performed="
+                    f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
+                    f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+                )
+            )
         )
     )
-    return OpenClawResponseForMac(
+    response = OpenClawResponseForMac(
         source_request_id=request_id,
         source_request_filename=request_path.name,
         workflow_ref=f"{current_world}/{current_thread}",
@@ -6205,6 +6539,7 @@ def _try_interpreter_brain_divert(
         next_safe_move="Ask Maestro a follow-up if you need more.",
         proof_to_response=dict(machine_proof),
     )
+    return _attach_typed_contract_trace(response, trace)
 
 
 def _try_interpreter_action_blocked_divert(
@@ -8275,12 +8610,14 @@ def _process_request_path_core(
             classification=effective_classification,
             route_decision=route_decision,
         )
+    typed_contract_trace: dict[str, Any] = {}
     maestro_frontdoor_response = _process_maestro_frontdoor_operator_instruction(
         request_path,
         raw_request,
         classification=effective_classification,
         route_decision=route_decision,
         _capsule=_capsule,
+        _typed_contract_trace=typed_contract_trace,
     )
     if maestro_frontdoor_response is not None:
         return maestro_frontdoor_response
@@ -8303,6 +8640,7 @@ def _process_request_path_core(
         route_decision=route_decision,
         _capsule=_capsule,
         lm1_shared_seam=lm1_shared_seam,
+        _typed_contract_trace=typed_contract_trace,
     )
     if interpreter_divert is not None:
         return interpreter_divert
@@ -8320,7 +8658,7 @@ def _process_request_path_core(
         lm1_shared_seam=lm1_shared_seam,
     )
     if interpreter_action_blocked_divert is not None:
-        return interpreter_action_blocked_divert
+        return _attach_typed_contract_trace(interpreter_action_blocked_divert, typed_contract_trace)
     # ─────────────────────────────────────────────────────────────────────────────
     if effective_classification.request_family == "WORKFLOW_PACKAGE_REQUEST":
         return _process_workflow_package_request(
@@ -8329,121 +8667,164 @@ def _process_request_path_core(
             generated_at=generated_at,
             classification=effective_classification,
             lm1_shared_seam=lm1_shared_seam,
+            _typed_contract_trace=typed_contract_trace,
         )
     if classification.request_family == "CHAT" and _is_workbook_candidate_keep_choice_request(raw_request):
-        return _process_workbook_candidate_choice_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=classification,
+        return _attach_typed_contract_trace(
+            _process_workbook_candidate_choice_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=classification,
+            ),
+            typed_contract_trace,
         )
     if _is_artifact_reference_approval_route(route_decision):
-        return _process_artifact_reference_approval_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=effective_classification,
-            route_decision=route_decision,
+        return _attach_typed_contract_trace(
+            _process_artifact_reference_approval_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=effective_classification,
+                route_decision=route_decision,
+            ),
+            typed_contract_trace,
         )
     if _is_source_workbook_selection_result_route(route_decision, raw_request):
-        return _process_source_workbook_selection_result_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=effective_classification,
-            route_decision=route_decision,
+        return _attach_typed_contract_trace(
+            _process_source_workbook_selection_result_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=effective_classification,
+                route_decision=route_decision,
+            ),
+            typed_contract_trace,
         )
     if _is_invoice_record_selection_result_route(route_decision, raw_request):
-        return _process_invoice_record_selection_result_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=effective_classification,
-            route_decision=route_decision,
+        return _attach_typed_contract_trace(
+            _process_invoice_record_selection_result_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=effective_classification,
+                route_decision=route_decision,
+            ),
+            typed_contract_trace,
         )
     if _is_selected_invoice_pdf_export_completed_candidate_result_route(route_decision, raw_request):
-        return _process_selected_invoice_pdf_export_completed_result_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=effective_classification,
-            route_decision=route_decision,
+        return _attach_typed_contract_trace(
+            _process_selected_invoice_pdf_export_completed_result_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=effective_classification,
+                route_decision=route_decision,
+            ),
+            typed_contract_trace,
         )
     if _is_invoice_review_action_route(route_decision, raw_request):
-        return _process_invoice_review_action_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=effective_classification,
-            route_decision=route_decision,
+        return _attach_typed_contract_trace(
+            _process_invoice_review_action_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=effective_classification,
+                route_decision=route_decision,
+            ),
+            typed_contract_trace,
         )
     if _is_artifact_intake_route(route_decision):
-        return _process_artifact_intake_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=effective_classification,
-            route_decision=route_decision,
+        return _attach_typed_contract_trace(
+            _process_artifact_intake_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=effective_classification,
+                route_decision=route_decision,
+            ),
+            typed_contract_trace,
         )
     if effective_classification.request_family == "ARTIFACT_REFERENCE_APPROVAL":
-        return _process_parked_router_request(
-            request_path,
-            raw_request,
-            classification=effective_classification,
-            route_decision=route_decision,
-        )
-    if effective_classification.request_family == "ARTIFACT_INTAKE_REQUEST":
-        return _process_parked_router_request(
-            request_path,
-            raw_request,
-            classification=effective_classification,
-            route_decision=route_decision,
-        )
-    if effective_classification.request_family == "LOCAL_SURFACE_RESULT":
-        if route_decision.get("route_status") != "ROUTE_MATCHED":
-            return _process_parked_router_request(
+        return _attach_typed_contract_trace(
+            _process_parked_router_request(
                 request_path,
                 raw_request,
                 classification=effective_classification,
                 route_decision=route_decision,
+            ),
+            typed_contract_trace,
+        )
+    if effective_classification.request_family == "ARTIFACT_INTAKE_REQUEST":
+        return _attach_typed_contract_trace(
+            _process_parked_router_request(
+                request_path,
+                raw_request,
+                classification=effective_classification,
+                route_decision=route_decision,
+            ),
+            typed_contract_trace,
+        )
+    if effective_classification.request_family == "LOCAL_SURFACE_RESULT":
+        if route_decision.get("route_status") != "ROUTE_MATCHED":
+            return _attach_typed_contract_trace(
+                _process_parked_router_request(
+                    request_path,
+                    raw_request,
+                    classification=effective_classification,
+                    route_decision=route_decision,
+                ),
+                typed_contract_trace,
             )
-        return _process_local_surface_result_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=effective_classification,
-            route_decision=route_decision,
+        return _attach_typed_contract_trace(
+            _process_local_surface_result_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=effective_classification,
+                route_decision=route_decision,
+            ),
+            typed_contract_trace,
         )
     if duplicate_check:
         duplicate = _existing_duplicate_response(raw_request, export_root, classification)
         if duplicate is not None:
-            return duplicate
+            return _attach_typed_contract_trace(duplicate, typed_contract_trace)
     if classification.request_family == "CHAT":
-        return _process_chat_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=classification,
-            read_model_reader=read_model_reader,
+        return _attach_typed_contract_trace(
+            _process_chat_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=classification,
+                read_model_reader=read_model_reader,
+            ),
+            typed_contract_trace,
         )
     if classification.request_family == "FILE_METADATA":
-        return _process_file_request(
-            request_path,
-            raw_request,
-            export_root=export_root,
-            generated_at=generated_at,
-            classification=classification,
+        return _attach_typed_contract_trace(
+            _process_file_request(
+                request_path,
+                raw_request,
+                export_root=export_root,
+                generated_at=generated_at,
+                classification=classification,
+            ),
+            typed_contract_trace,
         )
-    return _future_blocked_response(request_path, raw_request, classification=classification)
+    return _attach_typed_contract_trace(
+        _future_blocked_response(request_path, raw_request, classification=classification),
+        typed_contract_trace,
+    )
 
 
 def _enrich_operator_surface(
@@ -8937,8 +9318,16 @@ def _machine_proof(
     quality_errors = _terminal_quality_errors(response)
     brain_receipt = _brain_receipt_for_response(response)
     brain_model_call_performed = _brain_receipt_model_performed(brain_receipt)
-    brain_local_model_invoked = brain_model_call_performed and _brain_receipt_local_invoked(brain_receipt)
-    brain_external_model_invoked = brain_model_call_performed and _brain_receipt_external_invoked(brain_receipt)
+    brain_local_model_invoked = (
+        None
+        if brain_model_call_performed is None
+        else brain_model_call_performed and _brain_receipt_local_invoked(brain_receipt)
+    )
+    brain_external_model_invoked = (
+        None
+        if brain_model_call_performed is None
+        else brain_model_call_performed and _brain_receipt_external_invoked(brain_receipt)
+    )
     brain_route = _brain_receipt_route(brain_receipt)
     brain_model_id = _brain_receipt_model_id(brain_receipt)
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
@@ -9103,6 +9492,7 @@ def build_payloads(
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
+    _rehydrate_typed_contract_trace_payload(response_payload, response.typed_contract_trace)
     local_surface_request = local_surface_request_contract.infer_surface_request(response_payload)
     response_payload["local_surface_request"] = local_surface_request
     guardian_gate_payload = guardian_output_gate.validate_response_payload(response_payload)
@@ -9157,8 +9547,16 @@ def build_payloads(
             or _completion_receipts_present(response),
             "video_generation_performed": False,
             "image_generation_performed": False,
-            "cloud_model_call_performed": bool(status_payload["machine_proof"].get("external_llm_invoked")),
-            "local_model_call_performed": bool(status_payload["machine_proof"].get("local_model_invoked")),
+            "cloud_model_call_performed": (
+                None
+                if status_payload["machine_proof"].get("external_llm_invoked") is None
+                else bool(status_payload["machine_proof"].get("external_llm_invoked"))
+            ),
+            "local_model_call_performed": (
+                None
+                if status_payload["machine_proof"].get("local_model_invoked") is None
+                else bool(status_payload["machine_proof"].get("local_model_invoked"))
+            ),
             "visual_playback_performed": False,
             "visual_provider_call_performed": False,
             "response_taste_guardrails_present": True,

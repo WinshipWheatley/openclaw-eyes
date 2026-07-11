@@ -100,11 +100,12 @@ def test_maestro_verbatim_gibberish_wrapper_never_reaches_digest(monkeypatch):
     assert "money" not in result.plain_summary.lower()
 
 
-def test_maestro_active_session_contract_exception_fails_closed(monkeypatch):
+def test_maestro_active_session_contract_exception_fails_closed(monkeypatch, tmp_path):
     import maestro_cassandra_responder as maestro
 
     session = {"status": "active", "active_workflow": "clarify", "pending_field": "client"}
     before = json.dumps(session, sort_keys=True)
+    monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(tmp_path / "contract.sqlite3"))
     monkeypatch.setattr(contract, "decide_contract", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     monkeypatch.setattr(
         maestro,
@@ -114,8 +115,168 @@ def test_maestro_active_session_contract_exception_fails_closed(monkeypatch):
     result = maestro.answer_frontdoor_chat("maybe that other thing", session=session)
     assert result.intent_class == "typed_contract_session_preserved"
     assert result.machine_proof["typed_contract_decision"]["source"] == "adapter_error"
+    assert result.machine_proof["typed_contract_decision"]["model_call_status"] == "unknown"
+    assert result.machine_proof["typed_contract_decision"]["model_called"] is None
     assert "Receipt: contract:" in result.plain_summary
+    resolved = contract.resolve_contract_receipt(
+        result.machine_proof["typed_contract_decision"]["receipt_pointer"],
+        path=tmp_path / "contract.sqlite3",
+    )
+    assert resolved is not None
+    assert resolved["model_called"] is None
     assert json.dumps(session, sort_keys=True) == before
+
+
+def test_maestro_secondary_receipt_factory_failure_still_emits_receipt(monkeypatch):
+    import maestro_cassandra_responder as maestro
+
+    monkeypatch.setattr(
+        contract,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("primary private detail")),
+    )
+    monkeypatch.setattr(
+        contract,
+        "synthetic_adapter_error_decision",
+        lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("factory private detail")),
+    )
+    monkeypatch.setattr(
+        maestro,
+        "classify_frontdoor_intent",
+        lambda *_: ("unknown", False, "no legacy owner"),
+    )
+
+    result = maestro.answer_frontdoor_chat("Could you unpack that broader situation?")
+
+    receipt = result.machine_proof["typed_contract_decision"]
+    assert receipt["source"] == "adapter_error"
+    assert receipt["semantic_vote_status"] == "error_emergency_fail_open"
+    assert receipt["receipt_persistence_status"] == "emergency_not_persisted"
+    serialized = json.dumps(receipt, sort_keys=True)
+    assert "primary private detail" not in serialized
+    assert "factory private detail" not in serialized
+
+
+def test_maestro_secondary_factory_failure_preserves_active_session_without_fake_pointer(
+    monkeypatch,
+):
+    import maestro_cassandra_responder as maestro
+
+    session = {"status": "active", "active_workflow": "billing", "pending_field": "client"}
+    before = json.dumps(session, sort_keys=True)
+    monkeypatch.setattr(
+        contract,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("primary")),
+    )
+    monkeypatch.setattr(
+        contract,
+        "synthetic_adapter_error_decision",
+        lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("factory")),
+    )
+
+    result = maestro.answer_frontdoor_chat("maybe that other thing", session=session)
+
+    receipt = result.machine_proof["typed_contract_decision"]
+    assert receipt["action"] == "preserve_session"
+    assert receipt["session_preserved"] is True
+    assert receipt["receipt_persisted"] is False
+    assert receipt["receipt_pointer"] == ""
+    assert "Receipt:" not in result.plain_summary
+    assert json.dumps(session, sort_keys=True) == before
+
+
+def test_maestro_primary_active_error_never_advertises_unpersisted_pointer(
+    monkeypatch, tmp_path
+):
+    import maestro_cassandra_responder as maestro
+
+    blocked_parent = tmp_path / "not-a-directory"
+    blocked_parent.write_text("occupied", encoding="utf-8")
+    monkeypatch.setenv(
+        contract.CONTRACT_RECEIPT_DB_ENV,
+        str(blocked_parent / "contract.sqlite3"),
+    )
+    monkeypatch.setattr(
+        contract,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("private detail")),
+    )
+    session = {"status": "active", "active_workflow": "billing", "pending_field": "client"}
+
+    result = maestro.answer_frontdoor_chat("maybe that other thing", session=session)
+
+    receipt = result.machine_proof["typed_contract_decision"]
+    assert receipt["action"] == "preserve_session"
+    assert receipt["receipt_persisted"] is False
+    assert receipt["receipt_persistence_status"].startswith("error:")
+    assert receipt["receipt_pointer"] == ""
+    assert "Receipt:" not in result.plain_summary
+
+
+def test_maestro_inactive_contract_exception_emits_stable_bounded_receipt(monkeypatch):
+    import maestro_cassandra_responder as maestro
+
+    private_message = "do not expose /home/openclaw/private/customer.txt"
+    monkeypatch.setattr(
+        contract,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError(private_message)),
+    )
+    monkeypatch.setattr(
+        maestro,
+        "classify_frontdoor_intent",
+        lambda *_: ("unknown", False, "no legacy owner"),
+    )
+
+    first = maestro.answer_frontdoor_chat("Could you unpack that broader situation?")
+    second = maestro.answer_frontdoor_chat("Could you unpack that broader situation?")
+
+    assert first.status == "ROUTE_TO_STAGING"
+    receipt = first.machine_proof["typed_contract_decision"]
+    assert receipt == second.machine_proof["typed_contract_decision"]
+    assert receipt["source"] == "adapter_error"
+    assert receipt["label"] == "unresolved"
+    assert receipt["action"] == "pass_through"
+    assert receipt["model_call_status"] == "unknown"
+    assert receipt["model_called"] is None
+    assert receipt["elapsed_ms"] == 0.0
+    serialized = json.dumps(receipt, sort_keys=True)
+    assert private_message not in serialized
+    assert "Could you unpack that broader situation?" not in serialized
+
+
+@pytest.mark.parametrize(
+    "vote_status",
+    ("deadline_exceeded", "error:TimeoutError", "timeout_or_invalid"),
+)
+def test_maestro_unhandled_vote_receipt_survives_route_result(vote_status, monkeypatch):
+    import maestro_cassandra_responder as maestro
+
+    calls = 0
+
+    def _vote(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return None, vote_status
+
+    monkeypatch.setenv(contract.SEMANTIC_VOTE_ENV, "maestro")
+    monkeypatch.setattr(contract, "_call_semantic_vote", _vote)
+    monkeypatch.setattr(
+        maestro,
+        "classify_frontdoor_intent",
+        lambda *_: ("unknown", False, "no legacy owner"),
+    )
+
+    result = maestro.answer_frontdoor_chat("Could you unpack that broader situation?")
+
+    receipt = result.machine_proof["typed_contract_decision"]
+    assert result.status == "ROUTE_TO_STAGING"
+    assert receipt["source"] == "semantic_vote"
+    assert receipt["action"] == "pass_through"
+    assert receipt["semantic_vote_status"] == vote_status
+    assert result.machine_proof["typed_contract_matches"] == ["unresolved"]
+    assert calls == 1
 
 
 @pytest.mark.parametrize("renderer_mode", ("raises", "empty"))
@@ -177,6 +338,250 @@ def _maestro_raw_request(text: str, **extra) -> dict:
         },
         **extra,
     }
+
+
+def _assert_final_json_contract_receipt(processor, response, receipt) -> None:
+    response_payload, _ = processor.build_payloads(response, generated_at="2026-07-11T00:00:00Z")
+    final_json = json.loads(processor.stable_json(response_payload))
+    assert final_json["proof_to_response"]["typed_contract_decision"] == receipt
+    assert final_json["detail_disclosure"]["typed_contract_decision"] == receipt
+    if receipt.get("model_call_status") == "unknown":
+        assert final_json["machine_proof"]["model_call_performed"] is None
+        assert final_json["machine_proof"]["local_model_invoked"] is None
+        assert final_json["machine_proof"]["external_llm_invoked"] is None
+        assert final_json["machine_proof"]["local_model_call_performed"] is None
+        assert final_json["machine_proof"]["cloud_model_call_performed"] is None
+        assert final_json["selected_model_backend"] == "UNKNOWN_UNPROVEN"
+    elif receipt.get("model_called") is True:
+        assert final_json["machine_proof"]["model_call_performed"] is True
+        assert final_json["selected_model_backend"] == "UNKNOWN_CALL_ATTEMPTED"
+
+
+def test_request_processor_final_bridge_repeats_exact_contract_receipt(tmp_path):
+    import openclaw_request_processor as processor
+
+    response = processor._process_maestro_frontdoor_operator_instruction(
+        tmp_path / "request.json",
+        _maestro_raw_request("Hey Chief, what's your status right now?"),
+        classification=_processor_classification(processor),
+        route_decision={},
+    )
+
+    assert response is not None
+    nested = response.detail_disclosure["maestro_cassandra_responder"]["machine_proof"]
+    receipt = nested["typed_contract_decision"]
+    assert response.proof_to_response["typed_contract_decision"] == receipt
+    assert response.detail_disclosure["typed_contract_decision"] == receipt
+    _assert_final_json_contract_receipt(processor, response, receipt)
+
+
+def test_request_processor_final_bridge_carries_real_vote_timeout_receipt(monkeypatch, tmp_path):
+    import maestro_cassandra_responder as maestro
+    import openclaw_request_processor as processor
+
+    monkeypatch.setenv(contract.SEMANTIC_VOTE_ENV, "maestro")
+    monkeypatch.setattr(
+        contract,
+        "_call_semantic_vote",
+        lambda *_args, **_kwargs: (None, "deadline_exceeded"),
+    )
+    monkeypatch.setattr(
+        maestro,
+        "classify_frontdoor_intent",
+        lambda *_: ("maestro_brain_freeform", True, "bounded freeform"),
+    )
+    monkeypatch.setattr(
+        maestro,
+        "_answer_with_maestro_brain",
+        lambda *_args, **_kwargs: maestro.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="Bounded answer.",
+            plain_summary="Bounded answer.",
+            machine_proof={"model_call_performed": False},
+        ),
+    )
+
+    response = processor._process_maestro_frontdoor_operator_instruction(
+        tmp_path / "request.json",
+        _maestro_raw_request("Could you unpack that broader situation?"),
+        classification=_processor_classification(processor),
+        route_decision={},
+    )
+
+    assert response is not None
+    receipt = response.proof_to_response["typed_contract_decision"]
+    assert receipt["source"] == "semantic_vote"
+    assert receipt["semantic_vote_status"] == "deadline_exceeded"
+    assert response.detail_disclosure["typed_contract_decision"] == receipt
+    _assert_final_json_contract_receipt(processor, response, receipt)
+
+
+def test_request_processor_final_bridge_carries_synthetic_adapter_error(monkeypatch, tmp_path):
+    import maestro_cassandra_responder as maestro
+    import openclaw_request_processor as processor
+
+    secret = "never expose /home/openclaw/private/incident.txt"
+    monkeypatch.setattr(
+        contract,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError(secret)),
+    )
+    monkeypatch.setattr(
+        maestro,
+        "classify_frontdoor_intent",
+        lambda *_: ("maestro_brain_freeform", True, "bounded freeform"),
+    )
+    monkeypatch.setattr(
+        maestro,
+        "_answer_with_maestro_brain",
+        lambda *_args, **_kwargs: maestro.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="Bounded answer.",
+            plain_summary="Bounded answer.",
+            machine_proof={"model_call_performed": False},
+        ),
+    )
+
+    response = processor._process_maestro_frontdoor_operator_instruction(
+        tmp_path / "request.json",
+        _maestro_raw_request("Could you unpack that broader situation?"),
+        classification=_processor_classification(processor),
+        route_decision={},
+    )
+
+    assert response is not None
+    receipt = response.proof_to_response["typed_contract_decision"]
+    assert receipt["source"] == "adapter_error"
+    assert receipt["model_call_status"] == "unknown"
+    assert receipt["model_called"] is None
+    assert response.detail_disclosure["typed_contract_decision"] == receipt
+    assert secret not in json.dumps(response.proof_to_response, sort_keys=True)
+    assert any("model-call status is unknown" in item for item in response.what_happened)
+    assert not any(
+        item == "No external LLM, local model runtime, worker, or business execution occurred."
+        for item in response.what_happened
+    )
+    _assert_final_json_contract_receipt(processor, response, receipt)
+
+
+def test_final_json_rehydrates_receipt_after_guardian_style_substitution(
+    tmp_path, monkeypatch
+):
+    import maestro_cassandra_responder as maestro
+    import openclaw_request_processor as processor
+
+    monkeypatch.setattr(
+        contract,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("private detail")),
+    )
+    monkeypatch.setattr(
+        maestro,
+        "classify_frontdoor_intent",
+        lambda *_: ("maestro_brain_freeform", True, "bounded freeform"),
+    )
+    monkeypatch.setattr(
+        maestro,
+        "_answer_with_maestro_brain",
+        lambda *_args, **_kwargs: maestro.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="maestro_brain_freeform",
+            allowed_to_call_handle=False,
+            one_line_answer="Bounded answer.",
+            plain_summary="Bounded answer.",
+            machine_proof={"model_call_performed": False},
+        ),
+    )
+    response = processor._process_maestro_frontdoor_operator_instruction(
+        tmp_path / "request.json",
+        _maestro_raw_request("Could you unpack that broader situation?"),
+        classification=_processor_classification(processor),
+        route_decision={},
+    )
+    assert response is not None
+    receipt = response.proof_to_response["typed_contract_decision"]
+    substituted = processor.replace(
+        response,
+        detail_disclosure={"guardian_publication_enforcement": {"verdict": "DENY"}},
+        proof_to_response={"guardian_publication_enforcement": {"verdict": "DENY"}},
+        proof_to_response_status="GUARDIAN_DENIAL_SUBSTITUTED",
+    )
+
+    response_payload, _ = processor.build_payloads(
+        substituted,
+        generated_at="2026-07-11T00:00:00Z",
+    )
+    final_json = json.loads(processor.stable_json(response_payload))
+
+    assert final_json["proof_to_response"]["typed_contract_decision"] == receipt
+    assert final_json["detail_disclosure"]["typed_contract_decision"] == receipt
+    assert final_json["proof_to_response"]["guardian_publication_enforcement"] == {
+        "verdict": "DENY"
+    }
+    assert final_json["detail_disclosure"]["guardian_publication_enforcement"] == {
+        "verdict": "DENY"
+    }
+    assert final_json["machine_proof"]["model_call_performed"] is None
+    assert final_json["machine_proof"]["local_model_invoked"] is None
+    assert final_json["machine_proof"]["external_llm_invoked"] is None
+    assert final_json["selected_model_backend"] == "UNKNOWN_UNPROVEN"
+
+    lm2_reused = processor.replace(
+        response,
+        proof_to_response={
+            "selected_model_backend": "LOCAL_OLLAMA",
+            "candidate_source": "lm2_room_backed_worker_structured_output_retry",
+            "model_call_performed": False,
+        },
+    )
+    lm2_payload, _ = processor.build_payloads(
+        lm2_reused,
+        generated_at="2026-07-11T00:00:00Z",
+    )
+    assert lm2_payload["selected_model_backend"] == "UNKNOWN_UNPROVEN"
+    assert lm2_payload["machine_proof"]["model_call_performed"] is None
+    assert "No new model call" not in lm2_payload["model_selection_reason"]
+
+
+def test_processor_trace_conflict_never_silently_overwrites_first_receipt():
+    import maestro_cassandra_responder as maestro
+    import openclaw_request_processor as processor
+
+    first_receipt = {"decision_id": "contract:same", "source": "deterministic"}
+    second_receipt = {"decision_id": "contract:same", "source": "adapter_error"}
+    trace: dict = {}
+    processor._record_typed_contract_trace(
+        trace,
+        maestro.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="test",
+            allowed_to_call_handle=False,
+            machine_proof={
+                "typed_contract_decision": first_receipt,
+                "typed_contract_matches": ["status"],
+            },
+        ),
+    )
+    processor._record_typed_contract_trace(
+        trace,
+        maestro.MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="test",
+            allowed_to_call_handle=False,
+            machine_proof={
+                "typed_contract_decision": second_receipt,
+                "typed_contract_matches": ["unresolved"],
+            },
+        ),
+    )
+
+    assert trace["typed_contract_decision"] == first_receipt
+    assert trace["typed_contract_trace_conflict"]["status"] == "decision_conflict"
+    assert trace["typed_contract_trace_conflict"]["second"] == second_receipt
 
 
 def test_request_processor_passes_bounded_safe_session_scalars_to_maestro(monkeypatch, tmp_path):
@@ -527,6 +932,7 @@ def test_cassandra_active_cockpit_timeout_preserves_file_byte_for_byte(tmp_path,
 
 def test_cassandra_active_cockpit_contract_exception_fails_closed(tmp_path, monkeypatch):
     listener = _load_cassandra_listener(monkeypatch)
+    monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(tmp_path / "contract.sqlite3"))
     session_path = tmp_path / "cockpit-session.json"
     original = _fresh_cockpit_text()
     session_path.write_text(original, encoding="utf-8")
@@ -755,6 +1161,7 @@ def test_guided_review_contract_exception_fails_closed_without_persistence(tmp_p
     import cassandra_guided_review as guided
 
     now = "2026-07-10T03:00:00+00:00"
+    monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(tmp_path / "contract.sqlite3"))
     session = _minimal_guided_session(guided, now)
     path = guided._session_path(tmp_path, session["review_session_id"])
     path.parent.mkdir(parents=True, exist_ok=True)

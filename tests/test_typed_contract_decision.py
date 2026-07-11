@@ -623,6 +623,100 @@ def test_preserve_receipt_sink_is_idempotent_resolvable_and_payload_free(monkeyp
     assert session_marker.encode() not in database_bytes
 
 
+def _seed_adapter_error_receipt(
+    db_path,
+    *,
+    text: str,
+    context: contract.ContractContext,
+    model_called: int,
+) -> str:
+    decision_id = contract._decision_id(text, context, contract.ContractLabel.UNRESOLVED)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as connection:
+        contract._ensure_contract_receipt_schema(connection)
+        connection.execute(
+            """
+            INSERT INTO contract_preserve_receipts (
+                decision_id, schema_version, label, action, precedence,
+                source, reason_code, model_called, semantic_vote_status,
+                confidence, created_at_epoch_ms
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                decision_id,
+                contract.SCHEMA_VERSION,
+                contract.ContractLabel.UNRESOLVED.value,
+                contract.DecisionAction.PRESERVE_SESSION.value,
+                contract._PRECEDENCE[contract.ContractLabel.UNRESOLVED],
+                "adapter_error",
+                "active_session_contract_error:RuntimeError",
+                model_called,
+                "error_preserved",
+                0.0,
+                1,
+            ),
+        )
+    return decision_id
+
+
+def test_adapter_error_receipt_corrects_legacy_false_to_unknown(monkeypatch, tmp_path):
+    db_path = tmp_path / "contract.sqlite3"
+    monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(db_path))
+    context = _ctx(active_session=True, session_kind="billing")
+    text = "maybe that other thing"
+    decision_id = _seed_adapter_error_receipt(
+        db_path,
+        text=text,
+        context=context,
+        model_called=0,
+    )
+
+    decision = contract.preserve_session_on_error(
+        text,
+        context=context,
+        error_type="RuntimeError",
+    )
+
+    assert decision.receipt.receipt_persisted is True
+    assert decision.receipt.receipt_persistence_status == "corrected_legacy_unknown"
+    assert decision.receipt.receipt_pointer == decision_id
+    resolved = contract.resolve_contract_receipt(decision_id, path=db_path)
+    assert resolved is not None
+    assert resolved["model_called"] is None
+
+
+def test_adapter_error_receipt_conflict_never_exposes_mismatched_pointer(
+    monkeypatch, tmp_path
+):
+    db_path = tmp_path / "contract.sqlite3"
+    monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(db_path))
+    context = _ctx(active_session=True, session_kind="billing")
+    text = "maybe that other thing"
+    decision_id = _seed_adapter_error_receipt(
+        db_path,
+        text=text,
+        context=context,
+        model_called=1,
+    )
+
+    decision = contract.preserve_session_on_error(
+        text,
+        context=context,
+        error_type="RuntimeError",
+    )
+
+    assert decision.receipt.receipt_persisted is False
+    assert decision.receipt.receipt_persistence_status == "conflict:model_call_state_mismatch"
+    assert decision.receipt.receipt_pointer == ""
+    assert "Receipt:" not in str(decision.reply or "")
+    with sqlite3.connect(db_path) as connection:
+        stored = connection.execute(
+            "SELECT model_called FROM contract_preserve_receipts WHERE decision_id = ?",
+            (decision_id,),
+        ).fetchone()
+    assert stored == (1,)
+
+
 def test_preserve_receipt_sink_prunes_oldest_rows_to_fixed_bound(monkeypatch, tmp_path):
     db_path = tmp_path / "bounded.sqlite3"
     monkeypatch.setenv(contract.CONTRACT_RECEIPT_DB_ENV, str(db_path))

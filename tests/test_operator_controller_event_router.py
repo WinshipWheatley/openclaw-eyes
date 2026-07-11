@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 
 import first_class_operator_envelope as operator_authority
 import operator_controller_event_router as router
+import typed_contract_decision as contract
 
 
 FIXED_NOW = "2026-06-05T12:00:00+00:00"
@@ -342,6 +343,54 @@ def test_maestro_cassandra_controller_route_threads_agent_to_frontdoor(tmp_path,
     assert receipt is not None
     assert captured["agent"] == "cassandra"
     assert receipt["route_status"] == "TEXT_RESPONSE_READY"
+
+
+def test_controller_chat_receipt_keeps_typed_contract_trace(tmp_path):
+    request = _event_request(
+        event_type="chat_goal",
+        world="general",
+        thread="operator_maestro_chat",
+        operator_text="Hey Chief, what's your status right now?",
+    )
+
+    receipt = _route(tmp_path, request)
+
+    decision = receipt["typed_contract_decision"]
+    assert decision["label"] == "status"
+    assert receipt["machine_proof"]["typed_contract_decision"] == decision
+
+
+def test_controller_chat_adapter_error_keeps_model_call_state_unknown(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        contract,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("private detail")),
+    )
+    request = _event_request(
+        event_type="chat_goal",
+        world="general",
+        thread="operator_maestro_chat",
+        operator_text="status?",
+    )
+
+    receipt = _route(tmp_path, request)
+
+    decision = receipt["typed_contract_decision"]
+    proof = receipt["machine_proof"]
+    assert decision["model_call_status"] == "unknown"
+    assert decision["model_called"] is None
+    assert proof["typed_contract_model_call_status"] == "unknown"
+    assert proof["model_invoked"] is None
+    assert proof["model_call_performed"] is None
+    assert proof["local_model_runtime_connected"] is None
+    import openclaw_request_processor as processor
+
+    card = processor._controller_event_dynamic_card(receipt)
+    assert card["machine_proof"]["model_call_performed"] is None
+    assert card["machine_proof"]["external_llm_invoked"] is None
+    assert card["machine_proof"]["local_model_runtime_connected"] is None
 
 
 def _route(tmp_path: Path, request: dict) -> dict:

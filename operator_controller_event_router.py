@@ -1792,6 +1792,35 @@ def _route_operator_conversation(
     return receipt
 
 
+def _attach_typed_contract_trace_to_receipt(
+    receipt: dict[str, Any],
+    trace: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(trace, Mapping):
+        return receipt
+    decision = trace.get("typed_contract_decision")
+    if not isinstance(decision, Mapping) or not str(decision.get("decision_id") or ""):
+        return receipt
+    matches = trace.get("typed_contract_matches")
+    receipt["typed_contract_decision"] = dict(decision)
+    receipt["typed_contract_matches"] = (
+        [str(item) for item in matches if str(item)]
+        if isinstance(matches, (list, tuple))
+        else []
+    )
+    machine_proof = dict(receipt.get("machine_proof") or {})
+    machine_proof["typed_contract_decision"] = dict(decision)
+    machine_proof["typed_contract_matches"] = list(receipt["typed_contract_matches"])
+    model_call_status = str(decision.get("model_call_status") or "")
+    if model_call_status == "unknown":
+        machine_proof["model_invoked"] = None
+        machine_proof["model_call_performed"] = None
+        machine_proof["local_model_runtime_connected"] = None
+        machine_proof["typed_contract_model_call_status"] = "unknown"
+    receipt["machine_proof"] = machine_proof
+    return receipt
+
+
 def _route_maestro_cassandra_conversation(
     request: Mapping[str, Any],
     *,
@@ -1799,6 +1828,7 @@ def _route_maestro_cassandra_conversation(
     receipt_id: str,
     generated_at: str,
     validation: Mapping[str, Any],
+    _typed_contract_trace_sink: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     operator_text = maestro_cassandra_responder.operator_text_from_request(request)
     session = maestro_cassandra_responder.session_from_request(request)
@@ -1820,6 +1850,9 @@ def _route_maestro_cassandra_conversation(
         if "source_surface" not in str(exc):
             raise
         result = maestro_cassandra_responder.answer_frontdoor_chat(operator_text, session=session)
+    typed_contract_trace = maestro_cassandra_responder.typed_contract_trace_for_result(result)
+    if _typed_contract_trace_sink is not None:
+        _typed_contract_trace_sink.update(typed_contract_trace)
     if result.status != "ANSWER_READY":
         return None
 
@@ -1881,7 +1914,7 @@ def _route_maestro_cassandra_conversation(
             "machine_proof": machine_proof,
         }
     )
-    return receipt
+    return _attach_typed_contract_trace_to_receipt(receipt, typed_contract_trace)
 
 
 def _route_run_mode_set(
@@ -1980,16 +2013,18 @@ def _route_event(
             validation=validation,
         )
     if event_type == "chat_goal":
+        typed_contract_trace: dict[str, Any] = {}
         maestro_receipt = _route_maestro_cassandra_conversation(
             request,
             read_model_root=read_model_root,
             receipt_id=receipt_id,
             generated_at=generated_at,
             validation=validation,
+            _typed_contract_trace_sink=typed_contract_trace,
         )
         if maestro_receipt is not None:
             return maestro_receipt
-        return _route_operator_conversation(
+        fallback_receipt = _route_operator_conversation(
             request,
             read_model_root=read_model_root,
             receipt_id=receipt_id,
@@ -1997,6 +2032,7 @@ def _route_event(
             validation=validation,
             proof_to_response_sqlite_path=proof_to_response_sqlite_path,
         )
+        return _attach_typed_contract_trace_to_receipt(fallback_receipt, typed_contract_trace)
     if event_type in OBJECTIVE_ADVANCEMENT_EVENT_TYPES:
         return _route_objective_advancement(
             request,

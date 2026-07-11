@@ -8,7 +8,7 @@ handler through this front-door path.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import hashlib
 import json
 import os
@@ -96,6 +96,44 @@ class MaestroCassandraResult:
         payload["session_forwarded"] = dict(self.session_forwarded or {})
         payload["machine_proof"] = dict(self.machine_proof or {})
         return payload
+
+
+def typed_contract_trace_for_result(result: MaestroCassandraResult) -> dict[str, Any]:
+    """Extract the bounded typed-decision trace already attached to a result."""
+
+    proof = result.machine_proof if isinstance(result.machine_proof, Mapping) else {}
+    receipt = proof.get("typed_contract_decision")
+    if not isinstance(receipt, Mapping) or not str(receipt.get("decision_id") or ""):
+        return {}
+    matches = proof.get("typed_contract_matches")
+    return {
+        "typed_contract_decision": dict(receipt),
+        "typed_contract_matches": (
+            [str(item) for item in matches if str(item)]
+            if isinstance(matches, Sequence) and not isinstance(matches, (bytes, bytearray, str))
+            else []
+        ),
+    }
+
+
+def _finalize_typed_contract_result(
+    result: MaestroCassandraResult,
+    trace: Mapping[str, Any] | None,
+) -> MaestroCassandraResult:
+    if not isinstance(trace, Mapping):
+        return result
+    receipt = trace.get("typed_contract_decision")
+    if not isinstance(receipt, Mapping) or not str(receipt.get("decision_id") or ""):
+        return result
+    proof = dict(result.machine_proof or {})
+    proof["typed_contract_decision"] = dict(receipt)
+    matches = trace.get("typed_contract_matches")
+    proof["typed_contract_matches"] = (
+        [str(item) for item in matches if str(item)]
+        if isinstance(matches, Sequence) and not isinstance(matches, (bytes, bytearray, str))
+        else []
+    )
+    return replace(result, machine_proof=proof)
 
 
 HandleFn = Callable[[str, dict[str, Any] | None], Sequence[str]]
@@ -615,7 +653,7 @@ def _try_calendar(text: str, forwarded_session: Mapping[str, Any]) -> "MaestroCa
     )
 
 
-def answer_frontdoor_chat(
+def _answer_frontdoor_chat_impl(
     text: str,
     *,
     session: Mapping[str, Any] | None = None,
@@ -624,14 +662,15 @@ def answer_frontdoor_chat(
     protected_generate_fn: ProtectedGenerateFn | None = None,
     _capsule: Any | None = None,
     agent: str = "maestro",
+    _contract_trace_sink: dict[str, Any] | None = None,
 ) -> MaestroCassandraResult:
     # Task 151: one typed decision contract, adapted at this real Maestro
     # assembly point before legacy regex taps, sessions, digest, or model work.
     # Authority/domain pass-through decisions deliberately continue into their
     # established owners; safe/deterministic answers return here directly.
     _contract_context = None
-    _preserve_contract = None
     _contract_status_answer = None
+    _contract_decision = None
     try:
         from typed_contract_decision import (
             ContractContext,
@@ -639,10 +678,10 @@ def answer_frontdoor_chat(
             HandoffResult,
             active_session_from_mapping,
             decide_contract,
-            preserve_session_on_error,
+            emergency_adapter_error_decision,
             semantic_vote_enabled_for_adapter,
+            synthetic_adapter_error_decision,
         )
-        _preserve_contract = preserve_session_on_error
 
         _contract_context = ContractContext(
             agent=agent,
@@ -728,14 +767,36 @@ def answer_frontdoor_chat(
             f"active_session={bool(_contract_context and _contract_context.active_session)}",
             flush=True,
         )
-        if _contract_context is not None and _contract_context.active_session and _preserve_contract is not None:
-            _contract_decision = _preserve_contract(
+        if _contract_context is None:
+            from typed_contract_decision import ContractContext as _ContractContext
+
+            _contract_context = _ContractContext(
+                agent=agent,
+                surface=source_surface,
+                source_message_id=str((session or {}).get("source_message_id") or ""),
+                active_session=False,
+            )
+        try:
+            _contract_decision = synthetic_adapter_error_decision(
                 text,
                 context=_contract_context,
                 error_type=type(exc).__name__,
             )
-        else:
-            _contract_decision = None
+        except Exception as factory_exc:
+            _contract_decision = emergency_adapter_error_decision(
+                text,
+                context=_contract_context,
+                error_type=type(exc).__name__,
+                factory_error_type=type(factory_exc).__name__,
+            )
+
+    if _contract_decision is not None and _contract_trace_sink is not None:
+        _contract_trace_sink.update(
+            {
+                "typed_contract_decision": _contract_decision.receipt.to_dict(),
+                "typed_contract_matches": [label.value for label in _contract_decision.matches],
+            }
+        )
 
     if _contract_decision is not None and _contract_decision.handled:
         _handoff_workflow_ref = ""
@@ -1166,6 +1227,32 @@ def answer_frontdoor_chat(
         session_forwarded=forwarded_session,
         machine_proof=_adapter_machine_proof(handle_called=True),
     )
+
+
+def answer_frontdoor_chat(
+    text: str,
+    *,
+    session: Mapping[str, Any] | None = None,
+    source_surface: str = "operator_maestro_chat",
+    handle_fn: HandleFn | None = None,
+    protected_generate_fn: ProtectedGenerateFn | None = None,
+    _capsule: Any | None = None,
+    agent: str = "maestro",
+) -> MaestroCassandraResult:
+    """Run the responder once and attach its one typed receipt to every result."""
+
+    trace: dict[str, Any] = {}
+    result = _answer_frontdoor_chat_impl(
+        text,
+        session=session,
+        source_surface=source_surface,
+        handle_fn=handle_fn,
+        protected_generate_fn=protected_generate_fn,
+        _capsule=_capsule,
+        agent=agent,
+        _contract_trace_sink=trace,
+    )
+    return _finalize_typed_contract_result(result, trace)
 
 
 def _answer_status_capability_with_brain(

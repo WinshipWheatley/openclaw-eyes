@@ -107,9 +107,10 @@ class ContractReceipt:
     precedence: int
     source: str
     reason: str
-    model_called: bool
+    model_called: bool | None
     semantic_vote_status: str
     confidence: float
+    model_call_status: str = ""
     authority_granted: bool = False
     session_preserved: bool = False
     receipt_pointer: str = ""
@@ -119,7 +120,10 @@ class ContractReceipt:
     schema_version: str = SCHEMA_VERSION
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        payload = asdict(self)
+        if not self.model_call_status:
+            payload.pop("model_call_status", None)
+        return payload
 
 
 @dataclass(frozen=True)
@@ -401,7 +405,8 @@ def _receipt(
     action: DecisionAction,
     source: str,
     reason: str,
-    model_called: bool,
+    model_called: bool | None,
+    model_call_status: str | None = None,
     vote_status: str = "not_requested",
     confidence: float = 1.0,
     session_preserved: bool = False,
@@ -424,6 +429,7 @@ def _receipt(
         model_called=model_called,
         semantic_vote_status=vote_status,
         confidence=confidence,
+        model_call_status=model_call_status or "",
         authority_granted=False,
         session_preserved=session_preserved,
         receipt_pointer=receipt_pointer,
@@ -479,6 +485,7 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
     try:
         path = contract_receipt_db_path()
         path.parent.mkdir(parents=True, exist_ok=True)
+        desired_model_called = -1 if receipt.model_called is None else int(receipt.model_called)
         with sqlite3.connect(str(path), timeout=0.25) as connection:
             connection.execute("PRAGMA busy_timeout = 250")
             _ensure_contract_receipt_schema(connection)
@@ -506,12 +513,80 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                     receipt.precedence,
                     receipt.source,
                     receipt.reason,
-                    int(receipt.model_called),
+                    desired_model_called,
                     receipt.semantic_vote_status,
                     receipt.confidence,
                     int(time.time() * 1000),
                 ),
             )
+            if cursor.rowcount == 1:
+                status = "inserted"
+            else:
+                existing = connection.execute(
+                    """
+                    SELECT schema_version, label, action, precedence, source,
+                           reason_code, model_called, semantic_vote_status, confidence
+                    FROM contract_preserve_receipts
+                    WHERE decision_id = ?
+                    """,
+                    (receipt.decision_id,),
+                ).fetchone()
+                desired_identity = (
+                    receipt.schema_version,
+                    receipt.label,
+                    receipt.action,
+                    receipt.precedence,
+                    receipt.source,
+                    receipt.reason,
+                    receipt.semantic_vote_status,
+                    receipt.confidence,
+                )
+                existing_identity = (
+                    existing[0],
+                    existing[1],
+                    existing[2],
+                    existing[3],
+                    existing[4],
+                    existing[5],
+                    existing[7],
+                    existing[8],
+                ) if existing is not None else ()
+                existing_model_called = existing[6] if existing is not None else None
+                if existing_identity != desired_identity:
+                    return replace(
+                        receipt,
+                        receipt_persisted=False,
+                        receipt_persistence_status="conflict:receipt_identity_mismatch",
+                    )
+                if existing_model_called == desired_model_called:
+                    status = "already_present"
+                elif (
+                    desired_model_called == -1
+                    and existing_model_called == 0
+                    and receipt.source == "adapter_error"
+                    and receipt.semantic_vote_status.startswith("error_")
+                ):
+                    corrected = connection.execute(
+                        """
+                        UPDATE contract_preserve_receipts
+                        SET model_called = -1
+                        WHERE decision_id = ? AND model_called = 0
+                        """,
+                        (receipt.decision_id,),
+                    )
+                    if corrected.rowcount != 1:
+                        return replace(
+                            receipt,
+                            receipt_persisted=False,
+                            receipt_persistence_status="conflict:legacy_unknown_correction_failed",
+                        )
+                    status = "corrected_legacy_unknown"
+                else:
+                    return replace(
+                        receipt,
+                        receipt_persisted=False,
+                        receipt_persistence_status="conflict:model_call_state_mismatch",
+                    )
             # Keep the newest bounded set.  No message, token, session
             # snapshot, exception detail, or arbitrary context enters this
             # table; only the typed receipt fields above are retained.
@@ -528,7 +603,6 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                 """,
                 (limit,),
             )
-        status = "inserted" if cursor.rowcount == 1 else "already_present"
         return replace(receipt, receipt_persisted=True, receipt_persistence_status=status)
     except Exception as exc:
         # Preserve still fails closed if the evidence sink is unavailable; the
@@ -568,7 +642,12 @@ def resolve_contract_receipt(
             ).fetchone()
     except sqlite3.Error:
         return None
-    return dict(row) if row is not None else None
+    if row is None:
+        return None
+    payload = dict(row)
+    if payload.get("model_called") == -1:
+        payload["model_called"] = None
+    return payload
 
 
 def _make_decision(
@@ -581,7 +660,8 @@ def _make_decision(
     reply: str | None,
     source: str,
     reason: str,
-    model_called: bool,
+    model_called: bool | None,
+    model_call_status: str | None = None,
     vote_status: str = "not_requested",
     confidence: float = 1.0,
     session_preserved: bool = False,
@@ -596,6 +676,7 @@ def _make_decision(
         source=source,
         reason=reason,
         model_called=model_called,
+        model_call_status=model_call_status,
         vote_status=vote_status,
         confidence=confidence,
         session_preserved=session_preserved,
@@ -915,6 +996,11 @@ def _preserve_reply_with_receipt(text: str, context: ContractContext) -> tuple[s
     return f"{_preserve_reply(context)} Receipt: {pointer}.", pointer
 
 
+def _bounded_adapter_error_type(error_type: str) -> str:
+    bounded = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(error_type or "")).strip("._-")[:64]
+    return bounded or "ContractError"
+
+
 def preserve_session_on_error(
     text: str,
     *,
@@ -928,23 +1014,117 @@ def preserve_session_on_error(
     exception detail, path, or credential.
     """
 
+    bounded_error_type = _bounded_adapter_error_type(error_type)
     started = time.monotonic()
     decision_id = _decision_id(text, context, ContractLabel.UNRESOLVED)
     reply = f"{_preserve_reply(context)} Receipt: {decision_id}."
-    return _make_decision(
+    decision = _make_decision(
         text=text,
         context=context,
         label=ContractLabel.UNRESOLVED,
         action=DecisionAction.PRESERVE_SESSION,
         reply=reply,
         source="adapter_error",
-        reason=f"active_session_contract_error:{error_type}",
-        model_called=False,
+        reason=f"active_session_contract_error:{bounded_error_type}",
+        model_called=None,
+        model_call_status="unknown",
         vote_status="error_preserved",
         confidence=0.0,
         session_preserved=True,
         receipt_pointer=decision_id,
         started=started,
+    )
+    if decision.receipt.receipt_persisted:
+        return decision
+    # A pointer is public only when it resolves. Preserve the fail-closed
+    # session reply, but do not advertise an evidence location that was never
+    # committed.
+    return replace(
+        decision,
+        reply=_preserve_reply(context),
+        receipt=replace(decision.receipt, receipt_pointer=""),
+    )
+
+
+def synthetic_adapter_error_decision(
+    text: str,
+    *,
+    context: ContractContext,
+    error_type: str = "ContractError",
+) -> ContractDecision:
+    """Return a bounded decision when an adapter raises before returning one.
+
+    Inactive adapters may continue through their established owner, but the
+    fail-open is explicit. Active sessions retain the existing fail-closed
+    preserve path. Exception messages and raw request text never enter the
+    receipt.
+    """
+
+    if context.active_session:
+        return preserve_session_on_error(text, context=context, error_type=error_type)
+    receipt = ContractReceipt(
+        decision_id=_decision_id(text, context, ContractLabel.UNRESOLVED),
+        label=ContractLabel.UNRESOLVED.value,
+        action=DecisionAction.PASS_THROUGH.value,
+        precedence=_PRECEDENCE[ContractLabel.UNRESOLVED],
+        source="adapter_error",
+        reason=f"inactive_contract_error:{_bounded_adapter_error_type(error_type)}",
+        model_called=None,
+        semantic_vote_status="error_fail_open",
+        confidence=0.0,
+        model_call_status="unknown",
+        elapsed_ms=0.0,
+    )
+    return ContractDecision(
+        label=ContractLabel.UNRESOLVED,
+        matches=(ContractLabel.UNRESOLVED,),
+        action=DecisionAction.PASS_THROUGH,
+        reply=None,
+        context=context,
+        receipt=receipt,
+    )
+
+
+def emergency_adapter_error_decision(
+    text: str,
+    *,
+    context: ContractContext,
+    error_type: str = "ContractError",
+    factory_error_type: str = "ReceiptFactoryError",
+) -> ContractDecision:
+    """Build a non-persisting last-resort receipt if the primary factory fails."""
+
+    active = context.active_session
+    decision_id = _decision_id(text, context, ContractLabel.UNRESOLVED)
+    action = DecisionAction.PRESERVE_SESSION if active else DecisionAction.PASS_THROUGH
+    receipt = ContractReceipt(
+        decision_id=decision_id,
+        label=ContractLabel.UNRESOLVED.value,
+        action=action.value,
+        precedence=_PRECEDENCE[ContractLabel.UNRESOLVED],
+        source="adapter_error",
+        reason=(
+            f"{'active' if active else 'inactive'}_contract_error_emergency:"
+            f"{_bounded_adapter_error_type(error_type)}:factory:"
+            f"{_bounded_adapter_error_type(factory_error_type)}"
+        ),
+        model_called=None,
+        semantic_vote_status=("error_emergency_preserved" if active else "error_emergency_fail_open"),
+        confidence=0.0,
+        model_call_status="unknown",
+        session_preserved=active,
+        receipt_pointer="",
+        receipt_persisted=False,
+        receipt_persistence_status="emergency_not_persisted",
+        elapsed_ms=0.0,
+    )
+    return ContractDecision(
+        label=ContractLabel.UNRESOLVED,
+        matches=(ContractLabel.UNRESOLVED,),
+        action=action,
+        reply=(_preserve_reply(context) if active else None),
+        context=context,
+        receipt=receipt,
     )
 
 
@@ -1502,10 +1682,12 @@ __all__ = [
     "active_session_from_mapping",
     "contract_receipt_db_path",
     "decide_contract",
+    "emergency_adapter_error_decision",
     "guardian_gate_narration_reply",
     "preserve_session_on_error",
     "resolve_contract_receipt",
     "semantic_vote_enabled_for_adapter",
     "semantic_vote_timeout_seconds",
+    "synthetic_adapter_error_decision",
     "surface_scope_matches",
 ]

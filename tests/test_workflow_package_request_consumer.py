@@ -15,6 +15,7 @@ import openclaw_request_response_service as service
 import maestro_listener
 import workflow_package_queue as queue
 import workflow_package_request_consumer as consumer
+import typed_contract_decision as contract
 from scripts.run_openclaw_request_response_service import main as service_main
 
 
@@ -505,6 +506,151 @@ def test_general_question_still_stages_when_frontdoor_has_no_ready_answer(tmp_pa
     assert result.receipt["workflow_ref"] == "diagnostic_package_gate_smoke"
     assert result.receipt["package_status"] != "ANSWER_READY"
     assert (tmp_path / "workflow_package_queue.sqlite").exists()
+
+
+def test_route_to_staging_final_bridge_keeps_first_receipt_and_calls_contract_once(
+    tmp_path, monkeypatch
+):
+    request = _request_payload(
+        request_id="task161_route_receipt",
+        source_text="Could you unpack that broader situation?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+    request["active_surface_ref"] = "operator_maestro_chat"
+    request_path = tmp_path / "mission_control_operator_instruction_request_task161.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setenv(consumer.SQLITE_PATH_ENV, str(tmp_path / "workflow_package_queue.sqlite"))
+    monkeypatch.setenv(contract.SEMANTIC_VOTE_ENV, "off")
+    monkeypatch.setattr(
+        mcr,
+        "classify_frontdoor_intent",
+        lambda *_: ("unknown", False, "no legacy owner"),
+    )
+    real_decide = contract.decide_contract
+    calls = 0
+
+    def _counted_decide(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real_decide(*args, **kwargs)
+
+    monkeypatch.setattr(contract, "decide_contract", _counted_decide)
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+
+    receipt = response.proof_to_response["typed_contract_decision"]
+    assert response.workflow_ref == "diagnostic_package_gate_smoke"
+    assert response.detail_disclosure["typed_contract_decision"] == receipt
+    assert receipt["action"] == "pass_through"
+    assert calls == 1
+
+
+def test_non_frontdoor_workflow_ready_answer_carries_exact_receipt_to_final_bridge(
+    tmp_path, monkeypatch
+):
+    request = _request_payload(
+        request_id="task161_internal_ready_receipt",
+        source_text="Could you unpack that broader situation?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+    assert "active_surface_ref" not in request
+    request_path = tmp_path / "mission_control_operator_instruction_request_task161_internal_ready.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setenv(consumer.SQLITE_PATH_ENV, str(tmp_path / "workflow_package_queue.sqlite"))
+    monkeypatch.setenv(contract.SEMANTIC_VOTE_ENV, "off")
+    monkeypatch.setattr(
+        mcr,
+        "classify_frontdoor_intent",
+        lambda *_args, **_kwargs: ("business_question", True, "bounded test answer"),
+    )
+    monkeypatch.setattr(
+        mcr,
+        "_default_handle",
+        lambda _text, _session=None: ["The grounded business answer is ready."],
+    )
+    real_decide = contract.decide_contract
+    calls = 0
+
+    def _counted_decide(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real_decide(*args, **kwargs)
+
+    monkeypatch.setattr(contract, "decide_contract", _counted_decide)
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+
+    nested = response.detail_disclosure["workflow_package_request_consumer"]
+    receipt = nested["machine_proof"]["maestro_machine_proof"]["typed_contract_decision"]
+    assert response.internal_status == "RESPONSE_READY"
+    assert response.workflow_ref == "business_question_answer"
+    assert response.proof_to_response["typed_contract_decision"] == receipt
+    assert response.detail_disclosure["typed_contract_decision"] == receipt
+    response_payload, _ = processor.build_payloads(response, generated_at=FIXED_NOW)
+    final_json = json.loads(processor.stable_json(response_payload))
+    assert final_json["proof_to_response"]["typed_contract_decision"] == receipt
+    assert final_json["detail_disclosure"]["typed_contract_decision"] == receipt
+    assert calls == 1
+
+
+def test_non_frontdoor_workflow_unhandled_staging_carries_exact_receipt_to_final_bridge(
+    tmp_path, monkeypatch
+):
+    request = _request_payload(
+        request_id="task161_internal_unhandled_receipt",
+        source_text="Could you unpack that broader situation?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+    assert "active_surface_ref" not in request
+    request_path = tmp_path / "mission_control_operator_instruction_request_task161_internal_unhandled.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setenv(consumer.SQLITE_PATH_ENV, str(tmp_path / "workflow_package_queue.sqlite"))
+    monkeypatch.setenv(contract.SEMANTIC_VOTE_ENV, "off")
+    monkeypatch.setattr(
+        mcr,
+        "classify_frontdoor_intent",
+        lambda *_args, **_kwargs: ("maestro_brain_freeform", False, "no bounded owner"),
+    )
+    real_decide = contract.decide_contract
+    calls = 0
+
+    def _counted_decide(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real_decide(*args, **kwargs)
+
+    monkeypatch.setattr(contract, "decide_contract", _counted_decide)
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at=FIXED_NOW,
+        duplicate_check=False,
+    )
+
+    receipt = response.proof_to_response["typed_contract_decision"]
+    assert response.workflow_ref == "diagnostic_package_gate_smoke"
+    assert response.detail_disclosure["typed_contract_decision"] == receipt
+    assert receipt["action"] == "pass_through"
+    assert receipt["decision_id"].startswith("contract:")
+    response_payload, _ = processor.build_payloads(response, generated_at=FIXED_NOW)
+    final_json = json.loads(processor.stable_json(response_payload))
+    assert final_json["proof_to_response"]["typed_contract_decision"] == receipt
+    assert final_json["detail_disclosure"]["typed_contract_decision"] == receipt
+    assert calls == 1
 
 
 def test_client_specific_review_question_keeps_existing_dryrun_semantics(tmp_path, monkeypatch):

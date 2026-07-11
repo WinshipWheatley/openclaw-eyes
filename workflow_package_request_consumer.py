@@ -204,6 +204,7 @@ class WorkflowPackageRequestResult:
     response_primary_status: str
     next_safe_action: str
     receipt: dict[str, Any]
+    typed_contract_trace: dict[str, Any] | None = None
 
 
 def stable_json(payload: Any) -> str:
@@ -523,6 +524,7 @@ def _business_question_receipt(
     source_request_filename: str,
     generated_at: str,
     sqlite_path: Path,
+    typed_contract_trace: dict[str, Any] | None = None,
 ) -> WorkflowPackageRequestResult | None:
     source_text = _business_question_source_text(raw_request)
     session = mcr.session_from_request(raw_request)
@@ -531,6 +533,9 @@ def _business_question_receipt(
         session=session,
         source_surface="mission_control",
     )
+    result_trace = mcr.typed_contract_trace_for_result(result)
+    if typed_contract_trace is not None:
+        typed_contract_trace.update(result_trace)
     if result.status != "ANSWER_READY":
         return None
     route = _system_question_route_metadata(raw_request)
@@ -644,6 +649,7 @@ def _business_question_receipt(
         response_primary_status="ANSWER_READY",
         next_safe_action=str(operator_display["next_safe_action"]),
         receipt=receipt,
+        typed_contract_trace=dict(result_trace) or None,
     )
 
 
@@ -988,6 +994,7 @@ def consume_workflow_package_request(
     generated_at: str | None = None,
     sqlite_path: Path | None = None,
     lm1_shared_seam: Mapping[str, Any] | None = None,
+    frontdoor_contract_already_attempted: bool = False,
 ) -> WorkflowPackageRequestResult:
     generated_at = generated_at or utc_now()
     sqlite_path = sqlite_path or default_sqlite_path()
@@ -1001,13 +1008,15 @@ def consume_workflow_package_request(
             generated_at=generated_at,
             sqlite_path=sqlite_path,
         )
-    if ok and is_business_question_request(raw_request):
+    business_contract_trace: dict[str, Any] = {}
+    if ok and is_business_question_request(raw_request) and not frontdoor_contract_already_attempted:
         business_result = _business_question_receipt(
             raw_request,
             request_id=request_id,
             source_request_filename=source_request_filename,
             generated_at=generated_at,
             sqlite_path=sqlite_path,
+            typed_contract_trace=business_contract_trace,
         )
         if business_result is not None:
             return business_result
@@ -1145,4 +1154,5 @@ def consume_workflow_package_request(
         response_primary_status=primary_status,
         next_safe_action=next_safe_action,
         receipt=receipt,
+        typed_contract_trace=dict(business_contract_trace) or None,
     )
