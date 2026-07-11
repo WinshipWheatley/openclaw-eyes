@@ -32,6 +32,7 @@ import client_invoice_workbook_registry
 import conversational_workflow_router_intake
 import deterministic_intent_interpreter
 import evidence_intake
+import first_touch_decision
 import guardian_output_gate
 import invoice_review_action_request_handler
 import local_surface_request_contract
@@ -2139,6 +2140,10 @@ def _initial_response_author(response: OpenClawResponseForMac, layered_fields: M
 
 
 def _apply_high_risk_voice_override(author: str, reason: str, response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str, bool]:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    first_touch = detail.get("first_touch_decision")
+    if isinstance(first_touch, Mapping) and first_touch.get("handled") is True:
+        return author, f"{reason}; owning-agent first-touch refusal", False
     text = _voice_context_text(response, layered_fields)
     if author != "NILES" or not _contains_any(text, HIGH_RISK_VOICE_TERMS):
         return author, reason, False
@@ -3699,6 +3704,7 @@ def _process_workflow_package_request(
     classification: RequestClassification,
     lm1_shared_seam: Mapping[str, Any] | None = None,
     _typed_contract_trace: Mapping[str, Any] | None = None,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac:
     sqlite_path: Path | None = None
     try:
@@ -3731,6 +3737,7 @@ def _process_workflow_package_request(
             isinstance(_typed_contract_trace, Mapping)
             and _typed_contract_trace.get("typed_contract_decision")
         ),
+        first_touch_receipt=first_touch_receipt,
     )
     typed_contract_trace = dict(_typed_contract_trace or {})
     _merge_typed_contract_trace(typed_contract_trace, result.typed_contract_trace)
@@ -5495,6 +5502,7 @@ def _process_operator_controller_event_request(
     generated_at: str | None = None,
     classification: RequestClassification,
     route_decision: Mapping[str, Any],
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac:
     generated_at = generated_at or utc_now()
     default_paths = _same_path(export_root, DEFAULT_EXPORT_ROOT)
@@ -5542,6 +5550,7 @@ def _process_operator_controller_event_request(
         artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
         proof_to_response_sqlite_path=proof_to_response_sqlite_path,
         generated_at=generated_at,
+        first_touch_receipt=first_touch_receipt,
     )
     typed_contract_trace = {
         "typed_contract_decision": dict(receipt.get("typed_contract_decision") or {}),
@@ -5782,6 +5791,7 @@ def _process_maestro_frontdoor_operator_instruction(
     route_decision: Mapping[str, Any],
     _capsule: Any | None = None,
     _typed_contract_trace: dict[str, Any] | None = None,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac | None:
     if not _is_maestro_frontdoor_operator_instruction(raw_request):
         return None
@@ -5799,9 +5809,10 @@ def _process_maestro_frontdoor_operator_instruction(
             source_surface=source_surface,
             _capsule=_capsule,
             agent=agent,
+            first_touch_receipt=first_touch_receipt,
         )
     except TypeError as exc:
-        if "source_surface" not in str(exc):
+        if "source_surface" not in str(exc) and "first_touch_receipt" not in str(exc):
             raise
         result = maestro_cassandra_responder.answer_frontdoor_chat(operator_text, session=session)
     trace = _typed_contract_trace if _typed_contract_trace is not None else {}
@@ -6357,6 +6368,7 @@ def _try_interpreter_brain_divert(
     _capsule: Any | None = None,
     lm1_shared_seam: Mapping[str, Any] | None = None,
     _typed_contract_trace: dict[str, Any] | None = None,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac | None:
     """Flag-gated interpreter-LM routing augmentation.
 
@@ -6433,9 +6445,10 @@ def _try_interpreter_brain_divert(
             source_surface=source_surface,
             _capsule=_capsule,
             agent=agent,
+            first_touch_receipt=first_touch_receipt,
         )
     except TypeError as exc:
-        if "source_surface" not in str(exc):
+        if "source_surface" not in str(exc) and "first_touch_receipt" not in str(exc):
             raise
         result = maestro_cassandra_responder.answer_frontdoor_chat(
             operator_text, session=augmented_session
@@ -8566,6 +8579,147 @@ def _future_blocked_response(
     )
 
 
+def _first_touch_surface(raw_request: Mapping[str, Any]) -> str:
+    return str(
+        raw_request.get("active_surface_ref")
+        or raw_request.get("source_surface")
+        or raw_request.get("source_channel")
+        or "openclaw_request_processor"
+    ).strip()
+
+
+def _process_first_touch_decision(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any],
+    _capsule: Any | None = None,
+) -> tuple[first_touch_decision.FirstTouchOutcome | None, OpenClawResponseForMac | None]:
+    operator_text = _lm1_source_text(raw_request)
+    if not operator_text:
+        return None, None
+    surface = _first_touch_surface(raw_request)
+    agent = _resolved_frontdoor_agent(raw_request, _capsule=_capsule)
+    outcome = first_touch_decision.attempt_first_touch(
+        operator_text,
+        agent=agent,
+        surface=surface,
+    )
+    if not outcome.handled or outcome.decision is None:
+        return outcome, None
+    decision = outcome.decision
+
+    receipt = dict(decision.receipt)
+    from typed_contract_decision import ContractContext, adapt_first_touch_receipt
+
+    typed_decision = adapt_first_touch_receipt(
+        operator_text,
+        context=ContractContext(agent=agent, surface=surface),
+        first_touch_receipt=receipt,
+        reply=decision.reply,
+    )
+    typed_receipt = typed_decision.receipt.to_dict()
+    agent_display = "Clara" if decision.agent == "clara" else decision.agent.capitalize()
+    lines = [line.strip() for line in decision.reply.splitlines() if line.strip()]
+    headline = lines[0] if lines else f"{agent_display} held this request"
+    proof = {
+        "first_touch_decision": receipt,
+        "typed_contract_decision": typed_receipt,
+        "typed_contract_matches": [label.value for label in typed_decision.matches],
+        "workflow_package_staged": False,
+        "queue_sqlite_mutated": False,
+        "business_or_domain_store_write_performed": False,
+        "session_state_mutated": False,
+        "model_call_performed": False,
+        "worker_dispatch_performed": False,
+        "external_action_performed": False,
+        "refusal_receipt_append_performed": receipt[
+            "refusal_receipt_append_performed"
+        ],
+        "file_mutation_performed": receipt["file_mutation_performed"],
+    }
+    provenance = {
+        "speaker": agent_display,
+        "actor": decision.agent,
+        "surface_ref": surface,
+        "message_role": "first_touch_refusal",
+        "source_request_id": str(raw_request.get("request_id") or ""),
+    }
+    card = {
+        "schema_version": "first_touch_refusal_card_v1",
+        "card_id": f"first_touch_refusal_{_short_hash(receipt['decision_id'])}",
+        "card_type": "FIRST_TOUCH_REFUSAL",
+        "title": headline,
+        "summary": decision.reply,
+        "status_label": "Held safely",
+        "actions": [],
+        "provenance": provenance,
+        "proof": {"machine_proof": proof},
+    }
+    return outcome, OpenClawResponseForMac(
+        source_request_id=str(
+            raw_request.get("request_id")
+            or raw_request.get("source_request_id")
+            or f"missing_request_id_{request_path.stem}"
+        ),
+        source_request_filename=request_path.name,
+        workflow_ref="first_touch_refusal",
+        request_type="CHAT",
+        internal_status="RESPONSE_READY",
+        operator_headline=headline,
+        operator_message=decision.reply,
+        what_happened=(
+            "The shared first-touch seam refused the request before admission or workflow save.",
+            (
+                "The append-only refusal audit receipt was recorded."
+                if receipt["refusal_receipt_append_performed"]
+                else "The refusal audit append failed, but the refusal still held."
+            ),
+            "No workflow package, business/domain state, session state, model call, worker dispatch, or external action occurred.",
+        ),
+        why_it_happened=f"{agent_display} applied {decision.receipt['gate']} at first touch.",
+        how_to_fix=(
+            "Use the operator-controlled review path named in the refusal and provide the required item-specific approval."
+        ),
+        visible_cards=(card,),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None,
+        detail_disclosure={
+            "first_touch_decision": receipt,
+            "typed_contract_decision": typed_receipt,
+            "typed_contract_matches": [
+                label.value for label in typed_decision.matches
+            ],
+            "first_touch_guard_receipt": dict(receipt["guard_receipt"]),
+            "operator_display": {
+                "speaker_ref": decision.agent,
+                "voice_profile_ref": f"agent_voice_profile:{decision.agent}",
+                "routing_reason": "owning-agent first-touch refusal",
+            },
+            "message_provenance": provenance,
+            "request_classification": asdict(classification),
+            "request_router_decision": dict(route_decision),
+            "workflow_package_staged": False,
+            "queue_sqlite_mutated": False,
+            "business_or_domain_store_write_performed": False,
+            "session_state_mutated": False,
+            "model_call_performed": False,
+            "worker_dispatch_performed": False,
+            "external_action_performed": False,
+            "file_mutation_performed": receipt["file_mutation_performed"],
+        },
+        readback_files=(),
+        next_safe_move="Use the operator-controlled review path named in the refusal.",
+        proof_to_response=proof,
+        proof_to_response_status="FIRST_TOUCH_REFUSAL",
+    )
+
+
 def _process_request_path_core(
     request_path: Path,
     *,
@@ -8677,6 +8831,15 @@ def _process_request_path_core(
             readback_files=(),
             next_safe_move="Fix the request and rerun the bounded processor.",
         )
+    first_touch_outcome, first_touch_response = _process_first_touch_decision(
+        request_path,
+        raw_request,
+        classification=effective_classification,
+        route_decision=route_decision,
+        _capsule=_capsule,
+    )
+    if first_touch_response is not None:
+        return first_touch_response
     if classification.request_family == "CHAT" and _is_workbook_candidate_replace_choice_request(raw_request):
         return _process_workbook_candidate_replace_choice_request(
             request_path,
@@ -8733,6 +8896,9 @@ def _process_request_path_core(
             generated_at=generated_at,
             classification=effective_classification,
             route_decision=route_decision,
+            first_touch_receipt=(
+                first_touch_outcome.receipt if first_touch_outcome is not None else None
+            ),
         )
     typed_contract_trace: dict[str, Any] = {}
     maestro_frontdoor_response = _process_maestro_frontdoor_operator_instruction(
@@ -8742,6 +8908,9 @@ def _process_request_path_core(
         route_decision=route_decision,
         _capsule=_capsule,
         _typed_contract_trace=typed_contract_trace,
+        first_touch_receipt=(
+            first_touch_outcome.receipt if first_touch_outcome is not None else None
+        ),
     )
     if maestro_frontdoor_response is not None:
         return maestro_frontdoor_response
@@ -8765,6 +8934,9 @@ def _process_request_path_core(
         _capsule=_capsule,
         lm1_shared_seam=lm1_shared_seam,
         _typed_contract_trace=typed_contract_trace,
+        first_touch_receipt=(
+            first_touch_outcome.receipt if first_touch_outcome is not None else None
+        ),
     )
     if interpreter_divert is not None:
         return interpreter_divert
@@ -8792,6 +8964,9 @@ def _process_request_path_core(
             classification=effective_classification,
             lm1_shared_seam=lm1_shared_seam,
             _typed_contract_trace=typed_contract_trace,
+            first_touch_receipt=(
+                first_touch_outcome.receipt if first_touch_outcome is not None else None
+            ),
         )
     if classification.request_family == "CHAT" and _is_workbook_candidate_keep_choice_request(raw_request):
         return _attach_typed_contract_trace(
@@ -9040,6 +9215,12 @@ def _enrich_operator_surface(
         return response
 
 
+def _is_first_touch_refusal_response(response: OpenClawResponseForMac) -> bool:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    decision = detail.get("first_touch_decision")
+    return bool(isinstance(decision, Mapping) and decision.get("handled") is True)
+
+
 def process_request_path(
     request_path: Path,
     *,
@@ -9103,7 +9284,12 @@ def process_request_path(
     # write the capsule back; add conversation_id to detail_disclosure as the
     # proof-of-correlation receipt field.
     # When OFF: no write, response returned unchanged.
-    if _continuity_enabled() and _capsule is not None and _continuity_store_state:
+    if (
+        _continuity_enabled()
+        and _capsule is not None
+        and _continuity_store_state
+        and not _is_first_touch_refusal_response(response)
+    ):
         try:
             import conversation_capsule as _cc2
             _ts = _continuity_store_state.get("generated_at") or utc_now()
@@ -9486,6 +9672,14 @@ def _machine_proof(
         for receipt in committed_truth_receipts
     )
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    first_touch_detail = (
+        detail.get("first_touch_decision")
+        if isinstance(detail.get("first_touch_decision"), Mapping)
+        else {}
+    )
+    first_touch_receipt_appended = bool(
+        first_touch_detail.get("refusal_receipt_append_performed") is True
+    )
     interpreter_detail = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     workbook_detail = detail.get("client_invoice_workbook_registry") if isinstance(detail.get("client_invoice_workbook_registry"), Mapping) else {}
     audit_handoff_detail = detail.get("client_invoice_audit_handoff") if isinstance(detail.get("client_invoice_audit_handoff"), Mapping) else {}
@@ -9507,7 +9701,7 @@ def _machine_proof(
             "VISUAL_RENDER_AGENT_FUTURE",
         }
     ]
-    return {
+    proof = {
         "processor_bounded_once": status.bounded_mode == "process one request and exit",
         "request_classifier_present": status.request_classification["request_family"] in REQUEST_FAMILIES,
         "request_router_used": bool(router_decision),
@@ -9563,10 +9757,13 @@ def _machine_proof(
         "client_invoice_sheet_audit_used": bool(sheet_audit_detail),
         "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,
-        "file_mutation_performed": truth_file_mutation,
+        "file_mutation_performed": bool(
+            truth_file_mutation or first_touch_receipt_appended
+        ),
         "business_state_mutation_performed": truth_business_mutation,
         "operator_truth_write_committed": bool(committed_truth_receipts),
         "operator_truth_write_receipt_count": len(committed_truth_receipts),
+        "first_touch_refusal_receipt_append_performed": first_touch_receipt_appended,
         "model_call_performed": brain_model_call_performed,
         "local_model_invoked": brain_local_model_invoked,
         "external_llm_invoked": brain_external_model_invoked,
@@ -9615,6 +9812,9 @@ def _machine_proof(
         "git_push_pull_fetch_run": False,
         "content_hash": None,
     }
+    if first_touch_detail.get("handled") is True:
+        proof["business_state_mutation_performed"] = False
+    return proof
 
 
 def _guardian_publication_denial_response(

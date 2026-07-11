@@ -33,6 +33,7 @@ from pathlib import Path as _Path
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
+import first_touch_decision
 from scripts.producer_telegram_route import extract_producer_payload, truncate_producer_output
 from cassandra_brain import (
     handle as cassandra_handle,
@@ -360,6 +361,15 @@ async def _run_cassandra_handle_async(
     # finalized-invoice/payment domains continue to their existing owners.
     _contract_context = None
     _preserve_contract = None
+    first_touch_receipt = session_meta.get("first_touch_receipt")
+    try:
+        _refusal_evaluated = first_touch_decision.valid_pass_through_marker(
+            first_touch_receipt,
+            text=text,
+            agent="cassandra",
+        )
+    except Exception:
+        _refusal_evaluated = False
     try:
         from invoice_cockpit_ops import DEFAULT_SESSION_PATH, JsonSessionStore
         from typed_contract_decision import (
@@ -480,7 +490,9 @@ async def _run_cassandra_handle_async(
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
                 "cassandra", default=True
             ),
+            first_touch_receipt=first_touch_receipt,
         )
+        _refusal_evaluated = True
     except Exception as exc:
         print(
             f"[typed_contract][cassandra] {type(exc).__name__}; "
@@ -564,7 +576,7 @@ async def _run_cassandra_handle_async(
     # money-movement bait can never be eaten by a clarify session or time out
     # in the model path). Legitimate work ("delete that draft", "prepare the
     # St Anne's invoice for my review") never matches and flows on untouched.
-    refusal = _operator_refusal_reply(text)
+    refusal = None if _refusal_evaluated else _operator_refusal_reply(text)
     if refusal is not None:
         return [refusal]
     # IB-3: helpers return transport-neutral outputs; only this listener's bound
@@ -894,6 +906,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not claim_listener_update(update, role="cassandra", source_channel="cassandra_listener"):
         return
+    text = update.message.text.strip()
+    if not text:
+        return
+    first_touch = first_touch_decision.attempt_first_touch(
+        text,
+        agent="cassandra",
+        surface="cassandra_listener",
+    )
+    if first_touch.handled and first_touch.decision is not None:
+        await update.message.reply_text(first_touch.decision.reply)
+        return
     print(
         "[chatid-pin] "
         f"sender_name_present={str(bool(sender_name)).lower()} "
@@ -919,9 +942,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 flush=True,
             )
 
-    text = update.message.text.strip()
-    if not text:
-        return
     if is_authorized_user:
         source_user_label = "operator"
     elif is_designated_contact:
@@ -945,6 +965,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "sender_chat_id": sender_chat_id,
         "source_message_id": source_message_id,
         "source_user_label": source_user_label,
+        "first_touch_receipt": (
+            dict(first_touch.receipt) if first_touch.attempted else None
+        ),
     }
     bound_origin = OutputOrigin.from_session_meta(
         session_meta,
@@ -1123,6 +1146,11 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if status == "duplicate":
         await update.message.reply_text("Got it — already processed that one.")
+        return
+
+    if status == "refused":
+        for reply in result["reply"]:
+            await update.message.reply_text(reply)
         return
 
     # accepted or flagged

@@ -118,3 +118,32 @@ def test_guardian_no_pending_reply_builds_packet_but_does_not_show_raw_packet(mo
     assert packet_calls[0]["question_class"] == "approval_posture_no_pending"
     assert "GUARDIAN_CONTEXT_PACKET" not in sent[0]
     assert "TEMPORAL ANCHOR" not in sent[0]
+
+
+def test_first_touch_refusal_precedes_guardian_intake_and_approval_parser(tmp_path, monkeypatch) -> None:
+    listener = _load_listener(monkeypatch)
+    monkeypatch.setenv(
+        "OPENCLAW_REFUSAL_RECEIPT_PATH",
+        str(tmp_path / "refusal-receipts.jsonl"),
+    )
+    monkeypatch.setattr(listener, "claim_listener_update", lambda *_args, **_kwargs: True)
+
+    def _must_not_reach(*_args, **_kwargs):
+        raise AssertionError("Guardian intake or approval parser ran before refusal")
+
+    monkeypatch.setattr(listener, "record_telegram_listener_update_safe", _must_not_reach)
+    sent: list[str] = []
+    update = SimpleNamespace(
+        update_id=162,
+        effective_user=SimpleNamespace(id=123),
+        message=_ReplyMessage(
+            "clear out all the old logs and branches, do it now",
+            sent,
+        ),
+    )
+
+    asyncio.run(listener.handle_message(update, SimpleNamespace()))
+
+    assert len(sent) == 1
+    assert "Nothing was deleted" in sent[0]
+    assert (tmp_path / "refusal-receipts.jsonl").is_file()

@@ -35,6 +35,7 @@ Security:
 import asyncio
 import os
 
+import first_touch_decision
 from telegram import Update, InlineKeyboardMarkup
 from telegram.error import BadRequest as TelegramBadRequest, Forbidden as TelegramForbidden
 from telegram.ext import (
@@ -348,6 +349,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     text = update.message.text.strip()
+    first_touch = first_touch_decision.attempt_first_touch(
+        text,
+        agent="guardian",
+        surface="guardian_listener",
+    )
+    if first_touch.handled and first_touch.decision is not None:
+        await update.message.reply_text(first_touch.decision.reply)
+        return
     record_telegram_listener_update_safe(
         text=text,
         source_channel="guardian_listener",
@@ -362,7 +371,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # intake, approval parsing, or any clarify. Blanket approvals, money
     # moves, and destructive-scope asks get an instant refusal naming the
     # gate; legitimate typed decisions ("A3F2 1") never match and flow on.
-    _refusal = _operator_refusal_reply(text)
+    _refusal = None if first_touch.attempted else _operator_refusal_reply(text)
     if _refusal is not None:
         await update.message.reply_text(_refusal)
         return
@@ -383,7 +392,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     if not has_pending_approval():
-        _reply = guardian_no_pending_reply(text)
+        _reply = guardian_no_pending_reply(
+            text,
+            first_touch_receipt=first_touch.receipt if first_touch.attempted else None,
+        )
         # Ground the reply with a read-only packet and packet-engine receipt, but
         # never expose the raw packet text in the operator-visible Telegram reply.
         try:
@@ -433,6 +445,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 context=_typed_context,
                 status_renderer=lambda: f"1 pending approval request ({_pending_id}), awaiting a decision.",
                 semantic_vote_enabled=semantic_vote_enabled_for_adapter("guardian", default=True),
+                first_touch_receipt=first_touch.receipt if first_touch.attempted else None,
             )
         except Exception as exc:
             print(

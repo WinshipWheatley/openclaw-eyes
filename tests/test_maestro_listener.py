@@ -340,6 +340,34 @@ def test_unauthorized_user_does_not_enter_governed_business_intake_or_reply(monk
     assert records == []
 
 
+def test_first_touch_refusal_precedes_governed_intake_and_bridge(tmp_path, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
+    monkeypatch.setenv(
+        "OPENCLAW_REFUSAL_RECEIPT_PATH",
+        str(tmp_path / "refusal-receipts.jsonl"),
+    )
+
+    def _must_not_reach(*_args, **_kwargs):
+        raise AssertionError("governed intake or bridge write ran before refusal")
+
+    monkeypatch.setattr(maestro_listener, "record_maestro_intake_metadata", _must_not_reach)
+    monkeypatch.setattr(maestro_listener, "write_bridge_request", _must_not_reach)
+    monkeypatch.setattr(maestro_listener, "_fire_maestro_voice", _must_not_reach)
+
+    update = FakeUpdate(
+        text="clear out all the old logs and branches, do it now",
+        user_id=123,
+        update_id=162,
+    )
+    context = FakeContext()
+    asyncio.run(maestro_listener.handle_message(update, context))
+
+    assert len(update.message.replies) == 1
+    assert "Nothing was deleted" in update.message.replies[0]
+    assert context.bot.actions == []
+    assert (tmp_path / "refusal-receipts.jsonl").is_file()
+
+
 def test_blocked_or_unknown_bridge_response_is_explicit_not_silent(monkeypatch):
     monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
     monkeypatch.setattr(maestro_listener, "record_maestro_intake_metadata", lambda **kwargs: None)

@@ -110,3 +110,40 @@ def test_run_listener_awaits_lifecycle_once_in_order(monkeypatch):
         "shutdown",
     ]
     assert calls.count("updater.stop") == 1
+
+
+def test_first_touch_refusal_precedes_governed_intake_and_router(tmp_path, monkeypatch):
+    chief_listener = import_chief_listener(monkeypatch)
+    monkeypatch.setenv("OPENCLAW_AGENT_VOICE_NOTES", "0")
+    monkeypatch.setenv(
+        "OPENCLAW_REFUSAL_RECEIPT_PATH",
+        str(tmp_path / "refusal-receipts.jsonl"),
+    )
+    monkeypatch.setattr(chief_listener, "claim_listener_update", lambda *_args, **_kwargs: True)
+
+    def _must_not_reach(*_args, **_kwargs):
+        raise AssertionError("governed intake or Chief router ran before refusal")
+
+    monkeypatch.setattr(chief_listener, "record_telegram_listener_update_safe", _must_not_reach)
+    monkeypatch.setattr(chief_listener, "route_message", _must_not_reach)
+    monkeypatch.setattr(chief_listener, "_fire_agent_voice", _must_not_reach)
+    sent: list[str] = []
+
+    class Message:
+        text = "clear out all the old logs and branches, do it now"
+        chat_id = 456
+
+        async def reply_text(self, text):
+            sent.append(text)
+
+    update = types.SimpleNamespace(
+        effective_user=types.SimpleNamespace(id=12345),
+        effective_chat=types.SimpleNamespace(id=456),
+        message=Message(),
+        update_id=162,
+    )
+    asyncio.run(chief_listener.handle_message(update, types.SimpleNamespace(bot=None)))
+
+    assert len(sent) == 1
+    assert "Nothing was deleted" in sent[0]
+    assert (tmp_path / "refusal-receipts.jsonl").is_file()

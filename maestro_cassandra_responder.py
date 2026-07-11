@@ -772,7 +772,75 @@ def _answer_frontdoor_chat_impl(
     _capsule: Any | None = None,
     agent: str = "maestro",
     _contract_trace_sink: dict[str, Any] | None = None,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> MaestroCassandraResult:
+    # Resolve the shared refusal seam before probe-state binding.  A caller's
+    # hash/agent-bound pass marker is reused; otherwise this adapter evaluates
+    # exactly once and forwards the resulting pass marker to the full typed
+    # contract below.  The typed projection does not re-run the guard.
+    from first_touch_decision import attempt_first_touch, valid_pass_through_marker
+    from typed_contract_decision import ContractContext, adapt_first_touch_receipt
+
+    _early_contract_context = ContractContext(
+        agent=agent,
+        surface=source_surface,
+        source_message_id=str((session or {}).get("source_message_id") or ""),
+        active_session=False,
+    )
+    _first_touch_reply: str | None = None
+    if valid_pass_through_marker(first_touch_receipt, text=text, agent=agent):
+        _early_first_touch_receipt = dict(first_touch_receipt or {})
+    else:
+        _first_touch_outcome = attempt_first_touch(
+            text,
+            agent=agent,
+            surface=source_surface,
+        )
+        _early_first_touch_receipt = dict(_first_touch_outcome.receipt)
+        if _first_touch_outcome.handled and _first_touch_outcome.decision is not None:
+            _first_touch_reply = _first_touch_outcome.decision.reply
+        elif valid_pass_through_marker(
+            _early_first_touch_receipt,
+            text=text,
+            agent=agent,
+        ):
+            first_touch_receipt = _early_first_touch_receipt
+    _early_contract_decision = adapt_first_touch_receipt(
+        text,
+        context=_early_contract_context,
+        first_touch_receipt=_early_first_touch_receipt,
+        reply=_first_touch_reply,
+    )
+    if _contract_trace_sink is not None:
+        _contract_trace_sink.update(
+            {
+                "typed_contract_decision": _early_contract_decision.receipt.to_dict(),
+                "typed_contract_matches": [
+                    label.value for label in _early_contract_decision.matches
+                ],
+            }
+        )
+    if _first_touch_reply is not None:
+        _lines = _first_touch_reply.splitlines()
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class="operator_refusal_guard",
+            allowed_to_call_handle=False,
+            one_line_answer=_lines[0] if _lines else _first_touch_reply,
+            plain_summary=_first_touch_reply,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded={},
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "operator_refusal_guard": True,
+                "first_touch_decision": _early_first_touch_receipt,
+                "model_call_performed": False,
+                "workflow_package_staged": False,
+                "file_mutation_performed": bool(
+                    _early_first_touch_receipt.get("file_mutation_performed")
+                ),
+            },
+        )
     if isinstance(session, Mapping) and str(session.get("probe_state_binding_error") or ""):
         return _probe_state_blocked_result(str(session["probe_state_binding_error"]))
     try:
@@ -789,6 +857,16 @@ def _answer_frontdoor_chat_impl(
     _contract_context = None
     _contract_status_answer = None
     _contract_decision = None
+    try:
+        from first_touch_decision import valid_pass_through_marker
+
+        _refusal_evaluated = valid_pass_through_marker(
+            first_touch_receipt,
+            text=text,
+            agent=agent,
+        )
+    except Exception:
+        _refusal_evaluated = False
     try:
         from typed_contract_decision import (
             ContractContext,
@@ -878,7 +956,9 @@ def _answer_frontdoor_chat_impl(
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
                 "maestro", default=True
             ),
+            first_touch_receipt=first_touch_receipt,
         )
+        _refusal_evaluated = True
     except Exception as exc:
         print(
             f"[typed_contract][maestro] {type(exc).__name__}; "
@@ -997,14 +1077,16 @@ def _answer_frontdoor_chat_impl(
     # model call. A refusal returns ANSWER_READY so the processor renders it
     # as the final reply and the staging fallthrough (the pass-1 "$500 send
     # -> gate-smoke diagnostics" path) never runs. Fail-open on guard errors.
-    try:
-        from operator_refusal_guard import refusal_reply_for_text as _refusal_reply_for_text
+    _refusal_text = None
+    if not _refusal_evaluated:
+        try:
+            from operator_refusal_guard import refusal_reply_for_text as _refusal_reply_for_text
 
-        _refusal_text = _refusal_reply_for_text(
-            text, agent=agent, surface=source_surface
-        )
-    except Exception:
-        _refusal_text = None
+            _refusal_text = _refusal_reply_for_text(
+                text, agent=agent, surface=source_surface
+            )
+        except Exception:
+            _refusal_text = None
     if _refusal_text is not None:
         _refusal_lines = _refusal_text.splitlines()
         return MaestroCassandraResult(
@@ -1402,6 +1484,7 @@ def answer_frontdoor_chat(
     protected_generate_fn: ProtectedGenerateFn | None = None,
     _capsule: Any | None = None,
     agent: str = "maestro",
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> MaestroCassandraResult:
     """Run the responder once and attach its one typed receipt to every result."""
 
@@ -1415,6 +1498,7 @@ def answer_frontdoor_chat(
         _capsule=_capsule,
         agent=agent,
         _contract_trace_sink=trace,
+        first_touch_receipt=first_touch_receipt,
     )
     return _finalize_typed_contract_result(result, trace)
 

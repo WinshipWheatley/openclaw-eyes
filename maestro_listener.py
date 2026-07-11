@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import first_touch_decision
 from listener_resilience import clean_stale_carryover, honest_short_fail
 from telegram_agent_intake import claim_listener_update
 from telegram_listener_integrity import install_identity_preflight, run_verified_polling
@@ -916,6 +917,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not claim_listener_update(update, role="maestro", source_channel="maestro_listener"):
         return
     source_message_id = str(getattr(update, "update_id", "")) or None
+    first_touch = first_touch_decision.attempt_first_touch(
+        text,
+        agent="maestro",
+        surface="maestro_listener",
+    )
+    if first_touch.handled and first_touch.decision is not None:
+        reply = first_touch.decision.reply
+        await update.message.reply_text(reply)
+        return
     record_maestro_intake_metadata(
         text=text,
         source_message_id=source_message_id,

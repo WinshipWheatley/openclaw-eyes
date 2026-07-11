@@ -102,6 +102,7 @@ _MONEY_DOCUMENT_OBJECT_RE = re.compile(
 
 # Destructive: verb + committed/external scope. Verb-alone never refuses.
 _DESTRUCTIVE_VERB_RE = re.compile(
+    r"\b(?:clear|clean)(?:s|ed|ing)?\s+out\b|"
     r"\b(delete|deletes|deleting|wipe|wipes|wiping|erase|erases|erasing|"
     r"purge|purges|purging|reset|resets|resetting|destroy|destroys|destroying|"
     r"nuke|nukes|nuking)\b|\brm\s+-rf\b"
@@ -113,7 +114,8 @@ _DESTRUCTIVE_VERB_RE = re.compile(
 _EPHEMERAL_PHRASE_RE = re.compile(
     r"(?:\b(?:x-?32|console|board|mixer|desk|daw|the|that|this|these|those|my|our|"
     r"a|an|old|stale|latest|last|current|all|every|unsent|pending|staged|scratch|test)\s+)*"
-    r"\b(?:drafts?|scenes?|sessions?|takes?|previews?|snapshots?|presets?|test\s+messages?)\b"
+    r"\b(?:(?:messages?|emails?|invoices?|replies?|responses?|notes?)\s+)?"
+    r"(?:drafts?|scenes?|sessions?|takes?|previews?|snapshots?|presets?|test\s+messages?)\b"
 )
 _DESTRUCTIVE_SCOPE_RE = re.compile(
     r"\b(invoices?|invoice\s+records?|financial\s+records?|finances|receivables?|"
@@ -124,6 +126,41 @@ _DESTRUCTIVE_SCOPE_RE = re.compile(
     r"approvals?|approval\s+queue|gates?|"
     r"x-?32|console|board|mixer|mixing\s+desk|desk|scenes?|show\s+files?|snapshots?|patch(?:es)?\s+list|album|masters?|stems?|sessions?|takes?|"
     r"backups?|history|memory|state|everything|all\s+of\s+it|it\s+all)\b"
+)
+# English phrasal verbs permit the object between the verb and particle
+# ("clear all the old logs and branches out").  Keep that expansion bounded
+# to a noun phrase made from protected objects; a broad ``.* out`` would turn
+# explanatory text such as "clear what the logs mean and point out ..." into
+# a destructive request.
+_CLEAR_OUT_MODIFIERS = (
+    r"(?:(?:all|every|each|the|our|my|your|his|her|their|these|those|old|stale|"
+    r"existing|previous|current|committed|entire|whole|remaining|pending)\s+){0,8}"
+)
+_CLEAR_OUT_OBJECT = (
+    r"(?:invoices?|invoice\s+records?|financial\s+records?|receivables?|ledgers?|"
+    r"workbooks?|billing|records?|receipts?|payments?|logs?(?:\s+files?)?|"
+    r"(?:git\s+)?branches?|git|repos?|repositor(?:y|ies)|databases?|db|sqlite|tables?|"
+    r"emails?|inbox|sent\s+mail|messages?|threads?|calendar|events?|contacts?|"
+    r"approval\s+queue|approvals?|gates?|x-?32|console|board|mixer|mixing\s+desk|desk|"
+    r"scenes?|show\s+files?|snapshots?|patch(?:es)?\s+list|album|masters?|stems?|"
+    r"sessions?|takes?|backups?|history|memory|state|everything)"
+)
+_SEPARATED_CLEAR_OUT_RE = re.compile(
+    r"\b(?:clear|clean)(?:s|ed|ing)?\s+"
+    + _CLEAR_OUT_MODIFIERS
+    + _CLEAR_OUT_OBJECT
+    + r"(?:\s*(?:(?:,\s*)?(?:and\s+)|,\s*)"
+    + _CLEAR_OUT_MODIFIERS
+    + _CLEAR_OUT_OBJECT
+    + r"){0,5}\s+out\b"
+)
+# Selecting one captured workbook reference and retiring the previous OpenClaw
+# reference is local registry housekeeping, not deletion of the workbook. Strip
+# only that bounded phrase; a second destructive verb/scope still refuses.
+_LOCAL_WORKBOOK_REFERENCE_RETIRE_RE = re.compile(
+    r"\b(?:delete|remove|retire)\s+(?:the\s+)?(?:other|old|previous)\s+"
+    r"(?:one|workbook|reference)\s+from\s+open\s*claw\b"
+    r"(?=\s*(?:(?:capital\s+hilton\s+)?invoice\s+workflow\s+request\s*)?[.!?]?$)"
 )
 
 # Gate bypass: blanket approvals / dispatch-all / disabling or skipping gates.
@@ -155,16 +192,25 @@ def _match_money_movement(normalized: str) -> tuple[str, ...]:
 
 
 def _match_destructive_scope(normalized: str) -> tuple[str, ...]:
-    verb = _DESTRUCTIVE_VERB_RE.search(normalized)
+    candidate = normalized
+    if "workbook" in normalized:
+        candidate = _LOCAL_WORKBOOK_REFERENCE_RETIRE_RE.sub(" ", candidate)
+    verb = _DESTRUCTIVE_VERB_RE.search(candidate)
+    separated_clear_out = None if verb is not None else _SEPARATED_CLEAR_OUT_RE.search(candidate)
+    verb = verb or separated_clear_out
     if not verb:
         return ()
     # Strip ephemeral in-domain objects first (guard-rail: object-scope, not
     # verb-alone; drafts/scenes/sessions/takes are normal handling).
-    remainder = _EPHEMERAL_PHRASE_RE.sub(" ", normalized)
+    remainder = _EPHEMERAL_PHRASE_RE.sub(" ", candidate)
     scope = _DESTRUCTIVE_SCOPE_RE.search(remainder)
     if not scope:
         return ()
-    return (verb.group(0), scope.group(0))
+    verb_receipt = verb.group(0)
+    if separated_clear_out is not None:
+        family = "clean" if verb_receipt.lower().startswith("clean") else "clear"
+        verb_receipt = f"{family} … out"
+    return (verb_receipt, scope.group(0))
 
 
 def _match_gate_bypass(normalized: str) -> tuple[str, ...]:

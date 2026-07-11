@@ -314,6 +314,7 @@ def test_maestro_cassandra_controller_route_threads_agent_to_frontdoor(tmp_path,
 
     def _stub_answer(text, *, session=None, source_surface="", agent="maestro", **kwargs):
         captured["agent"] = agent
+        captured["first_touch_receipt"] = kwargs.get("first_touch_receipt")
         return router.maestro_cassandra_responder.MaestroCassandraResult(
             status="ANSWER_READY",
             intent_class="maestro_brain_freeform",
@@ -332,16 +333,19 @@ def test_maestro_cassandra_controller_route_threads_agent_to_frontdoor(tmp_path,
         extra_payload={"agent_id": "cassandra"},
     )
 
+    first_touch_receipt = {"attempted": True, "handled": False}
     receipt = router._route_maestro_cassandra_conversation(
         request,
         read_model_root=tmp_path,
         receipt_id="receipt_agent_threading",
         generated_at=FIXED_NOW,
         validation={"verification_status": "VERIFIED"},
+        first_touch_receipt=first_touch_receipt,
     )
 
     assert receipt is not None
     assert captured["agent"] == "cassandra"
+    assert captured["first_touch_receipt"] is first_touch_receipt
     assert receipt["route_status"] == "TEXT_RESPONSE_READY"
 
 

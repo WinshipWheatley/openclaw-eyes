@@ -323,7 +323,7 @@ def _guard_refusal_reply(
     text: str,
     *,
     allow_informational_money: bool,
-) -> str | None:
+) -> Any:
     """Render the shared refusal unless the only hit is historical money.
 
     The shared guard intentionally treats verb+amount as movement.  Grammar
@@ -333,45 +333,14 @@ def _guard_refusal_reply(
     so a destructive or blanket-approval compound remains refusal-first.
     """
 
-    try:
-        from operator_refusal_guard import (
-            REASON_MONEY,
-            evaluate_operator_refusal,
-            log_refusal_receipt,
-        )
+    from first_touch_decision import attempt_first_touch
 
-        candidate = str(text or "")
-        for _attempt in range(4):
-            decision = evaluate_operator_refusal(
-                candidate,
-                agent="hermes",
-                surface="hermes_gateway",
-            )
-            if decision is None:
-                return None
-            if decision.reason_class != REASON_MONEY or not allow_informational_money:
-                # Re-evaluation can operate on a safely masked candidate.  The
-                # refusal receipt still binds to the original operator text.
-                decision.receipt["text_sha256"] = hashlib.sha256(
-                    str(text or "").encode("utf-8")
-                ).hexdigest()
-                log_refusal_receipt(decision)
-                return decision.refusal_text
-
-            previous = candidate
-            for matched in decision.matched:
-                candidate = re.sub(
-                    re.escape(str(matched)),
-                    " ",
-                    candidate,
-                    count=1,
-                    flags=re.IGNORECASE,
-                )
-            if candidate == previous:
-                return None
-        return None
-    except Exception:
-        return None
+    return attempt_first_touch(
+        text,
+        agent="hermes",
+        surface="hermes_gateway",
+        allow_informational_money=allow_informational_money,
+    )
 
 
 def truthful_reply_for_text(text: str) -> str | None:
@@ -403,12 +372,12 @@ def truthful_reply_for_text(text: str) -> str | None:
     # Money-movement vocabulary also appears in past-tense and explanatory
     # questions.  Ignore the money guard only after a positive information
     # classification and only when no requested-action clause is present.
-    _refusal = _guard_refusal_reply(
+    _first_touch = _guard_refusal_reply(
         raw,
         allow_informational_money=positively_informational and not requested_action,
     )
-    if _refusal is not None:
-        return _refusal
+    if _first_touch.handled and _first_touch.decision is not None:
+        return _first_touch.decision.reply
     if requested_action:
         return _action_denial_reply()
 
@@ -435,6 +404,9 @@ def truthful_reply_for_text(text: str) -> str | None:
             context=ContractContext(agent="hermes", surface="hermes_gateway_policy"),
             status_renderer=render_hermes_status,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter("hermes_status", default=True),
+            first_touch_receipt=(
+                _first_touch.receipt if _first_touch.attempted else None
+            ),
         )
     except Exception:
         _typed = None

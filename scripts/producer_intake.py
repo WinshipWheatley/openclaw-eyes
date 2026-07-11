@@ -148,7 +148,7 @@ def _operator_refusal_reply(text):
         return None
 
 
-def _typed_contract_reply(text):
+def _typed_contract_reply(text, *, first_touch_receipt=None):
     """Task 151 subprocess mirror for stale-listener resilience.
 
     The listener normally resolves this first.  A fresh subprocess still runs
@@ -174,6 +174,7 @@ def _typed_contract_reply(text):
             context=ContractContext(agent="niles", surface="niles_producer_intake"),
             status_renderer=render_niles_status,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles_subprocess", default=True),
+            first_touch_receipt=first_touch_receipt,
         )
     except Exception:
         return None
@@ -231,7 +232,29 @@ def main():
     parser.add_argument("--human-only", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     parser.add_argument("--explain", action="store_true")
+    parser.add_argument("--first-touch-receipt-json", default="")
     args = parser.parse_args()
+
+    first_touch_receipt = None
+    first_touch_valid = False
+    if args.first_touch_receipt_json:
+        try:
+            candidate = json.loads(args.first_touch_receipt_json)
+            root = str(Path(__file__).resolve().parents[1])
+            if root not in sys.path:
+                sys.path.insert(0, root)
+            from first_touch_decision import valid_pass_through_marker
+
+            first_touch_valid = valid_pass_through_marker(
+                candidate,
+                text=args.text,
+                agent="niles",
+            )
+            if first_touch_valid:
+                first_touch_receipt = candidate
+        except Exception:
+            first_touch_receipt = None
+            first_touch_valid = False
 
     # Task 149: single-pipeline ordering, hoisted refusal-first + money-first. Previously
     # the X32 lane ran unconditionally before get_niles_response, so LANE ORDER decided
@@ -240,14 +263,21 @@ def main():
     # "right") before money ever got a chance. Fails open at each tap: any non-matching
     # ask or internal error falls through to the next stage, ending at the legacy path.
     if args.human_only:
-        typed_reply = _typed_contract_reply(args.text)
+        typed_reply = (
+            _typed_contract_reply(
+                args.text,
+                first_touch_receipt=first_touch_receipt,
+            )
+            if first_touch_valid
+            else _typed_contract_reply(args.text)
+        )
         if typed_reply is not None:
             print(typed_reply)
             return
         # Independent safety fallback: even if the typed-contract import/call
         # fails, destructive studio scope still reaches the proven refusal
         # guard before identity, money, X32, or the legacy catch-all.
-        refusal = _operator_refusal_reply(args.text)
+        refusal = None if first_touch_valid else _operator_refusal_reply(args.text)
         if refusal is not None:
             print(refusal)
             return

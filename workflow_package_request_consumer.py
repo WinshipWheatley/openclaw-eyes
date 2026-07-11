@@ -525,6 +525,7 @@ def _business_question_receipt(
     generated_at: str,
     sqlite_path: Path,
     typed_contract_trace: dict[str, Any] | None = None,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> WorkflowPackageRequestResult | None:
     source_text = _business_question_source_text(raw_request)
     session = mcr.session_from_request(raw_request)
@@ -532,6 +533,7 @@ def _business_question_receipt(
         source_text,
         session=session,
         source_surface="mission_control",
+        first_touch_receipt=first_touch_receipt,
     )
     result_trace = mcr.typed_contract_trace_for_result(result)
     if typed_contract_trace is not None:
@@ -995,6 +997,7 @@ def consume_workflow_package_request(
     sqlite_path: Path | None = None,
     lm1_shared_seam: Mapping[str, Any] | None = None,
     frontdoor_contract_already_attempted: bool = False,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> WorkflowPackageRequestResult:
     generated_at = generated_at or utc_now()
     sqlite_path = sqlite_path or default_sqlite_path()
@@ -1017,6 +1020,7 @@ def consume_workflow_package_request(
             generated_at=generated_at,
             sqlite_path=sqlite_path,
             typed_contract_trace=business_contract_trace,
+            first_touch_receipt=first_touch_receipt,
         )
         if business_result is not None:
             return business_result

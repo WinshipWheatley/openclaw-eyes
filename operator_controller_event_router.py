@@ -1829,6 +1829,7 @@ def _route_maestro_cassandra_conversation(
     generated_at: str,
     validation: Mapping[str, Any],
     _typed_contract_trace_sink: dict[str, Any] | None = None,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     operator_text = maestro_cassandra_responder.operator_text_from_request(request)
     session = maestro_cassandra_responder.session_from_request(request)
@@ -1845,9 +1846,10 @@ def _route_maestro_cassandra_conversation(
             session=session,
             source_surface=source_surface,
             agent=agent,
+            first_touch_receipt=first_touch_receipt,
         )
     except TypeError as exc:
-        if "source_surface" not in str(exc):
+        if "source_surface" not in str(exc) and "first_touch_receipt" not in str(exc):
             raise
         result = maestro_cassandra_responder.answer_frontdoor_chat(operator_text, session=session)
     typed_contract_trace = maestro_cassandra_responder.typed_contract_trace_for_result(result)
@@ -2002,6 +2004,7 @@ def _route_event(
     artifact_lineage_sqlite_path: Path | None,
     proof_to_response_sqlite_path: Path | None = None,
     router_sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     event_type = str(request.get("controller_event_type") or "")
     if event_type == global_run_mode_context.RUN_MODE_SET_EVENT_TYPE:
@@ -2021,6 +2024,7 @@ def _route_event(
             generated_at=generated_at,
             validation=validation,
             _typed_contract_trace_sink=typed_contract_trace,
+            first_touch_receipt=first_touch_receipt,
         )
         if maestro_receipt is not None:
             return maestro_receipt
@@ -2639,6 +2643,7 @@ def route_controller_event(
     proof_to_response_sqlite_path: Path | None = None,
     generated_at: str | None = None,
     export_read_models: bool = True,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     request = normalize_controller_event_request(raw_request, read_model_root=read_model_root)
@@ -2723,6 +2728,7 @@ def route_controller_event(
                     artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
                     proof_to_response_sqlite_path=proof_to_response_sqlite_path,
                     router_sqlite_path=sqlite_path,
+                    first_touch_receipt=first_touch_receipt,
                 )
         else:
             receipt = _route_event(
@@ -2738,6 +2744,7 @@ def route_controller_event(
                 artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
                 proof_to_response_sqlite_path=proof_to_response_sqlite_path,
                 router_sqlite_path=sqlite_path,
+                first_touch_receipt=first_touch_receipt,
             )
 
     receipt["source_request_filename"] = source_request_filename

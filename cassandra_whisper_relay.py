@@ -28,6 +28,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import first_touch_decision
+
 # ── Thresholds ────────────────────────────────────────────────────────────────
 
 # Below this: hard reject — do not execute the command.
@@ -179,11 +181,31 @@ def relay_transcript(
             "event_id": event_id,
         }
 
+    # The transcript is now accepted transport text and has passed the
+    # read-only duplicate check.  Refusal first-touch must still precede the
+    # brain, dedup mutation, and accepted-relay log write.
+    first_touch = first_touch_decision.attempt_first_touch(
+        transcript,
+        agent="cassandra",
+        surface="cassandra_whisper_relay",
+    )
+    if first_touch.handled and first_touch.decision is not None:
+        return {
+            "status": "refused",
+            "reply": [first_touch.decision.reply],
+            "reason": "first_touch_refusal",
+            "confidence": confidence,
+            "event_id": event_id,
+            "first_touch_receipt": dict(first_touch.receipt),
+        }
+
     # ── Route to Cassandra ────────────────────────────────────────────────────
     session_meta = dict(session or {})
     session_meta["source"] = "whisper_relay"
     session_meta["whisper_event_id"] = event_id
     session_meta["whisper_confidence"] = confidence
+    if first_touch.attempted:
+        session_meta["first_touch_receipt"] = dict(first_touch.receipt)
 
     try:
         replies = cassandra_handle(transcript, session_meta)

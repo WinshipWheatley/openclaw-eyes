@@ -1,6 +1,8 @@
 import asyncio
+import json
 import os
 import sys
+import first_touch_decision
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 from scripts.producer_telegram_route import extract_producer_payload, truncate_producer_output
@@ -37,15 +39,26 @@ async def _telegram_typing_loop(bot, chat_id: int | None) -> None:
             print(f"[niles_listener] typing indicator error: {exc}", flush=True)
         await asyncio.sleep(4.0)
 
-async def _run_producer_intake(payload: str) -> str:
+async def _run_producer_intake(payload: str, *, first_touch_receipt=None) -> str:
     """Executes producer_intake.py and returns the output."""
     try:
-        proc = await asyncio.create_subprocess_exec(
+        command = [
             "python3",
             "/home/openclaw/scripts/producer_intake.py",
             "--text",
             payload,
             "--human-only",
+        ]
+        if first_touch_decision.valid_pass_through_marker(
+            first_touch_receipt,
+            text=payload,
+            agent="niles",
+        ):
+            command.extend(
+                ["--first-touch-receipt-json", json.dumps(dict(first_touch_receipt), sort_keys=True)]
+            )
+        proc = await asyncio.create_subprocess_exec(
+            *command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -148,6 +161,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    first_touch = first_touch_decision.attempt_first_touch(
+        text,
+        agent="niles",
+        surface="niles_producer_listener",
+    )
+    if first_touch.handled and first_touch.decision is not None:
+        reply = first_touch.decision.reply
+        await update.message.reply_text(reply)
+        return
     record_telegram_listener_update_safe(
         text=text,
         source_channel="niles_producer_listener",
@@ -177,6 +199,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ),
             status_renderer=build_niles_bare_status_answer,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles", default=True),
+            first_touch_receipt=first_touch.receipt if first_touch.attempted else None,
         )
     except Exception:
         _typed = None
@@ -190,7 +213,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # intake subprocess (no model, no timeout). "wipe the X32" refuses with
     # the gate named; scene/session/take housekeeping ("wipe the X32 scene")
     # never matches and flows to the normal intake path.
-    refusal = _operator_refusal_reply(text)
+    refusal = None if first_touch.attempted else _operator_refusal_reply(text)
     if refusal is not None:
         await update.message.reply_text(refusal)
         _fire_agent_voice("niles", refusal, update)
@@ -211,7 +234,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Direct input
     typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, update.effective_chat.id))
     try:
-        result = await _run_producer_intake(text)
+        try:
+            result = await _run_producer_intake(
+                text,
+                first_touch_receipt=first_touch.receipt if first_touch.attempted else None,
+            )
+        except TypeError as exc:
+            if "first_touch_receipt" not in str(exc):
+                raise
+            result = await _run_producer_intake(text)
         await update.message.reply_text(result)
         _fire_agent_voice("niles", result, update)
     finally:

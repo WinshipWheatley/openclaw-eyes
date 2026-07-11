@@ -522,3 +522,39 @@ def test_handle_message_keeps_original_prompt_delivery_after_newer_prompt(monkey
 
     assert captured_should_deliver == [True]
     assert sent == ["Correlated answer."]
+
+
+def test_first_touch_refusal_precedes_sender_map_governed_intake_and_router(tmp_path, monkeypatch):
+    listener = _load_listener(monkeypatch)
+    monkeypatch.setenv(
+        "OPENCLAW_REFUSAL_RECEIPT_PATH",
+        str(tmp_path / "refusal-receipts.jsonl"),
+    )
+    monkeypatch.setattr(listener, "claim_listener_update", lambda *_args, **_kwargs: True)
+
+    def _must_not_reach(*_args, **_kwargs):
+        raise AssertionError("Cassandra governed intake ran before refusal")
+
+    monkeypatch.setattr(listener, "record_cassandra_listener_text_update", _must_not_reach)
+    before_senders = dict(listener._RECENT_SENDERS)
+    sent: list[str] = []
+
+    class Message:
+        text = "clear out all the old logs and branches, do it now"
+        forward_origin = None
+
+        async def reply_text(self, text, **_kwargs):
+            sent.append(text)
+
+    update = types.SimpleNamespace(
+        effective_user=types.SimpleNamespace(id=123, full_name="Winship"),
+        effective_chat=types.SimpleNamespace(id=456),
+        message=Message(),
+        update_id=162,
+    )
+    asyncio.run(listener.handle_message(update, types.SimpleNamespace(bot=None)))
+
+    assert len(sent) == 1
+    assert "Nothing was deleted" in sent[0]
+    assert listener._RECENT_SENDERS == before_senders
+    assert (tmp_path / "refusal-receipts.jsonl").is_file()

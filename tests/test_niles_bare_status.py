@@ -160,6 +160,75 @@ class TestBuildNilesBareStatusAnswer:
 
 
 class TestHandleMessageBareStatus:
+    def test_safe_first_touch_marker_is_hash_bound_into_fresh_subprocess(self, monkeypatch):
+        module = _load_producer_listener(monkeypatch)
+        text = "make it feel like a summer night"
+        outcome = module.first_touch_decision.attempt_first_touch(
+            text,
+            agent="niles",
+            surface="niles_producer_listener",
+        )
+        captured: list[str] = []
+
+        class Process:
+            returncode = 0
+
+            async def communicate(self):
+                return b"PRODUCTION-OK", b""
+
+        async def _fake_subprocess(*args, **_kwargs):
+            captured.extend(str(arg) for arg in args)
+            return Process()
+
+        monkeypatch.setattr(module.asyncio, "create_subprocess_exec", _fake_subprocess)
+
+        result = asyncio.run(
+            module._run_producer_intake(
+                text,
+                first_touch_receipt=outcome.receipt,
+            )
+        )
+
+        assert result == "PRODUCTION-OK"
+        marker_index = captured.index("--first-touch-receipt-json") + 1
+        marker = json.loads(captured[marker_index])
+        assert module.first_touch_decision.valid_pass_through_marker(
+            marker,
+            text=text,
+            agent="niles",
+        )
+
+    def test_first_touch_refusal_precedes_governed_intake_and_producer(self, monkeypatch, tmp_path):
+        module = _load_producer_listener(monkeypatch)
+        monkeypatch.setenv(
+            "OPENCLAW_REFUSAL_RECEIPT_PATH",
+            str(tmp_path / "refusal-receipts.jsonl"),
+        )
+
+        def _must_not_record(**_kwargs):
+            raise _GuardMustNotPass("governed intake ran before refusal")
+
+        async def _must_not_run(_payload):
+            raise _GuardMustNotPass("producer subprocess ran before refusal")
+
+        monkeypatch.setattr(module, "record_telegram_listener_update_safe", _must_not_record)
+        monkeypatch.setattr(module, "_run_producer_intake", _must_not_run)
+        monkeypatch.setattr(
+            module,
+            "_fire_agent_voice",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                _GuardMustNotPass("voice worker ran for first-touch refusal")
+            ),
+        )
+        update = _FakeUpdate("factory reset the X32 and dump every scene", user_id=123)
+        context = types.SimpleNamespace(bot=_FakeBot())
+
+        asyncio.run(module.handle_message(update, context))
+
+        assert len(update.message.replies) == 1
+        assert "Nothing was wiped" in update.message.replies[0]
+        assert (tmp_path / "refusal-receipts.jsonl").is_file()
+
     def test_bare_status_answered_before_producer_intake(self, monkeypatch, tmp_path):
         module = _load_producer_listener(monkeypatch)
         _write_json(
@@ -168,7 +237,7 @@ class TestHandleMessageBareStatus:
         )
         monkeypatch.chdir(tmp_path)
 
-        async def _boom(payload):
+        async def _boom(payload, **_kwargs):
             raise _GuardMustNotPass("producer intake ran for a bare status ask")
 
         monkeypatch.setattr(module, "_run_producer_intake", _boom)
@@ -182,7 +251,7 @@ class TestHandleMessageBareStatus:
     def test_production_question_still_reaches_intake(self, monkeypatch):
         module = _load_producer_listener(monkeypatch)
 
-        async def _ok(payload):
+        async def _ok(payload, **_kwargs):
             return "PRODUCTION-OK"
 
         monkeypatch.setattr(module, "_run_producer_intake", _ok)

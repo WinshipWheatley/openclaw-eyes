@@ -63,6 +63,37 @@ def test_softened_live_action_requests_still_refuse(text) -> None:
     assert "send_hold" in lowered
 
 
+def test_informational_money_exception_still_allows_history_read() -> None:
+    reply = policy.truthful_reply_for_text("Did you send $500 already?")
+
+    assert reply is not None
+    assert "no canonical send-history read model" in reply.lower()
+    assert "cannot send messages" not in reply.lower()
+
+
+def test_informational_money_exception_does_not_mask_destructive_compound() -> None:
+    reply = policy.truthful_reply_for_text(
+        "Did you send $500 already, and wipe the old logs now?"
+    )
+
+    assert reply is not None
+    assert "cannot delete, wipe, or reset" in reply.lower()
+    assert "no deletion, mutation, or dispatch occurred" in reply.lower()
+
+
+def test_many_informational_money_clauses_cannot_exhaust_before_destructive_compound() -> None:
+    history = ", ".join(
+        f"did you send ${amount} already" for amount in range(101, 121)
+    )
+    reply = policy.truthful_reply_for_text(
+        f"{history}, and delete the old logs now"
+    )
+
+    assert reply is not None
+    assert "cannot delete, wipe, or reset" in reply.lower()
+    assert "no deletion, mutation, or dispatch occurred" in reply.lower()
+
+
 def test_non_agent_route_target_with_money_falls_to_money_denial() -> None:
     reply = policy.truthful_reply_for_text("forward this to accounting and pay the vendor")
 

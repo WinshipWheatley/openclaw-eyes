@@ -676,6 +676,8 @@ def test_invalid_probe_root_aliases_fail_closed_before_truth_access(
     assert result.machine_proof["probe_state_binding_failed"] is True
     assert result.machine_proof["probe_state_isolated"] is False
     assert result.machine_proof["production_state_allowed"] is False
+    assert result.machine_proof["typed_contract_decision"]["source"] == "first_touch"
+    assert result.machine_proof["typed_contract_decision"]["action"] == "pass_through"
     assert _sha256(production) == before
 
 

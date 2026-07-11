@@ -694,6 +694,52 @@ def _make_decision(
     )
 
 
+def adapt_first_touch_receipt(
+    text: str,
+    *,
+    context: ContractContext,
+    first_touch_receipt: Mapping[str, Any],
+    reply: str | None = None,
+) -> ContractDecision:
+    """Project one already-evaluated first-touch outcome into the typed contract.
+
+    This is an adapter, not a second classifier call.  It lets early refusal
+    and early safety-block returns carry Task 161's typed receipt while Task
+    162 remains the sole owner of refusal evaluation and audit persistence.
+    """
+
+    receipt = dict(first_touch_receipt or {})
+    if receipt.get("receipt_type") != "first_touch_decision_receipt":
+        raise ValueError("invalid first-touch receipt type")
+    handled = receipt.get("handled") is True
+    if handled and not str(reply or "").strip():
+        raise ValueError("handled first-touch receipt requires its rendered reply")
+    return _make_decision(
+        text=str(text or ""),
+        context=context,
+        label=ContractLabel.REFUSAL if handled else ContractLabel.UNRESOLVED,
+        action=(
+            DecisionAction.DIRECT_ANSWER
+            if handled
+            else DecisionAction.PASS_THROUGH
+        ),
+        reply=str(reply or "") if handled else None,
+        source="first_touch",
+        reason=(
+            "first_touch_refusal"
+            if handled
+            else "first_touch_classification_error"
+            if receipt.get("attempted") is not True
+            else "first_touch_pass_through"
+        ),
+        model_called=False,
+        vote_status="not_requested",
+        confidence=1.0 if receipt.get("attempted") is True else 0.0,
+        receipt_pointer=str(receipt.get("decision_id") or ""),
+        started=time.monotonic(),
+    )
+
+
 def _refusal_reply(text: str, context: ContractContext) -> str | None:
     try:
         from operator_refusal_guard import refusal_reply_for_text
@@ -701,6 +747,24 @@ def _refusal_reply(text: str, context: ContractContext) -> str | None:
         return refusal_reply_for_text(text, agent=context.agent, surface=context.surface)
     except Exception:
         return None
+
+
+def _cached_first_touch_passed(
+    text: str,
+    context: ContractContext,
+    receipt: Mapping[str, Any] | None,
+) -> bool:
+    """Accept only a bound pass-through receipt from the shared first tap."""
+    try:
+        from first_touch_decision import valid_pass_through_marker
+
+        return valid_pass_through_marker(
+            receipt,
+            text=text,
+            agent=context.agent,
+        )
+    except Exception:
+        return False
 
 
 def _is_authority_token(text: str, context: ContractContext) -> bool:
@@ -1371,25 +1435,27 @@ def decide_contract(
     adaptive_call_fn: AdaptiveCall | None = None,
     semantic_timeout_seconds: float | None = None,
     session_answer_predicate: SessionAnswerPredicate | None = None,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> ContractDecision:
     """Return one explicit contract decision without mutating caller state."""
 
     started = time.monotonic()
     raw = str(text or "")
 
-    refusal = _refusal_reply(raw, context)
-    if refusal is not None:
-        return _make_decision(
-            text=raw,
-            context=context,
-            label=ContractLabel.REFUSAL,
-            action=DecisionAction.DIRECT_ANSWER,
-            reply=refusal,
-            source="deterministic",
-            reason="operator_refusal_guard",
-            model_called=False,
-            started=started,
-        )
+    if not _cached_first_touch_passed(raw, context, first_touch_receipt):
+        refusal = _refusal_reply(raw, context)
+        if refusal is not None:
+            return _make_decision(
+                text=raw,
+                context=context,
+                label=ContractLabel.REFUSAL,
+                action=DecisionAction.DIRECT_ANSWER,
+                reply=refusal,
+                source="deterministic",
+                reason="operator_refusal_guard",
+                model_called=False,
+                started=started,
+            )
 
     if _is_authority_token(raw, context):
         return _make_decision(
@@ -1680,6 +1746,7 @@ __all__ = [
     "DecisionAction",
     "HandoffResult",
     "active_session_from_mapping",
+    "adapt_first_touch_receipt",
     "contract_receipt_db_path",
     "decide_contract",
     "emergency_adapter_error_decision",

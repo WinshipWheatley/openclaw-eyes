@@ -6942,20 +6942,47 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     ]
     query = _strip_prefix(text)
     t_query = query.lower().strip()
+    first_touch_receipt = session_meta.get("first_touch_receipt")
+    try:
+        from first_touch_decision import (
+            rebind_pass_through_marker,
+            valid_pass_through_marker,
+        )
+
+        _refusal_first_attempted = valid_pass_through_marker(
+            first_touch_receipt,
+            text=query,
+            agent="cassandra",
+        )
+        if not _refusal_first_attempted:
+            rebound = rebind_pass_through_marker(
+                first_touch_receipt,
+                source_text=text,
+                target_text=query,
+                agent="cassandra",
+                surface=str(session_meta.get("surface") or "cassandra_brain.handle"),
+            )
+            if rebound is not None:
+                first_touch_receipt = rebound
+                _refusal_first_attempted = True
+    except Exception:
+        _refusal_first_attempted = False
 
     # ── Refusal-first guard (task 141) — FIRST tap, before intent
     # classification, packet intake, ledger writes, or any model call.
     # Destructive/money-movement/gate-bypass asks get an instant refusal in
     # Cassandra's voice naming the gate (no timeout possible); everything
     # else, including draft discards and staged invoice prep, flows on.
-    try:
-        from operator_refusal_guard import refusal_reply_for_text as _refusal_reply_for_text
+    _refusal_text = None
+    if not _refusal_first_attempted:
+        try:
+            from operator_refusal_guard import refusal_reply_for_text as _refusal_reply_for_text
 
-        _refusal_text = _refusal_reply_for_text(
-            query, agent="cassandra", surface="cassandra_brain.handle"
-        )
-    except Exception:
-        _refusal_text = None
+            _refusal_text = _refusal_reply_for_text(
+                query, agent="cassandra", surface="cassandra_brain.handle"
+            )
+        except Exception:
+            _refusal_text = None
     if _refusal_text is not None:
         _log_conversation(
             text,
@@ -7091,6 +7118,9 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             handoff_stager=_stage_handoff,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
                 "cassandra_brain"
+            ),
+            first_touch_receipt=(
+                first_touch_receipt if _refusal_first_attempted else None
             ),
         )
     except Exception as exc:
@@ -7576,6 +7606,8 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             guided_review_kwargs["gemini_form_provider"] = session_meta["gemini_form_provider"]
         if session_meta.get("gemini_form_env"):
             guided_review_kwargs["gemini_form_env"] = session_meta["gemini_form_env"]
+        if _refusal_first_attempted:
+            guided_review_kwargs["first_touch_receipt"] = first_touch_receipt
         switchboard_read_model_root = guided_review_kwargs.get("read_model_root") or session_meta.get("operator_intake_read_model_root")
         switchboard_review_root = guided_review_kwargs.get("review_root")
         if switchboard_review_root is None and (

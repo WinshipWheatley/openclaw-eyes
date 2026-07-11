@@ -356,7 +356,12 @@ def _guardian_reply(intent: str) -> str:
     )
 
 
-def nonapproval_response_for_text(text: str, *, surface: str = "chief") -> NonApprovalResponse | None:
+def nonapproval_response_for_text(
+    text: str,
+    *,
+    surface: str = "chief",
+    first_touch_receipt: Mapping[str, Any] | None = None,
+) -> NonApprovalResponse | None:
     if surface == "guardian":
         try:
             from typed_contract_decision import (
@@ -371,6 +376,7 @@ def nonapproval_response_for_text(text: str, *, surface: str = "chief") -> NonAp
                 context=ContractContext(agent="guardian", surface="guardian_listener"),
                 status_renderer=lambda: _approval_status_reply("guardian"),
                 semantic_vote_enabled=semantic_vote_enabled_for_adapter("guardian", default=True),
+                first_touch_receipt=first_touch_receipt,
             )
         except Exception:
             typed = None
@@ -399,8 +405,16 @@ def nonapproval_response_for_text(text: str, *, surface: str = "chief") -> NonAp
     return NonApprovalResponse(intent=intent, reply=reply)
 
 
-def guardian_no_pending_reply(text: str) -> str:
-    response = nonapproval_response_for_text(text, surface="guardian")
+def guardian_no_pending_reply(
+    text: str,
+    *,
+    first_touch_receipt: Mapping[str, Any] | None = None,
+) -> str:
+    response = nonapproval_response_for_text(
+        text,
+        surface="guardian",
+        first_touch_receipt=first_touch_receipt,
+    )
     if response is not None:
         return response.reply
     return _guardian_reply("clarification")

@@ -4201,6 +4201,7 @@ def process_guided_review_message(
     live_lm_brain_turn_root: str | Path | None = None,
     run_mode_context: Mapping[str, Any] | None = None,
     run_mode_sqlite_path: str | Path | None = None,
+    first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Process a Cassandra guided-review turn without external side effects."""
 
@@ -4374,7 +4375,21 @@ def process_guided_review_message(
         # unrelated pass-through, all BEFORE the wizard resumes. Live pass-2
         # proof of the class: an active wizard swallowed an unrelated payment
         # question ("did the Capital Hilton check arrive?" got NO reply at all).
-        refusal = _contract_refusal_reply(raw_text, agent="cassandra", surface=surface)
+        try:
+            from first_touch_decision import valid_pass_through_marker
+
+            _refusal_first_attempted = valid_pass_through_marker(
+                first_touch_receipt,
+                text=raw_text,
+                agent="cassandra",
+            )
+        except Exception:
+            _refusal_first_attempted = False
+        refusal = (
+            None
+            if _refusal_first_attempted
+            else _contract_refusal_reply(raw_text, agent="cassandra", surface=surface)
+        )
         if refusal is not None:
             return _response(
                 session=session,
@@ -4440,6 +4455,9 @@ def process_guided_review_message(
                     "cassandra_guided_review"
                 ),
                 session_answer_predicate=_typed_session_answer,
+                first_touch_receipt=(
+                    first_touch_receipt if _refusal_first_attempted else None
+                ),
             )
         except Exception as exc:
             print(

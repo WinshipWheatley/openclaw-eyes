@@ -1576,6 +1576,16 @@ def test_deterministic_intent_agent_visual_and_prompt_examples(tmp_path, capsys)
 
         assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
         response = json.loads(capsys.readouterr().out)
+        if suffix == "prompt":
+            first_touch = response["detail_disclosure"]["first_touch_decision"]
+            assert first_touch["handled"] is True
+            assert first_touch["reason_class"] == "gate_bypass"
+            assert first_touch["agent"] == "maestro"
+            assert response["response_author"] == "MAESTRO"
+            assert response["internal_status"] == "RESPONSE_READY"
+            assert response["machine_proof"]["model_call_performed"] is False
+            assert response["machine_proof"]["external_action_performed"] is False
+            continue
         detail = response["detail_disclosure"]["deterministic_intent_interpreter"]
 
         assert detail["candidate"]["target_agent_role"] == agent_role
@@ -1594,9 +1604,6 @@ def test_deterministic_intent_agent_visual_and_prompt_examples(tmp_path, capsys)
             assert response["visual_event_package"]["visual_event_type"] == "SAFE_VISUAL_PACKAGE"
             assert response["visual_event_package"]["provider_policy"]["cloud_generation_allowed"] is False
             assert response["machine_proof"]["visual_provider_call_performed"] is False
-        if suffix == "prompt":
-            assert response["response_author"] == "GUARDIAN"
-            assert response["internal_status"] == "BLOCKED_WITH_REASON"
 
 
 def test_voice_selection_fixtures_cover_cassandra_guardian_and_niles_override():

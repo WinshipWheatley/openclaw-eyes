@@ -196,3 +196,32 @@ def test_session_metadata_forwarded_to_brain(monkeypatch, tmp_path):
     assert s["whisper_event_id"] == "test-001"
     assert abs(s["whisper_confidence"] - 0.92) < 0.001
     assert s["sender_name"] == "Winship"
+
+
+def test_destructive_transcript_refuses_before_brain_dedup_or_relay_log(monkeypatch, tmp_path):
+    import cassandra_whisper_relay as relay
+
+    relay._dedup_cache.clear()
+    relay_log = tmp_path / "relay.jsonl"
+    refusal_log = tmp_path / "refusals.jsonl"
+    monkeypatch.setattr(relay, "_RELAY_LOG", relay_log)
+    monkeypatch.setenv("OPENCLAW_REFUSAL_RECEIPT_PATH", str(refusal_log))
+    monkeypatch.setattr(
+        relay,
+        "cassandra_handle",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("brain ran before first-touch refusal")
+        ),
+    )
+
+    result = relay.relay_transcript(
+        "clear out all the old logs and branches, do it now",
+        confidence=0.95,
+        event_id="voice-162",
+    )
+
+    assert result["status"] == "refused"
+    assert "Nothing was deleted" in result["reply"][0]
+    assert relay._dedup_cache == {}
+    assert not relay_log.exists()
+    assert refusal_log.is_file()

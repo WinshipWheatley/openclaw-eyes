@@ -7,6 +7,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+import first_touch_decision
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
@@ -136,6 +137,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    first_touch = first_touch_decision.attempt_first_touch(
+        text,
+        agent="chief",
+        surface="chief_listener",
+    )
+    if first_touch.handled and first_touch.decision is not None:
+        await update.message.reply_text(tts_clean(first_touch.decision.reply))
+        return
     record_telegram_listener_update_safe(
         text=text,
         source_channel="chief_listener",
@@ -149,7 +158,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
     try:
         try:
-            routed = await asyncio.to_thread(route_message, text)
+            routed = await asyncio.to_thread(
+                route_message,
+                text,
+                first_touch_receipt=first_touch.receipt if first_touch.attempted else None,
+            )
         except Exception as e:
             print(f"[chief_listener] route_message error: {e}", flush=True)
             await update.message.reply_text("Chief hit a snag routing that. Try again.")

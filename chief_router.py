@@ -924,13 +924,23 @@ def build_chief_bare_status_answer() -> str:
     return "\n".join(lines)
 
 
-def _route_message_inner(text: str) -> dict:
+def _route_message_inner(text: str, *, first_touch_receipt=None) -> dict:
     # Task 151: typed contract adapter at Chief's real router.  This runs
     # before append_history/session mutation.  Strict authority tokens are
     # labeled PASS_THROUGH and continue to the existing ID-bound parser;
     # semantic voting can never authorize them.
     _contract_context = None
     _preserve_contract = None
+    try:
+        from first_touch_decision import valid_pass_through_marker
+
+        _refusal_evaluated = valid_pass_through_marker(
+            first_touch_receipt,
+            text=text,
+            agent="chief",
+        )
+    except Exception:
+        _refusal_evaluated = False
     try:
         from typed_contract_decision import (
             ContractContext,
@@ -1046,7 +1056,9 @@ def _route_message_inner(text: str) -> dict:
                 "chief", default=True
             ),
             session_answer_predicate=_session_answer,
+            first_touch_receipt=first_touch_receipt,
         )
+        _refusal_evaluated = True
     except Exception as exc:
         print(
             f"[typed_contract][chief] {type(exc).__name__}; "
@@ -1087,7 +1099,7 @@ def _route_message_inner(text: str) -> dict:
     # approval gate, client intake, clarify sessions, NLI, or any model call.
     # Destructive/money-movement/gate-bypass asks get an instant plain-English
     # refusal naming the gate; everything else continues untouched.
-    _refusal = _operator_refusal_reply(text)
+    _refusal = None if _refusal_evaluated else _operator_refusal_reply(text)
     if _refusal is not None:
         return {
             "intent": "operator_refusal_guard",
@@ -1678,13 +1690,13 @@ def _chief_fallback_reply(text: str) -> list[str]:
         return ["Routed to Chief (Error)."]
 
 
-def route_message(text: str) -> dict:
+def route_message(text: str, *, first_touch_receipt=None) -> dict:
     """Public entry point. Delegates to inner router, then logs the decision."""
     global _llm_fallback_fired
     _llm_fallback_fired = False
     _h = _hashlib.sha256(text.encode()).hexdigest()[:8]
     try:
-        result = _route_message_inner(text)
+        result = _route_message_inner(text, first_touch_receipt=first_touch_receipt)
     except Exception as e:
         print(f"[chief_router] _route_message_inner error: {e}", flush=True)
         result = {"intent": "error", "reply": "Chief hit a snag routing that. Try again."}
