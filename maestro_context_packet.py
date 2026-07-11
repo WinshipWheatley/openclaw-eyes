@@ -352,17 +352,16 @@ def _operator_truth_facts(
     question: str,
 ) -> tuple[list[dict[str, Any]], bool, str]:
     try:
-        from operator_truth_store import load_operator_truth_store
+        from operator_truth_store import (
+            eligible_operator_truth_records,
+            load_operator_truth_store,
+        )
 
         data = load_operator_truth_store(path=path, ensure_seed=True)
     except Exception:
         return [], False, str(path or "")
 
-    entities = data.get("entities") if isinstance(data, Mapping) else {}
-    if not isinstance(entities, Mapping):
-        return [], False, str(path or "")
-
-    records = [record for record in entities.values() if isinstance(record, Mapping)]
+    records = list(eligible_operator_truth_records(data))
     records.sort(
         key=lambda record: (
             -int(record.get("precedence") or 0) if str(record.get("precedence") or "").isdigit() else 0,

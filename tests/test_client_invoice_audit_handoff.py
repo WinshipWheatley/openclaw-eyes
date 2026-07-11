@@ -276,7 +276,7 @@ def test_approved_pc_readable_path_is_accepted_but_schema_still_required(tmp_pat
     assert payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_READY_FOR_READ"
     assert payload["machine_proof"]["generic_approved_artifact_reference_used"] is True
     assert payload["audit_handoff_readback"]["status"] == "APPROVED_PC_PATH_CAPTURED_SCHEMA_REQUIRED"
-    assert payload["audit_handoff_readback"]["operator_headline"] == "Capital Hilton workbook path approved"
+    assert payload["audit_handoff_readback"]["operator_headline"] == "Capital Hilton workbook path captured"
     assert payload["live_audit_ready"] is False
     assert payload["machine_proof"]["spreadsheet_cell_read_performed"] is False
 

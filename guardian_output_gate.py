@@ -37,6 +37,13 @@ BLOCKED_FORBIDDEN_TOOL = "ROLE_OUTPUT_BLOCKED_BY_FORBIDDEN_TOOL"
 BLOCKED_SCOPE = "ROLE_OUTPUT_BLOCKED_BY_SCOPE"
 BLOCKED_LEAKAGE = "ROLE_OUTPUT_BLOCKED_BY_LEAKAGE"
 UNKNOWN_FAIL_CLOSED = "UNKNOWN_FAIL_CLOSED"
+LAST_RESORT_BLOCKED_RESPONSE = "GUARDIAN_LAST_RESORT_BLOCKED_RESPONSE"
+
+PUBLICATION_DENIAL_HEADLINE = "Guardian held this reply"
+PUBLICATION_DENIAL_MESSAGE = (
+    "Guardian held this reply before publication. Nothing was sent, changed, or executed. "
+    "Ask me to retry or show the gate reason."
+)
 
 VERDICTS = (
     VALIDATED,
@@ -333,6 +340,35 @@ def _same_clause_prefix(text: str, claim_start: int) -> str:
     return prefix[last_boundary_end:]
 
 
+def _benign_approval_adjective(text: str, claim_start: int, claim_end: int) -> bool:
+    suffix = text[claim_end : claim_end + 96]
+    return bool(
+        re.match(
+            r"\s+(?:pc(?:[- ]readable)?\s+)?(?:inbox|path|workbook\s+(?:path|access)|artifact\s+reference|contract|invoice\s+sheet\s+fields?|sheet\s+fields?)\b",
+            suffix,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _approval_execution_claims_from_text(text: str) -> tuple[str, ...]:
+    lowered = str(text or "").lower()
+    patterns = {
+        "approved": (
+            r"\b(?:i|we|you|he|she|they|the\s+operator|guardian|openclaw|the\s+system)\s+(?:(?:have|has|had)\s+)?approved\b",
+            r"\b(?:the\s+)?(?:invoice|request|everything|it|this|that|send|payment|action|workflow)\s+(?:is|was|were|has\s+been|have\s+been)\s+approved\b",
+            r"\bapproved\s+(?:it|this|that|everything|the\s+(?:invoice|request|send|payment|action|workflow|architecture))\b",
+        ),
+        "authorized": (
+            r"\b(?:i|we|you|he|she|they|the\s+operator|guardian|openclaw|the\s+system)\s+(?:(?:have|has|had)\s+)?authorized\b",
+            r"\b(?:the\s+)?(?:invoice|request|everything|it|this|that|send|payment|action|workflow)\s+(?:is|was|were|has\s+been|have\s+been)\s+(?:now\s+)?authorized\b",
+            r"\bauthorized\s+(?:it|this|that|everything|the\s+(?:invoice|request|send|payment|action|workflow))\b",
+        ),
+    }
+    found = [claim for claim, claim_patterns in patterns.items() if any(re.search(pattern, lowered) for pattern in claim_patterns)]
+    return tuple(found)
+
+
 def _unnegated_claims(text: str) -> tuple[str, ...]:
     lowered = str(text or "").lower()
     claims: list[str] = []
@@ -344,6 +380,10 @@ def _unnegated_claims(text: str) -> tuple[str, ...]:
             nearby_tokens = [*prefix_tokens[-8:], *suffix_tokens[:8]]
             has_true_negation = any(token in NEGATION_CUES for token in prefix_tokens[-8:])
             has_hedge = any(token in HEDGING_CUES for token in nearby_tokens)
+            if claim in APPROVAL_EXECUTION_CLAIMS and _benign_approval_adjective(
+                lowered, match.start(), match.end()
+            ):
+                continue
             if has_hedge or not has_true_negation:
                 claims.append(claim)
                 break
@@ -368,6 +408,92 @@ def _blocked_completion_claims(claims: tuple[str, ...], proof_refs: tuple[str, .
         return claims
     proof_backed_local = set(PROOF_BACKED_LOCAL_CLAIMS)
     return tuple(claim for claim in claims if claim not in proof_backed_local)
+
+
+def _grounded_receivables_paid_status(candidate: RoleResponseCandidate) -> bool:
+    if "paid" not in candidate.completion_claims:
+        return False
+    if "generated/read_models/receivables_month_bounded.json" not in candidate.proof_refs:
+        return False
+    row_ref_pattern = re.compile(
+        r"^receivables_row:(?P<entity>[a-z0-9_]+):(?P<month>\d{4}-\d{2}):settled$"
+    )
+    requested_rows = []
+    for proof_ref in candidate.proof_refs:
+        match = row_ref_pattern.fullmatch(proof_ref)
+        if match:
+            requested_rows.append((match.group("entity"), match.group("month")))
+    if not requested_rows:
+        return False
+    try:
+        read_model_path = Path(__file__).resolve().parent / "generated/read_models/receivables_month_bounded.json"
+        read_model = json.loads(read_model_path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    rows = read_model.get("rows") if isinstance(read_model, Mapping) else None
+    if not isinstance(rows, list):
+        return False
+    settled_rows = {
+        (str(row.get("client_ref") or ""), str(row.get("month") or ""))
+        for row in rows
+        if isinstance(row, Mapping)
+        and row.get("structured_fact") is True
+        and row.get("current_truth") is True
+        and str(row.get("payment_status") or "") == "settled"
+        and row.get("open_minor_units") == 0
+        and row.get("needs_reconcile") is False
+    }
+    proven_rows = tuple(row for row in requested_rows if row in settled_rows)
+    if not proven_rows:
+        return False
+    text = candidate.raw_output_text.lower()
+    # Preserve character offsets while preventing the honorific-style "St."
+    # abbreviation from being mistaken for a sentence boundary.
+    paid_scan_text = re.sub(r"\bst\.", "st ", text)
+    saw_grounded = False
+    entity_patterns = {
+        "capital_hilton": r"capital\s+hilton",
+        "live_arts_md": r"live\s+arts(?:\s+md)?",
+        "st_annes": r"st\.?\s+anne(?:'s|s)?",
+    }
+    month_names = {
+        "01": r"(?:jan(?:uary)?\s+{year}|{year}-01)",
+        "02": r"(?:feb(?:ruary)?\s+{year}|{year}-02)",
+        "03": r"(?:mar(?:ch)?\s+{year}|{year}-03)",
+        "04": r"(?:apr(?:il)?\s+{year}|{year}-04)",
+        "05": r"(?:may\s+{year}|{year}-05)",
+        "06": r"(?:jun(?:e)?\s+{year}|{year}-06)",
+        "07": r"(?:jul(?:y)?\s+{year}|{year}-07)",
+        "08": r"(?:aug(?:ust)?\s+{year}|{year}-08)",
+        "09": r"(?:sep(?:t(?:ember)?)?\s+{year}|{year}-09)",
+        "10": r"(?:oct(?:ober)?\s+{year}|{year}-10)",
+        "11": r"(?:nov(?:ember)?\s+{year}|{year}-11)",
+        "12": r"(?:dec(?:ember)?\s+{year}|{year}-12)",
+    }
+    grounded_prefixes = []
+    for entity, month in proven_rows:
+        entity_pattern = entity_patterns.get(entity)
+        year, month_number = month.split("-", 1)
+        month_pattern = month_names.get(month_number, "").format(year=re.escape(year))
+        if not entity_pattern or not month_pattern:
+            continue
+        grounded_prefixes.append(
+            re.compile(
+                rf"\b{entity_pattern}\b[^.!?;]{{0,64}}\b{month_pattern}\b"
+                rf"[^.!?;]{{0,64}}(?:\b(?:is|was|shows\s+as|status\s+is)\s+|\bsettled\s*[—-]\s*)$"
+            )
+        )
+    if not grounded_prefixes:
+        return False
+    for match in re.finditer(r"\bpaid\b", paid_scan_text):
+        clause_prefix = _same_clause_prefix(paid_scan_text, match.start())
+        prefix_tokens = _NEGATION_TOKEN_RE.findall(clause_prefix)
+        if any(token in NEGATION_CUES for token in prefix_tokens[-8:]):
+            continue
+        if not any(pattern.search(clause_prefix) for pattern in grounded_prefixes):
+            return False
+        saw_grounded = True
+    return saw_grounded
 
 
 def package_from_response_payload(payload: Mapping[str, Any]) -> RoleExecutionPackage:
@@ -460,7 +586,7 @@ def validate_role_output(candidate: RoleResponseCandidate, package: RoleExecutio
         blocked.append("Role output appears to expose protected/private details.")
 
     forbidden_claims = candidate.completion_claims
-    approval_execution_claims = tuple(claim for claim in forbidden_claims if claim in APPROVAL_EXECUTION_CLAIMS)
+    approval_execution_claims = _approval_execution_claims_from_text(candidate.raw_output_text)
     approval_authority_granted = any(
         bool(package.authority_boundary.get(key))
         for key in ("approval_execution", "approval_execution_allowed", "live_approval_execution_allowed")
@@ -468,7 +594,12 @@ def validate_role_output(candidate: RoleResponseCandidate, package: RoleExecutio
     approval_claim_without_authority = bool(approval_execution_claims and not approval_authority_granted)
     if approval_claim_without_authority:
         blocked.append("Role output claims approval execution without approval authority.")
-    blocked_claims = _blocked_completion_claims(forbidden_claims, candidate.proof_refs)
+    claims_requiring_block = tuple(
+        claim
+        for claim in forbidden_claims
+        if not (claim == "paid" and _grounded_receivables_paid_status(candidate))
+    )
+    blocked_claims = _blocked_completion_claims(claims_requiring_block, candidate.proof_refs)
     if blocked_claims and not candidate.proof_refs:
         blocked.append("Role output makes completion/action claims without proof refs.")
     elif blocked_claims:
@@ -534,6 +665,107 @@ def validate_response_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
             "raw_body_ingestion_performed": False,
             "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "content_hash": "",
+        },
+    }
+
+
+def build_publication_denial_substitution(
+    payload: Mapping[str, Any],
+    gate_payload: Mapping[str, Any],
+    *,
+    committed_effect_receipts: tuple[Mapping[str, Any], ...] = (),
+) -> dict[str, Any]:
+    """Return a bounded public replacement without retaining denied bytes.
+
+    The raw candidate is represented only by a digest.  The caller may keep
+    the gate's structured verdict, but must never copy ``payload`` or the role
+    candidate into the published response after this function fires.
+    """
+
+    validation = gate_payload.get("validation_result")
+    validation = validation if isinstance(validation, Mapping) else {}
+    candidate_digest = hashlib.sha256(_public_text(payload).encode("utf-8")).hexdigest()
+    committed_receipts = tuple(
+        receipt
+        for receipt in committed_effect_receipts
+        if str(receipt.get("status") or "") == "committed"
+    )
+    file_mutation = any(receipt.get("file_mutation_performed") is True for receipt in committed_receipts)
+    business_mutation = any(
+        receipt.get("business_state_mutation_performed") is True
+        for receipt in committed_receipts
+    )
+    if file_mutation or business_mutation:
+        message = (
+            "Guardian held the reply after a local truth-store update committed. "
+            "No external action ran. Ask me to show the write receipt and gate reason."
+        )
+    else:
+        message = PUBLICATION_DENIAL_MESSAGE
+    return {
+        "schema_version": "guardian_publication_enforcement_v0",
+        "substituted": True,
+        "original_output_publish_allowed": False,
+        "original_verdict": str(validation.get("verdict") or UNKNOWN_FAIL_CLOSED),
+        "validation_result_id": str(validation.get("validation_result_id") or ""),
+        "blocked_reasons": [str(item) for item in validation.get("blocked_reasons") or ()],
+        "forbidden_claims": [str(item) for item in validation.get("forbidden_claims") or ()],
+        "leakage_hits": [str(item) for item in validation.get("leakage_hits") or ()],
+        "candidate_digest": f"sha256:{candidate_digest}",
+        "headline": PUBLICATION_DENIAL_HEADLINE,
+        "message": message,
+        "next_safe_move": "Retry the bounded readback or ask for the gate reason.",
+        "external_action_performed": False,
+        "effect_receipt_ids": [str(receipt.get("receipt_id") or "") for receipt in committed_receipts],
+        "file_mutation_performed": file_mutation,
+        "business_state_mutation_performed": business_mutation,
+    }
+
+
+def build_last_resort_publication_gate(
+    prior_gate_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Authorize only the hard-coded Guardian blocked readback after re-deny.
+
+    The caller has already discarded the candidate before invoking this path.
+    No candidate or raw prior response is copied into this receipt.
+    """
+
+    prior = prior_gate_payload.get("validation_result")
+    prior = prior if isinstance(prior, Mapping) else {}
+    validation = {
+        "validation_result_id": f"guardian_last_resort:{_short_hash(prior.get('validation_result_id'), LAST_RESORT_BLOCKED_RESPONSE)}",
+        "verdict": LAST_RESORT_BLOCKED_RESPONSE,
+        "source_package_id": "guardian:last_resort_blocked_readback",
+        "source_candidate_id": "guardian:hard_coded_blocked_readback",
+        "response_author": "GUARDIAN",
+        "blocked_reasons": ["The gate-authored substitution was denied; hard-coded blocked readback used."],
+        "forbidden_claims": [],
+        "forbidden_tools": [],
+        "forbidden_actions": [],
+        "leakage_hits": [],
+        "authority_granted": _all_false_authority(),
+        "output_publish_allowed": True,
+        "external_action_allowed": False,
+        "next_safe_move": "Publish only the hard-coded blocked readback.",
+    }
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "contract_status": CONTRACT_STATUS,
+        "role_execution_package": {
+            "package_id": "guardian:last_resort_blocked_readback",
+            "role": "GUARDIAN",
+            "allowed_actions": ["publish_hard_coded_blocked_readback"],
+            "forbidden_actions": list(FORBIDDEN_ACTIONS),
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        },
+        "validation_result": validation,
+        "machine_proof": {
+            "guardian_output_gate_used": True,
+            "role_output_validator_used": True,
+            "output_publish_allowed": True,
+            "external_action_allowed": False,
+            "last_resort_blocked_readback": True,
         },
     }
 

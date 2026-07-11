@@ -1170,7 +1170,7 @@ def _readback_for(
         next_action = "Next: provide the missing invoice field mappings."
     elif path_status == "APPROVED_PC_PATH_CAPTURED" and schema_status not in {"SHEET_AUDIT_SCHEMA_CAPTURED"}:
         status = "APPROVED_PC_PATH_CAPTURED_SCHEMA_REQUIRED"
-        headline = f"{client_name} workbook path approved"
+        headline = f"{client_name} workbook path captured"
         message = (
             "OpenClaw now has an approved PC-readable workbook path, but still needs the invoice sheet mapping before it can audit cells."
         )

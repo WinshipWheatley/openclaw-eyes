@@ -12,12 +12,18 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 from typing import Any, Mapping
 
 
 STORE_VERSION = "operator_truth_store_v0"
 DEFAULT_STORE_PATH = Path("/mnt/c/OpenClaw/logs/operator_truth_store.json")
 DEFAULT_SEED_PATH = Path("/mnt/e/openclaw/orchestration/OPERATOR-TRUTH-20260619-evening.md")
+QUARANTINE_VERSION = "operator_truth_quarantine_v0"
+
+
+class OperatorTruthQuarantineIntegrityError(RuntimeError):
+    pass
 
 
 ENTITY_DEFS: dict[str, dict[str, Any]] = {
@@ -94,6 +100,36 @@ _VALUE_SIGNAL_PHRASES = (
     "will cut",
 )
 
+_QUESTION_LEAD_RE = re.compile(
+    r"^(?:actually\s+|correction\s*[:—-]?\s*|the\s+truth\s+is\s+)?"
+    r"(?:who|what|when|where|why|how|which|did|do|does|is|are|was|were|has|have|had|"
+    r"can|could|would|should)\b",
+    re.IGNORECASE,
+)
+_EMBEDDED_QUESTION_RE = re.compile(
+    r"(?:^|[:;.!?—-]\s+|\bor\s+)"
+    r"(?:who|what|when|where|why|how|which|did|do|does|is|are|was|were|has|have|had|"
+    r"can|could|would|should)\b",
+    re.IGNORECASE,
+)
+_WILL_AUXILIARY_QUESTION_RE = re.compile(
+    r"^(?:actually\s+|correction\s*[:—-]?\s*)?will\s+"
+    r"(?:i|we|you|he|she|they|it|capital\s+hilton|live\s+arts|st\.?\s+anne(?:'s|s)?|"
+    r"the\s+(?:client|invoice|check|payment))\b",
+    re.IGNORECASE,
+)
+_QUESTION_REQUEST_RE = re.compile(
+    r"\b(?:tell|show|remind)\s+me\s+(?:who|what|when|where|why|how|which)\b|"
+    r"\bi\s+wonder\s+(?:who|what|when|where|why|how|which|if|whether)\b|"
+    r"\bi(?:\s+am|['’]m)\s+wondering\s+(?:if|whether)\b",
+    re.IGNORECASE,
+)
+_QUESTION_TAG_RE = re.compile(
+    r"\b(?:right|correct|isn['’]?t\s+it|aren['’]?t\s+they|didn['’]?t\s+(?:it|they)|"
+    r"or\s+(?:not|was|were|did|does|is|are|has|have))\s*[?.!]*$",
+    re.IGNORECASE,
+)
+
 
 def _store_path(path: str | Path | None = None) -> Path:
     if path is not None:
@@ -139,33 +175,63 @@ def _stable_hash(text: str) -> str:
     return hashlib.sha256(str(text or "").encode("utf-8")).hexdigest()
 
 
-def validate_operator_truth_value(value: str, *, source_text: str = "") -> tuple[bool, str]:
-    """Reject probe/control prompts before they can become cross-agent truth."""
+def _file_digest(path: Path) -> str:
+    try:
+        return _stable_hash(path.read_text(encoding="utf-8"))
+    except OSError:
+        return ""
+
+
+def classify_operator_truth_safety(value: str, *, source_text: str = "") -> str:
+    """Return a stable rejection reason, or an empty string when safe to persist."""
+
     clean = _compact(value)
     if not clean:
-        return False, "empty_value"
+        return "empty_value"
     if len(clean) < 8:
-        return False, "value_too_short"
+        return "value_too_short"
     if len(clean) > 600:
-        return False, "value_too_long"
+        return "value_too_long"
     lowered = clean.lower()
-    combined = f"{lowered} {_compact(source_text).lower()}".strip()
+    source = _compact(source_text)
+    combined = f"{lowered} {source.lower()}".strip()
     if any(phrase in combined for phrase in _UNSAFE_CONTROL_PHRASES):
-        return False, "control_prompt"
+        return "control_prompt"
     if any(token in combined for token in ("cass-deep-", "probe-", "stress-", "recovery-check")):
-        return False, "probe_label"
+        return "probe_label"
     if lowered.startswith(("answer ", "reply ", "respond ", "summarize ")):
-        return False, "instruction_not_value"
+        return "instruction_not_value"
+    if (
+        "?" in clean
+        or "?" in source
+        or _QUESTION_LEAD_RE.search(clean)
+        or _QUESTION_LEAD_RE.search(source)
+        or _EMBEDDED_QUESTION_RE.search(clean)
+        or _EMBEDDED_QUESTION_RE.search(source)
+        or _WILL_AUXILIARY_QUESTION_RE.search(clean)
+        or _WILL_AUXILIARY_QUESTION_RE.search(source)
+        or _QUESTION_REQUEST_RE.search(clean)
+        or _QUESTION_REQUEST_RE.search(source)
+        or _QUESTION_TAG_RE.search(clean)
+        or _QUESTION_TAG_RE.search(source)
+    ):
+        return "question_shaped_text"
     if not any(ch.isalpha() for ch in clean):
-        return False, "no_words"
+        return "no_words"
     has_value_signal = (
         any(phrase in lowered for phrase in _VALUE_SIGNAL_PHRASES)
         or "$" in clean
         or any(ch.isdigit() for ch in clean)
     )
     if not has_value_signal:
-        return False, "no_business_value_signal"
-    return True, ""
+        return "no_business_value_signal"
+    return ""
+
+
+def validate_operator_truth_value(value: str, *, source_text: str = "") -> tuple[bool, str]:
+    """Reject probe/control prompts before they can become cross-agent truth."""
+    reason = classify_operator_truth_safety(value, source_text=source_text)
+    return not reason, reason
 
 
 def _empty_store() -> dict[str, Any]:
@@ -234,8 +300,11 @@ def upsert_operator_truth(
     if not valid:
         raise ValueError(f"unsafe operator truth value: {reason}")
 
+    target = _store_path(path)
+    before_file_hash = _file_digest(target)
     data = load_operator_truth_store(path, ensure_seed=True)
     definition = _entity_def(entity_key)
+    previous_record = data.get("entities", {}).get(entity_key)
     record = {
         "entity_key": entity_key,
         "label": definition.get("label", entity_key),
@@ -250,7 +319,28 @@ def upsert_operator_truth(
     }
     data["entities"][entity_key] = record
     save_operator_truth_store(data, path)
-    return record
+    committed_data = load_operator_truth_store(path, ensure_seed=False)
+    committed_record = committed_data.get("entities", {}).get(entity_key)
+    if not isinstance(committed_record, dict) or committed_record != record:
+        raise OSError("operator truth write did not pass committed readback verification")
+    after_file_hash = _file_digest(target)
+    record_hash = _stable_hash(json.dumps(record, sort_keys=True, ensure_ascii=False))
+    business_state_mutation = previous_record != record
+    receipt = {
+        "schema_version": "operator_truth_write_receipt_v0",
+        "receipt_id": f"operator_truth_write_receipt:{_stable_hash(f'{entity_key}\0{record_hash}')[:20]}",
+        "status": "committed",
+        "entity_key": entity_key,
+        "record_hash": record_hash,
+        "source_text_hash": record["source_text_hash"],
+        "store_path": str(target),
+        "before_file_hash": before_file_hash,
+        "after_file_hash": after_file_hash,
+        "file_mutation_performed": before_file_hash != after_file_hash,
+        "business_state_mutation_performed": business_state_mutation,
+        "committed_at": record["at"],
+    }
+    return {**record, "write_receipt": receipt}
 
 
 def _next_weekday_after(start: date, weekday: int) -> date:
@@ -420,6 +510,246 @@ def capture_operator_truth_from_text(
     return records
 
 
+def operator_truth_record_eligibility(record: Mapping[str, Any]) -> tuple[bool, str]:
+    if str(record.get("quarantine_status") or "").lower() in {"quarantined", "unrepaired"}:
+        return False, "record_quarantined"
+    value = _compact(str(record.get("value") or ""))
+    return validate_operator_truth_value(value, source_text=value)
+
+
+def eligible_operator_truth_records(
+    data: Mapping[str, Any] | None = None,
+    *,
+    path: str | Path | None = None,
+    ensure_seed: bool = True,
+) -> tuple[dict[str, Any], ...]:
+    payload = data if isinstance(data, Mapping) else load_operator_truth_store(path, ensure_seed=ensure_seed)
+    entities = payload.get("entities") if isinstance(payload, Mapping) else {}
+    if not isinstance(entities, Mapping):
+        return ()
+    return tuple(
+        dict(record)
+        for record in entities.values()
+        if isinstance(record, Mapping) and operator_truth_record_eligibility(record)[0]
+    )
+
+
+def _quarantine_path(store_path: Path, quarantine_path: str | Path | None = None) -> Path:
+    if quarantine_path is not None:
+        return Path(quarantine_path)
+    return store_path.with_name(f"{store_path.stem}.quarantine.json")
+
+
+def _load_quarantine(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {
+            "schema_version": QUARANTINE_VERSION,
+            "records": [],
+            "receipts": [],
+            "repair_receipts": [],
+        }
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise OperatorTruthQuarantineIntegrityError("quarantine_json_unreadable") from exc
+    if not isinstance(payload, dict):
+        raise OperatorTruthQuarantineIntegrityError("quarantine_payload_not_object")
+    existing_version = str(payload.get("schema_version") or "")
+    if existing_version and existing_version != QUARANTINE_VERSION:
+        raise OperatorTruthQuarantineIntegrityError("quarantine_schema_version_mismatch")
+    payload["schema_version"] = QUARANTINE_VERSION
+    for key in ("records", "receipts", "repair_receipts"):
+        if key not in payload:
+            payload[key] = []
+        elif not isinstance(payload.get(key), list):
+            raise OperatorTruthQuarantineIntegrityError(f"quarantine_{key}_not_list")
+    return payload
+
+
+def _save_quarantine(payload: Mapping[str, Any], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    clean = dict(payload)
+    clean["schema_version"] = QUARANTINE_VERSION
+    tmp_path = path.with_name(f"{path.name}.tmp")
+    with tmp_path.open("w", encoding="utf-8") as fh:
+        json.dump(clean, fh, indent=2, sort_keys=True, ensure_ascii=False)
+        fh.write("\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp_path, path)
+
+
+def quarantine_unsafe_operator_truth_records(
+    *,
+    path: str | Path | None = None,
+    quarantine_path: str | Path | None = None,
+    source_ref: str = "operator_truth_safety_sweep",
+    at: str | None = None,
+) -> dict[str, Any]:
+    """Move unsafe live records to an append-only quarantine before removal.
+
+    The quarantine write happens first.  A crash can therefore leave a copied
+    record in both places, but can never silently delete the only copy.
+    """
+
+    at = at or _utc_now()
+    store_path = _store_path(path)
+    archive_path = _quarantine_path(store_path, quarantine_path)
+    data = load_operator_truth_store(store_path, ensure_seed=False)
+    entities = data.get("entities", {})
+    unsafe: list[tuple[str, dict[str, Any], str, str]] = []
+    if isinstance(entities, dict):
+        for entity_key, raw_record in entities.items():
+            if not isinstance(raw_record, dict):
+                unsafe.append((str(entity_key), {"value": raw_record}, "invalid_record_shape", _stable_hash(repr(raw_record))))
+                continue
+            eligible, reason = operator_truth_record_eligibility(raw_record)
+            if not eligible:
+                record_hash = _stable_hash(json.dumps(raw_record, sort_keys=True, ensure_ascii=False))
+                unsafe.append((str(entity_key), dict(raw_record), reason, record_hash))
+
+    before_hash = _file_digest(store_path)
+    entity_keys = sorted(entity_key for entity_key, _record, _reason, _hash in unsafe)
+    receipt_id = f"operator_truth_quarantine_receipt:{_stable_hash(f'{at}\0{source_ref}\0{entity_keys}')[:20]}"
+    receipt: dict[str, Any] = {
+        "schema_version": "operator_truth_quarantine_receipt_v0",
+        "receipt_id": receipt_id,
+        "status": "pending" if unsafe else "no_change",
+        "entity_keys": entity_keys,
+        "record_count": len(unsafe),
+        "source_ref": _compact(source_ref),
+        "at": at,
+        "store_path": str(store_path),
+        "quarantine_path": str(archive_path),
+        "before_file_hash": before_hash,
+        "after_file_hash": before_hash,
+        "file_mutation_performed": False,
+        "business_state_mutation_performed": False,
+    }
+    if not unsafe:
+        return receipt
+
+    archive = _load_quarantine(archive_path)
+    existing_hashes = {
+        str(item.get("record_hash") or "")
+        for item in archive["records"]
+        if isinstance(item, Mapping)
+    }
+    for entity_key, record, reason, record_hash in unsafe:
+        if record_hash in existing_hashes:
+            continue
+        archive["records"].append(
+            {
+                "quarantine_id": f"operator_truth_quarantine:{record_hash[:20]}",
+                "quarantine_receipt_id": receipt_id,
+                "entity_key": entity_key,
+                "record_hash": record_hash,
+                "reason": reason,
+                "source_ref": _compact(source_ref),
+                "quarantined_at": at,
+                "record": record,
+            }
+        )
+    archive["receipts"].append(dict(receipt))
+    _save_quarantine(archive, archive_path)
+
+    for entity_key in entity_keys:
+        data["entities"].pop(entity_key, None)
+    save_operator_truth_store(data, store_path)
+    receipt.update(
+        {
+            "status": "quarantined",
+            "after_file_hash": _file_digest(store_path),
+            "file_mutation_performed": before_hash != _file_digest(store_path),
+            "business_state_mutation_performed": True,
+        }
+    )
+    archive = _load_quarantine(archive_path)
+    archive["receipts"][-1] = dict(receipt)
+    _save_quarantine(archive, archive_path)
+    return receipt
+
+
+def repair_quarantined_operator_truth(
+    entity_key: str,
+    value: str,
+    *,
+    source_surface: str,
+    source_text: str,
+    path: str | Path | None = None,
+    quarantine_path: str | Path | None = None,
+    source_ref: str = "operator_truth_repair",
+    at: str | None = None,
+    pii_tier: str | None = None,
+) -> dict[str, Any]:
+    """Commit a validated replacement while retaining the poisoned provenance."""
+
+    store_path = _store_path(path)
+    archive_path = _quarantine_path(store_path, quarantine_path)
+    archive = _load_quarantine(archive_path)
+    matching = [
+        item
+        for item in archive["records"]
+        if isinstance(item, Mapping) and str(item.get("entity_key") or "") == entity_key
+    ]
+    if not matching:
+        raise ValueError(f"no quarantined operator truth record for {entity_key}")
+    valid, reason = validate_operator_truth_value(value, source_text=source_text)
+    if not valid:
+        raise ValueError(f"unsafe operator truth repair: {reason}")
+
+    quarantined = matching[-1]
+    repaired_at = at or _utc_now()
+    intended_value_hash = _stable_hash(_compact(value))
+    repair_receipt = {
+        "schema_version": "operator_truth_repair_receipt_v0",
+        "receipt_id": f"operator_truth_repair_receipt:{_stable_hash(f'{entity_key}\0{repaired_at}\0{intended_value_hash}')[:20]}",
+        "status": "pending",
+        "entity_key": entity_key,
+        "quarantine_receipt_id": str(quarantined.get("quarantine_receipt_id") or ""),
+        "quarantined_record_hash": str(quarantined.get("record_hash") or ""),
+        "intended_value_hash": intended_value_hash,
+        "replacement_record_hash": "",
+        "write_receipt_id": "",
+        "source_ref": _compact(source_ref),
+        "at": repaired_at,
+        "file_mutation_performed": False,
+        "business_state_mutation_performed": False,
+    }
+    archive["repair_receipts"].append(dict(repair_receipt))
+    _save_quarantine(archive, archive_path)
+
+    committed = upsert_operator_truth(
+        entity_key,
+        value,
+        source_surface=source_surface,
+        source_text=source_text,
+        source_ref=source_ref,
+        at=at,
+        path=store_path,
+        pii_tier=pii_tier,
+    )
+    write_receipt = dict(committed.get("write_receipt") or {})
+    if write_receipt.get("status") != "committed":
+        raise OSError("operator truth repair lacks a committed write receipt")
+    repair_receipt.update(
+        {
+            "status": "repaired",
+            "replacement_record_hash": str(write_receipt.get("record_hash") or ""),
+            "write_receipt_id": str(write_receipt.get("receipt_id") or ""),
+            "file_mutation_performed": bool(write_receipt.get("file_mutation_performed")),
+            "business_state_mutation_performed": bool(write_receipt.get("business_state_mutation_performed")),
+        }
+    )
+    archive = _load_quarantine(archive_path)
+    for index in range(len(archive["repair_receipts"]) - 1, -1, -1):
+        if archive["repair_receipts"][index].get("receipt_id") == repair_receipt["receipt_id"]:
+            archive["repair_receipts"][index] = dict(repair_receipt)
+            break
+    _save_quarantine(archive, archive_path)
+    return repair_receipt
+
+
 def find_operator_truth_for_text(
     text: str,
     *,
@@ -428,7 +758,8 @@ def find_operator_truth_for_text(
     data = load_operator_truth_store(path, ensure_seed=True)
     for entity_key in _mentioned_entities(text):
         record = data.get("entities", {}).get(entity_key)
-        if isinstance(record, dict) and str(record.get("value") or "").strip():
+        eligible = operator_truth_record_eligibility(record)[0] if isinstance(record, Mapping) else False
+        if isinstance(record, dict) and eligible and str(record.get("value") or "").strip():
             return entity_key, record
     return None
 
@@ -461,7 +792,11 @@ def format_operator_truth_context(
         records = [entities[key] for key in keys if isinstance(entities.get(key), dict)]
     else:
         records = [record for record in entities.values() if isinstance(record, dict)]
-    records = [record for record in records if str(record.get("value") or "").strip()]
+    records = [
+        record
+        for record in records
+        if str(record.get("value") or "").strip() and operator_truth_record_eligibility(record)[0]
+    ]
     if not records:
         return ""
 
@@ -470,12 +805,18 @@ def format_operator_truth_context(
 
 
 __all__ = [
+    "OperatorTruthQuarantineIntegrityError",
+    "classify_operator_truth_safety",
     "capture_operator_truth_from_text",
     "ensure_evening_seed_loaded",
+    "eligible_operator_truth_records",
     "extract_operator_truth_candidates",
     "find_operator_truth_for_text",
     "format_operator_truth_context",
     "load_operator_truth_store",
+    "operator_truth_record_eligibility",
+    "quarantine_unsafe_operator_truth_records",
+    "repair_quarantined_operator_truth",
     "save_operator_truth_store",
     "upsert_operator_truth",
     "validate_operator_truth_value",

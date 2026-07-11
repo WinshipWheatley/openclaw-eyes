@@ -914,6 +914,7 @@ def test_sheet_audit_blocks_without_approved_pc_path(tmp_path, capsys):
 
     assert response["source_request_id"] == request["request_id"]
     assert response["response_kind"] == "CLIENT_INVOICE_SHEET_AUDIT"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
     assert response["internal_status"] == "BLOCKED_WITH_REASON"
     assert response["headline"] == "PC-readable workbook needed"
     assert response["next_action"] == "Next: Provide an approved PC-readable workbook path or handoff."
@@ -950,6 +951,7 @@ def test_sheet_audit_happy_path_reads_whitelisted_fixture_cells_only(tmp_path, c
 
     assert response["source_request_id"] == request["request_id"]
     assert response["response_kind"] == "CLIENT_INVOICE_SHEET_AUDIT"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
     assert response["headline"] == "Capital Hilton invoice sheet audited"
     assert response["eliwinship"] == (
         "OpenClaw checked only the approved invoice sheet fields. "
@@ -986,7 +988,8 @@ def test_audit_handoff_path_only_returns_schema_required_response(tmp_path, caps
 
     assert response["source_request_id"] == request["request_id"]
     assert response["response_kind"] == "CLIENT_INVOICE_AUDIT_HANDOFF"
-    assert response["headline"] == "Capital Hilton workbook path approved"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
+    assert response["headline"] == "Capital Hilton workbook path captured"
     assert response["eliwinship"] == (
         "OpenClaw now has an approved PC-readable workbook path, but still needs the invoice sheet mapping before it can audit cells."
     )
@@ -1024,6 +1027,7 @@ def test_audit_handoff_path_and_schema_returns_ready_response_without_audit_run(
 
     assert response["source_request_id"] == request["request_id"]
     assert response["response_kind"] == "CLIENT_INVOICE_AUDIT_HANDOFF"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
     assert response["headline"] == "Capital Hilton sheet audit is ready"
     assert response["eliwinship"] == (
         "OpenClaw has the workbook reference, approved PC-readable path, and explicit sheet mapping. "
@@ -1885,6 +1889,7 @@ def test_missing_request_yields_operator_message(tmp_path, capsys):
     response = json.loads(capsys.readouterr().out)
 
     assert response["internal_status"] == "NO_REQUEST_AVAILABLE"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
     assert response["operator_headline"] == "No Mac request is waiting"
     assert "did not find a supported Mac chat or file request" in response["operator_message"]
     assert "Send a new message" in response["how_to_fix"]
@@ -1900,6 +1905,7 @@ def test_watch_seconds_times_out_with_how_to_fix(tmp_path, capsys):
     response = json.loads(capsys.readouterr().out)
 
     assert response["internal_status"] == "TIMED_OUT_WITH_REASON"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
     assert "waited 0 second" in response["operator_message"].lower()
     assert "run with --file" in response["how_to_fix"]
 

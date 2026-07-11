@@ -50,6 +50,14 @@ ALLOWED_SESSION_KEYS = (
     "system_knowledge_repo_root",
     "system_knowledge_ledger_path",
     "system_knowledge_atlas_path",
+    "operator_truth_store_path",
+    "recurrence_rule_db_path",
+    "proposal_ledger_path",
+    "guided_review_state_path",
+    "guided_review_root",
+    "guided_review_read_model_root",
+    "guided_review_receipt_root",
+    "workflow_package_sqlite_path",
 )
 CONTRACT_SESSION_SCALAR_KEYS = (
     "source_message_id",
@@ -58,6 +66,13 @@ CONTRACT_SESSION_SCALAR_KEYS = (
     "pending_field",
     "current_question_id",
     "context_type",
+    "probe_marker",
+    "run_mode",
+    "test_run_id",
+)
+INTERNAL_SESSION_SCALAR_KEYS = (
+    "probe_state_namespace",
+    "probe_state_contract_status",
 )
 SESSION_PATH_KEY_ALIASES = {
     "repo_root": "system_knowledge_repo_root",
@@ -90,6 +105,29 @@ class MaestroCassandraResult:
     route_to_staging_reason: str = ""
     session_forwarded: Mapping[str, Any] | None = None
     machine_proof: Mapping[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        session = self.session_forwarded if isinstance(self.session_forwarded, Mapping) else {}
+        try:
+            from probe_state_contract import validate_bound_probe_session
+
+            isolated = validate_bound_probe_session(session)
+        except Exception:
+            isolated = False
+        if not isolated:
+            return
+        proof = dict(self.machine_proof or {})
+        proof.update(
+            {
+                "probe_state_isolated": True,
+                "probe_marker": str(session.get("probe_marker") or ""),
+                "run_mode": str(session.get("run_mode") or ""),
+                "test_run_id": str(session.get("test_run_id") or ""),
+                "probe_state_namespace": str(session.get("probe_state_namespace") or ""),
+                "production_state_allowed": False,
+            }
+        )
+        object.__setattr__(self, "machine_proof", proof)
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -209,6 +247,13 @@ def proof_refs_for_result(result: MaestroCassandraResult, *base_refs: str) -> tu
             refs.append(value.strip())
         elif isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray, str)):
             refs.extend(str(item).strip() for item in value if str(item).strip())
+    write_receipts = proof.get("operator_truth_write_receipts")
+    if isinstance(write_receipts, Sequence) and not isinstance(write_receipts, (str, bytes, bytearray)):
+        refs.extend(
+            str(item.get("receipt_id") or "").strip()
+            for item in write_receipts
+            if isinstance(item, Mapping) and item.get("status") == "committed"
+        )
     return tuple(dict.fromkeys(refs))
 
 
@@ -346,13 +391,23 @@ def _sanitize_session_path(value: Any) -> str | None:
         return None
     if _has_forbidden_path_marker(str(resolved)):
         return None
-    if not any(resolved == root or _path_is_under(resolved, root) for root in PATH_PREFIX_ALLOWLIST):
+    allowed_roots = list(PATH_PREFIX_ALLOWLIST)
+    try:
+        from probe_state_contract import DEFAULT_PROBE_STATE_ROOT
+
+        configured_probe_root = os.environ.get("OPENCLAW_PROBE_STATE_ROOT", "").strip()
+        allowed_roots.append(Path(configured_probe_root).resolve() if configured_probe_root else DEFAULT_PROBE_STATE_ROOT.resolve())
+    except Exception:
+        pass
+    if not any(resolved == root or _path_is_under(resolved, root) for root in allowed_roots):
         return None
     return str(resolved)
 
 
 def _add_safe_session_value(session: dict[str, Any], key: str, value: Any) -> None:
     canonical_key = SESSION_PATH_KEY_ALIASES.get(key)
+    if canonical_key is None and key in ALLOWED_SESSION_KEYS:
+        canonical_key = key
     if canonical_key is None or value in ("", None):
         return
     safe_value = _sanitize_session_path(value)
@@ -361,7 +416,7 @@ def _add_safe_session_value(session: dict[str, Any], key: str, value: Any) -> No
 
 
 def _add_safe_contract_scalar(session: dict[str, Any], key: str, value: Any) -> None:
-    if key not in CONTRACT_SESSION_SCALAR_KEYS or value in (None, ""):
+    if key not in (*CONTRACT_SESSION_SCALAR_KEYS, *INTERNAL_SESSION_SCALAR_KEYS) or value in (None, ""):
         return
     if isinstance(value, bool):
         text = "true" if value else "false"
@@ -383,6 +438,14 @@ def _add_safe_contract_scalar(session: dict[str, Any], key: str, value: Any) -> 
         "expired",
     }:
         return
+    if key == "run_mode" and text.lower() not in {
+        "production",
+        "test_dry_run",
+        "test_live",
+        "probe",
+        "replay",
+    }:
+        return
     session[key] = text
 
 
@@ -393,6 +456,8 @@ def filtered_session(session: Mapping[str, Any] | None = None) -> dict[str, Any]
     for key in ALLOWED_SESSION_KEYS:
         _add_safe_session_value(filtered, key, session.get(key))
     for key in CONTRACT_SESSION_SCALAR_KEYS:
+        _add_safe_contract_scalar(filtered, key, session.get(key))
+    for key in INTERNAL_SESSION_SCALAR_KEYS:
         _add_safe_contract_scalar(filtered, key, session.get(key))
     return filtered
 
@@ -409,6 +474,26 @@ def session_from_request(request: Mapping[str, Any]) -> dict[str, Any]:
             _add_safe_session_value(session, key, source.get(key))
         for key in CONTRACT_SESSION_SCALAR_KEYS:
             _add_safe_contract_scalar(session, key, source.get(key))
+    try:
+        from probe_state_contract import bind_probe_state_session, probe_activation_metadata
+
+        session = bind_probe_state_session(request, session)
+    except Exception as exc:
+        try:
+            activation = probe_activation_metadata(request)
+        except Exception:
+            activation = {"active": True, "probe_marker": "", "run_mode": "probe", "test_run_id": ""}
+        if activation.get("active"):
+            session.update(
+                {
+                    "probe_marker": str(activation.get("probe_marker") or ""),
+                    "run_mode": str(activation.get("run_mode") or "probe"),
+                    "test_run_id": str(activation.get("test_run_id") or ""),
+                }
+            )
+        session["probe_state_binding_error"] = str(
+            getattr(exc, "reason", "probe_state_binding_failed")
+        )
     return session
 
 
@@ -615,6 +700,30 @@ def _try_calendar(text: str, forwarded_session: Mapping[str, Any]) -> "MaestroCa
     )
 
 
+def _probe_state_blocked_result(reason: str) -> MaestroCassandraResult:
+    return MaestroCassandraResult(
+        status="ANSWER_READY",
+        intent_class="probe_state_binding_blocked",
+        allowed_to_call_handle=False,
+        one_line_answer="Probe replay blocked because isolated state could not be bound.",
+        plain_summary=(
+            "Probe replay blocked because isolated state could not be bound. "
+            "Production state was not used or changed."
+        ),
+        mac_render_hint=MAC_RENDER_HINT,
+        session_forwarded={},
+        machine_proof={
+            **_adapter_machine_proof(handle_called=False),
+            "probe_state_binding_failed": True,
+            "probe_state_binding_reason": reason,
+            "probe_state_isolated": False,
+            "production_state_allowed": False,
+            "file_mutation_performed": False,
+            "business_state_mutation_performed": False,
+        },
+    )
+
+
 def answer_frontdoor_chat(
     text: str,
     *,
@@ -625,6 +734,15 @@ def answer_frontdoor_chat(
     _capsule: Any | None = None,
     agent: str = "maestro",
 ) -> MaestroCassandraResult:
+    if isinstance(session, Mapping) and str(session.get("probe_state_binding_error") or ""):
+        return _probe_state_blocked_result(str(session["probe_state_binding_error"]))
+    try:
+        from probe_state_contract import ProbeStateBindingError, bind_probe_state_session
+
+        session = bind_probe_state_session(session, session)
+    except Exception as exc:
+        reason = str(getattr(exc, "reason", "probe_state_binding_failed"))
+        return _probe_state_blocked_result(reason)
     # Task 151: one typed decision contract, adapted at this real Maestro
     # assembly point before legacy regex taps, sessions, digest, or model work.
     # Authority/domain pass-through decisions deliberately continue into their
@@ -779,6 +897,17 @@ def answer_frontdoor_chat(
                 if _handoff_workflow_ref == "cassandra_receivables_nudge_handoff"
                 else "live_arts_invoice_handoff"
             )
+        _money_read_proof_refs: tuple[str, ...] = ()
+        if _contract_intent_class == "money_read":
+            try:
+                from money_truth import settled_row_proof_refs
+
+                _money_read_proof_refs = (
+                    "generated/read_models/receivables_month_bounded.json",
+                    *settled_row_proof_refs(text),
+                )
+            except Exception:
+                _money_read_proof_refs = ()
         return MaestroCassandraResult(
             status="ANSWER_READY",
             intent_class=_contract_intent_class,
@@ -798,6 +927,7 @@ def answer_frontdoor_chat(
                 "typed_contract_handoff_workflow_ref": _handoff_workflow_ref,
                 "typed_contract_decision": _contract_decision.receipt.to_dict(),
                 "typed_contract_matches": [label.value for label in _contract_decision.matches],
+                "read_model_refs": list(_money_read_proof_refs),
             },
         )
 
@@ -921,8 +1051,28 @@ def answer_frontdoor_chat(
     if intent_class == "operator_truth_correction":
         from operator_truth_store import capture_operator_truth_from_text
 
-        records = capture_operator_truth_from_text(text, source_surface=source_surface)
-        labels = [str(record.get("label") or record.get("entity_key")) for record in records]
+        truth_store_path = (
+            (session or {}).get("operator_truth_store_path")
+            if isinstance(session, Mapping)
+            else None
+        )
+        records = capture_operator_truth_from_text(
+            text,
+            source_surface=source_surface,
+            source_ref=str((session or {}).get("source_message_id") or ""),
+            path=truth_store_path,
+        )
+        committed_records = [
+            record
+            for record in records
+            if isinstance(record.get("write_receipt"), Mapping)
+            and record["write_receipt"].get("status") == "committed"
+        ]
+        labels = [
+            str(record.get("label") or record.get("entity_key"))
+            for record in committed_records
+        ]
+        write_receipts = [dict(record["write_receipt"]) for record in committed_records]
         if labels:
             label_text = ", ".join(labels)
             answer = f"Operator truth updated for {label_text}. The shared store now outranks stale finance or reality context."
@@ -938,8 +1088,17 @@ def answer_frontdoor_chat(
             session_forwarded=forwarded_session,
             machine_proof={
                 **_adapter_machine_proof(handle_called=False),
-                "operator_truth_store_written": bool(records),
+                "operator_truth_store_written": bool(committed_records),
                 "operator_truth_entities": labels,
+                "operator_truth_write_receipts": write_receipts,
+                "file_mutation_performed": any(
+                    receipt.get("file_mutation_performed") is True
+                    for receipt in write_receipts
+                ),
+                "business_state_mutation_performed": any(
+                    receipt.get("business_state_mutation_performed") is True
+                    for receipt in write_receipts
+                ),
             },
         )
 
@@ -982,7 +1141,12 @@ def answer_frontdoor_chat(
     if intent_class == "operator_truth_query":
         from operator_truth_store import find_operator_truth_for_text
 
-        match = find_operator_truth_for_text(text)
+        truth_store_path = (
+            (session or {}).get("operator_truth_store_path")
+            if isinstance(session, Mapping)
+            else None
+        )
+        match = find_operator_truth_for_text(text, path=truth_store_path)
         if match is None:
             answer = "I do not have a matching operator-truth record for that query. No model call was made."
             entity_key = ""
@@ -1436,8 +1600,12 @@ def _answer_people_query(
         )
 
     from operator_truth_store import find_operator_truth_for_text
+    from probe_state_contract import validate_bound_probe_session
 
-    match = find_operator_truth_for_text(text)
+    truth_store_path = None
+    if validate_bound_probe_session(session):
+        truth_store_path = str((session or {}).get("operator_truth_store_path") or "") or None
+    match = find_operator_truth_for_text(text, path=truth_store_path)
     if match is not None:
         entity_key, record = match
         label = str(record.get("label") or entity_key)

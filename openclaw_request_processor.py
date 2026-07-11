@@ -41,6 +41,7 @@ import maestro_cassandra_responder
 import operator_controller_event_router
 import openclaw_request_router
 import proof_to_response_runtime
+import probe_state_contract
 import local_artifact_reference
 import scoped_context_package_compiler_contract
 import st_annes_work_log_review
@@ -1924,6 +1925,10 @@ def _safe_proof_refs(response: OpenClawResponseForMac) -> tuple[str, ...]:
         safe_ref = _safe_generated_ref(ref)
         if safe_ref.startswith("generated/read_models/") and safe_ref.endswith(".json"):
             refs.append(safe_ref)
+        elif re.fullmatch(r"operator_truth_write_receipt:[a-f0-9]{20}", safe_ref):
+            refs.append(safe_ref)
+        elif re.fullmatch(r"receivables_row:[a-z0-9_]+:\d{4}-\d{2}:settled", safe_ref):
+            refs.append(safe_ref)
     return tuple(dict.fromkeys(refs))
 
 
@@ -1962,6 +1967,13 @@ def _voice_context_text(response: OpenClawResponseForMac, layered_fields: Mappin
 
 def _initial_response_author(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str]:
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    response_kind = str(layered_fields.get("response_kind") or "").strip().upper()
+    if response.internal_status in {"NO_REQUEST_AVAILABLE", "TIMED_OUT_WITH_REASON"}:
+        return "OPENCLAW_SYSTEM", "deterministic processor lifecycle status"
+    if response_kind in {"CLIENT_INVOICE_SHEET_AUDIT", "CLIENT_INVOICE_AUDIT_HANDOFF"} or any(
+        key in detail for key in ("client_invoice_sheet_audit", "client_invoice_audit_handoff")
+    ):
+        return "OPENCLAW_SYSTEM", "deterministic client invoice audit status"
     speaker_map = {
         "maestro": "MAESTRO",
         "chief": "CHIEF",
@@ -3434,6 +3446,70 @@ def _process_st_annes_work_log_review_action_request(
     )
 
 
+def _probe_state_binding_blocked_response(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    classification: RequestClassification,
+    reason: str,
+) -> OpenClawResponseForMac:
+    request_id = str(
+        raw_request.get("request_id")
+        or raw_request.get("source_request_id")
+        or f"missing_request_id_{request_path.stem}"
+    )
+    message = (
+        "Probe replay was blocked because isolated state could not be bound. "
+        "Production state was not used or changed."
+    )
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "probe_replay"),
+        request_type=str(raw_request.get("request_type") or "WORKFLOW_PACKAGE_REQUEST"),
+        internal_status="BLOCKED_WITH_REASON",
+        operator_headline="Probe replay blocked",
+        operator_message=message,
+        what_happened=("The probe-state boundary failed closed before any stateful consumer ran.",),
+        why_it_happened="The request did not obtain a validated namespaced temporary-state contract.",
+        how_to_fix="Use a valid probe marker, run mode, test run id, and temporary probe root.",
+        visible_cards=(
+            {
+                "schema_version": "probe_state_blocked_card_v0",
+                "title": "Probe replay blocked",
+                "summary": message,
+                "actions": [],
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason="probe_state_binding_failed",
+        detail_disclosure={
+            "request_classification": asdict(classification),
+            "probe_state_contract": {
+                "status": "blocked",
+                "reason": reason,
+                "probe_state_isolated": False,
+                "production_state_allowed": False,
+                "file_mutation_performed": False,
+                "business_state_mutation_performed": False,
+            },
+        },
+        readback_files=(),
+        next_safe_move="Fix the isolated probe-state binding and retry.",
+        proof_to_response={
+            "probe_state_binding_failed": True,
+            "probe_state_binding_reason": reason,
+            "file_mutation_performed": False,
+            "business_state_mutation_performed": False,
+        },
+        proof_to_response_status="PROBE_STATE_BINDING_BLOCKED",
+    )
+
+
 def _process_workflow_package_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -3442,10 +3518,32 @@ def _process_workflow_package_request(
     classification: RequestClassification,
     lm1_shared_seam: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac:
+    sqlite_path: Path | None = None
+    try:
+        probe_contract = probe_state_contract.resolve_probe_state_contract(raw_request)
+    except probe_state_contract.ProbeStateBindingError as exc:
+        return _probe_state_binding_blocked_response(
+            request_path,
+            raw_request,
+            classification=classification,
+            reason=exc.reason,
+        )
+    probe_session: dict[str, Any] = {}
+    if probe_contract["active"]:
+        probe_session = maestro_cassandra_responder.session_from_request(raw_request)
+        if not probe_state_contract.validate_bound_probe_session(probe_session):
+            return _probe_state_binding_blocked_response(
+                request_path,
+                raw_request,
+                classification=classification,
+                reason=str(probe_session.get("probe_state_binding_error") or "invalid_probe_state_binding"),
+            )
+        sqlite_path = Path(str(probe_session["workflow_package_sqlite_path"]))
     result = workflow_package_request_consumer.consume_workflow_package_request(
         raw_request,
         source_request_filename=request_path.name,
         generated_at=generated_at,
+        sqlite_path=sqlite_path,
         lm1_shared_seam=lm1_shared_seam,
     )
     receipt = result.receipt
@@ -3613,6 +3711,18 @@ def _process_workflow_package_request(
         blocked_reason=blocker or None,
         detail_disclosure={
             "request_classification": asdict(response_classification),
+            "probe_state_contract": (
+                {
+                    "status": "isolated",
+                    "probe_marker": str(probe_session.get("probe_marker") or ""),
+                    "run_mode": str(probe_session.get("run_mode") or ""),
+                    "test_run_id": str(probe_session.get("test_run_id") or ""),
+                    "namespace": str(probe_session.get("probe_state_namespace") or ""),
+                    "production_state_allowed": False,
+                }
+                if probe_contract["active"]
+                else {"status": "inactive", "production_state_allowed": True}
+            ),
             "workflow_package_request_consumer": receipt,
             "lm1_shared_request_seam": _lm1_shared_request_seam_summary(lm1_shared_seam),
             "package": package,
@@ -4017,14 +4127,14 @@ def _process_artifact_reference_approval_request(
     if handoff_live_ready:
         headline = str(handoff_readback["operator_headline"])
         message = (
-            "OpenClaw approved the scoped PC-readable artifact reference and found the existing field mapping. "
+            "OpenClaw recorded the scoped PC-readable artifact reference supplied by the operator and found the existing field mapping. "
             "It did not read the workbook body or cells. The whitelisted audit is ready."
         )
         next_action = str(handoff_readback["next_action"])
     elif artifact_ready:
         client_ref = str(raw_request.get("client_ref") or "")
         client_name = "Capital Hilton" if client_ref == "capital_hilton" else str(raw_request.get("artifact_label") or "Artifact")
-        headline = f"{client_name} artifact approved" if client_ref != "capital_hilton" else "Capital Hilton workbook approved"
+        headline = f"{client_name} artifact recorded" if client_ref != "capital_hilton" else "Capital Hilton workbook recorded"
         message = "OpenClaw recorded the approved PC-readable artifact reference. It did not read the artifact body or extract content."
         next_action = str((handoff_readback or {}).get("next_action") or "Next: provide the missing workflow context.")
     else:
@@ -5435,6 +5545,13 @@ def _process_maestro_frontdoor_operator_instruction(
         result,
         "generated/read_models/openclaw_request_processor_status.json",
     )
+    publication_proof_refs = tuple(
+        ref
+        for ref in proof_refs
+        if ref.startswith("generated/read_models/")
+        or ref.startswith("operator_truth_write_receipt:")
+        or ref.startswith("receivables_row:")
+    )
     external_llm_invoked = maestro_cassandra_responder.external_llm_invoked_for_result(result)
     result_payload = maestro_cassandra_responder.result_dict_for_receipt(result)
     machine_proof = maestro_cassandra_responder.machine_proof_for_result(result)
@@ -5586,7 +5703,7 @@ def _process_maestro_frontdoor_operator_instruction(
         context_package_refs=(),
         blocked_reason=None,
         detail_disclosure=detail,
-        readback_files=(),
+        readback_files=publication_proof_refs,
         next_safe_move="Ask Maestro a follow-up if you need more.",
         proof_to_response=dict(machine_proof),
     )
@@ -6036,6 +6153,13 @@ def _try_interpreter_brain_divert(
         "generated/read_models/openclaw_request_processor_status.json",
         "interpreter_lm:divert",
     )
+    publication_proof_refs = tuple(
+        ref
+        for ref in proof_refs
+        if ref.startswith("generated/read_models/")
+        or ref.startswith("operator_truth_write_receipt:")
+        or ref.startswith("receivables_row:")
+    )
     external_llm_invoked = maestro_cassandra_responder.external_llm_invoked_for_result(result)
     result_payload = maestro_cassandra_responder.result_dict_for_receipt(result)
     machine_proof = maestro_cassandra_responder.machine_proof_for_result(result)
@@ -6201,7 +6325,7 @@ def _try_interpreter_brain_divert(
         context_package_refs=(),
         blocked_reason=None,
         detail_disclosure=detail,
-        readback_files=(),
+        readback_files=publication_proof_refs,
         next_safe_move="Ask Maestro a follow-up if you need more.",
         proof_to_response=dict(machine_proof),
     )
@@ -8930,6 +9054,25 @@ def _lm1_shared_seam_counter(
     }
 
 
+def _operator_truth_write_receipts(response: OpenClawResponseForMac) -> tuple[dict[str, Any], ...]:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    direct_receipts = detail.get("operator_truth_effect_receipts")
+    if isinstance(direct_receipts, (list, tuple)):
+        return tuple(
+            dict(item)
+            for item in direct_receipts
+            if isinstance(item, Mapping)
+        )
+    responder = detail.get("maestro_cassandra_responder")
+    responder = responder if isinstance(responder, Mapping) else {}
+    proof = responder.get("machine_proof")
+    proof = proof if isinstance(proof, Mapping) else {}
+    receipts = proof.get("operator_truth_write_receipts")
+    if not isinstance(receipts, (list, tuple)):
+        return ()
+    return tuple(dict(item) for item in receipts if isinstance(item, Mapping))
+
+
 def _machine_proof(
     response: OpenClawResponseForMac,
     status: OpenClawRequestProcessorStatus,
@@ -8941,6 +9084,18 @@ def _machine_proof(
     brain_external_model_invoked = brain_model_call_performed and _brain_receipt_external_invoked(brain_receipt)
     brain_route = _brain_receipt_route(brain_receipt)
     brain_model_id = _brain_receipt_model_id(brain_receipt)
+    operator_truth_receipts = _operator_truth_write_receipts(response)
+    committed_truth_receipts = tuple(
+        receipt for receipt in operator_truth_receipts if receipt.get("status") == "committed"
+    )
+    truth_file_mutation = any(
+        receipt.get("file_mutation_performed") is True
+        for receipt in committed_truth_receipts
+    )
+    truth_business_mutation = any(
+        receipt.get("business_state_mutation_performed") is True
+        for receipt in committed_truth_receipts
+    )
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     interpreter_detail = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     workbook_detail = detail.get("client_invoice_workbook_registry") if isinstance(detail.get("client_invoice_workbook_registry"), Mapping) else {}
@@ -9019,7 +9174,10 @@ def _machine_proof(
         "client_invoice_sheet_audit_used": bool(sheet_audit_detail),
         "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,
-        "file_mutation_performed": False,
+        "file_mutation_performed": truth_file_mutation,
+        "business_state_mutation_performed": truth_business_mutation,
+        "operator_truth_write_committed": bool(committed_truth_receipts),
+        "operator_truth_write_receipt_count": len(committed_truth_receipts),
         "model_call_performed": brain_model_call_performed,
         "local_model_invoked": brain_local_model_invoked,
         "external_llm_invoked": brain_external_model_invoked,
@@ -9070,12 +9228,91 @@ def _machine_proof(
     }
 
 
+def _guardian_publication_denial_response(
+    response: OpenClawResponseForMac,
+    enforcement: Mapping[str, Any],
+) -> OpenClawResponseForMac:
+    """Drop every denied candidate field and return the gate-authored reply."""
+
+    headline = str(enforcement.get("headline") or guardian_output_gate.PUBLICATION_DENIAL_HEADLINE)
+    message = str(enforcement.get("message") or guardian_output_gate.PUBLICATION_DENIAL_MESSAGE)
+    next_safe_move = str(enforcement.get("next_safe_move") or "Retry the bounded readback.")
+    safe_receipt = {
+        key: value
+        for key, value in enforcement.items()
+        if key not in {"headline", "message", "next_safe_move"}
+    }
+    effect_receipts = tuple(
+        receipt
+        for receipt in _operator_truth_write_receipts(response)
+        if receipt.get("status") == "committed"
+    )
+    effect_receipt_refs = tuple(
+        str(receipt.get("receipt_id") or "")
+        for receipt in effect_receipts
+        if str(receipt.get("receipt_id") or "")
+    )
+    mutation_committed = bool(
+        enforcement.get("file_mutation_performed")
+        or enforcement.get("business_state_mutation_performed")
+    )
+    return replace(
+        response,
+        internal_status="BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "Guardian denied the original candidate before publication.",
+            (
+                "The publisher preserved the committed local-state receipt in this bounded replacement."
+                if mutation_committed
+                else "The publisher substituted this bounded no-change response."
+            ),
+        ),
+        why_it_happened="The original candidate did not pass the deterministic Guardian output gate.",
+        how_to_fix="Retry the bounded readback or ask for the gate reason.",
+        visible_cards=(
+            {
+                "schema_version": "guardian_publication_card_v0",
+                "title": headline,
+                "summary": message,
+                "actions": [],
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason="guardian_output_denied",
+        detail_disclosure={
+            "guardian_publication_enforcement": safe_receipt,
+            "operator_truth_effect_receipts": list(effect_receipts),
+            "operator_display": {"speaker_ref": "guardian"},
+            "message_provenance": {
+                "speaker": "Guardian",
+                "actor": "guardian",
+                "message_role": "publication_denial_substitution",
+                "source_request_id": response.source_request_id,
+            },
+        },
+        readback_files=effect_receipt_refs,
+        next_safe_move=next_safe_move,
+        proof_to_response={
+            "guardian_publication_enforcement": safe_receipt,
+            "operator_truth_effect_receipts": list(effect_receipts),
+        },
+        proof_to_response_status="GUARDIAN_DENIAL_SUBSTITUTED",
+    )
+
+
 def build_payloads(
     response: OpenClawResponseForMac,
     *,
     generated_at: str | None = None,
     blockers: tuple[str, ...] = (),
     previous_status: Mapping[str, Any] | None = None,
+    _guardian_publication_enforcement: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     generated_at = generated_at or utc_now()
     status = _processor_status_from_response(response, blockers=blockers)
@@ -9107,6 +9344,33 @@ def build_payloads(
     response_payload["local_surface_request"] = local_surface_request
     guardian_gate_payload = guardian_output_gate.validate_response_payload(response_payload)
     guardian_gate_result = guardian_gate_payload["validation_result"]
+    if not guardian_gate_result["output_publish_allowed"]:
+        if _guardian_publication_enforcement is not None:
+            enforcement = dict(_guardian_publication_enforcement)
+            enforcement.update(
+                {
+                    "last_resort_used": True,
+                    "substitution_gate_verdict": str(guardian_gate_result.get("verdict") or ""),
+                }
+            )
+            _guardian_publication_enforcement = enforcement
+            guardian_gate_payload = guardian_output_gate.build_last_resort_publication_gate(
+                guardian_gate_payload
+            )
+            guardian_gate_result = guardian_gate_payload["validation_result"]
+        else:
+            enforcement = guardian_output_gate.build_publication_denial_substitution(
+                response_payload,
+                guardian_gate_payload,
+                committed_effect_receipts=_operator_truth_write_receipts(response),
+            )
+            return build_payloads(
+                _guardian_publication_denial_response(response, enforcement),
+                generated_at=generated_at,
+                blockers=blockers,
+                previous_status=previous_status,
+                _guardian_publication_enforcement=enforcement,
+            )
     response_payload["guardian_output_gate"] = {
         "schema_version": guardian_gate_payload["schema_version"],
         "contract_status": guardian_gate_payload["contract_status"],
@@ -9214,6 +9478,30 @@ def build_payloads(
         )
     else:
         status_payload["machine_proof"]["lm1_shared_seam_receipt_emitted"] = False
+    denial_substituted = _guardian_publication_enforcement is not None
+    status_payload["machine_proof"].update(
+        {
+            "guardian_denial_substituted": denial_substituted,
+            "guardian_last_resort_blocked_readback": bool(
+                denial_substituted
+                and _guardian_publication_enforcement.get("last_resort_used") is True
+            ),
+            "guardian_original_output_publish_allowed": (
+                bool(_guardian_publication_enforcement.get("original_output_publish_allowed"))
+                if denial_substituted
+                else True
+            ),
+            "guardian_original_output_gate_verdict": (
+                str(_guardian_publication_enforcement.get("original_verdict") or "")
+                if denial_substituted
+                else guardian_gate_result["verdict"]
+            ),
+        }
+    )
+    if denial_substituted:
+        response_payload["guardian_publication_enforcement"] = dict(
+            _guardian_publication_enforcement
+        )
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))
     status_payload["machine_proof"]["content_hash"] = _content_hash(status_payload)
     response_payload["machine_proof"]["content_hash"] = _content_hash(response_payload)

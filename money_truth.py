@@ -323,6 +323,39 @@ def render_money_answer(
     return text
 
 
+def settled_row_proof_refs(
+    question: str,
+    *,
+    payload: Mapping[str, Any] | None = None,
+    path: str | Path | None = None,
+) -> tuple[str, ...]:
+    """Return proof refs only for structured settled rows selected by the question."""
+
+    payload = payload if payload is not None else load_money_truth(path)
+    as_of = money_truth_as_of(payload)
+    default_year = as_of[:4] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", as_of) else ""
+    rows = _rows_for_question(money_rows(payload), question, default_year=default_year)
+    refs = []
+    for row in rows:
+        client_ref = str(row.get("client_ref") or "").strip()
+        month = str(row.get("month") or "").strip()
+        if not client_ref or not re.fullmatch(r"[a-z0-9_]+", client_ref):
+            continue
+        if not re.fullmatch(r"\d{4}-\d{2}", month):
+            continue
+        if not (
+            row.get("structured_fact") is True
+            and row.get("current_truth") is True
+            and str(row.get("payment_status") or "") == "settled"
+            and row.get("open_minor_units") == 0
+            and row.get("needs_reconcile") is False
+            and row.get("settled_past_no_compound") is True
+        ):
+            continue
+        refs.append(f"receivables_row:{client_ref}:{month}:settled")
+    return tuple(dict.fromkeys(refs))
+
+
 def render_payment_verification_ledger(
     question: str,
     *,
@@ -564,6 +597,7 @@ __all__ = [
     "money_truth_as_of",
     "money_lines",
     "render_money_answer",
+    "settled_row_proof_refs",
     "render_payment_verification_ledger",
     "route_line",
     "finance_answer_topic_fact",

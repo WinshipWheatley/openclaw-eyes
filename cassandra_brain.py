@@ -1480,10 +1480,29 @@ def _detect_session_fact_correction(query: str, state: dict) -> str | None:
     return _format_session_fact_ack(label, summary)
 
 
-def _get_session_fact_override(query: str, state: dict | None) -> tuple[str, dict] | None:
+def _bound_probe_operator_truth_store_path(session: Mapping[str, Any] | None) -> str | None:
+    try:
+        from probe_state_contract import validate_bound_probe_session
+
+        if validate_bound_probe_session(session):
+            return str((session or {}).get("operator_truth_store_path") or "") or None
+    except Exception:
+        pass
+    return None
+
+
+def _get_session_fact_override(
+    query: str,
+    state: dict | None,
+    *,
+    session: Mapping[str, Any] | None = None,
+) -> tuple[str, dict] | None:
     from finance_state import find_finance_account
 
-    shared_truth = find_operator_truth_for_text(query)
+    shared_truth = find_operator_truth_for_text(
+        query,
+        path=_bound_probe_operator_truth_store_path(session),
+    )
     if shared_truth is not None:
         _, record = shared_truth
         return str(record.get("label") or record.get("entity_key") or "Operator truth").strip(), record
@@ -1501,8 +1520,23 @@ def _get_session_fact_override(query: str, state: dict | None) -> tuple[str, dic
     return str(account.get("label") or account_key).strip(), override
 
 
-def _format_session_fact_override_context(query: str, state: dict | None) -> str:
-    found = _get_session_fact_override(query, state)
+def _get_session_fact_override_for_context(
+    query: str,
+    state: dict | None,
+    session: Mapping[str, Any] | None,
+) -> tuple[str, dict] | None:
+    if _bound_probe_operator_truth_store_path(session) is None:
+        return _get_session_fact_override(query, state)
+    return _get_session_fact_override(query, state, session=session)
+
+
+def _format_session_fact_override_context(
+    query: str,
+    state: dict | None,
+    *,
+    session: Mapping[str, Any] | None = None,
+) -> str:
+    found = _get_session_fact_override_for_context(query, state, session)
     if found is None:
         return ""
     label, override = found
@@ -1591,7 +1625,11 @@ def _build_context_invariants() -> str:
     )
 
 
-def build_context_snapshot(state: dict | None = None) -> str:
+def build_context_snapshot(
+    state: dict | None = None,
+    *,
+    session: Mapping[str, Any] | None = None,
+) -> str:
     if state is None:
         state = load_state()
     parts = []
@@ -1604,7 +1642,9 @@ def build_context_snapshot(state: dict | None = None) -> str:
     if current_truth:
         parts.append(current_truth)
 
-    operator_truth = format_operator_truth_context()
+    operator_truth = format_operator_truth_context(
+        path=_bound_probe_operator_truth_store_path(session)
+    )
     if operator_truth:
         parts.append(operator_truth)
 
@@ -2922,7 +2962,12 @@ def _payment_verify_never_silent_fallback(text: str) -> str:
     return f"No confirmed arrival evidence for that yet. {ledger_line}"
 
 
-def _handle_money_truth_question(text: str, state: dict | None = None) -> str | None:
+def _handle_money_truth_question(
+    text: str,
+    state: dict | None = None,
+    *,
+    session: Mapping[str, Any] | None = None,
+) -> str | None:
     """Task 140: answer read-only money-class questions from the ONE money truth.
 
     receivables_month_bounded (via money_truth.py) is the only money source.
@@ -2937,7 +2982,11 @@ def _handle_money_truth_question(text: str, state: dict | None = None) -> str | 
     if classify_money_question(text) != "money_read":
         return None
     try:
-        found_override = _get_session_fact_override(text, state or {}) if state is not None else None
+        found_override = (
+            _get_session_fact_override_for_context(text, state or {}, session)
+            if state is not None
+            else None
+        )
     except Exception:
         found_override = None
     if found_override is not None:
@@ -2954,12 +3003,17 @@ def _handle_money_truth_question(text: str, state: dict | None = None) -> str | 
     return f"{route_line('cassandra')} {answer}"
 
 
-def _handle_finance_status_request(text: str, state: dict | None = None) -> str | None:
+def _handle_finance_status_request(
+    text: str,
+    state: dict | None = None,
+    *,
+    session: Mapping[str, Any] | None = None,
+) -> str | None:
     if _looks_like_operator_financial_event(text):
         return None
     if not detect_finance_status_intent(text):
         return None
-    found_override = _get_session_fact_override(text, state or {})
+    found_override = _get_session_fact_override_for_context(text, state or {}, session)
     if found_override is not None:
         _, override = found_override
         summary = str(override.get("summary") or override.get("value") or "").strip()
@@ -7063,7 +7117,11 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
         # typed snapshot reply here would let an older read-model overrule the
         # operator's session correction.
         _money_state = load_state()
-        _money_reply = _handle_money_truth_question(query, _money_state)
+        _money_reply = _handle_money_truth_question(
+            query,
+            _money_state,
+            session=session_meta,
+        )
         if _money_reply is not None:
             _log_conversation(
                 text,
@@ -7454,7 +7512,7 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     # Task 140: money-class READ questions answer from the ONE money truth
     # (receivables_month_bounded) — never a second money pipeline. Session
     # fact corrections from the operator still outrank the snapshot.
-    money_truth_reply = _handle_money_truth_question(query, state)
+    money_truth_reply = _handle_money_truth_question(query, state, session=session_meta)
     if money_truth_reply is not None:
         save_state(state)
         _log_conversation(text, [money_truth_reply], route="money_truth", metadata={
@@ -7466,7 +7524,7 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
         return [money_truth_reply]
 
     if _should_route_finance_status_before_intake(query, gmail_decision):
-        finance_reply = _handle_finance_status_request(query, state)
+        finance_reply = _handle_finance_status_request(query, state, session=session_meta)
         if finance_reply is not None:
             save_state(state)
             _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
@@ -7476,7 +7534,7 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     # Priority: Must come before fuzzy intent matching for financial/future-action
     # to ensure "remind me what's current" routes to status, not a reminder.
     if ops_intent.intent_name == "ops_status":
-        finance_reply = _handle_finance_status_request(query, state)
+        finance_reply = _handle_finance_status_request(query, state, session=session_meta)
         if finance_reply is not None:
             save_state(state)
             _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
@@ -7798,8 +7856,8 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, [file_reply], route="file_verify", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [file_reply]
 
-    if _get_session_fact_override(query, state) is not None:
-        finance_reply = _handle_finance_status_request(query, state)
+    if _get_session_fact_override_for_context(query, state, session_meta) is not None:
+        finance_reply = _handle_finance_status_request(query, state, session=session_meta)
         if finance_reply is not None:
             save_state(state)
             _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
@@ -7819,13 +7877,13 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             return [pay_reply]
 
     if _should_route_finance_status_before_intake(query, gmail_decision):
-        finance_reply = _handle_finance_status_request(query, state)
+        finance_reply = _handle_finance_status_request(query, state, session=session_meta)
         if finance_reply is not None:
             save_state(state)
             _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [finance_reply]
 
-    context  = build_context_snapshot(state)
+    context  = build_context_snapshot(state, session=session_meta)
     focus    = is_focus_mode()
     social   = is_social_mode()
     allow_deep_escalation = _should_use_deep(query)
@@ -7867,7 +7925,11 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     gmail_polled = bool(gmail_ctx or payment_verify_ctx)
     reality_ctx   = _format_reality_context(query)
     reality_block = f"{reality_ctx}\n\n" if reality_ctx else ""
-    session_override_ctx = _format_session_fact_override_context(query, state)
+    session_override_ctx = _format_session_fact_override_context(
+        query,
+        state,
+        session=session_meta,
+    )
     session_override_block = f"{session_override_ctx}\n\n" if session_override_ctx else ""
 
     # Cloud routing gate — evaluated after all context sources are known.
