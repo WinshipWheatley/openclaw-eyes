@@ -716,8 +716,14 @@ def test_e2e_real_terse_ask_with_content_term_answers_normally(frontdoor_packet_
     result = maestro.answer_frontdoor_chat(
         "invoice status?", protected_generate_fn=_spy_protected_generate
     )
-    assert result.intent_class == "maestro_brain_freeform"
-    assert result.plain_summary == "SPY-DIGEST: Live Arts owes $1,095."
+    # 2026-07-12 (166 owner classifiers): "invoice status?" now deterministically
+    # routes money_read — a BETTER "normal answer" than the freeform digest this
+    # test originally pinned. Original intent fully preserved: the coherence
+    # check must not claim it, and the reply must be real content, not clarify.
+    assert result.intent_class == "money_read"
+    summary = result.plain_summary or ""
+    assert summary.strip()
+    assert "not sure i follow" not in summary.lower()
 
 
 def test_e2e_capability_ask_keeps_status_capability_readback():
