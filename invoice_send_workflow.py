@@ -37,6 +37,7 @@ SEND_MESSAGE = "send_message"                      # a plain status/prompt messa
 def _preview_action(state: dict[str, Any]) -> dict[str, Any]:
     return {"kind": SEND_INVOICE_PREVIEW, "pdf_path": state.get("pdf_path"),
             "invoice_data": state.get("invoice_data"),
+            "attachment_sha256": state.get("attachment_sha256"),
             "prompt": "Here's the invoice. Reply with any change, or 'looks good' to draft it."}
 
 

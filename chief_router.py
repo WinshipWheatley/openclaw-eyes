@@ -53,6 +53,12 @@ def _log_route(msg_hash: str, intent: str, llm_fallback: bool) -> None:
         print(f"[route_log] write error: {e}", flush=True)
 
 from adaptive_model_call import adaptive_ollama_text
+from email_intent import (
+    EmailIntent,
+    classify_email_intent,
+    email_intent_requires_draft,
+    is_outbound_email_history_request,
+)
 
 ollama_call = adaptive_ollama_text
 
@@ -323,13 +329,12 @@ def marketing_intent(text: str) -> bool:
 
 
 def email_intent(text: str) -> bool:
-    t = text.lower().strip()
-    return any(k in t for k in [
-        "send email", "email to", "draft email", "follow up email",
-        "write an email", "send a follow up", "invoice email",
-        "follow-up email", "email log", "sent emails",
-        "email history", "outbox",
-    ]) or bool(re.search(r"\bemail\b\s+\S", t))
+    owned = classify_email_intent(text)
+    return (
+        owned in {EmailIntent.DRAFT_SEND, EmailIntent.OUTREACH}
+        or (owned is EmailIntent.REPLY and email_intent_requires_draft(text))
+        or is_outbound_email_history_request(text)
+    )
 
 
 def sms_intent(text: str) -> bool:
@@ -992,23 +997,26 @@ def _route_message_inner(text: str, *, first_touch_receipt=None) -> dict:
         def _stage_handoff(raw_text: str, _context: ContractContext) -> HandoffResult:
             from workflow_package_queue import (
                 DEFAULT_SQLITE_PATH,
-                classify_intent,
+                classify_workflow_route,
                 render_cassandra_nudge_handoff_reply,
                 render_live_arts_handoff_reply,
                 stage_cassandra_receivables_nudge_handoff,
                 stage_live_arts_invoice_handoff,
             )
 
-            if classify_intent(raw_text).get("workflow_ref") == "cassandra_receivables_nudge_handoff":
+            workflow_ref = classify_workflow_route(raw_text).workflow_ref
+            if workflow_ref == "cassandra_receivables_nudge_handoff":
                 staged = stage_cassandra_receivables_nudge_handoff(
                     raw_text, source_surface="chief_router", sqlite_path=DEFAULT_SQLITE_PATH
                 )
                 _reply = render_cassandra_nudge_handoff_reply(staged)
-            else:
+            elif workflow_ref == "live_arts_md_invoice_workflow":
                 staged = stage_live_arts_invoice_handoff(
                     raw_text, source_surface="chief_router", sqlite_path=DEFAULT_SQLITE_PATH
                 )
                 _reply = render_live_arts_handoff_reply(staged)
+            else:
+                raise ValueError("canonical workflow-route owner returned no staged route")
             return HandoffResult(
                 reply=_reply,
                 receipt_pointer=str(staged["receipt"]["receipt_ref"]),

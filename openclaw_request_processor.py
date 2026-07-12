@@ -1301,6 +1301,16 @@ _FRONTDOOR_AGENT_ALIASES = {
     "niles": "niles",
     "hermes": "hermes",
 }
+_ADDRESSED_FRONTDOOR_AGENT_RE = re.compile(
+    r"^\s*(?:"
+    r"(?:hey|hi|hello|yo|okay|ok)\s*[,!:-]?\s*"
+    r"(?P<saluted>maestro|cassandra|clara(?:\s+reid)?|chief|guardian|niles|hermes)"
+    r"\b\s*[,!:-]?\s*"
+    r"|(?P<bare>maestro|cassandra|clara(?:\s+reid)?|chief|guardian|niles|hermes)"
+    r"\s*[,!:-]\s*"
+    r")",
+    re.IGNORECASE,
+)
 
 
 def _normalize_frontdoor_agent(value: object) -> str:
@@ -1327,6 +1337,35 @@ def _frontdoor_agent_from_mapping(payload: Mapping[str, Any] | None) -> str:
     return ""
 
 
+def classify_addressed_frontdoor_agent(payload: Mapping[str, Any] | None) -> str:
+    """Resolve an explicitly addressed agent from bounded operator text.
+
+    This is deliberately narrower than mention detection: a name must lead the
+    message as a direct address, so ordinary prose about an agent cannot steal
+    Maestro's front door.
+    """
+
+    if not isinstance(payload, Mapping):
+        return ""
+    for field in (
+        "operator_message",
+        "source_text",
+        "text",
+        "message",
+        "query",
+        "request",
+    ):
+        value = payload.get(field)
+        if not isinstance(value, str):
+            continue
+        match = _ADDRESSED_FRONTDOOR_AGENT_RE.match(value)
+        if match is not None:
+            return _normalize_frontdoor_agent(
+                match.group("saluted") or match.group("bare")
+            )
+    return ""
+
+
 def _resolved_frontdoor_agent(
     raw_request: Mapping[str, Any],
     *,
@@ -1335,6 +1374,7 @@ def _resolved_frontdoor_agent(
 ) -> str:
     return (
         _frontdoor_agent_from_mapping(raw_request)
+        or classify_addressed_frontdoor_agent(raw_request)
         or _frontdoor_agent_from_mapping(session)
         or _normalize_frontdoor_agent(getattr(_capsule, "agent_id", ""))
         or "maestro"
@@ -5878,11 +5918,31 @@ def _process_maestro_frontdoor_operator_instruction(
         or "operator_maestro_chat"
     )
     response_classification = _maestro_frontdoor_classification(classification, request_path=request_path)
+    resolved_agent = str(agent or "maestro").strip().lower()
+    agent_display = {
+        "maestro": "Maestro",
+        "chief": "Chief",
+        "cassandra": "Cassandra",
+        "clara": "Clara",
+        "guardian": "Guardian",
+        "niles": "Niles",
+        "hermes": "Hermes",
+    }.get(resolved_agent, "Maestro")
+    if resolved_agent not in {
+        "maestro",
+        "chief",
+        "cassandra",
+        "clara",
+        "guardian",
+        "niles",
+        "hermes",
+    }:
+        resolved_agent = "maestro"
     response_provenance = {
-        "speaker": "Maestro",
+        "speaker": agent_display,
         "lane": "telegram_pc_maestro_listener",
         "relay_origin": None,
-        "actor": "maestro",
+        "actor": resolved_agent,
         "surface_ref": source_surface,
         "message_role": "final_agent_reply",
         "source_request_id": request_id,
@@ -5890,10 +5950,10 @@ def _process_maestro_frontdoor_operator_instruction(
     card = {
         "schema_version": "maestro_frontdoor_answer_card_v0",
         "card_id": f"maestro_frontdoor_answer_{_short_hash(request_id, result.one_line_answer)}",
-        "card_type": "MAESTRO_CASSANDRA_ANSWER",
-        "title": result.one_line_answer or "Maestro response",
+        "card_type": "FRONTDOOR_AGENT_ANSWER",
+        "title": result.one_line_answer or f"{agent_display} response",
         "summary": result.plain_summary,
-        "status_label": "Maestro",
+        "status_label": agent_display,
         "route_status": "TEXT_RESPONSE_READY",
         "mac_render_hint": result.mac_render_hint,
         "actions": [],
@@ -5922,12 +5982,13 @@ def _process_maestro_frontdoor_operator_instruction(
             "thread_ref": current_thread,
             "world_ref": current_world,
         },
-        "operator_display": {"speaker_ref": "maestro"},
+        "operator_display": {"speaker_ref": resolved_agent},
         "request_classification": asdict(response_classification),
         "original_request_classification": asdict(classification),
         "request_router_decision": dict(route_decision),
         "maestro_frontdoor_routing": {
             "source_surface": _maestro_frontdoor_surface(raw_request),
+            "target_agent": resolved_agent,
             "workflow_package_staged": workflow_package_staged,
             "default_deny_preserved": True,
             "route_to_staging_when_not_answer_ready": True,
@@ -5976,10 +6037,10 @@ def _process_maestro_frontdoor_operator_instruction(
         workflow_ref=f"{current_world}/{current_thread}",
         request_type="CHAT",
         internal_status="RESPONSE_READY",
-        operator_headline=result.one_line_answer or "Maestro response",
+        operator_headline=result.one_line_answer or f"{agent_display} response",
         operator_message=result.plain_summary,
         what_happened=(
-            "OpenClaw recognized the general Maestro front-door chat surface.",
+            f"OpenClaw recognized the front-door chat request addressed to {agent_display}.",
             (
                 "The typed Maestro contract staged one bounded, unclaimed workflow package and returned its receipt."
                 if workflow_package_staged
@@ -5993,8 +6054,11 @@ def _process_maestro_frontdoor_operator_instruction(
             "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid marking, or external business action occurred.",
             model_runtime_sentence,
         ),
-        why_it_happened=f"The Maestro intent gate allowed {result.intent_class} through {backend_route}.",
-        how_to_fix="No fix is needed. Review the Maestro answer and ask a follow-up if needed.",
+        why_it_happened=(
+            f"The typed front-door gate allowed {result.intent_class} for "
+            f"{agent_display} through {backend_route}."
+        ),
+        how_to_fix=f"No fix is needed. Review the {agent_display} answer and ask a follow-up if needed.",
         visible_cards=(card,),
         cards_available=True,
         card_mirror_refs=(),
@@ -6014,7 +6078,7 @@ def _process_maestro_frontdoor_operator_instruction(
         blocked_reason=None,
         detail_disclosure=detail,
         readback_files=publication_proof_refs,
-        next_safe_move="Ask Maestro a follow-up if you need more.",
+        next_safe_move=f"Ask {agent_display} a follow-up if you need more.",
         proof_to_response=dict(machine_proof),
     )
     return _attach_typed_contract_trace(response, trace)

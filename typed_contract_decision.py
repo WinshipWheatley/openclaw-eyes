@@ -44,6 +44,11 @@ CONTRACT_RECEIPT_DB_ENV = "OPENCLAW_CONTRACT_RECEIPT_DB"
 DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 5.0
 SEMANTIC_CONFIDENCE_THRESHOLD = 0.72
 MAX_CONTRACT_PRESERVE_RECEIPTS = 4096
+UNSUPPORTED_OWNER_COMPOUND_CLARIFICATION = (
+    "I caught more than one owner request there. Please ask for each one "
+    "in a separate message so I can keep their authority and receipts "
+    "separate. I left the open workflow unchanged. Nothing was sent or changed."
+)
 _CASSANDRA_TELEGRAM_SURFACES = frozenset(
     {"telegram", "cassandra_telegram", "cassandra_brain.handle"}
 )
@@ -55,6 +60,7 @@ class ContractLabel(str, Enum):
     PAYMENT_ARRIVAL = "payment_arrival"
     MONEY_READ = "money_read"
     FINALIZED_INVOICE_REVIEW = "finalized_invoice_review"
+    EMAIL = "email"
     STATUS = "status"
     IDENTITY = "identity"
     LOW_COHERENCE = "low_coherence"
@@ -173,49 +179,37 @@ SessionAnswerPredicate = Callable[[str], bool]
 _AUTHORITY_CODE_RE = re.compile(
     r"^[A-Z0-9]{4}\s+(?:1|2|3|YES|NO|APPROVE|DENY)(?:\b|\s*-)", re.IGNORECASE
 )
-_INVOICE_RE = re.compile(r"\b(?:invoice|bill)\b", re.IGNORECASE)
-_FINALIZED_REVIEW_RE = re.compile(
-    r"\b(?:prep|prepare|get|make|surface|pull\s+up|show)\b.{0,90}"
-    r"\b(?:ready|review|look\s+(?:it\s+)?over|final(?:ized)?)\b|"
-    r"\b(?:ready|final(?:ized)?)\b.{0,60}\b(?:review|look\s+(?:it\s+)?over)\b",
-    re.IGNORECASE,
-)
-_LIVE_ARTS_RE = re.compile(r"\blive\s+arts(?:\s+maryland)?\b", re.IGNORECASE)
-_HANDOFF_RE = re.compile(
-    r"\b(?:hand(?:off|\s+off|\s+it|\s+this)|route|stage|pass)\b|"
-    r"\bget\s+(?:it|this)\s+(?:over\s+)?to\b|"
-    r"\b(?:right\s+agent|which\s+agent|out\s+the\s+door|needs?\s+to\s+(?:go\s+out|be\s+handled))\b",
-    re.IGNORECASE,
-)
-_ADVISORY_SEND_RE = re.compile(
-    r"^\s*(?:should|could|would)\s+i\b|\b(?:is\s+it\s+safe|do\s+you\s+think)\b",
-    re.IGNORECASE,
-)
-_CASSANDRA_NUDGE_RE = re.compile(
-    r"\b(?:draft|write|prepare|stage)\b.{0,100}\b(?:nudge|follow[- ]?up|reminder)\b|"
-    r"\b(?:nudge|follow[- ]?up|reminder)\b.{0,100}\b(?:biggest|largest|whoever|who\s+owes|outstanding)\b",
-    re.IGNORECASE,
-)
 _GUARDIAN_NARRATION_RE = re.compile(
-    r"(?:walk\s+me\s+through|explain|what\s+happens|how\s+(?:does|do)|safeguards?|gate\s+chain)"
-    r".{0,180}(?:cassandra|clara).{0,100}(?:send|invoice)|"
-    r"(?:cassandra|clara).{0,100}(?:send|invoice).{0,180}(?:approval|guard|lock|happen)",
+    r"(?:walk\s+me\s+through|explain|what\s+happens|how\s+(?:does|do)|"
+    r"what\s+safeguards?|gate\s+chain).{0,180}(?:cassandra|clara)"
+    r".{0,100}(?:send|invoice)|"
+    r"(?:cassandra|clara).{0,100}(?:send|invoice|fires?\s+off).{0,180}"
+    r"what\s+(?:stops?|blocks?|prevents?)\s+(?:it|that)|"
+    r"what(?:'?s|\s+is)\s+(?:the\s+)?(?:actual\s+)?path\b.{0,100}"
+    r"\binvoice\b.{0,100}\bfrom\s+(?:cassandra|clara)\b.{0,100}\bto\s+sent\b",
     re.IGNORECASE | re.DOTALL,
 )
 _STATUS_PATTERNS = (
     re.compile(r"\b(?:status|state|posture)\b", re.IGNORECASE),
-    re.compile(r"\bhow\s+(?:are|is).{0,35}(?:things|everything|your\s+(?:end|side))\b", re.IGNORECASE),
-    re.compile(r"\b(?:what(?:'s|\s+is)\s+happening|how\s+things\s+look|where\s+do\s+things\s+stand)\b", re.IGNORECASE),
+    re.compile(
+        r"\bhow(?:'s|s|\s+(?:are|is)).{0,45}"
+        r"(?:things|everything|your\s+(?:end|side)|system|side\s+of\s+the\s+house)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:what(?:'s|\s+is)\s+happening|how\s+things\s+look|"
+        r"where\s+do\s+things\s+stand|(?:gimme|give\s+me)\s+the\s+lay\s+of\s+the\s+land)\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"\byou\s+good\b", re.IGNORECASE),
-)
-_IDENTITY_PATTERNS = (
-    re.compile(r"\bwho\s+(?:are\s+you|am\s+i\s+(?:talking|speaking)\s+to)\b", re.IGNORECASE),
-    re.compile(r"\bwhat(?:'s|\s+is)\s+your\s+(?:job|role|deal|purpose)\b", re.IGNORECASE),
-    re.compile(r"\bwhat\s+(?:do|are)\s+you\s+(?:do|for)\b", re.IGNORECASE),
-    re.compile(r"\bwhat\s+you(?:'re|\s+are)\s+(?:for|here\s+for)\b", re.IGNORECASE),
-    re.compile(r"\bin\s+plain\s+english.{0,45}\b(?:your\s+role|what\s+you\s+do)\b", re.IGNORECASE),
-    re.compile(r"\bwhat(?:'?s|\s+is)?\s+(?:ur|u\s*r)\s+(?:whole\s+)?(?:job|role|deal|thing|purpose)\b", re.IGNORECASE),
-    re.compile(r"\bwhat\s+(?:it\s+is\s+)?you\s+(?:actually\s+)?(?:handle|cover|take\s+care\s+of)\b", re.IGNORECASE),
+    re.compile(
+        r"^\s*everything\b.{0,45}\b(?:smooth|good|okay|ok)\b.{0,30}\bon\s+your\s+end\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\b(?:are\s+)?we\s+in\s+(?:good\s+)?shape\b", re.IGNORECASE),
+    re.compile(r"\bsystem\s+looking\b.{0,45}\bfrom\s+your\s+seat\b", re.IGNORECASE),
+    re.compile(r"\bhow(?:'s|s|\s+is)\s+the\s+ship\s+holding\s+up\b", re.IGNORECASE),
+    re.compile(r"\ball\s+quiet\s+on\s+the\s+gates\b", re.IGNORECASE),
 )
 _IDENTITY_ASK_PREAMBLE_RE = re.compile(
     r"^\s*(?:(?:okay|ok|well|so|please|anyway|hey|hi|wait(?:\s+so)?|"
@@ -228,8 +222,13 @@ _DIRECT_IDENTITY_ASK_RE = re.compile(
     r"what(?:'?s|\s+is)\s+your\s+(?:name|job|role|deal|purpose)\b|"
     r"what\s+(?:do|are)\s+you\s+(?:do|for)\b|"
     r"what\s+you(?:'re|\s+are)\s+(?:for|here\s+for)\b|"
+    r"what\s+(?:exactly\s+)?are\s+you\s+(?:here\s+)?to\s+do\b|"
     r"what(?:'?s|\s+is)?\s+(?:ur|u\s*r)\s+(?:whole\s+)?"
     r"(?:job|role|deal|thing|purpose)\b|"
+    r"are\s+you\s+the\s+.+?\s+one\s+or\s+the\s+.+?\s+one\b|"
+    r"which\s+one\s+of\s+(?:you\s+all|y['’]?all)\s+handles?\b|"
+    r"(?:exactly\s+)?what\s+falls\s+on\s+your\s+desk\b|"
+    r"(?:of\s+)?your\s+(?:whole\s+)?(?:job|role|deal|thing|purpose)\b|"
     r"are\s+you\s+(?:an?\s+)?(?:bot|ai|robot|human|person)\b|"
     r"are\s+you\s+real\b|what\s+kind\s+of\s+(?:assistant|bot)\b|"
     r"introduce\s+yourself\b|tell\s+me\s+about\s+yourself\b|"
@@ -294,6 +293,7 @@ _PRECEDENCE = {
     ContractLabel.PAYMENT_ARRIVAL: 10,
     ContractLabel.MONEY_READ: 10,
     ContractLabel.FINALIZED_INVOICE_REVIEW: 10,
+    ContractLabel.EMAIL: 10,
     ContractLabel.STATUS: 20,
     ContractLabel.IDENTITY: 20,
     ContractLabel.LOW_COHERENCE: 20,
@@ -894,53 +894,55 @@ def _is_authority_token(text: str, context: ContractContext) -> bool:
     }
 
 
-def _is_payment_arrival(text: str) -> bool:
-    normalized = _normalize(text)
+def classify_payment_arrival_request(text: str) -> bool:
+    """Consume the money-truth owner without adding payment semantics here."""
+
     try:
         from money_truth import classify_money_question
 
-        if classify_money_question(normalized) == "payment_arrival_verify":
-            return True
+        return classify_money_question(text) == "payment_arrival_verify"
     except Exception:
-        pass
-    # Invoice state/status belongs to the invoice/payment domain even when it
-    # is phrased as a read or mutation.  This branch intentionally delegates;
-    # the generic fleet-status renderer must never answer about an invoice.
-    return bool(
-        re.search(r"\b(?:status|state)\b", normalized, re.IGNORECASE)
-        and _INVOICE_RE.search(normalized)
-    )
+        return False
 
 
-def _is_money_read(text: str) -> bool:
+def classify_money_read_request(text: str) -> bool:
+    """Consume the one money owner; consumer regex fallbacks are forbidden."""
+
     try:
         from money_truth import classify_money_question
 
-        if classify_money_question(text) == "money_read":
-            return True
+        return classify_money_question(text) == "money_read"
     except Exception:
-        pass
-    normalized = _normalize(text).lower()
-    return bool(
-        re.search(r"\b(?:who|what|how\s+much|which).{0,70}\b(?:owe|owed|outstanding|receivable|invoice balance)\b", normalized)
-        or re.search(r"\b(?:money|receivables?|invoices?).{0,45}\b(?:owed|outstanding|due)\b", normalized)
-    )
+        return False
 
 
-def _is_finalized_invoice_review(text: str) -> bool:
-    normalized = _normalize(text)
-    return bool(_INVOICE_RE.search(normalized) and _FINALIZED_REVIEW_RE.search(normalized))
+def classify_finalized_invoice_review_request(text: str) -> bool:
+    """Consume the dependency-light cockpit owner without a parallel regex."""
 
-
-def _is_identity(text: str) -> bool:
     try:
-        from protected_generate import is_identity_question
+        from invoice_cockpit_intent import classify_finalized_invoice_review
 
-        if is_identity_question(text):
-            return True
+        return classify_finalized_invoice_review(text).matched is True
     except Exception:
-        pass
-    return any(pattern.search(text) for pattern in _IDENTITY_PATTERNS)
+        return False
+
+
+def classify_email_request(text: str) -> str | None:
+    """Return the canonical email subtype, or ``None`` for non-email text."""
+
+    try:
+        from email_intent import EmailIntent, classify_email_intent
+
+        intent = classify_email_intent(text)
+        return None if intent is EmailIntent.NONE else intent.value
+    except Exception:
+        return None
+
+
+# Compatibility names retained for older adapter tests; all semantics above
+# still come from the public owner APIs.
+_is_payment_arrival = classify_payment_arrival_request
+_is_money_read = classify_money_read_request
 
 
 def _is_explicit_identity_ask(text: str) -> bool:
@@ -984,6 +986,30 @@ def _is_explicit_identity_ask(text: str) -> bool:
     if not _IDENTITY_HANDLE_ALLOWED_TAIL_RE.fullmatch(tail):
         return False
     return lead is not None or ask_clause.rstrip().endswith("?")
+
+
+def classify_identity_request(text: str) -> bool:
+    """Return whether ``text`` is an explicit identity/persona request.
+
+    This module owns identity semantics.  Persona *rendering* may still use
+    ``protected_generate``, but classification must not consult its parallel
+    marker table or a model.
+    """
+
+    if _is_explicit_identity_ask(text):
+        return True
+    # Compound asks retain each explicit clause (for example, status followed
+    # by "and in plain English what is your role?").  Re-run the same strict
+    # ask grammar on bounded clauses rather than reviving a broad substring
+    # table that would claim declarative session answers.
+    clauses = re.split(r"\s*(?:[,;]|\band\b)\s*", str(text or ""), flags=re.IGNORECASE)
+    return any(_is_explicit_identity_ask(clause) for clause in clauses if clause.strip())
+
+
+def _is_identity(text: str) -> bool:
+    """Compatibility alias for older adapters/tests; consume the public owner."""
+
+    return classify_identity_request(text)
 
 
 def _low_coherence_candidate(text: str) -> str:
@@ -1037,31 +1063,34 @@ def _is_low_coherence(text: str) -> bool:
         return len(words) >= 3 and sum(len(word) >= 6 for word in words) >= 2
 
 
-def _is_live_arts_route(text: str) -> bool:
-    normalized = _normalize(text)
-    if not (_LIVE_ARTS_RE.search(normalized) and _INVOICE_RE.search(normalized)):
+def classify_route_instruction(text: str) -> bool:
+    """Consume the workflow-queue owner without handoff idioms in this module."""
+
+    try:
+        from workflow_package_queue import classify_workflow_route
+
+        return bool(classify_workflow_route(text).workflow_ref)
+    except Exception:
         return False
-    if _is_finalized_invoice_review(normalized):
-        return False
-    if _ADVISORY_SEND_RE.search(normalized):
-        return False
-    return bool(_HANDOFF_RE.search(normalized))
 
 
-def _is_cassandra_nudge_route(text: str) -> bool:
-    normalized = _normalize(text)
-    return bool(
-        _CASSANDRA_NUDGE_RE.search(normalized)
-        and re.search(r"\b(?:biggest|largest|whoever|who\s+owes|outstanding)\b", normalized, re.IGNORECASE)
-    )
-
-
-def _is_guardian_narration(text: str) -> bool:
+def classify_guardian_gate_narration(text: str) -> bool:
     return bool(_GUARDIAN_NARRATION_RE.search(_normalize(text)))
 
 
-def _is_status(text: str) -> bool:
+def classify_status_request(text: str) -> bool:
     normalized = _normalize(text)
+    # Technical architecture/configuration questions may contain the generic
+    # nouns ``system`` or ``state`` but are not fleet-posture requests.
+    if re.search(
+        r"\bstate\s+machine\b|"
+        r"\b(?:system|service|audio|network|database)\b.{0,55}"
+        r"\b(?:wired|wiring|design(?:ed)?|architect(?:ed|ure)?|configured?|"
+        r"implemented?|built)\b",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return False
     # "Status" is overloaded.  Business-object state belongs to its domain,
     # and status mutations belong to the existing action/authority paths.
     if re.search(
@@ -1591,19 +1620,25 @@ def decide_contract(
     # Collect ordered matches rather than discarding a safe second clause.  The
     # primary label remains the highest-precedence match, while ``matches`` is
     # the explicit compound contract consumed by adapters and receipts.
+    identity_owner_match = classify_identity_request(raw)
     domain_matches: list[ContractLabel] = []
     if _is_payment_arrival(raw):
         domain_matches.append(ContractLabel.PAYMENT_ARRIVAL)
     if _is_money_read(raw):
         domain_matches.append(ContractLabel.MONEY_READ)
-    if _is_finalized_invoice_review(raw):
+    if classify_finalized_invoice_review_request(raw):
         domain_matches.append(ContractLabel.FINALIZED_INVOICE_REVIEW)
+    # "Are you the email one or the money one?" names domains while asking
+    # persona identity; those nouns must not turn the ask into an email action.
+    email_intent = None if identity_owner_match else classify_email_request(raw)
+    if email_intent is not None:
+        domain_matches.append(ContractLabel.EMAIL)
 
     safe_matches: list[ContractLabel] = []
     # Low coherence dominates keyword-shaped safe matches: "invoice" inside
     # nonsense is not a route/status instruction.  Refusal/authority were
     # already resolved above, and specific domains require coherent shapes.
-    _identity_match = _is_identity(raw)
+    _identity_match = identity_owner_match
     if (
         _identity_match
         and context.active_session
@@ -1631,13 +1666,13 @@ def decide_contract(
         # can look low-coherence to a generic gibberish heuristic.  Identity is
         # the more specific safe contract and must win that collision, while a
         # real status+identity compound still retains both safe clauses.
-        if _is_status(raw):
+        if classify_status_request(raw):
             safe_matches.append(ContractLabel.STATUS)
         if _identity_match:
             safe_matches.append(ContractLabel.IDENTITY)
-        if _is_live_arts_route(raw) or _is_cassandra_nudge_route(raw):
+        if classify_route_instruction(raw):
             safe_matches.append(ContractLabel.ROUTE_INSTRUCTION)
-        if _is_guardian_narration(raw):
+        if classify_guardian_gate_narration(raw):
             safe_matches.append(ContractLabel.GUARDIAN_GATE_NARRATION)
 
     ordered_matches = tuple(domain_matches + safe_matches)
@@ -1648,13 +1683,50 @@ def decide_contract(
         delegated = {
             ContractLabel.PAYMENT_ARRIVAL,
             ContractLabel.FINALIZED_INVOICE_REVIEW,
+            ContractLabel.EMAIL,
         }
+        match_set = set(ordered_matches)
+        supported_money_artifact_compound = bool(
+            ContractLabel.FINALIZED_INVOICE_REVIEW in match_set
+            and match_set.issubset(
+                {
+                    ContractLabel.MONEY_READ,
+                    ContractLabel.PAYMENT_ARRIVAL,
+                    ContractLabel.FINALIZED_INVOICE_REVIEW,
+                }
+            )
+        )
+        if (
+            len(match_set) > 1
+            and match_set.intersection(delegated)
+            and not supported_money_artifact_compound
+        ):
+            # Delegated owners have distinct authority, state, and receipt
+            # contracts. Apart from the explicit money+artifact sequence, one
+            # adapter must never silently absorb/drop another clause. A shared
+            # handled decision makes every fleet adapter fail closed before its
+            # legacy model/session/staging fallback while retaining one typed
+            # receipt for the return.
+            return _make_decision(
+                text=raw,
+                context=context,
+                label=ordered_matches[0],
+                matches=ordered_matches,
+                action=DecisionAction.DIRECT_ANSWER,
+                reply=UNSUPPORTED_OWNER_COMPOUND_CLARIFICATION,
+                source="deterministic",
+                reason="unsupported_cross_owner_compound_clarification",
+                model_called=False,
+                started=started,
+            )
         if any(label in delegated for label in domain_matches):
             primary = domain_matches[0]
             if len(domain_matches) > 1:
                 reason = "compound_specific_domain_adapter_sequence"
             elif primary is ContractLabel.PAYMENT_ARRIVAL:
                 reason = "specific_payment_arrival_route"
+            elif primary is ContractLabel.EMAIL:
+                reason = f"email_owner:{email_intent or 'none'}"
             else:
                 reason = "finalized_artifact_adapter_owns_route"
             return _make_decision(
@@ -1863,8 +1935,17 @@ __all__ = [
     "ContractReceipt",
     "DecisionAction",
     "HandoffResult",
+    "UNSUPPORTED_OWNER_COMPOUND_CLARIFICATION",
     "active_session_from_mapping",
     "adapt_first_touch_receipt",
+    "classify_email_request",
+    "classify_finalized_invoice_review_request",
+    "classify_guardian_gate_narration",
+    "classify_identity_request",
+    "classify_money_read_request",
+    "classify_payment_arrival_request",
+    "classify_route_instruction",
+    "classify_status_request",
     "contract_receipt_binding_sha256",
     "contract_receipt_db_path",
     "decide_contract",

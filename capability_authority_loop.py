@@ -18,6 +18,7 @@ from typing import Any, Mapping, Sequence
 
 import global_run_mode_context
 import capability_registry_build_provenance
+from email_intent import email_intent_requires_draft, email_intent_requires_read
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -129,29 +130,6 @@ UNSAFE_TRUE_KEYS = set(AUTHORITY_BOUNDARY) | {
     "workflow_package_request_v0_emitted",
 }
 
-EMAIL_LOOKUP_TERMS = (
-    "email",
-    "emails",
-    "gmail",
-    "inbox",
-    "reply",
-    "replied",
-    "responded",
-    "acknowledge",
-    "acknowledged",
-    "accountant",
-)
-
-FOLLOW_UP_DRAFT_TERMS = (
-    "draft",
-    "follow-up",
-    "follow up",
-    "note to",
-    "what should i ask",
-    "write a payment follow-up",
-    "write a payment follow up",
-)
-
 CONTACT_IDENTITY_TERMS = (
     "knows her name",
     "name, email",
@@ -171,20 +149,6 @@ PAYMENT_UNCERTAINTY_TERMS = (
     "what proof would resolve",
     "combined check",
     "assume",
-)
-
-EMAIL_LOOKUP_CONTEXT_TERMS = (
-    "annette",
-    "capital hilton",
-    "capital_hilton",
-    "live arts",
-    "live_arts",
-    "glenn",
-    "st. anne",
-    "st anne",
-    "st_annes",
-    "payment update",
-    "new accountant",
 )
 
 GRANT_INTENT_PHRASES = (
@@ -318,41 +282,9 @@ def scope_from_context(world_ref: str, thread_ref: str, project_ref: str = "") -
 
 
 def detects_read_only_email_lookup_intent(text: str, *, world_ref: str = "", thread_ref: str = "") -> bool:
-    text_lowered = str(text or "").lower()
-    lane_lowered = " ".join([world_ref, thread_ref]).lower()
-    if not any(term in text_lowered for term in EMAIL_LOOKUP_TERMS):
-        return False
-    explicit_lookup_phrases = (
-        "check my email",
-        "check gmail",
-        "look in gmail",
-        "received any emails",
-        "find the email",
-        "search email",
-        "read email",
-        "has replied",
-        "replied",
-        "reply",
-    )
-    if any(phrase in text_lowered for phrase in explicit_lookup_phrases):
-        return True
-    lookup_action_terms = (
-        "check",
-        "look",
-        "find",
-        "search",
-        "read",
-        "received",
-        "reply",
-        "replied",
-        "responded",
-        "acknowledge",
-        "acknowledged",
-    )
-    if any(term in text_lowered for term in EMAIL_LOOKUP_CONTEXT_TERMS) and any(action in text_lowered for action in lookup_action_terms):
-        return True
-    return any(term in lane_lowered for term in EMAIL_LOOKUP_CONTEXT_TERMS) and any(
-        phrase in text_lowered for phrase in ("received", "acknowledge", "acknowledged", "payment update")
+    return email_intent_requires_read(
+        text,
+        context=" ".join((str(world_ref or ""), str(thread_ref or ""))).strip(),
     )
 
 
@@ -362,18 +294,10 @@ def detect_capability_intent(text: str, *, world_ref: str = "", thread_ref: str 
         return CONTACT_IDENTITY_EXTRACTION
     if any(term in lowered for term in PAYMENT_UNCERTAINTY_TERMS):
         return PAYMENT_UNCERTAINTY_SUMMARIZER
-    draft_only = any(term in lowered for term in FOLLOW_UP_DRAFT_TERMS) and any(
-        target in lowered for target in ("annette", "glenn", "accountant", "payment", "email", "note")
-    )
-    lookup_dependency = any(
-        phrase in lowered
-        for phrase in ("received", "replied", "reply", "check gmail", "check my email", "look in gmail", "acknowledge", "acknowledged")
-    )
-    if draft_only and not lookup_dependency:
-        return FOLLOW_UP_DRAFT_GENERATOR
+    context = " ".join((str(world_ref or ""), str(thread_ref or ""))).strip()
     if detects_read_only_email_lookup_intent(text, world_ref=world_ref, thread_ref=thread_ref):
         return READ_ONLY_EMAIL_LOOKUP
-    if draft_only:
+    if email_intent_requires_draft(text, context=context):
         return FOLLOW_UP_DRAFT_GENERATOR
     return ""
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterable, Mapping
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -21,9 +20,16 @@ from clarify_session_contract import (
     ACTION_CAPTURE,
     ACTION_REFUSE,
     REASON_SCOPE,
+    REASON_TTL,
     clarify_session_disposition,
     stamp_clarify_session,
     touch_clarify_session,
+)
+from invoice_cockpit_intent import (
+    FinalizedInvoiceReviewDecision,
+    classify_finalized_invoice_review,
+    normalize_client_ref,
+    resolve_client_model,
 )
 from invoice_cockpit_client_registry import DEFAULT_CLIENT_MODELS
 from origin_bound_output import collect_origin_outputs
@@ -69,33 +75,6 @@ _REAL_REVIEW_TRIGGER = re.compile(
 )
 
 _MISSING_EMAIL_MARKERS = {"", "unknown", "missing", "none", "null", "n/a", "na", "tbd"}
-_FINALIZED_REVIEW_CLAUSE_RE = re.compile(
-    r"(?:"
-    r"\b(?:prep(?:ping)?|prepar(?:e|ing)|get(?:ting)?|hav(?:e|ing)|mak(?:e|ing)|set(?:ting)?\s+up|surface|pull\s+up|show)\b"
-    r"[^;.!?\n]{0,120}\binvoice\b[^;.!?\n]{0,120}"
-    r"(?:\bready\b|\bfor\s+(?:my\s+)?review\b|\blook\s+(?:it\s+)?over\b|\beyeball\b|"
-    r"\bfinal(?:ized)?\b|"
-    r"\breview\s+(?:the\s+)?(?:final(?:ized)?\s+)?(?:copy|invoice)\b)"
-    r"|"
-    r"\b(?:prep(?:ping)?|prepar(?:e|ing)|get(?:ting)?|hav(?:e|ing)|mak(?:e|ing)|set(?:ting)?\s+up|surface|pull\s+up|show)\b[^;.!?\n]{0,60}"
-    r"\bfinal(?:ized)?\b[^;.!?\n]{0,80}\binvoice\b"
-    r")",
-    re.IGNORECASE,
-)
-_MONTH_NUMBERS = {
-    "january": 1,
-    "february": 2,
-    "march": 3,
-    "april": 4,
-    "may": 5,
-    "june": 6,
-    "july": 7,
-    "august": 8,
-    "september": 9,
-    "october": 10,
-    "november": 11,
-    "december": 12,
-}
 
 
 def _detect_invoice_trigger(text: str) -> str | None:
@@ -142,66 +121,26 @@ def _detect_real_review_trigger(text: str) -> str | None:
     return client or None
 
 
-def _requested_invoice_period(text: str) -> str | None:
-    normalized = str(text or "").casefold()
-    months = "|".join(_MONTH_NUMBERS)
-    # Bind the month to the invoice phrase, not to an earlier payment clause.
-    # `compare May payment, then get the July invoice ready` must select July.
-    month_match = re.search(
-        r"\b(?P<month>" + months + r")\b(?:\s+(?P<year>20\d{2}))?\s+invoice\b",
-        normalized,
-    )
-    if month_match is None:
-        month_match = re.search(
-            r"\binvoice\b[^;.!?\n]{0,30}\b(?:for\s+)?(?P<month>" + months + r")\b"
-            r"(?:\s+(?P<year>20\d{2}))?",
-            normalized,
-        )
-    if month_match is None:
-        return None
-    year = int(month_match.group("year")) if month_match.group("year") else date.today().year
-    return f"{year:04d}-{_MONTH_NUMBERS[month_match.group('month')]:02d}"
-
-
 def _detect_finalized_artifact_review(
     text: str,
     *,
     client_models: Mapping[str, Mapping[str, Any]] | Iterable[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
-    """Detect a bounded existing-artifact review before interpreter/session claims."""
+    """Compatibility adapter over the dependency-light canonical owner."""
 
-    normalized = str(text or "").replace("’", "'")
-    # A period is otherwise a deliberate clause boundary, but `St. Anne's` is
-    # the canonical registry spelling rather than a sentence break.
-    normalized = re.sub(r"\bSt\.(?=\s+[A-Z])", "St", normalized, flags=re.IGNORECASE)
-    if _FINALIZED_REVIEW_CLAUSE_RE.search(normalized) is None:
+    decision = classify_finalized_invoice_review(text, client_models=client_models)
+    if not decision.matched or decision.client_model is None:
         return None
-    client_model = resolve_client_model(normalized, client_models)
-    if client_model is None:
-        # Preserve the ordinary unknown-client path for generic review asks.
-        before_invoice = re.search(
-            r"\b(?:prep|prepare|get|make|surface|pull\s+up|show)\b\s+(?:the\s+)?(?:[A-Za-z]+\s+)?(.+?)\s+invoice\b",
-            normalized,
-            re.IGNORECASE,
-        )
-        after_invoice = re.search(r"\binvoice\s+for\s+(.+?)(?:\s+and\b|\s+so\b|[?.!,]|$)", normalized, re.IGNORECASE)
-        requested = (before_invoice or after_invoice)
-        if requested is None:
-            return None
-        client_text = requested.group(1).strip()
-        client_model = {"display_name": client_text, "requested_client_text": client_text}
     return {
-        "client_model": dict(client_model),
-        "requested_period": _requested_invoice_period(normalized),
+        "client_model": dict(decision.client_model),
+        "requested_period": decision.requested_period,
     }
 
 
-def _client_match_key(value: Any) -> str:
-    return re.sub(r"[^a-z0-9]", "", str(value or "").casefold().replace("&", "and"))
-
-
 def _client_ref_slug(value: Any) -> str:
-    return re.sub(r"[^a-z0-9]+", "_", str(value or "").casefold()).strip("_")
+    """Legacy private alias retained for external fixtures."""
+
+    return normalize_client_ref(value)
 
 
 def _truthy(value: Any) -> bool:
@@ -212,77 +151,6 @@ def _truthy(value: Any) -> bool:
     if isinstance(value, str):
         return value.strip().casefold() in {"1", "true", "yes", "y", "on"}
     return bool(value)
-
-
-def _model_aliases(model: Mapping[str, Any]) -> tuple[Any, ...]:
-    aliases = model.get("aliases") or model.get("alias") or ()
-    if isinstance(aliases, str):
-        return (aliases,)
-    if isinstance(aliases, Iterable):
-        return tuple(aliases)
-    return ()
-
-
-def _iter_client_models(
-    client_models: Mapping[str, Mapping[str, Any]] | Iterable[Mapping[str, Any]] | None,
-) -> Iterable[dict[str, Any]]:
-    if client_models is None:
-        yield from (dict(model) for model in DEFAULT_CLIENT_MODELS)
-        return
-    if isinstance(client_models, Mapping):
-        for key, model in client_models.items():
-            merged = dict(model)
-            merged.setdefault("client_ref", str(key))
-            merged["client_ref"] = _client_ref_slug(merged.get("client_ref"))
-            merged.setdefault("display_name", merged.get("client_display_name") or merged.get("client_name"))
-            yield merged
-        return
-    for model in client_models:
-        merged = dict(model)
-        if "client_ref" in merged:
-            merged["client_ref"] = _client_ref_slug(merged.get("client_ref"))
-        merged.setdefault("display_name", merged.get("client_display_name") or merged.get("client_name"))
-        yield merged
-
-
-def resolve_client_model(
-    requested_client: str,
-    client_models: Mapping[str, Mapping[str, Any]] | Iterable[Mapping[str, Any]] | None = None,
-) -> dict[str, Any] | None:
-    requested_key = _client_match_key(requested_client)
-    if not requested_key:
-        return None
-    best: dict[str, Any] | None = None
-    best_len = -1
-    for model in _iter_client_models(client_models):
-        candidates = [
-            model.get("client_ref"),
-            model.get("slug"),
-            model.get("client"),
-            model.get("client_name"),
-            model.get("client_display_name"),
-            model.get("display_name"),
-            *_model_aliases(model),
-        ]
-        for candidate in candidates:
-            candidate_key = _client_match_key(candidate)
-            if not candidate_key:
-                continue
-            if requested_key == candidate_key or candidate_key in requested_key:
-                if len(candidate_key) > best_len:
-                    best = model
-                    best_len = len(candidate_key)
-    if best is None:
-        return None
-    resolved = dict(best)
-    if "client_ref" in resolved:
-        resolved["client_ref"] = _client_ref_slug(resolved.get("client_ref"))
-    resolved.setdefault("display_name", resolved.get("client_display_name") or requested_client)
-    resolved["requested_client_text"] = requested_client
-    resolved["coupa_or_po_implied"] = bool(
-        re.search(r"\b(coupa|p\.?o\.?|po|purchase\s+order|portal)\b", requested_client, re.IGNORECASE)
-    )
-    return resolved
 
 
 def _safe_telegram_message(ops: Any, text: str) -> dict[str, Any]:
@@ -433,6 +301,150 @@ def _notify_send_failure(
     results.append(_safe_telegram_message(ops, message))
 
 
+def _same_finalized_artifact(
+    session: Mapping[str, Any],
+    decision: FinalizedInvoiceReviewDecision,
+) -> bool:
+    """True only for the exact artifact contract already held by this session."""
+
+    if not decision.matched or not session.get("artifact_reused"):
+        return False
+    client_model = session.get("client_model")
+    model_ref = client_model.get("client_ref") if isinstance(client_model, Mapping) else ""
+    session_ref = normalize_client_ref(
+        session.get("client_ref")
+        or model_ref
+    )
+    if not session_ref or session_ref != normalize_client_ref(decision.client_ref):
+        return False
+    if session.get("requested_period") != decision.requested_period:
+        return False
+    invoice_data = session.get("invoice_data")
+    return bool(
+        isinstance(invoice_data, Mapping)
+        and invoice_data.get("invoice_number")
+        and session.get("pdf_path")
+        and session.get("attachment_sha256")
+    )
+
+
+def _stored_period_year(session: Mapping[str, Any] | None) -> int | None:
+    if not isinstance(session, Mapping):
+        return None
+    match = re.fullmatch(r"(?P<year>20\d{2})-(?:0[1-9]|1[0-2])", str(session.get("requested_period") or ""))
+    return int(match.group("year")) if match is not None else None
+
+
+def _resolve_finalized_client(
+    decision: FinalizedInvoiceReviewDecision,
+    client_resolver: Callable[[str], Mapping[str, Any] | None] | None,
+) -> FinalizedInvoiceReviewDecision:
+    """Apply an injected registry owner before any session identity check."""
+
+    if not decision.matched or decision.client_model is None or client_resolver is None:
+        return decision
+    owned = dict(decision.client_model)
+    requested = str(
+        owned.get("matched_client_text")
+        or owned.get("requested_client_text")
+        or owned.get("display_name")
+        or owned.get("client_ref")
+        or ""
+    )
+    resolved = client_resolver(requested)
+    if not resolved:
+        return decision
+    model = dict(resolved)
+    client_ref = normalize_client_ref(
+        model.get("client_ref")
+        or model.get("slug")
+        or model.get("display_name")
+        or requested
+    )
+    if client_ref:
+        model["client_ref"] = client_ref
+    model.setdefault("display_name", model.get("client_display_name") or requested)
+    model.setdefault("requested_client_text", owned.get("requested_client_text") or requested)
+    model.setdefault("matched_client_text", owned.get("matched_client_text") or requested)
+    return FinalizedInvoiceReviewDecision(
+        matched=True,
+        client_ref=client_ref or None,
+        requested_period=decision.requested_period,
+        client_model=model,
+    )
+
+
+def _resurface_finalized_artifact(
+    session: dict[str, Any],
+    *,
+    ops: Any,
+) -> dict[str, Any]:
+    """Stage the held artifact again without mutating or claiming delivery."""
+
+    invoice_data = dict(session.get("invoice_data") or {})
+    number = str(
+        invoice_data.get("invoice_number")
+        or Path(str(session["pdf_path"])).stem.split("__", 1)[0]
+    )
+    action = {
+        "kind": wf.SEND_INVOICE_PREVIEW,
+        "pdf_path": session["pdf_path"],
+        "invoice_data": invoice_data,
+        "attachment_sha256": session["attachment_sha256"],
+        "prompt": f"Finalized invoice {number} is ready for your review. Nothing was sent.",
+    }
+    results = ex.execute_actions([action], ops)
+    return _structured_result(
+        {
+            "handled": True,
+            "stage": session.get("stage"),
+            "requested_period": session.get("requested_period"),
+            "client_model": (
+                dict(session["client_model"])
+                if isinstance(session.get("client_model"), Mapping)
+                else {}
+            ),
+            "invoice_data": invoice_data,
+            "attachment": session["pdf_path"],
+            "attachment_sha256": session["attachment_sha256"],
+            "artifact_reused": True,
+            "artifact_resurface_staged": True,
+            "artifact_resurfaced": False,
+            "delivery_confirmed": False,
+            "results": results,
+        }
+    )
+
+
+def _held_artifact_still_matches(
+    session: Mapping[str, Any],
+    decision: FinalizedInvoiceReviewDecision,
+    *,
+    ops: Any,
+) -> bool:
+    """Re-read the finalized selector and prove the cached identity is current."""
+
+    if decision.client_model is None:
+        return False
+    try:
+        invoice_data, pdf_path, digest = ops.prepare_existing_finalized_invoice(
+            dict(decision.client_model),
+            requested_period=decision.requested_period,
+        )
+    except Exception:
+        return False
+    held_data = session.get("invoice_data")
+    if not isinstance(held_data, Mapping):
+        return False
+    return bool(
+        str(invoice_data.get("invoice_number") or "")
+        == str(held_data.get("invoice_number") or "")
+        and Path(str(pdf_path)).resolve(strict=False)
+        == Path(str(session.get("pdf_path") or "")).resolve(strict=False)
+        and str(digest or "") == str(session.get("attachment_sha256") or "")
+    )
+
+
 def handle_invoice_cockpit_message(
     text: str,
     *,
@@ -443,16 +455,20 @@ def handle_invoice_cockpit_message(
     surface: str = "",
 ) -> dict[str, Any]:
     session = store.load()
-    finalized_review = _detect_finalized_artifact_review(text, client_models=client_models)
-    if session is not None and re.search(
-        r"\b(cancel|nevermind|never mind|forget it|stop the invoice|quit)\b",
-        str(text or ""),
-        re.IGNORECASE,
-    ):
-        store.clear()
-        result = _safe_telegram_message(ops, "Okay - cancelled the invoice flow. Nothing was sent.")
-        return _structured_result({"handled": True, "stage": "cancelled", "results": [result]})
-
+    finalized_decision = classify_finalized_invoice_review(
+        text,
+        client_models=client_models,
+        reference_year=_stored_period_year(session),
+    )
+    finalized_decision = _resolve_finalized_client(finalized_decision, client_resolver)
+    finalized_review = (
+        {
+            "client_model": dict(finalized_decision.client_model or {}),
+            "requested_period": finalized_decision.requested_period,
+        }
+        if finalized_decision.matched and finalized_decision.client_model is not None
+        else None
+    )
     # ── Task 142 clarify-session contract — evaluated BEFORE any session resume.
     # The live lane-hostage: this session was operator-global and intercepted
     # EVERY message on EVERY channel. Now: refusal (141) fires above the session,
@@ -471,6 +487,43 @@ def handle_invoice_cockpit_message(
             result = _safe_telegram_message(ops, disposition.reply or "")
             return _structured_result(
                 {"handled": True, "stage": REFUSED_BY_GUARD, "results": [result]}
+            )
+        if (
+            disposition.reason not in {REASON_SCOPE, REASON_TTL}
+            and re.search(
+                r"\b(cancel|nevermind|never mind|forget it|stop the invoice|quit)\b",
+                str(text or ""),
+                re.IGNORECASE,
+            )
+        ):
+            store.clear()
+            result = _safe_telegram_message(
+                ops,
+                "Okay - cancelled the invoice flow. Nothing was sent.",
+            )
+            return _structured_result(
+                {"handled": True, "stage": "cancelled", "results": [result]}
+            )
+        if (
+            finalized_review is not None
+            and disposition.reason not in {REASON_SCOPE, REASON_TTL}
+            and _same_finalized_artifact(session, finalized_decision)
+        ):
+            if _held_artifact_still_matches(session, finalized_decision, ops=ops):
+                return _resurface_finalized_artifact(session, ops=ops)
+            return _structured_result(
+                {
+                    "handled": True,
+                    "stage": session.get("stage"),
+                    "artifact_reused": True,
+                    "artifact_resurface_staged": False,
+                    "artifact_resurfaced": False,
+                    "delivery_confirmed": False,
+                    "error": (
+                        "the finalized invoice artifact changed or could not be reverified; "
+                        "the existing review stayed unchanged and nothing was sent"
+                    ),
+                }
             )
         if finalized_review is not None and disposition.reason != REASON_SCOPE:
             # A specific finalized-artifact contract supersedes an older
@@ -494,10 +547,6 @@ def handle_invoice_cockpit_message(
     if session is None:
         if finalized_review is not None:
             client_model = dict(finalized_review["client_model"])
-            if client_resolver is not None:
-                resolved = client_resolver(str(client_model.get("requested_client_text") or ""))
-                if resolved:
-                    client_model = dict(resolved)
             requested_period = finalized_review.get("requested_period")
             try:
                 invoice_data, pdf_path, digest = ops.prepare_existing_finalized_invoice(
@@ -716,10 +765,12 @@ def handle_invoice_cockpit_message(
 
 __all__ = [
     "FINALIZED_ARTIFACT_REVIEW",
+    "FinalizedInvoiceReviewDecision",
     "AWAITING_INVOICE_CLIENT",
     "DEFAULT_CLIENT_MODELS",
     "REFUSED",
     "UNKNOWN_CLIENT",
+    "classify_finalized_invoice_review",
     "handle_invoice_cockpit_message",
     "resolve_client_model",
     "_detect_invoice_trigger",

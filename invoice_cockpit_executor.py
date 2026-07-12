@@ -18,6 +18,10 @@ def execute_action(action: dict[str, Any], ops: Any) -> dict[str, Any]:
     if kind == wf.SEND_INVOICE_PREVIEW:
         inv = action.get("invoice_data") or {}
         caption = action.get("prompt") or "Here's the invoice for your review."
+        digest = str(action.get("attachment_sha256") or "").strip()
+        verified_sender = getattr(ops, "telegram_pdf_verified", None)
+        if digest and callable(verified_sender):
+            return verified_sender(action.get("pdf_path"), caption, digest)
         return ops.telegram_pdf(action.get("pdf_path"), caption)
     if kind in (wf.ASK_CLARIFY, wf.SEND_MESSAGE):
         return ops.telegram_message(action.get("text") or "")

@@ -514,25 +514,40 @@ class RealCockpitOps:
         )
         return {"ok": True, "origin_output": output}
 
-    def _origin_document_output(self, pdf_path: str, caption: str) -> dict[str, Any]:
+    def _origin_document_output(
+        self,
+        pdf_path: str,
+        caption: str,
+        *,
+        document_sha256: str = "",
+    ) -> dict[str, Any]:
         if self.origin is None:
             raise RuntimeError("origin output requested without an origin binding")
         self._origin_output_sequence += 1
-        receipt = receipt_pointer(
+        delivery_id = receipt_pointer(
             "invoice-cockpit",
             self.origin,
             salt=f"document:{self._origin_output_sequence}",
         )
+        digest = str(document_sha256 or "").strip().casefold()
+        provider_receipt = (
+            f"invoice-artifact-{digest}"
+            if digest
+            else delivery_id
+        )
+        internal = {"document_path": str(pdf_path or "")}
+        if digest:
+            internal["document_sha256"] = digest
         output = OriginBoundOutput.guarded_document(
             origin=self.origin,
-            delivery_id=receipt,
-            receipt_pointer=receipt,
+            delivery_id=delivery_id,
+            receipt_pointer=provider_receipt,
             document_path=pdf_path,
             caption=caption,
             generic_text=GENERIC_SAFE_FAILURE,
             boundary_context=self.output_boundary_context,
             advertise_receipt_lookup=True,
-            internal={"document_path": str(pdf_path or "")},
+            internal=internal,
         )
         return {"ok": True, "origin_output": output}
 
@@ -697,6 +712,17 @@ class RealCockpitOps:
     def telegram_pdf(self, pdf_path: str, caption: str):
         if self.origin is not None:
             return self._origin_document_output(pdf_path, caption)
+        return {"ok": False, "error": "origin binding required for Telegram document output"}
+
+    def telegram_pdf_verified(self, pdf_path: str, caption: str, document_sha256: str):
+        """Stage a document with immutable identity bound for adapter recheck."""
+
+        if self.origin is not None:
+            return self._origin_document_output(
+                pdf_path,
+                caption,
+                document_sha256=document_sha256,
+            )
         return {"ok": False, "error": "origin binding required for Telegram document output"}
 
     def telegram_message(self, text: str):

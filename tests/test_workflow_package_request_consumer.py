@@ -109,7 +109,14 @@ def test_maestro_listener_envelope_reaches_freeform_brain(tmp_path: Path) -> Non
     assert "protected_text_hash_mismatch" not in json.dumps(response.detail_disclosure, sort_keys=True)
 
 
-def test_maestro_telegram_invoice_test_routes_to_st_annes_dryrun_not_freeform(tmp_path: Path) -> None:
+def test_maestro_telegram_invoice_test_routes_to_st_annes_dryrun_not_freeform(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        consumer.SQLITE_PATH_ENV,
+        str(tmp_path / "workflow_package_queue.sqlite"),
+    )
     request = maestro_listener.build_operator_maestro_chat_request(
         "Maestro, Lets test the St Annes workflow for the invoice",
         message_id="1191",

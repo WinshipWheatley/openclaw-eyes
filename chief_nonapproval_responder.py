@@ -410,6 +410,17 @@ def guardian_no_pending_reply(
     *,
     first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> str:
+    try:
+        from typed_contract_decision import classify_status_request
+
+        if classify_status_request(text):
+            return (
+                "No approval request is currently pending. Guardian's send and "
+                "authority gates remain closed by default; this status check did "
+                "not approve, send, or change anything."
+            )
+    except Exception:
+        pass
     response = nonapproval_response_for_text(
         text,
         surface="guardian",

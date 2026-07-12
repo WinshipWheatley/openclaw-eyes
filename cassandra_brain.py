@@ -78,6 +78,12 @@ from reynolds_gig_setup_status import (
 from capability_registry import get_actor, registry_context_for_query
 from business_ops_packet import assemble_business_ops_packet, BusinessOpsPacket
 from business_ops_intent import classify_business_ops_intent
+from email_intent import (
+    EmailIntent,
+    classify_email_intent,
+    classify_email_metadata_scope,
+    email_intent_requires_read,
+)
 from hitl_pending_store import propose_action as _hitl_propose
 from cassandra_custom_tools import handle_operator_objective as _handle_operator_objective
 from operator_universal_intake import try_process_surface_operator_intake as _try_universal_operator_intake
@@ -380,29 +386,6 @@ _KEYWORDS = (
     "check came in",
     "i spent",
     "i paid for",
-    # gmail / inbox queries
-    "check my email",
-    "check my inbox",
-    "any new emails",
-    "any emails",
-    "new emails",
-    "do i have any email",
-    "did anyone email",
-    "did i get an email",
-    "did i get any email",
-    "what's in my inbox",
-    "what's in my email",
-    "any unread",
-    "unread emails",
-    "inbox",
-    # email send
-    "send an email",
-    "send email to",
-    "email to ",
-    "send a message to",
-    "send the intro emails",
-    "send intro emails",
-    "send outreach emails",
 )
 
 # Mode-toggle commands — also caught by cassandra_intent
@@ -420,7 +403,12 @@ def cassandra_intent(text: str) -> bool:
         return True
     if any(t == m or t.endswith(m) for m in _ALL_TOGGLES):
         return True
-    return any(k in t for k in _KEYWORDS)
+    email_class = classify_email_intent(t)
+    email_read = email_class in {
+        EmailIntent.METADATA_READ,
+        EmailIntent.UNREAD_LIST,
+    } or (email_class is EmailIntent.REPLY and email_intent_requires_read(t))
+    return any(k in t for k in _KEYWORDS) or email_read
 
 
 def _strip_prefix(text: str) -> str:
@@ -2377,17 +2365,6 @@ def _extract_event_details(text: str) -> dict | None:
 
 # ── Email send pipeline ───────────────────────────────────────────────────────
 
-_SEND_EMAIL_KEYWORDS = (
-    "send an email to",
-    "send email to",
-    "email to ",
-    "send a message to",
-    "send a msg to",
-    "draft and send",
-    "compose an email to",
-    "compose email to",
-)
-
 _SEND_EMAIL_RE = re.compile(
     r"(?:"
     r"send\s+(?:an?\s+)?new\s+(?:email|message|msg)\s+to\s+"
@@ -2421,34 +2398,14 @@ def _detect_send_email_intent(text: str) -> bool:
     from cassandra_capability import EMAIL_DRAFT_CONNECTED
     if not EMAIL_DRAFT_CONNECTED:
         return False
-    t = text.lower()
-    if any(k in t for k in _SEND_EMAIL_KEYWORDS):
-        return True
-    parsed = _parse_email_request(text)
-    if parsed is None:
-        return False
-    to_name = str(parsed.get("to_name") or "").strip()
-    if re.fullmatch(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", to_name):
-        return True
-    resolved = resolve_outbound_contact(to_name)
-    return resolved["status"] in {"exact", "fuzzy", "ambiguous"}
-
-
-_OUTREACH_EMAIL_PATTERNS = (
-    "send the intro emails",
-    "send intro emails",
-    "send the outreach emails",
-    "send outreach emails",
-    "send the cassandra intro emails",
-)
+    return classify_email_intent(text) is EmailIntent.DRAFT_SEND
 
 
 def _detect_outreach_email_intent(text: str) -> bool:
     from cassandra_capability import EMAIL_DRAFT_CONNECTED
     if not EMAIL_DRAFT_CONNECTED:
         return False
-    t = text.lower()
-    return any(pattern in t for pattern in _OUTREACH_EMAIL_PATTERNS)
+    return classify_email_intent(text) is EmailIntent.OUTREACH
 
 
 def _detect_file_verify_intent(text: str) -> bool:
@@ -5814,16 +5771,27 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
             money_class,
         )
 
-    # Explicit email terms: allowed
-    email_terms = (
-        "email", "gmail", "inbox", "message", "unread", "sender",
-        "subject", "from", "reply", "replies", "draft", "thread", "attachment"
-    )
-    for term in email_terms:
-        # s? keeps plurals ("send the intro emails") — the 2026-07-10 word-
-        # bounding regression denied the whole outreach lane on the plural.
-        if re.search(rf"(?<!\w){re.escape(term)}s?(?!\w)", q):
-            return GmailIntentDecision(True, f"Explicit email term trigger: '{term}'", "email_search", term)
+    email_class = classify_email_intent(q)
+    if email_class in {EmailIntent.METADATA_READ, EmailIntent.UNREAD_LIST} or (
+        email_class is EmailIntent.REPLY and email_intent_requires_read(q)
+    ):
+        return GmailIntentDecision(
+            True,
+            f"Canonical email owner selected {email_class.value}.",
+            "email_search",
+            email_class.value,
+        )
+    if email_class in {
+        EmailIntent.DRAFT_SEND,
+        EmailIntent.REPLY,
+        EmailIntent.OUTREACH,
+    }:
+        return GmailIntentDecision(
+            True,
+            f"Canonical email owner selected {email_class.value}.",
+            "email_draft",
+            email_class.value,
+        )
 
     # Task 140: read-only money QUESTIONS are answered from the ONE money truth
     # (receivables_month_bounded via money_truth.py) — they are not Gmail work
@@ -5839,26 +5807,15 @@ def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailI
     except Exception:
         pass
 
-    # Materially specific business/payment terms: allowed
-    business_terms = (
-        "invoice", "payment", "paid", "unpaid", "receivable",
-        "owes", "owed", "client follow-up", "balance", "overdue"
+    return GmailIntentDecision(
+        False,
+        "Canonical email owner found no email intent; defaulting to deny.",
+        "none",
+        EmailIntent.NONE.value,
     )
-    for term in business_terms:
-        if term in q:
-            return GmailIntentDecision(True, f"Material business term trigger: '{term}'", "payment_verify", term)
-
-    return GmailIntentDecision(False, "No explicit email or business intent detected; defaulting to deny.", "none")
 
 
 # ── Gmail context injection ───────────────────────────────────────────────────
-
-_GMAIL_QUERY_WORDS = (
-    "email", "emails", "inbox", "unread", "new message",
-    "any messages", "check my email", "did anyone email",
-    "did i get an email", "did i get any email", "gmail",
-)
-
 
 def _fetch_gmail_context(query: str, decision: GmailIntentDecision | None = None, ops_packet: Any = None) -> str:
     """
@@ -5874,18 +5831,30 @@ def _fetch_gmail_context(query: str, decision: GmailIntentDecision | None = None
     elif decision and not decision.allowed:
         return ""
 
-    if not any(w in query.lower() for w in _GMAIL_QUERY_WORDS):
+    metadata_scope = classify_email_metadata_scope(query)
+    if metadata_scope is None:
         return ""
     try:
         from google_access_broker import call as broker_call
-        result = broker_call("cassandra", "google.gmail.read.metadata", {"max_results": 10})
-        if not result["ok"]:
-            return "[GMAIL DATA — inbox empty or unreachable]"
+        payload = {"max_results": 10}
+        if metadata_scope.gmail_query:
+            payload["query"] = metadata_scope.gmail_query
+        result = broker_call("cassandra", "google.gmail.read.metadata", payload)
+        if not isinstance(result, Mapping) or not result.get("ok"):
+            return "[GMAIL DATA — inbox unreachable]"
         messages = result.get("data") or []
         if not messages:
-            return "[GMAIL DATA — inbox empty or unreachable]"
+            return "[GMAIL DATA — no matching inbox messages]"
 
         now = datetime.now()
+        messages = [
+            message
+            for message in messages
+            if isinstance(message, Mapping)
+            and metadata_scope.matches(message, now=now.astimezone())
+        ]
+        if not messages:
+            return "[GMAIL DATA — no matching inbox messages]"
 
         def _relative_date(date_raw: str) -> str:
             """Convert a raw RFC 2822 Date header to a spoken relative label."""
@@ -5921,7 +5890,7 @@ def _fetch_gmail_context(query: str, decision: GmailIntentDecision | None = None
 
         return "\n".join(lines)
     except Exception:
-        return "[GMAIL DATA — inbox empty or unreachable]"
+        return "[GMAIL DATA — inbox unreachable]"
 
 
 _CONTACTS_QUERY_WORDS = (
@@ -6949,14 +6918,9 @@ def handle(text: str, session: dict | None = None) -> list[str]:
 
 def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     session_meta = dict(session or {})
-    # --- Explicit Gmail inbox queries: force live Gmail read, bypass LLM and context blending ---
-    inbox_list_patterns = [
-        "any new emails", "list my 5 newest unread inbox emails with sender and subject only",
-        "list my 5 newest unread emails", "show my 5 newest unread emails", "show unread inbox emails",
-        "show unread emails", "list unread emails", "list unread inbox emails"
-    ]
     query = _strip_prefix(text)
     t_query = query.lower().strip()
+    email_class = classify_email_intent(query)
     first_touch_receipt = session_meta.get("first_touch_receipt")
     try:
         from first_touch_decision import (
@@ -7093,7 +7057,7 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
         def _stage_handoff(raw_text: str, _context: ContractContext) -> HandoffResult:
             from workflow_package_queue import (
                 DEFAULT_SQLITE_PATH,
-                classify_intent,
+                classify_workflow_route,
                 render_cassandra_nudge_handoff_reply,
                 render_live_arts_handoff_reply,
                 stage_cassandra_receivables_nudge_handoff,
@@ -7102,7 +7066,8 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
 
             _sqlite_path = Path(session_meta.get("workflow_package_sqlite_path") or DEFAULT_SQLITE_PATH)
             _created_at = str(session_meta.get("contract_created_at") or "") or None
-            if classify_intent(raw_text).get("workflow_ref") == "cassandra_receivables_nudge_handoff":
+            workflow_ref = classify_workflow_route(raw_text).workflow_ref
+            if workflow_ref == "cassandra_receivables_nudge_handoff":
                 staged = stage_cassandra_receivables_nudge_handoff(
                     raw_text,
                     source_surface=_contract_context.surface,
@@ -7110,7 +7075,7 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
                     created_at=_created_at,
                 )
                 _reply = render_cassandra_nudge_handoff_reply(staged)
-            else:
+            elif workflow_ref == "live_arts_md_invoice_workflow":
                 staged = stage_live_arts_invoice_handoff(
                     raw_text,
                     source_surface=_contract_context.surface,
@@ -7118,6 +7083,8 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
                     created_at=_created_at,
                 )
                 _reply = render_live_arts_handoff_reply(staged)
+            else:
+                raise ValueError("canonical workflow-route owner returned no staged route")
             return HandoffResult(
                 reply=_reply,
                 receipt_pointer=str(staged["receipt"]["receipt_ref"]),
@@ -7127,9 +7094,9 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
         _contract_decision = decide_contract(
             query,
             context=_contract_context,
-            # Fuzzy status must reach the REAL state-aware ops-status path, not
-            # the deterministic fallback formatter (2026-07-10 battery).
-            status_renderer=lambda: _answer_ops_status_inquiry(query, load_state())[0],
+            # Typed status is a deterministic contract: it must not route
+            # through the model-capable orientation answer path.
+            status_renderer=lambda: _handle_ops_status_inquiry(query),
             handoff_stager=_stage_handoff,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter(
                 "cassandra_brain"
@@ -7448,9 +7415,7 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     # Check for email capability in the packet
     has_email_cap = any(c.domain == "email" for c in ops_packet.permitted_capabilities)
 
-    if has_email_cap and (t_query in (p.lower() for p in inbox_list_patterns) or (
-        t_query.startswith("list my ") and "unread inbox" in t_query and "sender" in t_query and "subject" in t_query
-    )):
+    if has_email_cap and email_class is EmailIntent.UNREAD_LIST:
         try:
             from cassandra_outreach import poll_gmail_unread_count, poll_gmail_recent_metadata
             # Use direct unread count for count queries

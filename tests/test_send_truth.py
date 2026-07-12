@@ -1591,7 +1591,11 @@ class TestCassandraRouterPolicy:
             ),
         )
 
-        replies = cassandra_brain.handle("What should I know from the synthetic notification context?")
+        # Task 166: say ``email`` explicitly. Bare ``from`` is ordinary
+        # grammar and no longer grants mailbox-read authority.
+        replies = cassandra_brain.handle(
+            "What should I know from the synthetic payment email notification context?"
+        )
 
         assert replies == ["local reply"]
         assert calls

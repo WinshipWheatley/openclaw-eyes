@@ -25,6 +25,12 @@ from typing import Any, Optional, Sequence
 from backend_knowledge_packet import AgentContextExportPacket
 from capability_registry import Capability, Actor, get_actor
 from business_ops_intent import IntentFrame, classify_business_ops_intent
+from email_intent import (
+    EmailIntent,
+    classify_email_intent,
+    email_intent_requires_draft,
+    email_intent_requires_read,
+)
 
 
 @dataclass(frozen=True)
@@ -85,6 +91,11 @@ def assemble_business_ops_packet(
     if intent is None:
         intent = classify_business_ops_intent(query)
 
+    email_class = classify_email_intent(query)
+    monitored_email = intent.intent_name == "monitored_email_conversation"
+    email_read_requested = monitored_email or email_intent_requires_read(query)
+    email_draft_requested = monitored_email or email_intent_requires_draft(query)
+
     actor = get_actor(actor_name)
     if not actor:
         # Fallback to empty packet if actor is unknown
@@ -106,6 +117,17 @@ def assemble_business_ops_packet(
     for cap in actor.capabilities:
         if not cap.connected:
             continue
+
+        # Email-domain capabilities have distinct authority.  A metadata read
+        # does not silently acquire draft authority, and a draft request does
+        # not silently acquire mailbox-read authority.
+        if cap.domain == "email":
+            if email_class is EmailIntent.NONE and not monitored_email:
+                continue
+            if "read" in cap.scope and not email_read_requested:
+                continue
+            if "write" in cap.scope and not email_draft_requested:
+                continue
             
         # If we have a specific target domain, only allow that + logging
         if target_domain != "none":
@@ -122,7 +144,7 @@ def assemble_business_ops_packet(
     execution_authority = False
 
     # Intent-specific overrides
-    if intent.intent_name == "monitored_email_conversation":
+    if monitored_email or email_draft_requested:
         approval_required = True
         action_status = "draft_only_until_guardian_approval"
         execution_authority = False

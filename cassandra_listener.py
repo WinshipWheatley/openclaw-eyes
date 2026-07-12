@@ -166,16 +166,18 @@ class _ReceiptBoundReply(str):
     delivery adapter can still recognize it and read the machine-only fields.
     """
 
-    __slots__ = ("descriptor",)
+    __slots__ = ("descriptor", "contract_receipt")
 
     def __new__(
         cls,
         *,
         text: str,
-        descriptor: ReceiptDescriptor,
+        descriptor: ReceiptDescriptor | None,
+        contract_receipt: dict[str, Any] | None = None,
     ) -> "_ReceiptBoundReply":
         value = str.__new__(cls, text)
         value.descriptor = descriptor
+        value.contract_receipt = dict(contract_receipt or {})
         return value
 
     @property
@@ -184,19 +186,19 @@ class _ReceiptBoundReply(str):
 
     @property
     def provider(self) -> str:
-        return self.descriptor.provider
+        return self.descriptor.provider if self.descriptor is not None else ""
 
     @property
     def what_happened(self) -> str:
-        return self.descriptor.what_happened
+        return self.descriptor.what_happened if self.descriptor is not None else ""
 
     @property
     def status(self) -> str:
-        return self.descriptor.status
+        return self.descriptor.status if self.descriptor is not None else ""
 
     @property
     def raw_ref(self) -> str:
-        return self.descriptor.raw_ref
+        return self.descriptor.raw_ref if self.descriptor is not None else ""
 
 
 def _fleet_receipt_index_path(override=None) -> _Path:
@@ -255,7 +257,7 @@ def _typed_contract_bound_reply(
         raw_ref=str(getattr(receipt, "receipt_pointer", "") or ""),
         advertise=descriptor is not None,
     )
-    if descriptor is None:
+    if receipt is None:
         # A typed decision may have composed the generic hint before its
         # persistence attempt failed.  This adapter must not advertise a dead
         # lookup path.
@@ -263,6 +265,7 @@ def _typed_contract_bound_reply(
     return _ReceiptBoundReply(
         text=safe_text,
         descriptor=descriptor,
+        contract_receipt=receipt_mapping,
     )
 
 # ── Producer integration ─────────────────────────────────────────────────────
@@ -465,7 +468,7 @@ def _try_invoice_cockpit(
             store=bound_store,
             # Task 142: scope the cockpit clarify session to THIS channel so it
             # can never intercept another surface's traffic (live lane-hostage).
-            surface="cassandra_telegram",
+            surface=origin.surface,
         )
         if not result.get("handled"):
             return None
@@ -625,7 +628,7 @@ async def _run_cassandra_handle_async(
         def _stage_handoff(raw_text: str, _context: ContractContext) -> HandoffResult:
             from workflow_package_queue import (
                 DEFAULT_SQLITE_PATH,
-                classify_intent,
+                classify_workflow_route,
                 render_cassandra_nudge_handoff_reply,
                 render_live_arts_handoff_reply,
                 stage_cassandra_receivables_nudge_handoff,
@@ -634,7 +637,8 @@ async def _run_cassandra_handle_async(
 
             _sqlite_path = _Path(session_meta.get("workflow_package_sqlite_path") or DEFAULT_SQLITE_PATH)
             _created_at = str(session_meta.get("contract_created_at") or "") or None
-            if classify_intent(raw_text).get("workflow_ref") == "cassandra_receivables_nudge_handoff":
+            workflow_ref = classify_workflow_route(raw_text).workflow_ref
+            if workflow_ref == "cassandra_receivables_nudge_handoff":
                 staged = stage_cassandra_receivables_nudge_handoff(
                     raw_text,
                     source_surface="cassandra_telegram",
@@ -642,7 +646,7 @@ async def _run_cassandra_handle_async(
                     created_at=_created_at,
                 )
                 _reply = render_cassandra_nudge_handoff_reply(staged)
-            else:
+            elif workflow_ref == "live_arts_md_invoice_workflow":
                 staged = stage_live_arts_invoice_handoff(
                     raw_text,
                     source_surface="cassandra_telegram",
@@ -650,6 +654,8 @@ async def _run_cassandra_handle_async(
                     created_at=_created_at,
                 )
                 _reply = render_live_arts_handoff_reply(staged)
+            else:
+                raise ValueError("canonical workflow-route owner returned no staged route")
             return HandoffResult(
                 reply=_reply,
                 receipt_pointer=str(staged["receipt"]["receipt_ref"]),
@@ -682,14 +688,30 @@ async def _run_cassandra_handle_async(
         else:
             _contract_decision = None
 
-    _pure_cassandra_money_read = bool(
-        _contract_decision is not None
-        and tuple(_contract_decision.matches) == (ContractLabel.MONEY_READ,)
+    _contract_match_set = (
+        set(_contract_decision.matches)
+        if _contract_decision is not None
+        else set()
     )
-    if _pure_cassandra_money_read:
-        # Bypass any active invoice cockpit: the brain's override-aware,
-        # deterministic money helper must decide between an operator correction
-        # and the bounded ledger before a session can capture this turn.
+    _pure_cassandra_brain_owner = bool(
+        _contract_decision is not None
+        and not _contract_decision.handled
+        and bool(
+            _contract_match_set.intersection(
+                {
+                    ContractLabel.MONEY_READ,
+                    ContractLabel.PAYMENT_ARRIVAL,
+                    ContractLabel.EMAIL,
+                }
+            )
+        )
+        and ContractLabel.FINALIZED_INVOICE_REVIEW not in _contract_match_set
+    )
+    if _pure_cassandra_brain_owner:
+        # Bypass any active invoice cockpit.  These pass-through labels already
+        # have canonical Cassandra owners: money/payment verification and the
+        # email read-vs-draft adapter.  Letting the cockpit see them first can
+        # capture a foreign domain or invoke its interpreter before the owner.
         return await asyncio.to_thread(cassandra_handle, text, session_meta)
 
     if _contract_decision is not None and _contract_decision.handled:
@@ -897,6 +919,28 @@ async def _dispatch_origin_bound_output(
                 # was not.  It must not gain a successful delivery receipt.
                 return True
             else:
+                expected_digest = str(
+                    (output.internal or {}).get("document_sha256") or ""
+                ).strip().lower()
+                if expected_digest:
+                    try:
+                        digest = _hashlib.sha256()
+                        with _Path(output.document_path).open("rb") as handle:
+                            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                                digest.update(chunk)
+                        actual_digest = digest.hexdigest().lower()
+                    except OSError:
+                        actual_digest = ""
+                    if actual_digest != expected_digest:
+                        await send_text(
+                            "I couldn't attach the prepared invoice because its contents changed. "
+                            "Nothing was sent.",
+                            reply_markup=None,
+                        )
+                        # Artifact identity is checked again at the final
+                        # adapter.  A drifted path is never transported or
+                        # registered as a successful delivery.
+                        return True
                 sent_message = await send_document(output.document_path, visible)
         else:
             reply_markup = (
@@ -963,7 +1007,11 @@ async def _dispatch_receipt_bound_reply(
     sent_message = await send_text(reply.text, reply_markup=None)
     outbound_message_id = str(getattr(sent_message, "message_id", "") or "")
     actual_source_message_id = str(source_message_id or "")
-    if not outbound_message_id or not actual_source_message_id:
+    if (
+        reply.descriptor is None
+        or not outbound_message_id
+        or not actual_source_message_id
+    ):
         return True
 
     delivered_at = datetime.now(timezone.utc).isoformat(timespec="seconds")

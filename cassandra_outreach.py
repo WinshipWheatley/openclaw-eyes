@@ -63,6 +63,7 @@ from pathlib import Path
 
 from cassandra_email_config import get_review_inbox
 from chief_file_io import load_json, save_json
+from email_intent import EmailIntent, classify_email_intent, email_intent_requires_read
 from finance_state import get_finance_status_answer
 
 # ── Broker call import for test patching ──
@@ -906,28 +907,11 @@ def _build_email_bridge_review_text(message: dict) -> str:
 # ── Reply-bridge orchestration helpers (moved from cassandra_brain.py, Cut 6) ─
 
 
-_EMAIL_REPLY_BRIDGE_PATTERNS = (
-    "check inner circle email replies",
-    "check inner-circle email replies",
-    "show inner circle email replies",
-    "show inner-circle email replies",
-    "list inner circle email replies",
-    "list inner-circle email replies",
-    "any inner circle email replies",
-    "any inner-circle email replies",
-    "check pinned email replies",
-    "show pinned email replies",
-    "list pinned email replies",
-    "check email replies from",
-    "show email replies from",
-    "list email replies from",
-    "any email replies from",
-)
-
-
 def _detect_inner_circle_email_reply_intent(text: str) -> bool:
-    t = text.lower()
-    return any(pattern in t for pattern in _EMAIL_REPLY_BRIDGE_PATTERNS)
+    return (
+        classify_email_intent(text) is EmailIntent.REPLY
+        and email_intent_requires_read(text)
+    )
 
 
 _EMAIL_BRIDGE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_bridge.jsonl")

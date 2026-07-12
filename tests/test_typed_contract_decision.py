@@ -69,21 +69,24 @@ def test_payment_status_beats_generic_status():
 
 
 @pytest.mark.parametrize(
-    "text",
+    ("text", "expected"),
     (
-        "What state is the St Anne’s July invoice in?",
-        "update the invoice status to paid",
+        ("What state is the St Anne’s July invoice in?", contract.ContractLabel.MONEY_READ),
+        ("update the invoice status to paid", contract.ContractLabel.UNRESOLVED),
     ),
 )
-def test_invoice_state_never_calls_generic_status_renderer(text):
+def test_invoice_state_never_calls_generic_status_renderer(text, expected):
     decision = contract.decide_contract(
         text,
         context=_ctx(),
         status_renderer=lambda: pytest.fail("generic status renderer ran"),
         semantic_vote_enabled=False,
     )
-    assert decision.label is contract.ContractLabel.PAYMENT_ARRIVAL
-    assert decision.action is contract.DecisionAction.PASS_THROUGH
+    assert decision.label is expected
+    assert decision.action in {
+        contract.DecisionAction.DIRECT_ANSWER,
+        contract.DecisionAction.PASS_THROUGH,
+    }
     assert contract.ContractLabel.STATUS not in decision.matches
 
 
@@ -400,8 +403,8 @@ def test_temporal_invoice_status_is_not_generic_fleet_status():
         context=_ctx(),
         status_renderer=lambda: pytest.fail("generic status renderer ran"),
     )
-    assert decision.label is contract.ContractLabel.PAYMENT_ARRIVAL
-    assert decision.action is contract.DecisionAction.PASS_THROUGH
+    assert decision.label is contract.ContractLabel.MONEY_READ
+    assert decision.action is contract.DecisionAction.DIRECT_ANSWER
     assert contract.ContractLabel.STATUS not in decision.matches
 
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import agent_voice_router
+from invoice_cockpit_intent import classify_finalized_invoice_review
 
 
 ROOT = Path(__file__).resolve().parent
@@ -229,6 +231,16 @@ class ExportResult:
     sqlite_path: str
     package_count: int
     supported_package_types: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class WorkflowRouteDecision:
+    """Dependency-light result from the canonical workflow-route owner."""
+
+    workflow_ref: str | None
+    reason: str
+    client_ref: str | None = None
+    target_agent: str | None = None
 
 
 def stable_json(payload: Any) -> str:
@@ -558,57 +570,184 @@ def _st_annes_review_dry_run_semantics(text: str) -> bool:
     )
 
 
-def _live_arts_invoice_handoff_semantics(text: str) -> bool:
-    if "live arts" not in text or not any(term in text for term in ("invoice", "bill", "billing")):
-        return False
-    if text.startswith(("should i ", "could i ", "would i ")) or any(
+def classify_workflow_route(source_text: str) -> WorkflowRouteDecision:
+    """Classify bounded workflow handoffs without staging or granting authority.
+
+    This is the one owner shared by intent classification and front-door
+    adapters.  It deliberately distinguishes an instruction to hand work to a
+    bounded lane from advisory questions, artifact review, status reads, and
+    completed-action/history statements.
+    """
+
+    text = _normalized_operator_text(source_text)
+    advisory = text.startswith(
+        ("should i ", "could i ", "would i ", "can i ", "may i ")
+    ) or any(
         phrase in text for phrase in ("is it safe", "do you think")
-    ):
-        return False
-    return any(
-        phrase in text
-        for phrase in (
-            "hand ",
-            "handoff",
-            "hand off",
-            "route ",
-            "routing ",
-            "stage ",
-            "get it to",
-            "get this to",
-            "right agent",
-            "which agent",
-            "out the door",
-            "needs to go out",
-            "needs to be handled",
-            "needs to be sent out",
+    )
+    # Any explicit negation on this already-bounded Live Arts invoice family
+    # vetoes every route idiom below (route, hand, send, get-to, right-agent).
+    # Matching only a finite subset of verbs lets a destination synonym turn
+    # "do not" into a queue write.
+    negated_route = bool(
+        re.search(
+            r"(?:^|\b)(?:don['’]?t|do\s+not|never|no\s+need\s+to)\b",
+            text,
         )
     )
+    route_question = bool(
+        re.match(
+            r"^(?:where|why|when|how)\b.{0,100}"
+            r"\b(?:route|routed|routing|handoff|handed|stage|staged|pass)\b",
+            text,
+        )
+    )
+    assignment_question = bool(
+        re.match(
+            r"^(?:who\s+is|which\s+agent|does\b|"
+            r"can\s+you\s+(?:please\s+)?tell\s+me\s+who|"
+            r"what\s+stage\b)",
+            text,
+        )
+    )
+    route_read_or_advice = bool(
+        re.match(
+            r"^(?:show(?:\s+me)?|give\s+me|read\s+back|list|tell\s+me|"
+            r"explain|describe|walk\s+me\s+through|what|which|where|why|when|how)\b"
+            r".{0,100}\b(?:route|routed|routing|handoff|hand\s+off|path)\b|"
+            r"^(?:can|could|would)\s+you\s+(?:please\s+)?"
+            r"(?:tell|show|explain)\s+me\b.{0,80}\b(?:whether|if|how|which)\b"
+            r".{0,80}\b(?:route|routing|handoff|hand\s+off)\b|"
+            r"^(?:what|which)\b.{0,60}\broute\b.{0,60}\b(?:should|would|does|is)\b",
+            text,
+        )
+    )
+    completed_question = bool(
+        re.match(r"^(?:did|have|has|was|were)\b", text)
+        and re.search(r"\b(?:draft|send|sent|route|routed|hand|handed|stage|staged)\b", text)
+    )
 
-
-def _receivables_nudge_handoff_semantics(text: str) -> bool:
-    return bool(
+    receivables_nudge = bool(
         any(term in text for term in ("draft", "write", "prepare", "stage"))
         and any(term in text for term in ("nudge", "follow up", "follow-up", "reminder"))
         and any(term in text for term in ("biggest", "largest", "whoever", "who owes", "outstanding"))
+    )
+    if receivables_nudge and not (
+        advisory
+        or negated_route
+        or route_question
+        or assignment_question
+        or route_read_or_advice
+        or completed_question
+    ):
+        return WorkflowRouteDecision(
+            "cassandra_receivables_nudge_handoff",
+            "bounded_receivables_nudge_handoff",
+            target_agent="cassandra",
+        )
+
+    live_arts_invoice = "live arts" in text and bool(
+        re.search(r"\b(?:invoice|invoices|bill|bills|billing)\b", text)
+    )
+    if not live_arts_invoice:
+        return WorkflowRouteDecision(None, "none")
+
+    artifact_review = classify_finalized_invoice_review(source_text).matched
+    status_or_read = bool(
+        re.search(
+            r"\b(?:status|state|posture|balance)\b|"
+            r"\bwhere\b.{0,60}\bstand\b|"
+            r"\b(?:how much|what does|what did)\b.{0,60}\b(?:owe|due|invoice)\b",
+            text,
+        )
+    )
+    completed_history = bool(
+        re.search(
+            r"\b(?:sent|routed|handed)\b.{0,50}\b(?:yesterday|last\s+week|already)\b|"
+            r"\b(?:yesterday|last\s+week|already)\b.{0,50}\b(?:sent|routed|handed)\b",
+            text,
+        )
+    )
+    if (
+        advisory
+        or negated_route
+        or route_question
+        or assignment_question
+        or route_read_or_advice
+        or completed_question
+        or artifact_review
+        or status_or_read
+        or completed_history
+    ):
+        return WorkflowRouteDecision(None, "none")
+
+    explicit_handoff = bool(
+        re.search(r"\b(?:handoff|hand\s+off|route|routing|stage|pass)\b", text)
+    )
+    hand_to_lane = bool(
+        re.search(r"\bhand\b", text)
+        and re.search(
+            r"\b(?:to\s+cassandra|to\s+(?:the\s+)?(?:right\s+)?agent|"
+            r"whoever|who\s+handles|out\s+the\s+door)\b",
+            text,
+        )
+    )
+    destination_idiom = bool(
+        re.search(
+            r"\bget\s+(?:it|this)\s+(?:over\s+)?to\b|"
+            r"\b(?:right|which)\s+agent\b|"
+            r"\bwhoever\s+(?:owns|should\s+own|handles?)\b|"
+            r"\bto\s+(?:the\s+)?agent\s+who\s+handles\b",
+            text,
+        )
+    )
+    outbound_instruction = bool(
+        re.search(
+            r"\bneeds?\s+to\s+(?:go\s+out|be\s+(?:handled|sent(?:\s+out)?))\b|"
+            r"\bneeds?\s+handling\b|"
+            r"\bmoving\s+to\b.{0,40}\b(?:owner|owns|whoever)\b|"
+            r"\bsomeone\s+needs?\s+to\s+handle\b|"
+            r"\bout\s+the\s+door\b",
+            text,
+        )
+    )
+    make_it_happen = "make it happen" in text and "handle" in text
+
+    if not any(
+        (
+            explicit_handoff,
+            hand_to_lane,
+            destination_idiom,
+            outbound_instruction,
+            make_it_happen,
+        )
+    ):
+        return WorkflowRouteDecision(None, "none")
+
+    return WorkflowRouteDecision(
+        "live_arts_md_invoice_workflow",
+        "bounded_live_arts_invoice_handoff",
+        client_ref="live_arts_md",
+        target_agent="cassandra",
     )
 
 
 def classify_intent(source_text: str) -> dict[str, Any]:
     text = _normalized_operator_text(source_text)
-    if _live_arts_invoice_handoff_semantics(text):
+    route = classify_workflow_route(source_text)
+    if route.workflow_ref == "live_arts_md_invoice_workflow":
         return {
-            "workflow_ref": "live_arts_md_invoice_workflow",
+            "workflow_ref": route.workflow_ref,
             "world": "invoice_operations",
-            "client_ref": "live_arts_md",
+            "client_ref": route.client_ref,
             "confidence": "high",
             "intent_reason": "Detected a bounded Live Arts invoice handoff instruction.",
         }
-    if _receivables_nudge_handoff_semantics(text):
+    if route.workflow_ref == "cassandra_receivables_nudge_handoff":
         return {
-            "workflow_ref": "cassandra_receivables_nudge_handoff",
+            "workflow_ref": route.workflow_ref,
             "world": "invoice_operations",
-            "client_ref": None,
+            "client_ref": route.client_ref,
             "confidence": "high",
             "intent_reason": "Detected a bounded receivables-nudge handoff to Cassandra.",
         }

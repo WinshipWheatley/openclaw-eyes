@@ -427,14 +427,44 @@ _AMOUNT_RE = re.compile(r"\$\s*\d")
 _MOVEMENT_MONEY_WORD_RE = re.compile(
     r"\b(send|pay|wire|transfer)\b[^.?!]{0,50}\b(\d[\d,]*(?:\.\d{1,2})?\s*)?(money|dollars|bucks)\b[^.?!]{0,40}\bto\b"
 )
-_ARRIVAL_SUBJECT_RE = re.compile(r"\b(payment|check|deposit|funds|money|invoice)\b")
+_ARRIVAL_SUBJECT_RE = re.compile(r"\b(payment|check|cheque|deposit|funds|money|remittance)\b")
 _ARRIVAL_VERB_RE = re.compile(
-    r"\b(come through|came through|come in|came in|arrive[ds]?|land(?:ed)?|clear(?:ed)?|"
-    r"hit(?:ting|s)? the (?:bank )?account|posted|post yet|show(?:ed)? up|in my account|in the account|in the bank)\b"
+    r"\b(com(?:e|es|ing) through|came through|com(?:e|es|ing) in|came in|"
+    r"arriv(?:e|es|ed|ing)|land(?:s|ed|ing)?|clear(?:s|ed|ing)?|post(?:s|ed|ing)?(?: yet)?|"
+    r"hit(?:ting|s)? the (?:bank )?account|show(?:s|ed|ing)? up|"
+    r"in my account|in the account|in the bank)\b"
 )
 _ARRIVAL_QUESTION_RE = re.compile(
     r"^(?:did|has|have|is|are|was|were|can|could|would|do\s+you\s+know|"
     r"what(?:'s|\s+is)|where(?:'s|\s+is))\b|\bwhether\b"
+)
+_PAYMENT_OPERATOR_ACTION_RE = re.compile(
+    r"(?:"
+    r"^(?:(?:can|could|would|will|did|have|has)\b[^.?!]{0,80}|(?:please\s+)?)"
+    r"(?:post(?:ed|ing)?|clear(?:ed|ing)?|mark(?:ed|ing)?|set(?:ting)?|"
+    r"update(?:d|ing)?)\b[^.?!]{0,120}"
+    r"\b(?:payment|check|cheque|deposit|funds|money|remittance)\b"
+    r"|^(?:was|were|is|are|has|have)\b[^.?!]{0,80}"
+    r"\b(?:payment|check|cheque|deposit|funds|money|remittance)\b"
+    r"[^.?!]{0,60}\b(?:posted|cleared|marked|set|updated)\b"
+    r"[^.?!]{0,40}\bby\b(?=\s+\S)"
+    r")",
+)
+_EXTERNAL_SETTLEMENT_ACTOR = (
+    r"(?:the\s+)?(?:bank|payment\s+processor|processor|stripe|client|customer|"
+    r"payer|remitter|vendor|capital\s+hilton|hilton)"
+)
+_PAYMENT_EXTERNAL_ARRIVAL_ACTION_RE = re.compile(
+    r"(?:"
+    r"^(?:did|has|have)\s+" + _EXTERNAL_SETTLEMENT_ACTOR
+    + r"\b[^.?!]{0,60}\b(?:post(?:ed|ing)?|clear(?:ed|ing)?)\b"
+    r"[^.?!]{0,80}\b(?:payment|check|cheque|deposit|funds|money|remittance)\b"
+    r"|^(?:was|were|is|are|has|have)\b[^.?!]{0,80}"
+    r"\b(?:payment|check|cheque|deposit|funds|money|remittance)\b"
+    r"[^.?!]{0,60}\b(?:posted|cleared)\b[^.?!]{0,40}\bby\s+"
+    + _EXTERNAL_SETTLEMENT_ACTOR
+    + r"\b"
+    r")"
 )
 _PAYMENT_STATUS_RE = re.compile(
     r"\b(?:status|state)\b[^.?!]{0,70}\b(?:payment|deposit|funds)\b"
@@ -458,7 +488,15 @@ _FINANCIAL_CHECK_CONTEXT_RE = re.compile(
     r"\b(?:payment|deposit|funds|money|invoice|remittance|bank|account)\b"
 )
 _INVOICE_ACTION_RE = re.compile(
-    r"\b(create|generate|draft|write|make|prepare|send|upload|attach|fix)\b[^.?!]{0,60}\binvoice"
+    r"\b(create|generate|draft|write|make|prepare|send|upload|attach|fix|"
+    r"updat(?:e|ed|ing)|set(?:ting)?|chang(?:e|ed|ing)|mark(?:ed|ing)?|"
+    r"mov(?:e|ed|ing))\b[^.?!]{0,60}\b(?:invoice|bill)\b|"
+    r"\b(?:invoice|bill)\b[^.?!]{0,60}\b(?:updat(?:e|ed|ing)|set(?:ting)?|"
+    r"chang(?:e|ed|ing)|mark(?:ed|ing)?|mov(?:e|ed|ing))\b"
+)
+_INVOICE_STATUS_READ_RE = re.compile(
+    r"\b(?:status|state)\b[^.?!]{0,90}\b(?:invoice|bill)\b|"
+    r"\b(?:invoice|bill)\b[^.?!]{0,90}\b(?:status|state)\b"
 )
 _READ_MARKERS = (
     "who owes", "owes me", "owe me", "owes us", "owe us", "owed",
@@ -480,7 +518,7 @@ def classify_money_question(text: str) -> str | None:
       "money_read"            — read-only money question; answer from the one truth.
       None                    — not a money-class message.
     """
-    t = " ".join(str(text or "").lower().split())
+    t = " ".join(str(text or "").lower().replace("-", " ").split())
     if not t:
         return None
     padded = f" {t} "
@@ -490,6 +528,15 @@ def classify_money_question(text: str) -> str | None:
         return "money_movement"
     if _MOVEMENT_MONEY_WORD_RE.search(t):
         return "money_movement"
+    # Arrival morphology ("posting", "clearing") describes evidence only
+    # when the financial subject is doing the arriving.  Requests/history in
+    # which the operator is the actor ("can you post...", "did you clear...")
+    # are mutation lanes, never payment-arrival verification.
+    if (
+        _PAYMENT_OPERATOR_ACTION_RE.search(t)
+        and not _PAYMENT_EXTERNAL_ARRIVAL_ACTION_RE.search(t)
+    ):
+        return None
     question_shaped = bool("?" in str(text or "") or _ARRIVAL_QUESTION_RE.search(t))
     nonfinancial_check_only = bool(
         _NONFINANCIAL_CHECK_RE.search(t) and not _FINANCIAL_CHECK_CONTEXT_RE.search(t)
@@ -507,6 +554,8 @@ def classify_money_question(text: str) -> str | None:
         return "payment_arrival_verify"
     if _INVOICE_ACTION_RE.search(t):
         return None
+    if question_shaped and _INVOICE_STATUS_READ_RE.search(t):
+        return "money_read"
     if any(marker in t for marker in _READ_MARKERS):
         return "money_read"
     return None

@@ -7,10 +7,14 @@ Unifies keyword-based intent detection across Gmail, Calendar, Payments, and Fil
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import Optional
 
+from email_intent import (
+    EmailIntent,
+    classify_email_intent,
+    email_intent_requires_read,
+)
 from money_truth import classify_money_question
 
 
@@ -21,11 +25,6 @@ class IntentFrame:
     domain: str
     confidence: float
     trigger: Optional[str] = None
-
-
-def _contains_term(text: str, term: str) -> bool:
-    """Match an intent term as words, never as an arbitrary substring."""
-    return bool(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text))
 
 
 def classify_business_ops_intent(query: str) -> IntentFrame:
@@ -65,14 +64,24 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
             # Overriding 'thread' or 'subject' if 'catch me up' or 'orientation' is present
             return IntentFrame("ops_status", "read_only", "logging", 1.0, "explicit_status")
 
-    # 5. Email / Gmail
-    email_terms = (
-        "email", "gmail", "inbox", "message", "unread", "sender",
-        "subject", "from", "reply", "draft", "thread", "attachment"
-    )
-    for term in email_terms:
-        if _contains_term(q, term):
-            return IntentFrame("email_search", "read_only", "email", 0.9, term)
+    # 5. Email / Gmail.  The owner enum keeps mailbox reads separate from
+    # draft-producing requests; this adapter only translates that decision
+    # into the Business Ops vocabulary.
+    email_class = classify_email_intent(q)
+    if email_class in {EmailIntent.METADATA_READ, EmailIntent.UNREAD_LIST} or (
+        email_class is EmailIntent.REPLY and email_intent_requires_read(q)
+    ):
+        return IntentFrame(
+            "email_search", "read_only", "email", 1.0, email_class.value
+        )
+    if email_class in {
+        EmailIntent.DRAFT_SEND,
+        EmailIntent.REPLY,
+        EmailIntent.OUTREACH,
+    }:
+        return IntentFrame(
+            "email_draft", "draft_only", "email", 1.0, email_class.value
+        )
 
     # A user who explicitly asks to find an email keeps the email lane even if
     # the quoted subject is money-shaped.  Bare money reads use the shared
@@ -90,17 +99,8 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
         if term in q:
             return IntentFrame("calendar_read", "read_only", "calendar", 0.9, term)
 
-    # 7. Payment / Billing
-    payment_terms = (
-        "invoice", "payment", "paid", "unpaid", "receivable",
-        "owes", "owed", "client follow-up", "balance", "overdue",
-        "deposit", "transfer", "funds"
-    )
-    for term in payment_terms:
-        if term in q:
-            return IntentFrame("payment_verify", "read_only", "payment", 0.9, term)
-
-    # 8. File / Path
+    # 7. File / Path. Payment verification has no keyword fallback here: the
+    # shared money owner above is the only API allowed to select that domain.
     file_terms = (
         "file", "path", "exist", "directory", "folder", "/mnt", "/home",
         ".py", ".md", ".json", ".sh", ".txt", ".csv"

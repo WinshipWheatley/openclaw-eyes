@@ -1449,3 +1449,9 @@ generated/system_knowledge/*.sqlite
 !tests/test_final_output_boundary.py
 !tests/test_cassandra_state_hygiene.py
 !tests/test_165_output_boundary_integration.py
+!email_intent.py
+!invoice_cockpit_intent.py
+!tests/test_166_owner_classifier_parity.py
+!tests/test_166_cockpit_owner_stateful.py
+!tests/test_166_email_owner_adapters.py
+!tests/test_166_workflow_route_owner.py

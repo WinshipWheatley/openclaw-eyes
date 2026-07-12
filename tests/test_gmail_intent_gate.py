@@ -16,6 +16,11 @@ def mock_broker(monkeypatch):
     monkeypatch.setattr(google_access_broker, "call", mock)
     # Also patch the reference in cassandra_brain just in case
     monkeypatch.setattr(cassandra_brain, "broker_call", mock)
+    # These tests exercise only Gmail authorization/call selection. Keep the
+    # unrelated Cassandra session store out of the live-path sandbox: its
+    # tempfile+rename implementation is covered by state-hygiene tests.
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE))
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda _state: None)
     return mock
 
 @pytest.fixture
@@ -66,10 +71,16 @@ def test_llm_health_check_no_gmail_polling(mock_broker):
         capability = args[1]
         assert "gmail" not in capability
 
-def test_explicit_no_gmail_denial(mock_broker):
+def test_explicit_no_gmail_denial(mock_broker, tmp_path):
     # This prompt would normally trigger gmail (contains 'email')
     # but the 'no gmail' phrase should block it.
-    cassandra_brain.handle("Cassandra, text only, no voice, no tools, no Gmail. Did I get any email?")
+    cassandra_brain.handle(
+        "Cassandra, text only, no voice, no tools, no Gmail. Did I get any email?",
+        {
+            "operator_intake_read_model_root": str(tmp_path / "read_models"),
+            "operator_intake_receipt_root": str(tmp_path / "receipts"),
+        },
+    )
     for call in mock_broker.call_args_list:
         args, kwargs = call
         capability = args[1]

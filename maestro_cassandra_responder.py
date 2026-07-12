@@ -571,6 +571,64 @@ def _ledger_resolution_for_text(text: str) -> dict[str, Any]:
         return {"status": "NO_LEDGER_REFERENCE", "processing_allowed": False, "action_allowed": False}
 
 
+def build_targeted_bare_status_answer(
+    text: str,
+    *,
+    agent: str,
+    session: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Render status in the addressed agent's deterministic lane.
+
+    The Maestro front door is transport, not authorship.  Once the processor
+    resolves an explicit target, its status adapter must supply the answer and
+    proof; otherwise a correctly routed Hermes request is silently rewritten
+    as Maestro at the final composition seam.
+    """
+
+    agent_key = str(agent or "maestro").strip().lower()
+    if agent_key == "maestro":
+        return build_maestro_bare_status_answer(session=session)
+
+    if agent_key == "hermes":
+        from agent_contract_renderers import render_hermes_status
+
+        summary = str(render_hermes_status())
+    elif agent_key == "niles":
+        from agent_contract_renderers import render_niles_status
+
+        summary = str(render_niles_status())
+    elif agent_key == "chief":
+        from chief_router import build_chief_bare_status_answer
+
+        summary = str(build_chief_bare_status_answer())
+    elif agent_key in {"cassandra", "clara"}:
+        from cassandra_brain import _handle_ops_status_inquiry
+
+        summary = str(_handle_ops_status_inquiry(text))
+    elif agent_key == "guardian":
+        summary = (
+            "Guardian's approval posture is read-only here; this front-door request "
+            "does not carry a current pending-count proof. Send and authority gates "
+            "remain closed by default."
+        )
+    else:
+        return build_maestro_bare_status_answer(session=session)
+
+    summary = summary.strip()
+    one_line = summary.splitlines()[0] if summary else f"{agent_key.title()} status is unavailable."
+    return {
+        "one_line_answer": one_line,
+        "plain_summary": summary or one_line,
+        "machine_proof": {
+            "targeted_status_renderer": agent_key,
+            "model_call_performed": False,
+            "external_llm_invoked": False,
+            "protected_generate_called": False,
+            "workflow_package_staged": False,
+        },
+    }
+
+
 _TEAM_ROSTER_AGENT_IDS = ("maestro", "chief", "cassandra", "guardian", "niles", "hermes")
 
 
@@ -657,7 +715,7 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
     # Task 142: dispatch instructions ("...needs to go out — get it to the right
     # agent") route to staging BEFORE ledger-reference resolution can claim them
     # as freeform — an instruction must never end in the overview digest.
-    if _is_dispatch_instruction_intent(normalized) and not _is_general_question_shape(normalized):
+    if _is_dispatch_instruction_intent(normalized):
         return ("workflow_or_business_action", False, "workflow_or_business_action_routes_to_staging")
     ledger_resolution = _ledger_resolution_for_text(normalized)
     if ledger_resolution.get("status") == "NEEDS_CLARIFICATION":
@@ -908,19 +966,23 @@ def _answer_frontdoor_chat_impl(
                 "next safest move",
                 "safe next move",
             )
-            if any(marker in _status_text for marker in _rich_status_markers):
+            if agent == "maestro" and any(marker in _status_text for marker in _rich_status_markers):
                 _contract_status_answer = build_truthful_status_capability_answer(
                     session=session,
                     focus=_status_capability_readback_focus(_status_text),
                 )
             else:
-                _contract_status_answer = build_maestro_bare_status_answer(session=session)
+                _contract_status_answer = build_targeted_bare_status_answer(
+                    text,
+                    agent=agent,
+                    session=session,
+                )
             return str(_contract_status_answer["plain_summary"])
 
         def _handoff_stager(raw_text: str, _context: ContractContext) -> HandoffResult:
             from workflow_package_queue import (
                 DEFAULT_SQLITE_PATH,
-                classify_intent,
+                classify_workflow_route,
                 render_cassandra_nudge_handoff_reply,
                 render_live_arts_handoff_reply,
                 stage_cassandra_receivables_nudge_handoff,
@@ -929,7 +991,8 @@ def _answer_frontdoor_chat_impl(
 
             _sqlite_path = Path((session or {}).get("workflow_package_sqlite_path") or DEFAULT_SQLITE_PATH)
             _created_at = str((session or {}).get("contract_created_at") or "") or None
-            if classify_intent(raw_text).get("workflow_ref") == "cassandra_receivables_nudge_handoff":
+            workflow_ref = classify_workflow_route(raw_text).workflow_ref
+            if workflow_ref == "cassandra_receivables_nudge_handoff":
                 staged = stage_cassandra_receivables_nudge_handoff(
                     raw_text,
                     source_surface=source_surface,
@@ -937,7 +1000,7 @@ def _answer_frontdoor_chat_impl(
                     created_at=_created_at,
                 )
                 _reply = render_cassandra_nudge_handoff_reply(staged)
-            else:
+            elif workflow_ref == "live_arts_md_invoice_workflow":
                 staged = stage_live_arts_invoice_handoff(
                     raw_text,
                     source_surface=source_surface,
@@ -945,6 +1008,8 @@ def _answer_frontdoor_chat_impl(
                     created_at=_created_at,
                 )
                 _reply = render_live_arts_handoff_reply(staged)
+            else:
+                raise ValueError("canonical workflow-route owner returned no staged route")
             return HandoffResult(
                 reply=_reply,
                 receipt_pointer=str(staged["receipt"]["receipt_ref"]),
@@ -1003,10 +1068,10 @@ def _answer_frontdoor_chat_impl(
         _handoff_workflow_ref = ""
         if any(label.value == "route_instruction" for label in _contract_decision.matches):
             try:
-                from workflow_package_queue import classify_intent as _classify_handoff_intent
+                from workflow_package_queue import classify_workflow_route
 
                 _handoff_workflow_ref = str(
-                    _classify_handoff_intent(text).get("workflow_ref") or ""
+                    classify_workflow_route(text).workflow_ref or ""
                 )
             except Exception:
                 _handoff_workflow_ref = ""
@@ -1120,10 +1185,14 @@ def _answer_frontdoor_chat_impl(
     # Hit by both live callers of answer_frontdoor_chat regardless of
     # source_surface, since it runs before that check too.
     if _is_bare_status_query(text):
-        _status_answer = build_maestro_bare_status_answer(session=session)
+        _status_answer = build_targeted_bare_status_answer(
+            text,
+            agent=agent,
+            session=session,
+        )
         return MaestroCassandraResult(
             status="ANSWER_READY",
-            intent_class="maestro_bare_status_readback",
+            intent_class=f"{agent}_bare_status_readback",
             allowed_to_call_handle=False,
             one_line_answer=_status_answer["one_line_answer"],
             plain_summary=_status_answer["plain_summary"],
@@ -3135,10 +3204,12 @@ def _is_operator_truth_query_intent(text: str) -> bool:
 
 
 def _is_inbox_metadata_intent(text: str) -> bool:
-    return bool(
-        re.search(r"\b(gmail|inbox|unread|email metadata|new emails?|recent emails?)\b", text)
-        and not _is_send_or_reply_intent(text)
-    )
+    try:
+        from email_intent import email_intent_requires_read
+
+        return email_intent_requires_read(text)
+    except Exception:
+        return False
 
 
 def _is_calendar_or_briefing_intent(text: str) -> bool:
@@ -3148,13 +3219,12 @@ def _is_calendar_or_briefing_intent(text: str) -> bool:
 
 
 def _is_send_or_reply_intent(text: str) -> bool:
-    return bool(
-        re.search(
-            r"\b(send|reply|respond|forward|email|mail|message|text|draft|outreach|follow up|follow-up)\b",
-            text,
-        )
-        and re.search(r"\b(to|back|subject|body|them|him|her|client|contact|recipient|draft|send|reply|forward)\b", text)
-    )
+    try:
+        from email_intent import email_intent_requires_draft
+
+        return email_intent_requires_draft(text)
+    except Exception:
+        return False
 
 
 def _is_advisory_interrogative_intent(text: str) -> bool:
@@ -3177,33 +3247,13 @@ def _is_advisory_interrogative_intent(text: str) -> bool:
     )
 
 
-# Task 142: dispatch-instruction shapes. Live pass-2 proof: "the PA rental
-# invoice for Live Arts needs to go out — get it to the right agent" carried no
-# send-verb the older matchers knew, fell to maestro_brain_freeform, and the
-# grounded fallback answered it with a business digest. An instruction that
-# hands work to the system must route to staging (the normal instruction path),
-# never to the digest. Question shapes are excluded by the same
-# _is_general_question_shape override the workflow gate already uses.
-_DISPATCH_INSTRUCTION_IDIOMS = (
-    "needs to go out",
-    "need to go out",
-    "needs to be sent",
-    "need to be sent",
-    "get it to",
-    "get this to",
-    "get it over to",
-    "send it out",
-    "hand it off",
-    "hand this off",
-    "hand it to",
-    "route it",
-    "route this",
-    "make sure it goes out",
-)
-
-
 def _is_dispatch_instruction_intent(text: str) -> bool:
-    return any(idiom in text for idiom in _DISPATCH_INSTRUCTION_IDIOMS)
+    try:
+        from workflow_package_queue import classify_workflow_route
+
+        return bool(classify_workflow_route(text).workflow_ref)
+    except Exception:
+        return False
 
 
 def _is_workflow_or_business_action_intent(text: str) -> bool:
