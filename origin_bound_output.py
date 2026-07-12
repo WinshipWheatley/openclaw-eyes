@@ -17,10 +17,15 @@ from final_output_boundary import (
     OutputBoundaryContext,
     render_final_output,
 )
+from fleet_receipt_index import (
+    HUMAN_RECEIPT_LOOKUP_HINT,
+    render_receipt_safe_visible_text,
+)
 
 
 OPERATOR_AUDIENCE = "operator"
 GENERIC_SAFE_FAILURE = "Cassandra couldn't complete that request. Nothing was sent or changed."
+RECEIPT_LOOKUP_HINT = HUMAN_RECEIPT_LOOKUP_HINT
 
 
 def _clean(value: Any) -> str:
@@ -91,6 +96,7 @@ class OriginBoundOutput:
         repr=False,
         compare=False,
     )
+    advertise_receipt_lookup: bool = False
     internal: Mapping[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
     @classmethod
@@ -107,6 +113,7 @@ class OriginBoundOutput:
         source_request: str = "",
         technical_intent: bool | None = None,
         boundary_context: OutputBoundaryContext | None = None,
+        advertise_receipt_lookup: bool = False,
     ) -> "OriginBoundOutput":
         return cls(
             origin=origin,
@@ -123,6 +130,7 @@ class OriginBoundOutput:
                     technical_intent=technical_intent,
                 )
             ),
+            advertise_receipt_lookup=advertise_receipt_lookup is True,
             internal=dict(internal or {}),
         )
 
@@ -140,6 +148,7 @@ class OriginBoundOutput:
         source_request: str = "",
         technical_intent: bool | None = None,
         boundary_context: OutputBoundaryContext | None = None,
+        advertise_receipt_lookup: bool = False,
     ) -> "OriginBoundOutput":
         return cls(
             origin=origin,
@@ -156,11 +165,21 @@ class OriginBoundOutput:
                     technical_intent=technical_intent,
                 )
             ),
+            advertise_receipt_lookup=advertise_receipt_lookup is True,
             internal=dict(internal or {}),
         )
 
     def visible_output(self) -> FinalOutputBoundaryResult:
         visible = self.operator_text if self.origin.is_operator else self.generic_text
+        visible = render_receipt_safe_visible_text(
+            visible,
+            raw_ref=self.receipt_pointer,
+            advertise=bool(
+                self.advertise_receipt_lookup is True
+                and self.origin.is_operator
+                and self.receipt_pointer
+            ),
+        )
         context = (
             self.output_boundary_context
             if self.origin.is_operator

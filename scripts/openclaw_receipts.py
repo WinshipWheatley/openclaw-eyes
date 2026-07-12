@@ -3196,7 +3196,7 @@ def architecture_map_gate_status_receipt(root: Path) -> dict[str, object]:
     return res
 
 def print_architecture_map_gate_status(report: dict[str, object]) -> None:
-    print(f"Receipt: {report.get('receipt_type')}")
+    print(f"Record type: {report.get('receipt_type')}")
     print(f"Status: {report.get('status')}")
     print(f"passed: {report.get('passed', True)}")
     print(f"Read-Only: {report.get('read_only')}")
@@ -3210,7 +3210,7 @@ def map_room_query_status_receipt(root: Path) -> dict[str, object]:
     return res
 
 def print_map_room_query_status(report: dict[str, object]) -> None:
-    print(f"Receipt: {report.get('receipt_type')}")
+    print(f"Record type: {report.get('receipt_type')}")
     print(f"Status: {report.get('status')}")
     print(f"passed: {report.get('passed', True)}")
     print(f"Read-Only: {report.get('read_only')}")
@@ -3223,7 +3223,7 @@ def plugin_domain_registry_status_receipt(root: Path) -> dict[str, object]:
     return res
 
 def print_plugin_domain_registry_status(report: dict[str, object]) -> None:
-    print(f"Receipt: {report.get('receipt_type')}")
+    print(f"Record type: {report.get('receipt_type')}")
     print(f"Registry Active: {report.get('registry_active')}")
     print(f"Execution Authority: {report.get('is_execution_authority')}")
     print(f"Active Plugins Exist: {report.get('active_plugins_exist')}")

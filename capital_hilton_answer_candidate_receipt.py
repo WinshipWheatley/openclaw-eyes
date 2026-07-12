@@ -535,7 +535,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.format in {"summary", "json"}:
         print(stable_json(summary), end="")
     else:
-        print(f"Capital Hilton Answer Candidate Receipt: `{result.schema_version}`")
+        print(f"Capital Hilton answer-candidate evidence schema: `{result.schema_version}`")
         print(f"- JSON: `{result.json_path}`")
         print(f"- Operator: `{result.operator_path}`")
     return 0

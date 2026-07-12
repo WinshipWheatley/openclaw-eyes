@@ -22,9 +22,17 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import first_touch_decision
+from fleet_receipt_index import (
+    DEFAULT_SQLITE_PATH as DEFAULT_FLEET_RECEIPT_INDEX_PATH,
+    ReceiptDescriptor,
+    register_delivered_receipt,
+    render_receipt_safe_visible_text,
+    resolve_receipt_request,
+)
 from listener_resilience import clean_stale_carryover, honest_short_fail
 from telegram_agent_intake import claim_listener_update
 from telegram_listener_integrity import install_identity_preflight, run_verified_polling
+from telegram_receipt_adapter import contract_delivery_descriptor
 
 try:
     from telegram import Update
@@ -931,6 +939,110 @@ def _fire_maestro_voice(text: str, chat_id: int | str | None) -> None:
         print(f"[maestro_listener] maestro voice note skipped: {exc.__class__.__name__}", flush=True)
 
 
+def _fleet_receipt_index_path() -> Path:
+    override = str(os.environ.get("OPENCLAW_FLEET_RECEIPT_INDEX_DB") or "").strip()
+    return Path(override) if override else DEFAULT_FLEET_RECEIPT_INDEX_PATH
+
+
+def _reply_to_message_id(message: Any) -> str:
+    replied_to = getattr(message, "reply_to_message", None)
+    return str(getattr(replied_to, "message_id", "") or "")
+
+
+def _typed_contract_receipt(payload: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    detail = payload.get("detail_disclosure")
+    if not isinstance(detail, Mapping):
+        return None
+    responder = detail.get("maestro_cassandra_responder")
+    if not isinstance(responder, Mapping):
+        return None
+    proof = responder.get("machine_proof")
+    if not isinstance(proof, Mapping):
+        return None
+    decision = proof.get("typed_contract_decision")
+    return decision if isinstance(decision, Mapping) else None
+
+
+def _receipt_descriptor_from_bridge_response(
+    payload: Mapping[str, Any] | None,
+) -> ReceiptDescriptor | None:
+    """Translate only the two durable Maestro contract outcomes.
+
+    A successful ``stage_handoff`` means the workflow stager already committed
+    its queue receipt. A preserved-session pointer belongs to the typed-contract
+    provider and is eligible only when that provider says persistence succeeded.
+    """
+
+    decision = _typed_contract_receipt(payload)
+    if decision is None:
+        return None
+    try:
+        return contract_delivery_descriptor(
+            decision,
+            actor="maestro",
+            surface="operator_maestro_chat",
+        )
+    except Exception as exc:
+        print(
+            f"[maestro_listener] receipt descriptor skipped: {exc.__class__.__name__}",
+            flush=True,
+        )
+    return None
+
+
+def _raw_receipt_ref_from_bridge_response(payload: Mapping[str, Any] | None) -> str:
+    decision = _typed_contract_receipt(payload)
+    if decision is None:
+        return ""
+    nested_receipt = decision.get("receipt")
+    receipt = nested_receipt if isinstance(nested_receipt, Mapping) else decision
+    return str(receipt.get("receipt_pointer") or "").strip()
+
+
+def _without_raw_receipt_ref(text: str, raw_ref: str, *, advertise: bool = True) -> str:
+    return render_receipt_safe_visible_text(
+        text,
+        raw_ref=raw_ref,
+        advertise=advertise,
+    )
+
+
+def _register_maestro_receipt_after_delivery(
+    descriptor: ReceiptDescriptor | None,
+    *,
+    chat_id: int | str,
+    source_message_id: str,
+    delivered_message: Any,
+) -> None:
+    """Fail-soft after Telegram confirms the final reply's message id."""
+
+    if descriptor is None or not source_message_id:
+        return
+    delivered_message_id = str(getattr(delivered_message, "message_id", "") or "")
+    if not delivered_message_id:
+        return
+    try:
+        register_delivered_receipt(
+            descriptor,
+            surface="operator_maestro_chat",
+            bot_identity="maestro",
+            chat_id=str(chat_id),
+            source_message_id=source_message_id,
+            delivered_message_id=delivered_message_id,
+            delivery_succeeded=True,
+            db_path=_fleet_receipt_index_path(),
+        )
+    except Exception as exc:
+        # Delivery already succeeded. Index failure must not trigger a second
+        # Telegram reply or route into the bridge failure fallback.
+        print(
+            f"[maestro_listener] delivered receipt index skipped: {exc.__class__.__name__}",
+            flush=True,
+        )
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.message.text:
         return
@@ -944,7 +1056,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     if not claim_listener_update(update, role="maestro", source_channel="maestro_listener"):
         return
-    source_message_id = str(getattr(update, "update_id", "")) or None
+
+    chat_id = update.effective_chat.id if update.effective_chat else auth_id
+    intake_source_message_id = str(getattr(update, "update_id", "") or "")
+    delivery_source_message_id = str(getattr(update.message, "message_id", "") or "")
+    try:
+        receipt_resolution = resolve_receipt_request(
+            text,
+            surface="operator_maestro_chat",
+            bot_identity="maestro",
+            chat_id=str(chat_id),
+            reply_to_message_id=_reply_to_message_id(update.message),
+            db_path=_fleet_receipt_index_path(),
+        )
+    except Exception as exc:
+        print(
+            f"[maestro_listener] receipt lookup failed: {exc.__class__.__name__}",
+            flush=True,
+        )
+        await update.message.reply_text(_final_operator_reply(
+            "I couldn't read the delivered-receipt index right now. No action ran.",
+            source_request=text,
+        ))
+        return
+    if receipt_resolution is not None:
+        try:
+            await update.message.reply_text(
+                _final_operator_reply(receipt_resolution.text, source_request=text)
+            )
+        except Exception as exc:
+            print(
+                f"[maestro_listener] receipt reply failed: {exc.__class__.__name__}",
+                flush=True,
+            )
+        return
+
     first_touch = first_touch_decision.attempt_first_touch(
         text,
         agent="maestro",
@@ -957,15 +1103,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         await update.message.reply_text(reply)
         return
+
     record_maestro_intake_metadata(
         text=text,
-        source_message_id=source_message_id,
+        source_message_id=intake_source_message_id or None,
         source_user_label="operator",
         operator_message=True,
     )
 
-    chat_id = update.effective_chat.id if update.effective_chat else auth_id
-    message_id = str(getattr(update.message, "message_id", "") or getattr(update, "update_id", "") or _short_hash(text))
+    message_id = delivery_source_message_id or intake_source_message_id or _short_hash(text)
     typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
 
     # Fast "I'm on it" ack — fires only if the answer takes longer than the delay.
@@ -993,11 +1139,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         response = await poll_bridge_response(request_id_for_reply)
         if ack_task is not None:
             ack_task.cancel()  # answer arrived; if before the delay, the ack is suppressed
-        _maestro_reply = _final_operator_reply(
+        receipt_descriptor = _receipt_descriptor_from_bridge_response(response)
+        _maestro_reply = _final_operator_reply(_without_raw_receipt_ref(
             reply_text_from_bridge_response(response, request_id=request_id_for_reply),
-            source_request=text,
+            _raw_receipt_ref_from_bridge_response(response),
+            advertise=receipt_descriptor is not None,
+        ), source_request=text)
+        delivered_message = await update.message.reply_text(_maestro_reply)
+        _register_maestro_receipt_after_delivery(
+            receipt_descriptor,
+            chat_id=chat_id,
+            source_message_id=delivery_source_message_id,
+            delivered_message=delivered_message,
         )
-        await update.message.reply_text(_maestro_reply)
         _fire_maestro_voice(_maestro_reply, chat_id)
     except Exception as exc:
         print(f"[maestro_listener] bridge error: {exc.__class__.__name__}", flush=True)

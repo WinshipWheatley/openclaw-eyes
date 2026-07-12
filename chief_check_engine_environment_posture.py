@@ -796,7 +796,7 @@ def format_chief_check_engine_environment_posture(payload: dict[str, Any]) -> st
             "- Generated output remains under `generated/read_models/` in Repo A.",
             "- C: references here are evidence labels only, not artifact targets.",
             "",
-            "SQLite Receipt:",
+            "SQLite Evidence Record:",
             "- Existing safe pattern: `business_ops_ledger.record_receipt`.",
             "- Receipt meaning: metadata-only `generated_status`, receipt-record-only, no runtime authority.",
             "- Raw logs, credentials, broad temp listings, and private file bodies are not stored.",

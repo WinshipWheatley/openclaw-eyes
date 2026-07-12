@@ -660,7 +660,7 @@ def format_operator_summary(receipt: Mapping[str, Any]) -> str:
     ]
     if receipt.get("status_path"):
         lines.append("")
-        lines.append(f"Receipt: `{receipt['status_path']}`")
+        lines.append("Machine evidence: retained below deck.")
     return "\n".join(lines)
 
 

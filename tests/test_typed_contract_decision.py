@@ -11,6 +11,14 @@ import pytest
 import typed_contract_decision as contract
 
 
+@pytest.fixture(autouse=True)
+def _isolated_contract_receipt_db(monkeypatch, tmp_path):
+    monkeypatch.setenv(
+        contract.CONTRACT_RECEIPT_DB_ENV,
+        str(tmp_path / "typed-contract-receipts.sqlite3"),
+    )
+
+
 def _ctx(**changes):
     base = contract.ContractContext(agent="maestro", surface="operator_maestro_chat")
     return replace(base, **changes)
@@ -314,7 +322,8 @@ def test_active_session_uncertain_preserves_without_advancing():
     assert decision.receipt.session_preserved is True
     assert "left the open billing step unchanged" in decision.reply
     assert decision.receipt.receipt_pointer.startswith("contract:")
-    assert decision.receipt.receipt_pointer in decision.reply
+    assert decision.receipt.receipt_pointer not in decision.reply
+    assert "show receipt" in decision.reply.lower()
     assert session == before
 
 
@@ -334,7 +343,8 @@ def test_active_status_renderer_failure_preserves_with_receipt(renderer_mode):
     )
     assert decision.action is contract.DecisionAction.PRESERVE_SESSION
     assert decision.receipt.session_preserved is True
-    assert decision.receipt.receipt_pointer in decision.reply
+    assert decision.receipt.receipt_pointer not in decision.reply
+    assert "show receipt" in decision.reply.lower()
 
 
 @pytest.mark.parametrize("stager_mode", ("raises", "missing"))
@@ -351,7 +361,8 @@ def test_active_route_stager_failure_preserves_with_receipt(stager_mode):
     )
     assert decision.action is contract.DecisionAction.PRESERVE_SESSION
     assert decision.receipt.session_preserved is True
-    assert decision.receipt.receipt_pointer in decision.reply
+    assert decision.receipt.receipt_pointer not in decision.reply
+    assert "show receipt" in decision.reply.lower()
 
 
 def test_explicitly_disabled_vote_preserves_active_unknown_without_model():
@@ -364,7 +375,8 @@ def test_explicitly_disabled_vote_preserves_active_unknown_without_model():
     assert decision.action is contract.DecisionAction.PRESERVE_SESSION
     assert decision.receipt.semantic_vote_status == "disabled"
     assert decision.receipt.session_preserved is True
-    assert decision.receipt.receipt_pointer in decision.reply
+    assert decision.receipt.receipt_pointer not in decision.reply
+    assert "show receipt" in decision.reply.lower()
 
 
 def test_active_session_explicit_unresolved_vote_preserves():
@@ -378,7 +390,8 @@ def test_active_session_explicit_unresolved_vote_preserves():
     )
     assert decision.action is contract.DecisionAction.PRESERVE_SESSION
     assert decision.receipt.semantic_vote_status == "accepted_unresolved"
-    assert decision.receipt.receipt_pointer in decision.reply
+    assert decision.receipt.receipt_pointer not in decision.reply
+    assert "show receipt" in decision.reply.lower()
 
 
 def test_temporal_invoice_status_is_not_generic_fleet_status():

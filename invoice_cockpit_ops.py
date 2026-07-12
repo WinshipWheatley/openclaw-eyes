@@ -509,6 +509,7 @@ class RealCockpitOps:
             generic_text=GENERIC_SAFE_FAILURE,
             reply_markup=reply_markup,
             boundary_context=self.output_boundary_context,
+            advertise_receipt_lookup=True,
             internal=internal,
         )
         return {"ok": True, "origin_output": output}
@@ -530,6 +531,7 @@ class RealCockpitOps:
             caption=caption,
             generic_text=GENERIC_SAFE_FAILURE,
             boundary_context=self.output_boundary_context,
+            advertise_receipt_lookup=True,
             internal={"document_path": str(pdf_path or "")},
         )
         return {"ok": True, "origin_output": output}

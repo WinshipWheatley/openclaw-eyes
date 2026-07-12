@@ -618,7 +618,7 @@ def build_wiki(read_model: Mapping[str, Any]) -> str:
             "",
             "## Latest Decision",
             "",
-            f"- Receipt: `{last.get('receipt_id', '')}`",
+            "- Machine evidence: retained below deck.",
             f"- Packet: `{last.get('review_packet_id', '')}`",
             f"- Action: `{last.get('decision_action', '')}`",
             f"- Status: `{last.get('status', '')}`",

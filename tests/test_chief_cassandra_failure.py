@@ -39,7 +39,8 @@ def test_investigate_timeout_reports_pending_approval(monkeypatch, tmp_path):
     assert "Outcome: Winship must fix it manually" in result.internal_report
     assert "Guardian approval" in result.internal_report
     assert "Guardian approval" not in result.output.visible_text()
-    assert result.receipt_pointer in result.output.visible_text()
+    assert result.receipt_pointer not in result.output.visible_text()
+    assert "show receipt" in result.output.visible_text().lower()
 
 
 def test_investigate_timeout_reports_policy_block_before_runtime(monkeypatch, tmp_path):

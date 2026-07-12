@@ -2992,9 +2992,9 @@ def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "## Latest Receipt",
+            "## Latest Delivery Result",
             "",
-            f"- Receipt: `{latest.get('receipt_id', '')}`",
+            "- Machine evidence: retained below deck.",
             f"- Event: `{latest.get('controller_event_type', '')}`",
             f"- Status: `{latest.get('route_status', '')}`",
             f"- Backend route: `{latest.get('backend_route', '')}`",

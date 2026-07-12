@@ -425,7 +425,7 @@ def investigate_cassandra_timeout(
     receipt = receipt_pointer("cassandra-failure", origin, salt=summary)
     operator_text = (
         "Cassandra couldn't finish that request. Nothing was sent or changed. "
-        f"Chief recorded it for review. Receipt: {receipt}."
+        "Chief recorded it for review. Say “show receipt” for the delivery record."
     )
     output = OriginBoundOutput.guarded_text(
         origin=origin,
@@ -434,6 +434,7 @@ def investigate_cassandra_timeout(
         operator_text=operator_text,
         generic_text=GENERIC_SAFE_FAILURE,
         source_request=user_text,
+        advertise_receipt_lookup=True,
         internal={"diagnosis": internal_report, "request_summary": summary},
     )
     return CassandraFailureDiagnosis(

@@ -22,6 +22,12 @@ from telegram_listener_integrity import (
     resolve_role_bot_token,
     run_verified_polling,
 )
+from telegram_receipt_adapter import (
+    contract_delivery_descriptor,
+    register_telegram_delivery,
+    render_verified_receipt_reply,
+    resolve_telegram_receipt_request,
+)
 
 LOG_PATH = Path("/mnt/c/OpenClaw/logs/chief_input.log")
 BOT_TOKEN = resolve_role_bot_token("chief")
@@ -90,7 +96,7 @@ async def _send_reply(
     text: str,
     *,
     source_request: str | None = None,
-) -> None:
+):
     """Send a tts_clean-normalized plain-text reply, plus Chief's Kokoro voice note (fail-soft)."""
     request_text = (
         str(source_request)
@@ -98,8 +104,9 @@ async def _send_reply(
         else str(getattr(getattr(update, "message", None), "text", "") or "")
     )
     safe_text = _final_operator_text(text, source_request=request_text)
-    await update.message.reply_text(safe_text)
+    delivered_message = await update.message.reply_text(safe_text)
     _fire_agent_voice("chief", safe_text, update)
+    return delivered_message
 
 
 async def _resume_interrupted_task(update: Update) -> None:
@@ -177,6 +184,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    effective_chat = getattr(update, "effective_chat", None)
+    chat_id = effective_chat.id if effective_chat else AUTHORIZED_USER_ID
+    try:
+        receipt_resolution = resolve_telegram_receipt_request(
+            text,
+            surface="chief_listener",
+            bot_identity="chief",
+            chat_id=chat_id,
+            message=update.message,
+        )
+    except Exception as exc:
+        print(f"[chief_listener] receipt lookup failed: {type(exc).__name__}", flush=True)
+        await update.message.reply_text(_final_operator_text(
+            "The receipt index is unavailable right now. No send, workflow, model, tool, "
+            "ledger, payment, or external action ran.",
+            source_request=text,
+        ))
+        return
+    if receipt_resolution is not None:
+        await update.message.reply_text(
+            _final_operator_text(receipt_resolution.text, source_request=text)
+        )
+        return
+
+    trace_source_message_id = str(getattr(update, "update_id", "") or "")
+    delivery_source_message_id = str(getattr(update.message, "message_id", "") or "")
     first_touch = first_touch_decision.attempt_first_touch(
         text,
         agent="chief",
@@ -189,16 +222,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await update.message.reply_text(reply)
         return
+
     record_telegram_listener_update_safe(
         text=text,
         source_channel="chief_listener",
         agent_target="chief",
-        source_message_id=str(getattr(update, "update_id", "")) or None,
+        source_message_id=trace_source_message_id or None,
         source_user_label="operator",
         operator_message=True,
         route_intent=True,
     )
-    chat_id = update.effective_chat.id if update.effective_chat else AUTHORIZED_USER_ID
     typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
     try:
         try:
@@ -220,6 +253,60 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     intent = routed.get("intent")
     reply = routed.get("reply")
+
+    contract_receipt = routed.get("contract_decision")
+    try:
+        contract_descriptor = contract_delivery_descriptor(
+            contract_receipt,
+            actor="chief",
+            surface="chief_listener",
+            provider_surface="chief_router",
+        )
+    except Exception as exc:
+        print(f"[chief_listener] contract receipt skipped: {type(exc).__name__}", flush=True)
+        contract_descriptor = None
+    nested_receipt = (
+        contract_receipt.get("receipt")
+        if isinstance(contract_receipt, dict) and isinstance(contract_receipt.get("receipt"), dict)
+        else contract_receipt
+    )
+    contract_action = (
+        str(nested_receipt.get("action") or "")
+        if isinstance(nested_receipt, dict)
+        else ""
+    )
+    contract_raw_ref = (
+        str(nested_receipt.get("receipt_pointer") or "")
+        if isinstance(nested_receipt, dict)
+        else ""
+    )
+    if isinstance(contract_receipt, dict):
+        reply = render_verified_receipt_reply(
+            str(reply or ""),
+            contract_descriptor,
+            raw_ref=contract_raw_ref,
+        )
+    if contract_action in {"stage_handoff", "preserve_session"}:
+        try:
+            delivered_message = await _send_reply(update, str(reply or ""))
+        except Exception as exc:
+            print(f"[chief_listener] contract reply failed: {type(exc).__name__}", flush=True)
+            return
+        try:
+            register_telegram_delivery(
+                contract_descriptor,
+                surface="chief_listener",
+                bot_identity="chief",
+                chat_id=chat_id,
+                source_message_id=delivery_source_message_id,
+                delivered_message=delivered_message,
+            )
+        except Exception as exc:
+            print(
+                f"[chief_listener] delivered receipt index skipped: {type(exc).__name__}",
+                flush=True,
+            )
+        return
 
     try:
         if intent == "approval_response":

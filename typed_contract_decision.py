@@ -454,6 +454,19 @@ def contract_receipt_db_path(*, environ: Mapping[str, str] | None = None) -> Pat
     return Path(__file__).resolve().parent / "generated" / "receipts" / "typed_contract_receipts.sqlite3"
 
 
+def contract_receipt_binding_sha256(agent: str, surface: str) -> str:
+    """Return a nonreversible provider binding for one conversational adapter."""
+
+    material = "|".join(
+        (
+            "typed-contract-receipt-binding-v1",
+            " ".join(str(agent or "").strip().lower().split()),
+            " ".join(str(surface or "").strip().lower().split()),
+        )
+    )
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
 def _ensure_contract_receipt_schema(connection: sqlite3.Connection) -> None:
     connection.execute(
         """
@@ -469,6 +482,7 @@ def _ensure_contract_receipt_schema(connection: sqlite3.Connection) -> None:
             semantic_vote_status TEXT NOT NULL,
             confidence REAL NOT NULL,
             output_boundary_receipt_json TEXT NOT NULL DEFAULT '{}',
+            binding_sha256 TEXT NOT NULL DEFAULT '',
             created_at_epoch_ms INTEGER NOT NULL
         )
         """
@@ -482,9 +496,18 @@ def _ensure_contract_receipt_schema(connection: sqlite3.Connection) -> None:
             "ALTER TABLE contract_preserve_receipts "
             "ADD COLUMN output_boundary_receipt_json TEXT NOT NULL DEFAULT '{}'"
         )
+    if "binding_sha256" not in columns:
+        connection.execute(
+            "ALTER TABLE contract_preserve_receipts "
+            "ADD COLUMN binding_sha256 TEXT NOT NULL DEFAULT ''"
+        )
 
 
-def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractReceipt:
+def _persist_contract_preserve_receipt(
+    receipt: ContractReceipt,
+    *,
+    context: ContractContext,
+) -> ContractReceipt:
     """Persist one bounded, idempotent preserve receipt without request data."""
 
     if (
@@ -502,6 +525,7 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
         with sqlite3.connect(str(path), timeout=0.25) as connection:
             connection.execute("PRAGMA busy_timeout = 250")
             _ensure_contract_receipt_schema(connection)
+            binding_sha256 = contract_receipt_binding_sha256(context.agent, context.surface)
             cursor = connection.execute(
                 """
                 INSERT OR IGNORE INTO contract_preserve_receipts (
@@ -516,8 +540,9 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                     semantic_vote_status,
                     confidence,
                     output_boundary_receipt_json,
+                    binding_sha256,
                     created_at_epoch_ms
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     receipt.decision_id,
@@ -535,6 +560,7 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                         sort_keys=True,
                         separators=(",", ":"),
                     ),
+                    binding_sha256,
                     int(time.time() * 1000),
                 ),
             )
@@ -544,7 +570,8 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                 existing = connection.execute(
                     """
                     SELECT schema_version, label, action, precedence, source,
-                           reason_code, model_called, semantic_vote_status, confidence
+                           reason_code, model_called, semantic_vote_status, confidence,
+                           binding_sha256
                     FROM contract_preserve_receipts
                     WHERE decision_id = ?
                     """,
@@ -571,20 +598,36 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                     existing[8],
                 ) if existing is not None else ()
                 existing_model_called = existing[6] if existing is not None else None
+                stored_binding = str(existing[9] or "") if existing is not None else ""
                 if existing_identity != desired_identity:
                     return replace(
                         receipt,
                         receipt_persisted=False,
                         receipt_persistence_status="conflict:receipt_identity_mismatch",
                     )
-                if existing_model_called == desired_model_called:
-                    status = "already_present"
-                elif (
-                    desired_model_called == -1
-                    and existing_model_called == 0
-                    and receipt.source == "adapter_error"
-                    and receipt.semantic_vote_status.startswith("error_")
+                if (
+                    existing_model_called != desired_model_called
+                    and not (
+                        desired_model_called == -1
+                        and existing_model_called == 0
+                        and receipt.source == "adapter_error"
+                        and receipt.semantic_vote_status.startswith("error_")
+                    )
                 ):
+                    return replace(
+                        receipt,
+                        receipt_persisted=False,
+                        receipt_persistence_status="conflict:model_call_state_mismatch",
+                    )
+                if stored_binding and stored_binding != binding_sha256:
+                    return replace(
+                        receipt,
+                        receipt_persisted=False,
+                        receipt_persistence_status="conflict:binding_mismatch",
+                    )
+
+                status = "already_present"
+                if existing_model_called != desired_model_called:
                     corrected = connection.execute(
                         """
                         UPDATE contract_preserve_receipts
@@ -600,12 +643,13 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                             receipt_persistence_status="conflict:legacy_unknown_correction_failed",
                         )
                     status = "corrected_legacy_unknown"
-                else:
-                    return replace(
-                        receipt,
-                        receipt_persisted=False,
-                        receipt_persistence_status="conflict:model_call_state_mismatch",
+                if not stored_binding:
+                    connection.execute(
+                        "UPDATE contract_preserve_receipts SET binding_sha256=? WHERE decision_id=?",
+                        (binding_sha256, receipt.decision_id),
                     )
+                    if status == "already_present":
+                        status = "binding_upgraded"
             if cursor.rowcount == 0 and receipt.output_boundary_receipt:
                 connection.execute(
                     """
@@ -670,7 +714,8 @@ def resolve_contract_receipt(
                 SELECT decision_id, schema_version, label, action, precedence,
                        source, reason_code, model_called,
                        semantic_vote_status, confidence,
-                       output_boundary_receipt_json, created_at_epoch_ms
+                       output_boundary_receipt_json, binding_sha256,
+                       created_at_epoch_ms
                 FROM contract_preserve_receipts
                 WHERE decision_id = ?
                 """,
@@ -710,6 +755,13 @@ def _make_decision(
     receipt_pointer: str = "",
     started: float,
 ) -> ContractDecision:
+    lookup_hint = _receipt_lookup_hint()
+    advertise_lookup = bool(
+        action is DecisionAction.PRESERVE_SESSION
+        and receipt_pointer
+        and reply
+        and lookup_hint in str(reply)
+    )
     receipt = _receipt(
         text=text,
         context=context,
@@ -726,6 +778,12 @@ def _make_decision(
         started=started,
     )
     if reply:
+        # The lookup hint is trusted, code-owned UI text, not model output.
+        # Bound the substantive reply first so the generic control-language
+        # filter cannot mistake the verified ``show receipt`` affordance for
+        # an injected instruction. Add it back only after the referenced
+        # receipt is durably committed below.
+        reply = str(reply).replace(f" {lookup_hint}", "").replace(lookup_hint, "").rstrip()
         bounded = render_final_output(
             reply,
             context=OutputBoundaryContext.from_source_request(text),
@@ -735,7 +793,9 @@ def _make_decision(
             receipt,
             output_boundary_receipt=bounded.receipt.to_dict(),
         )
-    receipt = _persist_contract_preserve_receipt(receipt)
+    receipt = _persist_contract_preserve_receipt(receipt, context=context)
+    if advertise_lookup and receipt.receipt_persisted and reply:
+        reply = f"{reply} {lookup_hint}"
     return ContractDecision(
         label=label,
         matches=matches or (label,),
@@ -1107,9 +1167,15 @@ def _preserve_reply(context: ContractContext) -> str:
     )
 
 
+def _receipt_lookup_hint() -> str:
+    """Return an operator-safe lookup instruction; raw refs stay machine-only."""
+
+    return "Say “show receipt” for the decision record."
+
+
 def _preserve_reply_with_receipt(text: str, context: ContractContext) -> tuple[str, str]:
     pointer = _decision_id(text, context, ContractLabel.UNRESOLVED)
-    return f"{_preserve_reply(context)} Receipt: {pointer}.", pointer
+    return f"{_preserve_reply(context)} {_receipt_lookup_hint()}", pointer
 
 
 def _bounded_adapter_error_type(error_type: str) -> str:
@@ -1133,7 +1199,7 @@ def preserve_session_on_error(
     bounded_error_type = _bounded_adapter_error_type(error_type)
     started = time.monotonic()
     decision_id = _decision_id(text, context, ContractLabel.UNRESOLVED)
-    reply = f"{_preserve_reply(context)} Receipt: {decision_id}."
+    reply = f"{_preserve_reply(context)} {_receipt_lookup_hint()}"
     decision = _make_decision(
         text=text,
         context=context,
@@ -1714,7 +1780,7 @@ def decide_contract(
                 context=context,
                 label=ContractLabel.UNRESOLVED,
                 action=DecisionAction.PRESERVE_SESSION,
-                reply=f"{_preserve_reply(context)} Receipt: {_preserve_pointer}.",
+                reply=f"{_preserve_reply(context)} {_receipt_lookup_hint()}",
                 source="semantic_vote",
                 reason="uncertain_active_session_preserved",
                 model_called=True,
@@ -1763,7 +1829,7 @@ def decide_contract(
             context=context,
             label=ContractLabel.UNRESOLVED,
             action=DecisionAction.PRESERVE_SESSION,
-            reply=f"{_preserve_reply(context)} Receipt: {pointer}.",
+            reply=f"{_preserve_reply(context)} {_receipt_lookup_hint()}",
             source="fallback",
             reason="optional_vote_disabled_active_session_preserved",
             model_called=False,
@@ -1799,6 +1865,7 @@ __all__ = [
     "HandoffResult",
     "active_session_from_mapping",
     "adapt_first_touch_receipt",
+    "contract_receipt_binding_sha256",
     "contract_receipt_db_path",
     "decide_contract",
     "emergency_adapter_error_decision",

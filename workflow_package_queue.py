@@ -1499,16 +1499,23 @@ def stage_live_arts_invoice_handoff(
     }
     package["handoff_receipt"] = receipt
     record_package(Path(sqlite_path), package)
+    receipt["provider_receipt_durable"] = True
     return {"package": package, "receipt": receipt}
 
 
 def render_live_arts_handoff_reply(result: Mapping[str, Any]) -> str:
     receipt = result.get("receipt") if isinstance(result, Mapping) else None
-    receipt_ref = str((receipt or {}).get("receipt_ref") or "receipt unavailable")
+    lookup_line = (
+        "Say “show receipt” for the delivery record."
+        if isinstance(receipt, Mapping)
+        and receipt.get("provider_receipt_durable") is True
+        and str(receipt.get("receipt_ref") or "").strip()
+        else "No retrievable delivery record was created."
+    )
     return (
         "I staged a bounded dry-run queue record for Cassandra's Live Arts invoice lane. "
         "Cassandra has not claimed or executed it. Nothing was sent, posted to the ledger, or changed. "
-        f"Receipt: {receipt_ref}."
+        f"{lookup_line}"
     )
 
 
@@ -1558,16 +1565,23 @@ def stage_cassandra_receivables_nudge_handoff(
     }
     package["handoff_receipt"] = receipt
     record_package(Path(sqlite_path), package)
+    receipt["provider_receipt_durable"] = True
     return {"package": package, "receipt": receipt}
 
 
 def render_cassandra_nudge_handoff_reply(result: Mapping[str, Any]) -> str:
     receipt = result.get("receipt") if isinstance(result, Mapping) else None
-    receipt_ref = str((receipt or {}).get("receipt_ref") or "receipt unavailable")
+    lookup_line = (
+        "Say “show receipt” for the delivery record."
+        if isinstance(receipt, Mapping)
+        and receipt.get("provider_receipt_durable") is True
+        and str(receipt.get("receipt_ref") or "").strip()
+        else "No retrievable delivery record was created."
+    )
     return (
         "I staged a bounded dry-run nudge brief for Cassandra to resolve against the largest evidenced receivable. "
         "Cassandra has not claimed or sent it. Nothing was sent or changed in the ledger. "
-        f"Receipt: {receipt_ref}."
+        f"{lookup_line}"
     )
 
 
@@ -2263,6 +2277,85 @@ def record_packages(sqlite_path: Path, packages: list[Mapping[str, Any]]) -> Non
     init_sqlite(sqlite_path)
     for package in packages:
         record_package(sqlite_path, package)
+
+
+def resolve_workflow_receipt(
+    receipt_ref: str,
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+) -> dict[str, Any] | None:
+    """Read back one durable workflow receipt without creating state."""
+
+    pointer = str(receipt_ref or "").strip()
+    path = Path(sqlite_path)
+    if not pointer.startswith("operator_review_receipt:") or not path.is_file():
+        return None
+    try:
+        with sqlite3.connect(path, timeout=0.25) as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                """
+                SELECT r.receipt_ref, r.package_id, r.status,
+                       r.operator_review_required,
+                       r.business_action_authority_granted,
+                       p.workflow_ref, p.source_surface, p.created_at, p.updated_at,
+                       p.status AS package_status,
+                       a.assigned, a.live_action_authority,
+                       w.result_status,
+                       w.email_send_performed, w.ledger_mutation_performed,
+                       w.browser_access_performed, w.gmail_access_performed,
+                       w.coupa_access_performed, w.workbook_mutation_performed,
+                       w.pdf_export_performed, w.paid_marking_performed,
+                       w.submit_performed,
+                       b.status AS business_gate_status,
+                       b.email_send_allowed, b.ledger_posting_allowed,
+                       b.browser_access_allowed, b.gmail_allowed, b.coupa_allowed,
+                       b.portal_submit_allowed, b.workbook_source_mutation_allowed,
+                       b.paid, b.sent
+                FROM operator_review_receipts AS r
+                JOIN packages AS p ON p.package_id = r.package_id
+                JOIN worker_assignments AS a ON a.package_id = r.package_id
+                JOIN worker_results AS w ON w.package_id = r.package_id
+                JOIN business_action_gate_results AS b ON b.package_id = r.package_id
+                WHERE r.receipt_ref = ?
+                  AND p.workflow_ref IN (
+                    'live_arts_md_invoice_workflow',
+                    'cassandra_receivables_nudge_handoff'
+                  )
+                  AND p.status = 'OPERATOR_REVIEW_REQUIRED'
+                  AND r.status = 'OPERATOR_REVIEW_REQUIRED'
+                  AND r.operator_review_required = 1
+                  AND r.business_action_authority_granted = 0
+                  AND a.assigned = 0
+                  AND a.live_action_authority = 0
+                  AND w.result_status = 'NOOP_RESULT_RECORDED'
+                  AND w.email_send_performed = 0
+                  AND w.ledger_mutation_performed = 0
+                  AND w.browser_access_performed = 0
+                  AND w.gmail_access_performed = 0
+                  AND w.coupa_access_performed = 0
+                  AND w.workbook_mutation_performed = 0
+                  AND w.pdf_export_performed = 0
+                  AND w.paid_marking_performed = 0
+                  AND w.submit_performed = 0
+                  AND b.status = 'CLOSED'
+                  AND b.email_send_allowed = 0
+                  AND b.ledger_posting_allowed = 0
+                  AND b.browser_access_allowed = 0
+                  AND b.gmail_allowed = 0
+                  AND b.coupa_allowed = 0
+                  AND b.portal_submit_allowed = 0
+                  AND b.workbook_source_mutation_allowed = 0
+                  AND b.paid = 0
+                  AND b.sent = 0
+                ORDER BY p.created_at DESC
+                LIMIT 1
+                """,
+                (pointer,),
+            ).fetchone()
+    except sqlite3.Error:
+        return None
+    return dict(row) if row is not None else None
 
 
 def build_operator_wiki(read_model: Mapping[str, Any]) -> str:

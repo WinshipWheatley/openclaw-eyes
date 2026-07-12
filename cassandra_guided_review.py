@@ -4477,7 +4477,7 @@ def process_guided_review_message(
                     session=session,
                     reply_text=(
                         "I couldn't verify whether that answers the open guided review step, "
-                        "so I left it unchanged. Receipt: contract:guided-review-adapter-error."
+                        "so I left it unchanged. No retrievable delivery record was created."
                     ),
                     review_root=root,
                     read_model_root=read_model_root,

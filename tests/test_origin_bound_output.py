@@ -55,7 +55,8 @@ def test_diagnosis_returns_one_origin_bound_operator_line_without_default_send(m
 
     assert result.origin == _operator_origin()
     assert result.output.origin == result.origin
-    assert result.output.receipt_pointer in result.output.visible_text()
+    assert result.output.receipt_pointer not in result.output.visible_text()
+    assert "show receipt" in result.output.visible_text().lower()
     assert "model=qwen" not in result.output.visible_text()
     assert "/mnt/" not in result.output.visible_text()
     assert "repair_packet" not in result.output.visible_text()
@@ -102,6 +103,7 @@ def test_origin_dispatch_replays_1931_wrong_chat_fixture_once_to_cassandra_origi
             "Receipt: cassandra-failure-19-31."
         ),
         generic_text="Cassandra couldn't complete that request. Nothing was sent or changed.",
+        advertise_receipt_lookup=True,
         internal={"repair_packet": "/private/packet.md", "model": "qwen"},
     )
     sent: list[tuple[str, str]] = []
@@ -129,7 +131,10 @@ def test_origin_dispatch_replays_1931_wrong_chat_fixture_once_to_cassandra_origi
 
     asyncio.run(run())
 
-    assert sent == [("cassandra", output.operator_text)]
+    assert sent == [("cassandra", output.visible_text())]
+    assert output.receipt_pointer not in sent[0][1]
+    assert "Receipt:" not in sent[0][1]
+    assert "show receipt" in sent[0][1].lower()
     assert "repair_packet" not in sent[0][1]
     assert "qwen" not in sent[0][1]
 
@@ -181,6 +186,7 @@ def test_origin_dispatch_releases_failed_send_then_retries_once():
         receipt_pointer="transport-retry-output",
         operator_text="Bound reply.",
         generic_text="Safe reply.",
+        advertise_receipt_lookup=True,
     )
     tracker = OriginDeliveryTracker()
     attempts: list[str] = []
@@ -217,7 +223,10 @@ def test_origin_dispatch_releases_failed_send_then_retries_once():
 
     asyncio.run(run())
 
-    assert attempts == ["Bound reply.", "Bound reply."]
+    assert attempts == [
+        "Bound reply. Say “show receipt” for the delivery record.",
+        "Bound reply. Say “show receipt” for the delivery record.",
+    ]
 
 
 def test_cassandra_listener_assembly_preserves_origin_and_sends_replayed_result_once(monkeypatch):
@@ -264,6 +273,7 @@ def test_cassandra_listener_assembly_preserves_origin_and_sends_replayed_result_
             receipt_pointer=receipt,
             operator_text=f"Cassandra recorded the failure. Receipt: {receipt}.",
             generic_text="Cassandra couldn't complete that request. Nothing was sent or changed.",
+            advertise_receipt_lookup=True,
             internal={"model": "must-not-leak"},
         )
         await kwargs["send_reply"](output)
@@ -286,7 +296,9 @@ def test_cassandra_listener_assembly_preserves_origin_and_sends_replayed_result_
     asyncio.run(listener.handle_message(update, types.SimpleNamespace(bot=FakeBot())))
 
     assert len(sent) == 1
-    assert "Receipt: cassandra-failure-" in sent[0][0]
+    assert "cassandra-failure-" not in sent[0][0]
+    assert "Receipt:" not in sent[0][0]
+    assert "show receipt" in sent[0][0].lower()
     assert "must-not-leak" not in sent[0][0]
 
 
@@ -354,6 +366,7 @@ def test_cockpit_error_becomes_one_honest_origin_bound_line(monkeypatch, tmp_pat
     visible = outputs[0].visible_text()
     assert "couldn't prepare that invoice" in visible
     assert "Nothing was sent" in visible
-    assert outputs[0].receipt_pointer in visible
+    assert outputs[0].receipt_pointer not in visible
+    assert "show receipt" in visible.lower()
     assert "/internal/" not in visible
     assert "qwen" not in visible

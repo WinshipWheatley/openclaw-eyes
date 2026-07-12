@@ -54,6 +54,12 @@ from telegram_listener_integrity import (
 )
 from chief_nonapproval_responder import guardian_no_pending_reply
 from listener_resilience import clean_stale_carryover, honest_short_fail
+from telegram_receipt_adapter import (
+    contract_delivery_descriptor,
+    register_telegram_delivery,
+    render_verified_receipt_reply,
+    resolve_telegram_receipt_request,
+)
 
 
 def _operator_refusal_reply(text: str) -> str | None:
@@ -369,6 +375,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     text = update.message.text.strip()
+    effective_chat = getattr(update, "effective_chat", None)
+    chat_id = effective_chat.id if effective_chat else AUTHORIZED_USER_ID
+    try:
+        receipt_resolution = resolve_telegram_receipt_request(
+            text,
+            surface="guardian_listener",
+            bot_identity="guardian",
+            chat_id=chat_id,
+            message=update.message,
+        )
+    except Exception as exc:
+        print(
+            f"[chief_guardian_listener] receipt lookup failed: {type(exc).__name__}",
+            flush=True,
+        )
+        await update.message.reply_text(guardian_resilient_reply(
+            "The receipt index is unavailable right now. No send, workflow, model, tool, "
+            "ledger, payment, or external action ran.",
+            source_request=text,
+        ))
+        return
+    if receipt_resolution is not None:
+        await update.message.reply_text(
+            guardian_resilient_reply(receipt_resolution.text, source_request=text)
+        )
+        return
+
+    trace_source_message_id = str(getattr(update, "update_id", "") or "")
+    delivery_source_message_id = str(getattr(update.message, "message_id", "") or "")
     first_touch = first_touch_decision.attempt_first_touch(
         text,
         agent="guardian",
@@ -382,11 +417,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
         )
         return
+
     record_telegram_listener_update_safe(
         text=text,
         source_channel="guardian_listener",
         agent_target="guardian",
-        source_message_id=str(getattr(update, "update_id", "")) or None,
+        source_message_id=trace_source_message_id or None,
         source_user_label="operator",
         operator_message=True,
         route_intent=False,
@@ -466,7 +502,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             _typed_context = ContractContext(
                 agent="guardian",
                 surface="guardian_listener",
-                source_message_id=str(getattr(update, "update_id", "") or ""),
+                source_message_id=trace_source_message_id,
                 active_session=True,
                 session_kind="guardian_pending_approval",
                 session_field=str(_pending_id),
@@ -496,7 +532,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 await update.message.reply_text(
                     guardian_resilient_reply(
                         "I couldn't classify that against the pending approval, so I left the approval unchanged. "
-                        "Receipt: contract:guardian-adapter-error.",
+                        "No retrievable delivery record was created.",
                         source_request=text,
                     )
                 )
@@ -505,12 +541,40 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             ContractLabel.REFUSAL,
             ContractLabel.AUTHORITY_TOKEN,
         }:
-            await update.message.reply_text(
-                guardian_resilient_reply(
-                    str(_typed.reply or ""),
-                    source_request=text,
+            try:
+                _typed_descriptor = contract_delivery_descriptor(
+                    _typed.receipt.to_dict(),
+                    actor="guardian",
+                    surface="guardian_listener",
                 )
+            except Exception as exc:
+                print(
+                    f"[chief_guardian_listener] contract receipt skipped: {type(exc).__name__}",
+                    flush=True,
+                )
+                _typed_descriptor = None
+            _typed_reply = render_verified_receipt_reply(
+                str(_typed.reply or ""),
+                _typed_descriptor,
+                raw_ref=str(getattr(_typed.receipt, "receipt_pointer", "") or ""),
             )
+            delivered_message = await update.message.reply_text(
+                guardian_resilient_reply(_typed_reply, source_request=text)
+            )
+            try:
+                register_telegram_delivery(
+                    _typed_descriptor,
+                    surface="guardian_listener",
+                    bot_identity="guardian",
+                    chat_id=chat_id,
+                    source_message_id=delivery_source_message_id,
+                    delivered_message=delivered_message,
+                )
+            except Exception as exc:
+                print(
+                    f"[chief_guardian_listener] delivered receipt index skipped: {type(exc).__name__}",
+                    flush=True,
+                )
             return
 
         # CHAT-WITH-GUARDIAN: if the message clearly isn't a decision attempt (doesn't

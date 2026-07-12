@@ -45,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"Phase-C gate hook: {result['status']}")
         if result.get("receipt_path"):
-            print(f"- Receipt: `{result['receipt_path']}`")
+            print(f"- Evidence path: `{result['receipt_path']}`")
         if result.get("writeback_ref"):
             print(f"- Writeback: `{result['writeback_ref']}`")
     return 0
