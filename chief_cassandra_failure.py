@@ -433,6 +433,7 @@ def investigate_cassandra_timeout(
         receipt_pointer=receipt,
         operator_text=operator_text,
         generic_text=GENERIC_SAFE_FAILURE,
+        source_request=user_text,
         internal={"diagnosis": internal_report, "request_summary": summary},
     )
     return CassandraFailureDiagnosis(

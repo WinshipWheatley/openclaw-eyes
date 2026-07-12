@@ -1,4 +1,5 @@
 import asyncio
+import contextvars
 import json
 import os
 import sys
@@ -28,6 +29,34 @@ if not os.environ.get("TELEGRAM_AUTHORIZED_USER_ID") and os.environ.get("PRODUCE
     )
 
 AUTHORIZED_USER_ID = int(AUTHORIZED_USER_ID)
+_OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "niles_output_boundary_receipt",
+    default=None,
+)
+
+
+def current_output_boundary_receipt() -> dict | None:
+    receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
+    return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def _final_operator_reply(reply: str, *, source_request: str) -> str:
+    try:
+        from operator_surface_guard import guard_operator_reply_with_receipt
+
+        bounded = guard_operator_reply_with_receipt(
+            str(reply or ""),
+            agent_role="NILES",
+            source_request=source_request,
+        )
+        _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
+        return bounded.visible_text
+    except Exception:
+        _OUTPUT_BOUNDARY_RECEIPT.set({
+            "outcome": "adapter_boundary_error",
+            "raw_control_text_included": False,
+        })
+        return "Niles couldn't safely render that answer just now. Nothing was sent or changed."
 
 async def _telegram_typing_loop(bot, chat_id: int | None) -> None:
     if chat_id is None:
@@ -167,7 +196,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         surface="niles_producer_listener",
     )
     if first_touch.handled and first_touch.decision is not None:
-        reply = first_touch.decision.reply
+        reply = _final_operator_reply(
+            first_touch.decision.reply,
+            source_request=text,
+        )
         await update.message.reply_text(reply)
         return
     record_telegram_listener_update_safe(
@@ -204,7 +236,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         _typed = None
     if _typed is not None and _typed.handled:
-        _typed_reply = str(_typed.reply or "")
+        _typed_reply = _final_operator_reply(str(_typed.reply or ""), source_request=text)
         await update.message.reply_text(_typed_reply)
         _fire_agent_voice("niles", _typed_reply, update)
         return
@@ -215,16 +247,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # never matches and flows to the normal intake path.
     refusal = None if first_touch.attempted else _operator_refusal_reply(text)
     if refusal is not None:
+        refusal = _final_operator_reply(refusal, source_request=text)
         await update.message.reply_text(refusal)
         _fire_agent_voice("niles", refusal, update)
         return
 
     if text.lower() in ("/start", "/help"):
-        await update.message.reply_text("Niles online. Producer intake active.")
+        await update.message.reply_text(
+            _final_operator_reply("Niles online. Producer intake active.", source_request=text)
+        )
         return
 
     if _is_bare_status_query(text):
-        status_reply = build_niles_bare_status_answer()
+        status_reply = _final_operator_reply(
+            build_niles_bare_status_answer(),
+            source_request=text,
+        )
         await update.message.reply_text(status_reply)
         _fire_agent_voice("niles", status_reply, update)
         return
@@ -243,6 +281,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if "first_touch_receipt" not in str(exc):
                 raise
             result = await _run_producer_intake(text)
+        result = _final_operator_reply(result, source_request=text)
         await update.message.reply_text(result)
         _fire_agent_voice("niles", result, update)
     finally:

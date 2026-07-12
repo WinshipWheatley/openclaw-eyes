@@ -34,6 +34,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from final_output_boundary import OutputBoundaryContext, render_final_output
+
 
 SCHEMA_VERSION = "typed_contract_decision_v1"
 SEMANTIC_VOTE_ENV = "OPENCLAW_CONTRACT_VOTE_ADAPTERS"
@@ -116,6 +118,7 @@ class ContractReceipt:
     receipt_pointer: str = ""
     receipt_persisted: bool = False
     receipt_persistence_status: str = "not_applicable"
+    output_boundary_receipt: Mapping[str, Any] = field(default_factory=dict)
     elapsed_ms: float = 0.0
     schema_version: str = SCHEMA_VERSION
 
@@ -465,10 +468,20 @@ def _ensure_contract_receipt_schema(connection: sqlite3.Connection) -> None:
             model_called INTEGER NOT NULL,
             semantic_vote_status TEXT NOT NULL,
             confidence REAL NOT NULL,
+            output_boundary_receipt_json TEXT NOT NULL DEFAULT '{}',
             created_at_epoch_ms INTEGER NOT NULL
         )
         """
     )
+    columns = {
+        str(row[1])
+        for row in connection.execute("PRAGMA table_info(contract_preserve_receipts)")
+    }
+    if "output_boundary_receipt_json" not in columns:
+        connection.execute(
+            "ALTER TABLE contract_preserve_receipts "
+            "ADD COLUMN output_boundary_receipt_json TEXT NOT NULL DEFAULT '{}'"
+        )
 
 
 def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractReceipt:
@@ -502,8 +515,9 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                     model_called,
                     semantic_vote_status,
                     confidence,
+                    output_boundary_receipt_json,
                     created_at_epoch_ms
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     receipt.decision_id,
@@ -516,6 +530,11 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                     desired_model_called,
                     receipt.semantic_vote_status,
                     receipt.confidence,
+                    json.dumps(
+                        dict(receipt.output_boundary_receipt or {}),
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
                     int(time.time() * 1000),
                 ),
             )
@@ -587,6 +606,22 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                         receipt_persisted=False,
                         receipt_persistence_status="conflict:model_call_state_mismatch",
                     )
+            if cursor.rowcount == 0 and receipt.output_boundary_receipt:
+                connection.execute(
+                    """
+                    UPDATE contract_preserve_receipts
+                    SET output_boundary_receipt_json = ?
+                    WHERE decision_id = ? AND output_boundary_receipt_json = '{}'
+                    """,
+                    (
+                        json.dumps(
+                            dict(receipt.output_boundary_receipt),
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ),
+                        receipt.decision_id,
+                    ),
+                )
             # Keep the newest bounded set.  No message, token, session
             # snapshot, exception detail, or arbitrary context enters this
             # table; only the typed receipt fields above are retained.
@@ -634,7 +669,8 @@ def resolve_contract_receipt(
                 """
                 SELECT decision_id, schema_version, label, action, precedence,
                        source, reason_code, model_called,
-                       semantic_vote_status, confidence, created_at_epoch_ms
+                       semantic_vote_status, confidence,
+                       output_boundary_receipt_json, created_at_epoch_ms
                 FROM contract_preserve_receipts
                 WHERE decision_id = ?
                 """,
@@ -647,6 +683,12 @@ def resolve_contract_receipt(
     payload = dict(row)
     if payload.get("model_called") == -1:
         payload["model_called"] = None
+    try:
+        payload["output_boundary_receipt"] = json.loads(
+            str(payload.pop("output_boundary_receipt_json") or "{}")
+        )
+    except (TypeError, ValueError):
+        payload["output_boundary_receipt"] = {}
     return payload
 
 
@@ -683,6 +725,16 @@ def _make_decision(
         receipt_pointer=receipt_pointer,
         started=started,
     )
+    if reply:
+        bounded = render_final_output(
+            reply,
+            context=OutputBoundaryContext.from_source_request(text),
+        )
+        reply = bounded.visible_text
+        receipt = replace(
+            receipt,
+            output_boundary_receipt=bounded.receipt.to_dict(),
+        )
     receipt = _persist_contract_preserve_receipt(receipt)
     return ContractDecision(
         label=label,

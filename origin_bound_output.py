@@ -12,6 +12,12 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from final_output_boundary import (
+    FinalOutputBoundaryResult,
+    OutputBoundaryContext,
+    render_final_output,
+)
+
 
 OPERATOR_AUDIENCE = "operator"
 GENERIC_SAFE_FAILURE = "Cassandra couldn't complete that request. Nothing was sent or changed."
@@ -80,6 +86,11 @@ class OriginBoundOutput:
     generic_text: str = GENERIC_SAFE_FAILURE
     document_path: str = ""
     reply_markup: Mapping[str, Any] | None = None
+    output_boundary_context: OutputBoundaryContext = field(
+        default_factory=lambda: OutputBoundaryContext.from_source_request(""),
+        repr=False,
+        compare=False,
+    )
     internal: Mapping[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
     @classmethod
@@ -93,6 +104,9 @@ class OriginBoundOutput:
         generic_text: str = GENERIC_SAFE_FAILURE,
         internal: Mapping[str, Any] | None = None,
         reply_markup: Mapping[str, Any] | None = None,
+        source_request: str = "",
+        technical_intent: bool | None = None,
+        boundary_context: OutputBoundaryContext | None = None,
     ) -> "OriginBoundOutput":
         return cls(
             origin=origin,
@@ -102,6 +116,13 @@ class OriginBoundOutput:
             operator_text=_clean(operator_text),
             generic_text=_clean(generic_text) or GENERIC_SAFE_FAILURE,
             reply_markup=reply_markup,
+            output_boundary_context=(
+                boundary_context
+                or OutputBoundaryContext.from_source_request(
+                    source_request,
+                    technical_intent=technical_intent,
+                )
+            ),
             internal=dict(internal or {}),
         )
 
@@ -116,6 +137,9 @@ class OriginBoundOutput:
         caption: str,
         generic_text: str = GENERIC_SAFE_FAILURE,
         internal: Mapping[str, Any] | None = None,
+        source_request: str = "",
+        technical_intent: bool | None = None,
+        boundary_context: OutputBoundaryContext | None = None,
     ) -> "OriginBoundOutput":
         return cls(
             origin=origin,
@@ -125,11 +149,30 @@ class OriginBoundOutput:
             operator_text=_clean(caption),
             generic_text=_clean(generic_text) or GENERIC_SAFE_FAILURE,
             document_path=str(document_path or ""),
+            output_boundary_context=(
+                boundary_context
+                or OutputBoundaryContext.from_source_request(
+                    source_request,
+                    technical_intent=technical_intent,
+                )
+            ),
             internal=dict(internal or {}),
         )
 
+    def visible_output(self) -> FinalOutputBoundaryResult:
+        visible = self.operator_text if self.origin.is_operator else self.generic_text
+        context = (
+            self.output_boundary_context
+            if self.origin.is_operator
+            else OutputBoundaryContext.from_source_request("")
+        )
+        return render_final_output(visible, context=context)
+
     def visible_text(self) -> str:
-        return self.operator_text if self.origin.is_operator else self.generic_text
+        return self.visible_output().visible_text
+
+    def output_boundary_receipt(self) -> dict[str, Any]:
+        return self.visible_output().receipt.to_dict()
 
 
 def collect_origin_outputs(value: Any) -> list[OriginBoundOutput]:

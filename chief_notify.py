@@ -11,17 +11,29 @@ import os
 import urllib.request
 
 from telegram_listener_integrity import resolve_role_bot_token
+from operator_surface_guard import guard_operator_reply_with_receipt
 
 
-def send(text: str, reply_markup: dict | None = None, parse_mode: str | None = "Markdown") -> None:
+def send(
+    text: str,
+    reply_markup: dict | None = None,
+    parse_mode: str | None = "Markdown",
+) -> dict:
     """Send a Telegram message to the authorized user. Silent on failure."""
+    bounded = guard_operator_reply_with_receipt(
+        text,
+        agent_role="CHIEF",
+        technical_intent=False,
+    )
+    text = bounded.visible_text
+    boundary_receipt = bounded.receipt.to_dict()
     try:
         token = resolve_role_bot_token("chief")
     except RuntimeError:
-        return
+        return boundary_receipt
     user_id = os.environ.get("TELEGRAM_AUTHORIZED_USER_ID", "")
     if not token or not user_id:
-        return
+        return boundary_receipt
     url     = f"https://api.telegram.org/bot{token}/sendMessage"
     payload: dict = {
         "chat_id":    int(user_id),
@@ -41,3 +53,4 @@ def send(text: str, reply_markup: dict | None = None, parse_mode: str | None = "
         urllib.request.urlopen(req, timeout=10)
     except Exception:
         pass
+    return boundary_receipt

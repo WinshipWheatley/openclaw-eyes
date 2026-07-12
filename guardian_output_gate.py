@@ -365,7 +365,18 @@ def _approval_execution_claims_from_text(text: str) -> tuple[str, ...]:
             r"\bauthorized\s+(?:it|this|that|everything|the\s+(?:invoice|request|send|payment|action|workflow))\b",
         ),
     }
-    found = [claim for claim, claim_patterns in patterns.items() if any(re.search(pattern, lowered) for pattern in claim_patterns)]
+    found: list[str] = []
+    for claim, claim_patterns in patterns.items():
+        for pattern in claim_patterns:
+            for match in re.finditer(pattern, lowered):
+                clause_prefix = _same_clause_prefix(lowered, match.start())
+                prefix_tokens = _NEGATION_TOKEN_RE.findall(clause_prefix)
+                if any(token in NEGATION_CUES for token in prefix_tokens[-8:]):
+                    continue
+                found.append(claim)
+                break
+            if claim in found:
+                break
     return tuple(found)
 
 

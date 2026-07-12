@@ -36,7 +36,35 @@ def _chat() -> str | None:
 class GuardianTelegramOps:
     """Live Telegram operations on the Guardian channel."""
 
+    def __init__(self) -> None:
+        self._output_boundary_receipts: dict[int, dict[str, Any]] = {}
+
+    def _bounded_text(self, text: str) -> tuple[str, dict[str, Any]]:
+        try:
+            from operator_surface_guard import guard_operator_reply_with_receipt
+
+            bounded = guard_operator_reply_with_receipt(
+                str(text or ""),
+                agent_role="GUARDIAN",
+                source_request="",
+                technical_intent=False,
+            )
+            return bounded.visible_text, bounded.receipt.to_dict()
+        except Exception:
+            return (
+                "Guardian couldn't safely render that approval update. Nothing was approved or changed.",
+                {
+                    "outcome": "adapter_boundary_error",
+                    "raw_control_text_included": False,
+                },
+            )
+
+    def output_boundary_receipt_for(self, message_id: int) -> dict[str, Any] | None:
+        receipt = self._output_boundary_receipts.get(int(message_id))
+        return dict(receipt) if isinstance(receipt, dict) else None
+
     def send(self, text: str, buttons: dict | None = None) -> int:
+        text, boundary_receipt = self._bounded_text(text)
         url, chat = _api("sendMessage"), _chat()
         if not (url and chat and requests):
             return -1
@@ -46,11 +74,15 @@ class GuardianTelegramOps:
         try:
             r = requests.post(url, json=payload, timeout=15)
             r.raise_for_status()
-            return int(r.json().get("result", {}).get("message_id", -1))
+            message_id = int(r.json().get("result", {}).get("message_id", -1))
+            if message_id >= 0:
+                self._output_boundary_receipts[message_id] = boundary_receipt
+            return message_id
         except Exception:
             return -1
 
     def edit(self, message_id: int, text: str, buttons: dict | None = None) -> None:
+        text, boundary_receipt = self._bounded_text(text)
         url, chat = _api("editMessageText"), _chat()
         if not (url and chat and requests) or not message_id or message_id < 0:
             return
@@ -58,7 +90,9 @@ class GuardianTelegramOps:
         if buttons is not None:
             payload["reply_markup"] = buttons
         try:
-            requests.post(url, json=payload, timeout=15)
+            response = requests.post(url, json=payload, timeout=15)
+            response.raise_for_status()
+            self._output_boundary_receipts[int(message_id)] = boundary_receipt
         except Exception:
             pass
 

@@ -8620,8 +8620,9 @@ def _process_first_touch_decision(
         reply=decision.reply,
     )
     typed_receipt = typed_decision.receipt.to_dict()
+    typed_reply = str(typed_decision.reply or "")
     agent_display = "Clara" if decision.agent == "clara" else decision.agent.capitalize()
-    lines = [line.strip() for line in decision.reply.splitlines() if line.strip()]
+    lines = [line.strip() for line in typed_reply.splitlines() if line.strip()]
     headline = lines[0] if lines else f"{agent_display} held this request"
     proof = {
         "first_touch_decision": receipt,
@@ -8651,7 +8652,7 @@ def _process_first_touch_decision(
         "card_id": f"first_touch_refusal_{_short_hash(receipt['decision_id'])}",
         "card_type": "FIRST_TOUCH_REFUSAL",
         "title": headline,
-        "summary": decision.reply,
+        "summary": typed_reply,
         "status_label": "Held safely",
         "actions": [],
         "provenance": provenance,
@@ -8668,7 +8669,7 @@ def _process_first_touch_decision(
         request_type="CHAT",
         internal_status="RESPONSE_READY",
         operator_headline=headline,
-        operator_message=decision.reply,
+        operator_message=typed_reply,
         what_happened=(
             "The shared first-touch seam refused the request before admission or workflow save.",
             (
@@ -8717,6 +8718,12 @@ def _process_first_touch_decision(
         next_safe_move="Use the operator-controlled review path named in the refusal.",
         proof_to_response=proof,
         proof_to_response_status="FIRST_TOUCH_REFUSAL",
+        typed_contract_trace={
+            "typed_contract_decision": dict(typed_receipt),
+            "typed_contract_matches": [
+                label.value for label in typed_decision.matches
+            ],
+        },
     )
 
 
@@ -9200,19 +9207,62 @@ def _enrich_operator_surface(
         # substitute-on-leak block in the whole fleet was dormant by default. Now its own
         # flag, default ON. When explicitly disabled: byte-identical to pre-task-144
         # behavior (print-only, response returned unchanged).
-        if _operator_surface_guard_enabled():
-            try:
-                from operator_surface_guard import guard_operator_reply
-                _surface_text = response.operator_message
-                if isinstance(_surface_text, str) and _surface_text.strip():
-                    _guarded_text = guard_operator_reply(_surface_text, agent_role=agent_id)
-                    if _guarded_text != _surface_text:
-                        return replace(response, operator_message=_guarded_text)
-            except Exception:
-                pass  # fail-safe: never block a response due to guard error
+        _surface_text = response.operator_message
+        if isinstance(_surface_text, str) and _surface_text.strip():
+            from final_output_boundary import (
+                OutputBoundaryContext,
+                render_final_output,
+            )
+
+            _boundary_context = OutputBoundaryContext.from_source_request(question)
+            if _operator_surface_guard_enabled():
+                from operator_surface_guard import guard_operator_reply_with_receipt
+
+                _bounded = guard_operator_reply_with_receipt(
+                    _surface_text,
+                    agent_role=agent_id,
+                    boundary_context=_boundary_context,
+                )
+            else:
+                # The legacy machine-leak gate may be explicitly disabled, but
+                # Task 165's control-language boundary is unconditional.
+                _bounded = render_final_output(
+                    _surface_text,
+                    context=_boundary_context,
+                )
+            _detail = dict(response.detail_disclosure or {})
+            _detail["output_boundary_receipt"] = _bounded.receipt.to_dict()
+            response = replace(
+                response,
+                operator_message=_bounded.visible_text,
+                detail_disclosure=_detail,
+            )
         return response
     except Exception:
-        return response
+        try:
+            from final_output_boundary import OutputBoundaryContext, render_final_output
+
+            _bounded = render_final_output(
+                str(getattr(response, "operator_message", "") or ""),
+                context=OutputBoundaryContext.from_source_request(""),
+                classifier=lambda _text: (_ for _ in ()).throw(
+                    RuntimeError("boundary unavailable")
+                ),
+            )
+            _detail = dict(getattr(response, "detail_disclosure", {}) or {})
+            _detail["output_boundary_receipt"] = _bounded.receipt.to_dict()
+            return replace(
+                response,
+                operator_message=_bounded.visible_text,
+                detail_disclosure=_detail,
+            )
+        except Exception:
+            return replace(
+                response,
+                operator_message=(
+                    "I couldn't safely render that answer just now. Nothing was sent or changed."
+                ),
+            )
 
 
 def _is_first_touch_refusal_response(response: OpenClawResponseForMac) -> bool:

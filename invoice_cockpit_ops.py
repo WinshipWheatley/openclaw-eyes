@@ -23,6 +23,7 @@ from origin_bound_output import (
     OutputOrigin,
     receipt_pointer,
 )
+from final_output_boundary import OutputBoundaryContext
 
 DEFAULT_SESSION_PATH = Path("/home/openclaw/state/invoice_cockpit/session.json")
 DEFAULT_REAL_INVOICE_INCOMING_DIR = Path("/home/openclaw/state/invoice_cockpit/incoming")
@@ -472,10 +473,16 @@ class RealCockpitOps:
         contacts_db_path: str | None = None,
         *,
         origin: OutputOrigin | None = None,
+        source_request: str = "",
+        output_boundary_context: OutputBoundaryContext | None = None,
     ):
         self.contact_name = contact_name
         self.contacts_db_path = contacts_db_path or os.environ.get("OPENCLAW_CONTACTS_DB_PATH")
         self.origin = origin
+        self.output_boundary_context = (
+            output_boundary_context
+            or OutputBoundaryContext.from_source_request(source_request)
+        )
         self._origin_output_sequence = 0
 
     def _origin_text_output(
@@ -501,6 +508,7 @@ class RealCockpitOps:
             operator_text=text,
             generic_text=GENERIC_SAFE_FAILURE,
             reply_markup=reply_markup,
+            boundary_context=self.output_boundary_context,
             internal=internal,
         )
         return {"ok": True, "origin_output": output}
@@ -521,6 +529,7 @@ class RealCockpitOps:
             document_path=pdf_path,
             caption=caption,
             generic_text=GENERIC_SAFE_FAILURE,
+            boundary_context=self.output_boundary_context,
             internal={"document_path": str(pdf_path or "")},
         )
         return {"ok": True, "origin_output": output}

@@ -20,6 +20,7 @@ to send the request as text instead.
 """
 
 import asyncio
+import contextvars
 import fcntl
 import hashlib as _hashlib
 import json
@@ -30,8 +31,19 @@ import tempfile
 import time as _time
 from datetime import datetime
 from pathlib import Path as _Path
-from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from typing import Any
+
+try:
+    from telegram import Update
+    from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+except ModuleNotFoundError:
+    Update = Any  # type: ignore[misc, assignment]
+    ApplicationBuilder = None  # type: ignore[assignment]
+    MessageHandler = None  # type: ignore[assignment]
+    filters = None  # type: ignore[assignment]
+
+    class ContextTypes:  # type: ignore[no-redef]
+        DEFAULT_TYPE = Any
 
 import first_touch_decision
 from scripts.producer_telegram_route import extract_producer_payload, truncate_producer_output
@@ -98,6 +110,34 @@ _APPROVAL_STALLED_NOTICE = "Guardian approval is still pending longer than expec
 _CHAT_REQUEST_TOKENS: dict[int, int] = {}
 _TIMEOUT_SENTINEL = object()
 _ORIGIN_DELIVERY_TRACKER = OriginDeliveryTracker()
+_OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "cassandra_output_boundary_receipt",
+    default=None,
+)
+
+
+def current_output_boundary_receipt() -> dict | None:
+    receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
+    return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def _final_operator_reply(reply: str, *, source_request: str) -> str:
+    try:
+        from operator_surface_guard import guard_operator_reply_with_receipt
+
+        bounded = guard_operator_reply_with_receipt(
+            str(reply or ""),
+            agent_role="CASSANDRA",
+            source_request=source_request,
+        )
+        _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
+        return bounded.visible_text
+    except Exception:
+        _OUTPUT_BOUNDARY_RECEIPT.set({
+            "outcome": "adapter_boundary_error",
+            "raw_control_text_included": False,
+        })
+        return "Cassandra couldn't safely render that answer just now. Nothing was sent or changed."
 
 # ── Producer integration ─────────────────────────────────────────────────────
 
@@ -285,7 +325,11 @@ def _try_invoice_cockpit(
         from invoice_cockpit_session import handle_invoice_cockpit_message
         from invoice_cockpit_ops import DEFAULT_SESSION_PATH, RealCockpitOps, JsonSessionStore
 
-        bound_ops = ops if ops is not None else RealCockpitOps(contact_name="", origin=origin)
+        bound_ops = (
+            ops
+            if ops is not None
+            else RealCockpitOps(contact_name="", origin=origin, source_request=text)
+        )
         bound_store = store if store is not None else JsonSessionStore(
             (session_meta or {}).get("invoice_cockpit_session_path") or DEFAULT_SESSION_PATH
         )
@@ -321,6 +365,7 @@ def _try_invoice_cockpit(
                 receipt_pointer=receipt,
                 operator_text=operator_text,
                 generic_text=GENERIC_SAFE_FAILURE,
+                source_request=text,
                 internal={"cockpit_result": result},
             )
         ]
@@ -336,6 +381,7 @@ def _try_invoice_cockpit(
                     f"Receipt: {receipt}."
                 ),
                 generic_text=GENERIC_SAFE_FAILURE,
+                source_request=text,
                 internal={"exception_type": type(exc).__name__, "exception": str(exc)},
             )
         ]
@@ -915,7 +961,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         surface="cassandra_listener",
     )
     if first_touch.handled and first_touch.decision is not None:
-        await update.message.reply_text(first_touch.decision.reply)
+        await update.message.reply_text(
+            _final_operator_reply(
+                first_touch.decision.reply,
+                source_request=text,
+            )
+        )
         return
     print(
         "[chatid-pin] "
@@ -974,25 +1025,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         default_surface="cassandra_telegram",
         default_bot_identity="cassandra",
     )
+    delivered_text_replies: list[str] = []
 
     async def _send_bound_text(reply_text: str, reply_markup=None):
+        safe_text = _final_operator_reply(reply_text, source_request=text)
+        delivered_text_replies.append(safe_text)
         if reply_markup is None:
-            await update.message.reply_text(reply_text)
+            await update.message.reply_text(safe_text)
         else:
-            await update.message.reply_text(reply_text, reply_markup=reply_markup)
+            await update.message.reply_text(safe_text, reply_markup=reply_markup)
 
     async def _send_bound_document(document_path: str, caption: str):
+        safe_caption = _final_operator_reply(caption, source_request=text)
+        delivered_text_replies.append(safe_caption)
         with _Path(document_path).open("rb") as document:
-            await update.message.reply_document(document=document, caption=caption)
+            await update.message.reply_document(document=document, caption=safe_caption)
 
     async def _send_to_prompt(reply):
         if isinstance(reply, OriginBoundOutput):
+            boundary_receipt = reply.output_boundary_receipt()
             await _dispatch_origin_bound_output(
                 reply,
                 bound_origin=bound_origin,
                 send_text=_send_bound_text,
                 send_document=_send_bound_document,
             )
+            # The transport wrapper is deliberately idempotent and sees the
+            # already-safe text. Preserve the originating substitution receipt
+            # rather than replacing it with that second pass's "unchanged" receipt.
+            _OUTPUT_BOUNDARY_RECEIPT.set(boundary_receipt)
             return
         await _send_bound_text(str(reply), reply_markup=None)
 
@@ -1027,11 +1088,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if target_chat_id:
             if pin_telegram_chat_id(nickname, target_chat_id):
-                await update.message.reply_text(f"✅ Pinned chat_id {target_chat_id} to nickname '{nickname}'.")
+                await _send_to_prompt(
+                    f"✅ Pinned chat_id {target_chat_id} to nickname '{nickname}'."
+                )
             else:
-                await update.message.reply_text(f"❌ Failed to pin to nickname '{nickname}'. See logs.")
+                await _send_to_prompt(
+                    f"❌ Failed to pin to nickname '{nickname}'. See logs."
+                )
         else:
-            await update.message.reply_text(
+            await _send_to_prompt(
                 f"❓ Could not find a recent message from anyone matching nickname '{nickname}'. "
                 "Try forwarding a message from them first."
             )
@@ -1073,7 +1138,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if not replies:
             return
-        text_replies = [str(reply) for reply in replies if not isinstance(reply, OriginBoundOutput)]
+        text_replies = delivered_text_replies
         if not text_replies:
             return
         suppress = _suppress_voice(text)
@@ -1138,9 +1203,11 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status = result["status"]
 
     if status == "rejected":
-        reason = result["reason"]
         await update.message.reply_text(
-            f"Could not process voice input ({reason}). Please resend or type it."
+            _final_operator_reply(
+                "Could not safely process that voice input. Please resend or type it.",
+                source_request=transcript,
+            )
         )
         return
 
@@ -1149,13 +1216,21 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if status == "refused":
-        for reply in result["reply"]:
+        safe_replies = [
+            _final_operator_reply(reply, source_request=transcript)
+            for reply in result["reply"]
+        ]
+        for reply in safe_replies:
             await update.message.reply_text(reply)
         return
 
     # accepted or flagged
     sender_chat_id = update.effective_chat.id if update.effective_chat else None
-    for r in result["reply"]:
+    safe_replies = [
+        _final_operator_reply(r, source_request=transcript)
+        for r in result["reply"]
+    ]
+    for r in safe_replies:
         await update.message.reply_text(r)
 
     if status == "flagged":
@@ -1168,9 +1243,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         suppress = _suppress_voice(transcript)
-        speak(" ".join(result["reply"]), suppress=suppress)
-        if not suppress and result["reply"]:
-            wav_path = synthesize_for_voice_note(" ".join(result["reply"]))
+        speak(" ".join(safe_replies), suppress=suppress)
+        if not suppress and safe_replies:
+            wav_path = synthesize_for_voice_note(" ".join(safe_replies))
             if wav_path is not None:
                 send_voice_note(str(wav_path), chat_id=str(sender_chat_id))
     except Exception as e:

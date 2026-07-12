@@ -894,6 +894,16 @@ def test_guardian_still_denies_proofless_approval_execution_claims(claim: str) -
     assert payload["guardian_publication_enforcement"]["original_output_publish_allowed"] is False
 
 
+def test_guardian_allows_explicitly_negated_runtime_authority() -> None:
+    message = "No runtime action is authorized from this front door."
+
+    payload, status = processor.build_payloads(_response(message), generated_at=FIXED_NOW)
+
+    assert payload["operator_message"] == message
+    assert "guardian_publication_enforcement" not in payload
+    assert status["machine_proof"]["guardian_denial_substituted"] is False
+
+
 def test_local_artifact_proof_does_not_authorize_invoice_approval_claim() -> None:
     response = replace(
         _response("The invoice was approved."),

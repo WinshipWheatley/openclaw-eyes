@@ -131,6 +131,27 @@ def test_sanitizer_removes_runtime_leaks() -> None:
     assert sanitized == "Actual answer stays."
 
 
+def test_sanitizer_runtime_diagnostics_are_conditional_on_source_intent() -> None:
+    diagnostic = "The upstream local model returned no usable chunks."
+
+    ordinary = policy.sanitize_gateway_response(
+        diagnostic,
+        source_request="How is the system looking from your seat?",
+    )
+    technical = policy.sanitize_gateway_response(
+        diagnostic,
+        source_request="Explain why the upstream local model returned no usable chunks.",
+    )
+    quoted = policy.sanitize_gateway_response(
+        diagnostic,
+        source_request=f'Repeat exactly: "{diagnostic}"',
+    )
+
+    assert "no usable chunks" not in ordinary.lower()
+    assert technical == diagnostic
+    assert "no usable chunks" not in quoted.lower()
+
+
 def test_sanitizer_removes_stalled_stream_and_truncation_carryover() -> None:
     sanitized = policy.sanitize_gateway_response(
         "The previous response was truncated. Continue? (61/61)\n"
@@ -148,7 +169,9 @@ def test_stale_only_gateway_response_becomes_short_honest_failure() -> None:
         "The previous response was truncated. Continue? (61/61)"
     )
 
-    assert "Hermes could not produce a fresh answer before the local model stream limit." in sanitized
+    assert "I couldn't produce a fresh grounded answer just now." in sanitized
+    assert "local model stream limit" not in sanitized.lower()
+    assert "no usable chunks" not in sanitized.lower()
     assert "No requested send, agent dispatch, route receipt, or money action occurred." in sanitized
     assert "Still working" not in sanitized
     assert "iteration" not in sanitized
@@ -242,7 +265,9 @@ def test_runner_patch_bounds_stalled_handler_with_honest_failure(monkeypatch) ->
     policy.install_gateway_policy_patch(gateway_run_module=module, base_adapter_cls=None)
     reply = asyncio.run(GatewayRunner()._handle_message(event))
 
-    assert "Hermes could not produce a fresh answer before the local model stream limit." in reply
+    assert "I couldn't produce a fresh grounded answer just now." in reply
+    assert "local model stream limit" not in reply.lower()
+    assert "no usable chunks" not in reply.lower()
     assert "Still working" not in reply
     assert "late answer" not in reply
 
@@ -323,6 +348,41 @@ def test_hermes_voice_uses_kokoro_service_and_sends_through_adapter(tmp_path, mo
     assert not audio.exists()  # temp audio cleaned up after send
 
 
+def test_hermes_voice_synthesizes_the_same_filtered_text_boundary(tmp_path, monkeypatch) -> None:
+    import kokoro_voice_client
+
+    audio = tmp_path / "voice.ogg"
+    audio.write_bytes(b"OggSfake")
+    synthesized: list[str] = []
+
+    def synthesize(text, **_kwargs):
+        synthesized.append(text)
+        return str(audio)
+
+    monkeypatch.setattr(kokoro_voice_client, "synthesize_remote", synthesize)
+
+    class Adapter:
+        async def send_voice(self, chat_id, audio_path):
+            return None
+
+    runner_cls = _voice_runner_cls()
+    policy._install_hermes_voice_patch(runner_cls)
+    runner = runner_cls()
+    event, platform = _telegram_event()
+    event.text = "hey hermes, hows the system looking from your seat?"
+    runner.adapters[platform] = Adapter()
+    raw = (
+        "The upstream local model returned no usable chunks. "
+        "No requested send, agent dispatch, route receipt, or money action occurred."
+    )
+
+    expected = policy.sanitize_gateway_response(raw, source_request=event.text)
+    asyncio.run(runner._send_voice_reply(event, raw))
+
+    assert synthesized == [expected]
+    assert "no usable chunks" not in synthesized[0].lower()
+
+
 def test_hermes_voice_falls_back_to_edge_when_service_down(monkeypatch) -> None:
     import kokoro_voice_client
     monkeypatch.setattr(kokoro_voice_client, "synthesize_remote", lambda text, **kw: None)  # service down
@@ -361,3 +421,28 @@ def test_send_patch_sanitizes_busy_status_before_delivery() -> None:
 
     assert result == "sent"
     assert adapter.sent_kwargs["content"] == "OK"
+
+
+def test_send_patch_preserves_already_bounded_technical_runtime_answer() -> None:
+    class BaseAdapter:
+        async def _send_with_retry(self, *args, **kwargs):
+            self.sent_kwargs = kwargs
+            return "sent"
+
+    module = SimpleNamespace(
+        GatewayRunner=type("GatewayRunner", (), {"_handle_message": lambda self, event: None})
+    )
+    policy.install_gateway_policy_patch(
+        gateway_run_module=module,
+        base_adapter_cls=BaseAdapter,
+    )
+    adapter = BaseAdapter()
+    answer = "The upstream local model returned no usable chunks."
+    bounded = policy.sanitize_gateway_response(
+        answer,
+        source_request="Explain why the upstream local model returned no usable chunks.",
+    )
+
+    asyncio.run(adapter._send_with_retry(chat_id="chat", content=bounded))
+
+    assert adapter.sent_kwargs["content"] == answer

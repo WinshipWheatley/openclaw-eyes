@@ -618,6 +618,10 @@ def test_preserve_receipt_sink_is_idempotent_resolvable_and_payload_free(monkeyp
     assert resolved is not None
     assert resolved["decision_id"] == first.receipt.decision_id
     assert resolved["action"] == contract.DecisionAction.PRESERVE_SESSION.value
+    assert resolved["output_boundary_receipt"] == json.loads(
+        json.dumps(first.receipt.output_boundary_receipt)
+    )
+    assert resolved["output_boundary_receipt"]["raw_control_text_included"] is False
     database_bytes = db_path.read_bytes()
     assert raw_marker.encode() not in database_bytes
     assert session_marker.encode() not in database_bytes

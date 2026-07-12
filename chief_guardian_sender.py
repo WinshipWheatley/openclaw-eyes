@@ -31,6 +31,7 @@ import requests
 import chief_env
 from secret_log_redaction import redact_secrets
 from telegram_listener_integrity import resolve_role_bot_token
+from operator_surface_guard import guard_operator_reply_with_receipt
 
 
 LOGGER = logging.getLogger(__name__)
@@ -68,13 +69,19 @@ def using_dedicated_bot() -> bool:
     return bool(os.environ.get("GUARDIAN_BOT_TOKEN"))
 
 
-def send_approval(message: str, reply_markup: dict | None = None) -> None:
+def send_approval(message: str, reply_markup: dict | None = None) -> dict:
     """Send an approval request via the Guardian bot channel.
 
     reply_markup: optional Telegram InlineKeyboardMarkup dict. When provided,
     the message is sent with inline tap buttons. Pass None (default) to send
     plain text (e.g. collision/timeout notifications that need no buttons).
     """
+    bounded = guard_operator_reply_with_receipt(
+        message,
+        agent_role="GUARDIAN",
+        technical_intent=False,
+    )
+    message = bounded.visible_text
     token = _token(require_guardian=reply_markup is not None)
     chat_id = _chat_id()
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -88,6 +95,7 @@ def send_approval(message: str, reply_markup: dict | None = None) -> None:
         safe_message = redact_secrets(str(exc))
         LOGGER.warning("Guardian approval send failed: %s", safe_message)
         raise RuntimeError(safe_message) from None
+    return bounded.receipt.to_dict()
 
 
 if __name__ == "__main__":

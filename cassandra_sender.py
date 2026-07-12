@@ -7,6 +7,7 @@ import tempfile
 import requests
 
 import chief_env
+from operator_surface_guard import guard_operator_reply_with_receipt
 
 
 def _token() -> str:
@@ -19,20 +20,31 @@ def _chat_id() -> str:
     return os.environ.get("CASSANDRA_CHAT_ID") or os.environ["TELEGRAM_AUTHORIZED_USER_ID"]
 
 
-def send_message(text: str, chat_id: str | int | None = None) -> None:
+def send_message(text: str, chat_id: str | int | None = None) -> dict | None:
+    target_chat = chat_id or _chat_id()
+    boundary_receipt = None
+    if str(target_chat) == str(_chat_id()):
+        bounded = guard_operator_reply_with_receipt(
+            text,
+            agent_role="CASSANDRA",
+            technical_intent=False,
+        )
+        text = bounded.visible_text
+        boundary_receipt = bounded.receipt.to_dict()
     if "__import__" in globals() or True:
         import harness_context
         if harness_context.is_harness_mode():
             print(f"[harness] no-send Telegram: {text[:100]}...", flush=True)
-            return
+            return boundary_receipt
     token = _token()
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     response = requests.post(
         url,
-        json={"chat_id": chat_id or _chat_id(), "text": text},
+        json={"chat_id": target_chat, "text": text},
         timeout=15,
     )
     response.raise_for_status()
+    return boundary_receipt
 
 
 def _assert_operator_chat(resolved: str | int) -> None:
@@ -45,11 +57,11 @@ def _assert_operator_chat(resolved: str | int) -> None:
         )
 
 
-def send_operator_brief(text: str) -> None:
+def send_operator_brief(text: str) -> dict | None:
     """Internal-only operator brief delivery. Takes no destination argument."""
     operator = _chat_id()
     _assert_operator_chat(operator)
-    send_message(text, chat_id=operator)
+    return send_message(text, chat_id=operator)
 
 
 def send_operator_brief_voice(audio_path: str) -> None:
@@ -59,13 +71,26 @@ def send_operator_brief_voice(audio_path: str) -> None:
     send_voice_note(audio_path, chat_id=operator)
 
 
-def send_document(document_path: str, chat_id: str | int | None = None, caption: str = "") -> None:
+def send_document(
+    document_path: str,
+    chat_id: str | int | None = None,
+    caption: str = "",
+) -> dict | None:
+    target_chat = chat_id or _chat_id()
+    boundary_receipt = None
+    if str(target_chat) == str(_chat_id()):
+        bounded = guard_operator_reply_with_receipt(
+            caption,
+            agent_role="CASSANDRA",
+            technical_intent=False,
+        )
+        caption = bounded.visible_text
+        boundary_receipt = bounded.receipt.to_dict()
     import harness_context
     if harness_context.is_harness_mode():
         print(f"[harness] no-send Telegram document: {document_path}", flush=True)
-        return
+        return boundary_receipt
     token = _token()
-    target_chat = chat_id or _chat_id()
     url = f"https://api.telegram.org/bot{token}/sendDocument"
     with open(document_path, "rb") as f:
         response = requests.post(
@@ -75,6 +100,7 @@ def send_document(document_path: str, chat_id: str | int | None = None, caption:
             timeout=30,
         )
     response.raise_for_status()
+    return boundary_receipt
 
 
 def send_voice_note(audio_path: str, chat_id: str | None = None) -> None:

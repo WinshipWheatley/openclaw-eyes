@@ -19,6 +19,7 @@ log_chirp(chirp_type)       — record chirp to prevent spam
 build_context_snapshot()    — system state block for watcher prompts
 """
 
+import copy
 import json
 import os
 import re
@@ -93,6 +94,11 @@ from cassandra_pii_hooks import (
     detokenize_for_dashboard,
 )
 from agent_perspective import perspective_prompt
+from cassandra_state_hygiene import (
+    load_sanitized_cassandra_state,
+    sanitize_state_for_prompt,
+    save_sanitized_cassandra_state,
+)
 
 
 # ── Broker call import for test patching ──
@@ -461,17 +467,15 @@ _DEFAULT_STATE = {
 
 
 def load_state() -> dict:
-    return load_json(_STATE_PATH, dict(_DEFAULT_STATE))
+    result = load_sanitized_cassandra_state(
+        _STATE_PATH,
+        default_factory=lambda: copy.deepcopy(_DEFAULT_STATE),
+    )
+    return result.state
 
 
-def save_state(state: dict) -> None:
-    _STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = _STATE_PATH.with_name(f"{_STATE_PATH.name}.tmp")
-    with tmp_path.open("w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp_path, _STATE_PATH)
+def save_state(state: dict):
+    return save_sanitized_cassandra_state(_STATE_PATH, state).receipt.to_dict()
 
 
 # ── Conversation logger ────────────────────────────────────────────────────
@@ -1144,6 +1148,8 @@ def build_current_truth_snapshot(state: dict | None = None) -> str:
     """Return operator-corrected facts that outrank stale finance/reality facts."""
     if state is None:
         state = load_state()
+    else:
+        state = sanitize_state_for_prompt(state).state
     overrides = _session_fact_overrides(state)
     if not overrides:
         return ""
@@ -1507,7 +1513,8 @@ def _get_session_fact_override(
         _, record = shared_truth
         return str(record.get("label") or record.get("entity_key") or "Operator truth").strip(), record
 
-    overrides = _session_fact_overrides(state)
+    safe_state = sanitize_state_for_prompt(state).state
+    overrides = _session_fact_overrides(safe_state)
     if not overrides:
         return None
     found = find_finance_account(query)
@@ -1632,6 +1639,8 @@ def build_context_snapshot(
 ) -> str:
     if state is None:
         state = load_state()
+    else:
+        state = sanitize_state_for_prompt(state).state
     parts = []
     now = datetime.now()
 
@@ -6927,9 +6936,15 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     try:
         from operator_surface_guard import guard_operator_reply
 
-        return [guard_operator_reply(r, agent_role="CASSANDRA") for r in replies]
+        return [
+            guard_operator_reply(r, agent_role="CASSANDRA", source_request=text)
+            for r in replies
+        ]
     except Exception:
-        return replies
+        return [
+            "I couldn't safely render that answer just now. Nothing was sent or changed."
+            for _reply in replies
+        ]
 
 
 def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
@@ -7915,7 +7930,16 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [finance_reply]
 
-    context  = build_context_snapshot(state, session=session_meta)
+    # Task 160 needs the session only when a bound probe store is present.
+    # Ordinary callers keep the long-standing one-argument seam, which also
+    # preserves test/adapter substitutes that intentionally implement that
+    # public shape.
+    bound_probe_truth_path = _bound_probe_operator_truth_store_path(session_meta)
+    context = (
+        build_context_snapshot(state, session=session_meta)
+        if bound_probe_truth_path is not None
+        else build_context_snapshot(state)
+    )
     focus    = is_focus_mode()
     social   = is_social_mode()
     allow_deep_escalation = _should_use_deep(query)
@@ -7957,10 +7981,14 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
     gmail_polled = bool(gmail_ctx or payment_verify_ctx)
     reality_ctx   = _format_reality_context(query)
     reality_block = f"{reality_ctx}\n\n" if reality_ctx else ""
-    session_override_ctx = _format_session_fact_override_context(
-        query,
-        state,
-        session=session_meta,
+    session_override_ctx = (
+        _format_session_fact_override_context(
+            query,
+            state,
+            session=session_meta,
+        )
+        if bound_probe_truth_path is not None
+        else _format_session_fact_override_context(query, state)
     )
     session_override_block = f"{session_override_ctx}\n\n" if session_override_ctx else ""
 

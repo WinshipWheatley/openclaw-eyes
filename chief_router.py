@@ -1702,10 +1702,10 @@ def route_message(text: str, *, first_touch_receipt=None) -> dict:
         result = {"intent": "error", "reply": "Chief hit a snag routing that. Try again."}
     intent = result.get("intent", "unknown")
     _log_route(_h, intent, _llm_fallback_fired)
-    return _guard_route_result(result)
+    return _guard_route_result(result, source_request=text)
 
 
-def _guard_route_result(result: dict) -> dict:
+def _guard_route_result(result: dict, *, source_request: str = "") -> dict:
     """Task 144 (CLASS #5): guard every reply/replies field before it leaves the router --
     covers all of _route_message_inner's branches (album/billing/CPA/analytics/goals/generic
     fallback) from one wrap point. Fail-open: import/guard errors leave the result
@@ -1713,14 +1713,35 @@ def _guard_route_result(result: dict) -> dict:
     try:
         from operator_surface_guard import guard_operator_reply
     except Exception:
+        safe = "Chief couldn't safely render that answer just now. Nothing was sent or changed."
+        result = dict(result)
+        if isinstance(result.get("reply"), str):
+            result["reply"] = safe
+        if isinstance(result.get("replies"), list):
+            result["replies"] = [
+                safe if isinstance(item, str) else item for item in result["replies"]
+            ]
         return result
     if isinstance(result.get("reply"), str):
-        result = {**result, "reply": guard_operator_reply(result["reply"], agent_role="CHIEF")}
+        result = {
+            **result,
+            "reply": guard_operator_reply(
+                result["reply"],
+                agent_role="CHIEF",
+                source_request=source_request,
+            ),
+        }
     if isinstance(result.get("replies"), list):
         result = {
             **result,
             "replies": [
-                guard_operator_reply(r, agent_role="CHIEF") if isinstance(r, str) else r
+                guard_operator_reply(
+                    r,
+                    agent_role="CHIEF",
+                    source_request=source_request,
+                )
+                if isinstance(r, str)
+                else r
                 for r in result["replies"]
             ],
         }

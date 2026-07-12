@@ -835,6 +835,9 @@ def _answer_frontdoor_chat_impl(
                 "operator_refusal_guard": True,
                 "first_touch_decision": _early_first_touch_receipt,
                 "model_call_performed": False,
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+                "protected_generate_called": False,
                 "workflow_package_staged": False,
                 "file_mutation_performed": bool(
                     _early_first_touch_receipt.get("file_mutation_performed")

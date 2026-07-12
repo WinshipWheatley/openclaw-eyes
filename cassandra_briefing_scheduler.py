@@ -85,6 +85,14 @@ def _deliver(entry: dict) -> None:
     slot  = entry["slot"]
     date  = entry["date"]
     text  = entry["text"]
+    from operator_surface_guard import guard_operator_reply_with_receipt
+
+    def bounded(value: str) -> str:
+        return guard_operator_reply_with_receipt(
+            value,
+            agent_role="CASSANDRA",
+            technical_intent=False,
+        ).visible_text
 
     if slot == "morning":
         import json
@@ -99,8 +107,10 @@ def _deliver(entry: dict) -> None:
                         continue
                     message = f"[{header}]\n\n{body}"
                     try:
-                        send_operator_brief(message)
-                        voice_text = normalize_speech_text(body)
+                        safe_message = bounded(message)
+                        send_operator_brief(safe_message)
+                        safe_body = bounded(body)
+                        voice_text = normalize_speech_text(safe_body)
                         speak_and_send_operator_brief_voice(voice_text)
                     except Exception as e:
                         print(f"[briefing_scheduler] chunk delivery error: {e}", flush=True)
@@ -112,7 +122,8 @@ def _deliver(entry: dict) -> None:
 
     try:
         for message in split_briefing_messages(entry):
-            send_operator_brief(message)
+            safe_message = bounded(message)
+            send_operator_brief(safe_message)
         mark_delivered(date, slot)
         print(
             f"[briefing_scheduler] delivered {date}_{slot} ({len(text)} chars)",
@@ -125,7 +136,8 @@ def _deliver(entry: dict) -> None:
     # Voice note/local playback — non-blocking, optional; failures are swallowed inside voice path.
     # Morning slot handled voice note per-chunk above.
     if slot != "morning":
-        speak_and_send_operator_brief_voice(briefing_voice_text(entry))
+        safe_voice_text = bounded(briefing_voice_text(entry))
+        speak_and_send_operator_brief_voice(safe_voice_text)
 
 
 # ── Main tick ─────────────────────────────────────────────────────────────────

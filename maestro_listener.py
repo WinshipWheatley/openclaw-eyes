@@ -10,6 +10,7 @@ Maestro responder directly and never imports outbound send/execution paths.
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import hashlib
 import json
 import os
@@ -115,6 +116,33 @@ AUTHORITY_BOUNDARY = {
     "tool_execution_allowed": False,
     "runtime_dispatch_allowed": False,
 }
+_OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict[str, Any] | None] = (
+    contextvars.ContextVar("maestro_output_boundary_receipt", default=None)
+)
+
+
+def current_output_boundary_receipt() -> dict[str, Any] | None:
+    receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
+    return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def _final_operator_reply(reply: str, *, source_request: str) -> str:
+    try:
+        from operator_surface_guard import guard_operator_reply_with_receipt
+
+        bounded = guard_operator_reply_with_receipt(
+            str(reply or ""),
+            agent_role="MAESTRO",
+            source_request=source_request,
+        )
+        _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
+        return bounded.visible_text
+    except Exception:
+        _OUTPUT_BOUNDARY_RECEIPT.set({
+            "outcome": "adapter_boundary_error",
+            "raw_control_text_included": False,
+        })
+        return "Maestro couldn't safely render that answer just now. Nothing was sent or changed."
 
 
 def stable_json(payload: Any) -> str:
@@ -923,7 +951,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         surface="maestro_listener",
     )
     if first_touch.handled and first_touch.decision is not None:
-        reply = first_touch.decision.reply
+        reply = _final_operator_reply(
+            first_touch.decision.reply,
+            source_request=text,
+        )
         await update.message.reply_text(reply)
         return
     record_maestro_intake_metadata(
@@ -941,7 +972,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     async def _send_delayed_ack() -> None:
         try:
             await asyncio.sleep(_fast_ack_delay())
-            await update.message.reply_text(_fast_ack_text(message=text))
+            await update.message.reply_text(
+                _final_operator_reply(
+                    _fast_ack_text(message=text),
+                    source_request=text,
+                )
+            )
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -957,13 +993,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         response = await poll_bridge_response(request_id_for_reply)
         if ack_task is not None:
             ack_task.cancel()  # answer arrived; if before the delay, the ack is suppressed
-        _maestro_reply = reply_text_from_bridge_response(response, request_id=request_id_for_reply)
+        _maestro_reply = _final_operator_reply(
+            reply_text_from_bridge_response(response, request_id=request_id_for_reply),
+            source_request=text,
+        )
         await update.message.reply_text(_maestro_reply)
         _fire_maestro_voice(_maestro_reply, chat_id)
     except Exception as exc:
         print(f"[maestro_listener] bridge error: {exc.__class__.__name__}", flush=True)
         await update.message.reply_text(
-            reply_text_from_bridge_response(None, request_id=request_id_for_reply or message_id)
+            _final_operator_reply(
+                reply_text_from_bridge_response(
+                    None,
+                    request_id=request_id_for_reply or message_id,
+                ),
+                source_request=text,
+            )
         )
     finally:
         typing_task.cancel()
@@ -1074,7 +1119,15 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             mime_type=mime_type,
         )
         if request.get("image_deferred_for_reprocess"):
-            await update.message.reply_text(str(request.get("operator_reply") or "noted — I can't read it yet, I'll reprocess when vision's back."))
+            await update.message.reply_text(
+                _final_operator_reply(
+                    str(
+                        request.get("operator_reply")
+                        or "noted — I can't read it yet, I'll reprocess when vision's back."
+                    ),
+                    source_request=caption,
+                )
+            )
             return
         request_id_for_reply = str(request["request_id"])
         write_bridge_request(request)
@@ -1082,12 +1135,22 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         _maestro_photo_reply = reply_text_from_bridge_response(response, request_id=request_id_for_reply)
         if _ocr_summary:
             _maestro_photo_reply = _ocr_summary + "\n\n" + _maestro_photo_reply
+        _maestro_photo_reply = _final_operator_reply(
+            _maestro_photo_reply,
+            source_request=caption,
+        )
         await update.message.reply_text(_maestro_photo_reply)
         _fire_maestro_voice(_maestro_photo_reply, chat_id)
     except Exception as exc:
         print(f"[maestro_listener] image bridge error: {exc.__class__.__name__}", flush=True)
         await update.message.reply_text(
-            reply_text_from_bridge_response(None, request_id=request_id_for_reply or message_id)
+            _final_operator_reply(
+                reply_text_from_bridge_response(
+                    None,
+                    request_id=request_id_for_reply or message_id,
+                ),
+                source_request=caption,
+            )
         )
     finally:
         typing_task.cancel()

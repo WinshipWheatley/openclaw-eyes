@@ -15,6 +15,7 @@ import re
 from typing import Any
 
 from listener_resilience import bounded_reply_timeout, clean_stale_carryover
+from final_output_boundary import OutputBoundaryContext, render_final_output
 
 
 _ROUTE_TARGET_RE = re.compile(
@@ -165,6 +166,12 @@ _STALL_FAILURE_REPLY = "\n".join(
 _RAW_PRECLAIMED_UPDATE_ID: contextvars.ContextVar[object | None] = contextvars.ContextVar(
     "openclaw_hermes_raw_preclaimed_update_id",
     default=None,
+)
+_OUTPUT_BOUNDARY_CONTEXT: contextvars.ContextVar[OutputBoundaryContext | None] = (
+    contextvars.ContextVar("openclaw_hermes_output_boundary_context", default=None)
+)
+_OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict[str, Any] | None] = (
+    contextvars.ContextVar("openclaw_hermes_output_boundary_receipt", default=None)
 )
 
 
@@ -461,14 +468,44 @@ def truthful_reply_for_text(text: str) -> str | None:
     return None
 
 
-def sanitize_gateway_response(content: Any) -> Any:
+def sanitize_gateway_response(
+    content: Any,
+    *,
+    source_request: str = "",
+    boundary_context: OutputBoundaryContext | None = None,
+) -> Any:
     """Remove internal gateway/runtime wording from user-facing text."""
 
-    return clean_stale_carryover(
+    cleaned = clean_stale_carryover(
         content,
         failure_text=stalled_stream_failure_reply(),
         artifact_patterns=_LEAK_PATTERNS,
     )
+    if not isinstance(cleaned, str):
+        return cleaned
+    context = (
+        boundary_context
+        or _OUTPUT_BOUNDARY_CONTEXT.get()
+        or OutputBoundaryContext.from_source_request(source_request)
+    )
+    rendered = render_final_output(cleaned, context=context)
+    _OUTPUT_BOUNDARY_RECEIPT.set(rendered.receipt.to_dict())
+    return rendered.visible_text
+
+
+def current_gateway_output_boundary_receipt() -> dict[str, Any] | None:
+    receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
+    return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def _already_bounded_gateway_content(content: Any) -> bool:
+    if not isinstance(content, str):
+        return False
+    receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
+    if not isinstance(receipt, dict):
+        return False
+    digest = "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
+    return receipt.get("visible_text_sha256") == digest
 
 
 def _event_is_authorized_for_intercept(runner: Any, event: Any) -> bool:
@@ -742,6 +779,10 @@ def _install_hermes_voice_patch(runner_cls: Any) -> None:
             import asyncio
             import os
 
+            safe_text = sanitize_gateway_response(
+                text,
+                source_request=str(getattr(event, "text", "") or ""),
+            )
             try:
                 platform = getattr(getattr(event, "source", None), "platform", None)
                 if getattr(platform, "value", "") == "telegram":
@@ -749,7 +790,7 @@ def _install_hermes_voice_patch(runner_cls: Any) -> None:
                     if adapter is not None and hasattr(adapter, "send_voice"):
                         import kokoro_voice_client
 
-                        path = await asyncio.to_thread(kokoro_voice_client.synthesize_remote, text)
+                        path = await asyncio.to_thread(kokoro_voice_client.synthesize_remote, safe_text)
                         if path and os.path.isfile(path):
                             try:
                                 await adapter.send_voice(chat_id=event.source.chat_id, audio_path=path)
@@ -761,7 +802,7 @@ def _install_hermes_voice_patch(runner_cls: Any) -> None:
                             return None
             except Exception:
                 pass
-            return await original_send_voice(self, event, text)
+            return await original_send_voice(self, event, safe_text)
 
         runner_cls._send_voice_reply = _openclaw_send_voice_reply
 
@@ -789,20 +830,32 @@ def install_gateway_policy_patch(
             raw_preclaimed = bool(getattr(event, "_openclaw_raw_update_preclaimed", False))
             if authorized and _event_is_telegram(event) and not raw_preclaimed and not _claim_hermes_telegram_event(event):
                 return None
-            if authorized:
-                command = event.get_command() if callable(getattr(event, "get_command", None)) else None
-                if not command:
-                    reply = truthful_reply_for_text(getattr(event, "text", "") or "")
-                    if reply is not None:
-                        return reply
-            result = await bounded_reply_timeout(
-                original_handle_message(self, event),
-                timeout_seconds=_gateway_reply_timeout_seconds(),
-                timeout_result=stalled_stream_failure_reply(),
-                failure_text=stalled_stream_failure_reply(),
-                artifact_patterns=_LEAK_PATTERNS,
-            )
-            return sanitize_gateway_response(result)
+            source_request = str(getattr(event, "text", "") or "") if authorized else ""
+            boundary_context = OutputBoundaryContext.from_source_request(source_request)
+            context_token = _OUTPUT_BOUNDARY_CONTEXT.set(boundary_context)
+            try:
+                if authorized:
+                    command = event.get_command() if callable(getattr(event, "get_command", None)) else None
+                    if not command:
+                        reply = truthful_reply_for_text(source_request)
+                        if reply is not None:
+                            return sanitize_gateway_response(
+                                reply,
+                                boundary_context=boundary_context,
+                            )
+                result = await bounded_reply_timeout(
+                    original_handle_message(self, event),
+                    timeout_seconds=_gateway_reply_timeout_seconds(),
+                    timeout_result=stalled_stream_failure_reply(),
+                    failure_text=stalled_stream_failure_reply(),
+                    artifact_patterns=_LEAK_PATTERNS,
+                )
+                return sanitize_gateway_response(
+                    result,
+                    boundary_context=boundary_context,
+                )
+            finally:
+                _OUTPUT_BOUNDARY_CONTEXT.reset(context_token)
 
         runner_cls._handle_message = _openclaw_handle_message
         runner_cls._openclaw_truthful_gateway_patch = True
@@ -833,9 +886,13 @@ def install_gateway_policy_patch(
 
         async def _openclaw_send_with_retry(self: Any, *args: Any, **kwargs: Any) -> Any:
             if "content" in kwargs:
-                kwargs["content"] = sanitize_gateway_response(kwargs["content"])
+                if not _already_bounded_gateway_content(kwargs["content"]):
+                    kwargs["content"] = sanitize_gateway_response(kwargs["content"])
             elif len(args) >= 2:
-                args = (args[0], sanitize_gateway_response(args[1]), *args[2:])
+                content = args[1]
+                if not _already_bounded_gateway_content(content):
+                    content = sanitize_gateway_response(content)
+                args = (args[0], content, *args[2:])
             return await original_send_with_retry(self, *args, **kwargs)
 
         base_adapter_cls._send_with_retry = _openclaw_send_with_retry
@@ -845,6 +902,7 @@ def install_gateway_policy_patch(
 
 
 __all__ = [
+    "current_gateway_output_boundary_receipt",
     "install_gateway_policy_patch",
     "sanitize_gateway_response",
     "stalled_stream_failure_reply",

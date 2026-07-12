@@ -18,7 +18,7 @@ import hashlib
 import json
 import os
 import re
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -32,6 +32,7 @@ from morning_brief_failover import (
     load_morning_brief_facts,
     run_morning_brief_failover,
 )
+from operator_surface_guard import guard_operator_reply_with_receipt
 
 
 SCHEMA_VERSION = "cassandra_telegram_delivery_v0"
@@ -71,6 +72,7 @@ class TelegramDeliveryReceipt:
     error_type: str = ""
     error: str = ""
     created_at: str = ""
+    output_boundary_receipt: Mapping[str, Any] = field(default_factory=dict)
 
     def to_dict(self, *, include_message_text: bool = True) -> dict[str, Any]:
         data = asdict(self)
@@ -107,6 +109,7 @@ class TelegramDocumentDeliveryReceipt:
     error_type: str = ""
     error: str = ""
     created_at: str = ""
+    output_boundary_receipt: Mapping[str, Any] = field(default_factory=dict)
 
     def to_dict(self, *, include_caption: bool = True) -> dict[str, Any]:
         data = asdict(self)
@@ -316,6 +319,12 @@ def deliver_to_authorized_telegram(
     failover_result: MorningBriefResult | None = None,
     source_refs: tuple[str, ...] = (),
 ) -> TelegramDeliveryReceipt:
+    bounded = guard_operator_reply_with_receipt(
+        message_text,
+        agent_role="CASSANDRA",
+        technical_intent=False,
+    )
+    message_text = bounded.visible_text
     env_map = os.environ if env is None else env
     enabled = telegram_delivery_enabled(env=env_map, toggle_path=toggle_path)
     target, target_status, target_ref = _resolve_authorized_chat_id(
@@ -335,6 +344,7 @@ def deliver_to_authorized_telegram(
         "failover_attempts": tuple(attempt.to_dict() for attempt in failover_result.attempts) if failover_result else (),
         "source_refs": source_refs,
         "created_at": created_at,
+        "output_boundary_receipt": bounded.receipt.to_dict(),
     }
 
     if target_status == "unauthorized_target_mismatch":
@@ -414,6 +424,12 @@ def deliver_document_to_authorized_telegram(
     telegram_document_sender: TelegramSender | None = None,
     source_refs: tuple[str, ...] = (),
 ) -> TelegramDocumentDeliveryReceipt:
+    bounded = guard_operator_reply_with_receipt(
+        caption,
+        agent_role="CASSANDRA",
+        technical_intent=False,
+    )
+    caption = bounded.visible_text
     env_map = os.environ if env is None else env
     enabled = telegram_delivery_enabled(env=env_map, toggle_path=toggle_path)
     target, target_status, target_ref = _resolve_authorized_chat_id(
@@ -436,6 +452,7 @@ def deliver_document_to_authorized_telegram(
         "log_path": str(dry_run_log_path),
         "source_refs": source_refs,
         "created_at": created_at,
+        "output_boundary_receipt": bounded.receipt.to_dict(),
     }
 
     if target_status == "unauthorized_target_mismatch":

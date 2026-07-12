@@ -1,4 +1,5 @@
 import asyncio
+import contextvars
 import hashlib
 import json
 import os
@@ -25,6 +26,34 @@ from telegram_listener_integrity import (
 LOG_PATH = Path("/mnt/c/OpenClaw/logs/chief_input.log")
 BOT_TOKEN = resolve_role_bot_token("chief")
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
+_OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "chief_output_boundary_receipt",
+    default=None,
+)
+
+
+def current_output_boundary_receipt() -> dict | None:
+    receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
+    return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def _final_operator_text(text: str, *, source_request: str) -> str:
+    try:
+        from operator_surface_guard import guard_operator_reply_with_receipt
+
+        bounded = guard_operator_reply_with_receipt(
+            tts_clean(text),
+            agent_role="CHIEF",
+            source_request=source_request,
+        )
+        _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
+        return bounded.visible_text
+    except Exception:
+        _OUTPUT_BOUNDARY_RECEIPT.set({
+            "outcome": "adapter_boundary_error",
+            "raw_control_text_included": False,
+        })
+        return "Chief couldn't safely render that answer just now. Nothing was sent or changed."
 
 
 async def _telegram_typing_loop(bot, chat_id: int | None) -> None:
@@ -56,10 +85,21 @@ def _fire_agent_voice(agent: str, text: str, update: Update) -> None:
         print(f"[chief_listener] voice note skipped: {exc}", flush=True)
 
 
-async def _send_reply(update: Update, text: str) -> None:
+async def _send_reply(
+    update: Update,
+    text: str,
+    *,
+    source_request: str | None = None,
+) -> None:
     """Send a tts_clean-normalized plain-text reply, plus Chief's Kokoro voice note (fail-soft)."""
-    await update.message.reply_text(tts_clean(text))
-    _fire_agent_voice("chief", text, update)
+    request_text = (
+        str(source_request)
+        if source_request is not None
+        else str(getattr(getattr(update, "message", None), "text", "") or "")
+    )
+    safe_text = _final_operator_text(text, source_request=request_text)
+    await update.message.reply_text(safe_text)
+    _fire_agent_voice("chief", safe_text, update)
 
 
 async def _resume_interrupted_task(update: Update) -> None:
@@ -143,7 +183,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         surface="chief_listener",
     )
     if first_touch.handled and first_touch.decision is not None:
-        await update.message.reply_text(tts_clean(first_touch.decision.reply))
+        reply = _final_operator_text(
+            first_touch.decision.reply,
+            source_request=text,
+        )
+        await update.message.reply_text(reply)
         return
     record_telegram_listener_update_safe(
         text=text,
@@ -179,7 +223,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         if intent == "approval_response":
-            await update.message.reply_text(reply or "Decision recorded.")
+            await _send_reply(update, reply or "Decision recorded.", source_request=text)
             await _resume_interrupted_task(update)
             return
 
@@ -202,11 +246,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 import traceback
                 print("Inspection error:")
                 traceback.print_exc()
-                await update.message.reply_text(f"Inspection failed: {e}")
+                await _send_reply(update, f"Inspection failed: {e}", source_request=text)
             return
 
         if intent == "cancel":
-            await update.message.reply_text(reply or "Current workflow cancelled.")
+            await _send_reply(update, reply or "Current workflow cancelled.", source_request=text)
             # Surface any deferred ops captured during a now-cancelled album session
             try:
                 from chief_ops_brain import deferred_summary
@@ -221,7 +265,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
         if intent == "billing_start":
-            await update.message.reply_text(reply or "Ready.")
+            await _send_reply(update, reply or "Ready.", source_request=text)
             return
 
         if intent == "billing_continue":
@@ -264,7 +308,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         if intent == "album_start":
-            await update.message.reply_text(reply or "What song are we working on?")
+            await _send_reply(
+                update,
+                reply or "What song are we working on?",
+                source_request=text,
+            )
             return
 
         if intent == "ops_intake":
@@ -281,7 +329,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             # Deferred ops delivery — fires once when album session closes
             try:
                 from chief_session_manager import load_session as _ls
@@ -301,16 +349,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 arc_replies = handle_arc("")
                 for r in arc_replies:
                     r = validate_reply(text, r, "album_arc_start")
-                    await update.message.reply_text(r)
+                    await _send_reply(update, r, source_request=text)
             except Exception as e:
-                await update.message.reply_text(f"Arc analysis error: {e}")
+                await _send_reply(update, f"Arc analysis error: {e}", source_request=text)
             return
 
         if intent == "album_arc_continue":
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent == "quick_song_update":
@@ -323,14 +371,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent in ("scout_report", "integration_proposals", "reflection_report"):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent in ("content_calendar", "brand_guide"):
@@ -343,42 +391,42 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent in ("email_draft", "email_send"):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent in ("sms_draft", "sms_send"):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent == "phone_log":
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent in ("cpa_query", "musiclaw_query", "publishing_query"):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent in ("website_qa", "website_coordinator", "website_creative"):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent == "backup_status":
@@ -445,14 +493,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent in ("fundo_session", "fundo_identity"):
             replies = routed.get("replies", [])
             for r in replies:
                 r = validate_reply(text, r, intent)
-                await update.message.reply_text(r)
+                await _send_reply(update, r, source_request=text)
             return
 
         if intent == "hitl_decision":
@@ -473,8 +521,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             with open(LOG_PATH, "a", encoding="utf-8") as f:
                 f.write(formatted + "\n")
-            await update.message.reply_text(
-                reply or "I didn't catch a specific action there. Try rephrasing."
+            await _send_reply(
+                update,
+                reply or "I didn't catch a specific action there. Try rephrasing.",
+                source_request=text,
             )
         except Exception as e:
             print(f"Routing error: {e}")
@@ -498,7 +548,9 @@ async def handle_callback(update: Update, _context: ContextTypes.DEFAULT_TYPE):
         if has_pending_choice():
             replies = bridge_handle(callback_data)
             for r in replies:
-                await query.message.reply_text(tts_clean(r))
+                await query.message.reply_text(
+                    _final_operator_text(r, source_request=callback_data)
+                )
         else:
             await query.message.reply_text("No pending choice.")
     except Exception as e:
@@ -551,9 +603,13 @@ async def _post_startup_queue(application):
         lines.append(f"  {i}. {item}")
     lines.append("\nTell me which to work on, or 'queue status' to review.")
     try:
+        safe_text = _final_operator_text(
+            "\n".join(lines),
+            source_request="",
+        )
         await application.bot.send_message(
             chat_id=AUTHORIZED_USER_ID,
-            text="\n".join(lines),
+            text=safe_text,
         )
     except Exception as e:
         print(f"Queue startup notification failed: {e}")

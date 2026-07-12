@@ -20,8 +20,15 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Any
+
+from final_output_boundary import (
+    FinalOutputBoundaryResult,
+    OutputBoundaryContext,
+    render_final_output,
+    split_output_fragments,
+)
 
 # ---------------------------------------------------------------------------
 # Constants — grounded in the doctrine and the existing voice layer
@@ -284,6 +291,11 @@ _HASH_RE = re.compile(r"\b[0-9a-f]{16,64}\b")
 # is a common, legitimate human-authored summary style (e.g. "atlas roots=1, directories=2")
 # that would otherwise false-positive on every count-style status line.
 _BARE_ASSIGNMENT_RE = re.compile(r"\b[a-z][a-z0-9_]{3,}=(?:True|False|None)\b")
+_NON_SUBSTANTIVE_MACHINE_PREAMBLE_RE = re.compile(
+    r"^(?:(?:here(?:'s|\s+is)|below\s+is)\s+(?:the\s+)?"
+    r"(?:data|output|readback|receipt|response)|debug(?:\s+dump)?|internal)\s*:\s*$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -558,7 +570,112 @@ SAFE_FALLBACK_REPLY_TEXT = (
 )
 
 
-def guard_operator_reply(text: str, *, agent_role: str = "OPENCLAW_SYSTEM") -> str:
+def guard_operator_reply_with_receipt(
+    text: str,
+    *,
+    agent_role: str = "OPENCLAW_SYSTEM",
+    source_request: str = "",
+    technical_intent: bool | None = None,
+    boundary_context: OutputBoundaryContext | None = None,
+) -> FinalOutputBoundaryResult:
+    """Apply the fragment boundary first, then the legacy machine-leak check."""
+
+    context = boundary_context or OutputBoundaryContext.from_source_request(
+        source_request,
+        technical_intent=technical_intent,
+    )
+    bounded = render_final_output(text, context=context)
+    if not bounded.visible_text.strip():
+        return bounded
+    audience = "TECHNICAL" if context.technical_intent else "ELIWINSHIP"
+    rendered: list[str] = []
+    machine_replaced = 0
+    machine_preambles_dropped = 0
+    machine_errors = 0
+    fallback_emitted = False
+    for fragment in split_output_fragments(bounded.visible_text):
+        if not fragment or not fragment.strip() or fragment.strip() in {"—", "–", "|"}:
+            rendered.append(fragment)
+            continue
+        try:
+            result = check_operator_surface(
+                fragment,
+                agent_role=agent_role,
+                audience=audience,
+            )
+        except Exception:
+            machine_errors += 1
+            # The public control-language boundary already failed closed for
+            # this fragment. Preserve legacy fail-open behavior for ordinary
+            # prose if only the secondary machine-jargon guard is unavailable;
+            # a raw control cue cannot be restored here.
+            rendered.append(fragment)
+            continue
+        if result.safe_for_operator:
+            rendered.append(fragment)
+            continue
+        last_content_index = next(
+            (
+                index
+                for index in range(len(rendered) - 1, -1, -1)
+                if rendered[index].strip()
+            ),
+            None,
+        )
+        if (
+            last_content_index is not None
+            and _NON_SUBSTANTIVE_MACHINE_PREAMBLE_RE.fullmatch(
+                rendered[last_content_index].strip()
+            )
+        ):
+            del rendered[last_content_index:]
+            machine_preambles_dropped += 1
+        machine_replaced += 1
+        if not fallback_emitted:
+            rendered.append(SAFE_FALLBACK_REPLY_TEXT)
+            fallback_emitted = True
+    if not machine_replaced:
+        return bounded
+    visible = "".join(rendered).strip() or SAFE_FALLBACK_REPLY_TEXT
+    visible_hash = "sha256:" + hashlib.sha256(visible.encode("utf-8")).hexdigest()
+    reasons = [*bounded.receipt.reason_codes]
+    if machine_replaced:
+        reasons.append("machine_contract_leak")
+    if machine_errors:
+        reasons.append("machine_guard_error")
+    receipt = replace(
+        bounded.receipt,
+        outcome=(
+            "classifier_error" if machine_errors else "machine_guard_substituted"
+        ),
+        visible_text_sha256=visible_hash,
+        replaced_fragment_count=(
+            bounded.receipt.replaced_fragment_count
+            + machine_replaced
+            + machine_preambles_dropped
+        ),
+        preserved_fragment_count=max(
+            0,
+            bounded.receipt.preserved_fragment_count
+            - machine_replaced
+            - machine_preambles_dropped,
+        ),
+        classifier_error_count=(
+            bounded.receipt.classifier_error_count + machine_errors
+        ),
+        reason_codes=tuple(dict.fromkeys(reasons)),
+    )
+    return FinalOutputBoundaryResult(visible, receipt, context)
+
+
+def guard_operator_reply(
+    text: str,
+    *,
+    agent_role: str = "OPENCLAW_SYSTEM",
+    source_request: str = "",
+    technical_intent: bool | None = None,
+    boundary_context: OutputBoundaryContext | None = None,
+) -> str:
     """Task 144: the fleet-wide reply-assembly guard point. Every agent-brain reply
     reaching an operator-facing Telegram/chat surface should pass through this before
     send.
@@ -568,15 +685,15 @@ def guard_operator_reply(text: str, *, agent_role: str = "OPENCLAW_SYSTEM") -> s
     an otherwise-safe reply -- returns the original text unchanged if the check itself
     cannot run.
     """
-    try:
-        if not isinstance(text, str) or not text.strip():
-            return text
-        result = check_operator_surface(text, agent_role=agent_role)
-        if not result.safe_for_operator:
-            return SAFE_FALLBACK_REPLY_TEXT
+    if not isinstance(text, str) or not text.strip():
         return text
-    except Exception:
-        return text
+    return guard_operator_reply_with_receipt(
+        text,
+        agent_role=agent_role,
+        source_request=source_request,
+        technical_intent=technical_intent,
+        boundary_context=boundary_context,
+    ).visible_text
 
 
 # ---------------------------------------------------------------------------

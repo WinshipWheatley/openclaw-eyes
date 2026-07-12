@@ -15,6 +15,8 @@ from pathlib import Path
 import re
 from typing import Any, Mapping
 
+from control_language_policy import classify_control_language
+
 
 STORE_VERSION = "operator_truth_store_v0"
 DEFAULT_STORE_PATH = Path("/mnt/c/OpenClaw/logs/operator_truth_store.json")
@@ -64,18 +66,6 @@ CORRECTION_MARKERS = (
     "the truth",
     "truth is",
     "will cut",
-)
-
-_UNSAFE_CONTROL_PHRASES = (
-    "alive check",
-    "answer one sentence",
-    "compact recovery check",
-    "deep probe",
-    "degraded recovery",
-    "health probe",
-    "probe prompt",
-    "recovery check",
-    "stress probe",
 )
 
 _VALUE_SIGNAL_PHRASES = (
@@ -194,13 +184,17 @@ def classify_operator_truth_safety(value: str, *, source_text: str = "") -> str:
         return "value_too_long"
     lowered = clean.lower()
     source = _compact(source_text)
-    combined = f"{lowered} {source.lower()}".strip()
-    if any(phrase in combined for phrase in _UNSAFE_CONTROL_PHRASES):
+    combined = f"{clean} {source}".strip()
+    control = classify_control_language(combined)
+    clean_control = classify_control_language(clean)
+    if any(reason in control.reason_codes for reason in ("control_phrase", "probe_label")):
         return "control_prompt"
-    if any(token in combined for token in ("cass-deep-", "probe-", "stress-", "recovery-check")):
-        return "probe_label"
-    if lowered.startswith(("answer ", "reply ", "respond ", "summarize ")):
+    if "instruction_prefix" in clean_control.reason_codes:
         return "instruction_not_value"
+    if "runtime_diagnostic" in control.reason_codes:
+        return "runtime_diagnostic"
+    if control.is_control_language:
+        return "control_language"
     if (
         "?" in clean
         or "?" in source

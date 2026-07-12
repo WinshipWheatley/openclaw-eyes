@@ -1434,3 +1434,10 @@ generated/system_knowledge/*.sqlite
 !tests/test_assert_listeners_current.py
 !tests/test_cassandra_identity_persona_core.py
 !tests/test_chief_identity_persona_core.py
+!control_language_policy.py
+!final_output_boundary.py
+!cassandra_state_hygiene.py
+!tests/test_control_language_policy.py
+!tests/test_final_output_boundary.py
+!tests/test_cassandra_state_hygiene.py
+!tests/test_165_output_boundary_integration.py
