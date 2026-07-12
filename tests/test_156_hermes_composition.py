@@ -541,7 +541,8 @@ async def test_installed_wrapper_cancels_actual_sidecar_and_retains_session_leas
         elapsed = time.monotonic() - started
         session_key = runner._session_key_for_source(source)
 
-        assert "Hermes could not produce a fresh answer" in timeout_reply
+        # 2026-07-12 (165 boundary): timeout text is now humanized — the HT2 internal-language leak fix.
+        assert "I couldn't produce a fresh grounded answer" in timeout_reply
         assert elapsed < 1.25
         assert BlockingAgent.started.is_set()
         assert BlockingAgent.interrupted.is_set()
