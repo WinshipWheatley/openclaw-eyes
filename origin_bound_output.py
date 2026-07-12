@@ -12,9 +12,15 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from fleet_receipt_index import (
+    HUMAN_RECEIPT_LOOKUP_HINT,
+    render_receipt_safe_visible_text,
+)
+
 
 OPERATOR_AUDIENCE = "operator"
 GENERIC_SAFE_FAILURE = "Cassandra couldn't complete that request. Nothing was sent or changed."
+RECEIPT_LOOKUP_HINT = HUMAN_RECEIPT_LOOKUP_HINT
 
 
 def _clean(value: Any) -> str:
@@ -80,6 +86,7 @@ class OriginBoundOutput:
     generic_text: str = GENERIC_SAFE_FAILURE
     document_path: str = ""
     reply_markup: Mapping[str, Any] | None = None
+    advertise_receipt_lookup: bool = False
     internal: Mapping[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
     @classmethod
@@ -93,6 +100,7 @@ class OriginBoundOutput:
         generic_text: str = GENERIC_SAFE_FAILURE,
         internal: Mapping[str, Any] | None = None,
         reply_markup: Mapping[str, Any] | None = None,
+        advertise_receipt_lookup: bool = False,
     ) -> "OriginBoundOutput":
         return cls(
             origin=origin,
@@ -102,6 +110,7 @@ class OriginBoundOutput:
             operator_text=_clean(operator_text),
             generic_text=_clean(generic_text) or GENERIC_SAFE_FAILURE,
             reply_markup=reply_markup,
+            advertise_receipt_lookup=advertise_receipt_lookup is True,
             internal=dict(internal or {}),
         )
 
@@ -116,6 +125,7 @@ class OriginBoundOutput:
         caption: str,
         generic_text: str = GENERIC_SAFE_FAILURE,
         internal: Mapping[str, Any] | None = None,
+        advertise_receipt_lookup: bool = False,
     ) -> "OriginBoundOutput":
         return cls(
             origin=origin,
@@ -125,11 +135,22 @@ class OriginBoundOutput:
             operator_text=_clean(caption),
             generic_text=_clean(generic_text) or GENERIC_SAFE_FAILURE,
             document_path=str(document_path or ""),
+            advertise_receipt_lookup=advertise_receipt_lookup is True,
             internal=dict(internal or {}),
         )
 
     def visible_text(self) -> str:
-        return self.operator_text if self.origin.is_operator else self.generic_text
+        visible = self.operator_text if self.origin.is_operator else self.generic_text
+        should_advertise = bool(
+            self.advertise_receipt_lookup is True
+            and self.origin.is_operator
+            and self.receipt_pointer
+        )
+        return render_receipt_safe_visible_text(
+            visible,
+            raw_ref=self.receipt_pointer,
+            advertise=should_advertise,
+        )
 
 
 def collect_origin_outputs(value: Any) -> list[OriginBoundOutput]:

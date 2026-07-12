@@ -445,6 +445,19 @@ def contract_receipt_db_path(*, environ: Mapping[str, str] | None = None) -> Pat
     return Path(__file__).resolve().parent / "generated" / "receipts" / "typed_contract_receipts.sqlite3"
 
 
+def contract_receipt_binding_sha256(agent: str, surface: str) -> str:
+    """Return a nonreversible provider binding for one conversational adapter."""
+
+    material = "|".join(
+        (
+            "typed-contract-receipt-binding-v1",
+            " ".join(str(agent or "").strip().lower().split()),
+            " ".join(str(surface or "").strip().lower().split()),
+        )
+    )
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
 def _ensure_contract_receipt_schema(connection: sqlite3.Connection) -> None:
     connection.execute(
         """
@@ -459,13 +472,27 @@ def _ensure_contract_receipt_schema(connection: sqlite3.Connection) -> None:
             model_called INTEGER NOT NULL,
             semantic_vote_status TEXT NOT NULL,
             confidence REAL NOT NULL,
+            binding_sha256 TEXT NOT NULL DEFAULT '',
             created_at_epoch_ms INTEGER NOT NULL
         )
         """
     )
+    columns = {
+        str(row[1])
+        for row in connection.execute("PRAGMA table_info(contract_preserve_receipts)")
+    }
+    if "binding_sha256" not in columns:
+        connection.execute(
+            "ALTER TABLE contract_preserve_receipts "
+            "ADD COLUMN binding_sha256 TEXT NOT NULL DEFAULT ''"
+        )
 
 
-def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractReceipt:
+def _persist_contract_preserve_receipt(
+    receipt: ContractReceipt,
+    *,
+    context: ContractContext,
+) -> ContractReceipt:
     """Persist one bounded, idempotent preserve receipt without request data."""
 
     if (
@@ -482,6 +509,7 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
         with sqlite3.connect(str(path), timeout=0.25) as connection:
             connection.execute("PRAGMA busy_timeout = 250")
             _ensure_contract_receipt_schema(connection)
+            binding_sha256 = contract_receipt_binding_sha256(context.agent, context.surface)
             cursor = connection.execute(
                 """
                 INSERT OR IGNORE INTO contract_preserve_receipts (
@@ -495,8 +523,9 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                     model_called,
                     semantic_vote_status,
                     confidence,
+                    binding_sha256,
                     created_at_epoch_ms
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     receipt.decision_id,
@@ -509,9 +538,29 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                     int(receipt.model_called),
                     receipt.semantic_vote_status,
                     receipt.confidence,
+                    binding_sha256,
                     int(time.time() * 1000),
                 ),
             )
+            existing_binding = connection.execute(
+                "SELECT binding_sha256 FROM contract_preserve_receipts WHERE decision_id=?",
+                (receipt.decision_id,),
+            ).fetchone()
+            stored_binding = str(existing_binding[0] or "") if existing_binding is not None else ""
+            if not stored_binding:
+                connection.execute(
+                    "UPDATE contract_preserve_receipts SET binding_sha256=? WHERE decision_id=?",
+                    (binding_sha256, receipt.decision_id),
+                )
+                binding_status = "binding_upgraded" if cursor.rowcount == 0 else "inserted"
+            elif stored_binding != binding_sha256:
+                return replace(
+                    receipt,
+                    receipt_persisted=False,
+                    receipt_persistence_status="conflict:binding_mismatch",
+                )
+            else:
+                binding_status = "inserted" if cursor.rowcount == 1 else "already_present"
             # Keep the newest bounded set.  No message, token, session
             # snapshot, exception detail, or arbitrary context enters this
             # table; only the typed receipt fields above are retained.
@@ -528,7 +577,7 @@ def _persist_contract_preserve_receipt(receipt: ContractReceipt) -> ContractRece
                 """,
                 (limit,),
             )
-        status = "inserted" if cursor.rowcount == 1 else "already_present"
+        status = binding_status
         return replace(receipt, receipt_persisted=True, receipt_persistence_status=status)
     except Exception as exc:
         # Preserve still fails closed if the evidence sink is unavailable; the
@@ -560,7 +609,8 @@ def resolve_contract_receipt(
                 """
                 SELECT decision_id, schema_version, label, action, precedence,
                        source, reason_code, model_called,
-                       semantic_vote_status, confidence, created_at_epoch_ms
+                       semantic_vote_status, confidence, binding_sha256,
+                       created_at_epoch_ms
                 FROM contract_preserve_receipts
                 WHERE decision_id = ?
                 """,
@@ -602,7 +652,16 @@ def _make_decision(
         receipt_pointer=receipt_pointer,
         started=started,
     )
-    receipt = _persist_contract_preserve_receipt(receipt)
+    receipt = _persist_contract_preserve_receipt(receipt, context=context)
+    if (
+        action is DecisionAction.PRESERVE_SESSION
+        and not receipt.receipt_persisted
+        and reply
+    ):
+        # A lookup hint is a claim that a durable provider record exists. If
+        # persistence failed, keep the session fail-closed but do not advertise
+        # a dead retrieval path.
+        reply = str(reply).replace(f" {_receipt_lookup_hint()}", "")
     return ContractDecision(
         label=label,
         matches=matches or (label,),
@@ -910,9 +969,15 @@ def _preserve_reply(context: ContractContext) -> str:
     )
 
 
+def _receipt_lookup_hint() -> str:
+    """Return an operator-safe lookup instruction; raw refs stay machine-only."""
+
+    return "Say “show receipt” for the decision record."
+
+
 def _preserve_reply_with_receipt(text: str, context: ContractContext) -> tuple[str, str]:
     pointer = _decision_id(text, context, ContractLabel.UNRESOLVED)
-    return f"{_preserve_reply(context)} Receipt: {pointer}.", pointer
+    return f"{_preserve_reply(context)} {_receipt_lookup_hint()}", pointer
 
 
 def preserve_session_on_error(
@@ -930,7 +995,7 @@ def preserve_session_on_error(
 
     started = time.monotonic()
     decision_id = _decision_id(text, context, ContractLabel.UNRESOLVED)
-    reply = f"{_preserve_reply(context)} Receipt: {decision_id}."
+    reply = f"{_preserve_reply(context)} {_receipt_lookup_hint()}"
     return _make_decision(
         text=text,
         context=context,
@@ -1416,7 +1481,7 @@ def decide_contract(
                 context=context,
                 label=ContractLabel.UNRESOLVED,
                 action=DecisionAction.PRESERVE_SESSION,
-                reply=f"{_preserve_reply(context)} Receipt: {_preserve_pointer}.",
+                reply=f"{_preserve_reply(context)} {_receipt_lookup_hint()}",
                 source="semantic_vote",
                 reason="uncertain_active_session_preserved",
                 model_called=True,
@@ -1465,7 +1530,7 @@ def decide_contract(
             context=context,
             label=ContractLabel.UNRESOLVED,
             action=DecisionAction.PRESERVE_SESSION,
-            reply=f"{_preserve_reply(context)} Receipt: {pointer}.",
+            reply=f"{_preserve_reply(context)} {_receipt_lookup_hint()}",
             source="fallback",
             reason="optional_vote_disabled_active_session_preserved",
             model_called=False,
@@ -1500,6 +1565,7 @@ __all__ = [
     "DecisionAction",
     "HandoffResult",
     "active_session_from_mapping",
+    "contract_receipt_binding_sha256",
     "contract_receipt_db_path",
     "decide_contract",
     "guardian_gate_narration_reply",

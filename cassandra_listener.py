@@ -28,7 +28,7 @@ import shutil
 import sys
 import tempfile
 import time as _time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path as _Path
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
@@ -46,6 +46,15 @@ from cassandra_identity import (
 from cassandra_sender import send_voice_note
 from cassandra_voice import speak, synthesize_for_voice_note
 from cassandra_whisper_relay import relay_transcript, transcribe_audio
+from fleet_receipt_index import (
+    DEFAULT_SQLITE_PATH as DEFAULT_FLEET_RECEIPT_INDEX_PATH,
+    ReceiptDescriptor,
+    build_receipt_descriptor,
+    parse_receipt_request,
+    register_delivered_receipt,
+    render_receipt_safe_visible_text,
+    resolve_receipt_request,
+)
 from listener_resilience import bounded_reply_timeout, clean_stale_carryover
 from origin_bound_output import (
     GENERIC_SAFE_FAILURE,
@@ -57,6 +66,7 @@ from origin_bound_output import (
 )
 from telegram_agent_intake import claim_listener_update, record_cassandra_listener_text_update
 from telegram_listener_integrity import install_identity_preflight, run_verified_polling
+from telegram_receipt_adapter import contract_delivery_descriptor
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
@@ -97,6 +107,120 @@ _APPROVAL_STALLED_NOTICE = "Guardian approval is still pending longer than expec
 _CHAT_REQUEST_TOKENS: dict[int, int] = {}
 _TIMEOUT_SENTINEL = object()
 _ORIGIN_DELIVERY_TRACKER = OriginDeliveryTracker()
+_CONTACT_RECEIPT_LOOKUP_DENIAL = "Receipt lookup is available only to the operator."
+_REPLY_ONLY_AUTHORITY = "Reply delivery only; no business-action authority was granted."
+_REPLY_ONLY_NO_ACTION_FACTS = (
+    "No email or external message action is claimed.",
+    "No ledger, payment, or workflow action is claimed.",
+)
+
+
+class _ReceiptBoundReply(str):
+    """String-compatible reply carrying proof for post-send indexing.
+
+    The Cassandra brain/listener seam historically returns strings.  Keeping
+    this carrier as a ``str`` preserves every existing caller while the live
+    delivery adapter can still recognize it and read the machine-only fields.
+    """
+
+    __slots__ = ("descriptor",)
+
+    def __new__(
+        cls,
+        *,
+        text: str,
+        descriptor: ReceiptDescriptor,
+    ) -> "_ReceiptBoundReply":
+        value = str.__new__(cls, text)
+        value.descriptor = descriptor
+        return value
+
+    @property
+    def text(self) -> str:
+        return str(self)
+
+    @property
+    def provider(self) -> str:
+        return self.descriptor.provider
+
+    @property
+    def what_happened(self) -> str:
+        return self.descriptor.what_happened
+
+    @property
+    def status(self) -> str:
+        return self.descriptor.status
+
+    @property
+    def raw_ref(self) -> str:
+        return self.descriptor.raw_ref
+
+
+def _fleet_receipt_index_path(override=None) -> _Path:
+    """Resolve the receipt index lazily so tests/runtime can bind their own DB."""
+
+    return _Path(
+        override
+        or os.environ.get("OPENCLAW_FLEET_RECEIPT_INDEX_DB")
+        or DEFAULT_FLEET_RECEIPT_INDEX_PATH
+    )
+
+
+def _delivery_descriptor(
+    *,
+    provider: str,
+    raw_ref: str,
+    what_happened: str,
+    status: str,
+    delivered_at: str,
+):
+    return build_receipt_descriptor(
+        provider=provider,
+        raw_ref=raw_ref,
+        what_happened=what_happened,
+        status=status,
+        occurred_at=delivered_at,
+        authority_summary=_REPLY_ONLY_AUTHORITY,
+        no_action_facts=_REPLY_ONLY_NO_ACTION_FACTS,
+    )
+
+
+def _typed_contract_bound_reply(
+    decision,
+    *,
+    workflow_db_path=None,
+) -> str | _ReceiptBoundReply:
+    """Carry durable workflow/preserve proof into the post-send adapter."""
+
+    text = str(getattr(decision, "reply", "") or "")
+    receipt = getattr(decision, "receipt", None)
+    receipt_mapping = receipt.to_dict() if callable(getattr(receipt, "to_dict", None)) else {
+        key: getattr(receipt, key, None)
+        for key in ("action", "receipt_pointer", "receipt_persisted", "session_preserved")
+    }
+    try:
+        descriptor = contract_delivery_descriptor(
+            receipt_mapping,
+            actor="cassandra",
+            surface="cassandra_telegram",
+            workflow_db_path=workflow_db_path,
+        )
+    except Exception:
+        descriptor = None
+    safe_text = render_receipt_safe_visible_text(
+        text,
+        raw_ref=str(getattr(receipt, "receipt_pointer", "") or ""),
+        advertise=descriptor is not None,
+    )
+    if descriptor is None:
+        # A typed decision may have composed the generic hint before its
+        # persistence attempt failed.  This adapter must not advertise a dead
+        # lookup path.
+        return safe_text
+    return _ReceiptBoundReply(
+        text=safe_text,
+        descriptor=descriptor,
+    )
 
 # ── Producer integration ─────────────────────────────────────────────────────
 
@@ -306,12 +430,12 @@ def _try_invoice_cockpit(
         if result.get("error"):
             operator_text = (
                 "I couldn't prepare that invoice for review. Nothing was sent. "
-                f"Receipt: {receipt}."
+                "Say “show receipt” for the delivery record."
             )
         else:
             operator_text = (
                 "The invoice workflow handled that step without running an unapproved send. "
-                f"Receipt: {receipt}."
+                "Say “show receipt” for the delivery record."
             )
         return [
             OriginBoundOutput.guarded_text(
@@ -320,6 +444,7 @@ def _try_invoice_cockpit(
                 receipt_pointer=receipt,
                 operator_text=operator_text,
                 generic_text=GENERIC_SAFE_FAILURE,
+                advertise_receipt_lookup=True,
                 internal={"cockpit_result": result},
             )
         ]
@@ -332,9 +457,10 @@ def _try_invoice_cockpit(
                 receipt_pointer=receipt,
                 operator_text=(
                     "I couldn't prepare that invoice for review. Nothing was sent. "
-                    f"Receipt: {receipt}."
+                    "Say “show receipt” for the delivery record."
                 ),
                 generic_text=GENERIC_SAFE_FAILURE,
+                advertise_receipt_lookup=True,
                 internal={"exception_type": type(exc).__name__, "exception": str(exc)},
             )
         ]
@@ -353,7 +479,7 @@ def _operator_refusal_reply(text: str) -> str | None:
 async def _run_cassandra_handle_async(
     text: str,
     session_meta: dict,
-) -> list[str | OriginBoundOutput]:
+) -> list[str | OriginBoundOutput | _ReceiptBoundReply]:
     # Task 151: Cassandra's typed decision adapter sits in the listener before
     # the invoice cockpit.  It is intentionally transport-neutral: handled
     # answers return to the already-bound origin sender below; delegated
@@ -507,7 +633,12 @@ async def _run_cassandra_handle_async(
         return await asyncio.to_thread(cassandra_handle, text, session_meta)
 
     if _contract_decision is not None and _contract_decision.handled:
-        return [str(_contract_decision.reply or "")]
+        return [
+            _typed_contract_bound_reply(
+                _contract_decision,
+                workflow_db_path=session_meta.get("workflow_package_sqlite_path"),
+            )
+        ]
 
     # A true compound payment/read + finalized-review ask must not lose one
     # half to the cockpit's early return.  Sequence a grounded money read first,
@@ -575,7 +706,11 @@ async def _run_cassandra_handle_async(
     return await asyncio.to_thread(cassandra_handle, text, session_meta)
 
 
-async def _run_cassandra_with_backpressure(run_cassandra, text: str, session_meta: dict) -> list[str]:
+async def _run_cassandra_with_backpressure(
+    run_cassandra,
+    text: str,
+    session_meta: dict,
+) -> list[str | OriginBoundOutput | _ReceiptBoundReply]:
     async with _HEAVY_REQUEST_SEMAPHORE:
         return await run_cassandra(text, session_meta)
 
@@ -682,6 +817,8 @@ async def _dispatch_origin_bound_output(
     send_text,
     send_document,
     tracker: OriginDeliveryTracker = _ORIGIN_DELIVERY_TRACKER,
+    source_message_id: str = "",
+    receipt_db_path=None,
 ) -> bool:
     """Verify, deduplicate, and deliver through one already-bound adapter."""
 
@@ -693,26 +830,102 @@ async def _dispatch_origin_bound_output(
         if output.kind == "document" and output.origin.is_operator:
             if not output.document_path or not _Path(output.document_path).is_file() or send_document is None:
                 await send_text(
-                    "I couldn't attach the prepared invoice. Nothing was sent. "
-                    f"Receipt: {output.receipt_pointer}.",
+                    "I couldn't attach the prepared invoice. Nothing was sent.",
                     reply_markup=None,
                 )
+                # The fallback was delivered, but the prepared origin output
+                # was not.  It must not gain a successful delivery receipt.
+                return True
             else:
-                await send_document(output.document_path, visible)
-            return True
+                sent_message = await send_document(output.document_path, visible)
+        else:
+            reply_markup = (
+                _telegram_reply_markup(output.reply_markup)
+                if output.origin.is_operator and output.reply_markup
+                else None
+            )
+            sent_message = await send_text(visible, reply_markup=reply_markup)
 
-        reply_markup = (
-            _telegram_reply_markup(output.reply_markup)
-            if output.origin.is_operator and output.reply_markup
-            else None
-        )
-        await send_text(visible, reply_markup=reply_markup)
+        # Telegram confirms transport completion by returning the outbound
+        # Message.  Indexing is deliberately post-send and fail-soft: a broken
+        # local index cannot trigger a second network delivery.
+        outbound_message_id = str(getattr(sent_message, "message_id", "") or "")
+        actual_source_message_id = str(source_message_id or "")
+        if output.origin.is_operator and outbound_message_id and actual_source_message_id:
+            delivered_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            try:
+                descriptor = _delivery_descriptor(
+                    provider="origin_output",
+                    raw_ref=output.receipt_pointer,
+                    what_happened=(
+                        "Cassandra delivered a prepared document."
+                        if output.kind == "document"
+                        else "Cassandra delivered an operator response."
+                    ),
+                    status="Delivered successfully.",
+                    delivered_at=delivered_at,
+                )
+                register_delivered_receipt(
+                    descriptor,
+                    surface=bound_origin.surface,
+                    bot_identity=bound_origin.bot_identity,
+                    chat_id=bound_origin.chat_id,
+                    source_message_id=actual_source_message_id,
+                    delivered_message_id=outbound_message_id,
+                    delivery_succeeded=True,
+                    delivered_at=delivered_at,
+                    db_path=_fleet_receipt_index_path(receipt_db_path),
+                )
+            except Exception as exc:
+                print(
+                    "[cassandra_listener] receipt index registration failed: "
+                    f"{type(exc).__name__}",
+                    flush=True,
+                )
         return True
     except Exception:
         # A failed transport attempt is not a delivery.  Let a replay retry;
         # only a completed bound send is suppressed as a duplicate.
         tracker.release(output)
         raise
+
+
+async def _dispatch_receipt_bound_reply(
+    reply: _ReceiptBoundReply,
+    *,
+    bound_origin: OutputOrigin,
+    send_text,
+    source_message_id: str,
+    receipt_db_path=None,
+) -> bool:
+    """Send once, then index durable typed proof without retrying delivery."""
+
+    sent_message = await send_text(reply.text, reply_markup=None)
+    outbound_message_id = str(getattr(sent_message, "message_id", "") or "")
+    actual_source_message_id = str(source_message_id or "")
+    if not outbound_message_id or not actual_source_message_id:
+        return True
+
+    delivered_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    try:
+        register_delivered_receipt(
+            reply.descriptor,
+            surface=bound_origin.surface,
+            bot_identity=bound_origin.bot_identity,
+            chat_id=bound_origin.chat_id,
+            source_message_id=actual_source_message_id,
+            delivered_message_id=outbound_message_id,
+            delivery_succeeded=True,
+            delivered_at=delivered_at,
+            db_path=_fleet_receipt_index_path(receipt_db_path),
+        )
+    except Exception as exc:
+        print(
+            "[cassandra_listener] receipt index registration failed: "
+            f"{type(exc).__name__}",
+            flush=True,
+        )
+    return True
 
 
 async def _escalate_failure_and_deliver(
@@ -758,6 +971,11 @@ async def _send_reply_batch_or_degraded(
 ) -> list[str]:
     delivered: list[str] = []
     for reply in replies or []:
+        if isinstance(reply, _ReceiptBoundReply):
+            if should_deliver():
+                await send_reply(reply)
+                delivered.append(reply.text)
+            continue
         if isinstance(reply, OriginBoundOutput):
             if should_deliver():
                 await send_reply(reply)
@@ -789,7 +1007,7 @@ async def _run_request_with_timeout_contract(
     run_cassandra=_run_cassandra_handle_async,
     escalate_failure=_trigger_chief_investigation_async,
     should_deliver=lambda: True,
-) -> list[str | OriginBoundOutput] | None:
+) -> list[str | OriginBoundOutput | _ReceiptBoundReply] | None:
     recovery_reply = _lightweight_recovery_reply(text)
     if _HEAVY_REQUEST_SEMAPHORE.locked() and recovery_reply is not None:
         await _send_reply_batch_or_degraded(
@@ -894,6 +1112,44 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not claim_listener_update(update, role="cassandra", source_channel="cassandra_listener"):
         return
+
+    text = update.message.text.strip()
+    if not text:
+        return
+
+    # Receipt retrieval is a bounded local read.  It runs only after update-id
+    # ownership is claimed, and before governed intake, session, or model work.
+    # Designated contacts can use Cassandra, but cannot query operator receipts.
+    receipt_request = parse_receipt_request(text)
+    if receipt_request is not None:
+        if not is_authorized_user:
+            await update.message.reply_text(_CONTACT_RECEIPT_LOOKUP_DENIAL)
+            return
+        reply_to_message = getattr(update.message, "reply_to_message", None)
+        try:
+            resolution = resolve_receipt_request(
+                text,
+                surface="cassandra_telegram",
+                bot_identity="cassandra",
+                chat_id=str(sender_chat_id or ""),
+                reply_to_message_id=str(
+                    getattr(reply_to_message, "message_id", "") or ""
+                ),
+                db_path=_fleet_receipt_index_path(),
+            )
+        except Exception as exc:
+            print(
+                f"[cassandra_listener] receipt lookup failed: {type(exc).__name__}",
+                flush=True,
+            )
+            await update.message.reply_text(
+                "I couldn't read the delivered-receipt index right now. No action ran."
+            )
+            return
+        if resolution is not None:
+            await update.message.reply_text(resolution.text)
+            return
+
     print(
         "[chatid-pin] "
         f"sender_name_present={str(bool(sender_name)).lower()} "
@@ -919,9 +1175,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 flush=True,
             )
 
-    text = update.message.text.strip()
-    if not text:
-        return
     if is_authorized_user:
         source_user_label = "operator"
     elif is_designated_contact:
@@ -938,6 +1191,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     request_token = _claim_chat_request(sender_chat_id)
     source_message_id = str(getattr(update, "update_id", "")) or ""
+    actual_source_message_id = str(getattr(update.message, "message_id", "") or "")
     session_meta = {
         "surface": "cassandra_telegram",
         "bot_identity": "cassandra",
@@ -954,21 +1208,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     async def _send_bound_text(reply_text: str, reply_markup=None):
         if reply_markup is None:
-            await update.message.reply_text(reply_text)
-        else:
-            await update.message.reply_text(reply_text, reply_markup=reply_markup)
+            return await update.message.reply_text(reply_text)
+        return await update.message.reply_text(reply_text, reply_markup=reply_markup)
 
     async def _send_bound_document(document_path: str, caption: str):
         with _Path(document_path).open("rb") as document:
-            await update.message.reply_document(document=document, caption=caption)
+            return await update.message.reply_document(document=document, caption=caption)
 
     async def _send_to_prompt(reply):
+        if isinstance(reply, _ReceiptBoundReply):
+            await _dispatch_receipt_bound_reply(
+                reply,
+                bound_origin=bound_origin,
+                send_text=_send_bound_text,
+                source_message_id=actual_source_message_id,
+            )
+            return
         if isinstance(reply, OriginBoundOutput):
             await _dispatch_origin_bound_output(
                 reply,
                 bound_origin=bound_origin,
                 send_text=_send_bound_text,
                 send_document=_send_bound_document,
+                source_message_id=actual_source_message_id,
             )
             return
         await _send_bound_text(str(reply), reply_markup=None)
@@ -1050,7 +1312,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if not replies:
             return
-        text_replies = [str(reply) for reply in replies if not isinstance(reply, OriginBoundOutput)]
+        text_replies = [
+            reply.text if isinstance(reply, _ReceiptBoundReply) else str(reply)
+            for reply in replies
+            if not isinstance(reply, OriginBoundOutput)
+        ]
         if not text_replies:
             return
         suppress = _suppress_voice(text)

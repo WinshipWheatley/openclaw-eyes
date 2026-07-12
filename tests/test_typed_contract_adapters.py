@@ -16,6 +16,12 @@ class _MustNotReach(Exception):
     pass
 
 
+def _assert_human_receipt_hint(text: object) -> None:
+    visible = str(text)
+    assert "Receipt: contract:" not in visible
+    assert "show receipt" in visible.lower()
+
+
 def _fresh_chief_session() -> dict:
     from clarify_session_contract import stamp_clarify_session
 
@@ -114,7 +120,7 @@ def test_maestro_active_session_contract_exception_fails_closed(monkeypatch):
     result = maestro.answer_frontdoor_chat("maybe that other thing", session=session)
     assert result.intent_class == "typed_contract_session_preserved"
     assert result.machine_proof["typed_contract_decision"]["source"] == "adapter_error"
-    assert "Receipt: contract:" in result.plain_summary
+    _assert_human_receipt_hint(result.plain_summary)
     assert json.dumps(session, sort_keys=True) == before
 
 
@@ -148,7 +154,7 @@ def test_maestro_active_status_renderer_failure_never_reopens_legacy_session(
     assert result.intent_class == "chief_bare_status_readback" or result.intent_class == "maestro_bare_status_readback"
     assert result.machine_proof["typed_contract_decision"]["action"] == "preserve_session"
     assert result.machine_proof["typed_contract_decision"]["session_preserved"] is True
-    assert "Receipt: contract:" in result.plain_summary
+    _assert_human_receipt_hint(result.plain_summary)
     assert json.dumps(session, sort_keys=True) == before
 
 
@@ -288,7 +294,8 @@ def test_chief_contract_runs_before_history_or_session_capture(monkeypatch):
     result = chief_router._route_message_inner("maybe that other thing")
     assert result["intent"] == "typed_contract_session_preserved"
     assert "left the open billing step unchanged" in result["reply"]
-    assert result["contract_decision"]["receipt_pointer"] in result["reply"]
+    assert result["contract_decision"]["receipt_pointer"] not in result["reply"]
+    _assert_human_receipt_hint(result["reply"])
     assert json.dumps(session, sort_keys=True) == before
 
 
@@ -355,7 +362,7 @@ def test_chief_explicit_vote_off_preserves_unknown_without_legacy_mutation(monke
     result = chief_router._route_message_inner("maybe that other thing")
     assert result["intent"] == "typed_contract_session_preserved"
     assert result["contract_decision"]["semantic_vote_status"] == "disabled"
-    assert "Receipt: contract:" in result["reply"]
+    _assert_human_receipt_hint(result["reply"])
     assert json.dumps(session, sort_keys=True) == before
 
 
@@ -521,7 +528,7 @@ def test_cassandra_active_cockpit_timeout_preserves_file_byte_for_byte(tmp_path,
         )
     )
     assert "left the open invoice cockpit step unchanged" in replies[0]
-    assert "Receipt: contract:" in replies[0]
+    _assert_human_receipt_hint(replies[0])
     assert session_path.read_text(encoding="utf-8") == original
 
 
@@ -546,7 +553,7 @@ def test_cassandra_active_cockpit_contract_exception_fails_closed(tmp_path, monk
             },
         )
     )
-    assert "Receipt: contract:" in replies[0]
+    _assert_human_receipt_hint(replies[0])
     assert session_path.read_text(encoding="utf-8") == original
 
 
@@ -650,7 +657,7 @@ def test_cassandra_guided_telegram_alias_is_same_active_surface(tmp_path, monkey
         )
     )
     assert "left the open guided review step unchanged" in replies[0]
-    assert "Receipt: contract:" in replies[0]
+    _assert_human_receipt_hint(replies[0])
     assert path.read_bytes() == before
 
 
@@ -747,7 +754,7 @@ def test_guided_review_semantic_route_without_stager_preserves_and_never_advance
     assert result["typed_contract_decision"]["action"] == "preserve_session"
     assert result["typed_contract_decision"]["model_called"] is True
     assert result["typed_contract_decision"]["semantic_vote_status"] == "accepted"
-    assert "Receipt: contract:" in result["reply_text"]
+    _assert_human_receipt_hint(result["reply_text"])
     assert path.read_bytes() == before
 
 
@@ -767,7 +774,7 @@ def test_guided_review_contract_exception_fails_closed_without_persistence(tmp_p
         read_model_root=tmp_path / "read-models",
         generated_at_utc=now,
     )
-    assert "Receipt: contract:" in result["reply_text"]
+    _assert_human_receipt_hint(result["reply_text"])
     assert path.read_bytes() == before
 
 
@@ -863,7 +870,7 @@ def test_guardian_pending_contract_exception_preserves_before_eli5(monkeypatch):
     )
     asyncio.run(listener.handle_message(update, types.SimpleNamespace()))
     assert "left the open guardian pending approval step unchanged" in update.message.replies[0]
-    assert "Receipt: contract:" in update.message.replies[0]
+    _assert_human_receipt_hint(update.message.replies[0])
 
 
 def test_guardian_pending_vote_timeout_preserves_with_visible_receipt(monkeypatch):
@@ -894,7 +901,7 @@ def test_guardian_pending_vote_timeout_preserves_with_visible_receipt(monkeypatc
     )
     asyncio.run(listener.handle_message(update, types.SimpleNamespace()))
     assert "left the open guardian pending approval step unchanged" in update.message.replies[0]
-    assert "Receipt: contract:" in update.message.replies[0]
+    _assert_human_receipt_hint(update.message.replies[0])
 
 
 def test_guardian_pending_semantic_route_without_stager_never_reaches_eli5(monkeypatch):
@@ -929,7 +936,7 @@ def test_guardian_pending_semantic_route_without_stager_never_reaches_eli5(monke
     )
     asyncio.run(listener.handle_message(update, types.SimpleNamespace()))
     assert "left the open guardian pending approval step unchanged" in update.message.replies[0]
-    assert "Receipt: contract:" in update.message.replies[0]
+    _assert_human_receipt_hint(update.message.replies[0])
 
 
 def _load_niles_listener(monkeypatch):

@@ -170,6 +170,7 @@
 !openclaw_event_bridge_adapter.py
 !workflow_package_queue.py
 !workflow_package_request_consumer.py
+!fleet_receipt_index.py
 !sqlite_governance_registry.py
 !canonical_state_map.py
 !sqlite_consolidation_plan.py
@@ -181,6 +182,13 @@
 !invoice_generator.py
 !st_annes_invoice_status.py
 !tests/test_invoice_cockpit_ops.py
+!tests/test_fleet_receipt_index.py
+!tests/test_164_receipt_provider_rendering.py
+!tests/test_164_maestro_receipt_adapter.py
+!tests/test_164_cassandra_receipt_adapter.py
+!tests/test_164_fleet_listener_receipts.py
+!telegram_receipt_adapter.py
+!tests/test_telegram_receipt_adapter.py
 !capital_hilton_payment_ingest.py
 !tests/test_capital_hilton_payment_ingest.py
 !reminders_store.py

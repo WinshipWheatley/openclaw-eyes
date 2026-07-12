@@ -10,6 +10,12 @@ from telegram_listener_integrity import (
     resolve_role_bot_token,
     run_verified_polling,
 )
+from telegram_receipt_adapter import (
+    contract_delivery_descriptor,
+    register_telegram_delivery,
+    render_verified_receipt_reply,
+    resolve_telegram_receipt_request,
+)
 
 # Environment setup
 BOT_TOKEN = resolve_role_bot_token("niles")
@@ -148,11 +154,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    effective_chat = getattr(update, "effective_chat", None)
+    chat_id = effective_chat.id if effective_chat else AUTHORIZED_USER_ID
+    try:
+        receipt_resolution = resolve_telegram_receipt_request(
+            text,
+            surface="niles_producer_listener",
+            bot_identity="niles",
+            chat_id=chat_id,
+            message=update.message,
+        )
+    except Exception as exc:
+        print(f"[producer_listener] receipt lookup failed: {type(exc).__name__}", flush=True)
+        await update.message.reply_text(
+            "The receipt index is unavailable right now. No send, workflow, model, tool, "
+            "ledger, payment, or external action ran."
+        )
+        return
+    if receipt_resolution is not None:
+        await update.message.reply_text(receipt_resolution.text)
+        return
+
+    trace_source_message_id = str(getattr(update, "update_id", "") or "")
+    delivery_source_message_id = str(getattr(update.message, "message_id", "") or "")
     record_telegram_listener_update_safe(
         text=text,
         source_channel="niles_producer_listener",
         agent_target="niles",
-        source_message_id=str(getattr(update, "update_id", "")) or None,
+        source_message_id=trace_source_message_id or None,
         source_user_label="operator",
         operator_message=True,
         route_intent=True,
@@ -173,7 +202,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context=ContractContext(
                 agent="niles",
                 surface="niles_producer_listener",
-                source_message_id=str(getattr(update, "update_id", "") or ""),
+                source_message_id=trace_source_message_id,
             ),
             status_renderer=build_niles_bare_status_answer,
             semantic_vote_enabled=semantic_vote_enabled_for_adapter("niles", default=True),
@@ -182,7 +211,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _typed = None
     if _typed is not None and _typed.handled:
         _typed_reply = str(_typed.reply or "")
-        await update.message.reply_text(_typed_reply)
+        try:
+            _typed_descriptor = contract_delivery_descriptor(
+                _typed.receipt.to_dict(),
+                actor="niles",
+                surface="niles_producer_listener",
+            )
+        except Exception as exc:
+            print(f"[producer_listener] contract receipt skipped: {type(exc).__name__}", flush=True)
+            _typed_descriptor = None
+        _typed_reply = render_verified_receipt_reply(
+            _typed_reply,
+            _typed_descriptor,
+            raw_ref=str(getattr(_typed.receipt, "receipt_pointer", "") or ""),
+        )
+        delivered_message = await update.message.reply_text(_typed_reply)
+        try:
+            register_telegram_delivery(
+                _typed_descriptor,
+                surface="niles_producer_listener",
+                bot_identity="niles",
+                chat_id=chat_id,
+                source_message_id=delivery_source_message_id,
+                delivered_message=delivered_message,
+            )
+        except Exception as exc:
+            print(
+                f"[producer_listener] delivered receipt index skipped: {type(exc).__name__}",
+                flush=True,
+            )
         _fire_agent_voice("niles", _typed_reply, update)
         return
 

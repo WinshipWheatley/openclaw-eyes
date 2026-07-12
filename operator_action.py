@@ -1483,7 +1483,9 @@ def format_operator_action_report(payload: dict[str, Any]) -> str:
         elif "rejection_reason" in item:
             lines.append(f"- rejected {item['action_type']}: {item['rejection_reason']}")
         elif "receipt_type" in item:
-            lines.append(f"- {item['receipt_type']} {item['receipt_id']}: {item['result']}")
+            lines.append(
+                f"- {item['receipt_type']}: {item['result']}. Machine evidence retained."
+            )
         elif "execution_id" in item and "exit_code" in item:
             lines.append(
                 f"- {item['execution_id']} for {item['action_type']}: {item['status']} exit={item['exit_code']}"
@@ -1549,11 +1551,11 @@ def format_operator_actions_read_model(read_model: dict[str, Any]) -> str:
     else:
         lines.append("- None.")
     lines.append("")
-    lines.append("Last execution receipt:")
+    lines.append("Last execution result:")
     if receipt:
         lines.extend(
             [
-                f"- Receipt: `{receipt['receipt_id']}`.",
+                "- Machine evidence: retained below deck.",
                 f"- Result: `{receipt['result']}`.",
                 f"- Exit code: `{receipt['exit_code']}`.",
                 f"- Summary: {receipt['summary']}",
@@ -1646,7 +1648,7 @@ def format_approval_result(result: ActionApprovalResult) -> str:
             f"Approval: `{result.approval_id}`",
             f"Status: `{result.status}`",
             f"Approved by: `{result.approved_by}`",
-            f"Receipt: `{result.approval_receipt_id}`",
+            "Machine evidence: retained below deck.",
             "",
             "Boundary:",
             "- Approval records an explicit decision only; execution requires a separate command.",
@@ -1665,7 +1667,7 @@ def format_execution_result(result: ActionExecutionResult) -> str:
             f"Status: `{result.status}`",
             f"Exit code: `{result.exit_code}`",
             f"Duration ms: `{result.duration_ms}`",
-            f"Receipt: `{result.receipt_id}`",
+            "Machine evidence: retained below deck.",
             "",
             "Boundary:",
             "- Executed one hardcoded allowlisted command array after explicit approval.",

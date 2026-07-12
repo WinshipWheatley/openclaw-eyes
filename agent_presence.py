@@ -2554,7 +2554,7 @@ def format_agent_recovery_result(result: AgentRecoveryResult) -> str:
         f"Action: `{result.action_id or 'none'}`",
         f"Attempted: `{str(result.attempted).lower()}`",
         f"Exit code: `{result.exit_code}`",
-        f"Receipt: `{result.receipt_id or 'none'}`",
+        "Machine evidence: retained below deck.",
         f"Blocker: {result.blocker or 'none'}",
         f"Summary: {result.summary}",
         "",
