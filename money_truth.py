@@ -227,6 +227,163 @@ def _rows_for_question(
     return temporal
 
 
+_TOTAL_MONEY_CONTEXT_RE = re.compile(
+    r"\b(?:outstanding|unpaid|overdue|receivables?|owe[sd]?|owed|"
+    r"open\s+invoices?|money|balance)\b"
+)
+_TOTAL_ACCOUNTING_CONTEXT_RE = re.compile(
+    r"\b(?:unpaid|overdue|receivables?|owe[sd]?|owed|open\s+invoices?|money|balance)\b"
+)
+_TOTAL_EXACT_RE = re.compile(
+    r"\b(?:exact|single|one)\s+(?:number|amount|figure|total)\b"
+)
+_TOTAL_AGGREGATE_RE = re.compile(
+    r"\b(?:sum(?:\s+up)?|add(?:s|ed|ing)?\s+up|combined|altogether|"
+    r"all\s+together|in\s+total)\b"
+)
+_TOTAL_BALANCE_RE = re.compile(
+    r"\b(?:(?:total|sum|combined|exact)\s+"
+    r"(?:outstanding|unpaid|overdue|owed|receivables?|balance|amount)"
+    r"|(?:outstanding|unpaid|overdue|owed|receivables?|balance)\s+"
+    r"(?:total|sum))\b"
+)
+_TOTAL_QUESTION_RE = re.compile(
+    r"\b(?:how\s+much|what(?:'s|\s+is)|give\s+me|tell\s+me|show\s+me)\b"
+)
+_TOTAL_HOW_MUCH_RE = re.compile(
+    r"\bhow\s+much\b[^.?!]{0,80}\b(?:outstanding|unpaid|overdue|owed|owe[sd]?|receivables?|balance)\b"
+    r"|\b(?:outstanding|unpaid|overdue|owed|owe[sd]?|receivables?|balance)\b[^.?!]{0,80}\bhow\s+much\b"
+)
+
+
+def is_money_total_question(question: str) -> bool:
+    """Return True only for a read-only ask requesting aggregate money.
+
+    The aggregate cue and money context are both required.  This keeps phrases
+    such as "the album is a total mess" and "the total invoice copy is
+    outstanding" on their existing non-total paths while accepting natural
+    variants such as "one number", "add up", and "altogether".
+    """
+    q = " ".join(str(question or "").lower().replace("’", "'").split())
+    if not q or not _TOTAL_MONEY_CONTEXT_RE.search(q):
+        return False
+    if _TOTAL_EXACT_RE.search(q) or _TOTAL_AGGREGATE_RE.search(q):
+        return True
+    if _TOTAL_BALANCE_RE.search(q) or _TOTAL_HOW_MUCH_RE.search(q):
+        return True
+    return bool(
+        "total" in q
+        and _TOTAL_QUESTION_RE.search(q)
+        and _TOTAL_ACCOUNTING_CONTEXT_RE.search(q)
+    )
+
+
+def _is_settled_money_row(row: Mapping[str, Any]) -> bool:
+    status = str(row.get("payment_status") or "").strip().lower()
+    return status in {"settled", "paid", "closed"} or bool(row.get("settled_past_no_compound"))
+
+
+def _quantified_open_amount(row: Mapping[str, Any]) -> tuple[str, int] | None:
+    """Return a currency/minor-unit pair only when every numeric claim is safe.
+
+    Explicit ``amount_known=false``, malformed/negative minor units, booleans,
+    and absent/invalid currency codes are all unquantified.  In particular, we
+    never coerce strings or floats into arithmetic for an "exact" answer.
+    """
+    if "amount_known" in row and row.get("amount_known") is not True:
+        return None
+    value = row.get("open_minor_units")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    currency = str(row.get("currency_iso") or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{3}", currency):
+        return None
+    return currency, value
+
+
+def _unquantified_count_line(count: int) -> str:
+    noun = "item is" if count == 1 else "items are"
+    return f"{count} relevant {noun} unquantified."
+
+
+def render_money_total(
+    *,
+    payload: Mapping[str, Any] | None = None,
+    path: str | Path | None = None,
+    question: str = "",
+) -> str:
+    """Render an honest aggregate from the bounded receivables read-model.
+
+    Arithmetic happens only after client and temporal scoping.  Settled rows
+    are never part of either the subtotal or the unquantified count.  A single
+    exact total is claimed only for exactly one currency with no unquantified
+    relevant rows.
+    """
+    payload = payload if payload is not None else load_money_truth(path)
+    as_of = money_truth_as_of(payload)
+    default_year = as_of[:4] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", as_of) else ""
+    scoped_rows = _rows_for_question(
+        money_rows(payload),
+        question,
+        default_year=default_year,
+    )
+    relevant_rows = [row for row in scoped_rows if not _is_settled_money_row(row)]
+
+    if not relevant_rows:
+        if scoped_rows:
+            answer = (
+                "No outstanding items remain in the requested scope after settled rows are excluded. "
+                "0 relevant items are unquantified. No single exact total is claimed."
+            )
+        else:
+            answer = (
+                f"{_no_matching_rows_answer(question, payload)} "
+                "0 relevant items are unquantified. No single exact total is claimed."
+            )
+        return f"{answer} (as of {as_of})" if as_of else answer
+
+    totals: dict[str, int] = {}
+    unquantified_count = 0
+    for row in relevant_rows:
+        quantified = _quantified_open_amount(row)
+        if quantified is None:
+            unquantified_count += 1
+            continue
+        currency, minor_units = quantified
+        totals[currency] = totals.get(currency, 0) + minor_units
+
+    count_line = _unquantified_count_line(unquantified_count)
+    if len(totals) == 1 and unquantified_count == 0:
+        currency, minor_units = next(iter(totals.items()))
+        answer = (
+            f"Exact confirmed outstanding total: {_fmt_minor_units(minor_units, currency)}. "
+            f"{count_line}"
+        )
+    else:
+        ordered_totals = sorted(totals.items(), key=lambda item: (item[0] != "USD", item[0]))
+        if len(ordered_totals) == 1:
+            currency, minor_units = ordered_totals[0]
+            subtotal_line = f"Confirmed outstanding subtotal: {_fmt_minor_units(minor_units, currency)}."
+        elif ordered_totals:
+            rendered = "; ".join(
+                _fmt_minor_units(minor_units, currency)
+                for currency, minor_units in ordered_totals
+            )
+            subtotal_line = f"Confirmed outstanding subtotals by currency: {rendered}."
+        else:
+            subtotal_line = "No quantified outstanding subtotal is available."
+
+        if len(totals) > 1 and unquantified_count:
+            reason = "Multiple currencies and unquantified items are present"
+        elif len(totals) > 1:
+            reason = "Multiple currencies are present"
+        else:
+            reason = "Relevant items remain unquantified"
+        answer = f"{subtotal_line} {count_line} {reason}, so no single exact total is available."
+
+    return f"{answer} (as of {as_of})" if as_of else answer
+
+
 def _temporal_scope_label(question: str, payload: Mapping[str, Any] | None) -> str:
     as_of = money_truth_as_of(payload)
     default_year = as_of[:4] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", as_of) else ""
@@ -313,6 +470,8 @@ def render_money_answer(
 ) -> str:
     """The shared money answer text (agent framing is the caller's route_line)."""
     payload = payload if payload is not None else load_money_truth(path)
+    if is_money_total_question(question):
+        return render_money_total(payload=payload, question=question)
     lines = money_lines(payload, question=question)
     text = " ".join(lines) if lines else _no_matching_rows_answer(question, payload)
     if text == NOT_TRACKED_LINE:
@@ -645,6 +804,8 @@ __all__ = [
     "money_rows",
     "money_truth_as_of",
     "money_lines",
+    "is_money_total_question",
+    "render_money_total",
     "render_money_answer",
     "settled_row_proof_refs",
     "render_payment_verification_ledger",
