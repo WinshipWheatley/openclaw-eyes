@@ -229,12 +229,9 @@ def test_system_knowledge_registry_query_triggers_deterministic_read_only_path(t
 @pytest.mark.parametrize("query", [
     "what's up?",
     "where are we at?",
-    "how are things looking?",
-    "give me the lay of the land",
     "catch me up",
     "what's the move?",
     "what should I know?",
-    "where do things stand?",
     "what's going on with OpenClaw?",
     "remind me what's current",
     "what did we just finish and what's next?",
@@ -268,6 +265,39 @@ def test_fuzzy_status_intents_positive(query):
         replies = handle(query)
         assert mock_handle.called
         assert "Cassandra Status" in replies[0]
+
+
+@pytest.mark.parametrize(
+    "query",
+    (
+        "how are things looking?",
+        "give me the lay of the land",
+        "where do things stand?",
+    ),
+)
+def test_typed_status_phrasings_use_deterministic_owner_without_model(query):
+    """Task 166 moved these exact phrasings to the typed status contract."""
+    with patch(
+        "cassandra_brain._handle_ops_status_inquiry",
+        return_value="Typed deterministic status",
+    ) as deterministic_status, patch(
+        "cassandra_brain._answer_ops_status_inquiry"
+    ) as legacy_model_status, patch(
+        "cassandra_brain.external_language_model_call"
+    ) as external_model, patch(
+        "cassandra_brain._call"
+    ) as local_model, patch(
+        "cassandra_brain._log_conversation"
+    ) as log_conversation:
+        replies = handle(query)
+
+    assert replies == ["Typed deterministic status"]
+    deterministic_status.assert_called_once_with(query)
+    legacy_model_status.assert_not_called()
+    external_model.assert_not_called()
+    local_model.assert_not_called()
+    assert log_conversation.call_args.kwargs["route"] == "typed_contract:status"
+    assert log_conversation.call_args.kwargs["metadata"]["model_called"] is False
 
 @pytest.mark.parametrize("query", [
     "what's up with the weather?",

@@ -78,6 +78,53 @@ def test_proof_refs_do_not_authorize_send_submit_or_money_claims():
     assert {"sent", "submitted", "paid"}.issubset(set(result["validation_result"]["forbidden_claims"]))
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Require evidence before any paid action.",
+        "Require evidence before any paid or ledger action.",
+        "Require evidence before paid truth.",
+        "Require evidence before any paid and ledger action.",
+    ],
+)
+def test_future_paid_guardrails_are_not_completion_claims(text):
+    result = gate.validate_response_payload(
+        _safe_payload(
+            eliwinship=text,
+            proof_refs=("generated/read_models/evidence_intake_status.json",),
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.VALIDATED
+    assert result["validation_result"]["forbidden_claims"] == ()
+    assert result["validation_result"]["output_publish_allowed"] is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Invoice is paid.",
+        "We marked the invoice paid.",
+        "OpenClaw paid the invoice.",
+        "Before paid truth, the invoice is paid.",
+        "Before any paid or ledger action, the invoice is paid.",
+    ],
+)
+def test_evidence_ref_does_not_authorize_real_paid_claims(text):
+    result = gate.validate_response_payload(
+        _safe_payload(
+            eliwinship=text,
+            proof_refs=("generated/read_models/evidence_intake_status.json",),
+            readback_files=(),
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM
+    assert "paid" in result["validation_result"]["forbidden_claims"]
+    assert result["validation_result"]["output_publish_allowed"] is False
+
+
 def test_proof_refs_filter_only_local_completion_claims():
     proof_refs = ("generated/read_models/capital_hilton_invoice_operator_run_status.json",)
 

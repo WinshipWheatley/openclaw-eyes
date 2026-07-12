@@ -81,6 +81,54 @@ def test_arbitrary_world_context_cannot_grant_email_authority(
     assert classify_email_intent(text, context=context) is EmailIntent.NONE
 
 
+def test_st_annes_glenn_lane_restores_bounded_read_and_draft_ownership() -> None:
+    from email_intent import (
+        EmailIntent,
+        classify_email_intent,
+        email_intent_requires_draft,
+        email_intent_requires_read,
+    )
+
+    context = "finance st_annes"
+    read = "Did Glenn acknowledge the invoice or payment timing?"
+    draft = "Never mind, just draft what I should ask Glenn."
+    read_paraphrase = "Has Glenn replied about the payment?"
+    draft_paraphrase = "Could you draft what we should ask Glenn about the invoice?"
+
+    assert classify_email_intent(read, context=context) is EmailIntent.REPLY
+    assert email_intent_requires_read(read, context=context) is True
+    assert email_intent_requires_draft(read, context=context) is False
+    assert classify_email_intent(draft, context=context) is EmailIntent.DRAFT_SEND
+    assert email_intent_requires_read(draft, context=context) is False
+    assert email_intent_requires_draft(draft, context=context) is True
+    assert classify_email_intent(read_paraphrase, context=context) is EmailIntent.REPLY
+    assert classify_email_intent(draft_paraphrase, context=context) is EmailIntent.DRAFT_SEND
+
+
+@pytest.mark.parametrize(
+    ("text", "context"),
+    (
+        ("Did Glenn acknowledge the invoice or payment timing?", "finance capital_hilton"),
+        ("Never mind, just draft what I should ask Glenn.", "finance live_arts_md"),
+        ("Did Glennard acknowledge the invoice or payment timing?", "finance st_annes"),
+        ("did the service respond?", "finance st_annes"),
+        ("draft a follow-up", "finance st_annes"),
+        ("Glenn acknowledged the invoice yesterday.", "finance st_annes"),
+        ("We should acknowledge Glenn at the meeting.", "finance st_annes"),
+        ("Did Glenn respond at the meeting?", "finance st_annes"),
+        ("Draft what I should ask Glenn at the meeting.", "finance st_annes"),
+        ("Did Glenn acknowledge the system status?", "finance st_annes"),
+    ),
+)
+def test_st_annes_lane_context_does_not_grant_unbounded_email_authority(
+    text: str,
+    context: str,
+) -> None:
+    from email_intent import EmailIntent, classify_email_intent
+
+    assert classify_email_intent(text, context=context) is EmailIntent.NONE
+
+
 def test_business_ops_classifier_and_packet_preserve_email_authority_boundaries() -> None:
     from business_ops_intent import classify_business_ops_intent
     from business_ops_packet import assemble_business_ops_packet

@@ -1036,7 +1036,11 @@ def _identity_grounded_answer(agent: str) -> str:
         else:
             first = f"I'm {display}."
         if duties:
-            return f"{first} My lane: {duties[0].lower()}{duties[1:]}."
+            # PERSONA_CORES stores duties as terse imperative fragments. Render
+            # them as first-person declarations at the operator boundary so a
+            # legitimate identity answer cannot resemble an injected command.
+            declarative_duties = f"I {duties[0].lower()}{duties[1:]}"
+            return f"{first} My lane: {declarative_duties}."
         return first
     return _IDENTITY_FALLBACK_LINES.get(
         name,

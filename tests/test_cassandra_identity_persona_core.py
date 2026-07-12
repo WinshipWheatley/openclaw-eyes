@@ -84,9 +84,14 @@ def test_identity_answer_never_mentions_another_agents_domain(monkeypatch):
         assert other_domain_term not in lowered
 
 
-def test_identity_tap_is_before_refusal_irrelevant_normal_routing_unaffected(monkeypatch):
-    """Sanity: the new tap must not swallow unrelated messages."""
+def test_typed_money_owner_precedes_legacy_business_ops_classifier(monkeypatch):
+    """Invoice status is no longer an unrelated identity-tap sanity prompt.
+
+    Task 166 deliberately gives the typed money owner this query before the
+    legacy business-ops classifier, with no model or business action.
+    """
     called = {"ops": False}
+    logged = []
 
     def _fake_classify(query):
         called["ops"] = True
@@ -96,13 +101,20 @@ def test_identity_tap_is_before_refusal_irrelevant_normal_routing_unaffected(mon
         pass
 
     monkeypatch.setattr(cassandra_brain, "classify_business_ops_intent", _fake_classify, raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_log_conversation",
+        lambda *args, **kwargs: logged.append(kwargs),
+        raising=False,
+    )
 
-    try:
-        cassandra_brain.handle("what's the status of the St Anne's invoice?")
-    except _StopEarly:
-        pass
+    replies = cassandra_brain.handle("what's the status of the St Anne's invoice?")
 
-    assert called["ops"] is True
+    assert replies
+    assert called["ops"] is False
+    assert logged[-1]["route"] == "money_truth"
+    assert logged[-1]["metadata"]["model_called"] is False
+    assert logged[-1]["metadata"]["business_action_performed"] is False
 
 
 def test_business_who_question_is_not_treated_as_identity(monkeypatch):

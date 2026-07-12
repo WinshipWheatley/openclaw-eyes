@@ -86,7 +86,14 @@ def test_stale_relative_date_operator_truth_fact_is_not_packeted(monkeypatch: py
             }
         }
 
+    def eligible_operator_truth_records(data):
+        # Task 160 made eligibility filtering part of the store API. This
+        # fixture is intentionally testing the packet's relative-date filter,
+        # so expose both syntactically eligible records to that downstream seam.
+        return tuple(data["entities"].values())
+
     fake_store.load_operator_truth_store = load_operator_truth_store
+    fake_store.eligible_operator_truth_records = eligible_operator_truth_records
     monkeypatch.setitem(sys.modules, "operator_truth_store", fake_store)
 
     import maestro_context_packet as packet_mod

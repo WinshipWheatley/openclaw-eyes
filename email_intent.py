@@ -173,6 +173,17 @@ _RECENCY_SCOPES = (
     (re.compile(r"\b(?:this|past)\s+month\b", re.IGNORECASE), 31),
 )
 
+_ST_ANNES_LANE_RE = re.compile(
+    r"(?<![a-z0-9_])st[._ -]*anne(?:'?s)?(?![a-z0-9_])",
+    re.IGNORECASE,
+)
+_GLENN_TOKEN_RE = re.compile(r"(?<![a-z0-9_])glenn(?![a-z0-9_])", re.IGNORECASE)
+_ST_ANNES_EMAIL_TOPIC_RE = re.compile(r"\b(?:invoice|payment)\b", re.IGNORECASE)
+_ST_ANNES_NON_EMAIL_CONTEXT_RE = re.compile(
+    r"\b(?:meeting|phone|call|in[- ]person|face[- ]to[- ]face)\b",
+    re.IGNORECASE,
+)
+
 
 @dataclass(frozen=True)
 class EmailMetadataScope:
@@ -247,6 +258,23 @@ def _normalize(text: str) -> str:
     )
 
 
+def _has_st_annes_glenn_email_context(text: str, context: str) -> bool:
+    if not (
+        _ST_ANNES_LANE_RE.search(context)
+        and _GLENN_TOKEN_RE.search(text)
+    ):
+        return False
+    if _ST_ANNES_NON_EMAIL_CONTEXT_RE.search(text):
+        return False
+    return bool(
+        _CONTEXTUAL_DRAFT_RE.search(text)
+        or (
+            _REPLY_LOOKUP_RE.search(text)
+            and _ST_ANNES_EMAIL_TOPIC_RE.search(text)
+        )
+    )
+
+
 def _has_email_context(text: str, context: str) -> bool:
     # A message-shaped utterance can itself be an email request (for example,
     # "draft a message to Dane"). Context is weaker evidence: a generic prior
@@ -255,6 +283,11 @@ def _has_email_context(text: str, context: str) -> bool:
     return bool(
         _EMAIL_NOUN_RE.search(text)
         or _EXPLICIT_EMAIL_NOUN_RE.search(context)
+        # The St. Anne's workflow has one established email counterparty, but
+        # lane + name alone cannot grant mailbox authority. Admit only the
+        # bounded lookup/draft shapes used by that workflow and reject named
+        # non-email contexts such as meetings or calls.
+        or _has_st_annes_glenn_email_context(text, context)
     )
 
 

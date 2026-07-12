@@ -102,7 +102,10 @@ def test_live_arts_operator_copy_names_cassandra_but_not_claim_or_send(tmp_path)
     reply = queue.render_live_arts_handoff_reply(result)
     assert "Cassandra" in reply
     assert "dry-run" in reply
-    assert result["receipt"]["receipt_ref"] in reply
+    # Task 164 keeps durable provider refs out of human-facing copy while
+    # preserving an explicit retrieval affordance.
+    assert result["receipt"]["receipt_ref"] not in reply
+    assert "show receipt" in reply.lower()
     assert "has not claimed" in reply
     assert "Nothing was sent" in reply
     assert "is preparing" not in reply

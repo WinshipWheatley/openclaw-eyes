@@ -15,9 +15,11 @@ def test_briefing_scheduler_uses_cassandra_voice_not_maestro():
     import maestro_voice
 
     fn = sched.speak_and_send_operator_brief_voice
-    assert fn is cassandra_voice.speak_and_send_operator_brief_voice, (
-        "Cassandra's brief must use cassandra_voice (af_heart), not a borrowed voice"
-    )
-    assert fn is not maestro_voice.speak_and_send_operator_brief_voice, (
-        "regression: brief is wired to Maestro's voice (am_michael)"
-    )
+    # Other voice tests reload cassandra_voice in place. That legitimately
+    # replaces its function objects, so object identity is not a wiring
+    # contract. The scheduler's bound function must still execute against the
+    # live Cassandra module globals and Cassandra's af_heart voice.
+    assert fn.__module__ == cassandra_voice.__name__
+    assert fn.__globals__ is vars(cassandra_voice)
+    assert fn.__globals__["_KOKORO_VOICE"] == "af_heart"
+    assert fn.__module__ != maestro_voice.speak_and_send_operator_brief_voice.__module__

@@ -351,6 +351,19 @@ def _benign_approval_adjective(text: str, claim_start: int, claim_end: int) -> b
     )
 
 
+def _future_guardrail_paid_usage(text: str, claim_start: int, claim_end: int) -> bool:
+    """Recognize only the bounded grammar for a future paid-truth guardrail."""
+    clause_prefix = _same_clause_prefix(text, claim_start)
+    suffix = text[claim_end : claim_end + 96]
+    return bool(
+        re.search(r"\bbefore(?:\s+any)?\s*$", clause_prefix)
+        and re.match(
+            r"\s+(?:(?:or|and)\s+ledger\s+)?(?:action|truth)\b",
+            suffix,
+        )
+    )
+
+
 def _approval_execution_claims_from_text(text: str) -> tuple[str, ...]:
     lowered = str(text or "").lower()
     patterns = {
@@ -392,6 +405,10 @@ def _unnegated_claims(text: str) -> tuple[str, ...]:
             has_true_negation = any(token in NEGATION_CUES for token in prefix_tokens[-8:])
             has_hedge = any(token in HEDGING_CUES for token in nearby_tokens)
             if claim in APPROVAL_EXECUTION_CLAIMS and _benign_approval_adjective(
+                lowered, match.start(), match.end()
+            ):
+                continue
+            if claim == "paid" and _future_guardrail_paid_usage(
                 lowered, match.start(), match.end()
             ):
                 continue
