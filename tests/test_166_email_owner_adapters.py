@@ -104,6 +104,13 @@ def test_st_annes_glenn_lane_restores_bounded_read_and_draft_ownership() -> None
     assert classify_email_intent(read_paraphrase, context=context) is EmailIntent.REPLY
     assert classify_email_intent(draft_paraphrase, context=context) is EmailIntent.DRAFT_SEND
 
+    # contacts_registry aliases Glenn Mortoro as "Glen"; the operator uses both
+    # spellings, so the bounded lane must admit the single-N form too.
+    read_single_n = "Did Glen acknowledge the invoice or payment timing?"
+    draft_single_n = "Never mind, just draft what I should ask Glen."
+    assert classify_email_intent(read_single_n, context=context) is EmailIntent.REPLY
+    assert classify_email_intent(draft_single_n, context=context) is EmailIntent.DRAFT_SEND
+
 
 @pytest.mark.parametrize(
     ("text", "context"),
@@ -111,6 +118,7 @@ def test_st_annes_glenn_lane_restores_bounded_read_and_draft_ownership() -> None
         ("Did Glenn acknowledge the invoice or payment timing?", "finance capital_hilton"),
         ("Never mind, just draft what I should ask Glenn.", "finance live_arts_md"),
         ("Did Glennard acknowledge the invoice or payment timing?", "finance st_annes"),
+        ("Did Glenda acknowledge the invoice or payment timing?", "finance st_annes"),
         ("did the service respond?", "finance st_annes"),
         ("draft a follow-up", "finance st_annes"),
         ("Glenn acknowledged the invoice yesterday.", "finance st_annes"),

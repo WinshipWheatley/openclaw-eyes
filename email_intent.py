@@ -177,7 +177,10 @@ _ST_ANNES_LANE_RE = re.compile(
     r"(?<![a-z0-9_])st[._ -]*anne(?:'?s)?(?![a-z0-9_])",
     re.IGNORECASE,
 )
-_GLENN_TOKEN_RE = re.compile(r"(?<![a-z0-9_])glenn(?![a-z0-9_])", re.IGNORECASE)
+# contacts_registry lists "Glen" as an alias of Glenn Mortoro; the operator
+# uses both spellings, so the bounded lane admits either. The word-boundary
+# lookarounds still exclude Glenda/Glennard-style tokens.
+_GLENN_TOKEN_RE = re.compile(r"(?<![a-z0-9_])glen{1,2}(?![a-z0-9_])", re.IGNORECASE)
 _ST_ANNES_EMAIL_TOPIC_RE = re.compile(r"\b(?:invoice|payment)\b", re.IGNORECASE)
 _ST_ANNES_NON_EMAIL_CONTEXT_RE = re.compile(
     r"\b(?:meeting|phone|call|in[- ]person|face[- ]to[- ]face)\b",
