@@ -160,6 +160,247 @@ def resolve_client_model(
     return resolved
 
 
+_PRONOUN_ANTECEDENT_PATTERNS = (
+    re.compile(
+        r"(?:^|[;.!?]\s*)\s*(?:did|does|has|have|is|was|were)\s+"
+        r"(?P<client>[^,;.!?\n]{1,80}?)\s+"
+        r"(?:(?:pay|paid)(?:\s+(?:us|me))?|owe(?:d|s)?(?:\s+(?:us|me))?|"
+        r"(?:payment|check|deposit)\s+"
+        r"(?:arrive(?:d)?|clear(?:ed)?|land(?:ed)?|post(?:ed)?))"
+        r"(?:\s+(?:yet|already|today|tonight))?"
+        r"(?:\s*,?\s*(?:and\s+)?|\s*\?\s*)if\s+not\s*,?"
+        r"(?:\s+(?:can|could|would)\s+you)?\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[;.!?]\s*)\s*(?:prepare|check|get|show|review)\s+"
+        r"(?:me\s+)?(?:a\s+|the\s+)?(?:payment|balance)\s+status\s+"
+        r"for\s+(?P<client>[^,;.!?\n]{1,60}?)"
+        r"\s*,?\s*(?:and\s+)?then\s*$",
+        re.IGNORECASE,
+    ),
+)
+
+
+def _model_candidate_values(model: Mapping[str, Any]) -> tuple[Any, ...]:
+    return (
+        model.get("display_name"),
+        model.get("client_display_name"),
+        model.get("client_name"),
+        model.get("client"),
+        *_model_aliases(model),
+        model.get("slug"),
+        model.get("client_ref"),
+    )
+
+
+def _alias_occurs_as_tokens(text: str, candidate: Any) -> bool:
+    tokens = re.findall(r"[a-z0-9]+", str(candidate or "").casefold().replace("&", " and "))
+    if not tokens:
+        return False
+    pattern = r"(?<![a-z0-9])" + r"[^a-z0-9]+".join(
+        re.escape(token) for token in tokens
+    ) + r"(?![a-z0-9])"
+    return re.search(pattern, str(text or "").casefold().replace("&", " and ")) is not None
+
+
+def _registered_client_matches(
+    text: str,
+    client_models: Iterable[Mapping[str, Any]],
+) -> dict[str, tuple[dict[str, Any], str]]:
+    matches: dict[str, tuple[dict[str, Any], str]] = {}
+    for raw_model in client_models:
+        model = dict(raw_model)
+        model_ref = normalize_client_ref(
+            model.get("client_ref")
+            or model.get("slug")
+            or model.get("display_name")
+            or model.get("client_display_name")
+        )
+        if not model_ref:
+            continue
+        for candidate in _model_candidate_values(model):
+            if not _alias_occurs_as_tokens(text, candidate):
+                continue
+            previous = matches.get(model_ref)
+            if previous is None or len(str(candidate)) > len(previous[1]):
+                matches[model_ref] = (model, str(candidate))
+    return matches
+
+
+_PORTAL_OR_PO_RE = re.compile(
+    r"(?<![a-z0-9])(?:coupa|portal|purchase\s+order|p\.?\s*o\.?)"
+    r"(?![a-z0-9])",
+    re.IGNORECASE,
+)
+_ARTIFACT_SELECTOR_RE = re.compile(
+    r"(?<![a-z0-9])(?:latest|current|existing|issued)(?![a-z0-9])",
+    re.IGNORECASE,
+)
+
+
+def _portal_or_po_implied(text: Any) -> bool:
+    """Return true only for an affirmative portal/PO path qualifier."""
+
+    value = re.sub(
+        r"\b([a-z]+)n['’]t\b",
+        r"\1 not",
+        str(text or ""),
+        flags=re.IGNORECASE,
+    )
+    matches = tuple(_PORTAL_OR_PO_RE.finditer(value))
+    for match in matches:
+        prefix = value[max(0, match.start() - 96) : match.start()]
+        suffix = value[match.end() : match.end() + 64]
+        if re.search(
+            r"(?:\b(?:not|no|without|excluding|exclude|except|minus|avoid|"
+            r"avoiding|skip|never|off|cannot|can't|won't|shouldn't|don't)\b|"
+            r"\bdo\s+not\b|\brefus(?:e|ed|es|ing)(?:\s+to)?\b|"
+            r"\b(?:instead\s+of|rather\s+than|anything\s+but|note\s+about)\b|"
+            r"\b(?:whether|if|question|ask(?:ed|ing)?|decid(?:e|ed|ing)|"
+            r"wonder(?:ed|ing)?|unsure|uncertain|maybe|perhaps|possibly|"
+            r"possible|can|could|may|might|would|should|consider(?:ed|ing)?|"
+            r"option(?:al)?)\b|"
+            r"\b(?:can|could|should|would|will|do|does|did|are|were|have|has)"
+            r"\s+(?:we|i|you)\b|\b(?:what|how)\s+about\b|"
+            r"\b(?:is|are|was|were|do|does|did|can|could|should|would|will)"
+            r"\s+(?:the\s+)?$|"
+            r"\b(?:compar(?:e|ed|ing)\s+(?:against|with|to)|"
+            r"comparison\s+(?:against|with|to))\b|\bnon[-\s]*)"
+            r"[^,;.!?]{0,56}$",
+            prefix,
+            re.IGNORECASE,
+        ):
+            return False
+        suffix_clause = re.split(r"[,;.!?]", suffix, maxsplit=1)[0]
+        if re.search(
+            r"(?:-\s*free\b|\b(?:not|no|never|isn't|wasn't|shouldn't|"
+            r"excluded|disabled|avoided|forbidden|disallowed|off|without)\b)",
+            suffix_clause,
+            re.IGNORECASE,
+        ):
+            return False
+    for match in matches:
+        prefix = value[max(0, match.start() - 96) : match.start()]
+        suffix = value[match.end() : match.end() + 64]
+        direct_artifact_qualifier = re.match(
+            r"\s*(?:invoice|bill|path|route|workflow)\b",
+            suffix,
+            re.IGNORECASE,
+        )
+        affirmative_route_phrase = re.search(
+            r"\b(?:use|using|via|through|"
+            r"(?:submit(?:ted|ting)?|upload(?:ed|ing)?|rout(?:e|ed|ing))"
+            r"(?:\s+(?:(?:(?:the|this|that|my|our|your|their)\s+)?"
+            r"(?:invoice|bill)|it))?"
+            r"\s+(?:via|through|to))\s+(?:the\s+)?$",
+            prefix,
+            re.IGNORECASE,
+        )
+        affirmative_requirement = re.match(
+            r"\s*(?:is\s+)?(?:required|needed|enabled|applicable)\b",
+            suffix,
+            re.IGNORECASE,
+        )
+        if direct_artifact_qualifier or affirmative_route_phrase or affirmative_requirement:
+            return True
+    return False
+
+
+def _resolved_registered_model(
+    model_ref: str,
+    model: Mapping[str, Any],
+    alias: str,
+    requested_text: str,
+) -> dict[str, Any]:
+    resolved = dict(model)
+    resolved["client_ref"] = model_ref
+    resolved.setdefault(
+        "display_name",
+        resolved.get("client_display_name") or requested_text,
+    )
+    resolved["requested_client_text"] = requested_text
+    resolved["matched_client_text"] = alias
+    resolved["coupa_or_po_implied"] = _portal_or_po_implied(requested_text)
+    return resolved
+
+
+def _closed_owner_slot_identity(value: Any) -> str:
+    """Remove only closed, non-identity invoice-slot modifiers."""
+
+    identity = str(value or "").strip()
+    identity = re.sub(r"^the\s+", "", identity, flags=re.IGNORECASE)
+    identity = re.sub(
+        r"^(?:a\s+)?copy\s+of\s+",
+        "",
+        identity,
+        flags=re.IGNORECASE,
+    )
+    identity = _PORTAL_OR_PO_RE.sub(" ", identity)
+    identity = re.sub(
+        r"(?<![a-z0-9])-\s*free(?![a-z0-9])",
+        " ",
+        identity,
+        flags=re.IGNORECASE,
+    )
+    identity = _ARTIFACT_SELECTOR_RE.sub(" ", identity)
+    return " ".join(identity.split()).strip(" -,:;")
+
+
+def _resolve_exact_client_alias(
+    subject: str,
+    client_models: Iterable[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    """Resolve an antecedent only when its whole subject is one registry alias."""
+
+    subject_without_modifiers = _closed_owner_slot_identity(subject)
+    subject_without_possessive = re.sub(
+        r"(?:['’]s)\s*$",
+        "",
+        subject_without_modifiers,
+        flags=re.IGNORECASE,
+    )
+    subject_key = _client_match_key(subject_without_possessive)
+    if not subject_key:
+        return None
+    matched: dict[str, tuple[dict[str, Any], str]] = {}
+    for raw_model in client_models:
+        model = dict(raw_model)
+        for candidate in _model_candidate_values(model):
+            if subject_key != _client_match_key(candidate):
+                continue
+            model_ref = normalize_client_ref(
+                model.get("client_ref")
+                or model.get("slug")
+                or model.get("display_name")
+                or model.get("client_display_name")
+            )
+            if model_ref:
+                matched[model_ref] = (model, str(candidate))
+    if len(matched) != 1:
+        return None
+    model_ref, (model, alias) = next(iter(matched.items()))
+    return _resolved_registered_model(model_ref, model, alias, subject)
+
+
+def _resolve_bounded_pronoun_antecedent(
+    prior_text: str,
+    client_models: Iterable[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    """Resolve only a closed immediate-clause anaphora grammar.
+
+    This intentionally rejects general discourse inference.  An older client
+    mention, a nearer unknown client, an ambiguous comparison, or a lexical
+    substring such as ``Hiltonian`` can never select a real invoice artifact.
+    """
+
+    for pattern in _PRONOUN_ANTECEDENT_PATTERNS:
+        match = pattern.search(prior_text)
+        if match is not None:
+            return _resolve_exact_client_alias(match.group("client"), client_models)
+    return None
+
+
 def _requested_invoice_period(
     text: str,
     *,
@@ -207,54 +448,65 @@ def _requested_invoice_period(
     return f"{year:04d}-{_MONTH_NUMBERS[month_match.group('month')]:02d}"
 
 
-def _unknown_client_model(text: str) -> dict[str, Any] | None:
-    verb = r"(?:prep|prepare|get|make|have|set\s+up|surface|pull\s+up|show|line\s+up)"
-    before_artifact = re.search(
-        rf"\b{verb}\b\s+(?:the\s+|that\s+)?(.+?)\s+(?:invoice|bill)\b",
-        text,
-        re.IGNORECASE,
-    )
-    after_artifact = re.search(
-        r"\b(?:invoice|bill)\s+for\s+(.+?)(?:\s+and\b|\s+so\b|[?.!,]|$)",
-        text,
-        re.IGNORECASE,
-    )
-    requested = before_artifact or after_artifact
-    if requested is None:
-        return None
-    client_text = requested.group(1).strip()
-    client_text = re.sub(
-        r"\s+(?:(?:ready|set\s+up|teed\s+up)\s+)?for\s+"
-        r"(?:(?:me\s+to|my)\s+)?(?:review|look\s+over|once[-\s]?over)\s*$",
-        "",
-        client_text,
-        flags=re.IGNORECASE,
-    )
-    # What remains between the staging verb and the artifact may be only a
-    # determiner, month, or review cue ("get the July invoice for review").
-    # Those words are not a client identity and must not manufacture a client
-    # called "review" or "July".
-    client_text = re.sub(
-        rf"\b(?:the|that|this|a|an|final|finalized|ready|{('|'.join(_MONTH_NUMBERS))}|20\d{{2}})\b",
-        " ",
-        client_text,
-        flags=re.IGNORECASE,
-    )
-    client_text = " ".join(client_text.split()).strip(" -,:;")
-    if not client_text or re.fullmatch(
-        r"(?:for\s+)?(?:me\s+to\s+|my\s+)?(?:review|look\s+over|once[-\s]?over)",
-        client_text,
-        re.IGNORECASE,
-    ):
-        return None
-    return {
-        "client_ref": normalize_client_ref(client_text),
-        "display_name": client_text,
-        "requested_client_text": client_text,
-        "matched_client_text": client_text,
-    }
+def _unknown_client_models(text: str) -> tuple[dict[str, Any], ...]:
+    """Return each explicit client slot in a direct review clause.
 
+    A clause can put one identity before the artifact and another after it
+    (``get the Alpha invoice for Beta ready``).  Returning every slot lets the
+    authority classifier reject that collision instead of silently preferring
+    whichever parser happened to run first.
+    """
 
+    verb = _STAGING_VERB
+    patterns = (
+        re.compile(
+            rf"\b{verb}\b\s+(?:me\s+)?(?:the\s+|that\s+)?"
+            rf"(.+?)\s+(?:invoice|bill)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(?:invoice|bill)\s+for\s+(.+?)(?:\s+and\b|\s+so\b|[?.!,]|$)",
+            re.IGNORECASE,
+        ),
+    )
+    models: list[dict[str, Any]] = []
+    for pattern in patterns:
+        for requested in pattern.finditer(text):
+            client_text = requested.group(1).strip()
+            client_text = re.sub(
+                r"\s+(?:(?:ready|set\s+up|teed\s+up)\s+)?for\s+"
+                r"(?:(?:me\s+to|my)\s+)?(?:review|look\s+over|once[-\s]?over)\s*$",
+                "",
+                client_text,
+                flags=re.IGNORECASE,
+            )
+            # What remains between the staging verb and the artifact may be
+            # only a determiner, month, or review cue ("get the July invoice
+            # for review"). Those words are not a client identity.
+            client_text = re.sub(
+                rf"\b(?:the|that|this|a|an|their|its|his|her|final|finalized|ready|{('|'.join(_MONTH_NUMBERS))}|20\d{{2}})\b",
+                " ",
+                client_text,
+                flags=re.IGNORECASE,
+            )
+            client_text = " ".join(client_text.split()).strip(" -,:;")
+            requested_client_text = client_text
+            client_text = _closed_owner_slot_identity(client_text)
+            if not client_text or re.fullmatch(
+                r"(?:for\s+)?(?:me\s+to\s+|my\s+)?"
+                r"(?:review|look\s+(?:it\s+)?over|once[-\s]?over|"
+                r"glance\s+at|eyeball)",
+                client_text,
+                re.IGNORECASE,
+            ):
+                continue
+            models.append({
+                "client_ref": normalize_client_ref(client_text),
+                "display_name": client_text,
+                "requested_client_text": requested_client_text,
+                "matched_client_text": client_text,
+            })
+    return tuple(models)
 def _bound_review_clause(match: re.Match[str]) -> str:
     """Trim an over-wide regex match to the staging verb for its last artifact."""
 
@@ -278,6 +530,16 @@ def classify_finalized_invoice_review(
     """Classify a bounded request to surface an existing finalized invoice."""
 
     normalized = str(text or "").replace("’", "'")
+    # The public API accepts one-shot iterables. Materialize once so direct
+    # review resolution and bounded pronoun resolution see identical owners.
+    owned_client_models = tuple(_iter_client_models(client_models))
+    # P.O. is an invoice-slot qualifier, not two sentence boundaries.
+    normalized = re.sub(
+        r"(?<![a-z0-9])p\.\s*o\.(?![a-z0-9])",
+        "PO",
+        normalized,
+        flags=re.IGNORECASE,
+    )
     # ``St. Anne's`` contains punctuation but is one registry alias, not a
     # clause boundary for the review matcher.
     normalized = re.sub(r"\bSt\.(?=\s+[A-Z])", "St", normalized, flags=re.IGNORECASE)
@@ -289,13 +551,78 @@ def classify_finalized_invoice_review(
     # finalized-review intent may bind this decision.  An earlier payment or
     # status clause can mention a different client without stealing the ask.
     review_clause = _bound_review_clause(review_match)
-    client_model = resolve_client_model(review_clause, client_models)
-    if client_model is None:
-        client_model = _unknown_client_model(review_clause)
+    unknown_slots = _unknown_client_models(review_clause)
+    explicit_registered: dict[str, dict[str, Any]] = {}
+    unresolved_slots: list[dict[str, Any]] = []
+    for slot in unknown_slots:
+        resolved = _resolve_exact_client_alias(
+            str(slot.get("requested_client_text") or slot.get("display_name") or ""),
+            owned_client_models,
+        )
+        if resolved is None:
+            unresolved_slots.append(slot)
+            continue
+        resolved_ref = normalize_client_ref(resolved.get("client_ref"))
+        if resolved_ref:
+            explicit_registered[resolved_ref] = resolved
+    unresolved_slot_keys = {
+        _client_match_key(slot.get("display_name"))
+        for slot in unresolved_slots
+        if _client_match_key(slot.get("display_name"))
+    }
+    if len(explicit_registered) > 1:
+        return FinalizedInvoiceReviewDecision(matched=False)
+
+    # A registered name used as a comparison, template, exclusion, or other
+    # modifier is not an owner slot. Never let an alias merely occurring
+    # somewhere in the review clause establish artifact authority.
+    all_clause_registered = _registered_client_matches(
+        review_clause,
+        owned_client_models,
+    )
+    incidental_registered_refs = set(all_clause_registered).difference(
+        explicit_registered
+    )
+    if incidental_registered_refs:
+        return FinalizedInvoiceReviewDecision(matched=False)
+
+    possessive_review = re.search(
+        rf"\b(?P<pronoun>their|its|his|her)\b[^;.!?\n]{{0,40}}\b{_ARTIFACT_NOUN}\b",
+        review_clause,
+        re.IGNORECASE,
+    )
+    client_model = None
+    if possessive_review is not None:
+        if unresolved_slot_keys:
+            return FinalizedInvoiceReviewDecision(matched=False)
+        # ``_bound_review_clause`` returns a suffix of the regex match. Use its
+        # absolute start, not the over-wide match start, to retain the immediate
+        # governing clause while excluding older sentences.
+        review_clause_start = review_match.end() - len(review_clause)
+        if possessive_review.group("pronoun").casefold() in {"their", "its"}:
+            client_model = _resolve_bounded_pronoun_antecedent(
+                normalized[:review_clause_start],
+                owned_client_models,
+            )
+        if client_model is None:
+            return FinalizedInvoiceReviewDecision(matched=False)
+        if explicit_registered and normalize_client_ref(
+            client_model.get("client_ref")
+        ) not in explicit_registered:
+            return FinalizedInvoiceReviewDecision(matched=False)
+    elif explicit_registered:
+        if unresolved_slot_keys:
+            return FinalizedInvoiceReviewDecision(matched=False)
+        client_model = next(iter(explicit_registered.values()))
+    else:
+        if len(unresolved_slot_keys) != 1:
+            return FinalizedInvoiceReviewDecision(matched=False)
+        client_model = unresolved_slots[0]
     if client_model is None:
         return FinalizedInvoiceReviewDecision(matched=False)
 
     owned_model = dict(client_model)
+    owned_model["coupa_or_po_implied"] = _portal_or_po_implied(review_clause)
     client_ref = normalize_client_ref(
         owned_model.get("client_ref") or owned_model.get("display_name")
     )

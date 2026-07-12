@@ -11,13 +11,24 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import chief_router
+
+
+@pytest.fixture(autouse=True)
+def _freeze_captured_status_fixture_clock(monkeypatch):
+    """Pin the July 9 production-shape snapshots instead of weakening freshness."""
+    import read_model_freshness_audit
+
+    monkeypatch.setattr(read_model_freshness_audit, "_today", lambda: date(2026, 7, 9))
 
 
 class _GuardMustNotPass(Exception):
@@ -135,19 +146,18 @@ class TestRouteMessageBareStatus:
 
         monkeypatch.setattr(chief_router, "has_pending_approval", _sentinel)
 
-        import pytest
-
         with pytest.raises(_GuardMustNotPass):
             chief_router._route_message_inner("prepare the St Anne's invoice for my review")
 
 
 class TestChiefOperatorSurfaceGuard:
-    """Task 144 (CLASS #5): route_message guards every reply before it leaves the router."""
+    """Task 144 guard over Task 162's keyword-bound first-touch receipt seam."""
 
     def test_leaked_reply_is_substituted(self, monkeypatch):
         import operator_surface_guard
 
-        def _fake_inner(text):
+        def _fake_inner(text, *, first_touch_receipt=None):
+            assert first_touch_receipt is None
             return {"intent": "generic", "replies": ["Debug dump: content_hash=abc123"]}
 
         monkeypatch.setattr(chief_router, "_route_message_inner", _fake_inner)
@@ -158,7 +168,8 @@ class TestChiefOperatorSurfaceGuard:
         assert result["replies"] == [operator_surface_guard.SAFE_FALLBACK_REPLY_TEXT]
 
     def test_safe_reply_passes_through_unchanged(self, monkeypatch):
-        def _fake_inner(text):
+        def _fake_inner(text, *, first_touch_receipt=None):
+            assert first_touch_receipt is None
             return {"intent": "generic", "replies": ["All good, nothing pending."]}
 
         monkeypatch.setattr(chief_router, "_route_message_inner", _fake_inner)
@@ -171,7 +182,8 @@ class TestChiefOperatorSurfaceGuard:
     def test_single_reply_field_also_guarded(self, monkeypatch):
         import operator_surface_guard
 
-        def _fake_inner(text):
+        def _fake_inner(text, *, first_touch_receipt=None):
+            assert first_touch_receipt is None
             return {"intent": "operator_refusal_guard", "reply": '{"leak": "json_start"}'}
 
         monkeypatch.setattr(chief_router, "_route_message_inner", _fake_inner)

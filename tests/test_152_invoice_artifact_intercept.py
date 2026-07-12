@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import sqlite3
+import types
 from pathlib import Path
 
 import pytest
@@ -193,6 +195,8 @@ def test_review_phrasings_bypass_interpreter_and_emit_one_existing_document(
 
     assert result["handled"] is True
     assert result["stage"] == workflow.AWAITING_INVOICE_APPROVAL
+    assert "error" not in result
+    assert "internal_error_type" not in result
     assert result["requested_period"] == period
     state = store.load()
     assert state is not None
@@ -204,6 +208,11 @@ def test_review_phrasings_bypass_interpreter_and_emit_one_existing_document(
     assert len(result["origin_outputs"]) == 1
     output = result["origin_outputs"][0]
     assert output.kind == "document"
+    assert output.receipt_pointer == f"invoice-artifact-{EXPECTED_SHA256}"
+    assert output.internal["document_sha256"] == EXPECTED_SHA256
+    assert output.receipt_pointer not in output.visible_text()
+    assert "Receipt:" not in output.visible_text()
+    assert 'Say “show receipt” for the delivery record.' in output.visible_text()
     assert Path(output.document_path).resolve() == FINALIZED_PDF.resolve()
     assert "WL-2026-0009" in output.visible_text()
     assert "Nothing was sent" in output.visible_text()
@@ -495,9 +504,96 @@ def test_missing_finalized_artifact_becomes_one_honest_origin_bound_line(
     assert output.kind == "text"
     assert "couldn't prepare that invoice for review" in output.visible_text()
     assert "Nothing was sent" in output.visible_text()
-    assert output.receipt_pointer in output.visible_text()
+    # Task 164 / N1: raw provider refs stay machine-only. The operator gets
+    # the human retrieval affordance, and the delivery adapter indexes the
+    # structured pointer only after a successful send.
+    assert output.receipt_pointer.startswith("invoice-cockpit-")
+    assert output.receipt_pointer not in output.visible_text()
+    assert "Receipt:" not in output.visible_text()
+    assert 'Say “show receipt” for the delivery record.' in output.visible_text()
+    assert output.advertise_receipt_lookup is True
+    assert output.internal["cockpit_result"]["handled"] is True
+    assert output.internal["cockpit_result"]["stage"] == cockpit_session.FINALIZED_ARTIFACT_REVIEW
+    assert output.internal["cockpit_result"]["error"] == (
+        "could not surface the existing finalized invoice"
+    )
     assert "FileNotFoundError" not in output.visible_text()
     assert not (tmp_path / "session.json").exists()
+
+    # Task 164 / N1: the raw pointer becomes resolvable only after confirmed
+    # transport, under the exact source/delivered-message binding.
+    import fleet_receipt_index as receipt_index
+
+    receipt_db = tmp_path / "fleet-receipts.sqlite3"
+    assert not receipt_db.exists()
+    sent: list[str] = []
+
+    async def send_text(text: str, reply_markup=None):
+        sent.append(text)
+        return types.SimpleNamespace(message_id=9152)
+
+    async def send_document(_path: str, _caption: str):
+        raise AssertionError("guarded error output must use text transport")
+
+    assert asyncio.run(
+        cassandra_listener._dispatch_origin_bound_output(
+            output,
+            bound_origin=origin,
+            send_text=send_text,
+            send_document=send_document,
+            tracker=OriginDeliveryTracker(),
+            source_message_id=origin.source_message_id,
+            receipt_db_path=receipt_db,
+        )
+    ) is True
+    assert sent == [output.visible_text()]
+    with sqlite3.connect(receipt_db) as connection:
+        row = connection.execute(
+            "SELECT alias, provider, owning_backend, raw_ref, surface, bot_identity, "
+            "chat_id, source_message_id, delivered_message_id "
+            "FROM fleet_receipt_deliveries"
+        ).fetchone()
+    assert row is not None
+    alias = row[0]
+    assert row[1:] == (
+        "origin_output",
+        "origin_bound_output",
+        output.receipt_pointer,
+        origin.surface,
+        origin.bot_identity,
+        origin.chat_id,
+        origin.source_message_id,
+        "9152",
+    )
+
+    resolution = receipt_index.resolve_receipt_request(
+        "show receipt",
+        surface=origin.surface,
+        bot_identity=origin.bot_identity,
+        chat_id=origin.chat_id,
+        reply_to_message_id="9152",
+        db_path=receipt_db,
+    )
+    assert resolution is not None and resolution.outcome == "found"
+    assert output.receipt_pointer not in resolution.text
+    assert "origin_bound_output" not in resolution.text
+    unrelated = receipt_index.resolve_receipt_request(
+        "show receipt",
+        surface=origin.surface,
+        bot_identity=origin.bot_identity,
+        chat_id=origin.chat_id,
+        reply_to_message_id="9999",
+        db_path=receipt_db,
+    )
+    assert unrelated is not None and unrelated.outcome == "not_found"
+    cross_chat = receipt_index.resolve_receipt_request(
+        f"show receipt {alias}",
+        surface=origin.surface,
+        bot_identity=origin.bot_identity,
+        chat_id="other-chat",
+        db_path=receipt_db,
+    )
+    assert cross_chat is not None and cross_chat.outcome == "cross_chat_denied"
 
 
 def test_origin_adapter_delivers_finalized_document_once_on_helper_replay(
@@ -579,6 +675,9 @@ def test_task151_compound_seam_runs_money_and_real_artifact_once(
     assert isinstance(replies[1], OriginBoundOutput)
     assert replies[1].kind == "document"
     assert Path(replies[1].document_path).resolve() == FINALIZED_PDF.resolve()
+    assert replies[1].receipt_pointer == f"invoice-artifact-{EXPECTED_SHA256}"
+    assert replies[1].receipt_pointer not in replies[1].visible_text()
+    assert 'Say “show receipt” for the delivery record.' in replies[1].visible_text()
     _assert_runtime_unchanged(finalized_environment)
 
 

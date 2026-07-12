@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 
 import pytest
@@ -561,7 +562,9 @@ def test_active_cockpit_cannot_capture_operator_corrected_money_read(
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda text, replies, route="llm", metadata=None, **kwargs: logged.append(route),
+        lambda text, replies, route="llm", metadata=None, **kwargs: logged.append(
+            {"route": route, "metadata": dict(metadata or {})}
+        ),
     )
 
     replies = asyncio.run(
@@ -576,7 +579,26 @@ def test_active_cockpit_cannot_capture_operator_corrected_money_read(
     )
 
     assert replies == ["Live Arts MD is fully reconciled as of this afternoon."]
-    assert logged[-1] == "money_truth"
+    assert replies[0].contract_receipt["label"] == "money_read"
+    assert replies[0].contract_receipt["source"] == "deterministic"
+    expected_visible_hash = "sha256:" + hashlib.sha256(
+        str(replies[0]).encode("utf-8")
+    ).hexdigest()
+    assert replies[0].contract_receipt["output_boundary_receipt"][
+        "visible_text_sha256"
+    ] == expected_visible_hash
+    delivered = cassandra_listener._final_operator_reply(
+        replies[0],
+        source_request="does Live Arts owe me money?",
+    )
+    assert delivered == str(replies[0])
+    assert cassandra_listener.current_output_boundary_receipt()[
+        "visible_text_sha256"
+    ] == expected_visible_hash
+    assert logged[-1]["route"] == "money_truth"
+    assert logged[-1]["metadata"]["typed_contract_matches"] == ["money_read"]
+    assert logged[-1]["metadata"]["model_called"] is False
+    assert logged[-1]["metadata"]["business_action_performed"] is False
 
 
 # ── Fable review addition (2026-07-10): arrival-verb morphology ───────────────

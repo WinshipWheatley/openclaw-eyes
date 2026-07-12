@@ -12,6 +12,7 @@ import socket
 import sqlite3
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
@@ -88,6 +89,7 @@ class OpenClawPytestSandbox:
         self._original_os_unlink = os.unlink
         self._original_os_replace = os.replace
         self._original_os_rename = os.rename
+        self._original_tempfile_mkstemp = tempfile.mkstemp
         self._original_socket_create_connection = socket.create_connection
         self._original_socket_connect = socket.socket.connect
         self._original_subprocess_popen = subprocess.Popen
@@ -159,6 +161,7 @@ class OpenClawPytestSandbox:
         os.unlink = self._guarded_os_unlink  # type: ignore[assignment]
         os.replace = self._guarded_os_replace  # type: ignore[assignment]
         os.rename = self._guarded_os_rename  # type: ignore[assignment]
+        tempfile.mkstemp = self._guarded_tempfile_mkstemp  # type: ignore[assignment]
         socket.create_connection = self._guarded_create_connection  # type: ignore[assignment]
         socket.socket.connect = guarded_socket_connect  # type: ignore[method-assign]
         subprocess.Popen = self._guarded_popen  # type: ignore[assignment]
@@ -485,6 +488,65 @@ class OpenClawPytestSandbox:
         mapped_src = self._mapped_path_for_mutation(src)
         mapped_dst = self._mapped_path_for_mutation(dst)
         return self._original_os_rename(mapped_src, mapped_dst, *args, **kwargs)
+
+    def _guarded_tempfile_mkstemp(
+        self,
+        suffix: object = None,
+        prefix: object = None,
+        dir: object = None,
+        text: bool = False,
+    ):
+        """Keep atomic-write temp files on the same sandboxed filesystem.
+
+        ``os.replace`` already redirects both paths. Without redirecting
+        ``mkstemp(dir=/mnt/...)`` too, the temp file is created on the live
+        mount and the mapped replace cannot find its source in the shadow.
+        """
+
+        # Use stdlib's own normalization so implicit tempdir selection and
+        # bytes-vs-str behavior remain exactly compatible (including its
+        # mixed-component TypeError).
+        normalized_prefix, normalized_suffix, effective_dir, _ = tempfile._sanitize_params(  # type: ignore[attr-defined]
+            prefix,
+            suffix,
+            dir,
+        )
+        for field_name, component in (
+            ("prefix", normalized_prefix),
+            ("suffix", normalized_suffix),
+        ):
+            raw_component = os.fspath(component)
+            separator = os.fsencode(os.sep) if isinstance(raw_component, bytes) else os.sep
+            alt_separator = (
+                os.fsencode(os.altsep)
+                if isinstance(raw_component, bytes) and os.altsep
+                else os.altsep
+            )
+            if separator in raw_component or (
+                alt_separator and alt_separator in raw_component
+            ):
+                raise OpenClawTestSandboxViolation(
+                    "openclaw_pytest_sandbox: refusing path-bearing tempfile "
+                    f"{field_name}"
+                )
+
+        mapped_dir = effective_dir
+        resolved = self._resolved_path(effective_dir)
+        shadow = self._shadow_path_for_live_path(resolved)
+        if shadow is not None:
+            self._original_path_mkdir(shadow, parents=True, exist_ok=True)
+            raw_dir = os.fspath(effective_dir)
+            mapped_dir = (
+                os.fsencode(shadow)
+                if isinstance(raw_dir, bytes)
+                else str(shadow)
+            )
+        return self._original_tempfile_mkstemp(
+            suffix=normalized_suffix,
+            prefix=normalized_prefix,
+            dir=mapped_dir,
+            text=text,
+        )
 
     def _guarded_sqlite_connect(self, database: object, *args: object, **kwargs: object):
         target = self._path_from_sqlite_database_arg(database)

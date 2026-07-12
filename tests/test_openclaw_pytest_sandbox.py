@@ -5,6 +5,7 @@ import sqlite3
 import subprocess
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -101,7 +102,10 @@ def test_tmp_sqlite_redirects_to_gate_run_root_when_enabled(tmp_path, monkeypatc
         connection.close()
 
     assert Path(db_path).resolve(strict=False) == (sqlite_root / live_tmp_db.name).resolve(strict=False)
-    assert not live_tmp_db.exists()
+    # ``Path.exists`` is deliberately sandbox-aware and therefore observes the
+    # redirected database. Use the unpatched primitive to prove the physical
+    # /tmp target itself was never created.
+    assert not PYTEST_SANDBOX._original_path_exists(live_tmp_db)
 
 
 def test_send_hold_is_visible_from_sandbox_not_live_bridge():
@@ -128,6 +132,98 @@ def test_live_runtime_atomic_replace_redirects_to_pytest_sandbox():
     os.replace(live_tmp, live_path)
 
     assert shadow_path.read_text(encoding="utf-8") == '{"sandboxed": true}\n'
+
+
+def test_live_runtime_mkstemp_atomic_replace_stays_in_pytest_sandbox():
+    """State hygiene uses mkstemp + replace; both halves must share the shadow."""
+    live_path = Path("/mnt/c/OpenClaw/logs/cassandra_state.json")
+    shadow_path = (
+        PYTEST_SANDBOX.redirect_root
+        / "mnt_c"
+        / "OpenClaw"
+        / "logs"
+        / "cassandra_state.json"
+    )
+    if shadow_path.exists():
+        shadow_path.unlink()
+
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{live_path.name}.",
+        suffix=".tmp",
+        dir=str(live_path.parent),
+    )
+    temporary = Path(temporary_name)
+    assert temporary.is_relative_to(PYTEST_SANDBOX.redirect_root)
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(b'{"sandboxed_mkstemp": true}\n')
+    os.replace(temporary, live_path)
+
+    assert shadow_path.read_text(encoding="utf-8") == '{"sandboxed_mkstemp": true}\n'
+
+
+@pytest.mark.parametrize("bytes_mode", (False, True))
+def test_mkstemp_implicit_live_tempdir_is_mapped_with_original_path_type(
+    monkeypatch,
+    bytes_mode,
+):
+    """An implicit tempfile.tempdir is still an effective write directory."""
+    live_dir = "/mnt/c/OpenClaw/logs"
+    observed = {}
+
+    def spy_mkstemp(*, suffix, prefix, dir, text):
+        observed.update(suffix=suffix, prefix=prefix, dir=dir, text=text)
+        return 123, dir
+
+    monkeypatch.setattr(
+        PYTEST_SANDBOX,
+        "_original_tempfile_mkstemp",
+        spy_mkstemp,
+    )
+    monkeypatch.setattr(
+        tempfile,
+        "tempdir",
+        os.fsencode(live_dir) if bytes_mode else live_dir,
+    )
+    prefix = b"safe-" if bytes_mode else "safe-"
+    suffix = b".tmp" if bytes_mode else ".tmp"
+
+    _, returned_path = PYTEST_SANDBOX._guarded_tempfile_mkstemp(
+        prefix=prefix,
+        suffix=suffix,
+    )
+
+    expected = PYTEST_SANDBOX.redirect_root / "mnt_c" / "OpenClaw" / "logs"
+    expected_value = os.fsencode(expected) if bytes_mode else str(expected)
+    assert observed["dir"] == expected_value
+    assert returned_path == expected_value
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("prefix", "/tmp/escape-"),
+        ("prefix", b"/tmp/escape-"),
+        ("prefix", "../escape-"),
+        ("prefix", b"../escape-"),
+        ("suffix", "/escape.tmp"),
+        ("suffix", b"/escape.tmp"),
+    ),
+)
+def test_mkstemp_path_bearing_components_fail_closed(monkeypatch, field, value):
+    monkeypatch.setattr(
+        PYTEST_SANDBOX,
+        "_original_tempfile_mkstemp",
+        lambda **_kwargs: pytest.fail("unsafe tempfile reached stdlib mkstemp"),
+    )
+    kwargs = {
+        "prefix": b"safe-" if isinstance(value, bytes) else "safe-",
+        "suffix": b".tmp" if isinstance(value, bytes) else ".tmp",
+        "dir": b"/mnt/c/OpenClaw/logs" if isinstance(value, bytes) else "/mnt/c/OpenClaw/logs",
+    }
+    kwargs[field] = value
+
+    with pytest.raises(OpenClawTestSandboxViolation, match="path-bearing tempfile"):
+        PYTEST_SANDBOX._guarded_tempfile_mkstemp(**kwargs)
 
 
 def test_mac_generated_read_model_read_uses_local_artifact():

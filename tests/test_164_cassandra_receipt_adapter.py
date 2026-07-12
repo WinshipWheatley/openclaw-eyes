@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import importlib
 import sqlite3
 import sys
@@ -617,6 +618,86 @@ def test_durable_typed_preserve_metadata_survives_run_path_and_indexes_post_send
     assert "Nothing was sent." in resolution.text
     assert "No ledger, payment, or workflow action ran." in resolution.text
     assert raw_ref not in resolution.text
+
+
+def test_typed_correction_receipt_rebinds_to_post_guard_telegram_bytes(monkeypatch):
+    listener = _load_listener(monkeypatch)
+
+    class Receipt:
+        receipt_pointer = ""
+
+        @staticmethod
+        def to_dict():
+            return {
+                "label": "money_read",
+                "source": "deterministic",
+                "action": "direct_answer",
+                "matches": ["money_read"],
+            }
+
+    source = "does Example owe me money?"
+    carrier = listener._typed_contract_bound_reply(
+        types.SimpleNamespace(reply="generic", receipt=Receipt()),
+        source_text=source,
+        reply_text="Example is reconciled; content_hash=0123456789abcdef",
+    )
+    assert isinstance(carrier, listener._ReceiptBoundReply)
+    pre_transport_hash = carrier.contract_receipt["output_boundary_receipt"][
+        "visible_text_sha256"
+    ]
+
+    monkeypatch.setattr(listener, "claim_listener_update", lambda *_a, **_k: True)
+    monkeypatch.setattr(
+        listener.first_touch_decision,
+        "attempt_first_touch",
+        lambda *_a, **_k: types.SimpleNamespace(
+            attempted=False,
+            handled=False,
+            decision=None,
+            receipt={},
+        ),
+    )
+    monkeypatch.setattr(
+        listener,
+        "record_cassandra_listener_text_update",
+        lambda **_k: None,
+    )
+
+    boundary_seen = []
+
+    async def run_request(**kwargs):
+        await kwargs["send_reply"](carrier)
+        boundary_seen.append(listener.current_output_boundary_receipt())
+        return [carrier]
+
+    async def no_typing(*_a, **_k):
+        return None
+
+    monkeypatch.setattr(listener, "_run_request_with_timeout_contract", run_request)
+    monkeypatch.setattr(listener, "_telegram_typing_loop", no_typing)
+    monkeypatch.setattr(listener, "_log_cassandra_route", lambda *_a, **_k: None)
+    monkeypatch.setattr(listener, "speak", lambda *_a, **_k: None)
+    monkeypatch.setattr(listener, "synthesize_for_voice_note", lambda *_a, **_k: None)
+    update = _update(source, user_id=123)
+
+    asyncio.run(
+        listener.handle_message(
+            update,
+            types.SimpleNamespace(bot=types.SimpleNamespace()),
+        )
+    )
+
+    assert len(update.message.sent) == 1
+    delivered = str(update.message.sent[0])
+    assert "content_hash" not in delivered
+    expected_hash = "sha256:" + hashlib.sha256(delivered.encode("utf-8")).hexdigest()
+    assert pre_transport_hash != expected_hash
+    assert carrier.contract_receipt["output_boundary_receipt"][
+        "visible_text_sha256"
+    ] == expected_hash
+    assert boundary_seen[0][
+        "visible_text_sha256"
+    ] == expected_hash
 
 
 def test_nondurable_typed_preserve_removes_lookup_hint_and_cannot_index(monkeypatch):

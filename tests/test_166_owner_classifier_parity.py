@@ -84,6 +84,501 @@ def test_finalized_review_owner_rejects_actions_other_domains_and_missing_invoic
     assert classify_finalized_invoice_review(text).matched is False
 
 
+def test_finalized_review_owner_resolves_one_registered_pronoun_antecedent() -> None:
+    """Task 166 compound seam: a bounded pronoun may inherit one registry owner."""
+    from invoice_cockpit_intent import classify_finalized_invoice_review
+
+    decision = classify_finalized_invoice_review(
+        "did St Anne's pay us, and if not can you get their invoice ready "
+        "for my review while you're at it?"
+    )
+
+    assert decision.matched is True
+    assert decision.client_ref == "st_annes"
+    assert decision.client_model is not None
+    assert decision.client_model["matched_client_text"] != "their"
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "did St Anne's pay us and if not can you get their invoice ready for my review?",
+        "does St Anne's owe us, and if not could you get their invoice ready for my review?",
+        "did St Anne's pay us? If not, can you get their invoice ready for my review?",
+    ),
+)
+def test_finalized_review_owner_accepts_closed_pronoun_paraphrases(text: str) -> None:
+    from invoice_cockpit_intent import classify_finalized_invoice_review
+
+    decision = classify_finalized_invoice_review(text)
+
+    assert decision.matched is True
+    assert decision.client_ref == "st_annes"
+
+
+@pytest.mark.parametrize(
+    ("text", "client_ref"),
+    (
+        (
+            "did the Capital Hilton pay us, and if not get their invoice ready for review",
+            "capital_hilton",
+        ),
+        (
+            "did the Hilton pay us, and if not get their invoice ready for review",
+            "capital_hilton",
+        ),
+        (
+            "did the St Anne's check clear, and if not get their invoice ready for review",
+            "st_annes",
+        ),
+    ),
+)
+def test_finalized_review_owner_accepts_one_leading_antecedent_determiner(
+    text: str,
+    client_ref: str,
+) -> None:
+    from invoice_cockpit_intent import classify_finalized_invoice_review
+
+    decision = classify_finalized_invoice_review(text)
+
+    assert decision.matched is True
+    assert decision.client_ref == client_ref
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "can you get their invoice ready for my review?",
+        "compare St Anne's and Live Arts, then get their invoice ready for my review",
+        "compare St Anne's and Acme, then get their invoice ready for my review",
+        "Earlier we discussed St Anne's. Did Acme pay? Then get their invoice ready for my review",
+        "did the Hiltonian pay us, and if not can you get its invoice ready for my review?",
+        "did St Anne's pay Capital Hilton, and if not get their invoice ready for my review",
+        "did St Anne's pay Acme, and if not get their invoice ready for my review",
+        "did St Anne's pay us for Capital Hilton, and if not get their invoice ready for my review",
+        "compare St Anne's payment status with Acme for Live Arts, then get their invoice ready for my review",
+        "compare St Anne's payment status for Live Arts, then get their invoice ready for my review",
+        "get their overdue invoice ready for my review",
+        "get their corrected invoice ready for my review",
+        "get her draft invoice ready for my review",
+        "did Acme pay us, and if not get their invoice ready for my review",
+        "did St Anne's pay us, and if not get their invoice with a Capital Hilton comparison ready for my review",
+        "did St Anne's pay us, and if not get their invoice, not Capital Hilton's, ready for my review",
+        "did St Anne's pay us, and if not get their invoice using the Capital Hilton template ready for my review",
+        "did St Anne's pay us, and if not get their invoice alongside Capital Hilton ready for my review",
+        "did St Anne's pay us, and if not get their invoice excluding Capital Hilton ready for my review",
+        "does St Anne's owe us, and if not get their Live Arts invoice ready for my review",
+        "does St Anne's owe us, and if not get their Capital Hilton invoice ready for my review",
+    ),
+)
+def test_finalized_review_owner_rejects_unbound_or_ambiguous_pronouns(text: str) -> None:
+    """Task 166 authority boundary: never manufacture a client named `their`."""
+    from invoice_cockpit_intent import classify_finalized_invoice_review
+
+    decision = classify_finalized_invoice_review(text)
+
+    assert decision.matched is False
+    assert decision.client_ref is None
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "get the St Anne's and Live Arts invoice ready for my review",
+        "get the St Anne's invoice for Live Arts ready for my review",
+        "get the St Anne's invoice for Acme ready for my review",
+        "get Acme and St Anne's invoice ready for my review",
+        "get the invoice, not Capital Hilton's, ready for my review",
+        "get the invoice using the Capital Hilton template ready for my review",
+    ),
+)
+def test_finalized_review_owner_rejects_multi_owner_direct_clauses(text: str) -> None:
+    from invoice_cockpit_intent import classify_finalized_invoice_review
+
+    decision = classify_finalized_invoice_review(text)
+
+    assert decision.matched is False
+    assert decision.client_ref is None
+
+
+@pytest.mark.parametrize(
+    ("text", "client_ref", "portal_implied"),
+    (
+        ("get me the St Anne's invoice ready for review", "st_annes", False),
+        ("get Hilton's invoice ready for review", "capital_hilton", False),
+        ("prepare Capital Hilton's invoice for review", "capital_hilton", False),
+        ("prepare Live Arts MD's invoice for review", "live_arts_md", False),
+        ("prepare Reynolds Tavern's invoice for review", "reynolds_tavern", False),
+        ("get the Capital Hilton Coupa invoice ready for review", "capital_hilton", True),
+        ("get the Capital Hilton PO invoice ready for review", "capital_hilton", True),
+        ("get the Capital Hilton P.O. invoice ready for review", "capital_hilton", True),
+        (
+            "get the Capital Hilton purchase order invoice ready for review",
+            "capital_hilton",
+            True,
+        ),
+        ("get the Coupa invoice for Capital Hilton ready for review", "capital_hilton", True),
+        ("get the portal invoice for Capital Hilton ready for review", "capital_hilton", True),
+        ("get a copy of the St Anne's invoice ready for review", "st_annes", False),
+        ("get the latest St Anne's invoice ready for my review", "st_annes", False),
+        ("get the existing St Anne's invoice ready for my review", "st_annes", False),
+        ("get the issued St Anne's invoice ready for my review", "st_annes", False),
+        ("get St Anne's latest invoice ready for my review", "st_annes", False),
+        (
+            "surface the existing finalized St Anne's invoice",
+            "st_annes",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice, not Coupa, ready for my review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get the Capital Hilton invoice excluding Coupa ready for my review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get the St Anne's invoice, not Coupa, ready for my review",
+            "st_annes",
+            False,
+        ),
+        (
+            "get St Anne's invoice without the portal ready for my review",
+            "st_annes",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with Coupa not required ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with PO excluded ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with the portal disabled ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with Coupa avoided ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's Coupa-free invoice ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice instead of Coupa ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice using Excel rather than Coupa ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and skip Coupa ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice, never Coupa, ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice off Coupa ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with Coupa is not the route ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with Coupa not allowed ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with a note about Coupa ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice compared with Coupa ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice using Coupa ready for review",
+            "capital_hilton",
+            True,
+        ),
+        (
+            "get Capital Hilton's invoice via Coupa ready for review",
+            "capital_hilton",
+            True,
+        ),
+        (
+            "get Capital Hilton's invoice but don't use Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice instead of using Coupa ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice using Excel rather than using Coupa ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with the Coupa route disabled ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with the Coupa path not required ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with the Coupa invoice excluded ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and compare against the Coupa invoice ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with a comparison to the Coupa invoice ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice but cannot use Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice but can't route through Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice but won't upload to Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice but shouldn't submit to Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice but refuse to use Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's PO invoice excluded from the path ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and submit the invoice to Coupa, then keep it ready for review",
+            "capital_hilton",
+            True,
+        ),
+        (
+            "get Capital Hilton's invoice and upload it to Coupa, then keep it ready for review",
+            "capital_hilton",
+            True,
+        ),
+        (
+            "get Capital Hilton's invoice but didn't use Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice but couldn't route through Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice but wouldn't upload to Coupa, and keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and isn't using Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and aren't using Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and submit invoice to Coupa, then keep it ready for review",
+            "capital_hilton",
+            True,
+        ),
+        (
+            "get Capital Hilton's invoice and upload our invoice to Coupa, then keep it ready for review",
+            "capital_hilton",
+            True,
+        ),
+        (
+            "get Capital Hilton's invoice with a question about how to submit invoice to Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with a note asking whether to upload my invoice to Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice while we decide whether to route our bill through Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and ask can we use Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and ask should we submit invoice to Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and maybe use Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and perhaps upload it to Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice while considering using Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice with a possible Coupa path ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and ask is Coupa required, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and use Coupa, then keep it ready for review",
+            "capital_hilton",
+            True,
+        ),
+        (
+            "get Capital Hilton's invoice and can use Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and could use Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and may use Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and would use Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and should use Coupa, then keep it ready for review",
+            "capital_hilton",
+            False,
+        ),
+        (
+            "get Capital Hilton's invoice and will use Coupa, then keep it ready for review",
+            "capital_hilton",
+            True,
+        ),
+        (
+            "get Capital Hilton's invoice and must use Coupa, then keep it ready for review",
+            "capital_hilton",
+            True,
+        ),
+    ),
+)
+def test_finalized_review_owner_accepts_registered_possessive_alias(
+    text: str,
+    client_ref: str,
+    portal_implied: bool,
+) -> None:
+    from invoice_cockpit_intent import classify_finalized_invoice_review
+
+    decision = classify_finalized_invoice_review(text)
+
+    assert decision.matched is True
+    assert decision.client_ref == client_ref
+    assert decision.client_model is not None
+    assert decision.client_model["coupa_or_po_implied"] is portal_implied
+
+
+def test_finalized_review_owner_uses_the_absolute_bound_clause_start() -> None:
+    from invoice_cockpit_intent import classify_finalized_invoice_review
+
+    decision = classify_finalized_invoice_review(
+        "prepare a payment status for St Anne's, then get their invoice ready for my review"
+    )
+
+    assert decision.matched is True
+    assert decision.client_ref == "st_annes"
+
+
+def test_finalized_review_owner_preserves_generator_registry_parity() -> None:
+    from invoice_cockpit_client_registry import DEFAULT_CLIENT_MODELS
+    from invoice_cockpit_intent import classify_finalized_invoice_review
+
+    text = (
+        "did St Anne's pay us, and if not can you get their invoice ready "
+        "for my review while you're at it?"
+    )
+    decision = classify_finalized_invoice_review(
+        text,
+        client_models=(model for model in DEFAULT_CLIENT_MODELS),
+    )
+
+    assert decision.matched is True
+    assert decision.client_ref == "st_annes"
+
+
 @pytest.mark.parametrize(
     "text",
     (

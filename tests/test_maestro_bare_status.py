@@ -11,13 +11,29 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import maestro_cassandra_responder as maestro
+
+
+@pytest.fixture(autouse=True)
+def _freeze_captured_status_fixture_clock(monkeypatch):
+    """The July 9 production-shape snapshots must not silently age in CI.
+
+    Freshness behavior remains production code: the captured fixtures are
+    evaluated against the date on which they were recorded, while the explicit
+    stale/undated cases below still exercise the fail-closed gate.
+    """
+    import read_model_freshness_audit
+
+    monkeypatch.setattr(read_model_freshness_audit, "_today", lambda: date(2026, 7, 9))
 
 
 def _write_json(path: Path, payload: dict) -> None:

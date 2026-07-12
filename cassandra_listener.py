@@ -237,10 +237,15 @@ def _typed_contract_bound_reply(
     *,
     workflow_db_path=None,
     source_text: str = "",
+    reply_text: str | None = None,
 ) -> str | _ReceiptBoundReply:
     """Carry durable workflow/preserve proof into the post-send adapter."""
 
-    text = str(getattr(decision, "reply", "") or "")
+    text = str(
+        reply_text
+        if reply_text is not None
+        else (getattr(decision, "reply", "") or "")
+    )
     receipt = getattr(decision, "receipt", None)
     receipt_mapping = receipt.to_dict() if callable(getattr(receipt, "to_dict", None)) else {
         key: getattr(receipt, key, None)
@@ -270,6 +275,22 @@ def _typed_contract_bound_reply(
         )
     except Exception:
         pass
+    if reply_text is not None:
+        # The brain may substitute newer operator-correction truth for the
+        # generic typed money snapshot. Never carry the original reply hash
+        # alongside different visible bytes.
+        receipt_mapping = dict(receipt_mapping)
+        try:
+            from final_output_boundary import OutputBoundaryContext, render_final_output
+
+            rebound = render_final_output(
+                safe_text,
+                context=OutputBoundaryContext.from_source_request(source_text),
+            )
+            safe_text = rebound.visible_text
+            receipt_mapping["output_boundary_receipt"] = rebound.receipt.to_dict()
+        except Exception:
+            receipt_mapping["output_boundary_receipt"] = {}
     if receipt is None:
         # A typed decision may have composed the generic hint before its
         # persistence attempt failed.  This adapter must not advertise a dead
@@ -281,6 +302,44 @@ def _typed_contract_bound_reply(
         contract_receipt=receipt_mapping,
         source_text=source_text,
     )
+
+
+def _rebind_delivered_contract_boundary(
+    reply: _ReceiptBoundReply,
+    visible_text: str,
+    *,
+    source_request: str,
+) -> str:
+    """Bind typed proof to the exact bytes leaving the operator adapter.
+
+    A correction-aware brain answer can pass through both the typed carrier
+    and the later machine-leak guard.  The latter is allowed to substitute
+    text, so the pre-transport receipt is not authoritative until this final
+    seam proves its hash against the value sent to Telegram.
+    """
+
+    safe_text = str(visible_text or "")
+    expected_hash = "sha256:" + _hashlib.sha256(safe_text.encode("utf-8")).hexdigest()
+    boundary_receipt = current_output_boundary_receipt()
+    if not isinstance(boundary_receipt, dict) or (
+        boundary_receipt.get("visible_text_sha256") != expected_hash
+    ):
+        # Re-run the idempotent operator guard if a later output invariant
+        # changed the bytes after the last boundary receipt was issued.
+        safe_text = _final_operator_reply(safe_text, source_request=source_request)
+        expected_hash = "sha256:" + _hashlib.sha256(
+            safe_text.encode("utf-8")
+        ).hexdigest()
+        boundary_receipt = current_output_boundary_receipt()
+    if isinstance(boundary_receipt, dict) and (
+        boundary_receipt.get("visible_text_sha256") == expected_hash
+    ):
+        reply.contract_receipt["output_boundary_receipt"] = dict(boundary_receipt)
+    else:
+        # No nested proof is safer than retaining a receipt for different
+        # bytes. The outer adapter still fails closed through safe_text.
+        reply.contract_receipt["output_boundary_receipt"] = {}
+    return safe_text
 
 # ── Producer integration ─────────────────────────────────────────────────────
 
@@ -729,26 +788,51 @@ async def _run_cassandra_handle_async(
         if _contract_decision is not None
         else set()
     )
-    _pure_cassandra_brain_owner = bool(
+    _pure_money_read = _contract_match_set == {ContractLabel.MONEY_READ}
+    _cassandra_brain_owner = bool(
         _contract_decision is not None
-        and not _contract_decision.handled
-        and bool(
-            _contract_match_set.intersection(
-                {
-                    ContractLabel.MONEY_READ,
-                    ContractLabel.PAYMENT_ARRIVAL,
-                    ContractLabel.EMAIL,
-                }
+        and ContractLabel.FINALIZED_INVOICE_REVIEW not in _contract_match_set
+        and (
+            _pure_money_read
+            or (
+                not _contract_decision.handled
+                and bool(
+                    _contract_match_set.intersection(
+                        {
+                            ContractLabel.MONEY_READ,
+                            ContractLabel.PAYMENT_ARRIVAL,
+                            ContractLabel.EMAIL,
+                        }
+                    )
+                )
             )
         )
-        and ContractLabel.FINALIZED_INVOICE_REVIEW not in _contract_match_set
     )
-    if _pure_cassandra_brain_owner:
+    if _cassandra_brain_owner:
         # Bypass any active invoice cockpit.  These pass-through labels already
         # have canonical Cassandra owners: money/payment verification and the
-        # email read-vs-draft adapter.  Letting the cockpit see them first can
-        # capture a foreign domain or invoke its interpreter before the owner.
-        return await asyncio.to_thread(cassandra_handle, text, session_meta)
+        # email read-vs-draft adapter.  A pure MONEY_READ is a handled typed
+        # decision, but Cassandra's helper still owns operator-correction
+        # precedence; returning the generic typed snapshot here would let old
+        # bounded data overrule a newer operator correction.  Letting the
+        # cockpit see any of these can capture a foreign domain or invoke its
+        # interpreter before the owner.
+        _brain_replies = await asyncio.to_thread(cassandra_handle, text, session_meta)
+        if _pure_money_read:
+            # Keep the listener's one typed receipt attached even though the
+            # correction-aware brain owner replaced its generic snapshot text.
+            # The delivery/output adapters must prove both the canonical owner
+            # and the actual bytes returned to the operator.
+            return [
+                _typed_contract_bound_reply(
+                    _contract_decision,
+                    workflow_db_path=session_meta.get("workflow_package_sqlite_path"),
+                    source_text=text,
+                    reply_text=str(reply),
+                )
+                for reply in _brain_replies
+            ]
+        return _brain_replies
 
     if _contract_decision is not None and _contract_decision.handled:
         return [
@@ -1401,6 +1485,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 safe_text = enforced
             except Exception:
                 pass
+            safe_text = _rebind_delivered_contract_boundary(
+                reply_text,
+                safe_text,
+                source_request=text,
+            )
         delivered_text_replies.append(safe_text)
         if reply_markup is None:
             return await update.message.reply_text(safe_text)
