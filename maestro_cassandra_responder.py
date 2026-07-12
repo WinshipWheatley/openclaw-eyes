@@ -2690,8 +2690,14 @@ def build_maestro_bare_status_answer(*, session: Mapping[str, Any] | None = None
             "I don't have current status data to report -- the usual read models are missing, stale, or unverifiable."
         )
     if freshness_excluded_sources:
+        # ── Task 174 (per Task 164 human-alias doctrine): the operator-visible
+        # note shows a COUNT, never raw internal source filenames
+        # ("helm_operator_attention_package.json" is machine vocabulary — the
+        # MT1/MT2 filename leak). Exact source names stay in the receipt
+        # channel below (machine_proof.freshness_excluded_sources et al.).
+        _excluded_count = len(freshness_excluded_sources)
         lines.append(
-            f"(stale or unverifiable, excluded: {', '.join(freshness_excluded_sources)})"
+            f"({_excluded_count} stale source{'s' if _excluded_count != 1 else ''} excluded)"
         )
     plain = "\n".join(lines)
 

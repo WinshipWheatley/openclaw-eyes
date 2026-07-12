@@ -209,7 +209,11 @@ def test_listener_bridge_request_delivers_capability_readback_not_generic_intro(
     assert "Proven live-implemented rails:" in reply
     assert "Recorded, no action ran" not in reply
     assert reply != "Here is the truthful readback from current generated state."
-    assert "Maestro-native reply - ref capability-smoke:" in reply
+    # 174 EVOLUTION: the visible "[Maestro-native reply - ref ...]" tag was the
+    # upstream root of the MT1-MT6 footer regressions (bracket-led fragment =
+    # machine contract to the surface guard). Receipt refs live ONLY in the
+    # receipt channel now — the visible reply must NOT carry the tag.
+    assert "Maestro-native reply - ref" not in reply
 
 
 def test_listener_capital_hilton_status_probe_reaches_brain_not_system_question(monkeypatch, tmp_path):
@@ -413,7 +417,8 @@ def test_reply_prefers_full_final_operator_message_over_generic_one_line():
     assert "- Agent roster: Cassandra and Chief are online." in reply
     assert "Proven live-implemented rails" in reply
     assert reply != "Here is the truthful readback from current generated state."
-    assert "Maestro-native reply - ref 42:abcdef" in reply
+    # 174 EVOLUTION: no visible machine ref tag — receipt channel only.
+    assert "Maestro-native reply - ref" not in reply
 
 
 def test_reply_suppresses_processing_heartbeat_as_final_answer():
@@ -428,7 +433,8 @@ def test_reply_suppresses_processing_heartbeat_as_final_answer():
 
     assert "OpenClaw picked this up" not in reply
     assert "Recorded, no action ran" in reply
-    assert "Maestro-native reply - ref 42:abcdef" in reply
+    # 174 EVOLUTION: no visible machine ref tag — receipt channel only.
+    assert "Maestro-native reply - ref" not in reply
 
 
 def test_reply_sanitizes_stale_carryover_before_delivery():
@@ -448,7 +454,8 @@ def test_reply_sanitizes_stale_carryover_before_delivery():
     assert "Fresh Maestro answer." in reply
     assert "Still working" not in reply
     assert "previous response was truncated" not in reply.lower()
-    assert "Maestro-native reply - ref 42:abcdef" in reply
+    # 174 EVOLUTION: no visible machine ref tag — receipt channel only.
+    assert "Maestro-native reply - ref" not in reply
 
 
 def test_listener_has_no_outbound_send_imports_and_send_hold_boundary_false():

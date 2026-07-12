@@ -504,3 +504,109 @@ class TestGuardOperatorReply:
         monkeypatch.setattr(guard, "check_operator_surface", _boom)
         text = "Perfectly normal reply text."
         assert guard.guard_operator_reply(text) == text
+
+
+# ---------------------------------------------------------------------------
+# 8. Task 174 — DROP-DON'T-DECORATE guard semantics
+#    174: guard drops machine fragments when substance remains; fallback only
+#    on empty. The old always-append behavior decorated every substantive
+#    Maestro reply carrying one machine fragment with the "Routed for
+#    review..." footer (live re-probe MT1-MT6). New contract:
+#      - substance remains  -> unsafe fragment DROPPED, no footer,
+#                              outcome machine_guard_dropped,
+#                              reasons include machine_contract_leak AND
+#                              machine_fragment_dropped
+#      - nothing substantive -> SAFE_FALLBACK_REPLY_TEXT substituted
+#                              (128/165 never-silence), outcome
+#                              machine_guard_substituted
+# ---------------------------------------------------------------------------
+
+
+class TestTask174DropDontDecorate:
+    def test_clean_substance_with_trailing_machine_fragment_keeps_substance_verbatim(self):
+        """(a) substance preserved verbatim, NO footer, receipt says dropped."""
+        substance = "Money: 1 client with open amounts.\nFleet: 4/6 agents online."
+        bounded = guard.guard_operator_reply_with_receipt(
+            substance + "\n[Maestro-native reply - ref 42:abcdef]",
+            agent_role="MAESTRO",
+            source_request="status?",
+        )
+        assert bounded.visible_text == substance
+        assert guard.SAFE_FALLBACK_REPLY_TEXT not in bounded.visible_text
+        assert "Routed for review" not in bounded.visible_text
+        assert bounded.receipt.outcome == "machine_guard_dropped"
+        assert "machine_fragment_dropped" in bounded.receipt.reason_codes
+        # the existing reason stays alongside the new one
+        assert "machine_contract_leak" in bounded.receipt.reason_codes
+
+    def test_trailing_receipt_field_fragment_dropped_without_footer(self):
+        bounded = guard.guard_operator_reply_with_receipt(
+            "Capital Hilton payment remains unconfirmed.\ncontent_hash=0123456789abcdef",
+            agent_role="CASSANDRA",
+            source_request="any sign of the hilton payment landing yet?",
+        )
+        assert bounded.visible_text == "Capital Hilton payment remains unconfirmed."
+        assert "content_hash" not in bounded.visible_text
+        assert "Routed for review" not in bounded.visible_text
+        assert bounded.receipt.outcome == "machine_guard_dropped"
+        assert "machine_fragment_dropped" in bounded.receipt.reason_codes
+
+    def test_entirely_machine_reply_still_substitutes_fallback_never_silence(self):
+        """(b) ENTIRELY machine fragments -> SAFE_FALLBACK_REPLY_TEXT (never silence)."""
+        bounded = guard.guard_operator_reply_with_receipt(
+            "request_id=abc123, internal_status=RESPONSE_READY",
+            agent_role="MAESTRO",
+            source_request="status?",
+        )
+        assert bounded.visible_text == guard.SAFE_FALLBACK_REPLY_TEXT
+        assert bounded.receipt.outcome == "machine_guard_substituted"
+        assert "machine_contract_leak" in bounded.receipt.reason_codes
+        # substitution, not drop-with-substance
+        assert "machine_fragment_dropped" not in bounded.receipt.reason_codes
+
+    def test_dangling_lead_in_alone_is_not_substance(self):
+        """A colon lead-in left behind by a dropped machine payload is not an
+        answer -- the fallback substitutes (machine_guard_substituted stays
+        reserved for actual substitution)."""
+        bounded = guard.guard_operator_reply_with_receipt(
+            "Error: <OpenClawResponseForMac object at 0x7f123abc>",
+            agent_role="MAESTRO",
+            source_request="status?",
+        )
+        assert bounded.visible_text == guard.SAFE_FALLBACK_REPLY_TEXT
+        assert bounded.receipt.outcome == "machine_guard_substituted"
+
+    def test_mt5_mt6_canary_pair_clarify_text_ships_with_no_footer(self):
+        """(c) MT5/MT6 regression fence: both canaries were baseline-PASS and
+        regressed ONLY via the footer. Their clarify text plus the (now
+        removed upstream, still guarded here) machine provenance tag must ship
+        the clarify substance with NO footer."""
+        clarify = "Not sure I follow — what do you need?"
+        for question in (
+            "flurble invoice zapping quantum?",
+            "what do you make of 'glorp payment sideways'?",
+        ):
+            bounded = guard.guard_operator_reply_with_receipt(
+                clarify + "\n\n[Maestro-native reply - ref 734:573e5b]",
+                agent_role="MAESTRO",
+                source_request=question,
+            )
+            assert "Not sure I follow" in bounded.visible_text
+            assert "what do you need?" in bounded.visible_text
+            assert "Routed for review" not in bounded.visible_text
+            assert guard.SAFE_FALLBACK_REPLY_TEXT not in bounded.visible_text
+            assert "[Maestro-native reply" not in bounded.visible_text
+            assert bounded.receipt.outcome == "machine_guard_dropped"
+            assert "machine_fragment_dropped" in bounded.receipt.reason_codes
+
+    def test_clean_reply_receipt_untouched_by_174_codes(self):
+        bounded = guard.guard_operator_reply_with_receipt(
+            "Your invoice is ready to review whenever you have a moment.",
+            agent_role="MAESTRO",
+            source_request="how's the invoice?",
+        )
+        assert "machine_fragment_dropped" not in bounded.receipt.reason_codes
+        assert bounded.receipt.outcome not in (
+            "machine_guard_dropped",
+            "machine_guard_substituted",
+        )

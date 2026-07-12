@@ -107,7 +107,11 @@ class TestBuildMaestroBareStatusAnswer:
         assert "Plate:" not in answer["plain_summary"]
         assert "Money: 1 client with open amounts." in answer["plain_summary"]
         assert "Fleet: 4/6 agents online." in answer["plain_summary"]
-        assert "helm_operator_attention_package.json" in answer["plain_summary"]
+        # 174 EVOLUTION (Task 164 human-alias doctrine): the operator-visible
+        # note is a COUNT — raw internal source filenames never reach the
+        # operator surface. Exact names stay in the receipt channel.
+        assert "(1 stale source excluded)" in answer["plain_summary"]
+        assert "helm_operator_attention_package.json" not in answer["plain_summary"]
         assert "helm_operator_attention_package.json" in answer["machine_proof"]["stale_sources_excluded"]
         assert "helm_operator_attention_package.json" not in " ".join(answer["machine_proof"]["source_truth_refs"])
 
@@ -123,10 +127,36 @@ class TestBuildMaestroBareStatusAnswer:
         assert "Plate:" not in answer["plain_summary"]
         assert "Money: 1 client with open amounts." in answer["plain_summary"]
         assert "Fleet: 4/6 agents online." in answer["plain_summary"]
-        assert "helm_operator_attention_package.json" in answer["plain_summary"]
+        # 174 EVOLUTION (Task 164 human-alias doctrine): count, not filename,
+        # on the operator surface; the receipt channel keeps the exact source
+        # name AND the stale-vs-unverifiable distinction.
+        assert "(1 stale source excluded)" in answer["plain_summary"]
+        assert "helm_operator_attention_package.json" not in answer["plain_summary"]
         assert "helm_operator_attention_package.json" in answer["machine_proof"]["stale_sources_excluded"]
         assert "helm_operator_attention_package.json" in answer["machine_proof"]["unverifiable_sources_excluded"]
         assert "helm_operator_attention_package.json" not in " ".join(answer["machine_proof"]["source_truth_refs"])
+
+    def test_two_excluded_sources_show_plural_count_not_filenames(self, tmp_path):
+        """174 (Task 164 human-alias doctrine): the operator-visible note
+        pluralizes correctly and NEVER shows internal filenames; the receipt
+        channel keeps the exact source names."""
+        root = _seed_fresh_status_read_models(tmp_path, helm_generated_at="2026-05-26T00:00:00+00:00")
+        _write_json(
+            root / "receivables_month_bounded.json",
+            {
+                "generated_at": "2026-05-01T00:00:00+00:00",
+                "summary": {"open_minor_units_by_client": {"live_arts_md": 109500}},
+            },
+        )
+
+        answer = maestro.build_maestro_bare_status_answer(session={"read_model_root": root.as_posix()})
+
+        assert "(2 stale sources excluded)" in answer["plain_summary"]
+        assert ".json" not in answer["plain_summary"]
+        assert set(answer["machine_proof"]["freshness_excluded_sources"]) == {
+            "helm_operator_attention_package.json",
+            "receivables_month_bounded.json",
+        }
 
     def test_missing_read_models_produces_honest_no_data_answer(self, tmp_path):
         root = tmp_path / "empty_read_models"

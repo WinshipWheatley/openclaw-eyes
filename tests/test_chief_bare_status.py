@@ -95,7 +95,10 @@ class TestBuildChiefBareStatusAnswer:
 
         assert "Rail:" not in answer
         assert "Services: 4/6 agents online." in answer
-        assert "chief_status_rail.json" in answer
+        # 174 EVOLUTION (Task 164 human-alias doctrine): operator-visible note
+        # is a COUNT — the raw internal filename never reaches the operator.
+        assert "(1 stale source excluded)" in answer
+        assert "chief_status_rail.json" not in answer
 
     def test_undated_rail_is_unverifiable_and_excluded(self, tmp_path, monkeypatch):
         _seed_fresh_read_models(tmp_path)
@@ -109,8 +112,30 @@ class TestBuildChiefBareStatusAnswer:
 
         assert "Rail:" not in answer
         assert "Services: 4/6 agents online." in answer
-        assert "chief_status_rail.json" in answer
-        assert "unverifiable" in answer
+        # 174 EVOLUTION (Task 164 human-alias doctrine): the visible note is
+        # the same count alias for stale AND unverifiable exclusions; the
+        # excluded source still never renders as current data.
+        assert "(1 stale source excluded)" in answer
+        assert "chief_status_rail.json" not in answer
+
+    def test_two_excluded_sources_show_plural_count_not_filenames(self, tmp_path, monkeypatch):
+        """174 (Task 164 human-alias doctrine): correct pluralization, zero
+        internal filenames on the operator surface."""
+        _seed_fresh_read_models(tmp_path)
+        _write_json(
+            tmp_path / "generated" / "read_models" / "chief_status_rail.json",
+            {"generated_at": "2026-05-19T00:30:34+00:00", "chief_current_status": "safe_status_read_model_only"},
+        )
+        _write_json(
+            tmp_path / "generated" / "read_models" / "work_board.json",
+            {"generated_at": "2026-05-01T00:00:00+00:00", "pending_approval_count": 1, "needs_review_count": 34},
+        )
+        monkeypatch.chdir(tmp_path)
+
+        answer = chief_router.build_chief_bare_status_answer()
+
+        assert "(2 stale sources excluded)" in answer
+        assert ".json" not in answer
 
     def test_missing_read_models_produces_honest_no_data_answer(self, tmp_path, monkeypatch):
         (tmp_path / "generated" / "read_models").mkdir(parents=True)

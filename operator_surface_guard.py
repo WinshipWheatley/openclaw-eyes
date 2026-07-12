@@ -592,7 +592,6 @@ def guard_operator_reply_with_receipt(
     machine_replaced = 0
     machine_preambles_dropped = 0
     machine_errors = 0
-    fallback_emitted = False
     for fragment in split_output_fragments(bounded.visible_text):
         if not fragment or not fragment.strip() or fragment.strip() in {"—", "–", "|"}:
             rendered.append(fragment)
@@ -631,22 +630,62 @@ def guard_operator_reply_with_receipt(
             del rendered[last_content_index:]
             machine_preambles_dropped += 1
         machine_replaced += 1
-        if not fallback_emitted:
-            rendered.append(SAFE_FALLBACK_REPLY_TEXT)
-            fallback_emitted = True
+        # ── Task 174: DROP-DON'T-DECORATE ─────────────────────────────────
+        # The old behavior appended SAFE_FALLBACK_REPLY_TEXT here, INSIDE the
+        # fragment loop — so a single machine fragment (e.g. a bracketed
+        # provenance/receipt line glued to a perfectly good answer) decorated
+        # EVERY substantive Maestro reply with the "Routed for review..."
+        # footer (live re-probe MT1-MT6, MAC-TELEGRAM-RETEST-POSTGATEA-20260712).
+        # New semantics: the unsafe fragment is simply DROPPED. The fallback
+        # sentence is emitted AFTER the loop, and ONLY when no substantive
+        # visible text remains (128/165 never-silence preserved below).
     if not machine_replaced:
         return bounded
+    # ── Task 174: fallback ONLY on an empty (non-substantive) remainder ────
+    # "Substantive" = a surviving fragment that is not whitespace, not a bare
+    # clause separator (the loop already passes those through untouched), and
+    # not a dangling bare LABEL lead-in (1-2 words ending with ":", e.g.
+    # "Error:" or "Debug dump:" left behind when its machine payload was
+    # dropped) — a bare label alone is not an answer. A longer colon-terminated
+    # clause ("Capital Hilton payment remains unconfirmed:") IS substance.
+    def _is_substantive(piece: str) -> bool:
+        stripped = piece.strip()
+        if not stripped or stripped in {"—", "–", "|"}:
+            return False
+        if stripped.endswith(":") and len(stripped.split()) <= 2:
+            return False
+        return True
+
+    substance_remains = any(_is_substantive(piece) for piece in rendered)
+    if not substance_remains:
+        # Never-silence (Tasks 128/165): an entirely-machine reply still says
+        # something human. This is the ONLY place the fallback text is emitted
+        # (actual substitution — receipt outcome machine_guard_substituted).
+        rendered = [SAFE_FALLBACK_REPLY_TEXT]
     visible = "".join(rendered).strip() or SAFE_FALLBACK_REPLY_TEXT
     visible_hash = "sha256:" + hashlib.sha256(visible.encode("utf-8")).hexdigest()
     reasons = [*bounded.receipt.reason_codes]
     if machine_replaced:
         reasons.append("machine_contract_leak")
+    if substance_remains:
+        # Task 174: reason-code the drop distinctly so receipts show that the
+        # unsafe fragment was removed while the substantive answer shipped.
+        reasons.append("machine_fragment_dropped")
     if machine_errors:
         reasons.append("machine_guard_error")
     receipt = replace(
         bounded.receipt,
+        # Task 174: machine_guard_substituted is RESERVED for actual
+        # substitution (nothing substantive survived); drop-with-substance
+        # gets its own outcome so downstream triage can tell them apart.
         outcome=(
-            "classifier_error" if machine_errors else "machine_guard_substituted"
+            "classifier_error"
+            if machine_errors
+            else (
+                "machine_guard_dropped"
+                if substance_remains
+                else "machine_guard_substituted"
+            )
         ),
         visible_text_sha256=visible_hash,
         replaced_fragment_count=(

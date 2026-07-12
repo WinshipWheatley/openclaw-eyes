@@ -833,30 +833,31 @@ def _best_final_text(payload: Mapping[str, Any]) -> str:
     return ""
 
 
-def _correlation_ref(request_id: str | None) -> str:
-    raw = _first_text(request_id)
-    if not raw:
-        return "unknown"
-    parts = raw.split("_")
-    if len(parts) >= 4 and parts[0] == "maestro" and parts[1] == "telegram":
-        return f"{parts[2]}:{parts[-1][:6]}"
-    return _short_hash(raw)[:8]
+# Task 174: _correlation_ref was deleted with the visible provenance tag it
+# manufactured — the correlation ref lives ONLY in the receipt channel now.
 
 
 def _append_provenance(text: str, *, payload: Mapping[str, Any] | None, request_id: str | None) -> str:
-    source_request_id = ""
-    if isinstance(payload, Mapping):
-        source_request_id = _first_text(payload.get("source_request_id"))
-    ref = _correlation_ref(source_request_id)
-    label = f"Maestro-native reply - ref {ref}"
+    # ── Task 174 UPSTREAM ROOT FIX (the six MT1-MT6 fails were born HERE) ──
+    # This function used to glue a machine correlation line onto the VISIBLE
+    # reply: "\n\n[Maestro-native reply - ref 42:abcdef]". That bracketed
+    # fragment starts with "[", so operator_surface_guard's per-fragment leak
+    # check flagged it as JSON-shaped machine contract (reason
+    # machine_contract_leak) on EVERY bridge reply carrying a
+    # source_request_id — which decorated every good Maestro answer
+    # (bare status, persona, clarify) with the "Routed for review..." footer.
+    # Receipt lines belong in the RECEIPT CHANNEL, never visible text: the
+    # correlation ref already travels in the bridge response payload
+    # (source_request_id) and in the delivered-receipt registration
+    # (_register_maestro_receipt_after_delivery); the operator-facing
+    # affordance is the human "show receipt" hint appended by
+    # render_receipt_safe_visible_text. So the visible surface now ships the
+    # body ONLY. (The 2026-07-03 "tag is fine in text" ask is superseded by
+    # the 174 doctrine: machine receipt refs never join visible text.)
     body = _first_text(text)
     if not body:
         body = BLOCKED_OR_UNKNOWN_REPLY
-    if not source_request_id:
-        return body
-    if label.lower() in body.lower():
-        return body
-    return f"{body}\n\n[{label}]"
+    return body
 
 
 def _resilient_reply_text(text: str, *, payload: Mapping[str, Any] | None, request_id: str | None) -> str:

@@ -922,9 +922,14 @@ def build_chief_bare_status_answer() -> str:
             "I don't have current status data to report -- the usual read models are missing, stale, or unverifiable."
         )
     if freshness_excluded_sources:
+        # ── Task 174 (per Task 164 human-alias doctrine): the operator-visible
+        # note shows a COUNT, never raw internal source filenames — identical
+        # to the maestro_cassandra_responder bare-status note. Exact source
+        # names remain in the read models themselves; only the operator
+        # surface is aliased.
+        _excluded_count = len(freshness_excluded_sources)
         lines.append(
-            "(stale or unverifiable, excluded: "
-            f"{', '.join(freshness_excluded_sources)})"
+            f"({_excluded_count} stale source{'s' if _excluded_count != 1 else ''} excluded)"
         )
     return "\n".join(lines)
 
