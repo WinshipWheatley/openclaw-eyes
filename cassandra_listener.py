@@ -166,7 +166,7 @@ class _ReceiptBoundReply(str):
     delivery adapter can still recognize it and read the machine-only fields.
     """
 
-    __slots__ = ("descriptor", "contract_receipt")
+    __slots__ = ("descriptor", "contract_receipt", "source_text")
 
     def __new__(
         cls,
@@ -174,10 +174,12 @@ class _ReceiptBoundReply(str):
         text: str,
         descriptor: ReceiptDescriptor | None,
         contract_receipt: dict[str, Any] | None = None,
+        source_text: str = "",
     ) -> "_ReceiptBoundReply":
         value = str.__new__(cls, text)
         value.descriptor = descriptor
         value.contract_receipt = dict(contract_receipt or {})
+        value.source_text = str(source_text or "")
         return value
 
     @property
@@ -234,6 +236,7 @@ def _typed_contract_bound_reply(
     decision,
     *,
     workflow_db_path=None,
+    source_text: str = "",
 ) -> str | _ReceiptBoundReply:
     """Carry durable workflow/preserve proof into the post-send adapter."""
 
@@ -257,6 +260,16 @@ def _typed_contract_bound_reply(
         raw_ref=str(getattr(receipt, "receipt_pointer", "") or ""),
         advertise=descriptor is not None,
     )
+    try:
+        from vote_timeout_clarification import enforce_vote_timeout_output
+
+        safe_text = enforce_vote_timeout_output(
+            source_text,
+            safe_text,
+            decision,
+        )
+    except Exception:
+        pass
     if receipt is None:
         # A typed decision may have composed the generic hint before its
         # persistence attempt failed.  This adapter must not advertise a dead
@@ -266,6 +279,7 @@ def _typed_contract_bound_reply(
         text=safe_text,
         descriptor=descriptor,
         contract_receipt=receipt_mapping,
+        source_text=source_text,
     )
 
 # ── Producer integration ─────────────────────────────────────────────────────
@@ -688,6 +702,28 @@ async def _run_cassandra_handle_async(
         else:
             _contract_decision = None
 
+    if _contract_decision is not None and not _contract_decision.handled:
+        try:
+            from vote_timeout_clarification import warm_clarification_for_vote_timeout
+
+            _timeout_reply = warm_clarification_for_vote_timeout(
+                text,
+                _contract_decision,
+            )
+        except Exception:
+            _timeout_reply = None
+        if _timeout_reply is not None:
+            # The exact semantic-vote receipt remains attached to the
+            # string-compatible delivery carrier.  Return before the cockpit,
+            # brain, model, or workflow stager can see this turn.
+            return [
+                _typed_contract_bound_reply(
+                    _contract_decision,
+                    workflow_db_path=session_meta.get("workflow_package_sqlite_path"),
+                    source_text=text,
+                )
+            ]
+
     _contract_match_set = (
         set(_contract_decision.matches)
         if _contract_decision is not None
@@ -719,6 +755,7 @@ async def _run_cassandra_handle_async(
             _typed_contract_bound_reply(
                 _contract_decision,
                 workflow_db_path=session_meta.get("workflow_package_sqlite_path"),
+                source_text=text,
             )
         ]
 
@@ -1004,7 +1041,10 @@ async def _dispatch_receipt_bound_reply(
 ) -> bool:
     """Send once, then index durable typed proof without retrying delivery."""
 
-    sent_message = await send_text(reply.text, reply_markup=None)
+    # Keep the carrier through the output boundary.  The bound sender can then
+    # re-assert Task 167 after anti-launder processing while ``str(reply)`` keeps
+    # every historical sender compatible.
+    sent_message = await send_text(reply, reply_markup=None)
     outbound_message_id = str(getattr(sent_message, "message_id", "") or "")
     actual_source_message_id = str(source_message_id or "")
     if (
@@ -1339,6 +1379,28 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     async def _send_bound_text(reply_text: str, reply_markup=None):
         safe_text = _final_operator_reply(reply_text, source_request=text)
+        if isinstance(reply_text, _ReceiptBoundReply):
+            try:
+                from vote_timeout_clarification import enforce_vote_timeout_output
+
+                enforced = enforce_vote_timeout_output(
+                    reply_text.source_text or text,
+                    safe_text,
+                    reply_text.contract_receipt,
+                )
+                if enforced != safe_text:
+                    safe_text = _final_operator_reply(
+                        enforced,
+                        source_request=text,
+                    )
+                    enforced = enforce_vote_timeout_output(
+                        reply_text.source_text or text,
+                        safe_text,
+                        reply_text.contract_receipt,
+                    )
+                safe_text = enforced
+            except Exception:
+                pass
         delivered_text_replies.append(safe_text)
         if reply_markup is None:
             return await update.message.reply_text(safe_text)

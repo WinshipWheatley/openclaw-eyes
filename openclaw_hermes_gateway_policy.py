@@ -173,6 +173,9 @@ _OUTPUT_BOUNDARY_CONTEXT: contextvars.ContextVar[OutputBoundaryContext | None] =
 _OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict[str, Any] | None] = (
     contextvars.ContextVar("openclaw_hermes_output_boundary_receipt", default=None)
 )
+_VOTE_TIMEOUT_RECEIPT: contextvars.ContextVar[dict[str, Any] | None] = (
+    contextvars.ContextVar("openclaw_hermes_vote_timeout_receipt", default=None)
+)
 
 
 def _normalize(text: str) -> str:
@@ -353,6 +356,9 @@ def _guard_refusal_reply(
 def truthful_reply_for_text(text: str) -> str | None:
     """Return a deterministic Hermes gateway reply, or ``None`` to fall through."""
 
+    # Direct callers can reuse one context across messages; never let a prior
+    # timeout receipt color a later deterministic/fallback answer.
+    _VOTE_TIMEOUT_RECEIPT.set(None)
     raw = str(text or "").strip()
     if not raw:
         return None
@@ -417,6 +423,16 @@ def truthful_reply_for_text(text: str) -> str | None:
         )
     except Exception:
         _typed = None
+    if _typed is not None and not _typed.handled:
+        try:
+            from vote_timeout_clarification import warm_clarification_for_vote_timeout
+
+            _timeout_reply = warm_clarification_for_vote_timeout(raw, _typed)
+        except Exception:
+            _timeout_reply = None
+        if _timeout_reply is not None:
+            _VOTE_TIMEOUT_RECEIPT.set(_typed.receipt.to_dict())
+            return _timeout_reply
     if _typed is not None and _typed.handled:
         return str(_typed.reply or "")
 
@@ -489,12 +505,44 @@ def sanitize_gateway_response(
         or OutputBoundaryContext.from_source_request(source_request)
     )
     rendered = render_final_output(cleaned, context=context)
+    visible = rendered.visible_text
+    timeout_receipt = _VOTE_TIMEOUT_RECEIPT.get()
+    # A direct policy caller can reuse the same context across unrelated
+    # messages. The receipt belongs to exactly one sanitize pass; consume it
+    # so a later HT2/status response cannot inherit a prior timeout decision.
+    _VOTE_TIMEOUT_RECEIPT.set(None)
+    if isinstance(timeout_receipt, dict):
+        try:
+            from vote_timeout_clarification import enforce_vote_timeout_output
+
+            visible = enforce_vote_timeout_output(
+                source_request,
+                visible,
+                timeout_receipt,
+            )
+            if visible != rendered.visible_text:
+                # Rebind the normal output receipt to the corrected visible
+                # line, then assert the timeout invariant once more after that
+                # final anti-launder pass.
+                rendered = render_final_output(visible, context=context)
+                visible = enforce_vote_timeout_output(
+                    source_request,
+                    rendered.visible_text,
+                    timeout_receipt,
+                )
+        except Exception:
+            pass
     _OUTPUT_BOUNDARY_RECEIPT.set(rendered.receipt.to_dict())
-    return rendered.visible_text
+    return visible
 
 
 def current_gateway_output_boundary_receipt() -> dict[str, Any] | None:
     receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
+    return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def current_gateway_vote_timeout_receipt() -> dict[str, Any] | None:
+    receipt = _VOTE_TIMEOUT_RECEIPT.get()
     return dict(receipt) if isinstance(receipt, dict) else None
 
 
@@ -833,6 +881,7 @@ def install_gateway_policy_patch(
             source_request = str(getattr(event, "text", "") or "") if authorized else ""
             boundary_context = OutputBoundaryContext.from_source_request(source_request)
             context_token = _OUTPUT_BOUNDARY_CONTEXT.set(boundary_context)
+            timeout_token = _VOTE_TIMEOUT_RECEIPT.set(None)
             try:
                 if authorized:
                     command = event.get_command() if callable(getattr(event, "get_command", None)) else None
@@ -855,6 +904,7 @@ def install_gateway_policy_patch(
                     boundary_context=boundary_context,
                 )
             finally:
+                _VOTE_TIMEOUT_RECEIPT.reset(timeout_token)
                 _OUTPUT_BOUNDARY_CONTEXT.reset(context_token)
 
         runner_cls._handle_message = _openclaw_handle_message
@@ -903,6 +953,7 @@ def install_gateway_policy_patch(
 
 __all__ = [
     "current_gateway_output_boundary_receipt",
+    "current_gateway_vote_timeout_receipt",
     "install_gateway_policy_patch",
     "sanitize_gateway_response",
     "stalled_stream_failure_reply",

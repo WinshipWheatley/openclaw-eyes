@@ -39,10 +39,19 @@ _OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.Cont
     "niles_output_boundary_receipt",
     default=None,
 )
+_TYPED_CONTRACT_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "niles_typed_contract_receipt",
+    default=None,
+)
 
 
 def current_output_boundary_receipt() -> dict | None:
     receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
+    return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def current_typed_contract_receipt() -> dict | None:
+    receipt = _TYPED_CONTRACT_RECEIPT.get()
     return dict(receipt) if isinstance(receipt, dict) else None
 
 
@@ -196,6 +205,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    _TYPED_CONTRACT_RECEIPT.set(None)
     effective_chat = getattr(update, "effective_chat", None)
     chat_id = effective_chat.id if effective_chat else AUTHORIZED_USER_ID
     try:
@@ -268,8 +278,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception:
         _typed = None
-    if _typed is not None and _typed.handled:
-        _typed_reply = str(_typed.reply or "")
+    _timeout_reply = None
+    if _typed is not None and not _typed.handled:
+        try:
+            from vote_timeout_clarification import warm_clarification_for_vote_timeout
+
+            _timeout_reply = warm_clarification_for_vote_timeout(text, _typed)
+        except Exception:
+            _timeout_reply = None
+    if _typed is not None and (_typed.handled or _timeout_reply is not None):
+        _typed_reply = str(_timeout_reply or _typed.reply or "")
+        _TYPED_CONTRACT_RECEIPT.set(_typed.receipt.to_dict())
         try:
             _typed_descriptor = contract_delivery_descriptor(
                 _typed.receipt.to_dict(),
@@ -285,6 +304,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             raw_ref=str(getattr(_typed.receipt, "receipt_pointer", "") or ""),
         )
         _typed_reply = _final_operator_reply(_typed_reply, source_request=text)
+        try:
+            from vote_timeout_clarification import enforce_vote_timeout_output
+
+            _enforced_reply = enforce_vote_timeout_output(
+                text,
+                _typed_reply,
+                _typed,
+            )
+            if _enforced_reply != _typed_reply:
+                _typed_reply = _final_operator_reply(
+                    _enforced_reply,
+                    source_request=text,
+                )
+                _enforced_reply = enforce_vote_timeout_output(
+                    text,
+                    _typed_reply,
+                    _typed,
+                )
+            _typed_reply = _enforced_reply
+        except Exception:
+            pass
         delivered_message = await update.message.reply_text(_typed_reply)
         try:
             register_telegram_delivery(
@@ -300,7 +340,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"[producer_listener] delivered receipt index skipped: {type(exc).__name__}",
                 flush=True,
             )
-        _fire_agent_voice("niles", _typed_reply, update)
+        # A timeout clarification is one bounded text response, not a second
+        # voice delivery or another interpretation attempt.
+        if _timeout_reply is None:
+            _fire_agent_voice("niles", _typed_reply, update)
         return
 
     # ── Refusal-first guard (task 141) — FIRST tap, before the producer

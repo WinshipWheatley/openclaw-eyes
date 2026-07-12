@@ -1082,6 +1082,29 @@ def _route_message_inner(text: str, *, first_touch_receipt=None) -> dict:
         else:
             _contract_decision = None
 
+    if _contract_decision is not None and not _contract_decision.handled:
+        try:
+            from vote_timeout_clarification import warm_clarification_for_vote_timeout
+
+            _timeout_reply = warm_clarification_for_vote_timeout(
+                text,
+                _contract_decision,
+            )
+        except Exception:
+            _timeout_reply = None
+        if _timeout_reply is not None:
+            return {
+                "intent": "typed_contract_vote_timeout_clarification",
+                "reply": _timeout_reply,
+                "send_performed": False,
+                "ledger_touched": False,
+                "workflow_package_staged": False,
+                "contract_decision": _contract_decision.receipt.to_dict(),
+                "contract_matches": [
+                    label.value for label in _contract_decision.matches
+                ],
+            }
+
     if _contract_decision is not None and _contract_decision.handled:
         _intent_by_label = {
             "refusal": "operator_refusal_guard",
@@ -1709,7 +1732,16 @@ def route_message(text: str, *, first_touch_receipt=None) -> dict:
         print(f"[chief_router] _route_message_inner error: {e}", flush=True)
         result = {"intent": "error", "reply": "Chief hit a snag routing that. Try again."}
     intent = result.get("intent", "unknown")
-    _log_route(_h, intent, _llm_fallback_fired)
+    try:
+        from vote_timeout_clarification import is_outside_session_vote_failure
+
+        _vote_timeout = is_outside_session_vote_failure(
+            result.get("contract_decision")
+        )
+    except Exception:
+        _vote_timeout = False
+    if not _vote_timeout:
+        _log_route(_h, intent, _llm_fallback_fired)
     return _guard_route_result(result, source_request=text)
 
 
@@ -1753,6 +1785,36 @@ def _guard_route_result(result: dict, *, source_request: str = "") -> dict:
                 for r in result["replies"]
             ],
         }
+    contract_receipt = result.get("contract_decision")
+    if isinstance(contract_receipt, dict):
+        try:
+            from vote_timeout_clarification import enforce_vote_timeout_output
+
+            if isinstance(result.get("reply"), str):
+                result = {
+                    **result,
+                    "reply": enforce_vote_timeout_output(
+                        source_request,
+                        result["reply"],
+                        contract_receipt,
+                    ),
+                }
+            if isinstance(result.get("replies"), list):
+                result = {
+                    **result,
+                    "replies": [
+                        enforce_vote_timeout_output(
+                            source_request,
+                            item,
+                            contract_receipt,
+                        )
+                        if isinstance(item, str)
+                        else item
+                        for item in result["replies"]
+                    ],
+                }
+        except Exception:
+            pass
     return result
 
 

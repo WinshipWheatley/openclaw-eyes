@@ -130,10 +130,19 @@ def compose(
                 "needs": "taxonomy_alignment",
             },
         )
+    read_only_meta: dict[str, Any] = {
+        "run_id": getattr(result, "run_id", None),
+    }
+    contract_receipt = routed.get("contract_decision")
+    if isinstance(contract_receipt, dict):
+        read_only_meta["contract_decision"] = dict(contract_receipt)
+        read_only_meta["contract_matches"] = [
+            str(item) for item in routed.get("contract_matches", ()) if str(item)
+        ]
     return ComposeResult.read_only(
         routed_intent,
         _segments_from_routed(routed),
-        run_id=getattr(result, "run_id", None),
+        **read_only_meta,
     )
 
 

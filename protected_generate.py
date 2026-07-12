@@ -1339,6 +1339,56 @@ def _fallback_grounded_answer(
     return " ".join(matched[:3])
 
 
+def render_explicit_deterministic_digest(
+    prompt: str,
+    *,
+    context_packet: Mapping[str, Any] | str | None,
+    agent: str = "maestro",
+) -> str | None:
+    """Render the existing grounded fallback only for a strict plate/digest ask.
+
+    This is deliberately narrower than ``_requests_overview``.  Vote-timeout
+    adapters may use it after their one semantic-model attempt without opening
+    the legacy broad ``update``/``summary`` substring gates or making a second
+    model call.  A non-explicit request gets no renderer authority at all.
+    """
+
+    from vote_timeout_clarification import ExplicitDigestIntent, classify_explicit_digest_intent
+
+    intent = classify_explicit_digest_intent(prompt)
+    if intent is ExplicitDigestIntent.NONE:
+        return None
+    packet = _packet_mapping(context_packet)
+    facts = (
+        [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)]
+        if packet
+        else []
+    )
+    facts = _eligible_fallback_facts(facts)
+    if intent is ExplicitDigestIntent.PLATE:
+        return _plate_grounded_answer(facts) or _NO_PACKET_ANSWER
+
+    # The strict owner already proved a global digest request. Do not route it
+    # back through legacy schedule/finance substring precedence (for example,
+    # "brief me today" must not collapse to one calendar fact). Prefer
+    # answer-topic facts, then retain packet order for the bounded overview.
+    ordered = sorted(
+        enumerate(facts),
+        key=lambda item: (0 if item[1].get("answer_topic") is True else 1, item[0]),
+    )
+    matched: list[str] = []
+    seen: set[str] = set()
+    for _index, fact in ordered:
+        sentence = _format_answer_fact(fact)
+        key = sentence.casefold()
+        if sentence and key not in seen:
+            matched.append(sentence)
+            seen.add(key)
+        if len(matched) >= 3:
+            break
+    return " ".join(matched) if matched else _NO_PACKET_ANSWER
+
+
 # ── Front-door profile: completeness + Stage-1 validation (Revision 8) ────────
 # A truncated-mid-sentence answer is NEVER delivered. done_reason=="length" is a
 # FAILURE unless the text is a complete utterance AND passes the Stage-1 validator.

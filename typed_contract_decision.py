@@ -1497,7 +1497,10 @@ def _call_semantic_vote(
     raw = outcome_value
     parsed = _parse_semantic_vote(str(raw or ""))
     if parsed is None:
-        return None, "timeout_or_invalid" if not str(raw or "").strip() else "invalid"
+        # Task 167 needs empty provider output and malformed non-empty output
+        # to remain separately observable.  Neither outcome authorizes a
+        # retry or a second model call at an installed adapter.
+        return None, "empty" if not str(raw or "").strip() else "invalid"
     if parsed[1] < SEMANTIC_CONFIDENCE_THRESHOLD:
         return None, "below_threshold"
     return parsed, "accepted"

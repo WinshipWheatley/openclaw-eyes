@@ -1455,3 +1455,9 @@ generated/system_knowledge/*.sqlite
 !tests/test_166_cockpit_owner_stateful.py
 !tests/test_166_email_owner_adapters.py
 !tests/test_166_workflow_route_owner.py
+!vote_timeout_clarification.py
+!tests/test_167_vote_timeout_clarification.py
+!tests/test_167_maestro_processor.py
+!tests/test_167_fleet_timeout_adapters.py
+!tests/test_167_guardian_listener_boundary.py
+!tests/test_167_chief_listener_boundary.py

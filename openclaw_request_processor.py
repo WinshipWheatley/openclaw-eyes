@@ -2281,6 +2281,11 @@ def _brain_receipt_local_invoked(receipt: Mapping[str, Any]) -> bool | None:
     route = _brain_receipt_route(receipt)
     if receipt.get("local_model_invoked") is True or route.startswith("local_ollama"):
         return True
+    if (
+        receipt.get("semantic_vote_model_called") is True
+        and receipt.get("downstream_model_call_performed") is False
+    ):
+        return None
     if receipt.get("model_call_performed") is True:
         return False
     if _brain_receipt_model_performed(receipt) in {True, None}:
@@ -2292,6 +2297,11 @@ def _brain_receipt_external_invoked(receipt: Mapping[str, Any]) -> bool | None:
     route = _brain_receipt_route(receipt)
     if receipt.get("external_llm_invoked") is True or route.startswith("external"):
         return True
+    if (
+        receipt.get("semantic_vote_model_called") is True
+        and receipt.get("downstream_model_call_performed") is False
+    ):
+        return None
     if receipt.get("model_call_performed") is True:
         return False
     if _brain_receipt_model_performed(receipt) in {True, None}:
@@ -2464,7 +2474,10 @@ def _model_backend_selection_from_brain_receipt(receipt: Mapping[str, Any]) -> d
             "credit_budget_policy": "Model-credit use is unknown for the failed typed-contract attempt.",
         }
     if model_performed:
-        if typed_model_called and receipt.get("model_call_performed") is not True:
+        if typed_model_called and (
+            receipt.get("downstream_model_call_performed") is False
+            or receipt.get("model_call_performed") is not True
+        ):
             return {
                 "selected_model_backend": "UNKNOWN_CALL_ATTEMPTED",
                 "selected_model_id": model_id,
@@ -5883,7 +5896,16 @@ def _process_maestro_frontdoor_operator_instruction(
     typed_contract_model_call_status = str(
         typed_contract_receipt.get("model_call_status") or ""
     )
-    local_model_invoked = bool(machine_proof.get("local_model_invoked", False))
+    semantic_vote_backend_unknown = bool(
+        machine_proof.get("semantic_vote_model_called") is True
+        and machine_proof.get("downstream_model_call_performed") is False
+        and "local_model_invoked" not in machine_proof
+    )
+    local_model_invoked = (
+        None
+        if semantic_vote_backend_unknown
+        else bool(machine_proof.get("local_model_invoked", False))
+    )
     observed_model_call_performed = bool(machine_proof.get("model_call_performed", False))
     typed_contract_model_call_unknown = typed_contract_model_call_status == "unknown"
     model_call_evidence_unresolved = typed_contract_model_call_unknown and not (
@@ -6021,12 +6043,17 @@ def _process_maestro_frontdoor_operator_instruction(
             "A downstream model call is recorded, while the failed typed-contract attempt's own model-call status remains unknown; no worker or business execution occurred."
             if typed_contract_model_call_unknown
             else (
-                "No external LLM, local model runtime, worker, or business execution occurred."
-                if not (external_llm_invoked or local_model_invoked or model_call_performed)
+                "The semantic contract vote made the one recorded model attempt and returned no usable decision; no downstream model, worker, or business execution occurred."
+                if machine_proof.get("semantic_vote_model_called") is True
+                and machine_proof.get("downstream_model_call_performed") is False
                 else (
-                    "The protected Maestro generation path recorded model_call_performed="
-                    f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
-                    f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+                    "No external LLM, local model runtime, worker, or business execution occurred."
+                    if not (external_llm_invoked or local_model_invoked or model_call_performed)
+                    else (
+                        "The protected Maestro generation path recorded model_call_performed="
+                        f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
+                        f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+                    )
                 )
             )
         )
@@ -6567,7 +6594,16 @@ def _try_interpreter_brain_divert(
     typed_contract_model_call_status = str(
         typed_contract_receipt.get("model_call_status") or ""
     )
-    local_model_invoked = bool(machine_proof.get("local_model_invoked", False))
+    semantic_vote_backend_unknown = bool(
+        machine_proof.get("semantic_vote_model_called") is True
+        and machine_proof.get("downstream_model_call_performed") is False
+        and "local_model_invoked" not in machine_proof
+    )
+    local_model_invoked = (
+        None
+        if semantic_vote_backend_unknown
+        else bool(machine_proof.get("local_model_invoked", False))
+    )
     observed_model_call_performed = bool(machine_proof.get("model_call_performed", False))
     typed_contract_model_call_unknown = typed_contract_model_call_status == "unknown"
     model_call_evidence_unresolved = typed_contract_model_call_unknown and not (
@@ -6685,12 +6721,17 @@ def _try_interpreter_brain_divert(
             "A downstream model call is recorded, while the failed typed-contract attempt's own model-call status remains unknown; no worker or business execution occurred."
             if typed_contract_model_call_unknown
             else (
-                "No external LLM, local model runtime, worker, or business execution occurred."
-                if not (external_llm_invoked or local_model_invoked or model_call_performed)
+                "The semantic contract vote made the one recorded model attempt and returned no usable decision; no downstream model, worker, or business execution occurred."
+                if machine_proof.get("semantic_vote_model_called") is True
+                and machine_proof.get("downstream_model_call_performed") is False
                 else (
-                    "The protected Maestro generation path recorded model_call_performed="
-                    f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
-                    f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+                    "No external LLM, local model runtime, worker, or business execution occurred."
+                    if not (external_llm_invoked or local_model_invoked or model_call_performed)
+                    else (
+                        "The protected Maestro generation path recorded model_call_performed="
+                        f"{model_call_performed}, external_llm_invoked={external_llm_invoked}, "
+                        f"local_model_invoked={local_model_invoked}; no worker or business execution occurred."
+                    )
                 )
             )
         )
@@ -9197,6 +9238,174 @@ def _process_request_path_core(
     )
 
 
+def _reassert_vote_timeout_operator_message(
+    response: OpenClawResponseForMac,
+    *,
+    question: str,
+) -> OpenClawResponseForMac:
+    """Keep the timeout clarification invariant after every output mutator."""
+
+    existing_detail = dict(response.detail_disclosure or {})
+    guardian_enforcement = existing_detail.get("guardian_publication_enforcement")
+    if str(response.blocked_reason or "").strip() or (
+        isinstance(guardian_enforcement, Mapping)
+        and guardian_enforcement.get("original_output_publish_allowed") is False
+    ):
+        # Publication safety outranks presentation consistency.  A timeout
+        # finalizer must never resurrect text that Guardian already denied.
+        return response
+    trace = (
+        response.typed_contract_trace
+        if isinstance(response.typed_contract_trace, Mapping)
+        else {}
+    )
+    receipt = trace.get("typed_contract_decision")
+    if not isinstance(receipt, Mapping):
+        proof_receipt = (response.proof_to_response or {}).get(
+            "typed_contract_decision"
+        )
+        receipt = proof_receipt if isinstance(proof_receipt, Mapping) else {}
+    proof = dict(response.proof_to_response or {})
+    deterministic_digest_available = bool(
+        proof.get("vote_timeout_deterministic_digest") is True
+    )
+    try:
+        from vote_timeout_clarification import (
+            VoteTimeoutDisposition,
+            classify_vote_timeout_disposition,
+            enforce_vote_timeout_output,
+        )
+
+        disposition = classify_vote_timeout_disposition(
+            question,
+            receipt,
+            deterministic_digest_available=deterministic_digest_available,
+        )
+        if disposition is VoteTimeoutDisposition.NONE:
+            return response
+        responder_payload = existing_detail.get("maestro_cassandra_responder")
+        canonical_candidate = response.operator_message
+        if (
+            disposition is VoteTimeoutDisposition.DETERMINISTIC_DIGEST
+            and isinstance(responder_payload, Mapping)
+        ):
+            canonical_candidate = str(
+                responder_payload.get("plain_summary") or canonical_candidate
+            )
+        visible = enforce_vote_timeout_output(
+            question,
+            canonical_candidate,
+            receipt,
+            deterministic_digest_available=deterministic_digest_available,
+        )
+    except Exception:
+        return response
+    rebound_receipt: dict[str, Any] | None = None
+    try:
+        provenance = existing_detail.get("message_provenance")
+        agent_role = (
+            str(provenance.get("actor") or "OPENCLAW_SYSTEM")
+            if isinstance(provenance, Mapping)
+            else "OPENCLAW_SYSTEM"
+        )
+        from operator_surface_guard import guard_operator_reply_with_receipt
+
+        rebound = guard_operator_reply_with_receipt(
+            visible,
+            agent_role=agent_role,
+            source_request=question,
+        )
+        visible = enforce_vote_timeout_output(
+            question,
+            rebound.visible_text,
+            receipt,
+            deterministic_digest_available=deterministic_digest_available,
+        )
+        if visible != rebound.visible_text:
+            # The Task 167 assertion is the last text authority. Rebind once
+            # more so Task 165's receipt hash describes those final bytes.
+            rebound = guard_operator_reply_with_receipt(
+                visible,
+                agent_role=agent_role,
+                source_request=question,
+            )
+            visible = enforce_vote_timeout_output(
+                question,
+                rebound.visible_text,
+                receipt,
+                deterministic_digest_available=deterministic_digest_available,
+            )
+        rebound_receipt = rebound.receipt.to_dict()
+    except Exception:
+        rebound_receipt = None
+    proof["vote_timeout_post_launder_assertion"] = True
+    proof.setdefault("downstream_model_call_performed", False)
+    proof.setdefault("second_model_call_performed", False)
+    proof["vote_timeout_downstream_violation_detected"] = bool(
+        proof.get("downstream_model_call_performed") is True
+        or proof.get("second_model_call_performed") is True
+        or proof.get("protected_generate_called") is True
+    )
+    detail = existing_detail
+    detail["vote_timeout_post_launder_assertion"] = True
+    if rebound_receipt is not None:
+        detail["output_boundary_receipt"] = rebound_receipt
+    dynamic_card = detail.get("dynamic_card_response")
+    if isinstance(dynamic_card, Mapping):
+        bounded_card = dict(dynamic_card)
+        bounded_card["title"] = visible
+        bounded_card["summary"] = visible
+        detail["dynamic_card_response"] = bounded_card
+    responder_payload = detail.get("maestro_cassandra_responder")
+    if isinstance(responder_payload, Mapping):
+        bounded_responder = dict(responder_payload)
+        bounded_responder["one_line_answer"] = visible
+        bounded_responder["plain_summary"] = visible
+        detail["maestro_cassandra_responder"] = bounded_responder
+    visible_cards: list[dict[str, Any]] = []
+    for card in response.visible_cards:
+        bounded_card = dict(card)
+        if str(bounded_card.get("card_type") or "").upper() in {
+            "FRONTDOOR_AGENT_ANSWER",
+            "MAESTRO_CASSANDRA_ANSWER",
+        }:
+            bounded_card["title"] = visible
+            bounded_card["summary"] = visible
+        visible_cards.append(bounded_card)
+    return replace(
+        response,
+        operator_headline=visible,
+        operator_message=visible,
+        visible_cards=tuple(visible_cards),
+        proof_to_response=proof,
+        detail_disclosure=detail,
+    )
+
+
+def _is_vote_timeout_response(response: OpenClawResponseForMac) -> bool:
+    """Use the shared receipt owner to suppress timeout-path history capture."""
+
+    try:
+        from vote_timeout_clarification import (
+            VoteTimeoutDisposition,
+            classify_vote_timeout_disposition,
+        )
+
+        trace = (
+            response.typed_contract_trace
+            if isinstance(response.typed_contract_trace, Mapping)
+            else {}
+        )
+        receipt = trace.get("typed_contract_decision")
+        return classify_vote_timeout_disposition(
+            "",
+            receipt if isinstance(receipt, Mapping) else {},
+            deterministic_digest_available=False,
+        ) is not VoteTimeoutDisposition.NONE
+    except Exception:
+        return False
+
+
 def _enrich_operator_surface(
     response: OpenClawResponseForMac,
     request_path: Path,
@@ -9212,6 +9421,10 @@ def _enrich_operator_surface(
     only supervised heals. Comedy is HARD-LOCKED on any non-CHAT or blocked surface (money, legal,
     intake, approval, deny). Never raises — returns the response unchanged on any issue.
     """
+    try:
+        reassert_question = _operator_text(_load_json_request(request_path))
+    except Exception:
+        reassert_question = ""
     try:
         if not isinstance(response, OpenClawResponseForMac):
             return response
@@ -9229,11 +9442,7 @@ def _enrich_operator_surface(
             humor_health_gate = {"health_allows_humor": False}
         agent_id = author.strip().lower() or "openclaw_system"
         # The operator's question — for comedy relevance scoping + claim-detection context.
-        question = ""
-        try:
-            question = _operator_text(_load_json_request(request_path))
-        except Exception:
-            question = ""
+        question = reassert_question
         # Decoration (jargon + comedy) is allowed ONLY on a normal, non-blocked CHAT answer that is
         # NOT a safety/denial surface. Everything else (blocked, deny, intake, approval, file,
         # evidence, money, legal, AND any refusal/SEND_HOLD text) is high_risk -> NO text mutation
@@ -9301,31 +9510,37 @@ def _enrich_operator_surface(
                 operator_message=_bounded.visible_text,
                 detail_disclosure=_detail,
             )
-        return response
+        return _reassert_vote_timeout_operator_message(response, question=question)
     except Exception:
         try:
             from final_output_boundary import OutputBoundaryContext, render_final_output
 
             _bounded = render_final_output(
                 str(getattr(response, "operator_message", "") or ""),
-                context=OutputBoundaryContext.from_source_request(""),
+                context=OutputBoundaryContext.from_source_request(reassert_question),
                 classifier=lambda _text: (_ for _ in ()).throw(
                     RuntimeError("boundary unavailable")
                 ),
             )
             _detail = dict(getattr(response, "detail_disclosure", {}) or {})
             _detail["output_boundary_receipt"] = _bounded.receipt.to_dict()
-            return replace(
-                response,
-                operator_message=_bounded.visible_text,
-                detail_disclosure=_detail,
+            return _reassert_vote_timeout_operator_message(
+                replace(
+                    response,
+                    operator_message=_bounded.visible_text,
+                    detail_disclosure=_detail,
+                ),
+                question=reassert_question,
             )
         except Exception:
-            return replace(
-                response,
-                operator_message=(
-                    "I couldn't safely render that answer just now. Nothing was sent or changed."
+            return _reassert_vote_timeout_operator_message(
+                replace(
+                    response,
+                    operator_message=(
+                        "I couldn't safely render that answer just now. Nothing was sent or changed."
+                    ),
                 ),
+                question=reassert_question,
             )
 
 
@@ -9403,6 +9618,7 @@ def process_request_path(
         and _capsule is not None
         and _continuity_store_state
         and not _is_first_touch_refusal_response(response)
+        and not _is_vote_timeout_response(response)
     ):
         try:
             import conversation_capsule as _cc2
@@ -9441,7 +9657,14 @@ def process_request_path(
         response = _stamp_continuity_identity(response, _raw_req_for_ids)
     except Exception:
         pass  # never block response delivery
-    return response
+    try:
+        _final_question = _operator_text(_load_json_request(request_path))
+    except Exception:
+        _final_question = ""
+    return _reassert_vote_timeout_operator_message(
+        response,
+        question=_final_question,
+    )
 
 
 def process(

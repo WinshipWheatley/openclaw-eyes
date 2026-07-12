@@ -38,6 +38,24 @@ class NonApprovalResponse:
         return result
 
 
+class GuardianContractReply(str):
+    """String-compatible Guardian reply carrying its immutable typed receipt."""
+
+    __slots__ = ("contract_receipt", "source_text")
+
+    def __new__(
+        cls,
+        text: str,
+        *,
+        contract_receipt: Mapping[str, Any],
+        source_text: str,
+    ) -> "GuardianContractReply":
+        value = str.__new__(cls, str(text or ""))
+        value.contract_receipt = dict(contract_receipt)
+        value.source_text = str(source_text or "")
+        return value
+
+
 def _norm(text: str) -> str:
     return " ".join(str(text or "").lower().strip().split())
 
@@ -380,6 +398,19 @@ def nonapproval_response_for_text(
             )
         except Exception:
             typed = None
+        if typed is not None and not typed.handled:
+            try:
+                from vote_timeout_clarification import warm_clarification_for_vote_timeout
+
+                timeout_reply = warm_clarification_for_vote_timeout(text, typed)
+            except Exception:
+                timeout_reply = None
+            if timeout_reply is not None:
+                return NonApprovalResponse(
+                    intent="typed_contract_vote_timeout_clarification",
+                    reply=timeout_reply,
+                    receipt=typed.receipt.to_dict(),
+                )
         # The listener's strict refusal/authority parsers own those top-tier
         # labels.  This nonapproval adapter consumes only safe/direct contracts.
         if typed is not None and typed.handled and typed.label not in {
@@ -413,11 +444,13 @@ def guardian_no_pending_reply(
     try:
         from typed_contract_decision import classify_status_request
 
-        if classify_status_request(text):
+        if classify_status_request(text) and not looks_like_approval_status_query(text):
+            live_status = _approval_status_reply("guardian")
+            if live_status == "No pending approval requests.":
+                live_status = "No approval request is currently pending."
             return (
-                "No approval request is currently pending. Guardian's send and "
-                "authority gates remain closed by default; this status check did "
-                "not approve, send, or change anything."
+                f"{live_status} Guardian's send and authority gates remain closed "
+                "by default; this status check did not approve, send, or change anything."
             )
     except Exception:
         pass
@@ -427,5 +460,11 @@ def guardian_no_pending_reply(
         first_touch_receipt=first_touch_receipt,
     )
     if response is not None:
+        if response.receipt is not None:
+            return GuardianContractReply(
+                response.reply,
+                contract_receipt=response.receipt,
+                source_text=text,
+            )
         return response.reply
     return _guardian_reply("clarification")

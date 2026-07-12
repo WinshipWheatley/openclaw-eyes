@@ -148,12 +148,13 @@ def _operator_refusal_reply(text):
         return None
 
 
-def _typed_contract_reply(text, *, first_touch_receipt=None):
+def _typed_contract_result(text, *, first_touch_receipt=None):
     """Task 151 subprocess mirror for stale-listener resilience.
 
     The listener normally resolves this first.  A fresh subprocess still runs
     the same typed contract so an old in-memory listener cannot regress to the
-    one-size catch-all after a code deploy.
+    one-size catch-all after a code deploy.  Structured callers retain the
+    immutable typed receipt even though the CLI prints only the human reply.
     """
     try:
         import sys as _sys
@@ -178,7 +179,28 @@ def _typed_contract_reply(text, *, first_touch_receipt=None):
         )
     except Exception:
         return None
-    return str(decision.reply or "") if decision.handled else None
+    reply = str(decision.reply or "") if decision.handled else None
+    if not decision.handled:
+        try:
+            from vote_timeout_clarification import warm_clarification_for_vote_timeout
+
+            reply = warm_clarification_for_vote_timeout(text, decision)
+        except Exception:
+            reply = None
+    if reply is None:
+        return None
+    return {
+        "reply": reply,
+        "contract_decision": decision.receipt.to_dict(),
+    }
+
+
+def _typed_contract_reply(text, *, first_touch_receipt=None):
+    result = _typed_contract_result(
+        text,
+        first_touch_receipt=first_touch_receipt,
+    )
+    return str(result["reply"]) if result is not None else None
 
 
 def get_niles_response(text, producer_input):

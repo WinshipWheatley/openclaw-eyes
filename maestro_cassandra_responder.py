@@ -157,6 +157,8 @@ def typed_contract_trace_for_result(result: MaestroCassandraResult) -> dict[str,
 def _finalize_typed_contract_result(
     result: MaestroCassandraResult,
     trace: Mapping[str, Any] | None,
+    *,
+    source_text: str = "",
 ) -> MaestroCassandraResult:
     if not isinstance(trace, Mapping):
         return result
@@ -171,7 +173,46 @@ def _finalize_typed_contract_result(
         if isinstance(matches, Sequence) and not isinstance(matches, (bytes, bytearray, str))
         else []
     )
-    return replace(result, machine_proof=proof)
+    finalized = replace(result, machine_proof=proof)
+    try:
+        from vote_timeout_clarification import (
+            VoteTimeoutDisposition,
+            classify_vote_timeout_disposition,
+            enforce_vote_timeout_output,
+        )
+
+        deterministic_digest_available = bool(
+            proof.get("vote_timeout_deterministic_digest") is True
+        )
+        disposition = classify_vote_timeout_disposition(
+            source_text,
+            receipt,
+            deterministic_digest_available=deterministic_digest_available,
+        )
+        if disposition is VoteTimeoutDisposition.NONE:
+            return finalized
+        visible = enforce_vote_timeout_output(
+            source_text,
+            finalized.plain_summary,
+            receipt,
+            deterministic_digest_available=deterministic_digest_available,
+        )
+    except Exception:
+        return finalized
+    proof["vote_timeout_post_launder_assertion"] = True
+    proof.setdefault("downstream_model_call_performed", False)
+    proof.setdefault("second_model_call_performed", False)
+    proof["vote_timeout_downstream_violation_detected"] = bool(
+        proof.get("downstream_model_call_performed") is True
+        or proof.get("second_model_call_performed") is True
+        or proof.get("protected_generate_called") is True
+    )
+    return replace(
+        finalized,
+        one_line_answer=_one_line_answer(visible),
+        plain_summary=visible,
+        machine_proof=proof,
+    )
 
 
 HandleFn = Callable[[str, dict[str, Any] | None], Sequence[str]]
@@ -295,10 +336,17 @@ def proof_refs_for_result(result: MaestroCassandraResult, *base_refs: str) -> tu
     return tuple(dict.fromkeys(refs))
 
 
-def external_llm_invoked_for_result(result: MaestroCassandraResult) -> bool:
+def external_llm_invoked_for_result(result: MaestroCassandraResult) -> bool | None:
     proof = result.machine_proof or {}
     if "external_llm_invoked" in proof:
         return proof.get("external_llm_invoked") is True
+    if (
+        proof.get("semantic_vote_model_called") is True
+        and proof.get("downstream_model_call_performed") is False
+    ):
+        # The typed receipt proves one attempt, not which provider family won
+        # the adaptive slot. False would be a fabricated backend assertion.
+        return None
     if proof.get("cassandra_handle_called") is not True:
         return False
     return proof.get("external_llm_invoked") is True
@@ -820,6 +868,158 @@ def _probe_state_blocked_result(reason: str) -> MaestroCassandraResult:
     )
 
 
+def _answer_outside_session_vote_failure(
+    text: str,
+    *,
+    decision: Any,
+    session: Mapping[str, Any] | None,
+    source_surface: str,
+    agent: str,
+    _capsule: Any | None,
+) -> MaestroCassandraResult | None:
+    """Suppress every post-vote model path while preserving its exact receipt."""
+
+    from vote_timeout_clarification import (
+        ExplicitDigestIntent,
+        VoteTimeoutDisposition,
+        WARM_TIMEOUT_CLARIFICATION,
+        classify_explicit_digest_intent,
+        classify_vote_timeout_disposition,
+        enforce_vote_timeout_output,
+    )
+
+    receipt = decision.receipt.to_dict()
+    deterministic_digest_available = bool(
+        str(agent or "").strip().lower() == "maestro"
+        and str(source_surface or "").strip() == "operator_maestro_chat"
+    )
+    disposition = classify_vote_timeout_disposition(
+        text,
+        receipt,
+        deterministic_digest_available=deterministic_digest_available,
+    )
+    if disposition is VoteTimeoutDisposition.NONE:
+        return None
+
+    packet: Mapping[str, Any] = {}
+    packet_error = ""
+    deterministic_digest_used = False
+    digest_kind = classify_explicit_digest_intent(text)
+    answer = WARM_TIMEOUT_CLARIFICATION
+    if disposition is VoteTimeoutDisposition.DETERMINISTIC_DIGEST:
+        try:
+            from maestro_context_packet import build_maestro_context_packet
+
+            packet = build_maestro_context_packet(
+                question=text,
+                session=session,
+                source_surface=source_surface,
+                require_real_truth=True,
+                capsule=_capsule if _continuity_enabled() else None,
+            )
+        except Exception as exc:
+            packet = {}
+            packet_error = type(exc).__name__
+        from protected_generate import render_explicit_deterministic_digest
+
+        rendered = render_explicit_deterministic_digest(
+            text,
+            context_packet=packet,
+            agent=agent,
+        )
+        if rendered is not None:
+            deterministic_digest_used = True
+            rendered_text = str(rendered)
+            # Legacy anti-launder requires every derived amount in its packet.
+            # The timeout renderer intentionally caps a digest at three facts,
+            # so project that assertion to the selected facts instead of
+            # letting it reinflate the bounded answer with the entire packet.
+            projected_packet = dict(packet)
+            projected_facts: list[Mapping[str, Any]] = []
+            for fact in packet.get("facts", ()):
+                if not isinstance(fact, Mapping):
+                    continue
+                if str(fact.get("provenance") or "") != "derived_answer_topic":
+                    projected_facts.append(fact)
+                    continue
+                value = str(fact.get("value") or "")
+                amounts = _ANSWER_TOPIC_AMOUNT_RE.findall(value)
+                if (
+                    amounts
+                    and all(amount in rendered_text for amount in amounts)
+                ) or (
+                    not amounts
+                    and value.strip().rstrip(".") in rendered_text
+                ):
+                    projected_facts.append(fact)
+            projected_packet["facts"] = tuple(projected_facts)
+            answer = _enforce_answer_topic_presentation(
+                rendered_text,
+                projected_packet,
+            )
+        answer = enforce_vote_timeout_output(
+            text,
+            answer,
+            receipt,
+            deterministic_digest_available=deterministic_digest_used,
+        )
+
+    proof_refs = tuple(
+        str(ref)
+        for ref in packet.get("source_refs", ())
+        if str(ref).strip()
+    )
+    semantic_vote_model_called = receipt.get("model_called") is True
+    proof = {
+        **_adapter_machine_proof(handle_called=False),
+        "typed_contract_decision": receipt,
+        "typed_contract_matches": [
+            label.value for label in getattr(decision, "matches", ())
+        ],
+        # This is the one permitted model attempt.  Do not misreport the whole
+        # turn as model-free merely because the downstream call was suppressed.
+        "semantic_vote_model_called": semantic_vote_model_called,
+        "model_call_performed": semantic_vote_model_called,
+        "downstream_model_call_performed": False,
+        "second_model_call_performed": False,
+        "protected_generate_called": False,
+        "maestro_context_packet_used": bool(packet),
+        "context_packet_id": str(packet.get("packet_id") or ""),
+        "proof_refs": proof_refs,
+        "source_truth_refs": proof_refs,
+        "workflow_package_staged": False,
+        "file_mutation_performed": False,
+        "business_state_mutation_performed": False,
+        "business_action_performed": False,
+        "vote_timeout_clarification_applied": not deterministic_digest_used,
+        "vote_timeout_deterministic_digest": deterministic_digest_used,
+        "vote_timeout_digest_kind": (
+            digest_kind.value
+            if isinstance(digest_kind, ExplicitDigestIntent)
+            else "none"
+        ),
+        "vote_timeout_status": str(receipt.get("semantic_vote_status") or ""),
+        "vote_timeout_post_launder_assertion": True,
+        "unrelated_digest_suppressed": not deterministic_digest_used,
+    }
+    if packet_error:
+        proof["context_packet_error"] = packet_error
+    return MaestroCassandraResult(
+        status="ANSWER_READY",
+        intent_class=(
+            "vote_timeout_deterministic_digest"
+            if deterministic_digest_used
+            else "vote_timeout_clarification"
+        ),
+        allowed_to_call_handle=False,
+        one_line_answer=_one_line_answer(answer),
+        plain_summary=answer,
+        mac_render_hint=MAC_RENDER_HINT,
+        session_forwarded=filtered_session(session),
+        machine_proof=proof,
+    )
+
+
 def _answer_frontdoor_chat_impl(
     text: str,
     *,
@@ -1063,6 +1263,18 @@ def _answer_frontdoor_chat_impl(
                 "typed_contract_matches": [label.value for label in _contract_decision.matches],
             }
         )
+
+    if _contract_decision is not None:
+        _vote_failure_answer = _answer_outside_session_vote_failure(
+            text,
+            decision=_contract_decision,
+            session=session,
+            source_surface=source_surface,
+            agent=agent,
+            _capsule=_capsule,
+        )
+        if _vote_failure_answer is not None:
+            return _vote_failure_answer
 
     if _contract_decision is not None and _contract_decision.handled:
         _handoff_workflow_ref = ""
@@ -1572,7 +1784,11 @@ def answer_frontdoor_chat(
         _contract_trace_sink=trace,
         first_touch_receipt=first_touch_receipt,
     )
-    return _finalize_typed_contract_result(result, trace)
+    return _finalize_typed_contract_result(
+        result,
+        trace,
+        source_text=text,
+    )
 
 
 def _answer_status_capability_with_brain(

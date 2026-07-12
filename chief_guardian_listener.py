@@ -95,7 +95,24 @@ def guardian_resilient_reply(text: str, *, source_request: str = "") -> str:
     """Task 144 (CLASS #5): every Guardian Telegram reply in this listener flows through
     here (HITL typed-reply, no-pending status, malformed-decision Q&A, decision receipt) --
     the single choke point to guard the whole pipeline from one wrap."""
+    contract_receipt = getattr(text, "contract_receipt", None)
+    contract_source = str(getattr(text, "source_text", "") or source_request)
     cleaned = str(clean_stale_carryover(text, failure_text=GUARDIAN_STALE_CARRYOVER_REPLY))
+
+    def _enforce_vote_timeout(candidate: str) -> str:
+        if not isinstance(contract_receipt, dict):
+            return candidate
+        try:
+            from vote_timeout_clarification import enforce_vote_timeout_output
+
+            return enforce_vote_timeout_output(
+                contract_source,
+                candidate,
+                contract_receipt,
+            )
+        except Exception:
+            return candidate
+
     try:
         from operator_surface_guard import guard_operator_reply_with_receipt
 
@@ -104,14 +121,24 @@ def guardian_resilient_reply(text: str, *, source_request: str = "") -> str:
             agent_role="GUARDIAN",
             source_request=source_request,
         )
+        visible = _enforce_vote_timeout(bounded.visible_text)
+        if visible != bounded.visible_text:
+            bounded = guard_operator_reply_with_receipt(
+                visible,
+                agent_role="GUARDIAN",
+                source_request=source_request,
+            )
+            visible = _enforce_vote_timeout(bounded.visible_text)
         _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
-        return bounded.visible_text
+        return visible
     except Exception:
         _OUTPUT_BOUNDARY_RECEIPT.set({
             "outcome": "adapter_boundary_error",
             "raw_control_text_included": False,
         })
-        return "Guardian couldn't safely render that answer just now. Nothing was sent or changed."
+        return _enforce_vote_timeout(
+            "Guardian couldn't safely render that answer just now. Nothing was sent or changed."
+        )
 
 
 def _fire_agent_voice(agent: str, text: str, update) -> None:
@@ -466,10 +493,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         # Ground the reply with a read-only packet and packet-engine receipt, but
         # never expose the raw packet text in the operator-visible Telegram reply.
-        try:
-            _log_no_pending_guardian_packet(_build_no_pending_guardian_packet(text))
-        except Exception:
-            pass
+        if not isinstance(getattr(_reply, "contract_receipt", None), dict):
+            try:
+                _log_no_pending_guardian_packet(_build_no_pending_guardian_packet(text))
+            except Exception:
+                pass
         await update.message.reply_text(
             guardian_resilient_reply(_reply, source_request=text)
         )

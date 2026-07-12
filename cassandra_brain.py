@@ -6895,6 +6895,24 @@ def _call_hidden_extract_classify_json(prompt: str, *, validation_label: str) ->
 
 # ── Main handler ──────────────────────────────────────────────────────────────
 
+
+class _TypedContractReply(str):
+    """String-compatible direct reply retaining its exact typed receipt."""
+
+    __slots__ = ("contract_receipt", "source_text")
+
+    def __new__(
+        cls,
+        text: str,
+        *,
+        contract_receipt: Mapping[str, Any],
+        source_text: str,
+    ) -> "_TypedContractReply":
+        value = str.__new__(cls, str(text or ""))
+        value.contract_receipt = dict(contract_receipt)
+        value.source_text = str(source_text or "")
+        return value
+
 def handle(text: str, session: dict | None = None) -> list[str]:
     """Task 144 (CLASS #5): operator-surface-guarded entry point. Wraps _handle_unguarded
     so every exit path of the real handler -- refusal guard, ops-status, general LLM
@@ -6905,10 +6923,31 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     try:
         from operator_surface_guard import guard_operator_reply
 
-        return [
-            guard_operator_reply(r, agent_role="CASSANDRA", source_request=text)
-            for r in replies
-        ]
+        guarded: list[str] = []
+        for reply in replies:
+            candidate = guard_operator_reply(
+                reply,
+                agent_role="CASSANDRA",
+                source_request=text,
+            )
+            if isinstance(reply, _TypedContractReply):
+                try:
+                    from vote_timeout_clarification import enforce_vote_timeout_output
+
+                    candidate = enforce_vote_timeout_output(
+                        reply.source_text or text,
+                        candidate,
+                        reply.contract_receipt,
+                    )
+                except Exception:
+                    pass
+                candidate = _TypedContractReply(
+                    candidate,
+                    contract_receipt=reply.contract_receipt,
+                    source_text=reply.source_text or text,
+                )
+            guarded.append(candidate)
+        return guarded
     except Exception:
         return [
             "I couldn't safely render that answer just now. Nothing was sent or changed."
@@ -7119,6 +7158,29 @@ def _handle_unguarded(text: str, session: dict | None = None) -> list[str]:
             )
         else:
             _contract_decision = None
+
+    if _contract_decision is not None and not _contract_decision.handled:
+        try:
+            from vote_timeout_clarification import warm_clarification_for_vote_timeout
+
+            _timeout_reply = warm_clarification_for_vote_timeout(
+                query,
+                _contract_decision,
+            )
+        except Exception:
+            _timeout_reply = None
+        if _timeout_reply is not None:
+            receipt = _contract_decision.receipt.to_dict()
+            # The typed receipt already exists. Do not manufacture a second
+            # conversation-log record or touch Cassandra state on this fail-open
+            # outcome; carry the exact receipt with the warm reply instead.
+            return [
+                _TypedContractReply(
+                    _timeout_reply,
+                    contract_receipt=receipt,
+                    source_text=query,
+                )
+            ]
     _pure_cassandra_money_read = bool(
         _contract_decision is not None
         and tuple(_contract_decision.matches) == (ContractLabel.MONEY_READ,)

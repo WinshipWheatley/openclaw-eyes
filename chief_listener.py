@@ -36,11 +36,38 @@ _OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.Cont
     "chief_output_boundary_receipt",
     default=None,
 )
+_TYPED_CONTRACT_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "chief_typed_contract_receipt",
+    default=None,
+)
 
 
 def current_output_boundary_receipt() -> dict | None:
     receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
     return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def current_typed_contract_receipt() -> dict | None:
+    receipt = _TYPED_CONTRACT_RECEIPT.get()
+    return dict(receipt) if isinstance(receipt, dict) else None
+
+
+class _ChiefContractReply(str):
+    """String-compatible reply carrying Task 167's exact typed receipt."""
+
+    __slots__ = ("contract_receipt", "source_text")
+
+    def __new__(
+        cls,
+        text: str,
+        *,
+        contract_receipt: dict,
+        source_text: str,
+    ) -> "_ChiefContractReply":
+        value = str.__new__(cls, str(text or ""))
+        value.contract_receipt = dict(contract_receipt)
+        value.source_text = str(source_text or "")
+        return value
 
 
 def _final_operator_text(text: str, *, source_request: str) -> str:
@@ -103,9 +130,43 @@ async def _send_reply(
         if source_request is not None
         else str(getattr(getattr(update, "message", None), "text", "") or "")
     )
+    contract_receipt = getattr(text, "contract_receipt", None)
+    contract_source = str(getattr(text, "source_text", "") or request_text)
     safe_text = _final_operator_text(text, source_request=request_text)
+    vote_timeout_reply = False
+    if isinstance(contract_receipt, dict):
+        try:
+            from vote_timeout_clarification import (
+                VoteTimeoutDisposition,
+                classify_vote_timeout_disposition,
+                enforce_vote_timeout_output,
+            )
+
+            vote_timeout_reply = classify_vote_timeout_disposition(
+                contract_source,
+                contract_receipt,
+            ) is not VoteTimeoutDisposition.NONE
+            enforced = enforce_vote_timeout_output(
+                contract_source,
+                safe_text,
+                contract_receipt,
+            )
+            if enforced != safe_text:
+                safe_text = _final_operator_text(
+                    enforced,
+                    source_request=request_text,
+                )
+                enforced = enforce_vote_timeout_output(
+                    contract_source,
+                    safe_text,
+                    contract_receipt,
+                )
+            safe_text = enforced
+        except Exception:
+            pass
     delivered_message = await update.message.reply_text(safe_text)
-    _fire_agent_voice("chief", safe_text, update)
+    if not vote_timeout_reply:
+        _fire_agent_voice("chief", safe_text, update)
     return delivered_message
 
 
@@ -184,6 +245,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    _TYPED_CONTRACT_RECEIPT.set(None)
     effective_chat = getattr(update, "effective_chat", None)
     chat_id = effective_chat.id if effective_chat else AUTHORIZED_USER_ID
     try:
@@ -286,6 +348,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             contract_descriptor,
             raw_ref=contract_raw_ref,
         )
+    if (
+        intent == "typed_contract_vote_timeout_clarification"
+        and isinstance(contract_receipt, dict)
+    ):
+        _TYPED_CONTRACT_RECEIPT.set(dict(contract_receipt))
+        await _send_reply(
+            update,
+            _ChiefContractReply(
+                str(reply or ""),
+                contract_receipt=contract_receipt,
+                source_text=text,
+            ),
+            source_request=text,
+        )
+        return
     if contract_action in {"stage_handoff", "preserve_session"}:
         try:
             delivered_message = await _send_reply(update, str(reply or ""))

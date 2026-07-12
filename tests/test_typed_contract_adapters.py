@@ -264,8 +264,9 @@ def test_maestro_inactive_contract_exception_emits_stable_bounded_receipt(monkey
     "vote_status",
     ("deadline_exceeded", "error:TimeoutError", "timeout_or_invalid"),
 )
-def test_maestro_unhandled_vote_receipt_survives_route_result(vote_status, monkeypatch):
+def test_maestro_vote_failure_receipt_survives_warm_clarification(vote_status, monkeypatch):
     import maestro_cassandra_responder as maestro
+    from vote_timeout_clarification import WARM_TIMEOUT_CLARIFICATION
 
     calls = 0
 
@@ -285,11 +286,14 @@ def test_maestro_unhandled_vote_receipt_survives_route_result(vote_status, monke
     result = maestro.answer_frontdoor_chat("Could you unpack that broader situation?")
 
     receipt = result.machine_proof["typed_contract_decision"]
-    assert result.status == "ROUTE_TO_STAGING"
+    assert result.status == "ANSWER_READY"
+    assert result.plain_summary == WARM_TIMEOUT_CLARIFICATION
     assert receipt["source"] == "semantic_vote"
     assert receipt["action"] == "pass_through"
     assert receipt["semantic_vote_status"] == vote_status
     assert result.machine_proof["typed_contract_matches"] == ["unresolved"]
+    assert result.machine_proof["downstream_model_call_performed"] is False
+    assert result.machine_proof["protected_generate_called"] is False
     assert calls == 1
 
 
@@ -407,13 +411,8 @@ def test_request_processor_final_bridge_carries_real_vote_timeout_receipt(monkey
     monkeypatch.setattr(
         maestro,
         "_answer_with_maestro_brain",
-        lambda *_args, **_kwargs: maestro.MaestroCassandraResult(
-            status="ANSWER_READY",
-            intent_class="maestro_brain_freeform",
-            allowed_to_call_handle=False,
-            one_line_answer="Bounded answer.",
-            plain_summary="Bounded answer.",
-            machine_proof={"model_call_performed": False},
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("vote timeout reached the downstream Maestro brain")
         ),
     )
 
