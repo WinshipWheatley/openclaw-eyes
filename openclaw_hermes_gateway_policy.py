@@ -15,7 +15,8 @@ import re
 from typing import Any
 
 from listener_resilience import bounded_reply_timeout, clean_stale_carryover
-from final_output_boundary import OutputBoundaryContext, render_final_output
+from final_output_boundary import OutputBoundaryContext
+from operator_surface_guard import guard_operator_reply_with_receipt
 
 
 _ROUTE_TARGET_RE = re.compile(
@@ -504,7 +505,17 @@ def sanitize_gateway_response(
         or _OUTPUT_BOUNDARY_CONTEXT.get()
         or OutputBoundaryContext.from_source_request(source_request)
     )
-    rendered = render_final_output(cleaned, context=context)
+    # Task 175 / Ship-Lift CP1: Hermes previously stopped at Task 165's
+    # fragment boundary while every other operator-facing agent also passed
+    # through the secondary operator-surface guard.  Keep this at the common
+    # sanitize seam so text and voice sends share the same drop-don't-decorate
+    # semantics and receipt shape; never bolt a fallback footer on downstream.
+    rendered = guard_operator_reply_with_receipt(
+        cleaned,
+        agent_role="HERMES",
+        source_request=source_request,
+        boundary_context=context,
+    )
     visible = rendered.visible_text
     timeout_receipt = _VOTE_TIMEOUT_RECEIPT.get()
     # A direct policy caller can reuse the same context across unrelated
@@ -524,7 +535,12 @@ def sanitize_gateway_response(
                 # Rebind the normal output receipt to the corrected visible
                 # line, then assert the timeout invariant once more after that
                 # final anti-launder pass.
-                rendered = render_final_output(visible, context=context)
+                rendered = guard_operator_reply_with_receipt(
+                    visible,
+                    agent_role="HERMES",
+                    source_request=source_request,
+                    boundary_context=context,
+                )
                 visible = enforce_vote_timeout_output(
                     source_request,
                     rendered.visible_text,

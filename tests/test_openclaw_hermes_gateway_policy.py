@@ -131,6 +131,39 @@ def test_sanitizer_removes_runtime_leaks() -> None:
     assert sanitized == "Actual answer stays."
 
 
+def test_sanitizer_applies_surface_guard_drop_dont_decorate_with_receipt() -> None:
+    substance = "Hermes sees the bridge as healthy from this advisory surface."
+
+    sanitized = policy.sanitize_gateway_response(
+        substance + "\ncontent_hash=0123456789abcdef",
+        source_request="How is the bridge looking from your seat?",
+    )
+    receipt = policy.current_gateway_output_boundary_receipt()
+
+    assert sanitized == substance
+    assert "Routed for review" not in sanitized
+    assert receipt is not None
+    assert receipt["outcome"] == "machine_guard_dropped"
+    assert "machine_fragment_dropped" in receipt["reason_codes"]
+    assert "machine_contract_leak" in receipt["reason_codes"]
+
+
+def test_sanitizer_applies_surface_guard_floor_when_reply_is_all_machine() -> None:
+    sanitized = policy.sanitize_gateway_response(
+        "request_id=abc123, internal_status=RESPONSE_READY",
+        source_request="How is the bridge looking from your seat?",
+    )
+    receipt = policy.current_gateway_output_boundary_receipt()
+
+    assert sanitized == (
+        "Routed for review. The response contained content that requires "
+        "operator-surface validation before delivery."
+    )
+    assert receipt is not None
+    assert receipt["outcome"] == "machine_guard_substituted"
+    assert "machine_contract_leak" in receipt["reason_codes"]
+
+
 def test_sanitizer_runtime_diagnostics_are_conditional_on_source_intent() -> None:
     diagnostic = "The upstream local model returned no usable chunks."
 
