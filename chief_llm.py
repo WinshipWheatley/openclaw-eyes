@@ -197,6 +197,9 @@ _LANE_CANDIDATES = {
 # reasoners/coders that spill to RAM. gemma4:26b/31b are retired here — they swap-death this box.
 _TASK_CLASS_MODEL_CANDIDATES = {
     # ── interactive (real-time) ───────────────────────────────────────────────
+    "contract_semantic_vote": (
+        "qwen3:4b",
+    ),
     "cassandra_user_reply_fast": (
         "qwen3:4b",            # 61 tok/s, fully on GPU
         "qwen3:8b-q4_K_M",
@@ -256,6 +259,7 @@ _TASK_CLASS_MODEL_CANDIDATES = {
 }
 
 _TASK_CLASS_PREFERRED_LANES = {
+    "contract_semantic_vote": "fast",
     "cassandra_user_reply_fast": "fast",
     "cassandra_user_reply": "strong",
     "cassandra_outbound_draft": "strong",

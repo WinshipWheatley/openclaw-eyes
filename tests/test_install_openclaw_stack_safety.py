@@ -3,11 +3,15 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = REPO_ROOT / "scripts" / "install_openclaw_stack.sh"
 FREEZE_DOC = REPO_ROOT / "docs" / "operations" / "OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md"
 REQUEST_RESPONSE_UNIT = REPO_ROOT / "systemd" / "user" / "openclaw-request-response.service.in"
+GUARDIAN_UNIT = REPO_ROOT / "systemd" / "user" / "chief-guardian-listener.service.in"
+CASSANDRA_WATCHER_UNIT = REPO_ROOT / "systemd" / "user" / "cassandra-watcher.service.in"
 
 
 def _installer_text() -> str:
@@ -94,6 +98,13 @@ def test_hermes_behavior_is_not_broadened_by_stack_installer():
     assert "Hermes gateway remains managed by scripts/install_hermes_gateway_service.sh" in source
     assert '"${unit_name}" != "hermes-gateway.service"' in source
     assert "systemctl --user restart" not in source
+
+
+@pytest.mark.parametrize("unit", (GUARDIAN_UNIT, CASSANDRA_WATCHER_UNIT))
+def test_voice_capable_guardian_and_cassandra_watcher_are_cpu_pinned(unit: Path):
+    source = unit.read_text(encoding="utf-8")
+
+    assert source.count("Environment=CUDA_VISIBLE_DEVICES=") == 1
 
 
 def test_legacy_launchers_remain_slice_4_out_of_scope():

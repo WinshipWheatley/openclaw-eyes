@@ -11,6 +11,10 @@ import pytest
 
 
 OPAQUE = "maybe circle back on the thing from before"
+EXPECTED_MODEL_FAILURE_CLARIFICATION = (
+    "The language model didn't return a usable routing decision. I left your "
+    "request untouched; please try again in a moment."
+)
 
 
 def _timeout_decision(*, status: str = "error:TimeoutError"):
@@ -145,14 +149,12 @@ def test_cassandra_brain_timeout_survives_output_guard_without_state_or_model(
     assert replies[0].contract_receipt == decision.receipt.to_dict()
 
 
-def test_chief_timeout_is_structured_and_reenforced_after_output_guard(
+def test_chief_legacy_vote_failure_is_structured_and_not_called_a_timeout(
     monkeypatch,
 ) -> None:
     import typed_contract_decision as typed
     import chief_router
     import operator_surface_guard
-    from vote_timeout_clarification import WARM_TIMEOUT_CLARIFICATION
-
     decision = _timeout_decision(status="timeout_or_invalid")
     monkeypatch.setattr(typed, "decide_contract", lambda *_args, **_kwargs: decision)
     monkeypatch.setattr(chief_router, "load_session", lambda: {})
@@ -168,7 +170,8 @@ def test_chief_timeout_is_structured_and_reenforced_after_output_guard(
 
     result = chief_router.route_message(OPAQUE)
 
-    assert result["reply"] == WARM_TIMEOUT_CLARIFICATION
+    assert result["reply"] == EXPECTED_MODEL_FAILURE_CLARIFICATION
+    assert "timeout" not in result["reply"].lower()
     assert result["contract_decision"] == decision.receipt.to_dict()
     assert result["send_performed"] is False
     assert result["ledger_touched"] is False
@@ -302,18 +305,16 @@ def test_niles_listener_timeout_stops_before_queue_subprocess_and_voice(
     assert delivered_contract_receipts == [decision.receipt.to_dict()]
 
 
-def test_niles_subprocess_mirror_keeps_timeout_receipt(monkeypatch) -> None:
+def test_niles_subprocess_mirror_keeps_legacy_model_failure_receipt(monkeypatch) -> None:
     import typed_contract_decision as typed
     from scripts import producer_intake
-    from vote_timeout_clarification import WARM_TIMEOUT_CLARIFICATION
-
     decision = _timeout_decision(status="timeout_or_invalid")
     monkeypatch.setattr(typed, "decide_contract", lambda *_args, **_kwargs: decision)
 
     result = producer_intake._typed_contract_result(OPAQUE)
 
     assert result == {
-        "reply": WARM_TIMEOUT_CLARIFICATION,
+        "reply": EXPECTED_MODEL_FAILURE_CLARIFICATION,
         "contract_decision": decision.receipt.to_dict(),
     }
 

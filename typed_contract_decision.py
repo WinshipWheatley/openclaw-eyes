@@ -41,9 +41,15 @@ SCHEMA_VERSION = "typed_contract_decision_v1"
 SEMANTIC_VOTE_ENV = "OPENCLAW_CONTRACT_VOTE_ADAPTERS"
 SEMANTIC_VOTE_TIMEOUT_ENV = "OPENCLAW_CONTRACT_VOTE_TIMEOUT_SECONDS"
 CONTRACT_RECEIPT_DB_ENV = "OPENCLAW_CONTRACT_RECEIPT_DB"
-DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 5.0
+DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 8.0
+SEMANTIC_VOTE_MODEL = "qwen3:4b"
+SEMANTIC_VOTE_NUM_CTX = 1024
+SEMANTIC_VOTE_KEEP_ALIVE = "30s"
 SEMANTIC_CONFIDENCE_THRESHOLD = 0.72
 MAX_CONTRACT_PRESERVE_RECEIPTS = 4096
+LOW_COHERENCE_CLARIFICATION = (
+    "I didn't catch what you need — say it any way you like."
+)
 UNSUPPORTED_OWNER_COMPOUND_CLARIFICATION = (
     "I caught more than one owner request there. Please ask for each one "
     "in a separate message so I can keep their authority and receipts "
@@ -172,7 +178,7 @@ class HandoffResult:
 
 StatusRenderer = Callable[[], str]
 HandoffStager = Callable[[str, ContractContext], HandoffResult]
-AdaptiveCall = Callable[..., str]
+AdaptiveCall = Callable[..., Any]
 SessionAnswerPredicate = Callable[[str], bool]
 
 
@@ -1148,12 +1154,7 @@ def _identity_reply(agent: str) -> str:
 
 
 def _low_coherence_reply(agent: str) -> str:
-    try:
-        from protected_generate import low_coherence_reply_line
-
-        return str(low_coherence_reply_line(agent))
-    except Exception:
-        return "I can't make a reliable request out of that yet. Say it another way and I’ll take another pass."
+    return LOW_COHERENCE_CLARIFICATION
 
 
 def guardian_gate_narration_reply() -> str:
@@ -1457,19 +1458,26 @@ def _call_semantic_vote(
         try:
             call_fn = adaptive_call_fn
             if call_fn is None:
-                from adaptive_model_call import adaptive_model_call as call_fn
+                from adaptive_model_call import adaptive_ollama_text as call_fn
 
             raw = call_fn(
                 _semantic_prompt(text, context),
                 task_class="contract_semantic_vote",
+                model=SEMANTIC_VOTE_MODEL,
                 lane="frontdoor",
                 timeout=model_timeout_seconds,
                 attempts=1,
                 think=False,
                 num_predict=160,
-                options={"format": "json", "temperature": 0},
+                options={
+                    "format": "json",
+                    "temperature": 0,
+                    "num_ctx": SEMANTIC_VOTE_NUM_CTX,
+                },
+                keep_alive=SEMANTIC_VOTE_KEEP_ALIVE,
                 retry=False,
                 model_slot_max_wait_seconds=slot_wait_seconds,
+                return_metadata=True,
             )
             outcome = ("result", raw)
         except Exception as exc:
@@ -1495,12 +1503,30 @@ def _call_semantic_vote(
     if outcome_kind == "error":
         return None, f"error:{outcome_value}"
     raw = outcome_value
-    parsed = _parse_semantic_vote(str(raw or ""))
+    if isinstance(raw, Mapping):
+        provider_status = str(raw.get("status") or "").strip().lower()
+        done_reason = str(raw.get("done_reason") or "").strip().lower()
+        exception_type = str(raw.get("exception_type") or "").strip()
+        if (
+            provider_status == "timeout"
+            or done_reason == "timeout"
+            or "timeout" in exception_type.lower()
+        ):
+            return None, f"error:{exception_type or 'TimeoutError'}"
+        if provider_status == "exception":
+            return None, f"error:{exception_type or 'ProviderError'}"
+        raw_text = str(raw.get("text") or raw.get("response") or "")
+    else:
+        # Test adapters and legacy injected callables may still return the old
+        # string shape. Production requests metadata so caught provider errors
+        # cannot collapse into an indistinguishable empty vote.
+        raw_text = str(raw or "")
+    parsed = _parse_semantic_vote(raw_text)
     if parsed is None:
         # Task 167 needs empty provider output and malformed non-empty output
         # to remain separately observable.  Neither outcome authorizes a
         # retry or a second model call at an installed adapter.
-        return None, "empty" if not str(raw or "").strip() else "invalid"
+        return None, "empty" if not raw_text.strip() else "invalid"
     if parsed[1] < SEMANTIC_CONFIDENCE_THRESHOLD:
         return None, "below_threshold"
     return parsed, "accepted"

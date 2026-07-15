@@ -98,6 +98,16 @@ def test_generic_lanes_do_not_use_cassandra_gemma_26b_by_default():
     assert "gemma4:26b" not in chief_llm.local_model_candidates("deep")
 
 
+def test_contract_semantic_vote_has_one_explicit_fast_model_route():
+    assert chief_llm.local_model_candidates(
+        "fast", task_class="contract_semantic_vote"
+    ) == ("qwen3:4b",)
+    assert chief_llm.choose_local_model_lane(
+        "opaque prompt words",
+        task_class="contract_semantic_vote",
+    ) == "fast"
+
+
 def test_ollama_call_lane_uses_resolved_model(monkeypatch):
     calls: list[tuple[str, int]] = []
 

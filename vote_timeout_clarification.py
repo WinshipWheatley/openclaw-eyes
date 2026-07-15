@@ -17,9 +17,16 @@ from enum import Enum
 from typing import Any, Mapping
 
 
-WARM_TIMEOUT_CLARIFICATION = (
-    "I didn't catch what you need — say it any way you like."
+MODEL_TIMEOUT_CLARIFICATION = (
+    "The language model timed out before it could classify that request. "
+    "The GPU may be busy. I left your request untouched; please try again in a moment."
 )
+MODEL_FAILURE_CLARIFICATION = (
+    "The language model didn't return a usable routing decision. I left your "
+    "request untouched; please try again in a moment."
+)
+# Compatibility name retained for installed Task 167 callers.
+WARM_TIMEOUT_CLARIFICATION = MODEL_TIMEOUT_CLARIFICATION
 
 
 class ExplicitDigestIntent(str, Enum):
@@ -28,19 +35,25 @@ class ExplicitDigestIntent(str, Enum):
     DIGEST = "digest"
 
 
+class VoteFailureKind(str, Enum):
+    NONE = "none"
+    TIMEOUT = "timeout"
+    MODEL_FAILURE = "model_failure"
+
+
 class VoteTimeoutDisposition(str, Enum):
     NONE = "none"
     CLARIFY = "clarify"
     DETERMINISTIC_DIGEST = "deterministic_digest"
 
 
-_CLOSED_FAILURE_STATUSES = frozenset(
+_TIMEOUT_FAILURE_STATUSES = frozenset({"deadline_exceeded"})
+_MODEL_FAILURE_STATUSES = frozenset(
     {
-        "deadline_exceeded",
         "empty",
         "invalid",
         # Compatibility for receipts written before Task 167 split empty from
-        # malformed output.  New decisions no longer emit this value.
+        # malformed output. Its ambiguity prevents a truthful timeout claim.
         "timeout_or_invalid",
     }
 )
@@ -184,22 +197,48 @@ def _receipt_mapping(receipt_or_decision: Any) -> Mapping[str, Any]:
     return candidate if isinstance(candidate, Mapping) else {}
 
 
-def is_outside_session_vote_failure(receipt_or_decision: Any) -> bool:
-    """Return true only for Task 167's exact fail-open receipt shape."""
+def classify_vote_failure_kind(receipt_or_decision: Any) -> VoteFailureKind:
+    """Classify only Task 167's exact outside-session fail-open receipt."""
 
     receipt = _receipt_mapping(receipt_or_decision)
     if not receipt:
-        return False
+        return VoteFailureKind.NONE
     if str(receipt.get("source") or "") != "semantic_vote":
-        return False
+        return VoteFailureKind.NONE
     if str(receipt.get("label") or "") != "unresolved":
-        return False
+        return VoteFailureKind.NONE
     if str(receipt.get("action") or "") != "pass_through":
-        return False
+        return VoteFailureKind.NONE
     if str(receipt.get("reason") or "") != "uncertain_outside_session_fail_open":
-        return False
+        return VoteFailureKind.NONE
     status = str(receipt.get("semantic_vote_status") or "").strip()
-    return status in _CLOSED_FAILURE_STATUSES or status.lower().startswith("error:")
+    if status in _TIMEOUT_FAILURE_STATUSES:
+        return VoteFailureKind.TIMEOUT
+    if status in _MODEL_FAILURE_STATUSES:
+        return VoteFailureKind.MODEL_FAILURE
+    normalized = status.lower()
+    if normalized.startswith("error:"):
+        return (
+            VoteFailureKind.TIMEOUT
+            if "timeout" in normalized
+            else VoteFailureKind.MODEL_FAILURE
+        )
+    return VoteFailureKind.NONE
+
+
+def is_outside_session_vote_failure(receipt_or_decision: Any) -> bool:
+    """Return true only for Task 167's exact fail-open receipt shape."""
+
+    return classify_vote_failure_kind(receipt_or_decision) is not VoteFailureKind.NONE
+
+
+def clarification_for_vote_failure(receipt_or_decision: Any) -> str | None:
+    kind = classify_vote_failure_kind(receipt_or_decision)
+    if kind is VoteFailureKind.TIMEOUT:
+        return MODEL_TIMEOUT_CLARIFICATION
+    if kind is VoteFailureKind.MODEL_FAILURE:
+        return MODEL_FAILURE_CLARIFICATION
+    return None
 
 
 def classify_vote_timeout_disposition(
@@ -230,7 +269,7 @@ def warm_clarification_for_vote_timeout(
         deterministic_digest_available=deterministic_digest_available,
     )
     return (
-        WARM_TIMEOUT_CLARIFICATION
+        clarification_for_vote_failure(receipt_or_decision)
         if disposition is VoteTimeoutDisposition.CLARIFY
         else None
     )
@@ -255,10 +294,15 @@ def enforce_vote_timeout_output(
 
 __all__ = [
     "ExplicitDigestIntent",
+    "MODEL_FAILURE_CLARIFICATION",
+    "MODEL_TIMEOUT_CLARIFICATION",
+    "VoteFailureKind",
     "VoteTimeoutDisposition",
     "WARM_TIMEOUT_CLARIFICATION",
     "classify_explicit_digest_intent",
+    "classify_vote_failure_kind",
     "classify_vote_timeout_disposition",
+    "clarification_for_vote_failure",
     "enforce_vote_timeout_output",
     "is_outside_session_vote_failure",
     "warm_clarification_for_vote_timeout",

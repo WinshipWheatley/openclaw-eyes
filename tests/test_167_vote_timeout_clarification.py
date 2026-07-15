@@ -5,6 +5,7 @@ import time
 import pytest
 
 import typed_contract_decision as contract
+import vote_timeout_clarification as clarification_policy
 from vote_timeout_clarification import (
     ExplicitDigestIntent,
     VoteTimeoutDisposition,
@@ -18,6 +19,27 @@ from vote_timeout_clarification import (
 
 
 AMBIGUOUS_REQUEST = "Could you unpack that broader situation?"
+EXPECTED_MODEL_TIMEOUT_CLARIFICATION = (
+    "The language model timed out before it could classify that request. "
+    "The GPU may be busy. I left your request untouched; please try again in a moment."
+)
+EXPECTED_MODEL_FAILURE_CLARIFICATION = (
+    "The language model didn't return a usable routing decision. I left your "
+    "request untouched; please try again in a moment."
+)
+
+
+def test_vote_failure_clarifications_are_exact_and_do_not_overclaim() -> None:
+    assert clarification_policy.MODEL_TIMEOUT_CLARIFICATION == (
+        EXPECTED_MODEL_TIMEOUT_CLARIFICATION
+    )
+    assert clarification_policy.MODEL_FAILURE_CLARIFICATION == (
+        EXPECTED_MODEL_FAILURE_CLARIFICATION
+    )
+    assert WARM_TIMEOUT_CLARIFICATION == EXPECTED_MODEL_TIMEOUT_CLARIFICATION
+    assert "timeout" not in EXPECTED_MODEL_FAILURE_CLARIFICATION.lower()
+    for unsupported_claim in ("rewarm", "re-warm", "switch", "watchdog"):
+        assert unsupported_claim not in EXPECTED_MODEL_TIMEOUT_CLARIFICATION.lower()
 
 
 def _context(*, active: bool = False) -> contract.ContractContext:
@@ -36,11 +58,21 @@ def _context(*, active: bool = False) -> contract.ContractContext:
 
 
 @pytest.mark.parametrize(
-    "vote_status",
-    ("error:TimeoutError", "deadline_exceeded", "invalid", "empty"),
+    ("vote_status", "expected_kind", "expected_clarification"),
+    (
+        ("error:TimeoutError", "timeout", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
+        ("error:GPU TIMEOUT", "timeout", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
+        ("deadline_exceeded", "timeout", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
+        ("empty", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("invalid", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("timeout_or_invalid", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("error:RuntimeError", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+    ),
 )
 def test_outside_session_vote_failure_keeps_exact_pass_through_receipt(
     vote_status: str,
+    expected_kind: str,
+    expected_clarification: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -65,12 +97,14 @@ def test_outside_session_vote_failure_keeps_exact_pass_through_receipt(
     assert receipt["reason"] == "uncertain_outside_session_fail_open"
     assert receipt["semantic_vote_status"] == vote_status
     assert is_outside_session_vote_failure(decision) is True
+    assert clarification_policy.classify_vote_failure_kind(decision).value == expected_kind
     assert (
         classify_vote_timeout_disposition(AMBIGUOUS_REQUEST, decision)
         is VoteTimeoutDisposition.CLARIFY
     )
-    assert warm_clarification_for_vote_timeout(AMBIGUOUS_REQUEST, decision) == (
-        WARM_TIMEOUT_CLARIFICATION
+    assert (
+        warm_clarification_for_vote_timeout(AMBIGUOUS_REQUEST, decision)
+        == expected_clarification
     )
 
 
@@ -108,6 +142,54 @@ def test_semantic_vote_reports_timeout_error_separately() -> None:
     assert status == "error:TimeoutError"
 
 
+def test_semantic_vote_requests_and_classifies_caught_provider_timeout_metadata() -> None:
+    seen = {}
+
+    def caught_provider_timeout(*_args, **kwargs):
+        seen.update(kwargs)
+        return {
+            "text": "",
+            "response": "",
+            "status": "exception",
+            "done_reason": "timeout",
+            "exception_type": "TimeoutError",
+            "exception": "provider timed out",
+        }
+
+    parsed, status = contract._call_semantic_vote(
+        AMBIGUOUS_REQUEST,
+        _context(),
+        adaptive_call_fn=caught_provider_timeout,
+        timeout_seconds=0.2,
+    )
+
+    assert seen["return_metadata"] is True
+    assert parsed is None
+    assert status == "error:TimeoutError"
+
+
+def test_semantic_vote_classifies_caught_provider_exception_metadata() -> None:
+    def caught_provider_exception(*_args, **_kwargs):
+        return {
+            "text": "",
+            "response": "",
+            "status": "exception",
+            "done_reason": "unreachable",
+            "exception_type": "ConnectionError",
+            "exception": "connection refused",
+        }
+
+    parsed, status = contract._call_semantic_vote(
+        AMBIGUOUS_REQUEST,
+        _context(),
+        adaptive_call_fn=caught_provider_exception,
+        timeout_seconds=0.2,
+    )
+
+    assert parsed is None
+    assert status == "error:ConnectionError"
+
+
 def test_semantic_vote_reports_deadline_exceeded_separately() -> None:
     def overruns_wall(*_args, **_kwargs):
         time.sleep(0.15)
@@ -122,6 +204,20 @@ def test_semantic_vote_reports_deadline_exceeded_separately() -> None:
 
     assert parsed is None
     assert status == "deadline_exceeded"
+
+
+def test_only_true_low_coherence_keeps_the_warm_rephrase_line() -> None:
+    decision = contract.decide_contract(
+        'What do you make of "blorp fizzle invoice quantum"?',
+        context=_context(),
+        semantic_vote_enabled=False,
+    )
+
+    assert decision.label is contract.ContractLabel.LOW_COHERENCE
+    assert decision.reply == contract.LOW_COHERENCE_CLARIFICATION
+    assert decision.reply == "I didn't catch what you need — say it any way you like."
+    assert clarification_policy.classify_vote_failure_kind(decision).value == "none"
+    assert warm_clarification_for_vote_timeout(AMBIGUOUS_REQUEST, decision) is None
 
 
 @pytest.mark.parametrize(

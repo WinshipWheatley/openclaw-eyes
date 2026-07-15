@@ -5,6 +5,7 @@ PartOf=openclaw-stack.target
 [Service]
 Type=simple
 WorkingDirectory=@REPO_ROOT@
+Environment=CUDA_VISIBLE_DEVICES=
 ExecCondition=/bin/bash -lc 'source @REPO_ROOT@/.chief.env && test -n "$GUARDIAN_BOT_TOKEN"'
 Restart=always
 RestartSec=5

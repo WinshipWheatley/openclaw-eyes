@@ -233,11 +233,69 @@ def test_semantic_vote_uses_strict_safe_label_and_cannot_authorize():
     assert decision.receipt.model_called is True
     assert decision.receipt.authority_granted is False
     assert seen["kwargs"]["task_class"] == "contract_semantic_vote"
+    assert seen["kwargs"]["model"] == "qwen3:4b"
+    assert "primary_model" not in seen["kwargs"]
     assert seen["kwargs"]["timeout"] == pytest.approx(1.8)
     assert seen["kwargs"]["model_slot_max_wait_seconds"] == pytest.approx(1.2)
     assert seen["kwargs"]["retry"] is False
-    assert "primary_model" not in seen["kwargs"]
+    assert seen["kwargs"]["options"] == {
+        "format": "json",
+        "temperature": 0,
+        "num_ctx": 1024,
+    }
+    assert seen["kwargs"]["keep_alive"] == "30s"
+    assert seen["kwargs"]["return_metadata"] is True
     assert "AUTHORITY" not in seen["prompt"]
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    (
+        (None, 8.0),
+        ("", 8.0),
+        ("0", 8.0),
+        ("-1", 8.0),
+        ("10.01", 8.0),
+        ("not-a-number", 8.0),
+        ("0.01", 0.01),
+        ("8.5", 8.5),
+        ("10", 10.0),
+    ),
+)
+def test_semantic_vote_timeout_keeps_closed_bounds_with_eight_second_default(
+    raw: str | None,
+    expected: float,
+) -> None:
+    environ = {} if raw is None else {contract.SEMANTIC_VOTE_TIMEOUT_ENV: raw}
+
+    assert contract.semantic_vote_timeout_seconds(environ=environ) == expected
+
+
+def test_default_semantic_vote_budget_keeps_one_attempt_two_six_split(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen = {}
+
+    def fake_call(_prompt, **kwargs):
+        seen.update(kwargs)
+        return json.dumps(
+            {"label": "status", "confidence": 0.94, "session_relevant": False}
+        )
+
+    monkeypatch.delenv(contract.SEMANTIC_VOTE_TIMEOUT_ENV, raising=False)
+    decision = contract.decide_contract(
+        "give me a plain-language readback of your side of the house",
+        context=_ctx(),
+        status_renderer=lambda: "Current and terse.",
+        semantic_vote_enabled=True,
+        adaptive_call_fn=fake_call,
+    )
+
+    assert decision.label is contract.ContractLabel.STATUS
+    assert seen["attempts"] == 1
+    assert seen["retry"] is False
+    assert seen["model_slot_max_wait_seconds"] == pytest.approx(2.0)
+    assert seen["timeout"] == pytest.approx(6.0)
 
 
 def test_adapter_vote_default_is_real_without_env_and_explicit_off_is_safe():

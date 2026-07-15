@@ -261,12 +261,23 @@ def test_maestro_inactive_contract_exception_emits_stable_bounded_receipt(monkey
 
 
 @pytest.mark.parametrize(
-    "vote_status",
-    ("deadline_exceeded", "error:TimeoutError", "timeout_or_invalid"),
+    ("vote_status", "expected_kind"),
+    (
+        ("deadline_exceeded", "timeout"),
+        ("error:TimeoutError", "timeout"),
+        ("timeout_or_invalid", "model_failure"),
+    ),
 )
-def test_maestro_vote_failure_receipt_survives_warm_clarification(vote_status, monkeypatch):
+def test_maestro_vote_failure_receipt_survives_cautious_clarification(
+    vote_status,
+    expected_kind,
+    monkeypatch,
+):
     import maestro_cassandra_responder as maestro
-    from vote_timeout_clarification import WARM_TIMEOUT_CLARIFICATION
+    from vote_timeout_clarification import (
+        MODEL_FAILURE_CLARIFICATION,
+        MODEL_TIMEOUT_CLARIFICATION,
+    )
 
     calls = 0
 
@@ -286,8 +297,13 @@ def test_maestro_vote_failure_receipt_survives_warm_clarification(vote_status, m
     result = maestro.answer_frontdoor_chat("Could you unpack that broader situation?")
 
     receipt = result.machine_proof["typed_contract_decision"]
+    expected = (
+        MODEL_TIMEOUT_CLARIFICATION
+        if expected_kind == "timeout"
+        else MODEL_FAILURE_CLARIFICATION
+    )
     assert result.status == "ANSWER_READY"
-    assert result.plain_summary == WARM_TIMEOUT_CLARIFICATION
+    assert result.plain_summary == expected
     assert receipt["source"] == "semantic_vote"
     assert receipt["action"] == "pass_through"
     assert receipt["semantic_vote_status"] == vote_status

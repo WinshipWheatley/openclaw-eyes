@@ -7,6 +7,14 @@ import pytest
 
 
 AMBIGUOUS = "Could you unpack that broader situation?"
+EXPECTED_MODEL_TIMEOUT_CLARIFICATION = (
+    "The language model timed out before it could classify that request. "
+    "The GPU may be busy. I left your request untouched; please try again in a moment."
+)
+EXPECTED_MODEL_FAILURE_CLARIFICATION = (
+    "The language model didn't return a usable routing decision. I left your "
+    "request untouched; please try again in a moment."
+)
 
 
 def _force_vote_failure(monkeypatch: pytest.MonkeyPatch, status: str = "error:TimeoutError"):
@@ -28,15 +36,22 @@ def _forbidden_downstream(*_args, **_kwargs):
 
 
 @pytest.mark.parametrize(
-    "status",
-    ("error:TimeoutError", "deadline_exceeded", "empty", "invalid"),
+    ("status", "expected"),
+    (
+        ("error:TimeoutError", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
+        ("deadline_exceeded", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
+        ("empty", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("invalid", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("timeout_or_invalid", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("error:RuntimeError", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+    ),
 )
-def test_maestro_timeout_returns_exact_warm_line_and_no_second_model(
+def test_maestro_vote_failure_returns_exact_cautious_line_and_no_second_model(
     status: str,
+    expected: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import maestro_cassandra_responder as maestro
-    from vote_timeout_clarification import WARM_TIMEOUT_CLARIFICATION
 
     calls = _force_vote_failure(monkeypatch, status)
     result = maestro.answer_frontdoor_chat(
@@ -47,8 +62,10 @@ def test_maestro_timeout_returns_exact_warm_line_and_no_second_model(
 
     receipt = result.machine_proof["typed_contract_decision"]
     assert calls == [AMBIGUOUS]
-    assert result.plain_summary == WARM_TIMEOUT_CLARIFICATION
-    assert result.one_line_answer == WARM_TIMEOUT_CLARIFICATION
+    assert result.plain_summary == expected
+    assert result.one_line_answer == expected
+    if expected == EXPECTED_MODEL_FAILURE_CLARIFICATION:
+        assert "timeout" not in result.plain_summary.lower()
     assert receipt["source"] == "semantic_vote"
     assert receipt["label"] == "unresolved"
     assert receipt["action"] == "pass_through"
