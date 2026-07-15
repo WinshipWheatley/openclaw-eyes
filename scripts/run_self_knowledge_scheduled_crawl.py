@@ -72,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
         owner_scope=args.owner_scope,
     )
     print(json.dumps(result, indent=2))
-    return 0
+    return 1 if result.get("status") == "completed_with_ledger_failure" else 0
 
 
 if __name__ == "__main__":

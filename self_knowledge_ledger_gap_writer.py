@@ -29,9 +29,11 @@ matching schema) so tests and fresh ledgers work without it pre-seeded.
 
 from __future__ import annotations
 
-import shutil
-import sqlite3
 import json
+import os
+import sqlite3
+import stat
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Mapping
@@ -87,25 +89,105 @@ ACTIVATION_COLUMNS = (
 
 
 def _utc_now_stamp() -> str:
-    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
 
 
 def _utc_now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
-def backup_ledger(ledger_path: str | Path) -> Path:
-    """Copy the ledger file to a timestamped sibling path and verify the copy.
+def _copy_sqlite_backup(source: Path, destination: Path) -> None:
+    source_uri = f"file:{source.resolve()}?mode=ro"
+    with sqlite3.connect(source_uri, uri=True) as source_db:
+        source_db.execute("PRAGMA query_only=ON")
+        with sqlite3.connect(destination) as destination_db:
+            source_db.backup(destination_db)
 
-    Raises RuntimeError if the resulting backup does not exist or is empty —
-    callers must treat that as fail-closed (do NOT proceed to write).
-    """
+
+def _validate_sqlite_backup(path: Path) -> None:
+    metadata = path.lstat()
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_size <= 0:
+        raise RuntimeError(f"ledger backup verification failed: {path}")
+    uri = f"file:{path.resolve()}?mode=ro"
+    with sqlite3.connect(uri, uri=True) as conn:
+        conn.execute("PRAGMA query_only=ON")
+        conn.execute("SELECT count(*) FROM sqlite_schema").fetchone()
+
+
+def backup_ledger(
+    ledger_path: str | Path,
+    *,
+    destination: str | Path | None = None,
+) -> Path:
+    """Create an atomic SQLite-consistent backup and verify the result."""
     src = Path(ledger_path)
-    backup_path = src.parent / f"{src.name}.bak-{_utc_now_stamp()}"
-    shutil.copy2(src, backup_path)
-    if not backup_path.exists() or backup_path.stat().st_size <= 0:
-        raise RuntimeError(f"ledger backup verification failed: {backup_path}")
+    if src.is_symlink() or not src.is_file():
+        raise RuntimeError(f"ledger backup source unavailable or unsafe: {src}")
+    backup_path = (
+        Path(destination)
+        if destination is not None
+        else src.parent / f"{src.name}.bak-{_utc_now_stamp()}"
+    )
+    if backup_path.absolute() == src.absolute():
+        raise RuntimeError("ledger backup destination must differ from source")
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{backup_path.name}.",
+        suffix=".tmp",
+        dir=backup_path.parent,
+    )
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    try:
+        _copy_sqlite_backup(src, temporary)
+        os.chmod(temporary, 0o600)
+        _validate_sqlite_backup(temporary)
+        with temporary.open("rb") as handle:
+            os.fsync(handle.fileno())
+        os.replace(temporary, backup_path)
+        directory_fd = os.open(backup_path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except (OSError, sqlite3.DatabaseError, RuntimeError) as exc:
+        temporary.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"ledger backup verification failed: {backup_path}: {exc}"
+        ) from exc
+    _validate_sqlite_backup(backup_path)
     return backup_path
+
+
+def ensure_ledger_backup(
+    ledger_path: str | Path,
+    backup_path: str | Path | None = None,
+) -> Path:
+    ledger = Path(ledger_path)
+    if backup_path is None:
+        return backup_ledger(ledger)
+    candidate = Path(backup_path)
+    allowed_name = (
+        candidate.name.startswith(f"{ledger.name}.bak-")
+        or candidate.name == "self_knowledge_scheduled_before.sqlite"
+    )
+    allowed_parents = {
+        ledger.parent.resolve(),
+        (ledger.parent / "backups").resolve(),
+    }
+    try:
+        if (
+            candidate.is_symlink()
+            or not allowed_name
+            or candidate.parent.resolve() not in allowed_parents
+        ):
+            raise RuntimeError("backup path is not an approved ledger backup")
+        _validate_sqlite_backup(candidate)
+    except (OSError, sqlite3.DatabaseError, RuntimeError) as exc:
+        raise RuntimeError(
+            f"ledger backup verification failed: {candidate}: {exc}"
+        ) from exc
+    return candidate
 
 
 def _fold_source_for(root: Path) -> str:
@@ -158,6 +240,7 @@ def write_gaps_to_ledger(
     *,
     confirm: bool = False,
     max_files: int | None = None,
+    backup_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Dry-run by default; only writes (after a verified backup) with confirm=True."""
     plan = build_gap_write_plan(root, ledger_path, max_files=max_files)
@@ -170,7 +253,7 @@ def write_gaps_to_ledger(
         return {"status": "ledger_unavailable", "plan": plan}
 
     try:
-        backup_path = backup_ledger(ledger)
+        backup_path = ensure_ledger_backup(ledger, backup_path)
     except (OSError, RuntimeError) as exc:
         return {"status": "backup_verification_failed", "reason": str(exc), "plan": plan}
 
@@ -256,6 +339,7 @@ def write_activation_record_to_ledger(
     ledger_path: str | Path,
     *,
     confirm: bool = False,
+    backup_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Fold one scheduled self-knowledge activation record into an injectable ledger."""
 
@@ -268,7 +352,7 @@ def write_activation_record_to_ledger(
         return {"status": "ledger_unavailable", "plan": plan}
 
     try:
-        backup_path = backup_ledger(ledger)
+        backup_path = ensure_ledger_backup(ledger, backup_path)
     except (OSError, RuntimeError) as exc:
         return {"status": "backup_verification_failed", "reason": str(exc), "plan": plan}
 
@@ -372,6 +456,7 @@ def write_inventory_graph_to_ledger(
     ledger_path: str | Path,
     *,
     confirm: bool = False,
+    backup_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Fold self-knowledge graph nodes/edges into an injectable SQLite ledger."""
 
@@ -384,7 +469,7 @@ def write_inventory_graph_to_ledger(
         return {"status": "ledger_unavailable", "plan": plan}
 
     try:
-        backup_path = backup_ledger(ledger)
+        backup_path = ensure_ledger_backup(ledger, backup_path)
     except (OSError, RuntimeError) as exc:
         return {"status": "backup_verification_failed", "reason": str(exc), "plan": plan}
 
@@ -488,6 +573,7 @@ __all__ = [
     "GRAPH_NODE_TABLE",
     "ACTIVATION_TABLE",
     "backup_ledger",
+    "ensure_ledger_backup",
     "build_activation_record_write_plan",
     "build_gap_write_plan",
     "build_inventory_graph_write_plan",

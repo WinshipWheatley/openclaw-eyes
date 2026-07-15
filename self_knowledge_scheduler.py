@@ -16,6 +16,7 @@ from typing import Any
 
 from polish_loop.gpu_arbiter import GPUArbiter
 from self_knowledge_crawl_state import DEFAULT_STATE_DB, crawl_filesystem_incremental
+from self_knowledge_ledger_gap_writer import backup_ledger
 
 
 def _parse_iso(value: object) -> datetime | None:
@@ -91,10 +92,45 @@ def run_scheduled_crawl(
             write_gaps_to_ledger,
         )
 
+        shared_backup_path: Path | None = None
+        ledger = Path(ledger_path)
+        if confirm_ledger_write and ledger.exists():
+            destination = (
+                ledger.parent
+                / "backups"
+                / "self_knowledge_scheduled_before.sqlite"
+            )
+            try:
+                shared_backup_path = backup_ledger(
+                    ledger,
+                    destination=destination,
+                )
+            except (OSError, RuntimeError) as exc:
+                failure = {
+                    "status": "backup_verification_failed",
+                    "reason": str(exc),
+                }
+                failed_stages = ["ledger_backup", "ledger_gap_write"]
+                result["ledger_backup"] = dict(failure)
+                result["ledger_gap_write"] = dict(failure)
+                if write_inventory_graph:
+                    result["inventory_graph_write"] = dict(failure)
+                    failed_stages.append("inventory_graph_write")
+                if write_activation_record:
+                    result["activation_record_write"] = dict(failure)
+                    failed_stages.append("activation_record_write")
+                result.update(
+                    status="completed_with_ledger_failure",
+                    failed_stages=failed_stages,
+                )
+                return result
+            result["ledger_backup_path"] = str(shared_backup_path)
+
         ledger_result = write_gaps_to_ledger(
             root,
             ledger_path,
             confirm=confirm_ledger_write,
+            backup_path=shared_backup_path,
             max_files=max_files,
         )
         result["ledger_gap_write"] = ledger_result
@@ -107,6 +143,7 @@ def run_scheduled_crawl(
             graph_result = write_graph_to_ledger(
                 root,
                 ledger_path,
+                backup_path=shared_backup_path,
                 confirm=confirm_ledger_write,
             )
             result["inventory_graph_write"] = graph_result
@@ -125,6 +162,7 @@ def run_scheduled_crawl(
             activation_result = write_activation_record_to_ledger(
                 result["activation_record"],
                 ledger_path,
+                backup_path=shared_backup_path,
                 confirm=confirm_ledger_write,
             )
             result["activation_record_write"] = activation_result
@@ -133,6 +171,26 @@ def run_scheduled_crawl(
             "status": "ledger_path_required",
             "reason": "write_activation_record requires ledger_path",
         }
+    if confirm_ledger_write:
+        expected_stages: list[str] = []
+        if ledger_path is not None:
+            expected_stages.append("ledger_gap_write")
+            if write_inventory_graph:
+                expected_stages.append("inventory_graph_write")
+            if write_activation_record:
+                expected_stages.append("activation_record_write")
+        elif write_activation_record:
+            expected_stages.append("activation_record_write")
+        failed_stages = [
+            stage
+            for stage in expected_stages
+            if result.get(stage, {}).get("status") != "written"
+        ]
+        if failed_stages:
+            result.update(
+                status="completed_with_ledger_failure",
+                failed_stages=failed_stages,
+            )
     return result
 
 

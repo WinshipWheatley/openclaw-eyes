@@ -70,6 +70,23 @@ def test_main_can_confirm_write_ledger_graph_and_activation_records(tmp_path, ca
         assert conn.execute(f'SELECT COUNT(*) FROM "{ACTIVATION_TABLE}"').fetchone()[0] == 1
 
 
+def test_main_returns_nonzero_when_confirmed_ledger_flow_stops(monkeypatch, capsys):
+    monkeypatch.setattr(
+        cli,
+        "run_scheduled_crawl",
+        lambda *_args, **_kwargs: {
+            "status": "completed_with_ledger_failure",
+            "failed_stages": ["ledger_backup"],
+        },
+    )
+
+    rc = cli.main([])
+
+    assert rc == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["failed_stages"] == ["ledger_backup"]
+
+
 def test_systemd_service_template_runs_confirmed_ledger_population() -> None:
     template = (
         Path(__file__).resolve().parents[1]

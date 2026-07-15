@@ -201,6 +201,132 @@ def test_scheduled_crawl_can_confirm_write_graph_and_activation_rows_to_injected
     assert activation_rows == [("invoked", 1, 1)]
 
 
+def test_confirmed_scheduled_batch_reuses_one_bounded_backup_slot(tmp_path):
+    root = tmp_path / "repo"
+    _make_git_tree(root)
+    lease_db = tmp_path / "leases.sqlite"
+    state_db = tmp_path / "state.sqlite"
+    ledger = tmp_path / "ledger.sqlite"
+    with sqlite3.connect(ledger) as conn:
+        conn.execute("CREATE TABLE file_inventory (path TEXT)")
+
+    first = run_scheduled_crawl(
+        root,
+        lease_db_path=lease_db,
+        state_db_path=state_db,
+        ledger_path=ledger,
+        confirm_ledger_write=True,
+        write_inventory_graph=True,
+        write_activation_record=True,
+        owner_scope="pc",
+        now=_t("2026-07-01T12:00:00"),
+    )
+    second = run_scheduled_crawl(
+        root,
+        lease_db_path=lease_db,
+        state_db_path=state_db,
+        ledger_path=ledger,
+        confirm_ledger_write=True,
+        write_inventory_graph=True,
+        write_activation_record=True,
+        owner_scope="pc",
+        now=_t("2026-07-01T12:15:00"),
+    )
+
+    expected = ledger.parent / "backups" / "self_knowledge_scheduled_before.sqlite"
+    for result in (first, second):
+        assert Path(result["ledger_backup_path"]) == expected
+        assert {
+            Path(result[key]["backup_path"])
+            for key in (
+                "ledger_gap_write",
+                "inventory_graph_write",
+                "activation_record_write",
+            )
+        } == {expected}
+    assert expected.exists()
+    assert not list(ledger.parent.glob("ledger.sqlite.bak-*"))
+    assert [path.name for path in expected.parent.iterdir()] == [expected.name]
+
+
+def test_confirmed_scheduled_batch_surfaces_backup_failure(
+    tmp_path,
+    monkeypatch,
+):
+    root = tmp_path / "repo"
+    _make_tree(root)
+    ledger = tmp_path / "ledger.sqlite"
+    with sqlite3.connect(ledger) as conn:
+        conn.execute("CREATE TABLE file_inventory (path TEXT)")
+
+    def fail_backup(*_args, **_kwargs):
+        raise RuntimeError("synthetic backup failure")
+
+    monkeypatch.setattr("self_knowledge_scheduler.backup_ledger", fail_backup)
+
+    result = run_scheduled_crawl(
+        root,
+        lease_db_path=tmp_path / "leases.sqlite",
+        state_db_path=tmp_path / "state.sqlite",
+        ledger_path=ledger,
+        confirm_ledger_write=True,
+        write_inventory_graph=True,
+        write_activation_record=True,
+        now=_t("2026-07-01T12:00:00"),
+    )
+
+    assert result["status"] == "completed_with_ledger_failure"
+    assert result["failed_stages"] == [
+        "ledger_backup",
+        "ledger_gap_write",
+        "inventory_graph_write",
+        "activation_record_write",
+    ]
+    assert all(
+        result[key]["status"] == "backup_verification_failed"
+        for key in result["failed_stages"]
+    )
+
+
+def test_confirmed_scheduled_batch_names_a_writer_stage_failure(
+    tmp_path,
+    monkeypatch,
+):
+    root = tmp_path / "repo"
+    _make_tree(root)
+    ledger = tmp_path / "ledger.sqlite"
+    with sqlite3.connect(ledger) as conn:
+        conn.execute("CREATE TABLE file_inventory (path TEXT)")
+
+    monkeypatch.setattr(
+        "self_knowledge_ledger_gap_writer.write_gaps_to_ledger",
+        lambda *_args, **_kwargs: {
+            "status": "write_failed",
+            "reason": "synthetic gap failure",
+        },
+    )
+
+    result = run_scheduled_crawl(
+        root,
+        lease_db_path=tmp_path / "leases.sqlite",
+        state_db_path=tmp_path / "state.sqlite",
+        ledger_path=ledger,
+        confirm_ledger_write=True,
+        write_inventory_graph=True,
+        write_activation_record=True,
+        now=_t("2026-07-01T12:00:00"),
+    )
+
+    assert result["status"] == "completed_with_ledger_failure"
+    assert result["failed_stages"] == ["ledger_gap_write"]
+    assert result["ledger_gap_write"] == {
+        "status": "write_failed",
+        "reason": "synthetic gap failure",
+    }
+    assert result["inventory_graph_write"]["status"] == "written"
+    assert result["activation_record_write"]["status"] == "written"
+
+
 def _state_row_count(state_db: Path) -> int:
     import sqlite3
 

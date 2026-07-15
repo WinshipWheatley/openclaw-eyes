@@ -27,7 +27,7 @@ from typing import Any, Mapping
 
 import self_knowledge_system_enumerators as sen
 from openclaw_estate_node_registry import REQUIRED_NODE_FIELDS
-from self_knowledge_ledger_gap_writer import backup_ledger
+from self_knowledge_ledger_gap_writer import ensure_ledger_backup
 
 GRAPH_NODE_TABLE = "knowledge_system_nodes"
 GRAPH_EDGE_TABLE = "knowledge_system_edges"
@@ -787,6 +787,7 @@ def write_graph_to_ledger(
     confirm: bool = False,
     inventory: Mapping[str, Any] | None = None,
     now: str | None = None,
+    backup_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Dry-run by default; with confirm=True, fold graph rows into the ledger."""
 
@@ -799,7 +800,7 @@ def write_graph_to_ledger(
         return {"status": "ledger_unavailable", "plan": plan}
 
     try:
-        backup_path = backup_ledger(ledger)
+        backup_path = ensure_ledger_backup(ledger, backup_path)
     except (OSError, RuntimeError) as exc:
         return {"status": "backup_verification_failed", "reason": str(exc), "plan": plan}
 

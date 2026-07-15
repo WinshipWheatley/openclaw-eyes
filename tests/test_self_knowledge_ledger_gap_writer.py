@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+import stat
 import sys
 from pathlib import Path
 
@@ -121,10 +122,10 @@ def test_confirm_fails_closed_if_backup_would_be_empty(tmp_path, monkeypatch):
     ledger = tmp_path / "ledger.sqlite"
     _make_ledger(ledger, [])
 
-    def fake_copy2(src, dst):
+    def fake_sqlite_backup(src, dst):
         Path(dst).write_bytes(b"")  # simulate a bad/empty backup
 
-    monkeypatch.setattr("self_knowledge_ledger_gap_writer.shutil.copy2", fake_copy2)
+    monkeypatch.setattr("self_knowledge_ledger_gap_writer._copy_sqlite_backup", fake_sqlite_backup)
 
     result = write_gaps_to_ledger(root, ledger, confirm=True)
 
@@ -143,6 +144,59 @@ def test_backup_ledger_creates_timestamped_nonempty_copy(tmp_path):
     assert backup_path.exists()
     assert backup_path.stat().st_size > 0
     assert backup_path.name.startswith("ledger.sqlite.bak-")
+
+
+def test_backup_ledger_rotates_a_consistent_wal_snapshot(tmp_path):
+    ledger = tmp_path / "ledger.sqlite"
+    destination = tmp_path / "backups" / "self_knowledge_scheduled_before.sqlite"
+    source = sqlite3.connect(ledger)
+    try:
+        source.execute("PRAGMA journal_mode=WAL")
+        source.execute("CREATE TABLE evidence (value TEXT)")
+        source.execute("INSERT INTO evidence VALUES ('committed-in-wal')")
+        source.commit()
+
+        backup_path = backup_ledger(ledger, destination=destination)
+    finally:
+        source.close()
+
+    assert backup_path == destination
+    assert stat.S_IMODE(backup_path.stat().st_mode) == 0o600
+    with sqlite3.connect(backup_path) as backup:
+        assert backup.execute("SELECT value FROM evidence").fetchall() == [
+            ("committed-in-wal",)
+        ]
+    assert not list(destination.parent.glob(f".{destination.name}.*.tmp"))
+
+
+def test_reused_backup_must_be_regular_nonempty_and_for_the_same_ledger(tmp_path):
+    ledger = tmp_path / "ledger.sqlite"
+    _make_ledger(ledger, ["x"])
+    invalid = tmp_path / "wrong-name.sqlite"
+    invalid.write_bytes(b"not-a-backup")
+
+    result = write_gaps_to_ledger(
+        tmp_path,
+        ledger,
+        confirm=True,
+        backup_path=invalid,
+    )
+
+    assert result["status"] == "backup_verification_failed"
+
+    other = tmp_path / "other"
+    other.mkdir()
+    misplaced = other / "ledger.sqlite.bak-20260715T120000000000Z"
+    _make_ledger(misplaced, ["x"])
+
+    misplaced_result = write_gaps_to_ledger(
+        tmp_path,
+        ledger,
+        confirm=True,
+        backup_path=misplaced,
+    )
+
+    assert misplaced_result["status"] == "backup_verification_failed"
 
 
 def test_inventory_graph_writes_and_answers_high_medium_deep_queries(tmp_path):
