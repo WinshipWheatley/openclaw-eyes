@@ -65,6 +65,8 @@ def _context(*, active: bool = False) -> contract.ContractContext:
         ("deadline_exceeded", "timeout", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
         ("empty", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("invalid", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("below_threshold", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("session_label_without_session", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("timeout_or_invalid", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("error:RuntimeError", "model_failure", EXPECTED_MODEL_FAILURE_CLARIFICATION),
     ),

@@ -52,6 +52,8 @@ _MODEL_FAILURE_STATUSES = frozenset(
     {
         "empty",
         "invalid",
+        "below_threshold",
+        "session_label_without_session",
         # Compatibility for receipts written before Task 167 split empty from
         # malformed output. Its ambiguity prevents a truthful timeout claim.
         "timeout_or_invalid",
