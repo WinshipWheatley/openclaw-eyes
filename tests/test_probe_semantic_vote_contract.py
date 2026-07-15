@@ -54,6 +54,7 @@ def test_probe_reports_contract_and_child_cleanup(monkeypatch):
     assert result["passed"] is True
     assert result["model"] == "qwen3:8b-q4_K_M"
     assert result["num_ctx"] == 1024
+    assert result["num_gpu"] == 999
     assert result["timeout_seconds"] == 8.0
     assert result["keep_alive"] == "10m"
     assert result["elapsed_seconds"] == 7.8

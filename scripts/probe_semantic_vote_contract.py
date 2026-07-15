@@ -66,6 +66,7 @@ def run_probe(
     contract_ok = (
         contract.SEMANTIC_VOTE_MODEL == "qwen3:8b-q4_K_M"
         and contract.SEMANTIC_VOTE_NUM_CTX == 1024
+        and contract.SEMANTIC_VOTE_NUM_GPU == 999
         and contract.DEFAULT_SEMANTIC_TIMEOUT_SECONDS == PROBE_TIMEOUT_SECONDS
         and contract.SEMANTIC_VOTE_KEEP_ALIVE == "10m"
     )
@@ -80,6 +81,7 @@ def run_probe(
         "passed": passed,
         "model": contract.SEMANTIC_VOTE_MODEL,
         "num_ctx": contract.SEMANTIC_VOTE_NUM_CTX,
+        "num_gpu": contract.SEMANTIC_VOTE_NUM_GPU,
         "timeout_seconds": PROBE_TIMEOUT_SECONDS,
         "keep_alive": contract.SEMANTIC_VOTE_KEEP_ALIVE,
         "elapsed_seconds": elapsed,

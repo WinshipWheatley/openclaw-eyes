@@ -45,6 +45,7 @@ CONTRACT_RECEIPT_DB_ENV = "OPENCLAW_CONTRACT_RECEIPT_DB"
 DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 8.0
 SEMANTIC_VOTE_MODEL = "qwen3:8b-q4_K_M"
 SEMANTIC_VOTE_NUM_CTX = 1024
+SEMANTIC_VOTE_NUM_GPU = 999
 SEMANTIC_VOTE_KEEP_ALIVE = "10m"
 SEMANTIC_CONFIDENCE_THRESHOLD = 0.72
 MAX_CONTRACT_PRESERVE_RECEIPTS = 4096
@@ -1513,6 +1514,7 @@ def _call_semantic_vote(
             "format": "json",
             "temperature": 0,
             "num_ctx": SEMANTIC_VOTE_NUM_CTX,
+            "num_gpu": SEMANTIC_VOTE_NUM_GPU,
         },
         "keep_alive": semantic_keep_alive,
         "retry": False,

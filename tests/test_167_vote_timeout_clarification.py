@@ -291,6 +291,7 @@ def test_default_semantic_vote_runs_in_killable_spawned_process(monkeypatch) -> 
     assert captured["daemon"] is True
     assert captured["call_kwargs"]["model"] == "qwen3:8b-q4_K_M"
     assert captured["call_kwargs"]["options"]["num_ctx"] == 1024
+    assert captured["call_kwargs"]["options"]["num_gpu"] == 999
     assert captured["queue_closed"] is True
 
 

@@ -242,6 +242,7 @@ def test_semantic_vote_uses_strict_safe_label_and_cannot_authorize():
         "format": "json",
         "temperature": 0,
         "num_ctx": 1024,
+        "num_gpu": 999,
     }
     assert seen["kwargs"]["keep_alive"] == "10m"
     assert seen["kwargs"]["return_metadata"] is True
