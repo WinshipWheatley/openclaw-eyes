@@ -1,0 +1,13 @@
+[Unit]
+Description=Observe OpenClaw GPU model health every minute
+Documentation=file://@REPO_ROOT@/docs/operations/GPU_MODEL_HEALTH_WATCHDOG_RUNBOOK.md
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=60s
+AccuracySec=10s
+Persistent=true
+Unit=openclaw-gpu-model-health.service
+
+[Install]
+WantedBy=timers.target

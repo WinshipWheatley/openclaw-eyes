@@ -1435,6 +1435,8 @@ generated/system_knowledge/*.sqlite
 !tests/test_recurrence_rule_intake.py
 !tests/test_receivables_month_bounded_recurrence_derivation.py
 !tests/test_hermes_observer.py
+!gpu_model_health_watchdog.py
+!tests/test_gpu_model_health_watchdog.py
 !tests/test_maestro_bare_status.py
 !tests/test_cassandra_ops_status_staleness.py
 !tests/test_chief_bare_status.py

@@ -72,6 +72,8 @@ EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES = (
 )
 
 VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
+    "gpu_model_health.json",
+    "gpu_model_health_OPERATOR.md",
     "operator_threshold_map_contract.json",
     "operator_threshold_map_contract_OPERATOR.md",
     "sync_health.json",

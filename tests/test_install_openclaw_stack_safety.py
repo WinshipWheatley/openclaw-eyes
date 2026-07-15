@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -14,6 +16,10 @@ ANCILLARY_REPAIR_UNITS = (
     "guardian-approval-notifier.service",
     "self-knowledge-crawl.service",
     "openclaw-read-model-auto-refresh.service",
+)
+GPU_HEALTH_UNITS = (
+    "openclaw-gpu-model-health.service",
+    "openclaw-gpu-model-health.timer",
 )
 GUARDIAN_UNIT = REPO_ROOT / "systemd" / "user" / "chief-guardian-listener.service.in"
 CASSANDRA_WATCHER_UNIT = REPO_ROOT / "systemd" / "user" / "cassandra-watcher.service.in"
@@ -66,10 +72,87 @@ def test_enable_requires_apply_and_is_constrained_to_repo_owned_openclaw_service
     assert "if (( enable_units && ! apply_changes )); then" in source
     assert "ERROR: --enable requires --apply." in source
     assert "repo_owned_service_names=()" in source
-    assert '[[ "${unit_name}" == *.service && "${unit_name}" != "hermes-gateway.service" ]]' in source
+    assert '"${unit_name}" != "hermes-gateway.service"' in source
+    assert '"${unit_name}" != "${GPU_MODEL_HEALTH_SERVICE_NAME}"' in source
     assert "for service_name in \"${repo_owned_service_names[@]}\"; do" in source
     assert "systemctl --user enable \"${service_name}\"" in source
     assert "Enabled repo-owned service:" in source
+
+
+def test_gpu_health_only_installs_and_starts_exact_timer(tmp_path: Path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    calls = tmp_path / "systemctl.calls"
+    fake_systemctl = fake_bin / "systemctl"
+    fake_systemctl.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf '%s\\n' \"$*\" >> \"${SYSTEMCTL_CALLS}\"\n",
+        encoding="utf-8",
+    )
+    fake_systemctl.chmod(0o755)
+    home = tmp_path / "home"
+    env = dict(os.environ)
+    env.update(
+        HOME=str(home),
+        PATH=f"{fake_bin}:{env['PATH']}",
+        SYSTEMCTL_CALLS=str(calls),
+    )
+
+    completed = subprocess.run(
+        [
+            "bash",
+            str(INSTALLER),
+            "--apply",
+            "--enable",
+            "--gpu-health-only",
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    installed = {
+        path.name for path in (home / ".config" / "systemd" / "user").iterdir()
+    }
+    assert installed == set(GPU_HEALTH_UNITS)
+    assert calls.read_text(encoding="utf-8").splitlines() == [
+        "--user daemon-reload",
+        "--user enable --now openclaw-gpu-model-health.timer",
+    ]
+    assert "Enabled and started repo-owned timer: openclaw-gpu-model-health.timer" in (
+        completed.stdout
+    )
+
+
+def test_gpu_health_only_refuses_start_and_other_scoped_modes(tmp_path: Path):
+    env = dict(os.environ, HOME=str(tmp_path / "home"))
+
+    for extra_flag in (
+        "--start",
+        "--request-response-only",
+        "--ancillary-repair-only",
+    ):
+        completed = subprocess.run(
+            [
+                "bash",
+                str(INSTALLER),
+                "--apply",
+                "--enable",
+                "--gpu-health-only",
+                extra_flag,
+            ],
+            cwd=REPO_ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        assert completed.returncode == 2
+        assert "--gpu-health-only cannot be combined" in completed.stderr
 
 
 def test_start_requires_apply_and_enable_and_targets_only_stack_target():

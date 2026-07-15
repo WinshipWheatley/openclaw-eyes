@@ -41,6 +41,7 @@ OPENCLAW_BOOT_TIMERS=(
 # shellcheck disable=SC2034
 OPENCLAW_BOOT_AUX_TIMERS=(
   guardian-approval-notifier.timer
+  openclaw-gpu-model-health.timer
   openclaw-change-sentinel.timer
   openclaw-drift-control-scan.timer
   openclaw-read-model-auto-refresh.timer

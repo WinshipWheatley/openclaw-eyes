@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenClaw GPU model health read-model observation
+Documentation=file://@REPO_ROOT@/docs/operations/GPU_MODEL_HEALTH_WATCHDOG_RUNBOOK.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/wsl/lib
+UnsetEnvironment=HTTP_PROXY HTTPS_PROXY ALL_PROXY
+UnsetEnvironment=http_proxy https_proxy all_proxy
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=@REPO_ROOT@/chief_env/bin/python @REPO_ROOT@/gpu_model_health_watchdog.py --once
+TimeoutStartSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full

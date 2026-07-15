@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: scripts/install_openclaw_stack.sh [--dry-run] [--apply] [--enable] [--start] [--request-response-only] [--ancillary-repair-only]
+Usage: scripts/install_openclaw_stack.sh [--dry-run] [--apply] [--enable] [--start] [--request-response-only] [--ancillary-repair-only] [--gpu-health-only]
 
 Modes:
   no args     Report what would happen. No files are written and no services are changed.
@@ -16,6 +16,9 @@ Modes:
   --ancillary-repair-only
               Render only the three known ancillary units with Python placeholders.
               This repair slice refuses --enable and --start.
+  --gpu-health-only
+              Render only the passive GPU health service and timer. With --enable,
+              enable and start exactly that timer. This slice refuses --start.
 
 Unknown or ambiguous flag combinations fail closed.
 USAGE
@@ -27,6 +30,7 @@ start_target=0
 dry_run=0
 request_response_only=0
 ancillary_repair_only=0
+gpu_health_only=0
 
 if (($# == 0)); then
     dry_run=1
@@ -52,6 +56,9 @@ while (($#)); do
         --ancillary-repair-only)
             ancillary_repair_only=1
             ;;
+        --gpu-health-only)
+            gpu_health_only=1
+            ;;
         -h|--help)
             usage
             exit 0
@@ -67,6 +74,18 @@ done
 
 if (( dry_run && (apply_changes || enable_units || start_target) )); then
     printf 'ERROR: --dry-run cannot be combined with --apply, --enable, or --start.\n' >&2
+    usage >&2
+    exit 2
+fi
+
+if (( gpu_health_only && (request_response_only || ancillary_repair_only) )); then
+    printf 'ERROR: --gpu-health-only cannot be combined with another scoped mode.\n' >&2
+    usage >&2
+    exit 2
+fi
+
+if (( gpu_health_only && start_target )); then
+    printf 'ERROR: --gpu-health-only cannot be combined with --start; --enable starts only its timer.\n' >&2
     usage >&2
     exit 2
 fi
@@ -95,6 +114,12 @@ if (( start_target && (! apply_changes || ! enable_units) )); then
     exit 2
 fi
 
+if (( ! dry_run && ! apply_changes )); then
+    printf 'ERROR: mutation requires --apply; use --dry-run to inspect a scoped mode.\n' >&2
+    usage >&2
+    exit 2
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TEMPLATE_DIR="${REPO_ROOT}/systemd/user"
@@ -102,6 +127,12 @@ USER_UNIT_DIR="${HOME}/.config/systemd/user"
 TARGET_NAME="openclaw-stack.target"
 REQUEST_RESPONSE_SERVICE_NAME="openclaw-request-response.service"
 PYTHON_BIN="${REPO_ROOT}/chief_env/bin/python"
+GPU_MODEL_HEALTH_SERVICE_NAME="openclaw-gpu-model-health.service"
+GPU_MODEL_HEALTH_TIMER_NAME="openclaw-gpu-model-health.timer"
+GPU_HEALTH_UNIT_NAMES=(
+    "${GPU_MODEL_HEALTH_SERVICE_NAME}"
+    "${GPU_MODEL_HEALTH_TIMER_NAME}"
+)
 ANCILLARY_REPAIR_UNIT_NAMES=(
     "guardian-approval-notifier.service"
     "self-knowledge-crawl.service"
@@ -110,6 +141,7 @@ ANCILLARY_REPAIR_UNIT_NAMES=(
 
 repo_owned_unit_names=()
 repo_owned_service_names=()
+repo_owned_timer_names=()
 
 collect_template() {
     local template="$1"
@@ -119,8 +151,12 @@ collect_template() {
     fi
     unit_name="$(basename "${template}" .in)"
     repo_owned_unit_names+=("${unit_name}")
-    if [[ "${unit_name}" == *.service && "${unit_name}" != "hermes-gateway.service" ]]; then
+    if [[ "${unit_name}" == *.service \
+        && "${unit_name}" != "hermes-gateway.service" \
+        && "${unit_name}" != "${GPU_MODEL_HEALTH_SERVICE_NAME}" ]]; then
         repo_owned_service_names+=("${unit_name}")
+    elif [[ "${unit_name}" == "${GPU_MODEL_HEALTH_TIMER_NAME}" ]]; then
+        repo_owned_timer_names+=("${unit_name}")
     fi
 }
 
@@ -128,6 +164,10 @@ if (( request_response_only )); then
     collect_template "${TEMPLATE_DIR}/${REQUEST_RESPONSE_SERVICE_NAME}.in"
 elif (( ancillary_repair_only )); then
     for unit_name in "${ANCILLARY_REPAIR_UNIT_NAMES[@]}"; do
+        collect_template "${TEMPLATE_DIR}/${unit_name}.in"
+    done
+elif (( gpu_health_only )); then
+    for unit_name in "${GPU_HEALTH_UNIT_NAMES[@]}"; do
         collect_template "${TEMPLATE_DIR}/${unit_name}.in"
     done
 else
@@ -158,8 +198,12 @@ report_plan() {
     printf 'With --apply: would render/install those units into %s and run systemctl --user daemon-reload.\n' "${USER_UNIT_DIR}"
     if (( ancillary_repair_only )); then
         printf 'With --apply --ancillary-repair-only: would render only the named ancillary units; enable/start are refused.\n'
+    elif (( gpu_health_only )); then
+        print_units 'Repo-owned timers that --apply --enable would enable and start:' "${repo_owned_timer_names[@]}"
+        printf 'With --apply --enable --gpu-health-only: would start only the passive GPU health timer.\n'
     else
         print_units 'Repo-owned non-Hermes services that --apply --enable would enable:' "${repo_owned_service_names[@]}"
+        print_units 'Repo-owned timers that --apply --enable would enable and start:' "${repo_owned_timer_names[@]}"
         if (( request_response_only )); then
             printf 'With --apply --enable --start --request-response-only: would enable/start only %s.\n' "${REQUEST_RESPONSE_SERVICE_NAME}"
         else
@@ -208,6 +252,10 @@ elif (( ancillary_repair_only )); then
     for unit_name in "${ANCILLARY_REPAIR_UNIT_NAMES[@]}"; do
         render_unit "${TEMPLATE_DIR}/${unit_name}.in"
     done
+elif (( gpu_health_only )); then
+    for unit_name in "${GPU_HEALTH_UNIT_NAMES[@]}"; do
+        render_unit "${TEMPLATE_DIR}/${unit_name}.in"
+    done
 else
     for template in "${TEMPLATE_DIR}"/*.in; do
         if [[ ! -e "${template}" ]]; then
@@ -226,8 +274,13 @@ if (( enable_units )); then
         systemctl --user enable "${service_name}"
         printf 'Enabled repo-owned service: %s\n' "${service_name}"
     done
+    print_units 'Enabling and starting repo-owned OpenClaw timers:' "${repo_owned_timer_names[@]}"
+    for timer_name in "${repo_owned_timer_names[@]}"; do
+        systemctl --user enable --now "${timer_name}"
+        printf 'Enabled and started repo-owned timer: %s\n' "${timer_name}"
+    done
 else
-    printf 'Did not enable services; pass --enable with --apply to enable repo-owned non-Hermes OpenClaw services.\n'
+    printf 'Did not enable units; pass --enable with --apply to enable repo-owned non-Hermes services and tracked timers.\n'
 fi
 
 if (( start_target )); then
@@ -246,4 +299,4 @@ else
     fi
 fi
 
-printf 'OpenClaw stack installer finished with explicit apply=%s enable=%s start=%s request_response_only=%s ancillary_repair_only=%s.\n' "${apply_changes}" "${enable_units}" "${start_target}" "${request_response_only}" "${ancillary_repair_only}"
+printf 'OpenClaw stack installer finished with explicit apply=%s enable=%s start=%s request_response_only=%s ancillary_repair_only=%s gpu_health_only=%s.\n' "${apply_changes}" "${enable_units}" "${start_target}" "${request_response_only}" "${ancillary_repair_only}" "${gpu_health_only}"
