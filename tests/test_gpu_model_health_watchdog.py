@@ -172,12 +172,12 @@ def test_ollama_ps_and_nvidia_smi_parsing_are_minimal_and_aggregate() -> None:
     })
 
     assert models == [_loaded()]
-    assert watchdog.parse_nvidia_smi("100, 900\n200, 800\n") == {
+    assert watchdog.parse_nvidia_smi("100, 900, 1024\n200, 800, 1024\n") == {
         "available": True,
         "gpu_count": 2,
         "used_mib": 300,
         "free_mib": 1_700,
-        "total_mib": 2_000,
+        "total_mib": 2_048,
     }
 
 
@@ -213,7 +213,7 @@ def test_live_probes_use_get_and_read_only_nvidia_query() -> None:
     def runner(command, **kwargs):
         seen["command"] = command
         seen["run_kwargs"] = kwargs
-        return SimpleNamespace(returncode=0, stdout="64, 960\n", stderr="")
+        return SimpleNamespace(returncode=0, stdout="64, 960, 1024\n", stderr="")
 
     ollama = watchdog.fetch_ollama_ps(opener=opener)
     gpu = watchdog.read_nvidia_memory(run=runner)
@@ -225,12 +225,13 @@ def test_live_probes_use_get_and_read_only_nvidia_query() -> None:
     assert ollama == {"reachable": True, "loaded_models": []}
     assert seen["command"] == [
         "nvidia-smi",
-        "--query-gpu=memory.used,memory.free",
+        "--query-gpu=memory.used,memory.free,memory.total",
         "--format=csv,noheader,nounits",
     ]
     assert seen["run_kwargs"]["shell"] is False
     assert gpu["used_mib"] == 64
     assert gpu["free_mib"] == 960
+    assert gpu["total_mib"] == 1_024
 
 
 @pytest.mark.parametrize(

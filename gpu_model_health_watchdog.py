@@ -174,15 +174,17 @@ def _memory_number(value: str) -> int | float:
 def parse_nvidia_smi(text: str) -> dict[str, Any]:
     used_total: int | float = 0
     free_total: int | float = 0
+    memory_total: int | float = 0
     count = 0
     for line in str(text or "").splitlines():
         if not line.strip():
             continue
         columns = line.split(",")
-        if len(columns) != 2:
+        if len(columns) != 3:
             raise ValueError("unexpected_gpu_memory_columns")
         used_total += _memory_number(columns[0])
         free_total += _memory_number(columns[1])
+        memory_total += _memory_number(columns[2])
         count += 1
     if count == 0:
         raise ValueError("gpu_memory_rows_missing")
@@ -191,7 +193,7 @@ def parse_nvidia_smi(text: str) -> dict[str, Any]:
         "gpu_count": count,
         "used_mib": used_total,
         "free_mib": free_total,
-        "total_mib": used_total + free_total,
+        "total_mib": memory_total,
     }
 
 
@@ -202,7 +204,7 @@ def read_nvidia_memory(
 ) -> dict[str, Any]:
     command = [
         "nvidia-smi",
-        "--query-gpu=memory.used,memory.free",
+        "--query-gpu=memory.used,memory.free,memory.total",
         "--format=csv,noheader,nounits",
     ]
     try:
