@@ -2,8 +2,9 @@
 
 Task 128 root cause (live incident 2026-07-07 ~17:05): a Kokoro CUDA OOM caused the script
 to exit 3 BEFORE the Telegram send -- the operator's correction acknowledgment silently
-never sent, twice. This must never happen again: the script must retry synth once on CPU,
-and if that also fails, send the TEXT ANYWAY (words > silence, always).
+never sent, twice. The 8b resident-model policy now reserves the GPU for Ollama: voice must
+try the warm CPU service, fall back to one local CPU synth, and then send text rather than
+ever exposing CUDA to Kokoro (words > silence, always).
 
 Static assertions (the established convention for this file -- see
 test_agent_voice_qa_regressions.py) cover structure; the dynamic tests below actually
@@ -24,7 +25,14 @@ SCRIPT = REPO_ROOT / "master_voice.sh"
 STUB_PYV = Path(__file__).resolve().parent / "fixtures" / "stub_pyv.py"
 
 
-def _run_master_voice(text: str, *, force_synth_fail: bool, tmp_path: Path, marker_dir: Path) -> subprocess.CompletedProcess:
+def _run_master_voice(
+    text: str,
+    *,
+    force_synth_fail: bool,
+    tmp_path: Path,
+    marker_dir: Path,
+    warm_service_fail: bool = True,
+) -> subprocess.CompletedProcess:
     env = dict(os.environ)
     env.update(
         {
@@ -33,12 +41,15 @@ def _run_master_voice(text: str, *, force_synth_fail: bool, tmp_path: Path, mark
             "KOKORO_VOICE": "test_voice",  # skip the real voice-resolution python call
             "MAESTRO_BOT_TOKEN": "test-token",
             "TELEGRAM_AUTHORIZED_USER_ID": "12345",
+            "OPENCLAW_SKIP_CHIEF_ENV": "1",
+            "CURL_BIN": "true",
             # Isolated from the real, shared /mnt/c/OpenClaw/logs/master_voice.* path --
             # a live Telegram send could be using that file at any time.
             "WAV": str(tmp_path / "master_voice.wav"),
             "OGG": str(tmp_path / "master_voice.ogg"),
             "STUB_MARKER_DIR": str(marker_dir),
             "STUB_FORCE_SYNTH_FAIL": "1" if force_synth_fail else "0",
+            "STUB_WARM_SERVICE_FAIL": "1" if warm_service_fail else "0",
         }
     )
     return subprocess.run(
@@ -54,10 +65,16 @@ def _run_master_voice(text: str, *, force_synth_fail: bool, tmp_path: Path, mark
 class TestMasterVoiceShellStatic:
     """Static structural checks, matching this file's established test convention."""
 
-    def test_retries_synth_on_cpu_after_gpu_failure(self) -> None:
+    def test_voice_synthesis_is_cpu_only(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
-        assert "CUDA_VISIBLE_DEVICES=" in source
-        assert "retrying with CPU synth" in source
+        assert 'export CUDA_VISIBLE_DEVICES=""' in source
+        assert "synthesize_remote" in source
+        assert "SYNTH FAILED (GPU)" not in source
+
+    def test_test_harness_can_isolate_secrets_and_network(self) -> None:
+        source = SCRIPT.read_text(encoding="utf-8")
+        assert "OPENCLAW_SKIP_CHIEF_ENV" in source
+        assert 'CURL_BIN="${CURL_BIN:-curl}"' in source
 
     def test_text_only_fallback_never_silent(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
@@ -91,9 +108,26 @@ class TestMasterVoiceShellDynamic:
             "Short acknowledgment.", force_synth_fail=False, tmp_path=tmp_path, marker_dir=marker_dir
         )
 
-        assert (marker_dir / "synth_call_gpu_attempt").exists(), result.stdout + result.stderr
-        assert not (marker_dir / "synth_call_cpu_retry").exists(), "must not retry when GPU synth succeeds"
+        assert (marker_dir / "warm_service_attempt").exists(), result.stdout + result.stderr
+        assert (marker_dir / "synth_call_cpu_fallback").exists(), result.stdout + result.stderr
+        assert not (marker_dir / "synth_call_gpu_attempt").exists(), "voice must never see CUDA"
         assert not (marker_dir / "chunked_text_sent.txt").exists(), "must not fall back to text when voice succeeds"
+        assert "text sent ok" not in result.stdout
+
+    def test_warm_cpu_service_success_avoids_local_model_load(self, tmp_path: Path) -> None:
+        marker_dir = tmp_path / "markers"
+        marker_dir.mkdir()
+        result = _run_master_voice(
+            "Short acknowledgment.",
+            force_synth_fail=True,
+            warm_service_fail=False,
+            tmp_path=tmp_path,
+            marker_dir=marker_dir,
+        )
+
+        assert (marker_dir / "warm_service_attempt").exists(), result.stdout + result.stderr
+        assert not (marker_dir / "synth_call_cpu_fallback").exists(), "warm service should avoid a second model load"
+        assert not (marker_dir / "synth_call_gpu_attempt").exists(), "voice must never see CUDA"
         assert "text sent ok" not in result.stdout
 
     def test_synth_failure_retries_cpu_then_falls_back_to_text(self, tmp_path: Path) -> None:
@@ -103,9 +137,10 @@ class TestMasterVoiceShellDynamic:
         result = _run_master_voice(text, force_synth_fail=True, tmp_path=tmp_path, marker_dir=marker_dir)
 
         assert result.returncode == 0, "the operator still got the message -- this is a success, not a failure"
-        assert (marker_dir / "synth_call_gpu_attempt").exists(), result.stdout + result.stderr
-        assert (marker_dir / "synth_call_cpu_retry").exists(), "must retry once with CUDA_VISIBLE_DEVICES="
-        assert "KOKORO SYNTH FAILED (GPU)" in result.stderr
+        assert (marker_dir / "warm_service_attempt").exists(), result.stdout + result.stderr
+        assert (marker_dir / "synth_call_cpu_fallback").exists(), "must fall back to one local CPU synth"
+        assert not (marker_dir / "synth_call_gpu_attempt").exists(), "voice must never see CUDA"
+        assert "WARM KOKORO SERVICE UNAVAILABLE" in result.stderr
         assert "text sent ok: true" in result.stdout
 
         sent_path = marker_dir / "chunked_text_sent.txt"
@@ -123,4 +158,5 @@ class TestMasterVoiceShellDynamic:
 
         assert result.returncode == 6
         assert "REFUSED" in result.stderr
-        assert not (marker_dir / "synth_call_gpu_attempt").exists(), "leak guard must fire before any synth attempt"
+        assert not (marker_dir / "warm_service_attempt").exists(), "leak guard must fire before any synth attempt"
+        assert not (marker_dir / "synth_call_cpu_fallback").exists(), "leak guard must fire before any synth attempt"
