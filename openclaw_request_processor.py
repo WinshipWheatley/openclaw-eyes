@@ -6334,6 +6334,18 @@ def _build_lm1_shared_request_seam(
     if not operator_text:
         return {"status": "NO_TEXT", "machine_proof": {"lm1_shared_seam_enabled": True, "operator_text_present": False}}
 
+    from local_model_governance import bind_interactive_model
+
+    session = bind_interactive_model(
+        maestro_cassandra_responder.session_from_request(raw_request),
+        request_key=str(
+            raw_request.get("request_id")
+            or raw_request.get("source_request_id")
+            or raw_request.get("source_message_id")
+            or operator_text
+        ),
+    )
+
     deterministic = _lm1_deterministic_workflow_interpretation(operator_text)
     interp_result = None
     interpreter_called = False
@@ -6341,7 +6353,7 @@ def _build_lm1_shared_request_seam(
         interpretation = deterministic
     elif _interpreter_enabled():
         try:
-            interp_result = _interpret_for_request(operator_text)
+            interp_result = _interpret_for_request(operator_text, session=session)
             interpreter_called = True
             interpretation = _lm1_interpretation_dict(interp_result, source="lm1_shared_interpreter")
         except Exception:
@@ -6370,7 +6382,6 @@ def _build_lm1_shared_request_seam(
             },
         }
 
-    session = maestro_cassandra_responder.session_from_request(raw_request)
     if interpretation.get("fact_selection"):
         session = {**session, "interpreter_fact_selection": list(interpretation.get("fact_selection") or [])}
     rich_packet: dict[str, Any] = {}
@@ -6405,6 +6416,7 @@ def _build_lm1_shared_request_seam(
         "interpretation": interpretation,
         "rich_context_packet": rich_packet,
         "workflow_context_packet": workflow_packet,
+        "local_model_binding": dict(session.get("local_model_binding") or {}),
         "packet_error": packet_error,
         "machine_proof": {
             "lm1_shared_seam_enabled": True,
@@ -6424,23 +6436,29 @@ def _build_lm1_shared_request_seam(
 # this, each divert would independently call interpret_operator_message → two
 # stochastic LM calls per request that could disagree (a BRAIN<0.75 followed by an
 # ACTION>0.75 would otherwise produce an advisory the first call never made).
-# Keyed on the operator text; returns UNCERTAIN on any error (deterministic fallback).
+# Keyed on the bound model plus operator text; returns UNCERTAIN on any error.
 _INTERPRETER_RESULT_CACHE: "dict[str, Any]" = {}
 _INTERPRETER_RESULT_CACHE_MAX = 256
 
 
-def _interpret_for_request(operator_text: str) -> Any:
-    """Compute (once, memoized by operator_text) the interpreter result for this
+def _interpret_for_request(
+    operator_text: str,
+    *,
+    session: Mapping[str, Any] | None = None,
+) -> Any:
+    """Compute the interpreter result once per bound-model/message pair.
     message. Both diverts call this so exactly one LM call happens per request.
     Returns an InterpretResult; UNCERTAIN on any error → deterministic fallback."""
     from interpreter_lm import interpret_operator_message, InterpretResult, ROUTE_UNCERTAIN
 
-    key = operator_text
+    from local_model_governance import interactive_model_from_session
+
+    key = f"{interactive_model_from_session(session)}\0{operator_text}"
     cached = _INTERPRETER_RESULT_CACHE.get(key)
     if cached is not None:
         return cached
     try:
-        result = interpret_operator_message(operator_text)
+        result = interpret_operator_message(operator_text, session=session)
     except Exception:  # noqa: BLE001 — interpreter error → deterministic path
         result = InterpretResult(route=ROUTE_UNCERTAIN, reason="interpreter_exception")
     # Bound the cache so a long-running process does not grow unboundedly.
@@ -6497,6 +6515,22 @@ def _try_interpreter_brain_divert(
     if not operator_text:
         return None
 
+    from local_model_governance import bind_interactive_model
+
+    session = bind_interactive_model(
+        maestro_cassandra_responder.session_from_request(raw_request),
+        request_key=str(
+            raw_request.get("request_id")
+            or raw_request.get("source_request_id")
+            or raw_request.get("source_message_id")
+            or operator_text
+        ),
+    )
+    if isinstance(lm1_shared_seam, Mapping) and isinstance(
+        lm1_shared_seam.get("local_model_binding"), Mapping
+    ):
+        session["local_model_binding"] = dict(lm1_shared_seam["local_model_binding"])
+
     interp_result = _lm1_result_from_seam(lm1_shared_seam)
     if interp_result is None:
         if (
@@ -6506,7 +6540,7 @@ def _try_interpreter_brain_divert(
         ):
             return None
         try:
-            interp_result = _interpret_for_request(operator_text)
+            interp_result = _interpret_for_request(operator_text, session=session)
         except Exception:  # noqa: BLE001 — interpreter error → deterministic path
             return None
 
@@ -6517,11 +6551,16 @@ def _try_interpreter_brain_divert(
     # We build the fact_selection list from the interpreter result and pass it
     # to answer_frontdoor_chat via the session so build_maestro_context_packet
     # can elevate the right read-models.
-    session = maestro_cassandra_responder.session_from_request(raw_request)
     # Inject fact_selection into the session so it flows through to the packet builder.
     # The key "interpreter_fact_selection" is read by the answer_frontdoor_chat
     # wrapper below; it does NOT affect authority_gate or action_runtime.
     augmented_session: dict[str, Any] = dict(session or {})
+    if isinstance(lm1_shared_seam, Mapping) and isinstance(
+        lm1_shared_seam.get("local_model_binding"), Mapping
+    ):
+        augmented_session["local_model_binding"] = dict(
+            lm1_shared_seam["local_model_binding"]
+        )
     if interp_result.fact_selection:
         augmented_session["interpreter_fact_selection"] = list(interp_result.fact_selection)
     if isinstance(lm1_shared_seam, Mapping) and isinstance(lm1_shared_seam.get("rich_context_packet"), Mapping):
@@ -6828,6 +6867,24 @@ def _try_interpreter_action_blocked_divert(
     if not operator_text:
         return None
 
+    from local_model_governance import bind_interactive_model
+
+    augmented_session = bind_interactive_model(
+        maestro_cassandra_responder.session_from_request(raw_request),
+        request_key=str(
+            raw_request.get("request_id")
+            or raw_request.get("source_request_id")
+            or raw_request.get("source_message_id")
+            or operator_text
+        ),
+    )
+    if isinstance(lm1_shared_seam, Mapping) and isinstance(
+        lm1_shared_seam.get("local_model_binding"), Mapping
+    ):
+        augmented_session["local_model_binding"] = dict(
+            lm1_shared_seam["local_model_binding"]
+        )
+
     interp_result = _lm1_result_from_seam(lm1_shared_seam)
     if interp_result is None:
         if (
@@ -6837,7 +6894,10 @@ def _try_interpreter_action_blocked_divert(
         ):
             return None
         try:
-            interp_result = _interpret_for_request(operator_text)
+            interp_result = _interpret_for_request(
+                operator_text,
+                session=augmented_session,
+            )
         except Exception:  # noqa: BLE001 — interpreter error → deterministic path
             return None
 

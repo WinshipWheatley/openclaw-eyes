@@ -1032,6 +1032,12 @@ def _answer_frontdoor_chat_impl(
     _contract_trace_sink: dict[str, Any] | None = None,
     first_touch_receipt: Mapping[str, Any] | None = None,
 ) -> MaestroCassandraResult:
+    from local_model_governance import bind_interactive_model
+
+    session = bind_interactive_model(
+        session,
+        request_key=str((session or {}).get("source_message_id") or text),
+    )
     # Resolve the shared refusal seam before probe-state binding.  A caller's
     # hash/agent-bound pass marker is reused; otherwise this adapter evaluates
     # exactly once and forwards the resulting pass marker to the full typed
@@ -1922,8 +1928,14 @@ def _answer_status_capability_with_brain(
 
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
+        from local_model_governance import interactive_model_from_session
 
-        outcome = protected_generate_with_receipt(text, context_packet=context_packet, agent=agent)
+        outcome = protected_generate_with_receipt(
+            text,
+            context_packet=context_packet,
+            agent=agent,
+            model_selected=interactive_model_from_session(session),
+        )
     else:
         outcome = protected_generate_fn(text, context_packet=context_packet)
 
@@ -2364,8 +2376,14 @@ def _answer_with_maestro_brain(
 
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
+        from local_model_governance import interactive_model_from_session
 
-        outcome = protected_generate_with_receipt(text, context_packet=context_packet, agent=agent)
+        outcome = protected_generate_with_receipt(
+            text,
+            context_packet=context_packet,
+            agent=agent,
+            model_selected=interactive_model_from_session(session),
+        )
     else:
         outcome = protected_generate_fn(text, context_packet=context_packet)
 

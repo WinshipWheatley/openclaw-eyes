@@ -52,10 +52,10 @@ def test_probe_reports_contract_and_child_cleanup(monkeypatch):
     )
 
     assert result["passed"] is True
-    assert result["model"] == "qwen3:4b"
+    assert result["model"] == "qwen3:8b-q4_K_M"
     assert result["num_ctx"] == 1024
     assert result["timeout_seconds"] == 8.0
-    assert result["keep_alive"] == "30s"
+    assert result["keep_alive"] == "10m"
     assert result["elapsed_seconds"] == 7.8
     assert result["remaining_vote_children"] == []
     assert result["failure_kind"] == "timeout"

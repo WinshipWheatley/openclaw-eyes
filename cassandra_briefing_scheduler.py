@@ -45,6 +45,7 @@ from cassandra_no_send_reload_guard import (
     should_quiesce_send_capable_service,
 )
 from cassandra_send_status_dry_run import build_briefing_scheduler_status, format_service_status_marker
+from local_model_governance import async_model_admission_reason
 
 POLL_INTERVAL = 300  # 5 minutes
 _RELOAD_PATHS = (
@@ -169,6 +170,13 @@ def _tick() -> None:
     _restart_if_sources_changed()
     # 1. Generate any slots that are newly due
     for slot in due_slots():
+        resource_reason = async_model_admission_reason()
+        if resource_reason:
+            print(
+                f"[briefing_scheduler] retrying {slot} later - GPU reserved: {resource_reason}",
+                flush=True,
+            )
+            continue
         print(f"[briefing_scheduler] generating {slot} briefing …", flush=True)
         try:
             text   = generate_briefing(slot)
@@ -193,6 +201,14 @@ def _tick() -> None:
             # A pending briefing was written under a protected reason.
             # Regenerate now so stale "paused/waiting" language is not delivered late.
             if entry.get("pending_reason"):
+                resource_reason = async_model_admission_reason()
+                if resource_reason:
+                    print(
+                        f"[briefing_scheduler] refresh of {entry['date']}_{entry['slot']} "
+                        f"deferred - GPU reserved: {resource_reason}",
+                        flush=True,
+                    )
+                    continue
                 try:
                     refreshed_text = generate_briefing(entry["slot"])
                     refresh_briefing_text(entry["date"], entry["slot"], refreshed_text, pending_reason=None)
