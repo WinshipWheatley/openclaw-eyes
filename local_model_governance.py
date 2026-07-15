@@ -207,7 +207,10 @@ def run_async_model_call(
             return GovernedCallOutcome("deferred", "model_slot_timeout")
     finally:
         if nonce:
-            arbiter.release(holder_id, nonce)
+            try:
+                arbiter.release(holder_id, nonce)
+            except Exception:
+                pass
 
 
 def run_interactive_model_call(
@@ -245,7 +248,10 @@ def run_interactive_model_call(
         return GovernedCallOutcome("deferred", "model_slot_timeout")
     finally:
         if arbiter is not None and nonce:
-            arbiter.release(holder_id, nonce)
+            try:
+                arbiter.release(holder_id, nonce)
+            except Exception:
+                pass
 
 
 __all__ = [

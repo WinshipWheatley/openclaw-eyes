@@ -1816,8 +1816,15 @@ def protected_generate_with_receipt(
                                 system_load_1m=fd_system_load_1m,
                                 cpu_count=fd_cpu_count,
                             )
-                            fd_model_selection_reason = _reason
-                            fd_model_selected = fd_model_selected or _model
+                            bound_model = fd_model_selected
+                            fd_model_selected = bound_model or _model
+                            if bound_model and _model and bound_model != _model:
+                                fd_model_selection_reason = (
+                                    f"operator_bound_model_override:{bound_model};"
+                                    f"resource_candidate:{_model};resource_reason:{_reason}"
+                                )
+                            else:
+                                fd_model_selection_reason = _reason
                             if not _model:
                                 fd_captured_done_reason = "no_fitting_model"
                                 route = "deterministic_fallback_no_fitting_model"

@@ -574,6 +574,17 @@ def test_cassandra_easy_reply_keeps_operator_bound_8b_when_inventory_is_incomple
     assert model == "qwen3:8b-q4_K_M"
 
 
+def test_cassandra_easy_reply_reason_names_resident_8b_policy():
+    reason = chief_llm.local_model_route_reason(
+        "Yep.",
+        "fast",
+        task_class="cassandra_user_reply_fast",
+    )
+
+    assert "resident qwen3 8b" in reason
+    assert "gemma" not in reason.lower()
+
+
 def test_cassandra_user_reply_falls_back_to_gemma_26b_before_nemotron(monkeypatch):
     monkeypatch.setattr(
         chief_llm,

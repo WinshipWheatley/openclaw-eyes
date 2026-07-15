@@ -1032,7 +1032,7 @@ def local_model_route_reason(
     task_class: str | None = None,
 ) -> str:
     if task_class == "cassandra_user_reply_fast":
-        return "cassandra easy conversational reply stays in the smallest installed gemma 4 lane"
+        return "cassandra easy conversational reply reuses the resident qwen3 8b interactive model"
     if task_class == "cassandra_user_reply":
         return "cassandra normal conversational reply policy uses gemma 4 26b before the top lane"
     if task_class == "cassandra_outbound_draft":
