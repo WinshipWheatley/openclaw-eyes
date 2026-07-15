@@ -10,6 +10,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = REPO_ROOT / "scripts" / "install_openclaw_stack.sh"
 FREEZE_DOC = REPO_ROOT / "docs" / "operations" / "OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md"
 REQUEST_RESPONSE_UNIT = REPO_ROOT / "systemd" / "user" / "openclaw-request-response.service.in"
+ANCILLARY_REPAIR_UNITS = (
+    "guardian-approval-notifier.service",
+    "self-knowledge-crawl.service",
+    "openclaw-read-model-auto-refresh.service",
+)
 GUARDIAN_UNIT = REPO_ROOT / "systemd" / "user" / "chief-guardian-listener.service.in"
 CASSANDRA_WATCHER_UNIT = REPO_ROOT / "systemd" / "user" / "cassandra-watcher.service.in"
 
@@ -135,3 +140,29 @@ def test_request_response_service_template_is_bounded_and_operator_activated():
     assert "WantedBy=openclaw-stack.target" in source
     assert "Gmail" not in source
     assert "Coupa" not in source
+
+
+def test_ancillary_repair_slice_is_exact_and_cannot_enable_or_start_services():
+    source = _installer_text()
+
+    assert "--ancillary-repair-only" in source
+    assert "ANCILLARY_REPAIR_UNIT_NAMES=(" in source
+    for unit_name in ANCILLARY_REPAIR_UNITS:
+        assert f'    "{unit_name}"' in source
+    assert "--ancillary-repair-only cannot be combined with --enable or --start" in source
+    assert "--ancillary-repair-only cannot be combined with --request-response-only" in source
+
+
+def test_unit_renderer_replaces_python_and_rejects_unresolved_placeholders():
+    source = _installer_text()
+
+    assert 'PYTHON_BIN="${REPO_ROOT}/chief_env/bin/python"' in source
+    assert '-e "s|@REPO_ROOT@|${REPO_ROOT}|g"' in source
+    assert '-e "s|@PYTHON@|${PYTHON_BIN}|g"' in source
+    assert "grep -Eq '@[A-Z][A-Z0-9_]*@'" in source
+    assert "ERROR: unresolved template placeholder in %s" in source
+    assert 'mv -f "${rendered_path}" "${USER_UNIT_DIR}/${unit_name}"' in source
+
+    for unit_name in ANCILLARY_REPAIR_UNITS:
+        template = REPO_ROOT / "systemd" / "user" / f"{unit_name}.in"
+        assert "@PYTHON@" in template.read_text(encoding="utf-8")
