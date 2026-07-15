@@ -957,6 +957,7 @@ def test_pgwr_bound_model_controls_actual_ollama_call(tmp_path, monkeypatch):
     assert calls["kwargs"]["model"] == "qwen3:8b-q4_K_M"
     assert calls["kwargs"]["keep_alive"] == "10m"
     assert outcome.receipt["model_selected"] == "qwen3:8b-q4_K_M"
+    assert "operator_bound_model_override" in outcome.receipt["model_selection_reason"]
 
 
 def test_pgwr_frontdoor_default_timeout_still_attempts_local_model(tmp_path, monkeypatch):
