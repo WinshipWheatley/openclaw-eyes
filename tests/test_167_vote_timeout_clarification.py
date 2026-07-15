@@ -190,6 +190,162 @@ def test_semantic_vote_classifies_caught_provider_exception_metadata() -> None:
     assert status == "error:ConnectionError"
 
 
+def test_semantic_vote_timeout_metadata_cannot_lose_timeout_to_exception_type() -> None:
+    def timeout_with_generic_exception(*_args, **_kwargs):
+        return {
+            "text": "",
+            "status": "exception",
+            "done_reason": "timeout",
+            "exception_type": "URLError",
+        }
+
+    parsed, status = contract._call_semantic_vote(
+        AMBIGUOUS_REQUEST,
+        _context(),
+        adaptive_call_fn=timeout_with_generic_exception,
+        timeout_seconds=0.2,
+    )
+
+    assert parsed is None
+    assert status == "error:TimeoutError"
+
+
+def test_default_semantic_vote_runs_in_killable_spawned_process(monkeypatch) -> None:
+    captured = {}
+
+    class FakeQueue:
+        def __init__(self):
+            self.value = None
+
+        def get(self, timeout):
+            captured["get_timeout"] = timeout
+            return self.value
+
+        def close(self):
+            captured["queue_closed"] = True
+
+        def join_thread(self):
+            captured["queue_joined"] = True
+
+    queue_instance = FakeQueue()
+
+    class FakeProcess:
+        def __init__(self, *, target, args, daemon, name):
+            captured.update(target=target, args=args, daemon=daemon, name=name)
+            self.exitcode = None
+
+        def start(self):
+            call_kwargs = captured["args"][1]
+            captured["call_kwargs"] = call_kwargs
+            queue_instance.value = (
+                "result",
+                {
+                    "text": '{"label":"status","confidence":0.94,"session_relevant":false}',
+                    "status": "success",
+                },
+            )
+            self.exitcode = 0
+
+        def join(self, timeout=None):
+            captured.setdefault("join_timeouts", []).append(timeout)
+
+        def is_alive(self):
+            return False
+
+        def terminate(self):
+            raise AssertionError("completed worker must not be terminated")
+
+        def kill(self):
+            raise AssertionError("completed worker must not be killed")
+
+    class FakeContext:
+        def Queue(self, maxsize):
+            captured["queue_maxsize"] = maxsize
+            return queue_instance
+
+        def Process(self, **kwargs):
+            return FakeProcess(**kwargs)
+
+    monkeypatch.setattr(
+        contract.multiprocessing,
+        "get_context",
+        lambda method: captured.setdefault("start_method", method) and FakeContext(),
+    )
+
+    parsed, status = contract._call_semantic_vote(
+        AMBIGUOUS_REQUEST,
+        _context(),
+        adaptive_call_fn=None,
+        timeout_seconds=0.2,
+    )
+
+    assert parsed == (contract.ContractLabel.STATUS, 0.94, False)
+    assert status == "accepted"
+    assert captured["start_method"] == "spawn"
+    assert captured["daemon"] is True
+    assert captured["call_kwargs"]["model"] == "qwen3:4b"
+    assert captured["call_kwargs"]["options"]["num_ctx"] == 1024
+    assert captured["queue_closed"] is True
+
+
+def test_default_semantic_vote_deadline_terminates_spawned_process(monkeypatch) -> None:
+    state = {"alive": False, "terminated": False, "closed": False}
+
+    class TimeoutQueue:
+        def get(self, timeout):
+            raise contract.queue.Empty
+
+        def close(self):
+            state["closed"] = True
+
+        def join_thread(self):
+            pass
+
+    class HangingProcess:
+        exitcode = None
+
+        def start(self):
+            state["alive"] = True
+
+        def join(self, timeout=None):
+            pass
+
+        def is_alive(self):
+            return state["alive"]
+
+        def terminate(self):
+            state["terminated"] = True
+            state["alive"] = False
+            self.exitcode = -15
+
+        def kill(self):
+            raise AssertionError("terminate should end the fake worker")
+
+    class TimeoutContext:
+        def Queue(self, maxsize):
+            return TimeoutQueue()
+
+        def Process(self, **_kwargs):
+            return HangingProcess()
+
+    monkeypatch.setattr(
+        contract.multiprocessing,
+        "get_context",
+        lambda _method: TimeoutContext(),
+    )
+
+    parsed, status = contract._call_semantic_vote(
+        AMBIGUOUS_REQUEST,
+        _context(),
+        adaptive_call_fn=None,
+        timeout_seconds=0.02,
+    )
+
+    assert parsed is None
+    assert status == "deadline_exceeded"
+    assert state == {"alive": False, "terminated": True, "closed": True}
+
+
 def test_semantic_vote_reports_deadline_exceeded_separately() -> None:
     def overruns_wall(*_args, **_kwargs):
         time.sleep(0.15)

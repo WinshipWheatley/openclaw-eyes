@@ -105,6 +105,11 @@ def test_voice_capable_guardian_and_cassandra_watcher_are_cpu_pinned(unit: Path)
     source = unit.read_text(encoding="utf-8")
 
     assert source.count("Environment=CUDA_VISIBLE_DEVICES=") == 1
+    exec_start = next(line for line in source.splitlines() if line.startswith("ExecStart="))
+    assert exec_start.index("source @REPO_ROOT@/.chief.env") < exec_start.index(
+        "export CUDA_VISIBLE_DEVICES="
+    )
+    assert exec_start.index("export CUDA_VISIBLE_DEVICES=") < exec_start.index("exec @REPO_ROOT@")
 
 
 def test_legacy_launchers_remain_slice_4_out_of_scope():

@@ -8,7 +8,7 @@ WorkingDirectory=@REPO_ROOT@
 Environment=CUDA_VISIBLE_DEVICES=
 Restart=always
 RestartSec=5
-ExecStart=/bin/bash -lc 'mkdir -p /mnt/c/OpenClaw/logs && source @REPO_ROOT@/.chief.env && exec @REPO_ROOT@/chief_env/bin/python -u @REPO_ROOT@/cassandra_watcher.py >> /mnt/c/OpenClaw/logs/cassandra_watcher.out 2>&1'
+ExecStart=/bin/bash -lc 'mkdir -p /mnt/c/OpenClaw/logs && source @REPO_ROOT@/.chief.env && export CUDA_VISIBLE_DEVICES= && exec @REPO_ROOT@/chief_env/bin/python -u @REPO_ROOT@/cassandra_watcher.py >> /mnt/c/OpenClaw/logs/cassandra_watcher.out 2>&1'
 
 [Install]
 WantedBy=openclaw-stack.target

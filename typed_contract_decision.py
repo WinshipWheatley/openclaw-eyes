@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import multiprocessing
 import os
 import queue
 import re
@@ -1432,6 +1433,43 @@ def _parse_semantic_vote(raw: str) -> tuple[ContractLabel, float, bool] | None:
     return label, confidence, bool(payload["session_relevant"])
 
 
+def _default_semantic_vote_process(
+    prompt: str,
+    call_kwargs: Mapping[str, Any],
+    outcomes: Any,
+) -> None:
+    """Run the real vote in a process so a hard deadline releases its slot."""
+
+    try:
+        from adaptive_model_call import adaptive_ollama_text
+
+        outcome = ("result", adaptive_ollama_text(prompt, **dict(call_kwargs)))
+    except BaseException as exc:
+        outcome = ("error", type(exc).__name__)
+    try:
+        outcomes.put_nowait(outcome)
+    except Exception:
+        return
+
+
+def _finish_semantic_vote_process(worker: Any, *, force: bool) -> None:
+    worker.join(timeout=0)
+    if force or worker.is_alive():
+        worker.terminate()
+        worker.join(timeout=0.05)
+    if worker.is_alive():
+        worker.kill()
+        worker.join(timeout=0.05)
+
+
+def _close_semantic_vote_queue(outcomes: Any) -> None:
+    try:
+        outcomes.close()
+        outcomes.join_thread()
+    except Exception:
+        return
+
+
 def _call_semantic_vote(
     text: str,
     context: ContractContext,
@@ -1452,54 +1490,79 @@ def _call_semantic_vote(
         total_budget_seconds = DEFAULT_SEMANTIC_TIMEOUT_SECONDS
     slot_wait_seconds = min(2.0, max(0.001, total_budget_seconds * 0.4))
     model_timeout_seconds = max(0.001, total_budget_seconds - slot_wait_seconds)
-    outcomes: queue.Queue[tuple[str, Any]] = queue.Queue(maxsize=1)
-
-    def invoke() -> None:
-        try:
-            call_fn = adaptive_call_fn
-            if call_fn is None:
-                from adaptive_model_call import adaptive_ollama_text as call_fn
-
-            raw = call_fn(
-                _semantic_prompt(text, context),
-                task_class="contract_semantic_vote",
-                model=SEMANTIC_VOTE_MODEL,
-                lane="frontdoor",
-                timeout=model_timeout_seconds,
-                attempts=1,
-                think=False,
-                num_predict=160,
-                options={
-                    "format": "json",
-                    "temperature": 0,
-                    "num_ctx": SEMANTIC_VOTE_NUM_CTX,
-                },
-                keep_alive=SEMANTIC_VOTE_KEEP_ALIVE,
-                retry=False,
-                model_slot_max_wait_seconds=slot_wait_seconds,
-                return_metadata=True,
-            )
-            outcome = ("result", raw)
-        except Exception as exc:
-            outcome = ("error", type(exc).__name__)
-        try:
-            outcomes.put_nowait(outcome)
-        except queue.Full:
-            # The caller has already crossed the wall and abandoned the
-            # one-result mailbox.  The daemon must never hold process exit.
-            return
-
+    prompt = _semantic_prompt(text, context)
+    call_kwargs = {
+        "task_class": "contract_semantic_vote",
+        "model": SEMANTIC_VOTE_MODEL,
+        "lane": "frontdoor",
+        "timeout": model_timeout_seconds,
+        "attempts": 1,
+        "think": False,
+        "num_predict": 160,
+        "options": {
+            "format": "json",
+            "temperature": 0,
+            "num_ctx": SEMANTIC_VOTE_NUM_CTX,
+        },
+        "keep_alive": SEMANTIC_VOTE_KEEP_ALIVE,
+        "retry": False,
+        "model_slot_max_wait_seconds": slot_wait_seconds,
+        "return_metadata": True,
+    }
     deadline = time.monotonic() + total_budget_seconds
-    worker = threading.Thread(
-        target=invoke,
-        name="contract-semantic-vote",
-        daemon=True,
-    )
-    worker.start()
-    try:
-        outcome_kind, outcome_value = outcomes.get(timeout=max(0.0, deadline - time.monotonic()))
-    except queue.Empty:
-        return None, "deadline_exceeded"
+
+    if adaptive_call_fn is None:
+        process_context = multiprocessing.get_context("spawn")
+        process_outcomes = process_context.Queue(maxsize=1)
+        worker = process_context.Process(
+            target=_default_semantic_vote_process,
+            args=(prompt, call_kwargs, process_outcomes),
+            daemon=True,
+            name="contract-semantic-vote",
+        )
+        process_started = False
+        try:
+            worker.start()
+            process_started = True
+            outcome_kind, outcome_value = process_outcomes.get(
+                timeout=max(0.0, deadline - time.monotonic())
+            )
+        except queue.Empty:
+            _finish_semantic_vote_process(worker, force=True)
+            _close_semantic_vote_queue(process_outcomes)
+            return None, "deadline_exceeded"
+        except Exception as exc:
+            if process_started and getattr(worker, "exitcode", None) is None:
+                _finish_semantic_vote_process(worker, force=True)
+            _close_semantic_vote_queue(process_outcomes)
+            return None, f"error:{type(exc).__name__}"
+        _finish_semantic_vote_process(worker, force=False)
+        _close_semantic_vote_queue(process_outcomes)
+    else:
+        outcomes: queue.Queue[tuple[str, Any]] = queue.Queue(maxsize=1)
+
+        def invoke() -> None:
+            try:
+                outcome = ("result", adaptive_call_fn(prompt, **call_kwargs))
+            except Exception as exc:
+                outcome = ("error", type(exc).__name__)
+            try:
+                outcomes.put_nowait(outcome)
+            except queue.Full:
+                return
+
+        worker_thread = threading.Thread(
+            target=invoke,
+            name="contract-semantic-vote-test-adapter",
+            daemon=True,
+        )
+        worker_thread.start()
+        try:
+            outcome_kind, outcome_value = outcomes.get(
+                timeout=max(0.0, deadline - time.monotonic())
+            )
+        except queue.Empty:
+            return None, "deadline_exceeded"
     if outcome_kind == "error":
         return None, f"error:{outcome_value}"
     raw = outcome_value
@@ -1507,12 +1570,16 @@ def _call_semantic_vote(
         provider_status = str(raw.get("status") or "").strip().lower()
         done_reason = str(raw.get("done_reason") or "").strip().lower()
         exception_type = str(raw.get("exception_type") or "").strip()
-        if (
+        timeout_metadata = (
             provider_status == "timeout"
             or done_reason == "timeout"
             or "timeout" in exception_type.lower()
-        ):
-            return None, f"error:{exception_type or 'TimeoutError'}"
+        )
+        if timeout_metadata:
+            timeout_type = (
+                exception_type if "timeout" in exception_type.lower() else "TimeoutError"
+            )
+            return None, f"error:{timeout_type}"
         if provider_status == "exception":
             return None, f"error:{exception_type or 'ProviderError'}"
         raw_text = str(raw.get("text") or raw.get("response") or "")
