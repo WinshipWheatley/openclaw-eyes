@@ -408,31 +408,55 @@ def _interpreter_timeout(env: Mapping[str, Any] | None = None) -> float:
         return 20.0
 
 
-def _fast_interpreter_request_body(prompt: str, env: Mapping[str, Any] | None = None) -> dict:
+def _fast_interpreter_request_body(
+    prompt: str,
+    env: Mapping[str, Any] | None = None,
+    *,
+    session: Mapping[str, Any] | None = None,
+) -> dict:
+    from local_model_governance import binding_from_session
+
+    binding = binding_from_session(session)
     return {
-        "model": _interpreter_model(env),
+        "model": str(binding.get("model") or _interpreter_model(env)),
         "prompt": prompt,
         "stream": False,
         "think": False,
-        "keep_alive": "10m",
+        "keep_alive": str(binding.get("keep_alive") or "10m"),
         "options": {"num_predict": 220, "num_ctx": 2048, "num_gpu": 999, "temperature": 0},
     }
 
 
-def _fast_interpreter_generate_fn(prompt: str, **kwargs: Any) -> str:
+def _fast_interpreter_generate_fn(
+    prompt: str,
+    *,
+    session: Mapping[str, Any] | None = None,
+    **kwargs: Any,
+) -> str:
     """Bounded local-8b classify call (full GPU offload), no external egress. Returns ""
     on any problem so interpret_operator_message falls back to deterministic routing."""
     import json as _json
     import urllib.request as _url
 
-    body = _json.dumps(_fast_interpreter_request_body(prompt)).encode("utf-8")
+    from local_model_governance import binding_from_session, run_interactive_model_call
+
+    binding = binding_from_session(session)
+    body = _json.dumps(_fast_interpreter_request_body(prompt, session=session)).encode("utf-8")
     req = _url.Request("http://127.0.0.1:11434/api/generate", data=body,
                        headers={"Content-Type": "application/json"})
-    try:
-        with _url.urlopen(req, timeout=_interpreter_timeout()) as resp:
-            return str(_json.loads(resp.read()).get("response", ""))
-    except Exception:
-        return ""
+
+    def call_model() -> str:
+        try:
+            with _url.urlopen(req, timeout=_interpreter_timeout()) as resp:
+                return str(_json.loads(resp.read()).get("response", ""))
+        except Exception:
+            return ""
+
+    outcome = run_interactive_model_call(
+        call_model,
+        holder_id=f"interpreter:{binding.get('binding_id') or 'unbound'}",
+    )
+    return str(outcome.value or "") if outcome.status == "completed" else ""
 
 
 def _select_interpreter_generate_fn(env: Mapping[str, Any] | None = None):
@@ -833,7 +857,10 @@ def interpret_operator_message(
 
     try:
         prompt = _build_interpreter_prompt(text)
-        raw_result = _fn(prompt)
+        if _fn is _fast_interpreter_generate_fn:
+            raw_result = _fn(prompt, session=session)
+        else:
+            raw_result = _fn(prompt)
         # protected_generate returns a ProtectedGenerateOutcome or str-like
         if hasattr(raw_result, "text"):
             raw_text = str(raw_result.text or "")

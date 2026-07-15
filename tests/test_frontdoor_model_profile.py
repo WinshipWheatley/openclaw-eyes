@@ -921,6 +921,44 @@ def test_pgwr_real_frontdoor_packet_flag_on_auto_uses_profile_local_path(tmp_pat
     assert "Winship is the human operator." in outcome.text
 
 
+def test_pgwr_bound_model_controls_actual_ollama_call(tmp_path, monkeypatch):
+    import protected_generate as pg
+
+    calls: dict = {}
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_MODEL_PROFILE", "1")
+    monkeypatch.setenv("OPENCLAW_FRONTDOOR_REPLY_TIMEOUT", "25")
+    monkeypatch.setattr(pg, "_live_model_allowed", lambda *a, **k: True)
+    monkeypatch.setattr(chief_llm, "ollama_is_unreachable", lambda **_k: False, raising=False)
+    monkeypatch.setattr(
+        chief_llm,
+        "select_frontdoor_model",
+        lambda **_k: ("qwen3:4b", "frontdoor_largest_fitting"),
+        raising=False,
+    )
+
+    def fake_ollama(prompt, **kwargs):
+        calls["kwargs"] = kwargs
+        return {
+            "text": "The bound model answered.",
+            "done_reason": "stop",
+            "elapsed_ms": 5,
+            "response_metadata": {},
+        }
+
+    monkeypatch.setattr(chief_llm, "ollama_call", fake_ollama)
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_FRONTDOOR_PACKET,
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=True,
+        model_selected="qwen3:8b-q4_K_M",
+    )
+
+    assert calls["kwargs"]["model"] == "qwen3:8b-q4_K_M"
+    assert calls["kwargs"]["keep_alive"] == "10m"
+    assert outcome.receipt["model_selected"] == "qwen3:8b-q4_K_M"
+
+
 def test_pgwr_frontdoor_default_timeout_still_attempts_local_model(tmp_path, monkeypatch):
     import protected_generate as pg
 

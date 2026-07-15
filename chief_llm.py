@@ -198,11 +198,11 @@ _LANE_CANDIDATES = {
 _TASK_CLASS_MODEL_CANDIDATES = {
     # ── interactive (real-time) ───────────────────────────────────────────────
     "contract_semantic_vote": (
-        "qwen3:4b",
+        "qwen3:8b-q4_K_M",
     ),
     "cassandra_user_reply_fast": (
-        "qwen3:4b",            # 61 tok/s, fully on GPU
-        "qwen3:8b-q4_K_M",
+        "qwen3:8b-q4_K_M",     # reuse the operator's resident interactive model
+        "qwen3:4b",
     ),
     "cassandra_user_reply": (
         "qwen3:8b-q4_K_M",     # cleanest direct replies, fully fits the card
@@ -1228,6 +1228,8 @@ def ollama_call(
     options: dict | None = None,
     keep_alive: str | None = None,
     return_metadata: bool = False,
+    _model_slot_held: bool = False,
+    _governance_bypass: bool = False,
 ) -> str | dict[str, object]:
     """Call Ollama and return raw text response. Returns '' on any error. Retries up to 3 times with backoff.
 
@@ -1250,6 +1252,43 @@ def ollama_call(
         response_metadata so front-door callers can classify truncation without
         affecting legacy callers.
     """
+    if _is_async_workload(task_class, lane) and not _governance_bypass:
+        from local_model_governance import run_async_model_call
+
+        governed = run_async_model_call(
+            lambda: ollama_call(
+                prompt,
+                timeout=timeout,
+                model=model,
+                lane=lane,
+                task_class=task_class,
+                attempts=attempts,
+                think=think,
+                num_predict=num_predict,
+                options=options,
+                keep_alive="0",
+                return_metadata=return_metadata,
+                _model_slot_held=True,
+                _governance_bypass=True,
+            ),
+            task_class=str(task_class or lane or "async_model_call"),
+            holder_id=f"async:{task_class or lane or 'model'}:{os.getpid()}",
+            model_slot_already_held=_model_slot_held,
+        )
+        if governed.status == "completed":
+            return governed.value
+        if return_metadata:
+            return {
+                "text": "",
+                "response": "",
+                "done_reason": "interactive_reserved",
+                "elapsed_ms": 0,
+                "model": model,
+                "status": "deferred",
+                "response_metadata": {"governance_reason": governed.reason},
+            }
+        return ""
+
     selected_lane = lane
     models_to_try: tuple[str, ...]
     if model is not None:

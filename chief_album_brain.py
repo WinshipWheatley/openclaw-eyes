@@ -2,12 +2,8 @@ import json
 import re
 import time
 import subprocess
-import urllib.request
 from datetime import datetime
 from pathlib import Path
-
-OLLAMA_MODEL = "qwen2.5-coder:7b"
-OLLAMA_URL = "http://localhost:11434/api/generate"
 
 _LLM_EXTRACT_PROMPT = """\
 You are extracting music production facts from a producer's session notes.
@@ -254,25 +250,39 @@ _VALID_EXTRACT_FIELDS = {
 }
 
 
+def _call_album_model(prompt: str, *, adaptive_call_fn=None) -> str:
+    from adaptive_model_call import adaptive_ollama_text
+    from local_model_governance import (
+        INTERACTIVE_KEEP_ALIVE,
+        INTERACTIVE_MODEL,
+        INTERACTIVE_NUM_CTX,
+    )
+
+    call = adaptive_call_fn or adaptive_ollama_text
+    return str(
+        call(
+            prompt,
+            task_class="chief_album_interactive",
+            lane="frontdoor",
+            model=INTERACTIVE_MODEL,
+            timeout=20,
+            attempts=1,
+            think=False,
+            num_predict=256,
+            options={"format": "json", "num_ctx": INTERACTIVE_NUM_CTX, "temperature": 0},
+            keep_alive=INTERACTIVE_KEEP_ALIVE,
+            retry=False,
+        )
+        or ""
+    )
+
+
 def _llm_extract_structured(text: str) -> dict:
     """Call the local LLM to extract structured fields from free-form notes.
     Returns {} on any failure so callers can fall back to regex."""
     prompt = _LLM_EXTRACT_PROMPT.format(text=text)
-    payload = json.dumps({
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": False,
-    }).encode()
     try:
-        req = urllib.request.Request(
-            OLLAMA_URL,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            result = json.loads(resp.read())
-        raw = result.get("response", "").strip()
+        raw = _call_album_model(prompt).strip()
         # Strip markdown fences if the model wrapped the JSON
         if raw.startswith("```"):
             raw = re.sub(r"^```[a-z]*\n?", "", raw)
@@ -1082,21 +1092,8 @@ def handle_quick_update(text: str) -> list:
     """Handle a quick out-of-session field update. Returns reply strings."""
     song_list = ", ".join(_ALBUM_SONGS)
     prompt = _QUICK_UPDATE_PROMPT.format(text=text, song_list=song_list)
-    payload = json.dumps({
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": False,
-    }).encode()
     try:
-        req = urllib.request.Request(
-            OLLAMA_URL,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            result = json.loads(resp.read())
-        raw = result.get("response", "").strip()
+        raw = _call_album_model(prompt).strip()
         if raw.startswith("```"):
             raw = re.sub(r"^```[a-z]*\n?", "", raw)
             raw = re.sub(r"\n?```$", "", raw.strip())
