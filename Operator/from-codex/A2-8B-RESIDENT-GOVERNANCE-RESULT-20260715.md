@@ -10,8 +10,8 @@
   - `1c9a482143fa3ed1c7d5060ea9c0d3910a9e243f` - recover text answers after vote timeout
   - `27618e88a231eceb0ba5b1e9b219d31b2c15693f` - force full semantic-vote GPU offload
 - Base: `69fb2eb84d240e8d5249041938869e9d5044600a`
-- Live deployment: first attempt rolled back at `05fabdbe8f9f882bf59029e33bb050b471afa908`
-  after the canary exposed a missing semantic-vote `num_gpu` option
+- Live deployment: corrected redeploy succeeded at `c2435da3decda89713bd2130c1ca030b8ef7531f`
+  after the first attempt rolled back at `05fabdbe8f9f882bf59029e33bb050b471afa908`
 - Red-line authority: unchanged; no send, delete, payment, move, or approval-gate activation
 
 ## What Changed
@@ -90,7 +90,7 @@
 - Fresh final regression gate: `596 passed, 3 deselected in 30.02s`; compile, shell syntax,
   and diff checks also passed.
 
-## Exact Pending Live Action
+## Deployment And Rollback Record
 
 Rollback material already exists at
 `D:\OpenClawBackups\a2-8b-resident-governance-predeploy-20260715T200411Z`
@@ -102,7 +102,8 @@ tree and matches SHA-256
 `69fe25004c613b64f9dd9ffebedd3a2749eb82b4bc1bc6b502517af5ccba9718`.
 
 Approval `7A4A020F` (`39B772A62DFC`) was consumed by the first deployment and rollback.
-A replacement exact approval is required for the corrected commit set.
+Replacement approval `672A2563` (`7BB5A666E494`) authorized and was consumed by the
+corrected redeploy.
 
 1. Re-verify the existing D-drive bundle and replaced-file backup.
 2. Compose commits `2b4da8969de9f319d9b8057574c9e5cf019ef799` and
@@ -120,5 +121,21 @@ A replacement exact approval is required for the corrected commit set.
    downstream text answer with honest two-call receipts, and a synthetic heavy request
    defers.
 6. Roll back immediately from D if full offload, latency, or residency does not hold.
+
+Corrected redeploy receipt:
+
+- The ten approved source commits were composed onto rollback HEAD without overlap with
+  generated churn or untracked Operator notes.
+- The runtime allowlist is exactly `qwen3:8b-q4_K_M`; the drop-in is owned by
+  `openclaw:openclaw` with mode `0644`.
+- Request-response, Cassandra briefing scheduler, and Chief listener are active with zero
+  restart count and no post-restart warning journal entries.
+- The semantic probe reports 8b, `num_ctx=1024`, `num_gpu=999`, `keep_alive=10m`, no
+  authority, and no orphan vote child.
+- Two live-equivalent calls returned `FIRST_OK` and `SECOND_OK` in 0.480s and 0.358s.
+  Ollama retained one 8b with `size_vram == size == 5,551,820,928` and context 1024.
+- The real resource governor returned `interactive_model_resident` for heavy work while
+  the 8b was loaded. Post-deploy timeout, governance, probe, and CPU-only voice suites:
+  `40 passed in 4.44s`; `bash -n master_voice.sh` passed.
 
 No external message/action authority is part of this deployment.
