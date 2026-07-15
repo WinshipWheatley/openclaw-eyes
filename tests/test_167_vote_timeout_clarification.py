@@ -14,7 +14,6 @@ from vote_timeout_clarification import (
     classify_vote_timeout_disposition,
     enforce_vote_timeout_output,
     is_outside_session_vote_failure,
-    is_recoverable_outside_session_vote_timeout,
     warm_clarification_for_vote_timeout,
 )
 
@@ -101,9 +100,6 @@ def test_outside_session_vote_failure_keeps_exact_pass_through_receipt(
     assert receipt["semantic_vote_status"] == vote_status
     assert is_outside_session_vote_failure(decision) is True
     assert clarification_policy.classify_vote_failure_kind(decision).value == expected_kind
-    assert is_recoverable_outside_session_vote_timeout(decision) is (
-        expected_kind == "timeout"
-    )
     assert (
         classify_vote_timeout_disposition(AMBIGUOUS_REQUEST, decision)
         is VoteTimeoutDisposition.CLARIFY
@@ -289,7 +285,7 @@ def test_default_semantic_vote_runs_in_killable_spawned_process(monkeypatch) -> 
     assert status == "accepted"
     assert captured["start_method"] == "spawn"
     assert captured["daemon"] is True
-    assert captured["call_kwargs"]["model"] == "qwen3:8b-q4_K_M"
+    assert captured["call_kwargs"]["model"] == "qwen3:4b"
     assert captured["call_kwargs"]["options"]["num_ctx"] == 1024
     assert captured["queue_closed"] is True
 

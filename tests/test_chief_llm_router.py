@@ -101,7 +101,7 @@ def test_generic_lanes_do_not_use_cassandra_gemma_26b_by_default():
 def test_contract_semantic_vote_has_one_explicit_fast_model_route():
     assert chief_llm.local_model_candidates(
         "fast", task_class="contract_semantic_vote"
-    ) == ("qwen3:8b-q4_K_M",)
+    ) == ("qwen3:4b",)
     assert chief_llm.choose_local_model_lane(
         "opaque prompt words",
         task_class="contract_semantic_vote",
@@ -507,7 +507,7 @@ def test_resolve_local_model_routes_cassandra_easy_reply_to_small_lane(monkeypat
     )
 
     assert lane == "fast"
-    assert model == "qwen3:8b-q4_K_M"
+    assert model == "qwen3:4b"
 
 
 def test_resolve_local_model_routes_cassandra_outbound_draft_to_strong(monkeypatch):
@@ -555,10 +555,10 @@ def test_short_cassandra_user_reply_does_not_downgrade_to_fast(monkeypatch):
     )
 
     assert lane == "fast"
-    assert model == "qwen3:8b-q4_K_M"
+    assert model == "qwen3:4b"
 
 
-def test_cassandra_easy_reply_keeps_operator_bound_8b_when_inventory_is_incomplete(monkeypatch):
+def test_cassandra_easy_reply_falls_back_to_gemma_26b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -571,18 +571,7 @@ def test_cassandra_easy_reply_keeps_operator_bound_8b_when_inventory_is_incomple
     )
 
     assert lane == "fast"
-    assert model == "qwen3:8b-q4_K_M"
-
-
-def test_cassandra_easy_reply_reason_names_resident_8b_policy():
-    reason = chief_llm.local_model_route_reason(
-        "Yep.",
-        "fast",
-        task_class="cassandra_user_reply_fast",
-    )
-
-    assert "resident qwen3 8b" in reason
-    assert "gemma" not in reason.lower()
+    assert model == "qwen3:4b"
 
 
 def test_cassandra_user_reply_falls_back_to_gemma_26b_before_nemotron(monkeypatch):

@@ -38,6 +38,8 @@ def _forbidden_downstream(*_args, **_kwargs):
 @pytest.mark.parametrize(
     ("status", "expected"),
     (
+        ("error:TimeoutError", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
+        ("deadline_exceeded", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
         ("empty", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("invalid", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("timeout_or_invalid", EXPECTED_MODEL_FAILURE_CLARIFICATION),
@@ -78,59 +80,6 @@ def test_maestro_vote_failure_returns_exact_cautious_line_and_no_second_model(
     assert result.machine_proof["vote_timeout_post_launder_assertion"] is True
 
 
-@pytest.mark.parametrize("status", ("error:TimeoutError", "deadline_exceeded"))
-def test_maestro_vote_timeout_recovers_with_downstream_text_answer(
-    status: str,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import maestro_cassandra_responder as maestro
-    import maestro_context_packet
-
-    calls = _force_vote_failure(monkeypatch, status)
-    downstream_calls: list[str] = []
-    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
-    monkeypatch.setattr(
-        maestro_context_packet,
-        "build_maestro_context_packet",
-        lambda **_kwargs: {
-            "packet_id": "timeout-recovery-packet",
-            "facts": [],
-            "source_refs": [],
-            "packet_text": "",
-        },
-    )
-
-    def recovered_answer(text: str, **_kwargs):
-        downstream_calls.append(text)
-        return {
-            "text": "I still answered after the classifier timed out.",
-            "receipt": {
-                "status": "ANSWER_READY",
-                "decision": "LOCAL_MODEL_RESPONSE",
-                "external_llm_invoked": False,
-                "local_model_invoked": True,
-                "model_call_performed": True,
-            },
-        }
-
-    result = maestro.answer_frontdoor_chat(
-        AMBIGUOUS,
-        handle_fn=_forbidden_downstream,
-        protected_generate_fn=recovered_answer,
-    )
-
-    receipt = result.machine_proof["typed_contract_decision"]
-    assert calls == [AMBIGUOUS]
-    assert downstream_calls == [AMBIGUOUS]
-    assert result.plain_summary == "I still answered after the classifier timed out."
-    assert receipt["action"] == "pass_through"
-    assert receipt["semantic_vote_status"] == status
-    assert result.machine_proof["protected_generate_called"] is True
-    assert result.machine_proof["downstream_model_call_performed"] is True
-    assert result.machine_proof["second_model_call_performed"] is True
-    assert result.machine_proof["vote_timeout_recovery_applied"] is True
-
-
 @pytest.mark.parametrize(
     "text",
     (
@@ -144,45 +93,19 @@ def test_maestro_timeout_does_not_turn_digest_mentions_into_requests(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import maestro_cassandra_responder as maestro
-    import maestro_context_packet
+    from vote_timeout_clarification import WARM_TIMEOUT_CLARIFICATION
 
     calls = _force_vote_failure(monkeypatch, "deadline_exceeded")
-    downstream_calls: list[str] = []
-    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
-    monkeypatch.setattr(
-        maestro_context_packet,
-        "build_maestro_context_packet",
-        lambda **_kwargs: {
-            "packet_id": "digest-mention-timeout-recovery",
-            "facts": [],
-            "source_refs": [],
-            "packet_text": "",
-        },
-    )
-
-    def recovered_answer(question: str, **_kwargs):
-        downstream_calls.append(question)
-        return {
-            "text": "That was a mention, not a request for the global digest.",
-            "receipt": {
-                "model_call_performed": True,
-                "local_model_invoked": True,
-                "external_llm_invoked": False,
-            },
-        }
-
     result = maestro.answer_frontdoor_chat(
         text,
         handle_fn=_forbidden_downstream,
-        protected_generate_fn=recovered_answer,
+        protected_generate_fn=_forbidden_downstream,
     )
 
     assert calls == [text]
-    assert downstream_calls == [text]
-    assert result.plain_summary == "That was a mention, not a request for the global digest."
+    assert result.plain_summary == WARM_TIMEOUT_CLARIFICATION
     assert result.machine_proof["vote_timeout_deterministic_digest"] is False
-    assert result.machine_proof["downstream_model_call_performed"] is True
-    assert result.machine_proof["vote_timeout_recovery_applied"] is True
+    assert result.machine_proof["downstream_model_call_performed"] is False
 
 
 def test_maestro_explicit_digest_uses_grounded_renderer_without_generation(
@@ -255,7 +178,7 @@ def test_addressed_non_maestro_cannot_borrow_maestro_digest_authority(
     )
 
     assert result.plain_summary == WARM_TIMEOUT_CLARIFICATION
-    assert result.machine_proof.get("vote_timeout_deterministic_digest", False) is False
+    assert result.machine_proof["vote_timeout_deterministic_digest"] is False
     assert result.machine_proof["protected_generate_called"] is False
 
 
@@ -380,7 +303,7 @@ def test_public_finalizer_reasserts_after_an_inflated_answer_topic() -> None:
     assert finalized.machine_proof["vote_timeout_post_launder_assertion"] is True
 
 
-def test_timeout_finalizer_records_downstream_recovery_without_erasing_evidence() -> None:
+def test_timeout_finalizer_never_erases_evidence_of_a_downstream_violation() -> None:
     import maestro_cassandra_responder as maestro
     import typed_contract_decision as typed
 
@@ -420,44 +343,26 @@ def test_timeout_finalizer_records_downstream_recovery_without_erasing_evidence(
     assert finalized.machine_proof["protected_generate_called"] is True
     assert finalized.machine_proof["downstream_model_call_performed"] is True
     assert finalized.machine_proof["second_model_call_performed"] is True
-    assert finalized.machine_proof["vote_timeout_recovery_applied"] is True
-    assert finalized.plain_summary == "Contaminated answer."
+    assert finalized.machine_proof["vote_timeout_downstream_violation_detected"] is True
 
 
-def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
+def test_final_processor_reasserts_every_visible_mirror_after_reply_pipeline(
     tmp_path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import maestro_listener
-    import maestro_context_packet
     import openclaw_request_processor as processor
     import protected_generate
     import reply_pipeline
+    from vote_timeout_clarification import WARM_TIMEOUT_CLARIFICATION
+
     calls = _force_vote_failure(monkeypatch, "error:TimeoutError")
     monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "0")
     monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "0")
-    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
-    monkeypatch.setattr(
-        maestro_context_packet,
-        "build_maestro_context_packet",
-        lambda **_kwargs: {
-            "packet_id": "processor-timeout-recovery",
-            "facts": [],
-            "source_refs": [],
-            "packet_text": "",
-        },
-    )
     monkeypatch.setattr(
         protected_generate,
         "protected_generate_with_receipt",
-        lambda *_args, **_kwargs: {
-            "text": "Recovered operator answer.",
-            "receipt": {
-                "model_call_performed": True,
-                "local_model_invoked": True,
-                "external_llm_invoked": False,
-            },
-        },
+        _forbidden_downstream,
     )
     monkeypatch.setattr(
         reply_pipeline,
@@ -486,43 +391,45 @@ def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
     )
 
     assert calls == [AMBIGUOUS]
-    assert "Recovered operator answer." in response.operator_message
-    assert "Unrelated receivables total is $1,095." in response.operator_message
-    assert response.operator_headline == "Recovered operator answer."
-    assert response.visible_cards[0]["title"] == response.operator_headline
-    assert response.visible_cards[0]["summary"] == response.operator_headline
-    assert response.detail_disclosure["dynamic_card_response"]["title"] == response.operator_headline
-    assert response.detail_disclosure["dynamic_card_response"]["summary"] == response.operator_headline
+    assert response.operator_message == WARM_TIMEOUT_CLARIFICATION
+    assert response.operator_headline == WARM_TIMEOUT_CLARIFICATION
+    assert response.visible_cards[0]["title"] == WARM_TIMEOUT_CLARIFICATION
+    assert response.visible_cards[0]["summary"] == WARM_TIMEOUT_CLARIFICATION
+    assert response.detail_disclosure["dynamic_card_response"]["title"] == (
+        WARM_TIMEOUT_CLARIFICATION
+    )
+    assert response.detail_disclosure["dynamic_card_response"]["summary"] == (
+        WARM_TIMEOUT_CLARIFICATION
+    )
     responder = response.detail_disclosure["maestro_cassandra_responder"]
-    assert "Recovered operator answer." in responder["one_line_answer"]
-    assert "Recovered operator answer." in responder["plain_summary"]
+    assert responder["one_line_answer"] == WARM_TIMEOUT_CLARIFICATION
+    assert responder["plain_summary"] == WARM_TIMEOUT_CLARIFICATION
     receipt = response.typed_contract_trace["typed_contract_decision"]
     assert receipt == response.proof_to_response["typed_contract_decision"]
     assert receipt == response.detail_disclosure["typed_contract_decision"]
     assert receipt["action"] == "pass_through"
     assert receipt["reason"] == "uncertain_outside_session_fail_open"
     assert receipt["semantic_vote_status"] == "error:TimeoutError"
-    assert response.proof_to_response["vote_timeout_recovery_applied"] is True
-    assert response.proof_to_response["downstream_model_call_performed"] is True
-    assert response.proof_to_response["second_model_call_performed"] is True
-    assert response.detail_disclosure["external_llm_invoked"] is False
-    assert response.detail_disclosure["local_model_runtime_connected"] is True
+    assert response.proof_to_response["vote_timeout_post_launder_assertion"] is True
+    assert response.proof_to_response["downstream_model_call_performed"] is False
+    assert response.detail_disclosure["external_llm_invoked"] is None
+    assert response.detail_disclosure["local_model_runtime_connected"] is None
     assert response.detail_disclosure["output_boundary_receipt"][
         "visible_text_sha256"
     ] == "sha256:" + hashlib.sha256(
-        response.operator_message.encode("utf-8")
+        WARM_TIMEOUT_CLARIFICATION.encode("utf-8")
     ).hexdigest()
 
     payload, _status = processor.build_payloads(
         response,
         generated_at="2026-07-12T04:00:00+00:00",
     )
-    assert payload["operator_message"] == response.operator_message
+    assert payload["operator_message"] == WARM_TIMEOUT_CLARIFICATION
     assert payload["proof_to_response"]["typed_contract_decision"] == receipt
     assert payload["detail_disclosure"]["typed_contract_decision"] == receipt
-    assert payload["machine_proof"]["external_llm_invoked"] is False
-    assert payload["machine_proof"]["local_model_invoked"] is True
-    assert payload["selected_model_backend"] == "LOCAL_OLLAMA"
+    assert payload["machine_proof"]["external_llm_invoked"] is None
+    assert payload["machine_proof"]["local_model_invoked"] is None
+    assert payload["selected_model_backend"] == "UNKNOWN_CALL_ATTEMPTED"
 
 
 @pytest.mark.parametrize("pipeline_mode", ("inject", "raise"))

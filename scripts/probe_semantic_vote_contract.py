@@ -64,10 +64,10 @@ def run_probe(
     clarification = clarification_for_vote_failure(decision)
     clarification_ok = failure_kind == "none" or bool(clarification)
     contract_ok = (
-        contract.SEMANTIC_VOTE_MODEL == "qwen3:8b-q4_K_M"
+        contract.SEMANTIC_VOTE_MODEL == "qwen3:4b"
         and contract.SEMANTIC_VOTE_NUM_CTX == 1024
         and contract.DEFAULT_SEMANTIC_TIMEOUT_SECONDS == PROBE_TIMEOUT_SECONDS
-        and contract.SEMANTIC_VOTE_KEEP_ALIVE == "10m"
+        and contract.SEMANTIC_VOTE_KEEP_ALIVE == "30s"
     )
     hard_wall_ok = elapsed <= PROBE_TIMEOUT_SECONDS + HARD_WALL_TOLERANCE_SECONDS
     passed = bool(

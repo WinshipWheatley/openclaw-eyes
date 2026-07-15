@@ -1689,10 +1689,6 @@ def protected_generate_with_receipt(
         # Enough heat to vary + sound human, not so much it reaches for zingers/metaphors.
         fd_ollama_options = {**fd_ollama_options, "temperature": 0.7, "top_p": 0.9}
     fd_keep_alive = _frontdoor_keep_alive() if front_door_profile else None
-    if front_door_profile and fd_keep_alive is None:
-        from local_model_governance import INTERACTIVE_KEEP_ALIVE
-
-        fd_keep_alive = INTERACTIVE_KEEP_ALIVE
     fd_model_max_gb = _frontdoor_model_max_gb() if front_door_profile else None
     fd_model_selected = model_selected
     fd_model_selection_reason: str | None = None
@@ -1816,15 +1812,8 @@ def protected_generate_with_receipt(
                                 system_load_1m=fd_system_load_1m,
                                 cpu_count=fd_cpu_count,
                             )
-                            bound_model = fd_model_selected
-                            fd_model_selected = bound_model or _model
-                            if bound_model and _model and bound_model != _model:
-                                fd_model_selection_reason = (
-                                    f"operator_bound_model_override:{bound_model};"
-                                    f"resource_candidate:{_model};resource_reason:{_reason}"
-                                )
-                            else:
-                                fd_model_selection_reason = _reason
+                            fd_model_selection_reason = _reason
+                            fd_model_selected = fd_model_selected or _model
                             if not _model:
                                 fd_captured_done_reason = "no_fitting_model"
                                 route = "deterministic_fallback_no_fitting_model"
@@ -1837,7 +1826,7 @@ def protected_generate_with_receipt(
                                         system_prompt,
                                         timeout=fd_interactive_timeout_s,
                                         attempts=1,
-                                        model=fd_model_selected,
+                                        model=_model,
                                         task_class="frontdoor_reply",
                                         think=fd_model_think,
                                         num_predict=fd_num_predict,

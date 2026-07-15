@@ -53,8 +53,6 @@ def _call_ollama_once(
         "keep_alive": keep_alive,
         "return_metadata": return_metadata,
     }
-    if ollama_call_fn is chief_llm.ollama_call:
-        kwargs["_model_slot_held"] = True
     kwargs = {key: value for key, value in kwargs.items() if value is not None}
     if not return_metadata:
         kwargs.pop("return_metadata", None)

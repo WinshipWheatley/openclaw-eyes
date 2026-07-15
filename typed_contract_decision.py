@@ -43,9 +43,9 @@ SEMANTIC_VOTE_ENV = "OPENCLAW_CONTRACT_VOTE_ADAPTERS"
 SEMANTIC_VOTE_TIMEOUT_ENV = "OPENCLAW_CONTRACT_VOTE_TIMEOUT_SECONDS"
 CONTRACT_RECEIPT_DB_ENV = "OPENCLAW_CONTRACT_RECEIPT_DB"
 DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 8.0
-SEMANTIC_VOTE_MODEL = "qwen3:8b-q4_K_M"
+SEMANTIC_VOTE_MODEL = "qwen3:4b"
 SEMANTIC_VOTE_NUM_CTX = 1024
-SEMANTIC_VOTE_KEEP_ALIVE = "10m"
+SEMANTIC_VOTE_KEEP_ALIVE = "30s"
 SEMANTIC_CONFIDENCE_THRESHOLD = 0.72
 MAX_CONTRACT_PRESERVE_RECEIPTS = 4096
 LOW_COHERENCE_CLARIFICATION = (
@@ -1491,19 +1491,9 @@ def _call_semantic_vote(
     slot_wait_seconds = min(2.0, max(0.001, total_budget_seconds * 0.4))
     model_timeout_seconds = max(0.001, total_budget_seconds - slot_wait_seconds)
     prompt = _semantic_prompt(text, context)
-    semantic_model = SEMANTIC_VOTE_MODEL
-    semantic_keep_alive = SEMANTIC_VOTE_KEEP_ALIVE
-    try:
-        from local_model_governance import binding_from_session
-
-        binding = binding_from_session(context.session_snapshot)
-        semantic_model = str(binding.get("model") or semantic_model)
-        semantic_keep_alive = str(binding.get("keep_alive") or semantic_keep_alive)
-    except Exception:
-        pass
     call_kwargs = {
         "task_class": "contract_semantic_vote",
-        "model": semantic_model,
+        "model": SEMANTIC_VOTE_MODEL,
         "lane": "frontdoor",
         "timeout": model_timeout_seconds,
         "attempts": 1,
@@ -1514,7 +1504,7 @@ def _call_semantic_vote(
             "temperature": 0,
             "num_ctx": SEMANTIC_VOTE_NUM_CTX,
         },
-        "keep_alive": semantic_keep_alive,
+        "keep_alive": SEMANTIC_VOTE_KEEP_ALIVE,
         "retry": False,
         "model_slot_max_wait_seconds": slot_wait_seconds,
         "return_metadata": True,

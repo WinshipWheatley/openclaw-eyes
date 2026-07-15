@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 # Master -> operator VOICE on the Maestro Telegram channel.
 # Kokoro-82M neural TTS — clean American English (intelligible, high quality), no reverb.
-if [ "${OPENCLAW_SKIP_CHIEF_ENV:-0}" != "1" ]; then
-  set -a; source /home/openclaw/.chief.env 2>/dev/null || true; set +a
-fi
-# Ollama owns the 6 GB card. Voice always uses the warm CPU service or a local CPU fallback.
-export CUDA_VISIBLE_DEVICES=""
+set -a; source /home/openclaw/.chief.env 2>/dev/null || true; set +a
 TXT="$(cat)"
 
 # --- voice-layer leak guard (redesign change 1/5, 2026-06-22) ---
@@ -33,7 +29,6 @@ fi
 WAV="${WAV:-/mnt/c/OpenClaw/logs/master_voice.wav}"
 OGG="${OGG:-/mnt/c/OpenClaw/logs/master_voice.ogg}"
 PYV="${PYV:-/home/openclaw/chief_env/bin/python}"; [ -x "$PYV" ] || PYV=python3
-CURL_BIN="${CURL_BIN:-curl}"
 redact_with_python() {
   "$PYV" -c 'import sys; sys.path.insert(0, "/home/openclaw"); from secret_log_redaction import redact_secrets; sys.stdout.write(redact_secrets(sys.stdin.read()))' 2>/dev/null \
     || printf '<redaction unavailable>'
@@ -109,35 +104,22 @@ sf.write(os.environ["WAV"], normalize_loudness(np.concatenate(chunks)), 24000)
 print("[kokoro] ok agent=", os.environ["AGENT"], "voice=", os.environ["VOICE"], flush=True)
 PYEOF
 
-WARM_AUDIO="$({
-  printf '%s' "$TXT" | AGENT="$AGENT" "$PYV" -c '
-import os, sys
-sys.path.insert(0, "/home/openclaw")
-from kokoro_voice_client import synthesize_remote
-path = synthesize_remote(sys.stdin.read(), agent=os.environ["AGENT"], timeout=15.0)
-sys.stdout.write(str(path or ""))
-';
-} 2>/dev/null)"
-
-SYNTH_INPUT=""
-if [ -n "$WARM_AUDIO" ] && [ -s "$WARM_AUDIO" ]; then
-  SYNTH_INPUT="$WARM_AUDIO"
-else
-  echo "WARM KOKORO SERVICE UNAVAILABLE — using local CPU synth" >&2
-  printf '%s' "$TXT" | OPENCLAW_KOKORO_SYNTH_ATTEMPT=fallback AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" WAV="$WAV" "$PYV" "$KOKORO_SYNTH_PY"
+printf '%s' "$TXT" | AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" WAV="$WAV" "$PYV" "$KOKORO_SYNTH_PY"
+SYNTH_STATUS=$?
+if [ "$SYNTH_STATUS" -ne 0 ]; then
+  echo "KOKORO SYNTH FAILED (GPU) — retrying with CPU synth (CUDA_VISIBLE_DEVICES=)" >&2
+  printf '%s' "$TXT" | CUDA_VISIBLE_DEVICES="" AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" WAV="$WAV" "$PYV" "$KOKORO_SYNTH_PY"
   SYNTH_STATUS=$?
-  if [ "$SYNTH_STATUS" -eq 0 ] && [ -s "$WAV" ]; then
-    SYNTH_INPUT="$WAV"
-  fi
 fi
 rm -f "$KOKORO_SYNTH_PY"
-if [ -z "$SYNTH_INPUT" ]; then
+if [ "$SYNTH_STATUS" -ne 0 ]; then
   send_text_only_fallback
   exit 0
 fi
 
+[ -s "$WAV" ] || { send_text_only_fallback; exit 0; }
 # pure vowels / crisp consonants: light presence + warmth, NO reverb, NO pitch tricks
-ffmpeg -y -loglevel error -i "$SYNTH_INPUT" -af "equalizer=f=3000:t=q:w=2:g=1.5,equalizer=f=180:t=q:w=1:g=1" -c:a libopus -b:a 64k "$OGG" || { echo "FFMPEG FAILED"; send_text_only_fallback; exit 0; }
+ffmpeg -y -loglevel error -i "$WAV" -af "equalizer=f=3000:t=q:w=2:g=1.5,equalizer=f=180:t=q:w=1:g=1" -c:a libopus -b:a 64k "$OGG" || { echo "FFMPEG FAILED"; send_text_only_fallback; exit 0; }
 
 FULL="$(printf '%s\n%s' "$PROV" "$TXT")"
 if [ "${#FULL}" -le 950 ]; then
@@ -148,7 +130,7 @@ fi
 
 VOICE_RESPONSE="$(mktemp)"
 VOICE_CURL_ERR="$(
-  "$CURL_BIN" -sS "${API}/sendVoice" \
+  curl -sS "${API}/sendVoice" \
     -F chat_id="$CHAT" \
     -F voice="@${OGG};type=audio/ogg" \
     --form-string caption="$CAP" \

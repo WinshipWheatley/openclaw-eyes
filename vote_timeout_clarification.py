@@ -234,17 +234,6 @@ def is_outside_session_vote_failure(receipt_or_decision: Any) -> bool:
     return classify_vote_failure_kind(receipt_or_decision) is not VoteFailureKind.NONE
 
 
-def is_recoverable_outside_session_vote_timeout(receipt_or_decision: Any) -> bool:
-    """Return true when a timed-out advisory vote may continue to a text answer.
-
-    The receipt classifier already requires an outside-session ``PASS_THROUGH``
-    decision. Recovery therefore grants no workflow, tool, or external authority;
-    it only prevents the advisory classifier from terminating the text turn.
-    """
-
-    return classify_vote_failure_kind(receipt_or_decision) is VoteFailureKind.TIMEOUT
-
-
 def clarification_for_vote_failure(receipt_or_decision: Any) -> str | None:
     kind = classify_vote_failure_kind(receipt_or_decision)
     if kind is VoteFailureKind.TIMEOUT:

@@ -233,7 +233,7 @@ def test_semantic_vote_uses_strict_safe_label_and_cannot_authorize():
     assert decision.receipt.model_called is True
     assert decision.receipt.authority_granted is False
     assert seen["kwargs"]["task_class"] == "contract_semantic_vote"
-    assert seen["kwargs"]["model"] == "qwen3:8b-q4_K_M"
+    assert seen["kwargs"]["model"] == "qwen3:4b"
     assert "primary_model" not in seen["kwargs"]
     assert seen["kwargs"]["timeout"] == pytest.approx(1.8)
     assert seen["kwargs"]["model_slot_max_wait_seconds"] == pytest.approx(1.2)
@@ -243,7 +243,7 @@ def test_semantic_vote_uses_strict_safe_label_and_cannot_authorize():
         "temperature": 0,
         "num_ctx": 1024,
     }
-    assert seen["kwargs"]["keep_alive"] == "10m"
+    assert seen["kwargs"]["keep_alive"] == "30s"
     assert seen["kwargs"]["return_metadata"] is True
     assert "AUTHORITY" not in seen["prompt"]
 

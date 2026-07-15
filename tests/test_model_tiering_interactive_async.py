@@ -29,10 +29,10 @@ def test_interactive_replies_use_qwen3_8b(monkeypatch) -> None:
         assert model == "qwen3:8b-q4_K_M", f"{tc} -> {model}"
 
 
-def test_interactive_fast_reply_reuses_resident_qwen3_8b(monkeypatch) -> None:
+def test_interactive_fast_reply_uses_qwen3_4b(monkeypatch) -> None:
     _wire(monkeypatch)
     model, _ = chief_llm.resolve_local_model("classify this", task_class="cassandra_user_reply_fast")
-    assert model == "qwen3:8b-q4_K_M"
+    assert model == "qwen3:4b"
 
 
 def test_agentic_code_and_code_lane_use_ornith(monkeypatch) -> None:

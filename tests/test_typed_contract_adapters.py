@@ -260,47 +260,24 @@ def test_maestro_inactive_contract_exception_emits_stable_bounded_receipt(monkey
     assert "Could you unpack that broader situation?" not in serialized
 
 
-def test_maestro_vote_model_failure_receipt_survives_cautious_clarification(
-    monkeypatch,
-):
-    import maestro_cassandra_responder as maestro
-    from vote_timeout_clarification import MODEL_FAILURE_CLARIFICATION
-
-    calls = 0
-
-    def _vote(*_args, **_kwargs):
-        nonlocal calls
-        calls += 1
-        return None, "timeout_or_invalid"
-
-    monkeypatch.setenv(contract.SEMANTIC_VOTE_ENV, "maestro")
-    monkeypatch.setattr(contract, "_call_semantic_vote", _vote)
-    monkeypatch.setattr(
-        maestro,
-        "classify_frontdoor_intent",
-        lambda *_: ("unknown", False, "no legacy owner"),
-    )
-
-    result = maestro.answer_frontdoor_chat("Could you unpack that broader situation?")
-
-    receipt = result.machine_proof["typed_contract_decision"]
-    assert result.status == "ANSWER_READY"
-    assert result.plain_summary == MODEL_FAILURE_CLARIFICATION
-    assert receipt["source"] == "semantic_vote"
-    assert receipt["action"] == "pass_through"
-    assert receipt["semantic_vote_status"] == "timeout_or_invalid"
-    assert result.machine_proof["typed_contract_matches"] == ["unresolved"]
-    assert result.machine_proof["downstream_model_call_performed"] is False
-    assert result.machine_proof["protected_generate_called"] is False
-    assert calls == 1
-
-
-@pytest.mark.parametrize("vote_status", ("deadline_exceeded", "error:TimeoutError"))
-def test_maestro_vote_timeout_receipt_survives_downstream_recovery(
+@pytest.mark.parametrize(
+    ("vote_status", "expected_kind"),
+    (
+        ("deadline_exceeded", "timeout"),
+        ("error:TimeoutError", "timeout"),
+        ("timeout_or_invalid", "model_failure"),
+    ),
+)
+def test_maestro_vote_failure_receipt_survives_cautious_clarification(
     vote_status,
+    expected_kind,
     monkeypatch,
 ):
     import maestro_cassandra_responder as maestro
+    from vote_timeout_clarification import (
+        MODEL_FAILURE_CLARIFICATION,
+        MODEL_TIMEOUT_CLARIFICATION,
+    )
 
     calls = 0
 
@@ -314,37 +291,25 @@ def test_maestro_vote_timeout_receipt_survives_downstream_recovery(
     monkeypatch.setattr(
         maestro,
         "classify_frontdoor_intent",
-        lambda *_: ("maestro_brain_freeform", True, "bounded freeform"),
-    )
-    monkeypatch.setattr(
-        maestro,
-        "_answer_with_maestro_brain",
-        lambda *_args, **_kwargs: maestro.MaestroCassandraResult(
-            status="ANSWER_READY",
-            intent_class="maestro_brain_freeform",
-            allowed_to_call_handle=False,
-            one_line_answer="Recovered operator answer.",
-            plain_summary="Recovered operator answer.",
-            machine_proof={
-                "model_call_performed": True,
-                "protected_generate_called": True,
-                "local_model_invoked": True,
-                "external_llm_invoked": False,
-            },
-        ),
+        lambda *_: ("unknown", False, "no legacy owner"),
     )
 
     result = maestro.answer_frontdoor_chat("Could you unpack that broader situation?")
 
     receipt = result.machine_proof["typed_contract_decision"]
+    expected = (
+        MODEL_TIMEOUT_CLARIFICATION
+        if expected_kind == "timeout"
+        else MODEL_FAILURE_CLARIFICATION
+    )
     assert result.status == "ANSWER_READY"
-    assert result.plain_summary == "Recovered operator answer."
+    assert result.plain_summary == expected
     assert receipt["source"] == "semantic_vote"
     assert receipt["action"] == "pass_through"
     assert receipt["semantic_vote_status"] == vote_status
-    assert result.machine_proof["vote_timeout_recovery_applied"] is True
-    assert result.machine_proof["downstream_model_call_performed"] is True
-    assert result.machine_proof["second_model_call_performed"] is True
+    assert result.machine_proof["typed_contract_matches"] == ["unresolved"]
+    assert result.machine_proof["downstream_model_call_performed"] is False
+    assert result.machine_proof["protected_generate_called"] is False
     assert calls == 1
 
 
@@ -423,13 +388,7 @@ def _assert_final_json_contract_receipt(processor, response, receipt) -> None:
         assert final_json["selected_model_backend"] == "UNKNOWN_UNPROVEN"
     elif receipt.get("model_called") is True:
         assert final_json["machine_proof"]["model_call_performed"] is True
-        if (
-            final_json["machine_proof"]["local_model_invoked"] is True
-            and final_json["machine_proof"]["external_llm_invoked"] is False
-        ):
-            assert final_json["selected_model_backend"] == "LOCAL_OLLAMA"
-        else:
-            assert final_json["selected_model_backend"] == "UNKNOWN_CALL_ATTEMPTED"
+        assert final_json["selected_model_backend"] == "UNKNOWN_CALL_ATTEMPTED"
 
 
 def test_request_processor_final_bridge_repeats_exact_contract_receipt(tmp_path):
@@ -468,18 +427,8 @@ def test_request_processor_final_bridge_carries_real_vote_timeout_receipt(monkey
     monkeypatch.setattr(
         maestro,
         "_answer_with_maestro_brain",
-        lambda *_args, **_kwargs: maestro.MaestroCassandraResult(
-            status="ANSWER_READY",
-            intent_class="maestro_brain_freeform",
-            allowed_to_call_handle=False,
-            one_line_answer="Recovered operator answer.",
-            plain_summary="Recovered operator answer.",
-            machine_proof={
-                "model_call_performed": True,
-                "protected_generate_called": True,
-                "local_model_invoked": True,
-                "external_llm_invoked": False,
-            },
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("vote timeout reached the downstream Maestro brain")
         ),
     )
 
@@ -494,10 +443,6 @@ def test_request_processor_final_bridge_carries_real_vote_timeout_receipt(monkey
     receipt = response.proof_to_response["typed_contract_decision"]
     assert receipt["source"] == "semantic_vote"
     assert receipt["semantic_vote_status"] == "deadline_exceeded"
-    assert "Recovered operator answer." in response.operator_message
-    assert response.proof_to_response["vote_timeout_recovery_applied"] is True
-    assert response.proof_to_response["downstream_model_call_performed"] is True
-    assert response.proof_to_response["second_model_call_performed"] is True
     assert response.detail_disclosure["typed_contract_decision"] == receipt
     _assert_final_json_contract_receipt(processor, response, receipt)
 
