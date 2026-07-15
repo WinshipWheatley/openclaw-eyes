@@ -7,6 +7,7 @@
   - `2b4da8969de9f319d9b8057574c9e5cf019ef799` - 8b binding and GPU admission
   - `0c00720b2e80ea3eb8fdd703e46d6f4dfb4034da` - honest receipts and lease cleanup
   - `a6f1e867ce75e157ec910c2b5cc585febc5cade7` - CPU-only Maestro voice path
+  - `1c9a482143fa3ed1c7d5060ea9c0d3910a9e243f` - recover text answers after vote timeout
 - Base: `69fb2eb84d240e8d5249041938869e9d5044600a`
 - Live deployment: **not yet performed**
 - Red-line authority: unchanged; no send, delete, payment, move, or approval-gate activation
@@ -32,6 +33,13 @@
 8. `master_voice.sh` now uses the existing warm CPU Kokoro service first, one local CPU
    fallback second, and text fallback last. CUDA is hidden for the entire launcher, and
    its tests can no longer source live credentials or call real Telegram.
+9. The eight-second semantic-vote wall is an advisory-classifier cutoff, not an operator
+   answer cutoff. An exact outside-session timeout with the existing `PASS_THROUGH`
+   receipt continues to the downstream response on the same bound 8b. Invalid, empty,
+   malformed, and non-timeout model failures still stop on the honest clarification floor.
+   Recovery receipts expose both local-model calls, preserve the visible answer through
+   the reply pipeline, and permit normal history capture without granting workflow, tool,
+   or external authority.
 
 ## GPU Audit
 
@@ -59,11 +67,15 @@
   scheduler, responder, request processor, adaptive call, router, and fit-wall suites.
 - Focused adversarial receipt/lease tests: `11 passed in 1.66s`.
 - Maestro CPU-only voice and isolation suites: `20 passed in 2.64s`; `bash -n` passed.
-- Python compile check passed for all changed runtime modules.
+- Fresh post-timeout-recovery regression gate: `596 passed, 3 deselected in 21.96s`
+  across timeout policy, Maestro front door, typed adapters, request processor,
+  interpreter, GPU governance, scheduler, adaptive call, router, fit wall, and voice.
+- `git diff --check`, Python compile checks for all timeout-path runtime modules, and
+  `bash -n master_voice.sh` passed immediately before commit.
 - `git diff --cached --check` passed before the code commit.
-- The two deselected tests are date-sensitive June status fixtures. They fail unchanged on
-  the live branch on July 15 because their seeded read models are stale; this patch did not
-  cause them.
+- The three fresh-gate deselections are date-sensitive seeded status fixtures. They fail
+  unchanged on the live branch on July 15 because their read models are now stale; this
+  patch did not cause them.
 
 ## Exact Pending Live Action
 
@@ -78,17 +90,24 @@ tree and matches SHA-256
 
 After explicit operator approval of the final commit set:
 
+The currently pending approval `A1AFB9DB` (`5BA13F746D1A`) predates this final commit
+set and includes an unattended root-owned Ollama mutation. It is not valid authority for
+deployment. It must be denied or cleared before an exact replacement gate can be issued.
+
 1. Re-verify the existing D-drive bundle and replaced-file backup.
 2. Compose commits `2b4da8969de9f319d9b8057574c9e5cf019ef799` and
    `0c00720b2e80ea3eb8fdd703e46d6f4dfb4034da`, plus the ordered documentation commits
-   and `a6f1e867ce75e157ec910c2b5cc585febc5cade7`, onto live HEAD without disturbing
+   and commits `a6f1e867ce75e157ec910c2b5cc585febc5cade7` and
+   `1c9a482143fa3ed1c7d5060ea9c0d3910a9e243f`, onto live HEAD without disturbing
    generated churn or untracked Operator notes.
 3. Set the request-response allowlist to only `qwen3:8b-q4_K_M`. Do not mutate the
    root-owned Ollama unit without an operator-attended sudo session.
 4. Restart only request-response, briefing scheduler, and Chief listener in a quiet GPU
    window.
 5. Run a contained local canary proving LM1 and LM2 both call 8b, only 8b is resident,
-   the second call avoids a model swap, and a synthetic heavy request defers.
+   the second call avoids a model swap, an advisory vote timeout still produces the
+   downstream text answer with honest two-call receipts, and a synthetic heavy request
+   defers.
 6. Roll back immediately from D if full offload, latency, or residency does not hold.
 
 No external message/action authority is part of this deployment.
