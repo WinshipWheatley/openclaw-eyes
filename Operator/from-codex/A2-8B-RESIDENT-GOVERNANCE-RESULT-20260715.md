@@ -8,8 +8,10 @@
   - `0c00720b2e80ea3eb8fdd703e46d6f4dfb4034da` - honest receipts and lease cleanup
   - `a6f1e867ce75e157ec910c2b5cc585febc5cade7` - CPU-only Maestro voice path
   - `1c9a482143fa3ed1c7d5060ea9c0d3910a9e243f` - recover text answers after vote timeout
+  - `27618e88a231eceb0ba5b1e9b219d31b2c15693f` - force full semantic-vote GPU offload
 - Base: `69fb2eb84d240e8d5249041938869e9d5044600a`
-- Live deployment: **not yet performed**
+- Live deployment: first attempt rolled back at `05fabdbe8f9f882bf59029e33bb050b471afa908`
+  after the canary exposed a missing semantic-vote `num_gpu` option
 - Red-line authority: unchanged; no send, delete, payment, move, or approval-gate activation
 
 ## What Changed
@@ -40,6 +42,9 @@
    Recovery receipts expose both local-model calls, preserve the visible answer through
    the reply pipeline, and permit normal history capture without granting workflow, tool,
    or external authority.
+10. Semantic-vote payloads now carry `num_gpu=999`, matching the final-response payload.
+    This prevents Ollama from loading one partial-offload 8b configuration for the vote and
+    reconfiguring the same model for full offload on the answer.
 
 ## GPU Audit
 
@@ -58,6 +63,10 @@
 - With qwen3:8b resident, a warm CPU Maestro voice canary completed in 2.7 seconds. GPU
   usage remained exactly 5639 MiB, and Ollama's model digest, `num_ctx=1024`, and expiry
   were unchanged; the voice path neither loaded a second model nor extended the 8b pin.
+- The first approved deployment was rolled back because a live-equivalent canary without
+  `num_gpu` reported only 4,682,850,432 of 5,551,820,928 model bytes in VRAM. After the
+  correction, two calls returned `FIRST_OK` and `SECOND_OK` in 5.154s and 0.430s, with
+  `size_vram == size == 5,551,820,928`, one resident 8b, and `num_ctx=1024`.
 
 ## Verification
 
@@ -76,6 +85,10 @@
 - The three fresh-gate deselections are date-sensitive seeded status fixtures. They fail
   unchanged on the live branch on July 15 because their read models are now stale; this
   patch did not cause them.
+- Full-offload correction TDD: the payload and probe tests failed on missing `num_gpu`,
+  then `126 passed in 2.26s` after the minimal fix.
+- Fresh final regression gate: `596 passed, 3 deselected in 30.02s`; compile, shell syntax,
+  and diff checks also passed.
 
 ## Exact Pending Live Action
 
@@ -88,17 +101,15 @@ The original live `master_voice.sh` was added under the same backup's `files/hom
 tree and matches SHA-256
 `69fe25004c613b64f9dd9ffebedd3a2749eb82b4bc1bc6b502517af5ccba9718`.
 
-After explicit operator approval of the final commit set:
-
-The currently pending approval `A1AFB9DB` (`5BA13F746D1A`) predates this final commit
-set and includes an unattended root-owned Ollama mutation. It is not valid authority for
-deployment. It must be denied or cleared before an exact replacement gate can be issued.
+Approval `7A4A020F` (`39B772A62DFC`) was consumed by the first deployment and rollback.
+A replacement exact approval is required for the corrected commit set.
 
 1. Re-verify the existing D-drive bundle and replaced-file backup.
 2. Compose commits `2b4da8969de9f319d9b8057574c9e5cf019ef799` and
    `0c00720b2e80ea3eb8fdd703e46d6f4dfb4034da`, plus the ordered documentation commits
    and commits `a6f1e867ce75e157ec910c2b5cc585febc5cade7` and
-   `1c9a482143fa3ed1c7d5060ea9c0d3910a9e243f`, onto live HEAD without disturbing
+   `1c9a482143fa3ed1c7d5060ea9c0d3910a9e243f`, followed by
+   `27618e88a231eceb0ba5b1e9b219d31b2c15693f`, onto live HEAD without disturbing
    generated churn or untracked Operator notes.
 3. Set the request-response allowlist to only `qwen3:8b-q4_K_M`. Do not mutate the
    root-owned Ollama unit without an operator-attended sudo session.
