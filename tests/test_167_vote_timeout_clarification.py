@@ -14,6 +14,7 @@ from vote_timeout_clarification import (
     classify_vote_timeout_disposition,
     enforce_vote_timeout_output,
     is_outside_session_vote_failure,
+    is_recoverable_outside_session_vote_timeout,
     warm_clarification_for_vote_timeout,
 )
 
@@ -100,6 +101,9 @@ def test_outside_session_vote_failure_keeps_exact_pass_through_receipt(
     assert receipt["semantic_vote_status"] == vote_status
     assert is_outside_session_vote_failure(decision) is True
     assert clarification_policy.classify_vote_failure_kind(decision).value == expected_kind
+    assert is_recoverable_outside_session_vote_timeout(decision) is (
+        expected_kind == "timeout"
+    )
     assert (
         classify_vote_timeout_disposition(AMBIGUOUS_REQUEST, decision)
         is VoteTimeoutDisposition.CLARIFY

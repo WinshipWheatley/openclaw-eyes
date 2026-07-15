@@ -179,6 +179,7 @@ def _finalize_typed_contract_result(
             VoteTimeoutDisposition,
             classify_vote_timeout_disposition,
             enforce_vote_timeout_output,
+            is_recoverable_outside_session_vote_timeout,
         )
 
         deterministic_digest_available = bool(
@@ -191,6 +192,30 @@ def _finalize_typed_contract_result(
         )
         if disposition is VoteTimeoutDisposition.NONE:
             return finalized
+        if (
+            disposition is VoteTimeoutDisposition.CLARIFY
+            and is_recoverable_outside_session_vote_timeout(receipt)
+            and proof.get("protected_generate_called") is True
+        ):
+            downstream_model_called = bool(
+                proof.get("downstream_model_call_performed") is True
+                or proof.get("model_call_performed") is True
+            )
+            proof["semantic_vote_model_called"] = receipt.get("model_called") is True
+            proof["downstream_model_call_performed"] = downstream_model_called
+            proof["second_model_call_performed"] = bool(
+                receipt.get("model_called") is True and downstream_model_called
+            )
+            proof["vote_timeout_recovery_applied"] = True
+            proof["vote_timeout_clarification_applied"] = False
+            proof["vote_timeout_deterministic_digest"] = False
+            proof["vote_timeout_recovery_source"] = (
+                "downstream_model"
+                if downstream_model_called
+                else "protected_response_fallback"
+            )
+            proof["vote_timeout_post_launder_assertion"] = False
+            return replace(finalized, machine_proof=proof)
         visible = enforce_vote_timeout_output(
             source_text,
             finalized.plain_summary,
@@ -886,6 +911,7 @@ def _answer_outside_session_vote_failure(
         classify_explicit_digest_intent,
         classify_vote_timeout_disposition,
         enforce_vote_timeout_output,
+        is_recoverable_outside_session_vote_timeout,
     )
 
     receipt = decision.receipt.to_dict()
@@ -899,6 +925,11 @@ def _answer_outside_session_vote_failure(
         deterministic_digest_available=deterministic_digest_available,
     )
     if disposition is VoteTimeoutDisposition.NONE:
+        return None
+    if (
+        disposition is VoteTimeoutDisposition.CLARIFY
+        and is_recoverable_outside_session_vote_timeout(receipt)
+    ):
         return None
 
     packet: Mapping[str, Any] = {}

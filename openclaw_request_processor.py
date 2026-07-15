@@ -9326,6 +9326,8 @@ def _reassert_vote_timeout_operator_message(
         )
         receipt = proof_receipt if isinstance(proof_receipt, Mapping) else {}
     proof = dict(response.proof_to_response or {})
+    if proof.get("vote_timeout_recovery_applied") is True:
+        return response
     deterministic_digest_available = bool(
         proof.get("vote_timeout_deterministic_digest") is True
     )
@@ -9444,6 +9446,9 @@ def _reassert_vote_timeout_operator_message(
 
 def _is_vote_timeout_response(response: OpenClawResponseForMac) -> bool:
     """Use the shared receipt owner to suppress timeout-path history capture."""
+
+    if (response.proof_to_response or {}).get("vote_timeout_recovery_applied") is True:
+        return False
 
     try:
         from vote_timeout_clarification import (
