@@ -200,6 +200,36 @@ def test_service_exact_1652_message_reaches_st_annes_workflow_rail(
         },
         raising=False,
     )
+    drift_path = tmp_path / "st_annes_invoice_truth_drift.json"
+    drift_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "st_annes_invoice_truth_drift_v0",
+                "client_ref": "st_annes",
+                "service_period": "2026-06",
+                "status": "DRIFT_DETECTED",
+                "workbook_truth": {
+                    "service_count": 7,
+                    "total_due": 875.0,
+                    "invoice_number": "3",
+                    "invoice_status": "draft",
+                    "send_receipt_present": False,
+                },
+                "mirror_truth": {"confirmed_event_count": 0},
+                "missing_items": [
+                    "Reconcile workbook billables into the work-log mirror"
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        consumer.workflow_package_queue,
+        "ST_ANNES_INVOICE_TRUTH_DRIFT_PATH",
+        drift_path,
+        raising=False,
+    )
     request = maestro_listener.build_operator_maestro_chat_request(
         (
             "whats going on with the st. annes invoice test? are we done what we need "
@@ -255,11 +285,11 @@ def test_service_exact_1652_message_reaches_st_annes_workflow_rail(
     assert receipt["machine_proof"]["pdf_export_performed"] is False
     assert response["one_line_answer"] == (
         "The St. Anne's invoice dry-run passed and nothing was sent. "
-        "Confirm billable work sessions to proceed; 0 are confirmed."
+        "The June workbook has 7 services totaling $875, while the work-log mirror has 0 confirmed."
     )
     assert response["eliwinship"] == response["one_line_answer"]
     assert response["missing_items_short"] == [
-        "Confirm billable work sessions (0 confirmed)"
+        "Reconcile workbook billables into the work-log mirror"
     ]
 
 

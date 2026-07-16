@@ -138,6 +138,36 @@ def test_st_annes_billable_readiness_fails_closed_on_malformed_truth(
     ]
 
 
+def test_st_annes_truth_drift_reader_rejects_wrong_client(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    drift_path = tmp_path / "st_annes_invoice_truth_drift.json"
+    drift_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "st_annes_invoice_truth_drift_v0",
+                "client_ref": "capital_hilton",
+                "service_period": "2026-06",
+                "status": "DRIFT_DETECTED",
+                "workbook_truth": {"service_count": 7, "total_due": 875.0},
+                "mirror_truth": {"confirmed_event_count": 0},
+                "missing_items": ["wrong client data must not render"],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        queue,
+        "ST_ANNES_INVOICE_TRUTH_DRIFT_PATH",
+        drift_path,
+        raising=False,
+    )
+
+    assert queue._st_annes_invoice_truth_drift() == {}
+
+
 def test_st_annes_invoice_send_blocks_for_artifact_when_permission_ready():
     package = _package(
         "Send St. Anne's invoice.",

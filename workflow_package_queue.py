@@ -23,6 +23,9 @@ from invoice_cockpit_intent import classify_finalized_invoice_review
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
+ST_ANNES_INVOICE_TRUTH_DRIFT_PATH = (
+    DEFAULT_EXPORT_ROOT / "st_annes_invoice_truth_drift.json"
+)
 DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/Workflow Package Queue.md")
 DEFAULT_SQLITE_PATH = Path("generated/system_knowledge/workflow_package_queue.sqlite")
@@ -1210,6 +1213,50 @@ def _st_annes_billable_session_readiness() -> dict[str, Any]:
     }
 
 
+def _st_annes_invoice_truth_drift() -> dict[str, Any]:
+    payload = _json_object(_source_path(ST_ANNES_INVOICE_TRUTH_DRIFT_PATH))
+    if (
+        payload.get("schema_version") != "st_annes_invoice_truth_drift_v0"
+        or payload.get("client_ref") != "st_annes"
+        or payload.get("service_period") != "2026-06"
+        or payload.get("status") != "DRIFT_DETECTED"
+    ):
+        return {}
+    workbook_truth = payload.get("workbook_truth")
+    mirror_truth = payload.get("mirror_truth")
+    missing_items = payload.get("missing_items")
+    if not isinstance(workbook_truth, Mapping) or not isinstance(mirror_truth, Mapping):
+        return {}
+    service_count = workbook_truth.get("service_count")
+    total_due = workbook_truth.get("total_due")
+    confirmed_count = mirror_truth.get("confirmed_event_count")
+    if (
+        isinstance(service_count, bool)
+        or not isinstance(service_count, int)
+        or service_count < 0
+        or isinstance(total_due, bool)
+        or not isinstance(total_due, (int, float))
+        or total_due < 0
+        or isinstance(confirmed_count, bool)
+        or not isinstance(confirmed_count, int)
+        or confirmed_count < 0
+        or not isinstance(missing_items, list)
+    ):
+        return {}
+    clean_missing = [str(item).strip() for item in missing_items if str(item).strip()]
+    if not clean_missing:
+        return {}
+    return {
+        "service_count": service_count,
+        "total_due": float(total_due),
+        "confirmed_event_count": confirmed_count,
+        "invoice_number": str(workbook_truth.get("invoice_number") or ""),
+        "invoice_status": str(workbook_truth.get("invoice_status") or ""),
+        "send_receipt_present": workbook_truth.get("send_receipt_present") is True,
+        "missing_items": clean_missing,
+    }
+
+
 def _st_annes_monthly_invoice_source_room_context() -> dict[str, Any]:
     scenario_ref = "st_annes_monthly_invoice_rollup"
     sources = [
@@ -1419,10 +1466,42 @@ def operator_display_for_package(
             "show_machine_details_by_default": False,
         }
     if workflow_ref == "st_annes_monthly_invoice_rollup":
+        drift = _st_annes_invoice_truth_drift()
         readiness = _st_annes_billable_session_readiness()
         confirmed_count = int(readiness["confirmed_billable_session_count"])
         missing_items = list(readiness["missing_items"])
         if package_status == "OPERATOR_REVIEW_REQUIRED":
+            if drift:
+                service_count = int(drift["service_count"])
+                total_due = float(drift["total_due"])
+                mirror_count = int(drift["confirmed_event_count"])
+                total_text = f"${total_due:,.0f}" if total_due.is_integer() else f"${total_due:,.2f}"
+                return {
+                    **voice_fields,
+                    "headline": "St. Anne's invoice sources need reconciliation",
+                    "subheadline": "The local proof dry-run passed; workbook and work-log truth differ.",
+                    "status_label": "Dry-run passed / drift found",
+                    "tone": "warning",
+                    "plain_summary": (
+                        "The St. Anne's invoice dry-run passed and nothing was sent. "
+                        f"The June workbook has {service_count} services totaling {total_text}, "
+                        f"while the work-log mirror has {mirror_count} confirmed."
+                    ),
+                    "next_safe_action": (
+                        "Reconcile workbook billables into the work-log mirror, then rerun invoice review."
+                    ),
+                    "why_it_matters": (
+                        "The workbook owns invoice content; the work-log is a one-way mirror and must not contradict it."
+                    ),
+                    "primary_fact": "The dry-run passed and nothing was sent.",
+                    "secondary_facts": [
+                        f"Workbook services: {service_count}; total due: {total_text}.",
+                        f"Work-log confirmed events: {mirror_count}.",
+                    ],
+                    "missing_items": list(drift["missing_items"]),
+                    "proof_caption": "Truth-drift proof available.",
+                    "show_machine_details_by_default": False,
+                }
             if missing_items:
                 plain_summary = (
                     "The St. Anne's invoice dry-run passed and nothing was sent. "
