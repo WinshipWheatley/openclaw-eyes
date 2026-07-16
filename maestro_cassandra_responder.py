@@ -2258,6 +2258,8 @@ def _answer_with_maestro_brain(
     _capsule: Any | None = None,
     agent: str = "maestro",
 ) -> MaestroCassandraResult:
+    packet_session = dict(session or {})
+    packet_session["interpreter_route"] = "BRAIN"
     # ── INTERPRETER-LM fact selection bridge (flag-gated, ADDITIVE) ──────────
     # When OPENCLAW_INTERPRETER_LM is on AND the raw session carries an
     # "interpreter_fact_selection" hint (injected upstream by the interpreter
@@ -2300,7 +2302,7 @@ def _answer_with_maestro_brain(
                         "source_surface": source_surface,
                         "send_hold": True,
                     },
-                    session=session,
+                    session=packet_session,
                     source_surface=source_surface,
                     require_real_truth=True,
                     capsule=_capsule_arg,
@@ -2316,7 +2318,7 @@ def _answer_with_maestro_brain(
                             packet_engine_failure_type = str(first_failure.get("type") or "")
                     context_packet = build_maestro_context_packet(
                         question=text,
-                        session=session,
+                        session=packet_session,
                         source_surface=source_surface,
                         require_real_truth=True,
                         capsule=_capsule_arg,
@@ -2339,7 +2341,7 @@ def _answer_with_maestro_brain(
                     packet_engine_receipt = None
                 context_packet = build_maestro_context_packet(
                     question=text,
-                    session=session,
+                    session=packet_session,
                     source_surface=source_surface,
                     require_real_truth=True,
                     capsule=_capsule_arg,
@@ -2348,7 +2350,7 @@ def _answer_with_maestro_brain(
         else:
             context_packet = build_maestro_context_packet(
                 question=text,
-                session=session,
+                session=packet_session,
                 source_surface=source_surface,
                 require_real_truth=True,
                 capsule=_capsule_arg,

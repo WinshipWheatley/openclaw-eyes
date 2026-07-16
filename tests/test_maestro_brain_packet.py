@@ -199,6 +199,53 @@ def test_brain_concept_question_does_not_pull_live_invoice_state(monkeypatch, tm
     assert "paid" not in packet_text
 
 
+def test_canonical_maestro_brain_applies_question_relevance_without_interpreter_session(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    store_path = _truth_store(monkeypatch, tmp_path)
+    read_model_root = _read_models(tmp_path)
+
+    import maestro_cassandra_responder as maestro
+    import typed_contract_decision as typed
+
+    monkeypatch.setenv(typed.SEMANTIC_VOTE_ENV, "maestro")
+    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
+    monkeypatch.setattr(typed, "_call_semantic_vote", lambda *_args, **_kwargs: (None, "below_threshold"))
+    captured: dict = {}
+
+    def protected_generate(text: str, *, context_packet: dict):
+        captured["packet"] = context_packet
+        return {
+            "text": "Checkpoint durable state, use idempotent steps, and resume from the last receipt.",
+            "receipt": {
+                "receipt_id": "protected-generate:canonical-relevance",
+                "model_call_performed": True,
+                "local_model_invoked": True,
+                "external_llm_invoked": False,
+                "model_selected": "qwen3:8b-q4_K_M",
+            },
+        }
+
+    result = maestro.answer_frontdoor_chat(
+        "What are three practical ways to make a long-running workflow resilient?",
+        session={
+            "source_message_id": "telegram:canonical-relevance",
+            "read_model_root": str(read_model_root),
+            "operator_truth_store_path": str(store_path),
+        },
+        protected_generate_fn=protected_generate,
+    )
+
+    packet = captured["packet"]
+    proof = packet["machine_proof"]
+    assert result.status == "ANSWER_READY"
+    assert proof["question_relevance_contract_applied"] is True
+    assert proof["question_relevance_scope"] == "general_guidance"
+    assert {fact["topic"] for fact in packet["facts"]} == {"answer_scope"}
+    assert "capital hilton" not in packet["packet_text"].lower()
+
+
 def test_maestro_context_packet_includes_calendar_events_for_day_questions(monkeypatch, tmp_path: Path) -> None:
     store_path = _truth_store(monkeypatch, tmp_path)
     read_model_root = _read_models(tmp_path)
