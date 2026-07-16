@@ -354,6 +354,46 @@ def _valid_workflow_request_for_text(text: str) -> dict[str, Any]:
 
 
 class TestSharedLm1Seam:
+    def test_shared_lm1_brain_route_scopes_general_guidance_at_packet_forge(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "1")
+        monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "1")
+        monkeypatch.setenv("OPENCLAW_TEST_MODE", "1")
+        read_model_root = _seed_packet_read_models(tmp_path)
+        truth_path = _seed_operator_truth(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            maestro,
+            "session_from_request",
+            lambda _r: {
+                "read_model_root": read_model_root.as_posix(),
+                "operator_truth_store_path": truth_path.as_posix(),
+            },
+        )
+
+        monkeypatch.setattr(
+            interpreter_lm,
+            "interpret_operator_message",
+            lambda *_args, **_kwargs: interpreter_lm.InterpretResult(
+                route=interpreter_lm.ROUTE_BRAIN,
+                fact_selection=[],
+                confidence=0.99,
+                reason="general resilience guidance",
+            ),
+        )
+
+        question = "What are three practical ways to make a long-running workflow resilient?"
+        seam = processor._build_lm1_shared_request_seam(
+            _valid_workflow_request_for_text(question),
+            generated_at="2026-07-15T23:59:00+00:00",
+        )
+
+        packet = seam["rich_context_packet"]
+        assert seam["interpretation"]["route"] == "BRAIN"
+        assert packet["machine_proof"]["question_relevance_scope"] == "general_guidance"
+        assert {fact["topic"] for fact in packet["facts"]} == {"answer_scope"}
+        assert "Capital Hilton" not in packet["packet_text"]
+
     def test_shared_lm1_seam_feeds_workflow_and_reuses_rich_brain_packet(
         self, tmp_path, monkeypatch
     ):

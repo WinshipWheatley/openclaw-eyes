@@ -57,9 +57,21 @@ DEFAULT_RESPONSE_TIMEOUT_S = 45.0
 DEFAULT_RESPONSE_POLL_INTERVAL_S = 0.25
 
 BLOCKED_OR_UNKNOWN_REPLY = (
-    "Recorded, no action ran. Maestro did not receive a final answer for this request. "
-    "Capability readback did not produce a final response. "
-    "The request stayed inside the local bridge; no send, workflow, model, tool, or external action ran."
+    "Maestro did not receive a final response for this request. "
+    "I can't verify whether a model ran from the scoped bridge result. "
+    "The listener did not authorize an external action."
+)
+PROCESSING_ONLY_REPLY = (
+    "Recorded, no action ran. Maestro received only a processing heartbeat, not a final answer. "
+    "I can't verify from this heartbeat whether a model ran."
+)
+WORKFLOW_STAGED_REPLY = (
+    "OpenClaw staged a workflow package instead of producing a final answer. "
+    "I can't verify from this payload whether a model ran."
+)
+TIMEOUT_REPLY = (
+    "Maestro's bounded answer attempt timed out before a final response was ready. "
+    "The timeout payload does not prove that a model result exists."
 )
 STALE_CARRYOVER_REPLY = honest_short_fail(
     "Maestro",
@@ -833,6 +845,29 @@ def _best_final_text(payload: Mapping[str, Any]) -> str:
     return ""
 
 
+def _failure_specific_reply(payload: Mapping[str, Any] | None) -> str:
+    if not payload:
+        return BLOCKED_OR_UNKNOWN_REPLY
+    blocked_reason = str(payload.get("blocked_reason") or "").casefold()
+    request_type = str(payload.get("request_type") or "").upper()
+    headline = str(payload.get("operator_headline") or payload.get("headline") or "").casefold()
+    if blocked_reason == "guardian_output_denied":
+        return _best_final_text(payload) or (
+            "Guardian held this reply before publication. Ask me to retry or show the gate reason."
+        )
+    timeout_blob = " ".join(
+        str(payload.get(key) or "")
+        for key in ("internal_status", "blocked_reason", "operator_message", "why_it_happened")
+    ).casefold()
+    if "timeout" in timeout_blob or "timed out" in timeout_blob or "deadline_exceeded" in timeout_blob:
+        return _best_final_text(payload) or TIMEOUT_REPLY
+    if request_type == "WORKFLOW_PACKAGE_REQUEST" or "workflow package staged" in headline:
+        return WORKFLOW_STAGED_REPLY
+    if payload.get("terminal") is False or payload.get("processing_heartbeat_id"):
+        return PROCESSING_ONLY_REPLY
+    return _best_final_text(payload) or BLOCKED_OR_UNKNOWN_REPLY
+
+
 # Task 174: _correlation_ref was deleted with the visible provenance tag it
 # manufactured — the correlation ref lives ONLY in the receipt channel now.
 
@@ -871,7 +906,7 @@ def _resilient_reply_text(text: str, *, payload: Mapping[str, Any] | None, reque
 
 def reply_text_from_bridge_response(payload: Mapping[str, Any] | None, *, request_id: str | None = None) -> str:
     if _blocked_or_unknown_response(payload):
-        reply = _append_provenance(BLOCKED_OR_UNKNOWN_REPLY, payload=payload, request_id=request_id)
+        reply = _append_provenance(_failure_specific_reply(payload), payload=payload, request_id=request_id)
         return _resilient_reply_text(reply, payload=payload, request_id=request_id)
     assert payload is not None
     text = _best_final_text(payload)

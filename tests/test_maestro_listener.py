@@ -372,7 +372,7 @@ def test_first_touch_refusal_precedes_governed_intake_and_bridge(tmp_path, monke
     assert (tmp_path / "refusal-receipts.jsonl").is_file()
 
 
-def test_blocked_or_unknown_bridge_response_is_explicit_not_silent(monkeypatch):
+def test_workflow_staging_bridge_response_is_explicit_and_model_call_agnostic(monkeypatch):
     monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
     monkeypatch.setattr(maestro_listener, "record_maestro_intake_metadata", lambda **kwargs: None)
     monkeypatch.setattr(maestro_listener, "write_bridge_request", lambda request, **kwargs: Path("/tmp/request.json"))
@@ -393,9 +393,53 @@ def test_blocked_or_unknown_bridge_response_is_explicit_not_silent(monkeypatch):
 
     assert len(update.message.replies) == 1
     reply = update.message.replies[0].lower()
-    assert "recorded, no action ran" in reply
-    assert "capability readback" in reply
+    assert "staged a workflow package instead of producing a final answer" in reply
+    assert "can't verify from this payload whether a model ran" in reply
+    assert "no send, workflow, model, tool" not in reply
     assert "capability readback is live after reconcile" not in reply
+
+
+def test_guardian_denial_keeps_guardian_truth_instead_of_lying_no_model_floor():
+    payload = {
+        "source_request_id": "maestro_telegram_guardian_hold",
+        "internal_status": "BLOCKED_WITH_REASON",
+        "request_type": "CHAT",
+        "blocked_reason": "guardian_output_denied",
+        "operator_headline": "Guardian held this reply",
+        "operator_message": (
+            "Guardian held this reply before publication. Nothing was sent, changed, or executed. "
+            "Ask me to retry or show the gate reason."
+        ),
+    }
+
+    reply = maestro_listener.reply_text_from_bridge_response(payload)
+
+    assert "Guardian held this reply before publication" in reply
+    assert "Nothing was sent, changed, or executed" in reply
+    assert "no send, workflow, model, tool" not in reply.lower()
+
+
+def test_timeout_bridge_response_names_timeout_without_inventing_model_call_facts():
+    payload = {
+        "source_request_id": "maestro_telegram_timeout",
+        "internal_status": "MODEL_TIMEOUT",
+        "request_type": "CHAT",
+        "blocked_reason": "deadline_exceeded",
+        "operator_message": "The bounded answer attempt timed out before a final response was ready.",
+    }
+
+    reply = maestro_listener.reply_text_from_bridge_response(payload)
+
+    assert "timed out" in reply.lower()
+    assert "no send, workflow, model, tool" not in reply.lower()
+
+
+def test_missing_scoped_response_does_not_claim_that_no_model_ran():
+    reply = maestro_listener.reply_text_from_bridge_response(None)
+
+    assert "did not receive a final response" in reply.lower()
+    assert "can't verify whether a model ran" in reply.lower()
+    assert "no send, workflow, model, tool" not in reply.lower()
 
 
 def test_reply_prefers_full_final_operator_message_over_generic_one_line():

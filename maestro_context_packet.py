@@ -2238,6 +2238,252 @@ def _extract_query_terms(question: str) -> list[str]:
     return [t for t in tokens if t not in _STOP_WORDS and len(t) >= 3]
 
 
+_RELEVANCE_GENERIC_TERMS = frozenset(
+    {
+        "answer",
+        "current",
+        "general",
+        "help",
+        "latest",
+        "please",
+        "question",
+        "status",
+        "today",
+    }
+)
+_OPERATOR_SPECIFIC_MARKERS = (
+    "capital hilton",
+    "st anne",
+    "live arts",
+    "coupa",
+    "invoice",
+    "invoices",
+    "receivable",
+    "receivables",
+    "payment",
+    "payments",
+    "paid",
+    "calendar",
+    "schedule",
+    "what does my day",
+    "what's on my plate",
+    "what is on my plate",
+    "who is online",
+    "who's online",
+    "openclaw status",
+    "fleet status",
+)
+_GLOBAL_OVERVIEW_MARKERS = (
+    "catch me up",
+    "brief me on everything",
+    "overall status",
+    "what needs my attention",
+    "what needs attention",
+    "what's on my plate",
+    "what is on my plate",
+)
+_GENERAL_GUIDANCE_MARKERS = (
+    "best practice",
+    "best practices",
+    "explain",
+    "how can",
+    "how do",
+    "how should",
+    "practical way",
+    "practical ways",
+    "tips for",
+    "what are",
+    "what is",
+    "why does",
+    "why is",
+    "why should",
+)
+_CURRENT_STATE_MARKERS = (
+    "capital hilton",
+    "st anne",
+    "live arts",
+    "cassandra",
+    "chief",
+    "niles",
+    "hermes",
+    "guardian",
+    "maestro",
+    "current",
+    "latest",
+    "status",
+    "today",
+    "tomorrow",
+    "owed",
+    "owes",
+    "paid",
+)
+
+
+def _question_answer_scope_fact(*, established: bool) -> dict[str, Any]:
+    value = (
+        "Answer this as general, non-sensitive guidance. Do not use or mention any "
+        "operator-specific state from this system. If the question cannot be answered as "
+        "general guidance, say plainly that you do not have grounded information for it."
+        if established
+        else
+        "Relevance could not be established for this operator-specific question. Say plainly "
+        "that you do not have grounded information for that topic; do not substitute another topic."
+    )
+    facts: list[dict[str, Any]] = []
+    _append_fact(
+        facts,
+        topic="answer_scope",
+        label="Question relevance scope",
+        value=value,
+        provenance="question_relevance_contract",
+        source_ref=(
+            "question_relevance_contract:general_guidance"
+            if established
+            else "question_relevance_contract:unavailable"
+        ),
+        pii_tier="PUBLIC",
+    )
+    return facts[0]
+
+
+def _question_requests_global_overview(question: str) -> bool:
+    lowered = str(question or "").casefold()
+    return any(marker in lowered for marker in _GLOBAL_OVERVIEW_MARKERS)
+
+
+def _question_is_general_guidance(question: str) -> bool:
+    lowered = str(question or "").casefold()
+    if not any(marker in lowered for marker in _GENERAL_GUIDANCE_MARKERS):
+        return False
+    if any(marker in lowered for marker in _CURRENT_STATE_MARKERS):
+        return False
+    return not bool(re.search(r"\b(?:my|our)\b", lowered))
+
+
+def _question_has_operator_specific_anchor(question: str) -> bool:
+    lowered = str(question or "").casefold()
+    if any(marker in lowered for marker in _OPERATOR_SPECIFIC_MARKERS):
+        return True
+    named_system_markers = ("cassandra", "chief", "niles", "hermes", "guardian", "maestro")
+    if any(marker in lowered for marker in named_system_markers):
+        return True
+    return bool(
+        re.search(
+            r"\b(?:my|our)\s+(?:money|finances|agents?|system|calendar|schedule|day)\b",
+            lowered,
+        )
+    )
+
+
+def _fact_matches_selection(fact: Mapping[str, Any], fact_selection: Sequence[str]) -> bool:
+    source_ref = str(fact.get("source_ref") or "")
+    return any(
+        str(selected or "").strip() in source_ref
+        for selected in fact_selection
+        if str(selected or "").strip()
+    )
+
+
+def _fact_relevant_to_question(fact: Mapping[str, Any], question: str) -> bool:
+    lowered = str(question or "").casefold()
+    blob = " ".join(
+        str(fact.get(key) or "")
+        for key in ("topic", "label", "value", "source_ref")
+    ).casefold()
+    terms = [term for term in _extract_query_terms(question) if term not in _RELEVANCE_GENERIC_TERMS]
+    if any(term in blob for term in terms):
+        return True
+    domain_pairs = (
+        (("calendar", "schedule", "my day"), ("calendar", "commitment", "event")),
+        (
+            ("invoice", "receivable", "payment", "paid", "coupa"),
+            ("invoice", "receivable", "payment", "coupa"),
+        ),
+        (
+            ("agent", "fleet", "online", "openclaw status"),
+            ("agent", "fleet", "presence", "system posture"),
+        ),
+    )
+    return any(
+        any(marker in lowered for marker in question_markers)
+        and any(marker in blob for marker in fact_markers)
+        for question_markers, fact_markers in domain_pairs
+    )
+
+
+def _apply_question_relevance_contract(
+    facts: Sequence[Mapping[str, Any]],
+    *,
+    question: str,
+    session: Mapping[str, Any] | None,
+    fact_selection: Sequence[str] | None,
+    applied_skills: Sequence[Mapping[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    route = str((session or {}).get("interpreter_route") or "").strip().upper()
+    original = [dict(fact) for fact in facts]
+    if route != "BRAIN":
+        return original, {}
+    if _question_requests_global_overview(question):
+        return original, {
+            "question_relevance_contract_applied": True,
+            "question_relevance_scope": "global_overview",
+            "question_relevance_established": True,
+            "question_relevance_dropped_fact_count": 0,
+            "question_relevance_kept_fact_count": len(original),
+        }
+
+    if applied_skills:
+        scoped = [
+            fact
+            for fact in original
+            if str(fact.get("topic") or "") in {"answer_scope", "music_law_advisory"}
+        ]
+        if scoped:
+            return scoped, {
+                "question_relevance_contract_applied": True,
+                "question_relevance_scope": "matched_skill_guidance",
+                "question_relevance_established": True,
+                "question_relevance_dropped_fact_count": len(original) - len(scoped),
+                "question_relevance_kept_fact_count": len(scoped),
+            }
+
+    if _question_is_general_guidance(question) or not _question_has_operator_specific_anchor(
+        question
+    ):
+        scoped = [_question_answer_scope_fact(established=True)]
+        return scoped, {
+            "question_relevance_contract_applied": True,
+            "question_relevance_scope": "general_guidance",
+            "question_relevance_established": True,
+            "question_relevance_dropped_fact_count": len(original),
+            "question_relevance_kept_fact_count": len(scoped),
+        }
+
+    selections = tuple(str(item) for item in (fact_selection or ()) if str(item).strip())
+    scoped = [
+        fact
+        for fact in original
+        if _fact_matches_selection(fact, selections) or _fact_relevant_to_question(fact, question)
+    ]
+    if scoped:
+        return scoped, {
+            "question_relevance_contract_applied": True,
+            "question_relevance_scope": "operator_specific",
+            "question_relevance_established": True,
+            "question_relevance_dropped_fact_count": len(original) - len(scoped),
+            "question_relevance_kept_fact_count": len(scoped),
+        }
+
+    unavailable = [_question_answer_scope_fact(established=False)]
+    return unavailable, {
+        "question_relevance_contract_applied": True,
+        "question_relevance_scope": "relevance_unavailable",
+        "question_relevance_established": False,
+        "question_relevance_dropped_fact_count": len(original),
+        "question_relevance_kept_fact_count": len(unavailable),
+    }
+
+
 def _sqlite_canonical_facts(
     question: str,
     agent: str = "maestro",
@@ -2440,8 +2686,9 @@ def build_maestro_context_packet(
         deterministic behaviour, BYTE-IDENTICAL.  When provided and the
         interpreter flag is on, the selected read-models are moved to the
         front of the fact list so they survive the facts[:30] cap in
-        format_maestro_context_packet.  All existing facts are still assembled
-        normally; this is purely an ordering/elevation hint — never a filter.
+        format_maestro_context_packet. All existing facts are assembled before
+        selection. A shared-seam BRAIN route then applies the question-relevance
+        contract and may remove facts unrelated to the operator's question.
     """
     prebuilt_lm1_packet = _prebuilt_lm1_shared_packet(session)
     if prebuilt_lm1_packet is not None:
@@ -2543,6 +2790,14 @@ def build_maestro_context_packet(
         for skill in applied_skills
     ]
 
+    facts, question_relevance_proof = _apply_question_relevance_contract(
+        facts,
+        question=question,
+        session=session,
+        fact_selection=fact_selection,
+        applied_skills=applied_skills,
+    )
+
     facts, money_status_guard_proof = _apply_money_status_anti_launder_guard(
         facts,
         question=question,
@@ -2570,12 +2825,13 @@ def build_maestro_context_packet(
         )
 
     skill_refs = [f"skill:{skill['skill_id']}:{skill['source_path']}" for skill in applied_skills]
+    scoped_source_refs = bool(question_relevance_proof.get("question_relevance_contract_applied"))
     source_refs = tuple(
         dict.fromkeys(
             [
                 *(fact["source_ref"] for fact in facts),
                 *(str(fact.get("ledger_source_ref") or "") for fact in facts if fact.get("ledger_source_ref")),
-                *read_model_refs,
+                *(() if scoped_source_refs else read_model_refs),
                 *skill_refs,
             ]
         )
@@ -2627,6 +2883,7 @@ def build_maestro_context_packet(
             **receivable_temporal_proof,
             **money_status_guard_proof,
             **answer_topic_proof,
+            **question_relevance_proof,
             **contacts_proof,
             **read_model_proof,
         },

@@ -139,6 +139,66 @@ def test_maestro_context_packet_uses_operator_truth_and_read_models(monkeypatch,
     assert packet["machine_proof"]["read_model_count"] >= 4
 
 
+def test_brain_general_guidance_packet_drops_unrelated_business_facts(monkeypatch, tmp_path: Path) -> None:
+    store_path = _truth_store(monkeypatch, tmp_path)
+    read_model_root = _read_models(tmp_path)
+
+    from maestro_context_packet import build_maestro_context_packet
+
+    question = "What are three practical ways to make a long-running workflow resilient?"
+    packet = build_maestro_context_packet(
+        question=question,
+        session={"interpreter_route": "BRAIN"},
+        read_model_root=read_model_root,
+        operator_truth_store_path=store_path,
+        require_real_truth=True,
+        fact_selection=[],
+    )
+
+    proof = packet["machine_proof"]
+    packet_text = packet["packet_text"].lower()
+    assert proof["question_relevance_contract_applied"] is True
+    assert proof["question_relevance_scope"] == "general_guidance"
+    assert proof["question_relevance_established"] is True
+    assert proof["question_relevance_dropped_fact_count"] > 0
+    assert {fact["topic"] for fact in packet["facts"]} == {"answer_scope"}
+    assert "general, non-sensitive guidance" in packet_text
+    for unrelated in (
+        "capital hilton",
+        "st anne",
+        "live arts",
+        "coupa",
+        "invoice",
+        "paid",
+        "calendar",
+    ):
+        assert unrelated not in packet_text
+    assert all(not ref.startswith("generated/read_models/") for ref in packet["source_refs"])
+
+
+def test_brain_concept_question_does_not_pull_live_invoice_state(monkeypatch, tmp_path: Path) -> None:
+    store_path = _truth_store(monkeypatch, tmp_path)
+    read_model_root = _read_models(tmp_path)
+
+    from maestro_context_packet import build_maestro_context_packet
+
+    packet = build_maestro_context_packet(
+        question="What are best practices for making an invoice workflow resilient?",
+        session={"interpreter_route": "BRAIN"},
+        read_model_root=read_model_root,
+        operator_truth_store_path=store_path,
+        require_real_truth=True,
+        fact_selection=["finance_invoice_reconciliation.json"],
+    )
+
+    assert packet["machine_proof"]["question_relevance_scope"] == "general_guidance"
+    assert {fact["topic"] for fact in packet["facts"]} == {"answer_scope"}
+    packet_text = packet["packet_text"].lower()
+    assert "capital hilton" not in packet_text
+    assert "live arts" not in packet_text
+    assert "paid" not in packet_text
+
+
 def test_maestro_context_packet_includes_calendar_events_for_day_questions(monkeypatch, tmp_path: Path) -> None:
     store_path = _truth_store(monkeypatch, tmp_path)
     read_model_root = _read_models(tmp_path)

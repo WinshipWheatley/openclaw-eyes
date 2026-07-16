@@ -6382,6 +6382,12 @@ def _build_lm1_shared_request_seam(
             },
         }
 
+    session = {
+        **session,
+        "interpreter_route": str(interpretation.get("route") or ""),
+        "interpreter_intent": str(interpretation.get("intent") or ""),
+        "interpreter_reason": str(interpretation.get("reason") or ""),
+    }
     if interpretation.get("fact_selection"):
         session = {**session, "interpreter_fact_selection": list(interpretation.get("fact_selection") or [])}
     rich_packet: dict[str, Any] = {}
