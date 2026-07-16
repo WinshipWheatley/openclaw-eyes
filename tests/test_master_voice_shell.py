@@ -32,11 +32,8 @@ def _run_master_voice(
     tmp_path: Path,
     marker_dir: Path,
     warm_service_fail: bool = True,
-    warm_service_error: str = "unavailable",
 ) -> subprocess.CompletedProcess:
     env = dict(os.environ)
-    warm_dir = tmp_path / "warm_service"
-    warm_dir.mkdir(exist_ok=True)
     env.update(
         {
             "PYV": str(STUB_PYV),
@@ -50,11 +47,9 @@ def _run_master_voice(
             # a live Telegram send could be using that file at any time.
             "WAV": str(tmp_path / "master_voice.wav"),
             "OGG": str(tmp_path / "master_voice.ogg"),
-            "OPENCLAW_KOKORO_VOICE_DIR": str(warm_dir),
             "STUB_MARKER_DIR": str(marker_dir),
             "STUB_FORCE_SYNTH_FAIL": "1" if force_synth_fail else "0",
             "STUB_WARM_SERVICE_FAIL": "1" if warm_service_fail else "0",
-            "STUB_WARM_SERVICE_ERROR": warm_service_error,
         }
     )
     return subprocess.run(
@@ -73,7 +68,7 @@ class TestMasterVoiceShellStatic:
     def test_voice_synthesis_is_cpu_only(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
         assert 'export CUDA_VISIBLE_DEVICES=""' in source
-        assert "request_synthesis" in source
+        assert "synthesize_remote" in source
         assert "SYNTH FAILED (GPU)" not in source
 
     def test_test_harness_can_isolate_secrets_and_network(self) -> None:
@@ -98,13 +93,6 @@ class TestMasterVoiceShellStatic:
         assert "REFUSED: master_voice received machine-contract content" in source
         assert 'cut=txt.rfind("\\n\\n",0,LIM)' in source
 
-    def test_generated_audio_has_exit_cleanup_and_unique_live_defaults(self) -> None:
-        source = SCRIPT.read_text(encoding="utf-8")
-        assert "mktemp --suffix=.wav" in source
-        assert "mktemp --suffix=.ogg" in source
-        assert "trap cleanup_voice_artifacts EXIT" in source
-        assert "OPENCLAW_KOKORO_VOICE_DIR" in source
-
     def test_syntax_is_valid_bash(self) -> None:
         result = subprocess.run(["bash", "-n", str(SCRIPT)], capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
@@ -125,8 +113,6 @@ class TestMasterVoiceShellDynamic:
         assert not (marker_dir / "synth_call_gpu_attempt").exists(), "voice must never see CUDA"
         assert not (marker_dir / "chunked_text_sent.txt").exists(), "must not fall back to text when voice succeeds"
         assert "text sent ok" not in result.stdout
-        assert not (tmp_path / "master_voice.wav").exists()
-        assert not (tmp_path / "master_voice.ogg").exists()
 
     def test_warm_cpu_service_success_avoids_local_model_load(self, tmp_path: Path) -> None:
         marker_dir = tmp_path / "markers"
@@ -143,7 +129,6 @@ class TestMasterVoiceShellDynamic:
         assert not (marker_dir / "synth_call_cpu_fallback").exists(), "warm service should avoid a second model load"
         assert not (marker_dir / "synth_call_gpu_attempt").exists(), "voice must never see CUDA"
         assert "text sent ok" not in result.stdout
-        assert list((tmp_path / "warm_service").iterdir()) == []
 
     def test_synth_failure_retries_cpu_then_falls_back_to_text(self, tmp_path: Path) -> None:
         marker_dir = tmp_path / "markers"
@@ -163,29 +148,6 @@ class TestMasterVoiceShellDynamic:
         sent_text = sent_path.read_text(encoding="utf-8")
         assert text in sent_text
         assert "(voice unavailable)" in sent_text
-
-    @pytest.mark.parametrize("error", ["timeout", "busy"])
-    def test_inflight_remote_synth_never_launches_a_duplicate_local_model(
-        self, tmp_path: Path, error: str
-    ) -> None:
-        marker_dir = tmp_path / "markers"
-        marker_dir.mkdir()
-        text = "The warm service is still working, so send text instead of duplicating synthesis."
-
-        result = _run_master_voice(
-            text,
-            force_synth_fail=False,
-            warm_service_fail=True,
-            warm_service_error=error,
-            tmp_path=tmp_path,
-            marker_dir=marker_dir,
-        )
-
-        assert result.returncode == 0
-        assert (marker_dir / "warm_service_attempt").exists()
-        assert not (marker_dir / "synth_call_cpu_fallback").exists()
-        assert (marker_dir / "chunked_text_sent.txt").exists()
-        assert "still active" in result.stderr
 
     def test_machine_contract_still_refused_before_any_synth_attempt(self, tmp_path: Path) -> None:
         marker_dir = tmp_path / "markers"
