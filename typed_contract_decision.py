@@ -42,10 +42,12 @@ SCHEMA_VERSION = "typed_contract_decision_v1"
 SEMANTIC_VOTE_ENV = "OPENCLAW_CONTRACT_VOTE_ADAPTERS"
 SEMANTIC_VOTE_TIMEOUT_ENV = "OPENCLAW_CONTRACT_VOTE_TIMEOUT_SECONDS"
 CONTRACT_RECEIPT_DB_ENV = "OPENCLAW_CONTRACT_RECEIPT_DB"
-DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 8.0
+DEFAULT_SEMANTIC_TIMEOUT_SECONDS = 30.0
+MAX_SEMANTIC_TIMEOUT_SECONDS = 60.0
 SEMANTIC_VOTE_MODEL = "qwen3:8b-q4_K_M"
-SEMANTIC_VOTE_NUM_CTX = 1024
+SEMANTIC_VOTE_NUM_CTX = 2048
 SEMANTIC_VOTE_NUM_GPU = 999
+SEMANTIC_VOTE_NUM_BATCH = 128
 SEMANTIC_VOTE_KEEP_ALIVE = "10m"
 SEMANTIC_CONFIDENCE_THRESHOLD = 0.72
 MAX_CONTRACT_PRESERVE_RECEIPTS = 4096
@@ -350,7 +352,11 @@ def semantic_vote_timeout_seconds(*, environ: Mapping[str, str] | None = None) -
         value = float(str(env.get(SEMANTIC_VOTE_TIMEOUT_ENV, "") or ""))
     except ValueError:
         return DEFAULT_SEMANTIC_TIMEOUT_SECONDS
-    return value if 0 < value <= 10 else DEFAULT_SEMANTIC_TIMEOUT_SECONDS
+    return (
+        value
+        if 0 < value <= MAX_SEMANTIC_TIMEOUT_SECONDS
+        else DEFAULT_SEMANTIC_TIMEOUT_SECONDS
+    )
 
 
 def active_session_from_mapping(session: Mapping[str, Any] | None) -> bool:
@@ -1487,19 +1493,25 @@ def _call_semantic_vote(
         total_budget_seconds = float(timeout_seconds)
     except (TypeError, ValueError):
         total_budget_seconds = DEFAULT_SEMANTIC_TIMEOUT_SECONDS
-    if not 0 < total_budget_seconds <= 10:
+    if not 0 < total_budget_seconds <= MAX_SEMANTIC_TIMEOUT_SECONDS:
         total_budget_seconds = DEFAULT_SEMANTIC_TIMEOUT_SECONDS
     slot_wait_seconds = min(2.0, max(0.001, total_budget_seconds * 0.4))
     model_timeout_seconds = max(0.001, total_budget_seconds - slot_wait_seconds)
     prompt = _semantic_prompt(text, context)
     semantic_model = SEMANTIC_VOTE_MODEL
     semantic_keep_alive = SEMANTIC_VOTE_KEEP_ALIVE
+    semantic_num_ctx = SEMANTIC_VOTE_NUM_CTX
+    semantic_num_gpu = SEMANTIC_VOTE_NUM_GPU
+    semantic_num_batch = SEMANTIC_VOTE_NUM_BATCH
     try:
         from local_model_governance import binding_from_session
 
         binding = binding_from_session(context.session_snapshot)
         semantic_model = str(binding.get("model") or semantic_model)
         semantic_keep_alive = str(binding.get("keep_alive") or semantic_keep_alive)
+        semantic_num_ctx = int(binding.get("num_ctx") or semantic_num_ctx)
+        semantic_num_gpu = int(binding.get("num_gpu") or semantic_num_gpu)
+        semantic_num_batch = int(binding.get("num_batch") or semantic_num_batch)
     except Exception:
         pass
     call_kwargs = {
@@ -1513,8 +1525,9 @@ def _call_semantic_vote(
         "options": {
             "format": "json",
             "temperature": 0,
-            "num_ctx": SEMANTIC_VOTE_NUM_CTX,
-            "num_gpu": SEMANTIC_VOTE_NUM_GPU,
+            "num_batch": semantic_num_batch,
+            "num_ctx": semantic_num_ctx,
+            "num_gpu": semantic_num_gpu,
         },
         "keep_alive": semantic_keep_alive,
         "retry": False,

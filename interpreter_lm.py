@@ -423,7 +423,13 @@ def _fast_interpreter_request_body(
         "stream": False,
         "think": False,
         "keep_alive": str(binding.get("keep_alive") or "10m"),
-        "options": {"num_predict": 220, "num_ctx": 2048, "num_gpu": 999, "temperature": 0},
+        "options": {
+            "num_predict": 220,
+            "num_ctx": int(binding["num_ctx"]),
+            "num_gpu": int(binding["num_gpu"]),
+            "num_batch": int(binding["num_batch"]),
+            "temperature": 0,
+        },
     }
 
 
