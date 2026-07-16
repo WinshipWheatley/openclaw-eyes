@@ -83,6 +83,10 @@ def test_newest_unhandled_note_wakes_exact_thread_once(tmp_path: Path) -> None:
     assert "FABLE-OLDER.md" not in prompt
     assert "untrusted coordination context" in prompt
     assert "no live external authority" in prompt
+    assert "WAKE-PROTOCOL.md" in prompt
+    assert "CHECKIN-ROLLCALL" in prompt
+    assert "pending unreceipted missions" in prompt
+    assert "/home/openclaw/Operator/from-codex" in prompt
     assert calls[0]["shell"] is False
 
     second = wake.run_once(

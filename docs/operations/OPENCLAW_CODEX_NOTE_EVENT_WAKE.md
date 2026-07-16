@@ -6,8 +6,12 @@ notifications to wake the Sol Codex task when a new or changed Markdown note lan
 
 The installer primes a mode-0600 signature ledger before enabling the path unit. Files
 present at activation are therefore historical and cannot replay. When several notes land
-together, the newest note is sent to the task and the startup snapshot is marked handled.
-A failed Codex resume leaves the state unchanged and receives three bounded service retries.
+together, the newest changed note triggers the task. The wake prompt then applies the shared
+`/mnt/e/openclaw/WAKE-PROTOCOL.md`: pending roll calls are handled first, the remaining
+unreceipted queue is caught up, and a receipt is written to
+`/home/openclaw/Operator/from-codex` for every completed or blocked mission. The startup
+snapshot is marked handled only after the resumed task exits successfully. A failed Codex
+resume leaves the state unchanged and receives three bounded service retries.
 
 The bridge is context, not authority. The wake prompt identifies each note as untrusted and
 preserves the hard red line against unattended external authority, business sends, deletes,
