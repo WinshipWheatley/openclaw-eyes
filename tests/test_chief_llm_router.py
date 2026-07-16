@@ -123,7 +123,7 @@ def test_contract_semantic_vote_has_one_explicit_fast_model_route():
     ) == "fast"
 
 
-def test_ollama_call_lane_uses_resolved_model(monkeypatch):
+def test_ollama_call_fast_lane_uses_governed_interactive_8b(monkeypatch):
     calls: list[tuple[str, int]] = []
 
     monkeypatch.setattr(
@@ -152,7 +152,88 @@ def test_ollama_call_lane_uses_resolved_model(monkeypatch):
     out = chief_llm.ollama_call("Classify this quickly.", lane="fast", timeout=12)
 
     assert out == "ok"
-    assert calls == [("nemotron-3-nano:4b", 12)]
+    assert calls == [("qwen3:8b-q4_K_M", 12)]
+
+
+def test_ollama_call_enforces_unified_runner_for_interactive_8b(monkeypatch):
+    captured: dict = {}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "ok"}).encode("utf-8")
+
+    def _fake_urlopen(req, timeout=0):
+        captured.update(json.loads(req.data.decode("utf-8")))
+        return _Resp()
+
+    monkeypatch.setattr(chief_llm.urllib.request, "urlopen", _fake_urlopen)
+
+    out = chief_llm.ollama_call(
+        "Answer this operator question.",
+        model="qwen3:8b-q4_K_M",
+        lane="strong",
+        task_class="chief_user_reply",
+        options={
+            "format": "json",
+            "temperature": 0.7,
+            "num_ctx": 4096,
+            "num_gpu": 1,
+            "num_batch": 512,
+        },
+        keep_alive="0",
+        attempts=1,
+    )
+
+    assert out == "ok"
+    assert captured["model"] == "qwen3:8b-q4_K_M"
+    assert captured["options"] == {
+        "temperature": 0.7,
+        "num_ctx": 2048,
+        "num_gpu": 999,
+        "num_batch": 128,
+    }
+    assert captured["format"] == "json"
+    assert captured["keep_alive"] == "10m"
+
+
+def test_ollama_call_does_not_force_interactive_shape_on_async_8b(monkeypatch):
+    captured: dict = {}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "ok"}).encode("utf-8")
+
+    def _fake_urlopen(req, timeout=0):
+        captured.update(json.loads(req.data.decode("utf-8")))
+        return _Resp()
+
+    monkeypatch.setattr(chief_llm.urllib.request, "urlopen", _fake_urlopen)
+
+    out = chief_llm.ollama_call(
+        "Generate an asynchronous brief.",
+        model="qwen3:8b-q4_K_M",
+        task_class="cassandra_scheduled_brief",
+        options={"num_ctx": 4096, "num_gpu": 10, "num_batch": 64},
+        keep_alive="0",
+        attempts=1,
+        _governance_bypass=True,
+    )
+
+    assert out == "ok"
+    assert captured["options"] == {"num_ctx": 4096, "num_gpu": 10, "num_batch": 64}
+    assert captured["keep_alive"] == "0"
 
 
 def test_ollama_call_tunes_cassandra_morning_test_timeout_without_retries(monkeypatch):

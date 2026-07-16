@@ -23,8 +23,10 @@ from vote_timeout_clarification import (
 
 
 PROBE_TEXT = "Could you unpack that broader situation?"
-PROBE_TIMEOUT_SECONDS = 8.0
+PROBE_TIMEOUT_SECONDS = 30.0
+WARM_SLO_SECONDS = 8.0
 HARD_WALL_TOLERANCE_SECONDS = 0.5
+WARM_SLO_TOLERANCE_SECONDS = 0.5
 
 
 def run_probe(
@@ -65,27 +67,33 @@ def run_probe(
     clarification_ok = failure_kind == "none" or bool(clarification)
     contract_ok = (
         contract.SEMANTIC_VOTE_MODEL == "qwen3:8b-q4_K_M"
-        and contract.SEMANTIC_VOTE_NUM_CTX == 1024
+        and contract.SEMANTIC_VOTE_NUM_BATCH == 128
+        and contract.SEMANTIC_VOTE_NUM_CTX == 2048
         and contract.SEMANTIC_VOTE_NUM_GPU == 999
         and contract.DEFAULT_SEMANTIC_TIMEOUT_SECONDS == PROBE_TIMEOUT_SECONDS
         and contract.SEMANTIC_VOTE_KEEP_ALIVE == "10m"
     )
     hard_wall_ok = elapsed <= PROBE_TIMEOUT_SECONDS + HARD_WALL_TOLERANCE_SECONDS
+    warm_slo_ok = elapsed <= WARM_SLO_SECONDS + WARM_SLO_TOLERANCE_SECONDS
     passed = bool(
         contract_ok
         and hard_wall_ok
+        and warm_slo_ok
         and clarification_ok
         and not remaining_vote_children
     )
     return {
         "passed": passed,
         "model": contract.SEMANTIC_VOTE_MODEL,
+        "num_batch": contract.SEMANTIC_VOTE_NUM_BATCH,
         "num_ctx": contract.SEMANTIC_VOTE_NUM_CTX,
         "num_gpu": contract.SEMANTIC_VOTE_NUM_GPU,
         "timeout_seconds": PROBE_TIMEOUT_SECONDS,
+        "warm_slo_seconds": WARM_SLO_SECONDS,
         "keep_alive": contract.SEMANTIC_VOTE_KEEP_ALIVE,
         "elapsed_seconds": elapsed,
         "hard_wall_ok": hard_wall_ok,
+        "warm_slo_ok": warm_slo_ok,
         "remaining_vote_children": remaining_vote_children,
         "label": decision.label.value,
         "action": decision.action.value,

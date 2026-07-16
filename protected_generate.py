@@ -302,22 +302,19 @@ def _frontdoor_optional_int_env(name: str) -> int | None:
 
 
 def _frontdoor_ollama_options() -> dict[str, int]:
-    options: dict[str, int] = {}
-    num_ctx = _frontdoor_optional_int_env("OPENCLAW_FRONTDOOR_NUM_CTX")
-    num_gpu = _frontdoor_optional_int_env("OPENCLAW_FRONTDOOR_NUM_GPU")
-    if num_ctx is not None:
-        options["num_ctx"] = num_ctx
-    if num_gpu is not None:
-        options["num_gpu"] = num_gpu
-    return options
+    from local_model_governance import interactive_runner_options
+
+    # OPENCLAW_FRONTDOOR_NUM_CTX / OPENCLAW_FRONTDOOR_NUM_GPU are legacy
+    # installation knobs. The operator's once-only binding now owns runner shape.
+    return interactive_runner_options()
 
 
 def _frontdoor_keep_alive() -> str | None:
-    value = os.environ.get("OPENCLAW_FRONTDOOR_KEEP_ALIVE")
-    if value is None:
-        return None
-    value = value.strip()
-    return value or None
+    from local_model_governance import INTERACTIVE_KEEP_ALIVE
+
+    # OPENCLAW_FRONTDOOR_KEEP_ALIVE is retained as a legacy activation marker,
+    # but the once-only binding owns residency duration.
+    return INTERACTIVE_KEEP_ALIVE
 
 
 def _frontdoor_model_max_gb() -> float:

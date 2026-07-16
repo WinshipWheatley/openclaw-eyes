@@ -53,16 +53,19 @@ def test_probe_reports_contract_and_child_cleanup(monkeypatch):
 
     assert result["passed"] is True
     assert result["model"] == "qwen3:8b-q4_K_M"
-    assert result["num_ctx"] == 1024
+    assert result["num_batch"] == 128
+    assert result["num_ctx"] == 2048
     assert result["num_gpu"] == 999
-    assert result["timeout_seconds"] == 8.0
+    assert result["timeout_seconds"] == 30.0
+    assert result["warm_slo_seconds"] == 8.0
+    assert result["warm_slo_ok"] is True
     assert result["keep_alive"] == "10m"
     assert result["elapsed_seconds"] == 7.8
     assert result["remaining_vote_children"] == []
     assert result["failure_kind"] == "timeout"
     assert result["clarification"] == "The language model timed out honestly."
     assert calls[0][1]["semantic_vote_enabled"] is True
-    assert calls[0][1]["semantic_timeout_seconds"] == 8.0
+    assert calls[0][1]["semantic_timeout_seconds"] == 30.0
 
 
 def test_probe_fails_when_semantic_vote_child_survives():

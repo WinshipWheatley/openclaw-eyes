@@ -23,7 +23,28 @@ def test_request_binding_is_once_only_and_fixed_to_operator_8b() -> None:
     binding = second[governance.BINDING_SESSION_KEY]
     assert binding["model"] == "qwen3:8b-q4_K_M"
     assert binding["keep_alive"] == "10m"
-    assert binding["num_ctx"] == 1024
+    assert binding["num_ctx"] == 2048
+    assert binding["num_gpu"] == 999
+    assert binding["num_batch"] == 128
+
+
+def test_incomplete_or_mismatched_runner_binding_is_rebuilt() -> None:
+    stale = {
+        governance.BINDING_SESSION_KEY: {
+            "schema_version": "local_model_binding_v1",
+            "binding_id": "legacy-runner-shape",
+            "model": governance.INTERACTIVE_MODEL,
+            "keep_alive": governance.INTERACTIVE_KEEP_ALIVE,
+            "num_ctx": 2048,
+        }
+    }
+
+    binding = governance.binding_from_session(stale)
+
+    assert binding["binding_id"] != "legacy-runner-shape"
+    assert binding["num_ctx"] == governance.INTERACTIVE_NUM_CTX
+    assert binding["num_gpu"] == governance.INTERACTIVE_NUM_GPU
+    assert binding["num_batch"] == governance.INTERACTIVE_NUM_BATCH
 
 
 def test_interpreter_request_body_consumes_bound_model() -> None:
@@ -34,6 +55,9 @@ def test_interpreter_request_body_consumes_bound_model() -> None:
 
     assert body["model"] == "qwen3:8b-q4_K_M"
     assert body["keep_alive"] == "10m"
+    assert body["options"]["num_ctx"] == session[governance.BINDING_SESSION_KEY]["num_ctx"]
+    assert body["options"]["num_gpu"] == session[governance.BINDING_SESSION_KEY]["num_gpu"]
+    assert body["options"]["num_batch"] == session[governance.BINDING_SESSION_KEY]["num_batch"]
 
 
 def test_chief_album_calls_share_the_resident_interactive_8b() -> None:
@@ -52,7 +76,9 @@ def test_chief_album_calls_share_the_resident_interactive_8b() -> None:
     assert result == "{}"
     assert captured["kwargs"]["model"] == governance.INTERACTIVE_MODEL
     assert captured["kwargs"]["keep_alive"] == governance.INTERACTIVE_KEEP_ALIVE
-    assert captured["kwargs"]["options"]["num_ctx"] == 1024
+    assert captured["kwargs"]["options"]["num_ctx"] == governance.INTERACTIVE_NUM_CTX
+    assert captured["kwargs"]["options"]["num_gpu"] == governance.INTERACTIVE_NUM_GPU
+    assert captured["kwargs"]["options"]["num_batch"] == governance.INTERACTIVE_NUM_BATCH
     assert captured["kwargs"]["retry"] is False
 
 
