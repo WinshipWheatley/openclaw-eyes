@@ -4,11 +4,14 @@ Verifies that operator-approved draft messages from Telegram route to
 send-authority preparation instead of being misclassified as reminder or
 unsupported-time-format requests.
 """
+import hashlib
 import inspect
 import json
 import sqlite3
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -1553,6 +1556,65 @@ def _future_exact_send_packet(tmp_path):
     return db, objective, request, draft, packet, bundle
 
 
+def _test_loopback_exact_send_packet(tmp_path):
+    db, objective, _request, _draft, _packet = _fixture_request(tmp_path)
+    objective = _load_objective_from_db(db, objective["objective_id"])
+    draft = {
+        "schema_version": "TEXT_FOLLOWUP_DRAFT_V0",
+        "objective_id": objective["objective_id"],
+        "recipient": "winshiplive@gmail.com",
+        "subject": "St. Anne's invoice - June 2026 services",
+        "body": "Fixture-only Guardian TEST loopback with the reviewed v4 invoice attached.",
+    }
+    draft["payload_hash"] = objective_loop._payload_hash(
+        recipient=draft["recipient"],
+        subject=draft["subject"],
+        body=draft["body"],
+    )
+    artifact = objective_loop.store_approved_send_draft_artifact(
+        objective,
+        draft=draft,
+        generated_at=FIXED_NOW,
+    )
+    request = objective_loop.build_exact_send_authority_request(
+        objective_id=objective["objective_id"],
+        draft=draft,
+        operator_text="Prepare one TEST loopback action. Do not send.",
+        approved_draft_artifact_ref=artifact["artifact_id"],
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+        generated_at=FIXED_NOW,
+    )
+    attachment = tmp_path / "invoice.pdf"
+    attachment.write_bytes(b"%PDF-1.4\nfixture v4 invoice\n%%EOF\n")
+    attachment_sha256 = hashlib.sha256(attachment.read_bytes()).hexdigest()
+    request = objective_loop.bind_exact_send_test_loopback_attachment(
+        request,
+        attachment_path=attachment,
+        attachment_sha256=attachment_sha256,
+    )
+    objective["send_authority_request"] = request
+    _store_objective_json(db, objective)
+    bundle = objective_loop.create_exact_send_scoped_authority(
+        request,
+        generated_at=FIXED_NOW,
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+    )
+    objective, verdict = objective_loop.attach_exact_send_authority_refs(
+        objective,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+    )
+    assert verdict["valid"] is True
+    _store_objective_json(db, objective)
+    packet = objective_loop.build_exact_send_review_packet(
+        request,
+        draft=draft,
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+        generated_at=FIXED_NOW,
+    )
+    return db, objective, request, draft, packet, bundle, attachment, attachment_sha256
+
+
 def _routeback_supports_send_hold_path():
     return "send_hold_path" in inspect.signature(objective_loop.run_exact_send_operator_action_routeback).parameters
 
@@ -1597,6 +1659,225 @@ def test_exact_send_registers_real_hitl_guardian_operator_action(monkeypatch, tm
     assert labels == ["Approve", "Deny", "Why now?"]
     assert created["execution_performed"] is False
     assert created["email_send_performed"] is False
+
+
+def test_test_loopback_operator_action_binds_pdf_digest_and_recipient_lock(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, request, _draft, packet, bundle, attachment, digest = _test_loopback_exact_send_packet(
+        tmp_path
+    )
+
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    action = hitl_action_service.get_pending_action(created["action_id"])
+    keyboard = hitl_notification_service._build_keyboard(created["action_id"])
+    message = hitl_notification_service.format_notification(action)
+    exact_payload = action["payload"]["payload"]
+    max_scope = bundle["authority_envelope"]["max_scope"]
+
+    assert action["action_type"] == "exact_gmail_send"
+    assert action["idempotency_key"] == request["request_id"]
+    assert exact_payload["recipient"] == "winshiplive@gmail.com"
+    assert exact_payload["test_loopback_only"] is True
+    assert exact_payload["test_recipient_lock"] == "winshiplive@gmail.com"
+    assert exact_payload["attachments"] == [str(attachment)]
+    assert exact_payload["attachment_sha256"] == [digest]
+    assert exact_payload["test_loopback_binding_hash"].startswith("sha256:")
+    assert max_scope["attachments_allowed"] is True
+    assert max_scope["test_loopback_only"] is True
+    assert max_scope["test_recipient_lock"] == "winshiplive@gmail.com"
+    assert max_scope["attachment_sha256"] == [digest]
+    assert "TEST loopback only: true" in message
+    assert "Test recipient lock: winshiplive@gmail.com" in message
+    assert f"Attachment SHA-256: {digest}" in message
+    assert f"Binding hash: {request['test_loopback_binding_hash']}" in message
+    assert [button["text"] for row in keyboard["inline_keyboard"] for button in row] == [
+        "Approve",
+        "Deny",
+        "Why now?",
+    ]
+    assert created["execution_performed"] is False
+    assert created["email_send_performed"] is False
+
+
+def test_test_loopback_registration_refuses_recipient_or_pdf_mutation(monkeypatch, tmp_path):
+    _hitl_action_service, _hitl_store, _hitl_notification_service = _isolate_hitl_store(
+        monkeypatch,
+        tmp_path,
+    )
+    _db, _objective, _request, _draft, packet, bundle, attachment, _digest = _test_loopback_exact_send_packet(
+        tmp_path
+    )
+
+    with pytest.raises(ValueError, match="recipient must be winshiplive@gmail.com"):
+        objective_loop.bind_exact_send_test_loopback_attachment(
+            {**packet, "recipient": "external@example.com"},
+            attachment_path=attachment,
+            attachment_sha256=packet["attachment_sha256"][0],
+        )
+
+    wrong_recipient = objective_loop.register_exact_send_operator_action_approval(
+        {**packet, "recipient": "external@example.com"},
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    attachment.write_bytes(b"%PDF-1.4\nchanged after approval\n%%EOF\n")
+    changed_pdf = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+
+    assert wrong_recipient["operator_action_created"] is False
+    assert wrong_recipient["refusal_reason"] == "invalid_test_loopback_attachment_binding"
+    assert changed_pdf["operator_action_created"] is False
+    assert changed_pdf["refusal_reason"] == "invalid_test_loopback_attachment_binding"
+
+
+def test_signed_test_loopback_approve_reaches_fake_broker_with_bound_v4_fields(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    db, objective, request, _draft, packet, bundle, attachment, digest = _test_loopback_exact_send_packet(
+        tmp_path
+    )
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    broker_calls = []
+
+    def fake_broker_call(agent, capability, params):
+        broker_calls.append((agent, capability, params))
+        return {"ok": True, "data": {"message_id": "fixture-test-loopback"}}
+
+    transport = objective_loop.GovernedGmailBrokerSendTransport(
+        live_transport_enabled=True,
+        broker_call=fake_broker_call,
+    )
+    hitl_action_service.register_action_dispatcher(
+        "exact_gmail_send",
+        lambda action: _run_exact_send_routeback(
+            action,
+            sqlite_path=db,
+            receipt_dir=tmp_path / "test_loopback_receipts",
+            transport=transport,
+            live_transport_enabled=True,
+            send_hold_path=tmp_path / "missing_SEND_HOLD.md",
+            generated_at="2026-06-10T19:46:00+00:00",
+        ),
+    )
+    approve_callback = hitl_notification_service._build_keyboard(created["action_id"])[
+        "inline_keyboard"
+    ][0][0]["callback_data"]
+
+    reply = hitl_notification_service.process_callback(approve_callback, approved_by="winship")
+    action = hitl_action_service.get_pending_action(created["action_id"])
+
+    assert reply == f"[Approved] {created['action_id']}"
+    assert len(broker_calls) == 1
+    agent, capability, params = broker_calls[0]
+    assert agent == "cassandra"
+    assert capability == "google.gmail.send"
+    assert params["to"] == "winshiplive@gmail.com"
+    assert params["attachments"] == [str(attachment)]
+    assert params["attachment_sha256"] == [digest]
+    assert params["approval_context"]["test_loopback_only"] is True
+    assert params["approval_context"]["test_recipient_lock"] == "winshiplive@gmail.com"
+    assert params["approval_context"]["test_loopback_binding_hash"] == request[
+        "test_loopback_binding_hash"
+    ]
+    assert action["decision_receipt"]["dispatch_status"] == "dispatched"
+
+
+def test_unsigned_and_missigned_test_loopback_callbacks_are_refused(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, _request, _draft, packet, bundle, _attachment, _digest = _test_loopback_exact_send_packet(
+        tmp_path
+    )
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    valid = hitl_notification_service._build_keyboard(created["action_id"])["inline_keyboard"][0][0][
+        "callback_data"
+    ]
+    tampered = valid[:-1] + ("0" if valid[-1] != "0" else "1")
+
+    unsigned = hitl_notification_service.process_callback("HITL:unsigned")
+    missigned = hitl_notification_service.process_callback(tampered)
+    action = hitl_action_service.get_pending_action(created["action_id"])
+
+    assert unsigned == "[Error] ?: malformed_token"
+    assert missigned == f"[Error] {created['action_id']}: invalid_signature"
+    assert action["status"] == "WAITING_FOR_APPROVAL"
+
+
+def test_test_loopback_callback_replay_refuses_and_deny_never_dispatches(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, _request, _draft, packet, bundle, _attachment, _digest = _test_loopback_exact_send_packet(
+        tmp_path
+    )
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    calls = []
+    hitl_action_service.register_action_dispatcher(
+        "exact_gmail_send",
+        lambda action: calls.append(action)
+        or {"status": "success", "execution_performed": False, "email_send_performed": False},
+    )
+    keyboard = hitl_notification_service._build_keyboard(created["action_id"])
+    approve_callback = keyboard["inline_keyboard"][0][0]["callback_data"]
+
+    first = hitl_notification_service.process_callback(approve_callback, approved_by="winship")
+    replay = hitl_notification_service.process_callback(approve_callback, approved_by="winship")
+
+    assert first == f"[Approved] {created['action_id']}"
+    assert replay == f"[Error] {created['action_id']}: action_not_found_or_terminal"
+    assert len(calls) == 1
+
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(
+        monkeypatch,
+        tmp_path / "deny",
+    )
+    _db, _objective, _request, _draft, packet, bundle, _attachment, _digest = _test_loopback_exact_send_packet(
+        tmp_path / "deny"
+    )
+    denied = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    deny_calls = []
+    hitl_action_service.register_action_dispatcher(
+        "exact_gmail_send",
+        lambda action: deny_calls.append(action),
+    )
+    deny_callback = hitl_notification_service._build_keyboard(denied["action_id"])["inline_keyboard"][0][1][
+        "callback_data"
+    ]
+
+    reply = hitl_notification_service.process_callback(deny_callback, approved_by="winship")
+    action = hitl_action_service.get_pending_action(denied["action_id"])
+
+    assert reply == f"[Denied] {denied['action_id']}"
+    assert deny_calls == []
+    assert action["status"] == "DENIED"
+    assert action["denied_reason"] == ""
+    assert action["decision_receipt"]["dispatch_status"] == "not_dispatched_denied"
 
 
 def test_guardian_callback_approve_routes_exact_send_to_fake_cassandra_executor(monkeypatch, tmp_path):

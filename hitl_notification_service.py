@@ -278,6 +278,16 @@ def _format_operator_action_notification(action: dict, payload: dict) -> str:
                 f"Body stored in HITL queue: {str(exact_payload.get('body_stored_in_hitl_queue', False)).lower()}",
             ]
         )
+        if exact_payload.get("test_loopback_only") is True:
+            attachment_hashes = exact_payload.get("attachment_sha256") or []
+            lines.extend(
+                [
+                    "TEST loopback only: true",
+                    f"Test recipient lock: {exact_payload.get('test_recipient_lock', '')}",
+                    f"Attachment SHA-256: {attachment_hashes[0] if attachment_hashes else ''}",
+                    f"Binding hash: {exact_payload.get('test_loopback_binding_hash', '')}",
+                ]
+            )
         body_preview = str(exact_payload.get("body_preview") or "")
         if body_preview:
             lines.extend(["Body preview:", body_preview])
