@@ -111,6 +111,7 @@ _ASYNC_MODEL_LONG_TIMEOUT_S = 3600    # a slow spilling async model must not be 
 # Task classes whose work is background (operator not waiting) -> async ceiling + long timeout.
 _ASYNC_TASK_CLASSES = frozenset({
     "cassandra_outbound_draft",
+    "cassandra_scheduled_brief",
     "cassandra_morning_brief",
     "cassandra_morning_brief_test",
     "cassandra_morning_brief_fallback",
@@ -218,12 +219,12 @@ _TASK_CLASS_MODEL_CANDIDATES = {
         "qwen3:8b-q4_K_M",
     ),
     "cassandra_morning_brief": (
-        "qwen3.5:9b",          # near-26b quality without the box-kill (probe-confirmed)
-        "magistral:latest",
+        "qwen3:8b-q4_K_M",     # scheduled work must not evict the resident interactive path
+    ),
+    "cassandra_scheduled_brief": (
         "qwen3:8b-q4_K_M",
     ),
     "cassandra_morning_brief_test": (
-        "qwen3:4b",
         "qwen3:8b-q4_K_M",
     ),
     "cassandra_inbox_summary": (
@@ -263,6 +264,7 @@ _TASK_CLASS_PREFERRED_LANES = {
     "cassandra_user_reply_fast": "fast",
     "cassandra_user_reply": "strong",
     "cassandra_outbound_draft": "strong",
+    "cassandra_scheduled_brief": "strong",
     "cassandra_morning_brief": "strong",
     "cassandra_morning_brief_test": "fast",
     "cassandra_inbox_summary": "fast",
@@ -1037,10 +1039,12 @@ def local_model_route_reason(
         return "cassandra normal conversational reply policy uses gemma 4 26b before the top lane"
     if task_class == "cassandra_outbound_draft":
         return "cassandra outbound draft policy uses the top gemma 4 lane"
-    if task_class == "cassandra_morning_brief":
-        return "cassandra production morning briefing uses the top gemma 4 lane with smaller local fallback"
-    if task_class == "cassandra_morning_brief_test":
-        return "cassandra morning briefing test mode uses the smallest installed gemma 4 lane"
+    if task_class in {
+        "cassandra_scheduled_brief",
+        "cassandra_morning_brief",
+        "cassandra_morning_brief_test",
+    }:
+        return "cassandra scheduled briefing reuses the resident qwen3 8b and disables heavy-model escalation"
     if task_class in {"cassandra_inbox_summary", "cassandra_extract_classify"}:
         return "cassandra bounded hidden task uses the smallest installed gemma 4 lane"
     if task_class == "chief_evidence_scan":

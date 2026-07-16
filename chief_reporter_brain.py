@@ -159,7 +159,11 @@ System health
 Keep it under 400 characters total. Be direct and factual. No filler."""
 
 
-def format_report(stats: dict) -> str:
+def format_report(
+    stats: dict,
+    *,
+    task_class: str = "chief_evidence_synthesis",
+) -> str:
     """Use LLM to format stats into a readable digest. Falls back to plain template."""
     prompt = _FORMAT_PROMPT.format(
         date=stats["date"],
@@ -174,7 +178,10 @@ def format_report(stats: dict) -> str:
         watcher_alert_samples=", ".join(stats["watcher_alert_samples"]) or "none",
     )
     try:
-        result = _local_model_call(prompt, timeout=30, task_class="chief_evidence_synthesis").strip()
+        call_options = {"timeout": 30, "task_class": task_class}
+        if task_class == "cassandra_scheduled_brief":
+            call_options["retry"] = False
+        result = _local_model_call(prompt, **call_options).strip()
     except Exception:
         result = ""
     if _usable_report(result):
@@ -230,17 +237,24 @@ def _write_vault_report(report_text: str, stats: dict) -> None:
 
 # ── Public entry point ─────────────────────────────────────────────────────────
 
-def handle(text: str = "") -> list[str]:
+def handle(
+    text: str = "",
+    *,
+    task_class: str = "chief_evidence_synthesis",
+) -> list[str]:
     """Generate and return the system report. Saves to vault."""
     stats  = build_report()
-    report = format_report(stats)
+    report = format_report(stats, task_class=task_class)
     _write_vault_report(report, stats)
     return [report]
 
 
-def refresh_report_artifact() -> None:
+def refresh_report_artifact(
+    *,
+    task_class: str = "chief_evidence_synthesis",
+) -> None:
     """Silent refresh for the morning orchestrator."""
-    handle()
+    handle(task_class=task_class)
 
 
 # ── CLI / smoke test ───────────────────────────────────────────────────────────
