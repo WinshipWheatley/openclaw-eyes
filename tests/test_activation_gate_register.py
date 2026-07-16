@@ -90,6 +90,20 @@ def test_lm1_shared_seam_and_packet_flags_have_activation_records():
         assert capability["canary_status"]
 
 
+def test_interactive_8b_keepwarm_has_live_activation_record_and_open_overnight_check():
+    capability = _capabilities_by_id(_payload())["interactive_8b_keepwarm_timer"]
+
+    assert capability["gate_stage"] == "operator_approved_live"
+    assert capability["activation_allowed_now"] is False
+    assert capability["operator_approval_required"] is True
+    assert "first_fire_warmed_verified_2026_07_16" in capability["canary_status"]
+    assert "overnight_idle_latency_pending" in capability["canary_status"]
+    assert "resident within 15 minutes" in capability["current_state_if_verifiable"]["production"]
+    assert "first-touch latency" in capability["next_required_step"]
+    assert "disable --now openclaw-8b-keepwarm.timer" in capability["rollback_note"]
+    assert "openclaw_8b_keepwarm_latest.json" in " ".join(capability["evidence_refs"])
+
+
 def test_live_lm1_and_packet_flags_reconcile_without_activation_authority():
     payload = _live_payload([
         _test_source(

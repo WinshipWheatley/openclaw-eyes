@@ -291,6 +291,7 @@ REQUIRED_CAPABILITY_IDS = (
     "cassandra_morning_brief_test_mode",
     "brain_dump_parser_cli",
     "ollama_model_defaults",
+    "interactive_8b_keepwarm_timer",
     "protected_generate_ollama_timeouts",
 )
 
@@ -1080,6 +1081,66 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
             evidence_refs=[
                 "chief_llm.py:OLLAMA_MODEL",
                 "chief_llm.py:OLLAMA_MODEL_DEEP",
+            ],
+            last_verified_at=last_verified_at,
+        ),
+        _capability(
+            capability_id="interactive_8b_keepwarm_timer",
+            display_name="Governed interactive 8B keep-warm timer",
+            flag_or_config=[
+                "openclaw-8b-keepwarm.service",
+                "openclaw-8b-keepwarm.timer",
+            ],
+            default_state="operator_approved_live_timer",
+            current_state_if_verifiable=_state(
+                "enabled 2026-07-16; governed timer keeps the operator-bound 8B resident without evicting or preempting other work",
+                code_default="timer is absent until the scoped --keepwarm-only installer is explicitly applied",
+                production=(
+                    "enabled and active; first automatic fire proved qwen3:8b resident within 15 minutes "
+                    "at ctx 2048 with a 30-minute keep-alive"
+                ),
+                audit_report="FABLE-CONCUR-KEEPWARM-GO-PROMOTE-20260716 approved the scoped promotion",
+            ),
+            source_files=[
+                "openclaw_8b_keepwarm.py",
+                "local_model_governance.py",
+                "systemd/user/openclaw-8b-keepwarm.service.in",
+                "systemd/user/openclaw-8b-keepwarm.timer.in",
+                "scripts/install_openclaw_stack.sh",
+            ],
+            tests=[
+                "tests/test_openclaw_8b_keepwarm.py",
+                "tests/test_local_model_governance.py",
+            ],
+            audits=[
+                "/home/openclaw/Operator/to-codex/FABLE-CONCUR-KEEPWARM-GO-PROMOTE-20260716.md",
+                "/home/openclaw/Operator/from-codex/SOL-8B-KEEPWARM-PREPROMOTE-20260716.md",
+            ],
+            canary_status=(
+                "first_fire_warmed_verified_2026_07_16; "
+                "synthetic_lease_deferred_verified; overnight_idle_latency_pending"
+            ),
+            risk_level="low",
+            owner="Sol/Opus",
+            gate_stage="operator_approved_live",
+            enabled_by=(
+                "operator direction in Maestro request 1679 plus Opus concurrence; "
+                "scoped --apply --enable --keepwarm-only installer"
+            ),
+            disabled_by="disable the keep-warm timer; Ollama and the interactive model remain otherwise untouched",
+            rollback_note="systemctl --user disable --now openclaw-8b-keepwarm.timer",
+            next_required_step=(
+                "after an overnight idle interval, record first-touch latency under the warm threshold; "
+                "keep the existing GPU health watcher as the latency observer"
+            ),
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="the recurring cold-first-reply prevention would be inactive",
+            evidence_refs=[
+                "/home/openclaw/.openclaw/receipts/openclaw_8b_keepwarm_latest.json",
+                "systemctl:user:openclaw-8b-keepwarm.timer",
+                "commit:ffb5543e",
+                "synthetic_receipt:/tmp/openclaw_8b_keepwarm_synthetic_defer_20260716T1914.json",
             ],
             last_verified_at=last_verified_at,
         ),
