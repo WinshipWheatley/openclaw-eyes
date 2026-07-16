@@ -35,7 +35,7 @@ def refresh_morning_artifacts() -> bool:
         # 3. System Health Report
         import chief_reporter_brain as reporter
         print("[morning_orchestrator] Refreshing System Health Report...", flush=True)
-        reporter.refresh_report_artifact()
+        reporter.refresh_report_artifact(task_class="cassandra_scheduled_brief")
         
         # 4. Chief Morning Synthesis
         import chief_morning_synthesis as synthesis

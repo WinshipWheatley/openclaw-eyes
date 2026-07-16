@@ -292,6 +292,7 @@ def test_non_morning_brief_uses_qwen_fallback_before_deterministic(monkeypatch):
             "model": model,
             "timeout": timeout,
             "task_class": task_class,
+            "retry": kwargs.get("retry"),
         })
         if model == bb._NON_MORNING_BRIEF_FALLBACK_MODEL:
             return "Safe qwen fallback briefing."
@@ -305,11 +306,13 @@ def test_non_morning_brief_uses_qwen_fallback_before_deterministic(monkeypatch):
     assert calls[0] == {
         "model": "gemma4:e4b",
         "timeout": 180,
-        "task_class": "cassandra_user_reply",
+        "task_class": "cassandra_scheduled_brief",
+        "retry": False,
     }
     assert calls[1]["model"] == "qwen3:8b-q4_K_M"
     assert 1 <= calls[1]["timeout"] <= 300
-    assert calls[1]["task_class"] == "cassandra_user_reply"
+    assert calls[1]["task_class"] == "cassandra_scheduled_brief"
+    assert calls[1]["retry"] is False
 
 
 def test_non_morning_brief_uses_deterministic_fallback_after_llm_failures(monkeypatch):

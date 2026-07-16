@@ -85,7 +85,7 @@ def test_generate_morning_brief_test_mode_uses_test_task_class(monkeypatch, tmp_
     assert len(prompts[0].split()) < 180
 
 
-def test_generate_afternoon_brief_uses_cassandra_user_reply_task_class(monkeypatch):
+def test_generate_afternoon_brief_uses_scheduled_8b_task_class(monkeypatch):
     import cassandra_briefing_brain as bb
 
     monkeypatch.setattr(bb, "build_context_snapshot", lambda: "live context", raising=False)
@@ -98,18 +98,26 @@ def test_generate_afternoon_brief_uses_cassandra_user_reply_task_class(monkeypat
         "resolve_local_model",
         lambda prompt, lane=None, task_class=None: route_calls.append(
             {"lane": lane, "task_class": task_class}
-        ) or ("gemma4:26b", "strong"),
+        ) or ("qwen3:8b-q4_K_M", "strong"),
         raising=False,
     )
     monkeypatch.setattr(
         bb,
         "ollama_call",
-        lambda prompt, timeout=0, model=None, lane=None, task_class=None: model_calls.append(model) or "Afternoon briefing.",
+        lambda prompt, timeout=0, model=None, lane=None, task_class=None, retry=True: model_calls.append(
+            {"model": model, "task_class": task_class, "retry": retry}
+        ) or "Afternoon briefing.",
         raising=False,
     )
 
     text = bb.generate_briefing("afternoon")
 
     assert text == "Afternoon briefing."
-    assert route_calls == [{"lane": None, "task_class": "cassandra_user_reply"}]
-    assert model_calls == ["gemma4:26b"]
+    assert route_calls == [{"lane": None, "task_class": "cassandra_scheduled_brief"}]
+    assert model_calls == [
+        {
+            "model": "qwen3:8b-q4_K_M",
+            "task_class": "cassandra_scheduled_brief",
+            "retry": False,
+        }
+    ]
