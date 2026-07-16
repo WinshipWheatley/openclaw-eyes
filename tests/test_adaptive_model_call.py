@@ -54,7 +54,7 @@ def test_adaptive_model_call_retries_downshifted_model_after_empty_primary() -> 
     assert routes[1]["model"] == "qwen3:8b-q4_K_M"
 
 
-def test_adaptive_model_call_returns_empty_after_single_retry() -> None:
+def test_interactive_retry_reuses_the_same_resident_8b() -> None:
     calls: list[str] = []
 
     result = adaptive.adaptive_model_call(
@@ -79,7 +79,7 @@ def test_adaptive_model_call_returns_empty_after_single_retry() -> None:
     )
 
     assert result == ""
-    assert calls == ["gemma4:31b", "qwen3:8b-q4_K_M"]
+    assert calls == ["qwen3:8b-q4_K_M", "qwen3:8b-q4_K_M"]
 
 
 def test_adaptive_model_call_supports_legacy_ollama_fixture_without_attempts() -> None:
@@ -103,7 +103,9 @@ def test_adaptive_model_call_supports_legacy_ollama_fixture_without_attempts() -
     )
 
     assert result == "legacy answer"
-    assert calls == [{"prompt": "Answer briefly.", "timeout": 30, "model": "gemma4:31b"}]
+    assert calls == [
+        {"prompt": "Answer briefly.", "timeout": 30, "model": "qwen3:8b-q4_K_M"}
+    ]
 
 
 def test_adaptive_ollama_text_preserves_explicit_model_without_resolving() -> None:
@@ -140,13 +142,59 @@ def test_adaptive_ollama_text_preserves_explicit_model_without_resolving() -> No
     ]
 
 
-def test_adaptive_model_call_preserves_frontdoor_metadata_options_on_retry() -> None:
+def test_default_chief_wrapper_receives_the_resolved_lane(monkeypatch) -> None:
     calls: list[dict] = []
 
     def fake_ollama(prompt, **kwargs):
         calls.append(kwargs)
-        if kwargs["model"] == "qwen3.5:4b":
-            return {"text": "", "done_reason": "load", "status": "empty"}
+        return "ok"
+
+    monkeypatch.setattr(adaptive.chief_llm, "ollama_call", fake_ollama)
+
+    result = adaptive.adaptive_model_call(
+        "Operator-facing answer.",
+        task_class="chief_user_reply",
+        timeout=30,
+        primary_model="qwen3:8b-q4_K_M",
+        primary_lane="strong",
+        retry=False,
+        model_sizes_fn=lambda: {},
+    )
+
+    assert result == "ok"
+    assert calls[0]["lane"] == "strong"
+
+
+def test_bound_interactive_8b_never_retries_with_a_different_model() -> None:
+    calls: list[str] = []
+
+    result = adaptive.adaptive_model_call(
+        "Operator-facing answer.",
+        task_class="chief_user_reply",
+        timeout=30,
+        primary_model="qwen3:8b-q4_K_M",
+        primary_lane="strong",
+        ollama_call_fn=lambda prompt, **kwargs: calls.append(kwargs["model"]) or "",
+        select_model_fn=lambda **_kwargs: ("qwen3:4b", "frontdoor_step_down_vram_contention"),
+        resource_probe_fn=lambda: SimpleNamespace(
+            available_vram_gb=1.0,
+            available_ram_gb=12.0,
+            system_load_1m=1.0,
+            cpu_count=4,
+            resident_vram_by_model_gb=lambda: {"qwen3:8b-q4_K_M": 5.5},
+        ),
+        model_sizes_fn=lambda: {},
+    )
+
+    assert result == ""
+    assert calls == ["qwen3:8b-q4_K_M"]
+
+
+def test_adaptive_model_call_stamps_bound_frontdoor_model_and_runner_options() -> None:
+    calls: list[dict] = []
+
+    def fake_ollama(prompt, **kwargs):
+        calls.append(kwargs)
         return {"text": "frontdoor answer", "done_reason": "stop", "status": "success"}
 
     result = adaptive.adaptive_model_call(
@@ -176,24 +224,18 @@ def test_adaptive_model_call_preserves_frontdoor_metadata_options_on_retry() -> 
     assert calls == [
         {
             "timeout": 25.0,
-            "model": "qwen3.5:4b",
-            "task_class": "frontdoor_reply",
-            "attempts": 1,
-            "think": False,
-            "num_predict": 180,
-            "options": {"temperature": 0},
-            "keep_alive": "30s",
-            "return_metadata": True,
-        },
-        {
-            "timeout": 25.0,
             "model": "qwen3:8b-q4_K_M",
             "task_class": "frontdoor_reply",
             "attempts": 1,
             "think": False,
             "num_predict": 180,
-            "options": {"temperature": 0},
-            "keep_alive": "30s",
+            "options": {
+                "temperature": 0,
+                "num_ctx": 2048,
+                "num_gpu": 999,
+                "num_batch": 128,
+            },
+            "keep_alive": "10m",
             "return_metadata": True,
         },
     ]

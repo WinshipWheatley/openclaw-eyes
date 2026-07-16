@@ -34,6 +34,7 @@ def _call_ollama_once(
     *,
     timeout: int | float,
     model: str,
+    lane: str | None,
     task_class: str | None,
     attempts: int | None = 1,
     think: bool | None = None,
@@ -54,6 +55,7 @@ def _call_ollama_once(
         "return_metadata": return_metadata,
     }
     if ollama_call_fn is chief_llm.ollama_call:
+        kwargs["lane"] = lane
         kwargs["_model_slot_held"] = True
     kwargs = {key: value for key, value in kwargs.items() if value is not None}
     if not return_metadata:
@@ -85,6 +87,7 @@ def _call_ollama_once_with_slot(
     *,
     timeout: int | float,
     model: str,
+    lane: str | None,
     task_class: str | None,
     attempts: int | None,
     think: bool | None,
@@ -113,6 +116,7 @@ def _call_ollama_once_with_slot(
                 prompt,
                 timeout=timeout,
                 model=model,
+                lane=lane,
                 task_class=task_class,
                 attempts=attempts,
                 think=think,
@@ -256,6 +260,19 @@ def adaptive_model_call(
     explicit_model = primary_model is not None
     if primary_model is None or primary_lane is None:
         primary_model, primary_lane = resolve_model_fn(prompt, lane=lane, task_class=task_class)
+    if chief_llm._is_governed_interactive_workload(
+        task_class=task_class,
+        lane=primary_lane,
+    ):
+        from local_model_governance import (
+            INTERACTIVE_KEEP_ALIVE,
+            INTERACTIVE_MODEL,
+            interactive_runner_options,
+        )
+
+        primary_model = INTERACTIVE_MODEL
+        options = interactive_runner_options(options)
+        keep_alive = INTERACTIVE_KEEP_ALIVE
     if explicit_model:
         fits, fit_reason = _enforce_model_fit(
             primary_model, task_class=task_class, lane=lane, model_sizes_fn=model_sizes_fn
@@ -292,6 +309,7 @@ def adaptive_model_call(
         prompt,
         timeout=timeout,
         model=primary_model,
+        lane=primary_lane,
         task_class=task_class,
         attempts=attempts,
         think=think,
@@ -314,6 +332,15 @@ def adaptive_model_call(
     )
     if not retry_model:
         return result if return_metadata else ""
+    if (
+        chief_llm._uses_governed_interactive_runner(
+            primary_model,
+            task_class=task_class,
+            lane=primary_lane,
+        )
+        and retry_model != primary_model
+    ):
+        return result if return_metadata else ""
     if route_logger is not None:
         route_logger(
             task_class=task_class,
@@ -329,6 +356,7 @@ def adaptive_model_call(
         prompt,
         timeout=timeout,
         model=retry_model,
+        lane=primary_lane,
         task_class=task_class,
         attempts=attempts,
         think=think,

@@ -130,6 +130,42 @@ def _is_async_workload(task_class: str | None, lane: str | None) -> bool:
     return bool(task_class in _ASYNC_TASK_CLASSES or lane in _ASYNC_LANES)
 
 
+_GOVERNED_INTERACTIVE_TASK_CLASSES = frozenset({
+    "contract_semantic_vote",
+    "frontdoor_reply",
+    "cassandra_user_reply_fast",
+    "cassandra_user_reply",
+    "chief_user_reply",
+    "chief_album_interactive",
+})
+_GOVERNED_INTERACTIVE_LANES = frozenset({"frontdoor", "fast", "strong"})
+
+
+def _is_governed_interactive_workload(
+    *,
+    task_class: str | None,
+    lane: str | None,
+) -> bool:
+    return not _is_async_workload(task_class, lane) and bool(
+        task_class in _GOVERNED_INTERACTIVE_TASK_CLASSES
+        or lane in _GOVERNED_INTERACTIVE_LANES
+    )
+
+
+def _uses_governed_interactive_runner(
+    model: str | None,
+    *,
+    task_class: str | None,
+    lane: str | None,
+) -> bool:
+    from local_model_governance import INTERACTIVE_MODEL
+
+    return str(model or "") == INTERACTIVE_MODEL and _is_governed_interactive_workload(
+        task_class=task_class,
+        lane=lane,
+    )
+
+
 def _ollama_tags_url() -> str:
     return OLLAMA_URL.rsplit("/", 1)[0] + "/tags"
 
@@ -1316,6 +1352,13 @@ def ollama_call(
                 models_to_try = (model,)
         else:
             models_to_try = (model,)
+    if _is_governed_interactive_workload(
+        task_class=task_class,
+        lane=selected_lane,
+    ):
+        from local_model_governance import INTERACTIVE_MODEL
+
+        models_to_try = (INTERACTIVE_MODEL,)
     attempt_count = max(1, int(attempts)) if attempts is not None else 3
     if task_class == "cassandra_morning_brief" and attempts is None:
         timeout = max(timeout, _CASSANDRA_MORNING_BRIEF_TIMEOUT)
@@ -1370,6 +1413,20 @@ def ollama_call(
     # without it the payload stays byte-identical to before.
     response_format = merged_options.pop("format", None)
     for candidate_model in models_to_try:
+        candidate_options = dict(merged_options)
+        candidate_keep_alive = keep_alive
+        if _uses_governed_interactive_runner(
+            candidate_model,
+            task_class=task_class,
+            lane=selected_lane,
+        ):
+            from local_model_governance import (
+                INTERACTIVE_KEEP_ALIVE,
+                interactive_runner_options,
+            )
+
+            candidate_options = interactive_runner_options(candidate_options)
+            candidate_keep_alive = INTERACTIVE_KEEP_ALIVE
         # Operator policy 2026-06-29: a big (spilling) model must not be killed mid-generation ->
         # stretch its timeout. Small card-fitting models keep the caller's short real-time timeout.
         effective_timeout = _effective_model_timeout(timeout, candidate_model)
@@ -1380,12 +1437,12 @@ def ollama_call(
         }
         if think is not None:
             payload_dict["think"] = bool(think)
-        if merged_options:
-            payload_dict["options"] = dict(merged_options)
+        if candidate_options:
+            payload_dict["options"] = candidate_options
         if response_format:
             payload_dict["format"] = response_format
-        if keep_alive is not None and str(keep_alive).strip():
-            payload_dict["keep_alive"] = str(keep_alive).strip()
+        if candidate_keep_alive is not None and str(candidate_keep_alive).strip():
+            payload_dict["keep_alive"] = str(candidate_keep_alive).strip()
         payload = json.dumps(payload_dict).encode("utf-8")
         req = urllib.request.Request(
             OLLAMA_URL,
@@ -1413,7 +1470,7 @@ def ollama_call(
                         "duration_ms": duration_ms,
                         "elapsed_ms": duration_ms,
                         "done_reason": done_reason,
-                        "num_predict": merged_options.get("num_predict"),
+                        "num_predict": candidate_options.get("num_predict"),
                         "think": payload_dict.get("think"),
                         "response_metadata": response_metadata,
                         "prompt_words": prompt_words,
@@ -1454,7 +1511,7 @@ def ollama_call(
                     "duration_ms": duration_ms,
                     "elapsed_ms": duration_ms,
                     "done_reason": done_reason,
-                    "num_predict": merged_options.get("num_predict"),
+                    "num_predict": candidate_options.get("num_predict"),
                     "think": payload_dict.get("think"),
                     "prompt_words": prompt_words,
                     "exception_type": type(e).__name__,

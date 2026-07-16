@@ -22,7 +22,9 @@ from polish_loop.gpu_arbiter import GPUArbiter
 
 INTERACTIVE_MODEL = "qwen3:8b-q4_K_M"
 INTERACTIVE_KEEP_ALIVE = "10m"
-INTERACTIVE_NUM_CTX = 1024
+INTERACTIVE_NUM_CTX = 2048
+INTERACTIVE_NUM_GPU = 999
+INTERACTIVE_NUM_BATCH = 128
 BINDING_SESSION_KEY = "local_model_binding"
 DEFAULT_GPU_LEASE_DB = "/home/openclaw/.openclaw/polish_loop/gpu_leases.sqlite"
 OLLAMA_PS_URL = "http://127.0.0.1:11434/api/ps"
@@ -40,6 +42,31 @@ def _binding_id(request_key: str) -> str:
     return hashlib.sha256(material).hexdigest()[:20]
 
 
+def _valid_interactive_binding(binding: Any) -> bool:
+    return (
+        isinstance(binding, Mapping)
+        and str(binding.get("schema_version") or "") == "local_model_binding_v2"
+        and str(binding.get("binding_id") or "") != ""
+        and str(binding.get("model") or "") == INTERACTIVE_MODEL
+        and str(binding.get("keep_alive") or "") == INTERACTIVE_KEEP_ALIVE
+        and binding.get("num_ctx") == INTERACTIVE_NUM_CTX
+        and binding.get("num_gpu") == INTERACTIVE_NUM_GPU
+        and binding.get("num_batch") == INTERACTIVE_NUM_BATCH
+    )
+
+
+def interactive_runner_options(options: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Return request options pinned to the one resident interactive runner."""
+
+    governed = dict(options or {})
+    governed.update(
+        num_ctx=INTERACTIVE_NUM_CTX,
+        num_gpu=INTERACTIVE_NUM_GPU,
+        num_batch=INTERACTIVE_NUM_BATCH,
+    )
+    return governed
+
+
 def bind_interactive_model(
     session: Mapping[str, Any] | None,
     *,
@@ -49,11 +76,7 @@ def bind_interactive_model(
 
     bound = dict(session or {})
     existing = bound.get(BINDING_SESSION_KEY)
-    if (
-        isinstance(existing, Mapping)
-        and str(existing.get("model") or "") == INTERACTIVE_MODEL
-        and str(existing.get("binding_id") or "")
-    ):
+    if _valid_interactive_binding(existing):
         bound[BINDING_SESSION_KEY] = dict(existing)
         return bound
 
@@ -64,11 +87,13 @@ def bind_interactive_model(
         or "interactive-request"
     )
     bound[BINDING_SESSION_KEY] = {
-        "schema_version": "local_model_binding_v1",
+        "schema_version": "local_model_binding_v2",
         "binding_id": _binding_id(stable_key),
         "model": INTERACTIVE_MODEL,
         "keep_alive": INTERACTIVE_KEEP_ALIVE,
         "num_ctx": INTERACTIVE_NUM_CTX,
+        "num_gpu": INTERACTIVE_NUM_GPU,
+        "num_batch": INTERACTIVE_NUM_BATCH,
         "decision_source": "operator_directive_telegram_1553",
     }
     return bound
@@ -76,9 +101,9 @@ def bind_interactive_model(
 
 def binding_from_session(session: Mapping[str, Any] | None) -> dict[str, Any]:
     binding = (session or {}).get(BINDING_SESSION_KEY)
-    if isinstance(binding, Mapping) and str(binding.get("model") or "") == INTERACTIVE_MODEL:
+    if _valid_interactive_binding(binding):
         return dict(binding)
-    return bind_interactive_model({})[BINDING_SESSION_KEY]
+    return bind_interactive_model(session)[BINDING_SESSION_KEY]
 
 
 def interactive_model_from_session(session: Mapping[str, Any] | None) -> str:
@@ -259,9 +284,12 @@ __all__ = [
     "GovernedCallOutcome",
     "INTERACTIVE_KEEP_ALIVE",
     "INTERACTIVE_MODEL",
+    "INTERACTIVE_NUM_BATCH",
     "INTERACTIVE_NUM_CTX",
+    "INTERACTIVE_NUM_GPU",
     "bind_interactive_model",
     "binding_from_session",
+    "interactive_runner_options",
     "async_model_admission_reason",
     "interactive_model_from_session",
     "run_async_model_call",
