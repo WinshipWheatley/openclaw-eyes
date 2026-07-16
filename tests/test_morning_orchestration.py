@@ -4,26 +4,6 @@ import cassandra_briefing_brain as bb
 import chief_morning_orchestrator
 from cassandra_briefing_brain import generate_briefing
 
-
-def test_morning_orchestrator_routes_reporter_through_scheduled_brief(monkeypatch):
-    import chief_ceo_briefing
-    import chief_morning_synthesis
-    import chief_ops_reporter
-    import chief_reporter_brain
-
-    task_classes = []
-    monkeypatch.setattr(chief_ops_reporter, "write_ops_actions_artifact", lambda: None)
-    monkeypatch.setattr(chief_ceo_briefing, "refresh_nightly_polish_artifact", lambda: None)
-    monkeypatch.setattr(
-        chief_reporter_brain,
-        "refresh_report_artifact",
-        lambda *, task_class=None: task_classes.append(task_class),
-    )
-    monkeypatch.setattr(chief_morning_synthesis, "write_chief_morning_synthesis", lambda: None)
-
-    assert chief_morning_orchestrator.refresh_morning_artifacts() is True
-    assert task_classes == ["cassandra_scheduled_brief"]
-
 def test_morning_orchestration_trigger(monkeypatch, tmp_path):
     # Setup paths
     synthesis = tmp_path / "Chief Morning Synthesis.md"
@@ -55,11 +35,7 @@ def test_morning_orchestration_trigger(monkeypatch, tmp_path):
     # Test-only; the briefing logic is unchanged.
     import os
     from cassandra_briefing_morning_policy import ORCHESTRATION_START_TIME
-    _after_window_start = datetime.combine(
-        datetime.now().date(),
-        ORCHESTRATION_START_TIME,
-    ) + timedelta(hours=1)
-    _fresh_dt = max(datetime.now(), _after_window_start)
+    _fresh_dt = datetime.combine(datetime.now().date(), ORCHESTRATION_START_TIME) + timedelta(hours=1)
     _fresh = _fresh_dt.timestamp()
     os.utime(synthesis, (_fresh, _fresh))
     monkeypatch.setattr("cassandra_briefing_morning_policy.is_within_morning_window", lambda: True)

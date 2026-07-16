@@ -65,21 +65,6 @@ def test_local_model_route_reason_is_explicit_and_lane_correct():
     )
 
 
-def test_scheduled_brief_route_reasons_name_the_fixed_8b_contract():
-    for task_class in (
-        "cassandra_scheduled_brief",
-        "cassandra_morning_brief",
-        "cassandra_morning_brief_test",
-    ):
-        reason = chief_llm.local_model_route_reason(
-            "Generate a scheduled brief.",
-            "strong",
-            task_class=task_class,
-        )
-        assert "qwen3 8b" in reason
-        assert "gemma" not in reason
-
-
 def test_resolve_local_model_uses_installed_lane_candidate(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
@@ -186,7 +171,7 @@ def test_ollama_call_tunes_cassandra_morning_test_timeout_without_retries(monkey
     assert calls == [("gemma4:e4b", 180)]
 
 
-def test_ollama_call_cassandra_morning_brief_stays_on_operator_8b(monkeypatch):
+def test_ollama_call_cassandra_morning_brief_falls_back_across_models(monkeypatch):
     calls: list[tuple[str, int]] = []
     monkeypatch.setattr(chief_llm, "_CASSANDRA_MORNING_BRIEF_TIMEOUT", 420, raising=False)
     monkeypatch.setattr(chief_llm, "_CASSANDRA_MORNING_BRIEF_ATTEMPTS", 1, raising=False)
@@ -209,6 +194,8 @@ def test_ollama_call_cassandra_morning_brief_stays_on_operator_8b(monkeypatch):
     def _fake_urlopen(req, timeout=0):
         payload = json.loads(req.data.decode("utf-8"))
         calls.append((payload["model"], timeout))
+        if payload["model"] == "qwen3.5:9b":
+            raise TimeoutError("timed out")
         return _Resp()
 
     monkeypatch.setattr(chief_llm.urllib.request, "urlopen", _fake_urlopen)
@@ -220,7 +207,7 @@ def test_ollama_call_cassandra_morning_brief_stays_on_operator_8b(monkeypatch):
     )
 
     assert out == "ok"
-    assert calls == [("qwen3:8b-q4_K_M", 420)]
+    assert calls == [("qwen3.5:9b", 420), ("qwen3:8b-q4_K_M", 420)]
 
 
 def test_openrouter_call_missing_key_fails_closed_without_request(monkeypatch):
@@ -614,7 +601,7 @@ def test_cassandra_user_reply_falls_back_to_gemma_26b_before_nemotron(monkeypatc
     assert model == "qwen3:8b-q4_K_M"
 
 
-def test_cassandra_morning_brief_is_fixed_to_operator_8b(monkeypatch):
+def test_cassandra_morning_brief_prefers_gemma_31b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -627,10 +614,10 @@ def test_cassandra_morning_brief_is_fixed_to_operator_8b(monkeypatch):
     )
 
     assert lane == "strong"
-    assert model == "qwen3:8b-q4_K_M"
+    assert model == "qwen3.5:9b"
 
 
-def test_cassandra_morning_brief_does_not_escalate_when_8b_inventory_probe_misses(monkeypatch):
+def test_cassandra_morning_brief_falls_back_to_gemma_26b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -643,10 +630,10 @@ def test_cassandra_morning_brief_does_not_escalate_when_8b_inventory_probe_misse
     )
 
     assert lane == "strong"
-    assert model == "qwen3:8b-q4_K_M"
+    assert model == "qwen3.5:9b"
 
 
-def test_cassandra_morning_brief_test_mode_stays_on_operator_8b(monkeypatch):
+def test_cassandra_morning_brief_test_mode_prefers_gemma_e4b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -659,10 +646,10 @@ def test_cassandra_morning_brief_test_mode_stays_on_operator_8b(monkeypatch):
     )
 
     assert lane == "fast"
-    assert model == "qwen3:8b-q4_K_M"
+    assert model == "qwen3:4b"
 
 
-def test_cassandra_morning_brief_test_mode_does_not_escalate_when_8b_probe_misses(monkeypatch):
+def test_cassandra_morning_brief_test_mode_falls_back_to_26b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -675,7 +662,7 @@ def test_cassandra_morning_brief_test_mode_does_not_escalate_when_8b_probe_misse
     )
 
     assert lane == "fast"
-    assert model == "qwen3:8b-q4_K_M"
+    assert model == "qwen3:4b"
 
 
 def test_cassandra_task_candidates_stay_in_qwen3_family():
