@@ -1,3 +1,4 @@
+import hashlib
 import json
 import sqlite3
 import sys
@@ -291,6 +292,184 @@ def test_service_exact_1652_message_reaches_st_annes_workflow_rail(
     assert response["missing_items_short"] == [
         "Reconcile workbook billables into the work-log mirror"
     ]
+
+
+def test_service_exact_1655_message_returns_verified_st_annes_june_pdf_identity(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    artifact_root = tmp_path / "invoice_handoffs"
+    inbox.mkdir()
+    pdf_bytes = b"verified st annes june pdf"
+    workbook_bytes = b"verified june workbook"
+    pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+    workbook_hash = hashlib.sha256(workbook_bytes).hexdigest()
+    for name in ("copy-a", "copy-b"):
+        package_dir = artifact_root / name
+        package_dir.mkdir(parents=True)
+        (package_dir / "invoice.pdf").write_bytes(pdf_bytes)
+        (package_dir / "invoice.xlsx").write_bytes(workbook_bytes)
+        (package_dir / "invoice_manifest.json").write_text(
+            json.dumps(
+                {
+                    "schema": "openclaw_invoice_manifest_v1",
+                    "invoice_key": "2026-06_st-annes",
+                    "client_slug": "st-annes",
+                    "invoice_number": "3",
+                    "service_period_start": "2026-06-01",
+                    "service_period_end": "2026-06-30",
+                    "status": "draft",
+                    "amount": 875.0,
+                    "source_sheet": "June 2026",
+                    "package_workbook_sha256": workbook_hash,
+                    "current_pdf_sha256": pdf_hash,
+                    "latest_send_receipt_path": None,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    monkeypatch.setattr(consumer, "DEFAULT_INVOICE_ARTIFACT_ROOTS", (artifact_root,), raising=False)
+    monkeypatch.setenv(
+        consumer.SQLITE_PATH_ENV,
+        str(tmp_path / "workflow_package_queue.sqlite"),
+    )
+    source_text = (
+        "show me the pdfs you think are the right one or may be. it should be st. annes june related. "
+        "and it should come from a excell workbook with a sheet inside it labled june, and or june 2026 "
+        "or something like that. THis is a capability that i need the system to be able to do, so if you "
+        "guys need to do it first to see how it should flow and then have the system do it with determinism "
+        "and agentic aspects then do both"
+    )
+    request = maestro_listener.build_operator_maestro_chat_request(
+        source_text,
+        message_id="1655",
+        chat_id=123,
+        created_at="2026-07-16T16:37:51+00:00",
+    )
+    request_path = inbox / "mission_control_operator_instruction_request_maestro_telegram_1655.json"
+    request_path.write_text(json.dumps(request) + "\n", encoding="utf-8")
+
+    assert service_main(
+        [
+            "--watch-seconds",
+            "1",
+            "--max-requests",
+            "1",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            "2026-07-16T16:37:51+00:00",
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    response = json.loads(
+        _safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8")
+    )
+
+    assert response["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+    assert response["one_line_answer"] == (
+        "I found one canonical St. Anne's June invoice PDF across 2 verified copies. "
+        "It comes from invoice.xlsx sheet June 2026, invoice 3, totals $875, is draft, and was never sent."
+    )
+    receipt = response["detail_disclosure"]["workflow_package_request_consumer"]
+    located = receipt["artifact_locator_result"]
+    assert located["status"] == "FOUND"
+    candidate = located["canonical_candidate"]
+    assert candidate["source_sheet"] == "June 2026"
+    assert candidate["invoice_number"] == "3"
+    assert candidate["amount"] == 875.0
+    assert candidate["invoice_status"] == "draft"
+    assert candidate["send_receipt_present"] is False
+    assert len(candidate["duplicate_pdf_paths"]) == 2
+    assert located["machine_proof"]["attachment_sent"] is False
+    assert located["machine_proof"]["external_action_performed"] is False
+    assert receipt["agentic_fallback_packet"] == {}
+
+
+def test_invoice_artifact_locator_miss_stages_bounded_agentic_fallback_only(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    artifact_root = tmp_path / "allowlisted_invoice_handoffs"
+    artifact_root.mkdir()
+    monkeypatch.setattr(consumer, "DEFAULT_INVOICE_ARTIFACT_ROOTS", (artifact_root,))
+    source_text = (
+        "Show me the St. Anne's June invoice PDF from the Excel workbook sheet June 2026, "
+        "using deterministic and agentic aspects if needed."
+    )
+    request = maestro_listener.build_operator_maestro_chat_request(
+        source_text,
+        message_id="invoice-locator-miss",
+        chat_id=123,
+        created_at="2026-07-16T16:37:51+00:00",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="invoice-locator-miss.json",
+        generated_at="2026-07-16T16:37:51+00:00",
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    located = result.receipt["artifact_locator_result"]
+    assert located["status"] == "NOT_FOUND"
+    assert located["searched_roots"] == [artifact_root.as_posix()]
+    fallback = result.receipt["agentic_fallback_packet"]
+    assert fallback["status"] == "STAGED_NOT_EXECUTED"
+    assert fallback["normalized_query"] == {
+        "client_ref": "st_annes",
+        "service_period": "2026-06",
+    }
+    assert fallback["allowlisted_roots"] == [artifact_root.as_posix()]
+    assert fallback["model_call_performed"] is False
+    assert fallback["root_widening_performed"] is False
+    assert fallback["external_action_performed"] is False
+    assert result.receipt["operator_display"]["plain_summary"] == (
+        "I could not verify a St. Anne's June invoice PDF in the allowlisted artifact roots."
+    )
+
+
+def test_non_june_invoice_pdf_request_does_not_run_fixed_june_locator(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("fixed June locator must not run for another service period")
+
+    monkeypatch.setattr(
+        consumer.invoice_artifact_locator,
+        "locate_invoice_artifacts",
+        fail_if_called,
+    )
+    source_text = "Show me the St. Anne's July 2026 invoice PDF from the Excel workbook."
+    request = maestro_listener.build_operator_maestro_chat_request(
+        source_text,
+        message_id="invoice-locator-july",
+        chat_id=123,
+        created_at="2026-07-16T16:37:51+00:00",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="invoice-locator-july.json",
+        generated_at="2026-07-16T16:37:51+00:00",
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+    assert result.receipt["artifact_locator_result"] == {}
+    assert result.receipt["agentic_fallback_packet"] == {}
 
 
 def test_legacy_bare_hex_hash_still_validates_when_source_text_matches() -> None:

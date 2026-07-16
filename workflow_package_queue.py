@@ -559,7 +559,16 @@ def _mentions_st_annes(text: str) -> bool:
 
 def _st_annes_invoice_related(text: str) -> bool:
     invoice_terms = ("invoice", "bill", "billing", "billed", "rollup")
-    return any(term in text for term in invoice_terms) or ("workflow" in text and "invoice" in text)
+    workbook_artifact_request = (
+        "pdf" in text
+        and any(term in text for term in ("workbook", "excel", "excell"))
+        and "june" in text
+    )
+    return (
+        any(term in text for term in invoice_terms)
+        or ("workflow" in text and "invoice" in text)
+        or workbook_artifact_request
+    )
 
 
 def _st_annes_review_dry_run_semantics(text: str) -> bool:

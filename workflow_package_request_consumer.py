@@ -19,6 +19,7 @@ from typing import Any, Mapping
 
 import agent_voice_router
 import dynamic_card_packet
+import invoice_artifact_locator
 import maestro_cassandra_responder as mcr
 import system_question_answer
 import workflow_package_queue
@@ -34,6 +35,10 @@ DEFAULT_SQLITE_PATH = workflow_package_queue.DEFAULT_SQLITE_PATH
 SQLITE_PATH_ENV = "OPENCLAW_WORKFLOW_PACKAGE_QUEUE_SQLITE_PATH"
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
+DEFAULT_INVOICE_ARTIFACT_ROOTS = (
+    Path("/mnt/e/openclaw/artifacts/invoice_workbooks"),
+    Path("/mnt/e/openclaw/codex_mac_bridge/from-codex-mac/invoice_handoffs"),
+)
 STATUS_READ_MODEL_ID = "workflow_package_request_consumer_status"
 STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
 FINANCE_THREAD_INDEX_READ_MODEL_ID = "finance_thread_index"
@@ -989,6 +994,108 @@ def _operator_display(
     }
 
 
+def _is_invoice_artifact_locator_request(source_text: str, workflow_ref: str) -> bool:
+    if workflow_ref != "st_annes_monthly_invoice_rollup":
+        return False
+    text = " ".join(str(source_text or "").strip().lower().split())
+    return (
+        "pdf" in text
+        and any(term in text for term in ("workbook", "excel", "excell"))
+        and "june" in text
+        and "2026" in text
+    )
+
+
+def _invoice_locator_operator_display(
+    package: Mapping[str, Any],
+    locator_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    candidate = locator_result.get("canonical_candidate")
+    if not isinstance(candidate, Mapping):
+        return dict(package.get("operator_display") or {})
+    copies = candidate.get("duplicate_pdf_paths")
+    copy_count = len(copies) if isinstance(copies, list) else 1
+    amount = float(candidate.get("amount") or 0)
+    amount_text = f"${amount:,.0f}" if amount.is_integer() else f"${amount:,.2f}"
+    status = str(candidate.get("invoice_status") or "unknown").strip().lower()
+    send_text = "was sent" if candidate.get("send_receipt_present") is True else "was never sent"
+    base = dict(package.get("operator_display") or {})
+    base.update(
+        {
+            "headline": "St. Anne's June invoice PDF found",
+            "subheadline": "Verified from allowlisted local manifests and file hashes.",
+            "status_label": "Verified locally",
+            "tone": "calm",
+            "plain_summary": (
+                f"I found one canonical St. Anne's June invoice PDF across {copy_count} verified copies. "
+                f"It comes from invoice.xlsx sheet {candidate.get('source_sheet')}, invoice "
+                f"{candidate.get('invoice_number')}, totals {amount_text}, is {status}, and {send_text}."
+            ),
+            "next_safe_action": "Review the verified local copies; attachment and delivery remain closed.",
+            "why_it_matters": "Duplicate handoff copies collapse to one hash-verified invoice identity.",
+            "primary_fact": f"Invoice {candidate.get('invoice_number')} totals {amount_text}.",
+            "secondary_facts": [
+                f"Source: invoice.xlsx sheet {candidate.get('source_sheet')}.",
+                f"Status: {status}; {send_text}.",
+            ],
+            "proof_caption": "Manifest and SHA-256 proof available.",
+            "show_machine_details_by_default": False,
+        }
+    )
+    return base
+
+
+def _agentic_invoice_locator_fallback_packet(
+    locator_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": "invoice_artifact_locator_agentic_fallback_v0",
+        "status": "STAGED_NOT_EXECUTED",
+        "normalized_query": {
+            "client_ref": str(locator_result.get("client_ref") or ""),
+            "service_period": str(locator_result.get("service_period") or ""),
+        },
+        "allowlisted_roots": list(locator_result.get("searched_roots") or []),
+        "deterministic_status": str(locator_result.get("status") or "NOT_FOUND"),
+        "rejections": list(locator_result.get("rejections") or []),
+        "model_call_performed": False,
+        "root_widening_performed": False,
+        "external_action_performed": False,
+    }
+
+
+def _invoice_locator_fallback_operator_display(
+    package: Mapping[str, Any],
+    locator_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    status = str(locator_result.get("status") or "NOT_FOUND")
+    ambiguous = status == "AMBIGUOUS"
+    base = dict(package.get("operator_display") or {})
+    base.update(
+        {
+            "headline": "St. Anne's June invoice PDF needs resolution",
+            "subheadline": "The deterministic allowlisted search did not yield one canonical artifact.",
+            "status_label": "Ambiguous" if ambiguous else "Not found",
+            "tone": "warning",
+            "plain_summary": (
+                "I found multiple different verified St. Anne's June invoice PDFs, so I did not pick one."
+                if ambiguous
+                else "I could not verify a St. Anne's June invoice PDF in the allowlisted artifact roots."
+            ),
+            "next_safe_action": "Review the bounded fallback packet; no model call or wider search ran.",
+            "why_it_matters": "Artifact identity must be proved before OpenClaw presents a canonical invoice.",
+            "primary_fact": f"Deterministic locator status: {status}.",
+            "secondary_facts": [
+                "The fallback packet is metadata only.",
+                "No attachment, delivery, or external action ran.",
+            ],
+            "proof_caption": "Search roots and rejection reasons available.",
+            "show_machine_details_by_default": False,
+        }
+    )
+    return base
+
+
 def consume_workflow_package_request(
     raw_request: Mapping[str, Any],
     *,
@@ -1053,6 +1160,27 @@ def consume_workflow_package_request(
             "payload_hash": str(raw_request.get("payload_hash") or ""),
         }
         package["routing_metadata"] = routing_metadata(raw_request, package)
+        if _is_invoice_artifact_locator_request(
+            _source_text(raw_request),
+            str(package.get("workflow_ref") or ""),
+        ):
+            locator_result = invoice_artifact_locator.locate_invoice_artifacts(
+                "st_annes",
+                "2026-06",
+                roots=DEFAULT_INVOICE_ARTIFACT_ROOTS,
+            )
+            package["artifact_locator_result"] = locator_result
+            if locator_result.get("status") == "FOUND":
+                package["operator_display"] = _invoice_locator_operator_display(package, locator_result)
+                package["agentic_fallback_packet"] = {}
+            else:
+                package["agentic_fallback_packet"] = _agentic_invoice_locator_fallback_packet(
+                    locator_result
+                )
+                package["operator_display"] = _invoice_locator_fallback_operator_display(
+                    package,
+                    locator_result,
+                )
         workflow_package_queue.record_package(sqlite_path, package)
 
     primary_status = _primary_status(package, blockers)
@@ -1100,6 +1228,8 @@ def consume_workflow_package_request(
         "operator_display": operator_display,
         "proof_refs": list((package or {}).get("proof_refs") or []),
         "dry_run_proof_bundle": dict((package or {}).get("dry_run_proof_bundle") or {}),
+        "artifact_locator_result": dict((package or {}).get("artifact_locator_result") or {}),
+        "agentic_fallback_packet": dict((package or {}).get("agentic_fallback_packet") or {}),
         "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
         "request_authority_boundary_all_false": not _authority_blockers(raw_request),
         "no_external_authority_granted": True,
