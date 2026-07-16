@@ -66,12 +66,9 @@ def test_resolve_local_model_global_fallback_when_all_listed_oversized(monkeypat
     assert model == "gemma4:e4b"
 
 
-def test_resolve_local_model_keeps_legacy_when_no_fitting_known(monkeypatch) -> None:
-    # Fail-open: when the ONLY installed candidate is oversized (nothing fits the ceiling), keep
-    # that legacy pick rather than returning nothing. chief_evidence_synthesis lists magistral(14GB)
-    # first; with only magistral installed and a 12GB ceiling, nothing fits -> fail open to magistral.
+def test_resolve_local_model_never_fails_open_to_oversized_async_model(monkeypatch) -> None:
     monkeypatch.setattr(chief_llm, "_ollama_installed_models", lambda *a, **k: {"magistral:latest"})
     monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: {"magistral:latest": 14.0})
-    monkeypatch.setattr(chief_llm, "_local_model_size_ceiling_gb", lambda *a, **k: 12.0)
+    monkeypatch.setattr(chief_llm, "_local_model_size_ceiling_gb", lambda *a, **k: 8.0)
     model, _lane = chief_llm.resolve_local_model("synthesize the evidence", task_class="chief_evidence_synthesis")
-    assert model == "magistral:latest"
+    assert model == "qwen3:8b-q4_K_M"

@@ -44,11 +44,10 @@ def test_agentic_code_and_code_lane_use_ornith(monkeypatch) -> None:
     assert model2 == "ornith:9b"
 
 
-def test_async_synthesis_reaches_a_reasoner_above_interactive_ceiling(monkeypatch) -> None:
-    # Async/heavy paths may exceed the interactive ceiling (spill OK) -> magistral (14GB) is allowed.
+def test_async_synthesis_stays_on_card_without_governor_lease(monkeypatch) -> None:
     _wire(monkeypatch)
     model, _ = chief_llm.resolve_local_model("synthesize the evidence", task_class="chief_evidence_synthesis")
-    assert model == "magistral:latest"
+    assert model == "qwen3.5:9b"
 
 
 def test_strong_lane_is_interactive_qwen(monkeypatch) -> None:
@@ -59,11 +58,17 @@ def test_strong_lane_is_interactive_qwen(monkeypatch) -> None:
 
 
 def test_ceiling_is_context_aware(monkeypatch) -> None:
-    # Interactive ceiling excludes the 14GB reasoner; async ceiling admits it (but not 26b).
     interactive = chief_llm._local_model_size_ceiling_gb(task_class="cassandra_user_reply")
     asynchronous = chief_llm._local_model_size_ceiling_gb(task_class="chief_evidence_synthesis")
-    assert interactive < 14.0 <= asynchronous
-    assert asynchronous < 17.0  # 26b stays excluded even async (swap-death)
+    assert interactive == asynchronous == 8.0
+
+
+def test_unleased_async_wall_cannot_be_raised_by_environment(monkeypatch) -> None:
+    monkeypatch.setenv("OPENCLAW_LOCAL_MODEL_MAX_GB", "15")
+
+    assert chief_llm._local_model_size_ceiling_gb(
+        task_class="chief_evidence_synthesis"
+    ) == 8.0
 
 
 def test_async_big_model_gets_long_timeout(monkeypatch) -> None:

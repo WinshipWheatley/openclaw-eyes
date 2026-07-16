@@ -101,14 +101,15 @@ _FRONTDOOR_SYSTEM_LOAD_PER_CPU_HIGH_DEFAULT = 0.75
 _LOCAL_MODEL_MAX_GB_DEFAULT = 12.0
 _LOCAL_MODEL_MAX_GB_ENV = "OPENCLAW_LOCAL_MODEL_MAX_GB"
 
-# Context-aware fit ceilings (operator policy 2026-06-29): interactive replies must fit the GPU
-# card so they answer in real time; async/background work (briefs, synthesis, agentic code) may
-# spill to RAM for better quality because the operator is not waiting.
+# Unleased fit ceiling for every local-model lane. A 2026-07-16 incident proved that
+# background CPU spill freezes 9p and takes the interactive plane down with it. Models
+# above this wall require a Resource Governor idle-window lease; none exists yet.
 _INTERACTIVE_MODEL_CEILING_GB = 8.0   # qwen3:8b (5.2) / qwen3.5:9b (6.6) / ornith:9b (5.6) fit; gemma4:e4b (9.6) + 14GB reasoners do not
-_ASYNC_MODEL_CEILING_GB = 15.0        # magistral / mistral-small (14) allowed; 17GB+ (gemma4:26b/31b, qwen3.6, nemotron:30b) stay out — they swap-death this 24GB box
+_ASYNC_MODEL_CEILING_GB = 8.0
 _ASYNC_MODEL_LONG_TIMEOUT_S = 3600    # a slow spilling async model must not be killed mid-generation
+_UNLEASED_SAFE_FALLBACK_MODEL = "qwen3:8b-q4_K_M"
 
-# Task classes whose work is background (operator not waiting) -> async ceiling + long timeout.
+# Task classes whose work is background. They still share the unleased box-fit wall.
 _ASYNC_TASK_CLASSES = frozenset({
     "cassandra_outbound_draft",
     "cassandra_morning_brief",
@@ -1099,17 +1100,15 @@ def local_model_route_reason(
 def _local_model_size_ceiling_gb(task_class: str | None = None, lane: str | None = None) -> float:
     """Max on-disk size (GB) a local model may have to resolve, by workload tier.
 
-    ``OPENCLAW_LOCAL_MODEL_MAX_GB`` overrides both tiers. Otherwise INTERACTIVE workloads (operator
-    waiting) cap at the card-fit ceiling so replies are real time, while ASYNC/background work
-    (briefs, synthesis, agentic code -- see _is_async_workload) may spill to a larger model because
-    the operator is not waiting. gemma4:26b/31b exceed even the async ceiling (swap-death).
+    Without a Resource Governor lease, both interactive and background work stay
+    under the card-fit wall. The environment may lower the ceiling but cannot raise it.
     """
     env_val = os.environ.get(_LOCAL_MODEL_MAX_GB_ENV, "").strip()
     if env_val:
         try:
             parsed = float(env_val)
             if parsed > 0:
-                return parsed
+                return min(parsed, _INTERACTIVE_MODEL_CEILING_GB)
         except (TypeError, ValueError):
             pass
     if _is_async_workload(task_class, lane):
@@ -1223,11 +1222,9 @@ def resolve_local_model(
     overall = _largest_fitting_installed_overall(installed, sizes, ceiling_gb, prefer_family=family)
     if overall is not None:
         return overall, selected_lane
-    # Pathological: nothing installed fits the ceiling -> legacy first-installed pick (fail open).
-    for candidate in candidates:
-        if candidate in installed:
-            return candidate, selected_lane
-    return candidates[0], selected_lane
+    # Nothing proven to fit: fail closed to the canonical safe model. If it is not
+    # installed the call may fail, but it must never load a known oversized model.
+    return _UNLEASED_SAFE_FALLBACK_MODEL, selected_lane
 
 
 def _pick_model(prompt: str) -> str:

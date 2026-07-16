@@ -170,14 +170,14 @@ def _enforce_model_fit(
     interactive lane and swap-killed the whole box; the resolver's own choices
     already respect the ceilings, but explicit overrides bypassed them).
 
-    Returns (fits, reason). Unknown size fails OPEN (allow + say so) — the wall
-    exists to stop known-oversized loads, not to block when ollama is unreachable.
+    Returns (fits, reason). Without a governor lease receipt, unknown size or a
+    failed size probe cannot prove box fit and therefore demotes to the safe model.
     """
     try:
         sizes = (model_sizes_fn or chief_llm._ollama_model_sizes)()
         size_gb = sizes.get(primary_model)
         if size_gb is None:
-            return True, f"model_fit_unknown_size:{primary_model}"
+            return False, f"model_fit_unknown_size_demotion:{primary_model}"
         ceiling = (
             chief_llm._ASYNC_MODEL_CEILING_GB
             if chief_llm._is_async_workload(task_class, lane)
@@ -190,7 +190,7 @@ def _enforce_model_fit(
             )
         return True, f"model_fit_ok:{primary_model}:{size_gb:.1f}GB"
     except Exception as exc:
-        return True, f"model_fit_probe_error:{type(exc).__name__}"
+        return False, f"model_fit_probe_error_demotion:{type(exc).__name__}"
 
 
 def _choose_retry_model(

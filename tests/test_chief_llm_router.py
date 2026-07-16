@@ -78,7 +78,7 @@ def test_resolve_local_model_uses_installed_lane_candidate(monkeypatch):
     assert model == "qwen3:8b-q4_K_M"
 
 
-def test_resolve_local_model_deep_falls_back_to_gemma_when_nemotron_missing(monkeypatch):
+def test_resolve_local_model_deep_fails_closed_when_only_oversized_models_exist(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -90,7 +90,7 @@ def test_resolve_local_model_deep_falls_back_to_gemma_when_nemotron_missing(monk
     )
 
     assert lane == "deep"
-    assert model == "magistral:latest"
+    assert model == "qwen3:8b-q4_K_M"
 
 
 def test_generic_lanes_do_not_use_cassandra_gemma_26b_by_default():
@@ -595,8 +595,9 @@ def test_resolve_local_model_routes_cassandra_outbound_draft_to_strong(monkeypat
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
-        lambda force_refresh=False: {"nemotron-3-nano:4b", "nemotron-3-nano:30b", "gemma4:31b"},
+        lambda force_refresh=False: {"qwen3.5:9b", "nemotron-3-nano:4b"},
     )
+    monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: {"qwen3.5:9b": 6.6})
 
     model, lane = chief_llm.resolve_local_model(
         "Draft a short warm reply.",
@@ -611,8 +612,9 @@ def test_resolve_local_model_routes_cassandra_bounded_hidden_tasks_to_fast(monke
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
-        lambda force_refresh=False: {"nemotron-3-nano:4b", "gemma4:e4b", "gemma4:31b"},
+        lambda force_refresh=False: {"qwen3:4b", "nemotron-3-nano:4b"},
     )
+    monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: {"qwen3:4b": 2.5})
 
     model, lane = chief_llm.resolve_local_model(
         "Summarize sender and subject only.",
@@ -682,12 +684,13 @@ def test_cassandra_user_reply_falls_back_to_gemma_26b_before_nemotron(monkeypatc
     assert model == "qwen3:8b-q4_K_M"
 
 
-def test_cassandra_morning_brief_prefers_gemma_31b(monkeypatch):
+def test_cassandra_morning_brief_prefers_safe_qwen9(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
-        lambda force_refresh=False: {"nemotron-3-nano:30b", "gemma4:26b", "gemma4:31b"},
+        lambda force_refresh=False: {"qwen3.5:9b", "gemma4:26b"},
     )
+    monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: {"qwen3.5:9b": 6.6, "gemma4:26b": 17.0})
 
     model, lane = chief_llm.resolve_local_model(
         "Generate the morning briefing.",
@@ -698,7 +701,7 @@ def test_cassandra_morning_brief_prefers_gemma_31b(monkeypatch):
     assert model == "qwen3.5:9b"
 
 
-def test_cassandra_morning_brief_falls_back_to_gemma_26b(monkeypatch):
+def test_cassandra_morning_brief_falls_back_to_resident_8b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -711,15 +714,16 @@ def test_cassandra_morning_brief_falls_back_to_gemma_26b(monkeypatch):
     )
 
     assert lane == "strong"
-    assert model == "qwen3.5:9b"
+    assert model == "qwen3:8b-q4_K_M"
 
 
-def test_cassandra_morning_brief_test_mode_prefers_gemma_e4b(monkeypatch):
+def test_cassandra_morning_brief_test_mode_prefers_qwen4(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
-        lambda force_refresh=False: {"gemma4:e4b", "gemma4:26b", "gemma4:31b"},
+        lambda force_refresh=False: {"qwen3:4b", "gemma4:e4b"},
     )
+    monkeypatch.setattr(chief_llm, "_ollama_model_sizes", lambda *a, **k: {"qwen3:4b": 2.5, "gemma4:e4b": 9.6})
 
     model, lane = chief_llm.resolve_local_model(
         "Generate the morning briefing in test mode.",
@@ -730,7 +734,7 @@ def test_cassandra_morning_brief_test_mode_prefers_gemma_e4b(monkeypatch):
     assert model == "qwen3:4b"
 
 
-def test_cassandra_morning_brief_test_mode_falls_back_to_26b(monkeypatch):
+def test_cassandra_morning_brief_test_mode_falls_back_to_resident_8b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -743,7 +747,7 @@ def test_cassandra_morning_brief_test_mode_falls_back_to_26b(monkeypatch):
     )
 
     assert lane == "fast"
-    assert model == "qwen3:4b"
+    assert model == "qwen3:8b-q4_K_M"
 
 
 def test_cassandra_task_candidates_stay_in_qwen3_family():
@@ -767,6 +771,11 @@ def test_chief_evidence_scan_resolves_to_nemotron_4b(monkeypatch):
         "_ollama_installed_models",
         lambda force_refresh=False: {"nemotron-3-nano:4b", "nemotron-3-nano:30b"},
     )
+    monkeypatch.setattr(
+        chief_llm,
+        "_ollama_model_sizes",
+        lambda *a, **k: {"nemotron-3-nano:4b": 2.8, "nemotron-3-nano:30b": 17.0},
+    )
 
     model, lane = chief_llm.resolve_local_model(
         "Extract only the evidence rows relevant to this issue.",
@@ -777,7 +786,7 @@ def test_chief_evidence_scan_resolves_to_nemotron_4b(monkeypatch):
     assert model == "nemotron-3-nano:4b"
 
 
-def test_chief_evidence_synthesis_resolves_to_nemotron_30b(monkeypatch):
+def test_chief_evidence_synthesis_fails_closed_when_only_oversized_models_exist(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -790,10 +799,10 @@ def test_chief_evidence_synthesis_resolves_to_nemotron_30b(monkeypatch):
     )
 
     assert lane == "deep"
-    assert model == "mistral-small:latest"
+    assert model == "qwen3:8b-q4_K_M"
 
 
-def test_chief_structured_plan_resolves_to_mistral_small(monkeypatch):
+def test_chief_structured_plan_fails_closed_when_only_oversized_models_exist(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -806,10 +815,10 @@ def test_chief_structured_plan_resolves_to_mistral_small(monkeypatch):
     )
 
     assert lane == "strong"
-    assert model == "magistral:latest"
+    assert model == "qwen3:8b-q4_K_M"
 
 
-def test_chief_ambiguous_debug_resolves_to_magistral(monkeypatch):
+def test_chief_ambiguous_debug_fails_closed_when_only_oversized_models_exist(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -822,10 +831,10 @@ def test_chief_ambiguous_debug_resolves_to_magistral(monkeypatch):
     )
 
     assert lane == "deep"
-    assert model == "magistral:latest"
+    assert model == "qwen3:8b-q4_K_M"
 
 
-def test_chief_agentic_code_resolves_to_qwen36(monkeypatch):
+def test_chief_agentic_code_fails_closed_when_only_oversized_models_exist(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -838,4 +847,4 @@ def test_chief_agentic_code_resolves_to_qwen36(monkeypatch):
     )
 
     assert lane == "code_challenger"
-    assert model == "mistral-small:latest"
+    assert model == "qwen3:8b-q4_K_M"

@@ -99,8 +99,8 @@ class WorkerRuntimeConfig:
     repo_root: Path | None = None
     worktree: Path | None = None
     branch: str = "unknown"
-    model: str = "ornith:9b"
-    fallback_model: str = ""
+    model: str = "qwen3:8b-q4_K_M"
+    fallback_model: str = "ornith:9b"
     timeout_seconds: int = 3600
     subprocess_timeout_seconds: int | None = None
     extra_env: dict[str, str] = dataclasses.field(default_factory=dict)
@@ -153,8 +153,8 @@ class WorkerRuntimeConfig:
                 else None
             ),
             branch=os.environ.get("PHASE_C_BRANCH", "unknown"),
-            model=os.environ.get("PHASE_C_BUILDER_MODEL", "ornith:9b"),
-            fallback_model=os.environ.get("PHASE_C_BUILDER_FALLBACK_MODEL", "mistral-small:latest"),
+            model=os.environ.get("PHASE_C_BUILDER_MODEL", "qwen3:8b-q4_K_M"),
+            fallback_model=os.environ.get("PHASE_C_BUILDER_FALLBACK_MODEL", "ornith:9b"),
             timeout_seconds=int(os.environ.get("PHASE_C_BUILDER_TIMEOUT", "3600")),
             subprocess_timeout_seconds=(
                 int(os.environ["PHASE_C_WORKER_SUBPROCESS_TIMEOUT"])
@@ -199,15 +199,18 @@ def select_builder_model(
     attempt_no: int,
     available_models: "set[str] | None" = None,
 ) -> str:
-    """Builder model router. The first attempt uses the fast primary; a retry
-    (attempt_no >= 2 — the primary already failed) escalates to the stronger coder
-    ``fallback`` (e.g. Ornith) to get the task to pass. The fallback is skipped when it
-    is empty, or when availability is known and the fallback is not installed."""
+    """Select only box-safe builder models until a governor lease exists."""
+    safe_models = frozenset({"qwen3:8b-q4_K_M", "ornith:9b"})
+    safe_primary = str(primary or "").strip()
+    if safe_primary not in safe_models:
+        safe_primary = "qwen3:8b-q4_K_M"
     fb = (fallback or "").strip()
+    if fb not in safe_models:
+        fb = ""
     if not fb or int(attempt_no) < 2:
-        return primary
+        return safe_primary
     if available_models is not None and fb not in available_models:
-        return primary
+        return safe_primary
     return fb
 
 

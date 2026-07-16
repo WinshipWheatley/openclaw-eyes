@@ -31,21 +31,18 @@ def test_adaptive_model_call_retries_downshifted_model_after_empty_primary() -> 
         "Draft a warm Clara reply.",
         task_class="cassandra_outbound_draft",
         timeout=60,
-        primary_model="gemma4:31b",
+        primary_model="qwen3.5:9b",
         primary_lane="strong",
         ollama_call_fn=fake_ollama,
         select_model_fn=fake_selector,
         resource_probe_fn=fake_probe,
         route_logger=lambda **kwargs: routes.append(kwargs),
-        # 2026-07-09 model-fit wall: explicit models are now demoted when their KNOWN size
-        # breaches the lane ceiling. This test's intent (primary attempt honors the caller's
-        # model) survives via the unknown-size fail-open path — sizes injected empty.
-        model_sizes_fn=lambda: {},
+        model_sizes_fn=lambda: {"qwen3.5:9b": 6.6},
     )
 
     assert result == "draft answer"
     assert calls == [
-        {"model": "gemma4:31b", "timeout": 60, "task_class": "cassandra_outbound_draft", "attempts": 1},
+        {"model": "qwen3.5:9b", "timeout": 60, "task_class": "cassandra_outbound_draft", "attempts": 1},
         {"model": "qwen3:8b-q4_K_M", "timeout": 60, "task_class": "cassandra_outbound_draft", "attempts": 1},
     ]
     assert routes[0]["chosen_lane"] == "strong"
@@ -72,10 +69,7 @@ def test_interactive_retry_reuses_the_same_resident_8b() -> None:
             cpu_count=4,
             resident_vram_by_model_gb=lambda: {},
         ),
-        # 2026-07-09 model-fit wall: explicit models are now demoted when their KNOWN size
-        # breaches the lane ceiling. This test's intent (primary attempt honors the caller's
-        # model) survives via the unknown-size fail-open path — sizes injected empty.
-        model_sizes_fn=lambda: {},
+        model_sizes_fn=lambda: {"qwen3:8b-q4_K_M": 5.2},
     )
 
     assert result == ""
@@ -96,10 +90,7 @@ def test_adaptive_model_call_supports_legacy_ollama_fixture_without_attempts() -
         primary_model="gemma4:31b",
         primary_lane="strong",
         ollama_call_fn=legacy_ollama,
-        # 2026-07-09 model-fit wall: explicit models are now demoted when their KNOWN size
-        # breaches the lane ceiling. This test's intent (primary attempt honors the caller's
-        # model) survives via the unknown-size fail-open path — sizes injected empty.
-        model_sizes_fn=lambda: {},
+        model_sizes_fn=lambda: {"qwen3:8b-q4_K_M": 5.2},
     )
 
     assert result == "legacy answer"
@@ -121,21 +112,18 @@ def test_adaptive_ollama_text_preserves_explicit_model_without_resolving() -> No
     result = adaptive.adaptive_ollama_text(
         "Summarize this packet.",
         timeout=60,
-        model="nemotron:30b",
+        model="ornith:9b",
         task_class="chief_evidence_synthesis",
         ollama_call_fn=fake_ollama,
         resolve_model_fn=fail_resolve,
-        # 2026-07-09 model-fit wall: explicit models are now demoted when their KNOWN size
-        # breaches the lane ceiling. This test's intent (primary attempt honors the caller's
-        # model) survives via the unknown-size fail-open path — sizes injected empty.
-        model_sizes_fn=lambda: {},
+        model_sizes_fn=lambda: {"ornith:9b": 5.6},
     )
 
     assert result == "explicit model answer"
     assert calls == [
         {
             "timeout": 60,
-            "model": "nemotron:30b",
+            "model": "ornith:9b",
             "task_class": "chief_evidence_synthesis",
             "attempts": 1,
         }
@@ -218,6 +206,7 @@ def test_adaptive_model_call_stamps_bound_frontdoor_model_and_runner_options() -
             cpu_count=4,
             resident_vram_by_model_gb=lambda: {},
         ),
+        model_sizes_fn=lambda: {"qwen3:8b-q4_K_M": 5.2},
     )
 
     assert result["text"] == "frontdoor answer"

@@ -118,6 +118,11 @@ def test_frontdoor_env_options_reach_local_bridge_and_receipt(monkeypatch, tmp_p
     monkeypatch.setattr(pg, "_live_model_allowed", lambda *_a, **_k: True)
     monkeypatch.setattr(chief_llm, "_configured_openrouter_model", lambda: "", raising=False)
     monkeypatch.setattr(chief_llm, "ollama_is_unreachable", lambda **_k: False, raising=False)
+    monkeypatch.setattr(
+        chief_llm,
+        "_ollama_model_sizes",
+        lambda: {"qwen3:8b-q4_K_M": 5.2},
+    )
 
     def fake_select(**kwargs):
         observed["selector_kwargs"] = kwargs

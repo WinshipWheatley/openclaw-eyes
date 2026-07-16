@@ -36,7 +36,7 @@ def test_oversized_explicit_model_on_interactive_lane_is_demoted() -> None:
     result = _run(
         calls,
         model="qwen3.6:latest",
-        task_class="chief_user_reply",
+        task_class="unclassified_explicit_model",
         sizes={"qwen3.6:latest": 27.1, "qwen3:8b-q4_K_M": 5.2},
     )
     assert result == "answer"
@@ -48,13 +48,13 @@ def test_oversized_explicit_model_breaches_async_ceiling_too() -> None:
     _run(
         calls,
         model="qwen3.6:latest",
-        task_class="chief_evidence_synthesis",  # async class, ceiling 15G
+        task_class="chief_evidence_synthesis",
         sizes={"qwen3.6:latest": 27.1},
     )
     assert calls == ["qwen3:8b-q4_K_M"]
 
 
-def test_fourteen_gb_model_allowed_on_async_lane_but_not_interactive() -> None:
+def test_fourteen_gb_model_requires_governor_lease_and_is_demoted_without_one() -> None:
     async_calls: list[str] = []
     _run(
         async_calls,
@@ -62,7 +62,7 @@ def test_fourteen_gb_model_allowed_on_async_lane_but_not_interactive() -> None:
         task_class="chief_evidence_synthesis",
         sizes={"mistral-small:latest": 14.0},
     )
-    assert async_calls == ["mistral-small:latest"], "14G fits the async ceiling — allowed"
+    assert async_calls == ["qwen3:8b-q4_K_M"]
 
     interactive_calls: list[str] = []
     _run(
@@ -74,18 +74,18 @@ def test_fourteen_gb_model_allowed_on_async_lane_but_not_interactive() -> None:
     assert interactive_calls == ["qwen3:8b-q4_K_M"], "14G breaches the 8G interactive ceiling"
 
 
-def test_unknown_size_fails_open() -> None:
+def test_unknown_size_fails_closed_without_governor_lease() -> None:
     calls: list[str] = []
     _run(
         calls,
         model="mystery:latest",
-        task_class="chief_user_reply",
+        task_class="unclassified_explicit_model",
         sizes={},
     )
-    assert calls == ["mystery:latest"], "unknown size must not block the call"
+    assert calls == ["qwen3:8b-q4_K_M"]
 
 
-def test_size_probe_error_fails_open() -> None:
+def test_size_probe_error_fails_closed_without_governor_lease() -> None:
     calls: list[str] = []
 
     def broken_sizes():
@@ -97,7 +97,7 @@ def test_size_probe_error_fails_open() -> None:
 
     adaptive.adaptive_model_call(
         "hello",
-        task_class="chief_user_reply",
+        task_class="unclassified_explicit_model",
         timeout=60,
         primary_model="qwen3.6:latest",
         primary_lane="explicit_model",
@@ -105,7 +105,7 @@ def test_size_probe_error_fails_open() -> None:
         resolve_model_fn=lambda *a, **k: ("qwen3:8b-q4_K_M", "interactive"),
         model_sizes_fn=broken_sizes,
     )
-    assert calls == ["qwen3.6:latest"]
+    assert calls == ["qwen3:8b-q4_K_M"]
 
 
 def test_resolver_chosen_model_is_not_rechecked() -> None:
@@ -120,7 +120,7 @@ def test_resolver_chosen_model_is_not_rechecked() -> None:
 
     adaptive.adaptive_model_call(
         "hello",
-        task_class="chief_user_reply",
+        task_class="unclassified_explicit_model",
         timeout=60,
         ollama_call_fn=fake_ollama,
         resolve_model_fn=lambda *a, **k: ("qwen3:8b-q4_K_M", "interactive"),
@@ -134,7 +134,7 @@ def test_demotion_is_route_logged_with_reason() -> None:
 
     adaptive.adaptive_model_call(
         "hello",
-        task_class="chief_user_reply",
+        task_class="unclassified_explicit_model",
         timeout=60,
         primary_model="qwen3.6:latest",
         primary_lane="explicit_model",
