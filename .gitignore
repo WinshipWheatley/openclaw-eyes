@@ -181,6 +181,8 @@
 !simple_invoice_event_bridge_rail_registry.py
 !invoice_generator.py
 !st_annes_invoice_status.py
+!st_annes_invoice_truth_drift.py
+!tests/test_st_annes_invoice_truth_drift.py
 !tests/test_invoice_cockpit_ops.py
 !tests/test_fleet_receipt_index.py
 !tests/test_164_receipt_provider_rendering.py
