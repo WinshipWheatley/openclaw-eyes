@@ -16,6 +16,7 @@ import openclaw_request_response_service as service
 import maestro_listener
 import workflow_package_queue as queue
 import workflow_package_request_consumer as consumer
+import workflow_dod_reconciler as dod_reconciler
 import typed_contract_decision as contract
 from scripts.run_openclaw_request_response_service import main as service_main
 
@@ -188,6 +189,24 @@ def test_service_exact_1652_message_reaches_st_annes_workflow_rail(
     response_dir = tmp_path / "responses"
     export_root = tmp_path / "read_models"
     inbox.mkdir()
+    ledger_path = tmp_path / "business_ops.sqlite"
+    dod_reconciler.install_builtin_registry(db_path=ledger_path, installed_at=FIXED_NOW)
+    monkeypatch.setenv("OPENCLAW_LEDGER_PATH", str(ledger_path))
+    locator_claims = {"artifact_locator_status": "FOUND"}
+    monkeypatch.setattr(
+        dod_reconciler,
+        "collect_trusted_evidence",
+        lambda **kwargs: [
+            {
+                "store": "workflow_package_queue_receipts",
+                "receipt_ref": "workflow:locator-found",
+                "writer": "workflow_package_request_consumer",
+                "subject_ref": "st_annes:2026-06",
+                "claims": locator_claims,
+                "content_hash": dod_reconciler.evidence_content_hash(locator_claims),
+            }
+        ],
+    )
     monkeypatch.setenv(
         consumer.SQLITE_PATH_ENV,
         str(tmp_path / "workflow_package_queue.sqlite"),
@@ -275,23 +294,29 @@ def test_service_exact_1652_message_reaches_st_annes_workflow_rail(
     assert heartbeat["processing_status"] == "CHECKING_MAESTRO_FRONTDOOR"
     assert response["raw_internal_status"] == "RESPONSE_READY"
     assert response["request_type"] == "WORKFLOW_PACKAGE_REQUEST"
-    assert response["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+    assert response["workflow_ref"] == "st_annes_invoice_e2e"
     assert (
         response["detail_disclosure"]["request_classification"]["selected_rail"]
         == "workflow_package_request_consumer"
     )
     receipt = response["detail_disclosure"]["workflow_package_request_consumer"]
-    assert receipt["capability_gate_status"] == "ALLOW_DRY_RUN"
+    assert receipt["capability_gate_status"] == "READ_ONLY_RECONCILIATION"
     assert receipt["machine_proof"]["email_send_performed"] is False
-    assert receipt["machine_proof"]["pdf_export_performed"] is False
+    assert receipt["machine_proof"]["advance_performed"] is False
     assert response["one_line_answer"] == (
-        "The St. Anne's invoice dry-run passed and nothing was sent. "
-        "The June workbook has 7 services totaling $875, while the work-log mirror has 0 confirmed."
+        "The St. Anne's invoice test is not done. 1 of 13 milestones is proven. "
+        "The current frontier is operator confirmation of the PDF."
     )
     assert response["eliwinship"] == response["one_line_answer"]
-    assert response["missing_items_short"] == [
-        "Reconcile workbook billables into the work-log mirror"
-    ]
+    assert receipt["dod_reconciliation"]["frontier"]["milestone_ref"] == "operator_confirmed_pdf"
+    assert any("definition-of-done" in item for item in response["what_happened"])
+    assert all("Workflow Package Queue" not in item for item in response["what_happened"])
+    assert response["why_it_happened"] == (
+        "Definition-of-done intent matched the shared read-only reconciler."
+    )
+    route = response["worker_route_refs"][0]
+    assert route["noop_worker_only"] is False
+    assert route["read_only_dod_reconciler_only"] is True
 
 
 def test_service_exact_1655_message_returns_verified_st_annes_june_pdf_identity(
@@ -470,6 +495,59 @@ def test_non_june_invoice_pdf_request_does_not_run_fixed_june_locator(
     assert result.receipt["workflow_ref"] == "st_annes_monthly_invoice_rollup"
     assert result.receipt["artifact_locator_result"] == {}
     assert result.receipt["agentic_fallback_packet"] == {}
+
+
+def test_exact_1660_are_we_done_uses_read_only_dod_reconciler(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    ledger_path = tmp_path / "business_ops.sqlite"
+    dod_reconciler.install_builtin_registry(db_path=ledger_path, installed_at=FIXED_NOW)
+    monkeypatch.setenv("OPENCLAW_LEDGER_PATH", str(ledger_path))
+    evidence = [
+        {
+            "store": "workflow_package_queue_receipts",
+            "receipt_ref": "workflow:locator-found",
+            "writer": "workflow_package_request_consumer",
+            "subject_ref": "st_annes:2026-06",
+            "claims": {"artifact_locator_status": "FOUND"},
+            "content_hash": dod_reconciler.evidence_content_hash(
+                {"artifact_locator_status": "FOUND"}
+            ),
+        }
+    ]
+    monkeypatch.setattr(dod_reconciler, "collect_trusted_evidence", lambda **kwargs: evidence)
+    source_text = (
+        "whats going on with the st. annes invoice test? are we done what we need to test it? "
+        "if so lets test it"
+    )
+    request = maestro_listener.build_operator_maestro_chat_request(
+        source_text,
+        message_id="1660",
+        chat_id=123,
+        created_at="2026-07-16T17:04:20+00:00",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="maestro_telegram_1660.json",
+        generated_at="2026-07-16T17:04:20+00:00",
+        sqlite_path=tmp_path / "workflow_queue.sqlite",
+    )
+
+    assert result.package is None
+    assert result.response_primary_status == "DOD_IN_PROGRESS"
+    assert result.receipt["workflow_ref"] == "st_annes_invoice_e2e"
+    measured = result.receipt["dod_reconciliation"]
+    assert measured["milestones"][0]["status"] == "PROVEN"
+    assert measured["frontier"]["milestone_ref"] == "operator_confirmed_pdf"
+    assert result.receipt["operator_display"]["plain_summary"] == (
+        "The St. Anne's invoice test is not done. 1 of 13 milestones is proven. "
+        "The current frontier is operator confirmation of the PDF."
+    )
+    assert result.receipt["machine_proof"]["package_recorded"] is False
+    assert result.receipt["machine_proof"]["advance_performed"] is False
+    assert result.receipt["machine_proof"]["business_action_performed"] is False
 
 
 def test_legacy_bare_hex_hash_still_validates_when_source_text_matches() -> None:

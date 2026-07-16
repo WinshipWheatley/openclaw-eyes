@@ -18,11 +18,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import agent_voice_router
+import business_ops_ledger
 import dynamic_card_packet
 import invoice_artifact_locator
 import maestro_cassandra_responder as mcr
 import system_question_answer
 import workflow_package_queue
+import workflow_dod_reconciler
 
 
 REQUEST_TYPE = "WORKFLOW_PACKAGE_REQUEST_V0"
@@ -994,6 +996,155 @@ def _operator_display(
     }
 
 
+_DOD_FRONTIER_LABELS = {
+    "invoice_artifact_verified": "verification of the canonical invoice PDF",
+    "operator_confirmed_pdf": "operator confirmation of the PDF",
+    "work_log_reconciled": "reconciliation of the workbook into the work-log mirror",
+    "telegram_pdf_delivered": "delivery of the verified PDF proof to the operator",
+}
+
+
+def _dod_reconciliation_receipt(
+    raw_request: Mapping[str, Any],
+    *,
+    workflow_ref: str,
+    request_id: str,
+    source_request_filename: str,
+    generated_at: str,
+) -> WorkflowPackageRequestResult:
+    evidence = workflow_dod_reconciler.collect_trusted_evidence()
+    ledger_path = Path(business_ops_ledger.resolve_business_ops_ledger_path())
+    measured = workflow_dod_reconciler.reconcile_workflow(
+        workflow_ref,
+        evidence=evidence,
+        db_path=ledger_path,
+        generated_at=generated_at,
+    )
+    milestones = list(measured.get("milestones") or [])
+    proven_count = sum(item.get("status") == "PROVEN" for item in milestones)
+    frontier = measured.get("frontier") if isinstance(measured.get("frontier"), Mapping) else {}
+    frontier_ref = str(frontier.get("milestone_ref") or "registry_entry_missing")
+    frontier_label = _DOD_FRONTIER_LABELS.get(
+        frontier_ref,
+        str(frontier.get("label") or "installation of the measured workflow registry").lower(),
+    )
+    complete = measured.get("status") == "COMPLETE"
+    blocked = measured.get("status") == "BLOCKED"
+    if complete:
+        plain_summary = (
+            f"The St. Anne's invoice test is done. {proven_count} of {len(milestones)} "
+            "milestones are proven."
+        )
+    elif blocked:
+        plain_summary = (
+            f"The St. Anne's invoice test is blocked. {proven_count} of {len(milestones)} "
+            f"milestones are proven. The current frontier is {frontier_label}."
+        )
+    else:
+        plain_summary = (
+            f"The St. Anne's invoice test is not done. {proven_count} of {len(milestones)} "
+            f"milestones {'is' if proven_count == 1 else 'are'} proven. "
+            f"The current frontier is {frontier_label}."
+        )
+    operator_display = {
+        **agent_voice_router.route_agent_voice_dict(
+            workflow_ref="st_annes_monthly_invoice_rollup",
+            package_status=str(measured.get("status") or "BLOCKED"),
+            source_text=_source_text(raw_request),
+            source_surface=str(raw_request.get("source_surface") or ""),
+            world="invoice_operations",
+            client_ref="st_annes",
+            authority_boundary=raw_request.get("authority_boundary")
+            if isinstance(raw_request.get("authority_boundary"), Mapping)
+            else {},
+            blocker="" if not blocked else str(measured.get("reason") or frontier.get("status") or ""),
+        ),
+        "headline": "St. Anne's invoice test measured",
+        "subheadline": "Receipt-backed definition-of-done checklist.",
+        "status_label": "Done" if complete else "Blocked" if blocked else "In progress",
+        "tone": "calm" if not blocked else "warning",
+        "plain_summary": plain_summary,
+        "next_safe_action": str(frontier.get("advance") or "Install the versioned registry entry."),
+        "why_it_matters": "The system can resume from the measured frontier without replaying earlier steps.",
+        "primary_fact": f"{proven_count} of {len(milestones)} milestones proven.",
+        "secondary_facts": [
+            f"Frontier: {frontier_label}.",
+            "No advance or business action ran.",
+        ],
+        "proof_caption": "Milestone receipt refs available.",
+        "show_machine_details_by_default": False,
+    }
+    route = routing_metadata(
+        raw_request,
+        {"workflow_ref": "st_annes_monthly_invoice_rollup"},
+    )
+    primary_status = (
+        "DOD_COMPLETE"
+        if complete
+        else "DOD_BLOCKED"
+        if blocked
+        else "DOD_IN_PROGRESS"
+    )
+    receipt = {
+        "schema_version": "workflow_package_request_consumer_v0",
+        "receipt_type": "WORKFLOW_DOD_RECONCILIATION_RESULT_RECEIPT",
+        "request_id": request_id,
+        "source_request_filename": source_request_filename,
+        "raw_internal_status": "RESPONSE_READY",
+        "primary_status": primary_status,
+        "package_id": "",
+        "workflow_ref": workflow_ref,
+        "client_ref": "st_annes",
+        "world": "invoice_operations",
+        "package_status": primary_status,
+        "capability_gate_status": "READ_ONLY_RECONCILIATION",
+        "blocker": "" if not blocked else str(measured.get("reason") or frontier.get("status") or ""),
+        "next_safe_action": operator_display["next_safe_action"],
+        **route,
+        "speaker_ref": operator_display["speaker_ref"],
+        "voice_profile_ref": operator_display["voice_profile_ref"],
+        "voice_mode": operator_display["voice_mode"],
+        "audience": operator_display["audience"],
+        "operator_display": operator_display,
+        "dod_reconciliation": measured,
+        "proof_refs": [
+            ref
+            for milestone in milestones
+            for ref in milestone.get("receipt_refs") or []
+        ],
+        "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
+        "request_authority_boundary_all_false": not _authority_blockers(raw_request),
+        "no_external_authority_granted": True,
+        "result_receipt_required": raw_request.get("result_receipt_required") is True,
+        "created_at": generated_at,
+        "machine_proof": {
+            "workflow_package_request_v0_detected": is_workflow_package_request(raw_request),
+            "dod_reconciler_request_detected": True,
+            "trusted_store_allowlist_enforced": True,
+            "package_recorded": False,
+            "queue_sqlite_mutated": False,
+            "advance_performed": False,
+            "business_action_performed": False,
+            "email_send_performed": False,
+            "ledger_mutation_performed": False,
+            "workbook_mutation_performed": False,
+            "approval_gate_activated": False,
+            "operator_word_inferred": False,
+            "unsafe_true_grants_absent": not _authority_blockers(raw_request),
+        },
+    }
+    return WorkflowPackageRequestResult(
+        status="RECORDED",
+        request_id=request_id,
+        request_filename=source_request_filename,
+        package=None,
+        blockers=(),
+        response_primary_status=primary_status,
+        next_safe_action=str(operator_display["next_safe_action"]),
+        receipt=receipt,
+    )
+
+
 def _is_invoice_artifact_locator_request(source_text: str, workflow_ref: str) -> bool:
     if workflow_ref != "st_annes_monthly_invoice_rollup":
         return False
@@ -1110,6 +1261,15 @@ def consume_workflow_package_request(
     sqlite_path = sqlite_path or default_sqlite_path()
     request_id = _request_id(raw_request, source_request_filename)
     ok, blockers = validate_envelope(raw_request, source_request_filename=source_request_filename)
+    dod_workflow_ref = workflow_dod_reconciler.requested_workflow_ref(_source_text(raw_request))
+    if ok and dod_workflow_ref:
+        return _dod_reconciliation_receipt(
+            raw_request,
+            workflow_ref=dod_workflow_ref,
+            request_id=request_id,
+            source_request_filename=source_request_filename,
+            generated_at=generated_at,
+        )
     if ok and is_system_question_request(raw_request):
         return _system_question_receipt(
             raw_request,

@@ -3816,7 +3816,17 @@ def _process_workflow_package_request(
         workflow_ref == "business_question_answer"
         and str(receipt.get("package_status") or "") == "ANSWER_READY"
     )
-    response_ready = package_recorded or system_question_answered or business_question_answered
+    dod_reconciliation_answered = (
+        str(receipt.get("receipt_type") or "")
+        == "WORKFLOW_DOD_RECONCILIATION_RESULT_RECEIPT"
+        and str(receipt.get("raw_internal_status") or "") == "RESPONSE_READY"
+    )
+    response_ready = (
+        package_recorded
+        or system_question_answered
+        or business_question_answered
+        or dod_reconciliation_answered
+    )
     internal_status = "RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON"
     blocker = str(receipt.get("blocker") or "")
     operator_display = (
@@ -3876,14 +3886,18 @@ def _process_workflow_package_request(
         "next_action": f"Next: {next_safe_action}",
         "missing_items_short": missing_items,
         "detail_summary": (
-            "System question answered from local read models, wiki refs, and SQLite metadata; no package queue row was written."
-            if system_question_answered
+            "Definition-of-done measured from the ledger registry and trusted receipts; no package queue row or advance was written."
+            if dod_reconciliation_answered
             else (
-                "Business question answered through Maestro's grounded responder; no package queue row was written."
-                if business_question_answered
+                "System question answered from local read models, wiki refs, and SQLite metadata; no package queue row was written."
+                if system_question_answered
                 else (
-                    f"Package status {package_status}; capability gate {capability_status}. "
-                    "The queue recorded only a no-op worker result and a closed business action gate."
+                    "Business question answered through Maestro's grounded responder; no package queue row was written."
+                    if business_question_answered
+                    else (
+                        f"Package status {package_status}; capability gate {capability_status}. "
+                        "The queue recorded only a no-op worker result and a closed business action gate."
+                    )
                 )
             )
         ),
@@ -3917,31 +3931,39 @@ def _process_workflow_package_request(
             "PC recognized a Mission Control WORKFLOW_PACKAGE_REQUEST_V0 envelope.",
             "PC validated source surface, operator mode, receipt requirement, and false authority boundaries.",
             (
-                "PC detected system-question intent and routed it to the local system_question_answer workflow."
-                if system_question_answered
+                "PC detected definition-of-done intent and measured the shared read-only registry frontier."
+                if dod_reconciliation_answered
                 else (
-                    "PC detected business-question intent and routed it through Maestro's grounded responder."
-                    if business_question_answered
-                    else "PC routed the instruction into the Workflow Package Queue V0 dry-run registry."
+                    "PC detected system-question intent and routed it to the local system_question_answer workflow."
+                    if system_question_answered
+                    else (
+                        "PC detected business-question intent and routed it through Maestro's grounded responder."
+                        if business_question_answered
+                        else "PC routed the instruction into the Workflow Package Queue V0 dry-run registry."
+                    )
                 )
             ),
             (
                 "PC returned a speaker-shaped operator display with proof refs collapsed."
-                if system_question_answered or business_question_answered
+                if system_question_answered or business_question_answered or dod_reconciliation_answered
                 else "PC returned a scoped Mac response with the package status."
             ),
             "No Telegram live connection, email, Gmail, browser, Coupa, workbook mutation, PDF export, ledger mutation, submit, paid marking, or business-state mutation occurred.",
         ),
         why_it_happened=(
-            "System-question intent matched the local deterministic answer workflow."
-            if system_question_answered
+            "Definition-of-done intent matched the shared read-only reconciler."
+            if dod_reconciliation_answered
             else (
-                "Business-question intent matched Maestro's grounded answer workflow."
-                if business_question_answered
+                "System-question intent matched the local deterministic answer workflow."
+                if system_question_answered
                 else (
-                    f"Workflow Package Queue classified the instruction as {workflow_ref} with package status {package_status}."
-                    if package_recorded
-                    else f"Envelope validation blockers: {blocker}."
+                    "Business-question intent matched Maestro's grounded answer workflow."
+                    if business_question_answered
+                    else (
+                        f"Workflow Package Queue classified the instruction as {workflow_ref} with package status {package_status}."
+                        if package_recorded
+                        else f"Envelope validation blockers: {blocker}."
+                    )
                 )
             )
         ),
@@ -3975,8 +3997,13 @@ def _process_workflow_package_request(
                 "routing_note": routing_note,
                 "package_status": package_status,
                 "capability_gate_status": capability_status,
-                "noop_worker_only": not (system_question_answered or business_question_answered),
+                "noop_worker_only": not (
+                    system_question_answered
+                    or business_question_answered
+                    or dod_reconciliation_answered
+                ),
                 "system_question_answer_local_only": system_question_answered,
+                "read_only_dod_reconciler_only": dod_reconciliation_answered,
             },
         ),
         context_package_refs=(),

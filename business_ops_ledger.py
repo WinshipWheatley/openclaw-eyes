@@ -326,6 +326,19 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
             )
         """)
 
+        # 11. workflow_dod_registry_entries
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS workflow_dod_registry_entries (
+                workflow_ref TEXT PRIMARY KEY,
+                registry_version TEXT NOT NULL,
+                definition_json TEXT NOT NULL,
+                definition_hash TEXT NOT NULL,
+                source_ref TEXT NOT NULL,
+                installed_at TEXT NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1))
+            )
+        """)
+
         conn.commit()
     except Exception as e:
         logger.error(f"Failed to initialize ledger at {path}: {e}")
@@ -905,6 +918,87 @@ def get_verification_evidence_for_source(source_id: str, db_path: str | None = N
     finally:
         if conn is not None:
             conn.close()
+
+
+def record_workflow_dod_registry_entry(
+    definition: dict[str, Any],
+    *,
+    definition_hash: str,
+    source_ref: str,
+    installed_at: str,
+    db_path: str | os.PathLike[str] | None = None,
+) -> bool:
+    """Install one versioned workflow definition in the canonical business ledger."""
+
+    workflow_ref = str(definition.get("workflow_ref") or "").strip()
+    registry_version = str(definition.get("registry_version") or "").strip()
+    if not workflow_ref or not registry_version or not definition_hash or not source_ref:
+        raise ValueError("workflow definition identity, hash, source, and version are required")
+    path = init_business_ops_ledger(resolve_business_ops_ledger_path(db_path))
+    try:
+        with sqlite3.connect(path) as conn:
+            conn.execute(
+                """
+                INSERT INTO workflow_dod_registry_entries (
+                    workflow_ref, registry_version, definition_json, definition_hash,
+                    source_ref, installed_at, active
+                ) VALUES (?, ?, ?, ?, ?, ?, 1)
+                ON CONFLICT(workflow_ref) DO UPDATE SET
+                    registry_version=excluded.registry_version,
+                    definition_json=excluded.definition_json,
+                    definition_hash=excluded.definition_hash,
+                    source_ref=excluded.source_ref,
+                    installed_at=excluded.installed_at,
+                    active=1
+                """,
+                (
+                    workflow_ref,
+                    registry_version,
+                    json.dumps(definition, sort_keys=True, separators=(",", ":")),
+                    definition_hash,
+                    source_ref,
+                    installed_at,
+                ),
+            )
+        return True
+    except sqlite3.DatabaseError as exc:
+        logger.error("Workflow DoD registry write failure: %s", exc)
+        return False
+
+
+def get_workflow_dod_registry_entry(
+    workflow_ref: str,
+    *,
+    db_path: str | os.PathLike[str] | None = None,
+) -> dict[str, Any] | None:
+    """Read one active workflow definition without initializing or mutating the ledger."""
+
+    path = resolve_business_ops_ledger_path(db_path)
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            row = conn.execute(
+                """
+                SELECT definition_json, definition_hash, source_ref, installed_at
+                FROM workflow_dod_registry_entries
+                WHERE workflow_ref = ? AND active = 1
+                """,
+                (str(workflow_ref or "").strip(),),
+            ).fetchone()
+    except (OSError, sqlite3.DatabaseError):
+        return None
+    if row is None:
+        return None
+    try:
+        definition = json.loads(row[0])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(definition, dict):
+        return None
+    return {
+        **definition,
+        "definition_hash": str(row[1]),
+        "installed_at": str(row[3]),
+    }
 
 def _query_truth_registry(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
     path = resolve_business_ops_ledger_path(db_path)
