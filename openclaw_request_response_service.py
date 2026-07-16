@@ -2304,7 +2304,6 @@ def run_watch(
     max_requests: int = 1,
     mac_handoff_dir: Path = DEFAULT_MAC_HANDOFF_DIR,
 ) -> ServiceRunResult:
-    created_at = generated_at or utc_now()
     watch_duration = max(0.0, float(watch_seconds))
     deadline = time.monotonic() + watch_duration
     request_limit = max(1, max_requests)
@@ -2330,11 +2329,12 @@ def run_watch(
         if len(processed) >= request_limit:
             stop_reason = "max_requests_reached"
             break
+        request_generated_at = generated_at or utc_now()
         result = process_one_pending_request(
             inbox=inbox,
             response_dir=response_dir,
             export_root=export_root,
-            generated_at=created_at,
+            generated_at=request_generated_at,
             extra_processed_keys=in_memory_processed_keys,
             read_model_cache=read_model_cache,
             mac_handoff_dir=mac_handoff_dir,
@@ -2350,7 +2350,6 @@ def run_watch(
                     in_memory_processed_keys.add(str(record["request_key"]))
             latest_response = result.latest_response
             errors.extend(result.errors_or_blockers)
-            created_at = utc_now()
             active_until = time.monotonic() + active_window
             last_watch_mode = "active"
             last_poll_interval = 0.0
