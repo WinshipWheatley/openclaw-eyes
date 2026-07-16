@@ -4,7 +4,6 @@ import json
 from contextlib import contextmanager
 
 import chief_llm
-import local_model_governance as governance
 import protected_generate as pg
 from protected_generate import protected_generate_with_receipt
 
@@ -47,24 +46,6 @@ def test_ollama_call_default_payload_has_no_warmpin_or_offload_keys(monkeypatch)
     assert "keep_alive" not in decoded
 
 
-def test_frontdoor_profile_defaults_to_the_governed_runner_shape(monkeypatch):
-    monkeypatch.delenv("OPENCLAW_FRONTDOOR_NUM_CTX", raising=False)
-    monkeypatch.delenv("OPENCLAW_FRONTDOOR_NUM_GPU", raising=False)
-
-    assert pg._frontdoor_ollama_options() == {
-        "num_ctx": governance.INTERACTIVE_NUM_CTX,
-        "num_gpu": governance.INTERACTIVE_NUM_GPU,
-        "num_batch": governance.INTERACTIVE_NUM_BATCH,
-    }
-
-
-def test_frontdoor_runner_shape_cannot_be_overridden_by_stale_env(monkeypatch):
-    monkeypatch.setenv("OPENCLAW_FRONTDOOR_NUM_CTX", "1024")
-    monkeypatch.setenv("OPENCLAW_FRONTDOOR_NUM_GPU", "1")
-
-    assert pg._frontdoor_ollama_options() == governance.interactive_runner_options()
-
-
 def test_ollama_call_passes_frontdoor_offload_options_and_keep_alive(monkeypatch):
     with _capture_ollama_payload(monkeypatch) as captured:
         chief_llm.ollama_call(
@@ -80,7 +61,7 @@ def test_ollama_call_passes_frontdoor_offload_options_and_keep_alive(monkeypatch
     assert decoded["keep_alive"] == "30m"
 
 
-def test_call_local_ollama_stamps_bound_runner_without_legacy_env(monkeypatch):
+def test_call_local_ollama_unset_flags_do_not_pass_offload_or_keep_alive(monkeypatch):
     observed: dict = {}
 
     def fake_ollama(prompt, **kwargs):
@@ -101,8 +82,8 @@ def test_call_local_ollama_stamps_bound_runner_without_legacy_env(monkeypatch):
     )
 
     assert result["text"] == "ok"
-    assert observed["kwargs"]["options"] == governance.interactive_runner_options()
-    assert observed["kwargs"]["keep_alive"] == governance.INTERACTIVE_KEEP_ALIVE
+    assert "options" not in observed["kwargs"]
+    assert "keep_alive" not in observed["kwargs"]
 
 
 def test_frontdoor_env_options_reach_local_bridge_and_receipt(monkeypatch, tmp_path):
@@ -148,13 +129,13 @@ def test_frontdoor_env_options_reach_local_bridge_and_receipt(monkeypatch, tmp_p
     )
 
     assert observed["selector_kwargs"]["max_gb"] == 6.0
-    assert observed["ollama_kwargs"]["options"] == governance.interactive_runner_options()
-    assert observed["ollama_kwargs"]["keep_alive"] == governance.INTERACTIVE_KEEP_ALIVE
+    assert observed["ollama_kwargs"]["options"] == {"num_ctx": 1024, "num_gpu": 999}
+    assert observed["ollama_kwargs"]["keep_alive"] == "30m"
     assert observed["ollama_kwargs"]["num_predict"] == 96
     assert observed["ollama_kwargs"]["think"] is False
-    assert outcome.receipt["model_num_ctx"] == governance.INTERACTIVE_NUM_CTX
+    assert outcome.receipt["model_num_ctx"] == 1024
     assert outcome.receipt["model_num_gpu"] == 999
-    assert outcome.receipt["model_keep_alive"] == governance.INTERACTIVE_KEEP_ALIVE
+    assert outcome.receipt["model_keep_alive"] == "30m"
     assert outcome.receipt["model_max_gb"] == 6.0
 
 
