@@ -199,6 +199,11 @@ def _receipt_mapping(receipt_or_decision: Any) -> Mapping[str, Any]:
     return candidate if isinstance(candidate, Mapping) else {}
 
 
+def _semantic_vote_status(receipt: Mapping[str, Any]) -> str:
+    status = receipt.get("semantic_vote_status")
+    return status.strip() if isinstance(status, str) else ""
+
+
 def classify_vote_failure_kind(receipt_or_decision: Any) -> VoteFailureKind:
     """Classify only Task 167's exact outside-session fail-open receipt."""
 
@@ -213,7 +218,7 @@ def classify_vote_failure_kind(receipt_or_decision: Any) -> VoteFailureKind:
         return VoteFailureKind.NONE
     if str(receipt.get("reason") or "") != "uncertain_outside_session_fail_open":
         return VoteFailureKind.NONE
-    status = str(receipt.get("semantic_vote_status") or "").strip()
+    status = _semantic_vote_status(receipt)
     if status in _TIMEOUT_FAILURE_STATUSES:
         return VoteFailureKind.TIMEOUT
     if status in _MODEL_FAILURE_STATUSES:
@@ -225,7 +230,9 @@ def classify_vote_failure_kind(receipt_or_decision: Any) -> VoteFailureKind:
             if "timeout" in normalized
             else VoteFailureKind.MODEL_FAILURE
         )
-    return VoteFailureKind.NONE
+    # This is an exact semantic-vote failure receipt. Unknown or future status
+    # values must not make the failure disappear and reopen downstream work.
+    return VoteFailureKind.MODEL_FAILURE
 
 
 def is_outside_session_vote_failure(receipt_or_decision: Any) -> bool:
@@ -242,7 +249,32 @@ def is_recoverable_outside_session_vote_timeout(receipt_or_decision: Any) -> boo
     it only prevents the advisory classifier from terminating the text turn.
     """
 
-    return classify_vote_failure_kind(receipt_or_decision) is VoteFailureKind.TIMEOUT
+    receipt = _receipt_mapping(receipt_or_decision)
+    return (
+        classify_vote_failure_kind(receipt_or_decision) is VoteFailureKind.TIMEOUT
+        and _semantic_vote_status(receipt) == "deadline_exceeded"
+    )
+
+
+def is_recoverable_outside_session_conversational_failure(
+    receipt_or_decision: Any,
+) -> bool:
+    """Allow safe text continuation for timeout or an honest low-confidence vote.
+
+    The exact outside-session PASS_THROUGH receipt remains mandatory. Empty,
+    malformed, unavailable, or error responses still use the failure-specific
+    clarification instead of opening a second model path.
+    """
+
+    kind = classify_vote_failure_kind(receipt_or_decision)
+    status = _semantic_vote_status(_receipt_mapping(receipt_or_decision))
+    if kind is VoteFailureKind.TIMEOUT and status == "deadline_exceeded":
+        return True
+    receipt = _receipt_mapping(receipt_or_decision)
+    return (
+        kind is VoteFailureKind.MODEL_FAILURE
+        and _semantic_vote_status(receipt) == "below_threshold"
+    )
 
 
 def clarification_for_vote_failure(receipt_or_decision: Any) -> str | None:
@@ -318,5 +350,7 @@ __all__ = [
     "clarification_for_vote_failure",
     "enforce_vote_timeout_output",
     "is_outside_session_vote_failure",
+    "is_recoverable_outside_session_conversational_failure",
+    "is_recoverable_outside_session_vote_timeout",
     "warm_clarification_for_vote_timeout",
 ]

@@ -93,6 +93,24 @@ FORBIDDEN_PRIVATE_SUFFIXES = (
     "MusicLawPrivate",
 )
 
+_INTERNAL_ONLY_PROOF_KEYS = frozenset(
+    {"internal_model_pass_receipts", "original_operator_message"}
+)
+
+
+def _public_proof_value(value: Any) -> Any:
+    """Remove internal-only provenance before any result is serialized."""
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): _public_proof_value(item)
+            for key, item in value.items()
+            if str(key) not in _INTERNAL_ONLY_PROOF_KEYS
+        }
+    if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray, str)):
+        return [_public_proof_value(item) for item in value]
+    return value
+
 
 @dataclass(frozen=True)
 class MaestroCassandraResult:
@@ -132,7 +150,7 @@ class MaestroCassandraResult:
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["session_forwarded"] = dict(self.session_forwarded or {})
-        payload["machine_proof"] = dict(self.machine_proof or {})
+        payload["machine_proof"] = _public_proof_value(self.machine_proof or {})
         return payload
 
 
@@ -173,13 +191,45 @@ def _finalize_typed_contract_result(
         if isinstance(matches, Sequence) and not isinstance(matches, (bytes, bytearray, str))
         else []
     )
+    answer_receipts = proof.get("internal_model_pass_receipts")
+    answer_receipts = dict(answer_receipts) if isinstance(answer_receipts, Mapping) else {}
+    answer_receipt = answer_receipts.get("answer")
+    binding = proof.get("local_model_binding")
+    if source_text and isinstance(answer_receipt, Mapping) and isinstance(binding, Mapping):
+        try:
+            from secret_log_redaction import redact_secrets
+
+            receipt_message = redact_secrets(source_text)
+        except Exception:
+            receipt_message = source_text
+        interpretation_receipt = {
+            "pass": "interpretation",
+            "original_operator_message": receipt_message,
+            "secret_tokenization_applied": receipt_message != source_text,
+            "input_sha256": hashlib.sha256(source_text.encode("utf-8")).hexdigest(),
+            "binding_id": str(binding.get("binding_id") or ""),
+            "model": str(binding.get("model") or ""),
+            "decision_id": str(receipt.get("decision_id") or ""),
+        }
+        answer_receipts["interpretation"] = interpretation_receipt
+        proof["internal_model_pass_receipts"] = answer_receipts
+        proof["same_model_for_both_passes"] = bool(
+            receipt.get("model_called") is True
+            and proof.get("protected_generate_called") is True
+            and proof.get("model_call_performed") is True
+            and interpretation_receipt["binding_id"]
+            and interpretation_receipt["binding_id"]
+            == str(answer_receipt.get("binding_id") or "")
+            and interpretation_receipt["model"]
+            == str(answer_receipt.get("model") or "")
+        )
     finalized = replace(result, machine_proof=proof)
     try:
         from vote_timeout_clarification import (
             VoteTimeoutDisposition,
             classify_vote_timeout_disposition,
             enforce_vote_timeout_output,
-            is_recoverable_outside_session_vote_timeout,
+            is_recoverable_outside_session_conversational_failure,
         )
 
         deterministic_digest_available = bool(
@@ -194,7 +244,7 @@ def _finalize_typed_contract_result(
             return finalized
         if (
             disposition is VoteTimeoutDisposition.CLARIFY
-            and is_recoverable_outside_session_vote_timeout(receipt)
+            and is_recoverable_outside_session_conversational_failure(receipt)
             and proof.get("protected_generate_called") is True
         ):
             downstream_model_called = bool(
@@ -207,6 +257,7 @@ def _finalize_typed_contract_result(
                 receipt.get("model_called") is True and downstream_model_called
             )
             proof["vote_timeout_recovery_applied"] = True
+            proof["conversational_vote_failure_recovery_applied"] = True
             proof["vote_timeout_clarification_applied"] = False
             proof["vote_timeout_deterministic_digest"] = False
             proof["vote_timeout_recovery_source"] = (
@@ -378,7 +429,7 @@ def external_llm_invoked_for_result(result: MaestroCassandraResult) -> bool | No
 
 
 def machine_proof_for_result(result: MaestroCassandraResult) -> dict[str, Any]:
-    proof = dict(result.machine_proof or {})
+    proof = _public_proof_value(result.machine_proof or {})
     proof["external_llm_invoked"] = external_llm_invoked_for_result(result)
     return proof
 
@@ -911,7 +962,7 @@ def _answer_outside_session_vote_failure(
         classify_explicit_digest_intent,
         classify_vote_timeout_disposition,
         enforce_vote_timeout_output,
-        is_recoverable_outside_session_vote_timeout,
+        is_recoverable_outside_session_conversational_failure,
     )
 
     receipt = decision.receipt.to_dict()
@@ -928,7 +979,7 @@ def _answer_outside_session_vote_failure(
         return None
     if (
         disposition is VoteTimeoutDisposition.CLARIFY
-        and is_recoverable_outside_session_vote_timeout(receipt)
+        and is_recoverable_outside_session_conversational_failure(receipt)
     ):
         return None
 
@@ -2407,6 +2458,62 @@ def _answer_with_maestro_brain(
         pass
     # ─────────────────────────────────────────────────────────────────────────
 
+    weather_read_receipt: dict[str, Any] = {}
+    try:
+        from weather_read_capability import is_weather_request, read_weather
+
+        if is_weather_request(text):
+            weather = read_weather(text)
+            weather_read_receipt = dict(weather.receipt)
+            context_packet = dict(context_packet)
+            context_packet["weather_read"] = {
+                "status": weather.status,
+                "location": weather.location,
+                "summary": weather.summary,
+            }
+            weather_fact = {
+                "fact_id": str(weather.receipt.get("receipt_id") or "weather-read"),
+                "topic": "weather_current",
+                "label": "Current weather read",
+                "value": weather.summary,
+                "provenance": "allowlisted_weather_get",
+                "current_truth": weather.status == "READY",
+            }
+            context_packet["facts"] = [
+                *list(context_packet.get("facts") or ()),
+                weather_fact,
+            ]
+            weather_ref = str(weather.receipt.get("receipt_id") or "")
+            if weather_ref:
+                context_packet["source_refs"] = tuple(
+                    dict.fromkeys(
+                        [
+                            *(
+                                str(ref)
+                                for ref in context_packet.get("source_refs", ())
+                                if str(ref).strip()
+                            ),
+                            weather_ref,
+                        ]
+                    )
+                )
+            context_packet["packet_text"] = "\n".join(
+                part
+                for part in (
+                    str(context_packet.get("packet_text") or "").strip(),
+                    "WEATHER READ FOR THIS ANSWER:",
+                    weather.summary,
+                )
+                if part
+            )
+    except Exception as exc:
+        weather_read_receipt = {
+            "status": "UNAVAILABLE",
+            "error_type": type(exc).__name__,
+            "network_performed": False,
+            "external_action_performed": False,
+        }
+
     if protected_generate_fn is None:
         from protected_generate import protected_generate_with_receipt
         from local_model_governance import interactive_model_from_session
@@ -2498,6 +2605,29 @@ def _answer_with_maestro_brain(
         pass
     # (Claim detection now runs centrally in _enrich_operator_surface on the FINAL operator_message
     # for every agent — see the consolidation note above.)
+    from local_model_governance import binding_from_session
+    from secret_log_redaction import redact_secrets
+
+    model_binding = binding_from_session(session)
+    receipt_message = redact_secrets(text)
+    input_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    answer_model = str(
+        receipt.get("model_selected")
+        or receipt.get("model_id")
+        or receipt.get("model")
+        or model_binding.get("model")
+        or ""
+    )
+    answer_pass_receipt = {
+        "pass": "answer",
+        "original_operator_message": receipt_message,
+        "secret_tokenization_applied": receipt_message != text,
+        "input_sha256": input_sha256,
+        "binding_id": str(model_binding.get("binding_id") or ""),
+        "model": answer_model,
+        "packet_id": str(context_packet.get("packet_id") or ""),
+        "receipt_id": str(receipt.get("receipt_id") or ""),
+    }
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
     packet_engine_proof: dict[str, Any] = {
         "packet_engine_used": packet_engine_used,
@@ -2527,6 +2657,9 @@ def _answer_with_maestro_brain(
             "protected_generate_receipt_id": str(receipt.get("receipt_id") or ""),
             "protected_generate_audit_ref": str(receipt.get("audit_ref") or ""),
             "protected_generate_decision": str(receipt.get("decision") or ""),
+            "local_model_binding": model_binding,
+            "internal_model_pass_receipts": {"answer": answer_pass_receipt},
+            "weather_read_receipt": weather_read_receipt,
             "send_hold_boundary_visible": True,
             "claims_trace_to_packet": True,
             # Interpreter-LM traceability (advisory only — None/empty when off):
