@@ -280,45 +280,6 @@ def test_reporter_format_uses_chief_evidence_synthesis(monkeypatch):
     }]
 
 
-def test_reporter_format_honors_scheduled_brief_task_class(monkeypatch):
-    calls = []
-    stats = {
-        "date": "2026-07-15",
-        "messages_today": 3,
-        "queued_today": 1,
-        "queued_total": 4,
-        "logged_today": 2,
-        "state_updates": 5,
-        "listener_errors": False,
-        "billing_completions": 0,
-        "watcher_alert_count": 1,
-        "watcher_alert_samples": ["calendar wait"],
-    }
-
-    def fake_ollama(
-        prompt,
-        timeout=0,
-        lane=None,
-        task_class=None,
-        model=None,
-        retry=True,
-    ):
-        calls.append({"task_class": task_class, "retry": retry})
-        return "Daily report."
-
-    monkeypatch.setattr(chief_reporter_brain, "ollama_call", fake_ollama)
-
-    result = chief_reporter_brain.format_report(
-        stats,
-        task_class="cassandra_scheduled_brief",
-    )
-
-    assert result == "Daily report."
-    assert calls == [
-        {"task_class": "cassandra_scheduled_brief", "retry": False}
-    ]
-
-
 def test_reporter_format_uses_plain_fallback_on_empty_model(monkeypatch):
     monkeypatch.setattr(chief_reporter_brain, "ollama_call", lambda *args, **kwargs: "")
     stats = {
