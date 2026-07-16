@@ -63,6 +63,18 @@ def _write_request(path: Path, *, request_id: str, source_text: str, world_ref: 
     return payload
 
 
+def test_generic_workflow_package_kind_does_not_claim_maestro_listener() -> None:
+    request = _request_payload(
+        request_id="generic_workflow_kind_claim_pin",
+        source_text="Mark that I'm at church running sound.",
+        world_ref="finance",
+        thread_ref="st_annes",
+    )
+
+    assert request["kind"] == "OPERATOR_INSTRUCTION_PACKAGE_REQUEST"
+    assert service._claims_maestro_listener_envelope(request) is False
+
+
 def test_maestro_listener_envelope_hash_validates_against_consumer() -> None:
     request = maestro_listener.build_operator_maestro_chat_request(
         "What should Maestro do with this operator message?",
@@ -164,6 +176,74 @@ def test_maestro_telegram_invoice_test_routes_to_st_annes_dryrun_not_freeform(
         "guardian_gate",
     ]
     assert "coupa" not in response.operator_message.lower()
+
+
+def test_service_exact_1643_message_reaches_st_annes_workflow_rail(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    monkeypatch.setenv(
+        consumer.SQLITE_PATH_ENV,
+        str(tmp_path / "workflow_package_queue.sqlite"),
+    )
+    request = maestro_listener.build_operator_maestro_chat_request(
+        (
+            "whats going on with the st. annes invoice test? are we done what we need "
+            "to test it? if so lets test it"
+        ),
+        message_id="1643",
+        chat_id=123,
+        created_at="2026-07-16T15:48:10+00:00",
+    )
+    request_path = inbox / "mission_control_operator_instruction_request_maestro_telegram_1643.json"
+    request_path.write_text(
+        json.dumps(request, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    assert service_main(
+        [
+            "--watch-seconds",
+            "1",
+            "--max-requests",
+            "1",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            "2026-07-16T15:48:10+00:00",
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    response = json.loads(
+        _safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8")
+    )
+    heartbeat = json.loads(
+        _safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8")
+    )
+
+    assert heartbeat["processing_status"] == "CHECKING_MAESTRO_FRONTDOOR"
+    assert response["raw_internal_status"] == "RESPONSE_READY"
+    assert response["request_type"] == "WORKFLOW_PACKAGE_REQUEST"
+    assert response["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+    assert (
+        response["detail_disclosure"]["request_classification"]["selected_rail"]
+        == "workflow_package_request_consumer"
+    )
+    receipt = response["detail_disclosure"]["workflow_package_request_consumer"]
+    assert receipt["capability_gate_status"] == "ALLOW_DRY_RUN"
+    assert receipt["machine_proof"]["email_send_performed"] is False
+    assert receipt["machine_proof"]["pdf_export_performed"] is False
 
 
 def test_legacy_bare_hex_hash_still_validates_when_source_text_matches() -> None:

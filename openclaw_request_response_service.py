@@ -682,7 +682,6 @@ def _claims_maestro_listener_envelope(raw_request: Mapping[str, Any]) -> bool:
     return any(
         (
             str(raw_request.get("active_surface_ref") or "") == "operator_maestro_chat",
-            str(raw_request.get("kind") or "").upper() == "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
             str(raw_request.get("lane") or "") == "telegram_pc_maestro_listener",
             str(raw_request.get("source_channel") or "") == "maestro_listener",
             str(provenance.get("lane") or "") == "telegram_pc_maestro_listener",
