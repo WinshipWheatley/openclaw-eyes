@@ -260,10 +260,11 @@ def adaptive_model_call(
     explicit_model = primary_model is not None
     if primary_model is None or primary_lane is None:
         primary_model, primary_lane = resolve_model_fn(prompt, lane=lane, task_class=task_class)
-    if chief_llm._is_governed_interactive_workload(
+    governed_interactive = chief_llm._is_governed_interactive_workload(
         task_class=task_class,
         lane=primary_lane,
-    ):
+    )
+    if governed_interactive:
         from local_model_governance import (
             INTERACTIVE_KEEP_ALIVE,
             INTERACTIVE_MODEL,
@@ -273,7 +274,7 @@ def adaptive_model_call(
         primary_model = INTERACTIVE_MODEL
         options = interactive_runner_options(options)
         keep_alive = INTERACTIVE_KEEP_ALIVE
-    if explicit_model:
+    if explicit_model and not governed_interactive:
         fits, fit_reason = _enforce_model_fit(
             primary_model, task_class=task_class, lane=lane, model_sizes_fn=model_sizes_fn
         )

@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: scripts/install_openclaw_stack.sh [--dry-run] [--apply] [--enable] [--start] [--request-response-only] [--ancillary-repair-only] [--gpu-health-only]
+Usage: scripts/install_openclaw_stack.sh [--dry-run] [--apply] [--enable] [--start] [--request-response-only] [--ancillary-repair-only] [--gpu-health-only] [--keepwarm-only]
 
 Modes:
   no args     Report what would happen. No files are written and no services are changed.
@@ -19,6 +19,9 @@ Modes:
   --gpu-health-only
               Render only the passive GPU health service and timer. With --enable,
               enable and start exactly that timer. This slice refuses --start.
+  --keepwarm-only
+              Render only the governed interactive 8B keep-warm service and timer.
+              With --enable, enable and start exactly that timer. This slice refuses --start.
 
 Unknown or ambiguous flag combinations fail closed.
 USAGE
@@ -31,6 +34,7 @@ dry_run=0
 request_response_only=0
 ancillary_repair_only=0
 gpu_health_only=0
+keepwarm_only=0
 
 if (($# == 0)); then
     dry_run=1
@@ -59,6 +63,9 @@ while (($#)); do
         --gpu-health-only)
             gpu_health_only=1
             ;;
+        --keepwarm-only)
+            keepwarm_only=1
+            ;;
         -h|--help)
             usage
             exit 0
@@ -84,8 +91,20 @@ if (( gpu_health_only && (request_response_only || ancillary_repair_only) )); th
     exit 2
 fi
 
+if (( keepwarm_only && (request_response_only || ancillary_repair_only || gpu_health_only) )); then
+    printf 'ERROR: --keepwarm-only cannot be combined with another scoped mode.\n' >&2
+    usage >&2
+    exit 2
+fi
+
 if (( gpu_health_only && start_target )); then
     printf 'ERROR: --gpu-health-only cannot be combined with --start; --enable starts only its timer.\n' >&2
+    usage >&2
+    exit 2
+fi
+
+if (( keepwarm_only && start_target )); then
+    printf 'ERROR: --keepwarm-only cannot be combined with --start; --enable starts only its timer.\n' >&2
     usage >&2
     exit 2
 fi
@@ -133,6 +152,12 @@ GPU_HEALTH_UNIT_NAMES=(
     "${GPU_MODEL_HEALTH_SERVICE_NAME}"
     "${GPU_MODEL_HEALTH_TIMER_NAME}"
 )
+KEEPWARM_SERVICE_NAME="openclaw-8b-keepwarm.service"
+KEEPWARM_TIMER_NAME="openclaw-8b-keepwarm.timer"
+KEEPWARM_UNIT_NAMES=(
+    "${KEEPWARM_SERVICE_NAME}"
+    "${KEEPWARM_TIMER_NAME}"
+)
 ANCILLARY_REPAIR_UNIT_NAMES=(
     "guardian-approval-notifier.service"
     "self-knowledge-crawl.service"
@@ -150,14 +175,26 @@ collect_template() {
         return
     fi
     unit_name="$(basename "${template}" .in)"
+    if skip_keepwarm_in_broad_mode "${unit_name}"; then
+        return
+    fi
     repo_owned_unit_names+=("${unit_name}")
     if [[ "${unit_name}" == *.service \
         && "${unit_name}" != "hermes-gateway.service" \
-        && "${unit_name}" != "${GPU_MODEL_HEALTH_SERVICE_NAME}" ]]; then
+        && "${unit_name}" != "${GPU_MODEL_HEALTH_SERVICE_NAME}" \
+        && "${unit_name}" != "${KEEPWARM_SERVICE_NAME}" ]]; then
         repo_owned_service_names+=("${unit_name}")
-    elif [[ "${unit_name}" == "${GPU_MODEL_HEALTH_TIMER_NAME}" ]]; then
+    elif [[ "${unit_name}" == "${GPU_MODEL_HEALTH_TIMER_NAME}" \
+        || "${unit_name}" == "${KEEPWARM_TIMER_NAME}" ]]; then
         repo_owned_timer_names+=("${unit_name}")
     fi
+}
+
+skip_keepwarm_in_broad_mode() {
+    local unit_name="$1"
+    (( keepwarm_only )) && return 1
+    [[ "${unit_name}" == "${KEEPWARM_SERVICE_NAME}" \
+        || "${unit_name}" == "${KEEPWARM_TIMER_NAME}" ]]
 }
 
 if (( request_response_only )); then
@@ -168,6 +205,10 @@ elif (( ancillary_repair_only )); then
     done
 elif (( gpu_health_only )); then
     for unit_name in "${GPU_HEALTH_UNIT_NAMES[@]}"; do
+        collect_template "${TEMPLATE_DIR}/${unit_name}.in"
+    done
+elif (( keepwarm_only )); then
+    for unit_name in "${KEEPWARM_UNIT_NAMES[@]}"; do
         collect_template "${TEMPLATE_DIR}/${unit_name}.in"
     done
 else
@@ -201,6 +242,9 @@ report_plan() {
     elif (( gpu_health_only )); then
         print_units 'Repo-owned timers that --apply --enable would enable and start:' "${repo_owned_timer_names[@]}"
         printf 'With --apply --enable --gpu-health-only: would start only the passive GPU health timer.\n'
+    elif (( keepwarm_only )); then
+        print_units 'Repo-owned timers that --apply --enable would enable and start:' "${repo_owned_timer_names[@]}"
+        printf 'With --apply --enable --keepwarm-only: would start only the governed interactive 8B keep-warm timer.\n'
     else
         print_units 'Repo-owned non-Hermes services that --apply --enable would enable:' "${repo_owned_service_names[@]}"
         print_units 'Repo-owned timers that --apply --enable would enable and start:' "${repo_owned_timer_names[@]}"
@@ -256,6 +300,10 @@ elif (( gpu_health_only )); then
     for unit_name in "${GPU_HEALTH_UNIT_NAMES[@]}"; do
         render_unit "${TEMPLATE_DIR}/${unit_name}.in"
     done
+elif (( keepwarm_only )); then
+    for unit_name in "${KEEPWARM_UNIT_NAMES[@]}"; do
+        render_unit "${TEMPLATE_DIR}/${unit_name}.in"
+    done
 else
     for template in "${TEMPLATE_DIR}"/*.in; do
         if [[ ! -e "${template}" ]]; then
@@ -299,4 +347,4 @@ else
     fi
 fi
 
-printf 'OpenClaw stack installer finished with explicit apply=%s enable=%s start=%s request_response_only=%s ancillary_repair_only=%s gpu_health_only=%s.\n' "${apply_changes}" "${enable_units}" "${start_target}" "${request_response_only}" "${ancillary_repair_only}" "${gpu_health_only}"
+printf 'OpenClaw stack installer finished with explicit apply=%s enable=%s start=%s request_response_only=%s ancillary_repair_only=%s gpu_health_only=%s keepwarm_only=%s.\n' "${apply_changes}" "${enable_units}" "${start_target}" "${request_response_only}" "${ancillary_repair_only}" "${gpu_health_only}" "${keepwarm_only}"

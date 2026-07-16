@@ -299,13 +299,14 @@ def test_adaptive_retry_passes_offload_fractions_to_selector() -> None:
 
     result = adaptive.adaptive_model_call(
         "Answer briefly.",
-        task_class="cassandra_user_reply",
+        task_class="batch_reply",
         timeout=30,
         primary_model="qwen3:8b-q4_K_M",
-        primary_lane="strong",
+        primary_lane="balanced",
         ollama_call_fn=lambda prompt, **kwargs: "ok" if kwargs.get("model") == "qwen3.5:4b" else "",
         select_model_fn=fake_selector,
         resource_probe_fn=fake_probe,
+        model_sizes_fn=lambda: {"qwen3:8b-q4_K_M": 5.2},
     )
 
     assert result == "ok"

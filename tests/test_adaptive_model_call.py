@@ -224,7 +224,7 @@ def test_adaptive_model_call_stamps_bound_frontdoor_model_and_runner_options() -
                 "num_gpu": 999,
                 "num_batch": 128,
             },
-            "keep_alive": "10m",
+            "keep_alive": "30m",
             "return_metadata": True,
         },
     ]

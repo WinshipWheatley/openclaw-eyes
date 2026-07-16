@@ -245,7 +245,7 @@ def test_semantic_vote_uses_strict_safe_label_and_cannot_authorize():
         "num_ctx": 2048,
         "num_gpu": 999,
     }
-    assert seen["kwargs"]["keep_alive"] == "10m"
+    assert seen["kwargs"]["keep_alive"] == "30m"
     assert seen["kwargs"]["return_metadata"] is True
     assert "AUTHORITY" not in seen["prompt"]
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=Keep the governed OpenClaw interactive 8B resident
+Documentation=file://@REPO_ROOT@/docs/operations/OPENCLAW_8B_KEEPWARM_RUNBOOK.md
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+AccuracySec=15s
+Persistent=false
+Unit=openclaw-8b-keepwarm.service
+
+[Install]
+WantedBy=timers.target

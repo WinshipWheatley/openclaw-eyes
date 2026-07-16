@@ -184,7 +184,7 @@ def test_ollama_call_enforces_unified_runner_for_interactive_8b(monkeypatch):
         "num_batch": 128,
     }
     assert captured["format"] == "json"
-    assert captured["keep_alive"] == "10m"
+    assert captured["keep_alive"] == "30m"
 
 
 def test_ollama_call_does_not_force_interactive_shape_on_async_8b(monkeypatch):

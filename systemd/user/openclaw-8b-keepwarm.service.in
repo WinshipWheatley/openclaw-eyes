@@ -1,0 +1,17 @@
+[Unit]
+Description=Governed OpenClaw interactive 8B keep-warm attempt
+Documentation=file://@REPO_ROOT@/docs/operations/OPENCLAW_8B_KEEPWARM_RUNBOOK.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/wsl/lib
+UnsetEnvironment=HTTP_PROXY HTTPS_PROXY ALL_PROXY
+UnsetEnvironment=http_proxy https_proxy all_proxy
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=@PYTHON@ @REPO_ROOT@/openclaw_8b_keepwarm.py --once
+TimeoutStartSec=12
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full

@@ -1692,6 +1692,10 @@ def protected_generate_with_receipt(
         fd_keep_alive = INTERACTIVE_KEEP_ALIVE
     fd_model_max_gb = _frontdoor_model_max_gb() if front_door_profile else None
     fd_model_selected = model_selected
+    if front_door_profile and fd_model_selected is None:
+        from local_model_governance import INTERACTIVE_MODEL
+
+        fd_model_selected = INTERACTIVE_MODEL
     fd_model_selection_reason: str | None = None
     fd_resource_probe_fields: dict[str, Any] = {}
     fd_available_vram_gb: float | None = None

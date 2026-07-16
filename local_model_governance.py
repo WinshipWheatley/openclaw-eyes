@@ -21,7 +21,7 @@ from polish_loop.gpu_arbiter import GPUArbiter
 
 
 INTERACTIVE_MODEL = "qwen3:8b-q4_K_M"
-INTERACTIVE_KEEP_ALIVE = "10m"
+INTERACTIVE_KEEP_ALIVE = "30m"
 INTERACTIVE_NUM_CTX = 2048
 INTERACTIVE_NUM_GPU = 999
 INTERACTIVE_NUM_BATCH = 128
@@ -244,6 +244,8 @@ def run_interactive_model_call(
     holder_id: str,
     gpu_lease_db: str | Path | None = None,
     model_slot_path: str | Path | None = None,
+    require_idle_lease: bool = False,
+    model_slot_max_wait_seconds: float = 90,
 ) -> GovernedCallOutcome:
     """Serialize a direct interactive call and advertise its priority to builders."""
 
@@ -260,14 +262,32 @@ def run_interactive_model_call(
     nonce = ""
     try:
         arbiter = GPUArbiter(lease_path)
+        if require_idle_lease:
+            current = arbiter.current()
+            if current:
+                holder_type = str(current.get("holder_type") or "unknown")
+                return GovernedCallOutcome(
+                    "deferred", f"gpu_lease_active:{holder_type}"
+                )
         lease = arbiter.acquire("interactive", holder_id, ttl_seconds=180)
         if str(lease.get("status") or "").startswith("acquired"):
             nonce = str(lease.get("lease_nonce") or "")
-    except Exception:
+        elif require_idle_lease:
+            return GovernedCallOutcome(
+                "deferred", str(lease.get("reason") or "gpu_lease_unavailable")
+            )
+    except Exception as exc:
+        if require_idle_lease:
+            return GovernedCallOutcome(
+                "deferred", f"gpu_arbiter_error:{type(exc).__name__}"
+            )
         arbiter = None
 
     try:
-        with acquire_model_slot(lock_path=model_slot_path, max_wait_seconds=90):
+        with acquire_model_slot(
+            lock_path=model_slot_path,
+            max_wait_seconds=model_slot_max_wait_seconds,
+        ):
             return GovernedCallOutcome("completed", "interactive_window", call_model())
     except ModelSlotTimeoutError:
         return GovernedCallOutcome("deferred", "model_slot_timeout")

@@ -898,7 +898,7 @@ def test_pgwr_real_frontdoor_packet_flag_on_auto_uses_profile_local_path(tmp_pat
     # question is answered from grounding, not routed to the conversational lane.
     assert "OPERATOR JUST SAID:" in calls["prompt"]
     assert "DETERMINISTIC PACKET" in calls["prompt"]
-    assert calls["kwargs"]["model"] == "qwen3.5:4b"
+    assert calls["kwargs"]["model"] == "qwen3:8b-q4_K_M"
     assert calls["kwargs"]["task_class"] == "frontdoor_reply"
     assert calls["kwargs"]["think"] is False
     assert calls["kwargs"]["num_predict"] == 180
@@ -906,7 +906,7 @@ def test_pgwr_real_frontdoor_packet_flag_on_auto_uses_profile_local_path(tmp_pat
     assert calls["kwargs"]["attempts"] == 1
     assert calls["kwargs"]["return_metadata"] is True
     assert r["front_door_profile_used"] is True
-    assert r["model_selected"] == "qwen3.5:4b"
+    assert r["model_selected"] == "qwen3:8b-q4_K_M"
     assert r["model_timeout_s"] == 25.0
     assert r["model_num_predict"] == 180
     assert r["model_think"] is False
@@ -955,7 +955,7 @@ def test_pgwr_bound_model_controls_actual_ollama_call(tmp_path, monkeypatch):
     )
 
     assert calls["kwargs"]["model"] == "qwen3:8b-q4_K_M"
-    assert calls["kwargs"]["keep_alive"] == "10m"
+    assert calls["kwargs"]["keep_alive"] == "30m"
     assert outcome.receipt["model_selected"] == "qwen3:8b-q4_K_M"
     assert "operator_bound_model_override" in outcome.receipt["model_selection_reason"]
 
@@ -1095,7 +1095,7 @@ def test_frontdoor_grounded_fallback_never_emits_dangling_fact_text(tmp_path):
     assert outcome.text.endswith(".")
 
 
-def test_pgwr_frontdoor_low_vram_steps_down_and_delivers_model(tmp_path, monkeypatch):
+def test_pgwr_frontdoor_low_vram_keeps_operator_bound_8b(tmp_path, monkeypatch):
     import protected_generate as pg
     import frontdoor_resource_probe as frp
     from frontdoor_resource_probe import FrontdoorResourceSnapshot
@@ -1142,15 +1142,20 @@ def test_pgwr_frontdoor_low_vram_steps_down_and_delivers_model(tmp_path, monkeyp
         audit_log_path=tmp_path / "a.jsonl",
         allow_live_model=True,
     )
-    assert calls["kwargs"]["model"] == "qwen3.5:4b"
+    assert calls["kwargs"]["model"] == "qwen3:8b-q4_K_M"
     assert outcome.text == "Winship is the human operator."
     assert outcome.receipt["delivered_response_source"] == "model"
     assert outcome.receipt["model_fallback_reason"] == "model_ok"
-    assert outcome.receipt["model_selected"] == "qwen3.5:4b"
-    assert outcome.receipt["model_selection_reason"] == "frontdoor_step_down_vram_contention"
+    assert outcome.receipt["model_selected"] == "qwen3:8b-q4_K_M"
+    assert "operator_bound_model_override:qwen3:8b-q4_K_M" in outcome.receipt[
+        "model_selection_reason"
+    ]
+    assert "resource_reason:frontdoor_step_down_vram_contention" in outcome.receipt[
+        "model_selection_reason"
+    ]
 
 
-def test_pgwr_frontdoor_high_load_steps_down_and_delivers_model(tmp_path, monkeypatch):
+def test_pgwr_frontdoor_high_load_keeps_operator_bound_8b(tmp_path, monkeypatch):
     import protected_generate as pg
     import frontdoor_resource_probe as frp
     from frontdoor_resource_probe import FrontdoorResourceSnapshot
@@ -1200,14 +1205,19 @@ def test_pgwr_frontdoor_high_load_steps_down_and_delivers_model(tmp_path, monkey
         allow_live_model=True,
     )
 
-    assert calls["kwargs"]["model"] == "qwen3.5:4b"
+    assert calls["kwargs"]["model"] == "qwen3:8b-q4_K_M"
     assert "St. Anne's follow-up review" in outcome.text
     assert outcome.receipt["local_model_invoked"] is True
     assert outcome.receipt["deterministic_fallback_used"] is False
     assert outcome.receipt["delivered_response_source"] == "model"
     assert outcome.receipt["model_fallback_reason"] == "model_ok"
-    assert outcome.receipt["model_selected"] == "qwen3.5:4b"
-    assert outcome.receipt["model_selection_reason"] == "frontdoor_step_down_system_load"
+    assert outcome.receipt["model_selected"] == "qwen3:8b-q4_K_M"
+    assert "operator_bound_model_override:qwen3:8b-q4_K_M" in outcome.receipt[
+        "model_selection_reason"
+    ]
+    assert "resource_reason:frontdoor_step_down_system_load" in outcome.receipt[
+        "model_selection_reason"
+    ]
     assert outcome.receipt["resource_probe_system_load_1m"] == 8.0
     assert outcome.receipt["resource_probe_cpu_count"] == 8
 

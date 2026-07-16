@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from contextlib import contextmanager
 
 import chief_llm
 import cassandra_briefing_scheduler as scheduler
@@ -22,7 +23,7 @@ def test_request_binding_is_once_only_and_fixed_to_operator_8b() -> None:
     assert first[governance.BINDING_SESSION_KEY] == second[governance.BINDING_SESSION_KEY]
     binding = second[governance.BINDING_SESSION_KEY]
     assert binding["model"] == "qwen3:8b-q4_K_M"
-    assert binding["keep_alive"] == "10m"
+    assert binding["keep_alive"] == "30m"
     assert binding["num_ctx"] == 2048
     assert binding["num_gpu"] == 999
     assert binding["num_batch"] == 128
@@ -54,7 +55,7 @@ def test_interpreter_request_body_consumes_bound_model() -> None:
     )
 
     assert body["model"] == "qwen3:8b-q4_K_M"
-    assert body["keep_alive"] == "10m"
+    assert body["keep_alive"] == "30m"
     assert body["options"]["num_ctx"] == session[governance.BINDING_SESSION_KEY]["num_ctx"]
     assert body["options"]["num_gpu"] == session[governance.BINDING_SESSION_KEY]["num_gpu"]
     assert body["options"]["num_batch"] == session[governance.BINDING_SESSION_KEY]["num_batch"]
@@ -192,6 +193,87 @@ def test_async_model_call_holds_build_lease_and_releases_it(
     assert outcome.value == "brief ready"
     assert observed["lease"]["holder_type"] == "build"
     assert GPUArbiter(lease_db).current() is None
+
+
+def test_strict_interactive_call_defers_when_any_gpu_lease_is_active(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    called = False
+
+    class BusyArbiter:
+        def __init__(self, _path):
+            pass
+
+        def current(self):
+            return {"holder_type": "build", "holder_id": "brief:morning"}
+
+        def acquire(self, *_args, **_kwargs):
+            raise AssertionError("strict admission must not preempt an active lease")
+
+    def call_model() -> str:
+        nonlocal called
+        called = True
+        return "must not run"
+
+    monkeypatch.setattr(governance, "GPUArbiter", BusyArbiter)
+
+    outcome = governance.run_interactive_model_call(
+        call_model,
+        holder_id="keepwarm:test",
+        gpu_lease_db=tmp_path / "gpu.sqlite",
+        model_slot_path=tmp_path / "slot.lock",
+        require_idle_lease=True,
+        model_slot_max_wait_seconds=0,
+    )
+
+    assert outcome.status == "deferred"
+    assert outcome.reason == "gpu_lease_active:build"
+    assert called is False
+
+
+def test_strict_interactive_call_never_waits_for_model_slot(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    observed: dict = {}
+
+    class IdleArbiter:
+        def __init__(self, _path):
+            pass
+
+        def current(self):
+            return None
+
+        def acquire(self, *_args, **_kwargs):
+            return {"status": "acquired", "lease_nonce": "test-nonce"}
+
+        def release(self, *_args, **_kwargs):
+            observed["released"] = True
+
+    @contextmanager
+    def busy_slot(*, lock_path, max_wait_seconds):
+        observed["lock_path"] = lock_path
+        observed["max_wait_seconds"] = max_wait_seconds
+        raise governance.ModelSlotTimeoutError(0, max_wait_seconds)
+        yield
+
+    monkeypatch.setattr(governance, "GPUArbiter", IdleArbiter)
+    monkeypatch.setattr(governance, "acquire_model_slot", busy_slot)
+
+    outcome = governance.run_interactive_model_call(
+        lambda: "must not run",
+        holder_id="keepwarm:test",
+        gpu_lease_db=tmp_path / "gpu.sqlite",
+        model_slot_path=tmp_path / "slot.lock",
+        require_idle_lease=True,
+        model_slot_max_wait_seconds=0,
+    )
+
+    assert outcome.status == "deferred"
+    assert outcome.reason == "model_slot_timeout"
+    assert observed["max_wait_seconds"] == 0
+    assert observed["released"] is True
 
 
 def test_briefing_scheduler_retries_instead_of_generating_under_interactive_residency(
