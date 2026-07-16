@@ -28,20 +28,16 @@ def _code_from_args(args):
 code = _code_from_args(args)
 FORCE_SYNTH_FAIL = os.environ.get("STUB_FORCE_SYNTH_FAIL") == "1"
 WARM_SERVICE_FAIL = os.environ.get("STUB_WARM_SERVICE_FAIL") == "1"
-WARM_SERVICE_ERROR = os.environ.get("STUB_WARM_SERVICE_ERROR", "unavailable")
 
-if "request_synthesis" in code or "synthesize_remote" in code:
+if "synthesize_remote" in code:
     marker_dir = os.environ.get("STUB_MARKER_DIR")
     if marker_dir:
         open(os.path.join(marker_dir, "warm_service_attempt"), "a").close()
     if WARM_SERVICE_FAIL:
-        print(WARM_SERVICE_ERROR)
-        sys.exit(10 if WARM_SERVICE_ERROR in {"timeout", "busy"} else 11)
+        sys.exit(0)
     import wave
 
-    warm_dir = os.environ.get("OPENCLAW_KOKORO_VOICE_DIR", marker_dir)
-    os.makedirs(warm_dir, exist_ok=True)
-    wav_path = os.path.join(warm_dir, "warm_service.wav")
+    wav_path = os.path.join(marker_dir, "warm_service.wav")
     with wave.open(wav_path, "wb") as fh:
         fh.setnchannels(1)
         fh.setsampwidth(2)

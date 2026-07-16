@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-import threading
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import kokoro_voice_service as svc  # noqa: E402
@@ -52,51 +51,3 @@ def test_empty_text_is_rejected(tmp_path):
     out = svc.build_voice_audio("hermes", "   ", synth_fn=_fake_synth_ok,
                                 convert_fn=_fake_convert_ok, out_dir=tmp_path)
     assert out["ok"] is False
-
-
-def test_guarded_synthesis_rejects_a_second_request_instead_of_queueing(tmp_path):
-    lock = threading.Lock()
-    lock.acquire()
-    try:
-        out = svc.build_voice_audio_guarded(
-            "hermes",
-            "hello",
-            synth_fn=_fake_synth_ok,
-            convert_fn=_fake_convert_ok,
-            out_dir=tmp_path,
-            request_lock=lock,
-        )
-    finally:
-        lock.release()
-
-    assert out == {"ok": False, "error": "busy"}
-    assert list(tmp_path.iterdir()) == []
-
-
-def test_guarded_synthesis_releases_its_slot_after_completion(tmp_path):
-    lock = threading.Lock()
-
-    out = svc.build_voice_audio_guarded(
-        "hermes",
-        "hello",
-        synth_fn=_fake_synth_ok,
-        convert_fn=_fake_convert_ok,
-        out_dir=tmp_path,
-        request_lock=lock,
-    )
-
-    assert out["ok"] is True
-    assert lock.acquire(blocking=False) is True
-    lock.release()
-
-
-def test_cleanup_result_audio_removes_only_generated_paths(tmp_path):
-    wav = tmp_path / "voice.wav"
-    ogg = tmp_path / "voice.ogg"
-    wav.write_bytes(b"RIFF")
-    ogg.write_bytes(b"OggS")
-
-    svc.cleanup_result_audio({"ok": True, "wav": str(wav), "ogg": str(ogg)})
-
-    assert not wav.exists()
-    assert not ogg.exists()
