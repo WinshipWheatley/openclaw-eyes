@@ -862,7 +862,13 @@ def reconcile_workflow(
 
 
 def requested_workflow_ref(source_text: str) -> str | None:
-    text = " ".join(str(source_text or "").strip().lower().split())
+    text = " ".join(
+        str(source_text or "")
+        .translate(str.maketrans({"\u2018": "'", "\u2019": "'"}))
+        .strip()
+        .lower()
+        .split()
+    )
     st_annes = bool(re.search(r"\bst\.?\s+anne(?:'s|s)?\b", text))
     done_or_test = (
         "run the test" in text

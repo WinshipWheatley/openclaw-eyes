@@ -232,9 +232,11 @@ def test_shared_entry_parser_is_surface_agnostic() -> None:
         "run the st annes test",
         "Are we done with the St. Anne's invoice?",
         "whats going on with the st. annes invoice test? are we done what we need to test it?",
+        "What’s going on with the St Annes invoice test?",
     )
 
     assert [reconciler.requested_workflow_ref(text) for text in requests] == [
+        "st_annes_invoice_e2e",
         "st_annes_invoice_e2e",
         "st_annes_invoice_e2e",
         "st_annes_invoice_e2e",
