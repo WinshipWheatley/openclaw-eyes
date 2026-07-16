@@ -1,0 +1,11 @@
+[Unit]
+Description=Watch for new Opus or Fable coordination notes
+Documentation=file://@REPO_ROOT@/docs/operations/OPENCLAW_CODEX_NOTE_EVENT_WAKE.md
+ConditionPathIsDirectory=@REPO_ROOT@/Operator/to-codex
+
+[Path]
+PathChanged=@REPO_ROOT@/Operator/to-codex
+Unit=openclaw-codex-note-wake.service
+
+[Install]
+WantedBy=default.target

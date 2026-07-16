@@ -1,0 +1,22 @@
+[Unit]
+Description=Wake the Sol Codex task for a new Opus or Fable note
+Documentation=file://@REPO_ROOT@/docs/operations/OPENCLAW_CODEX_NOTE_EVENT_WAKE.md
+ConditionPathIsDirectory=@REPO_ROOT@/Operator/to-codex
+StartLimitIntervalSec=5min
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/wsl/lib
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=OPENCLAW_CODEX_THREAD_ID=019f62e2-59c2-70f2-9e0d-3204b55d78a2
+Environment="OPENCLAW_CODEX_HOME=/mnt/c/Users/Open Claw/.codex"
+ExecStart=@PYTHON@ @REPO_ROOT@/codex_note_event_wake.py --once
+TimeoutStartSec=30min
+Restart=on-failure
+RestartSec=30s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
