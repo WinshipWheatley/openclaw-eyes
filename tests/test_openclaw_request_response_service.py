@@ -5,6 +5,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -2430,6 +2431,79 @@ def test_watch_mode_uses_active_poll_window_then_backs_off(tmp_path, monkeypatch
     assert payload["machine_proof"]["active_session_watch_present"] is True
     assert payload["machine_proof"]["atomic_response_writes"] is True
     assert json.loads(Path(latest["response_file"]).read_text(encoding="utf-8"))["terminal"] is True
+
+
+def test_watch_uses_a_fresh_timestamp_for_each_processing_attempt(tmp_path, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    clock = _FakeClock()
+    observed_generated_at: list[str] = []
+    timestamps = iter(
+        (
+            "2026-07-15T23:00:00+00:00",
+            "2026-07-15T23:07:00+00:00",
+        )
+    )
+
+    def fake_process_one_pending_request(**kwargs):
+        observed_generated_at.append(kwargs["generated_at"])
+        if len(observed_generated_at) == 1:
+            return SimpleNamespace(
+                skipped_duplicates=(),
+                processed_count=0,
+                processed_requests=(),
+                latest_response=None,
+                errors_or_blockers=(),
+            )
+        record = {
+            "source_request_id": "fresh-timestamp-request",
+            "identity_keys": (),
+            "request_key": "fresh-timestamp-request",
+            "routing_status": "PROCESSING_ON_PC",
+            "selected_worker_target": "PC_CODEX",
+            "selected_machine": "PC_WSL",
+            "processing_heartbeat_path": "heartbeat.json",
+            "internal_status": "RESPONSE_READY",
+        }
+        return SimpleNamespace(
+            skipped_duplicates=(),
+            processed_count=1,
+            processed_requests=(record,),
+            latest_response={
+                "next_safe_move": "done",
+                "response_file": "response.json",
+            },
+            errors_or_blockers=(),
+        )
+
+    monkeypatch.setattr(service.time, "monotonic", clock.monotonic)
+    monkeypatch.setattr(service.time, "sleep", clock.sleep)
+    monkeypatch.setattr(service, "utc_now", lambda: next(timestamps))
+    monkeypatch.setattr(
+        service,
+        "process_one_pending_request",
+        fake_process_one_pending_request,
+    )
+
+    result = service.run_watch(
+        inbox=inbox,
+        response_dir=response_dir,
+        export_root=export_root,
+        generated_at=None,
+        watch_seconds=2,
+        poll_interval=1.0,
+        active_poll_interval=0.05,
+        active_window_seconds=1.0,
+        max_requests=1,
+    )
+
+    assert result.processed_count == 1
+    assert observed_generated_at == [
+        "2026-07-15T23:00:00+00:00",
+        "2026-07-15T23:07:00+00:00",
+    ]
 
 
 def test_watch_seconds_with_pending_request_does_not_reprocess_same_file_forever(tmp_path, capsys):
