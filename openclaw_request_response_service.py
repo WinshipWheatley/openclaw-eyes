@@ -676,6 +676,53 @@ def _prefer_reality_bounce_before_deterministic(raw_request: Mapping[str, Any]) 
     return normalized.startswith("send the invoice ") or normalized.startswith("send invoice ")
 
 
+def _claims_maestro_listener_envelope(raw_request: Mapping[str, Any]) -> bool:
+    provenance = raw_request.get("message_provenance")
+    provenance = provenance if isinstance(provenance, Mapping) else {}
+    return any(
+        (
+            str(raw_request.get("active_surface_ref") or "") == "operator_maestro_chat",
+            str(raw_request.get("kind") or "").upper() == "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+            str(raw_request.get("lane") or "") == "telegram_pc_maestro_listener",
+            str(raw_request.get("source_channel") or "") == "maestro_listener",
+            str(provenance.get("lane") or "") == "telegram_pc_maestro_listener",
+        )
+    )
+
+
+def _is_bounded_maestro_listener_envelope(raw_request: Mapping[str, Any]) -> bool:
+    """Recognize the listener shape without treating inbox data as authority."""
+
+    authority = raw_request.get("authority_boundary")
+    provenance = raw_request.get("message_provenance")
+    if not isinstance(authority, Mapping) or not authority:
+        return False
+    if not all(value is False for value in authority.values()):
+        return False
+    if not isinstance(provenance, Mapping):
+        return False
+    return bool(
+        str(raw_request.get("kind") or "").upper() == "OPERATOR_INSTRUCTION_PACKAGE_REQUEST"
+        and str(raw_request.get("request_type") or "").upper() == "WORKFLOW_PACKAGE_REQUEST_V0"
+        and str(raw_request.get("active_surface_ref") or "") == "operator_maestro_chat"
+        and str(raw_request.get("actor") or "") == "operator_winship"
+        and str(raw_request.get("origin_surface") or "") == "telegram_pc_maestro_listener"
+        and str(raw_request.get("source_channel") or "") == "maestro_listener"
+        and str(raw_request.get("lane") or "") == "telegram_pc_maestro_listener"
+        and raw_request.get("pc_listener_wrote_request_only") is True
+        and raw_request.get("mac_wrote_request_only") is False
+        and raw_request.get("no_external_action") is True
+        and raw_request.get("relay_origin") is None
+        and str(provenance.get("actor") or "") == "operator_winship"
+        and str(provenance.get("speaker") or "") == "Winship"
+        and str(provenance.get("lane") or "") == "telegram_pc_maestro_listener"
+        and str(provenance.get("surface_ref") or "") == "operator_maestro_chat"
+        and str(provenance.get("message_role") or "") == "operator_prompt"
+        and provenance.get("relay_origin") is None
+        and bool(_operator_message_text(raw_request))
+    )
+
+
 def _reality_bounce_db_path() -> Path:
     configured = os.environ.get("OPENCLAW_REALITY_BOUNCE_DB_PATH")
     return Path(configured) if configured else DEFAULT_REALITY_BOUNCE_DB_PATH
@@ -781,6 +828,40 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             operator_message="OpenClaw picked this up and is checking the metadata-only local rail.",
             next_safe_move="Wait for the file reference readback.",
             route_reason="File metadata requests are handled by the deterministic PC metadata rail.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type == "WORKFLOW_PACKAGE_REQUEST" and _claims_maestro_listener_envelope(raw_request):
+        if not _is_bounded_maestro_listener_envelope(raw_request):
+            return RouteDecision(
+                routing_status="PROCESSING_ON_PC",
+                selected_worker_target="PC_CODEX",
+                selected_machine="PC_WSL",
+                processing_status="REALITY_BOUNCE_CHAIN",
+                operator_headline="OpenClaw is checking this message",
+                operator_message="OpenClaw picked this up and is routing it through the safe local response chain.",
+                next_safe_move="Wait for the safe local response.",
+                route_reason=(
+                    "An operator-like Maestro envelope did not match the bounded listener shape; "
+                    "it stays on Reality Bounce and gains no model, workflow, or action authority."
+                ),
+                pc_handled=False,
+                mac_handoff_required=False,
+                future_worker_blocked=False,
+            )
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_MAESTRO_FRONTDOOR",
+            operator_headline="OpenClaw is answering through Maestro",
+            operator_message="OpenClaw picked this up and is checking the bounded Maestro answer path.",
+            next_safe_move="Wait for the scoped Maestro answer.",
+            route_reason=(
+                "The envelope matches the deployed Maestro listener shape with every authority flag false. "
+                "This selects the conversational processor only; refusal-first and action/session gates still decide the response."
+            ),
             pc_handled=True,
             mac_handoff_required=False,
             future_worker_blocked=False,
