@@ -31,8 +31,8 @@ def resolve_morning_model_lane(current_dt: datetime | None = None) -> tuple[str,
     """
     Select the appropriate model and lane based on the current time.
     
-    - Before 07:45: production 8B scheduled-brief lane
-    - 07:45 - 08:15: compact-context 8B scheduled-brief lane
+    - Before 07:45: production strong lane (gemma4:31b with smaller local fallback)
+    - 07:45 - 08:15: 'fast' lane (gemma4:e4b)
     - After 08:15: 'deterministic' fallback mode
     
     Returns:
@@ -45,7 +45,7 @@ def resolve_morning_model_lane(current_dt: datetime | None = None) -> tuple[str,
         return "cassandra_morning_brief_fallback", "deterministic"
     
     if current_time >= ADAPTIVE_DOWNGRADE_TIME:
-        # Use compact test-mode context while preserving the fixed resident 8B model.
+        # Use test-mode task class even in production to force gemma4:e4b / fast lane
         return "cassandra_morning_brief_test", "llm"
     
     return "cassandra_morning_brief", "llm"

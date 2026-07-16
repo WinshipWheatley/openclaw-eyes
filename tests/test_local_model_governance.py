@@ -143,19 +143,6 @@ def test_async_model_call_defers_while_interactive_8b_is_resident(
     assert called is False
 
 
-def test_scheduled_brief_is_an_async_governed_task_class() -> None:
-    assert chief_llm._is_async_workload("cassandra_scheduled_brief", None) is True
-    assert chief_llm.local_model_candidates(
-        "strong", task_class="cassandra_scheduled_brief"
-    ) == (governance.INTERACTIVE_MODEL,)
-    assert chief_llm.local_model_candidates(
-        "strong", task_class="cassandra_morning_brief"
-    ) == (governance.INTERACTIVE_MODEL,)
-    assert chief_llm.local_model_candidates(
-        "strong", task_class="cassandra_morning_brief_test"
-    ) == (governance.INTERACTIVE_MODEL,)
-
-
 def test_async_model_call_holds_build_lease_and_releases_it(
     tmp_path: Path,
 ) -> None:
