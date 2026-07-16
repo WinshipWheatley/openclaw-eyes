@@ -30,24 +30,8 @@ sys.exit(1 if bad else 0)
 fi
 # --- end voice-layer leak guard ---
 
-WAV="${WAV:-$(mktemp --suffix=.wav)}"
-OGG="${OGG:-$(mktemp --suffix=.ogg)}"
-KOKORO_VOICE_DIR="${OPENCLAW_KOKORO_VOICE_DIR:-/tmp/openclaw_kokoro_voice}"
-KOKORO_SYNTH_PY=""
-SYNTH_INPUT=""
-VOICE_RESPONSE=""
-cleanup_voice_artifacts() {
-  for path in "$KOKORO_SYNTH_PY" "$WAV" "$OGG" "$VOICE_RESPONSE"; do
-    [ -n "$path" ] && rm -f -- "$path"
-  done
-  case "$SYNTH_INPUT" in
-    "$KOKORO_VOICE_DIR"/*.wav|"$KOKORO_VOICE_DIR"/*.ogg)
-      warm_stem="${SYNTH_INPUT%.*}"
-      rm -f -- "${warm_stem}.wav" "${warm_stem}.ogg"
-      ;;
-  esac
-}
-trap cleanup_voice_artifacts EXIT
+WAV="${WAV:-/mnt/c/OpenClaw/logs/master_voice.wav}"
+OGG="${OGG:-/mnt/c/OpenClaw/logs/master_voice.ogg}"
 PYV="${PYV:-/home/openclaw/chief_env/bin/python}"; [ -x "$PYV" ] || PYV=python3
 CURL_BIN="${CURL_BIN:-curl}"
 redact_with_python() {
@@ -125,28 +109,19 @@ sf.write(os.environ["WAV"], normalize_loudness(np.concatenate(chunks)), 24000)
 print("[kokoro] ok agent=", os.environ["AGENT"], "voice=", os.environ["VOICE"], flush=True)
 PYEOF
 
-WARM_RESULT="$({
+WARM_AUDIO="$({
   printf '%s' "$TXT" | AGENT="$AGENT" "$PYV" -c '
 import os, sys
 sys.path.insert(0, "/home/openclaw")
-from kokoro_voice_client import request_synthesis
-result = request_synthesis(sys.stdin.read(), agent=os.environ["AGENT"])
-if result.path:
-    sys.stdout.write(result.path)
-    raise SystemExit(0)
-sys.stdout.write(result.error)
-raise SystemExit(10 if result.error in {"timeout", "busy"} else 11)
+from kokoro_voice_client import synthesize_remote
+path = synthesize_remote(sys.stdin.read(), agent=os.environ["AGENT"], timeout=15.0)
+sys.stdout.write(str(path or ""))
 ';
 } 2>/dev/null)"
-WARM_STATUS=$?
 
-if [ "$WARM_STATUS" -eq 0 ] && [ -n "$WARM_RESULT" ] && [ -s "$WARM_RESULT" ]; then
-  SYNTH_INPUT="$WARM_RESULT"
-elif [ "$WARM_STATUS" -eq 10 ]; then
-  echo "Warm Kokoro synth still active or busy — sending text; no duplicate synth" >&2
-  rm -f "$KOKORO_SYNTH_PY"
-  send_text_only_fallback
-  exit 0
+SYNTH_INPUT=""
+if [ -n "$WARM_AUDIO" ] && [ -s "$WARM_AUDIO" ]; then
+  SYNTH_INPUT="$WARM_AUDIO"
 else
   echo "WARM KOKORO SERVICE UNAVAILABLE — using local CPU synth" >&2
   printf '%s' "$TXT" | OPENCLAW_KOKORO_SYNTH_ATTEMPT=fallback AGENT="$AGENT" VOICE="$VOICE" SPEED="$SPEED" WAV="$WAV" "$PYV" "$KOKORO_SYNTH_PY"
