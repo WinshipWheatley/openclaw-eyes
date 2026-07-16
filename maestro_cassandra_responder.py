@@ -242,15 +242,16 @@ def _finalize_typed_contract_result(
         )
         if disposition is VoteTimeoutDisposition.NONE:
             return finalized
+        downstream_model_called = bool(
+            proof.get("downstream_model_call_performed") is True
+            or proof.get("model_call_performed") is True
+        )
         if (
             disposition is VoteTimeoutDisposition.CLARIFY
             and is_recoverable_outside_session_conversational_failure(receipt)
             and proof.get("protected_generate_called") is True
+            and downstream_model_called
         ):
-            downstream_model_called = bool(
-                proof.get("downstream_model_call_performed") is True
-                or proof.get("model_call_performed") is True
-            )
             proof["semantic_vote_model_called"] = receipt.get("model_called") is True
             proof["downstream_model_call_performed"] = downstream_model_called
             proof["second_model_call_performed"] = bool(
@@ -963,6 +964,7 @@ def _answer_outside_session_vote_failure(
         classify_vote_timeout_disposition,
         enforce_vote_timeout_output,
         is_recoverable_outside_session_conversational_failure,
+        unknown_vote_status_receipt,
     )
 
     receipt = decision.receipt.to_dict()
@@ -1084,6 +1086,9 @@ def _answer_outside_session_vote_failure(
         "vote_timeout_post_launder_assertion": True,
         "unrelated_digest_suppressed": not deterministic_digest_used,
     }
+    vote_failure_receipt = unknown_vote_status_receipt(receipt)
+    if vote_failure_receipt is not None:
+        proof["vote_failure_receipt"] = vote_failure_receipt
     if packet_error:
         proof["context_packet_error"] = packet_error
     return MaestroCassandraResult(
@@ -2660,6 +2665,7 @@ def _answer_with_maestro_brain(
             "local_model_binding": model_binding,
             "internal_model_pass_receipts": {"answer": answer_pass_receipt},
             "weather_read_receipt": weather_read_receipt,
+            "workflow_package_staged": False,
             "send_hold_boundary_visible": True,
             "claims_trace_to_packet": True,
             # Interpreter-LM traceability (advisory only — None/empty when off):

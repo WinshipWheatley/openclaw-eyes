@@ -10508,6 +10508,16 @@ def build_payloads(
         response_payload["guardian_publication_enforcement"] = dict(
             _guardian_publication_enforcement
         )
+    proof_to_response = (
+        response.proof_to_response
+        if isinstance(response.proof_to_response, Mapping)
+        else {}
+    )
+    vote_failure_receipt = proof_to_response.get("vote_failure_receipt")
+    if isinstance(vote_failure_receipt, Mapping):
+        status_payload["machine_proof"]["vote_failure_receipt"] = dict(
+            vote_failure_receipt
+        )
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))
     status_payload["machine_proof"]["content_hash"] = _content_hash(status_payload)
     response_payload["machine_proof"]["content_hash"] = _content_hash(response_payload)

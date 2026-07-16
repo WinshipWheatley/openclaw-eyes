@@ -28,6 +28,10 @@ EXPECTED_MODEL_FAILURE_CLARIFICATION = (
     "The language model didn't return a usable routing decision. I left your "
     "request untouched; please try again in a moment."
 )
+EXPECTED_UNKNOWN_STATUS_CLARIFICATION = (
+    "The language model vote returned an unrecognized result. I left your "
+    "request untouched; please try again in a moment."
+)
 
 
 def test_vote_failure_clarifications_are_exact_and_do_not_overclaim() -> None:
@@ -561,3 +565,18 @@ def test_near_miss_receipts_never_trigger_clarification(field: str, value: str) 
 
     assert is_outside_session_vote_failure(receipt) is False
     assert warm_clarification_for_vote_timeout(AMBIGUOUS_REQUEST, receipt) is None
+
+
+def test_unknown_vote_status_stays_fail_closed_with_named_honest_floor() -> None:
+    receipt = _timeout_receipt()
+    receipt["semantic_vote_status"] = "future_unrecognized_status"
+
+    assert (
+        clarification_policy.classify_vote_failure_kind(receipt).value
+        == "unknown_status"
+    )
+    assert is_outside_session_vote_failure(receipt) is True
+    assert (
+        clarification_policy.clarification_for_vote_failure(receipt)
+        == EXPECTED_UNKNOWN_STATUS_CLARIFICATION
+    )

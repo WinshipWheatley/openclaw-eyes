@@ -25,6 +25,10 @@ MODEL_FAILURE_CLARIFICATION = (
     "The language model didn't return a usable routing decision. I left your "
     "request untouched; please try again in a moment."
 )
+UNKNOWN_STATUS_CLARIFICATION = (
+    "The language model vote returned an unrecognized result. I left your "
+    "request untouched; please try again in a moment."
+)
 # Compatibility name retained for installed Task 167 callers.
 WARM_TIMEOUT_CLARIFICATION = MODEL_TIMEOUT_CLARIFICATION
 
@@ -39,6 +43,7 @@ class VoteFailureKind(str, Enum):
     NONE = "none"
     TIMEOUT = "timeout"
     MODEL_FAILURE = "model_failure"
+    UNKNOWN_STATUS = "unknown_status"
 
 
 class VoteTimeoutDisposition(str, Enum):
@@ -48,6 +53,7 @@ class VoteTimeoutDisposition(str, Enum):
 
 
 _TIMEOUT_FAILURE_STATUSES = frozenset({"deadline_exceeded"})
+_NON_FAILURE_STATUSES = frozenset({"accepted_unresolved"})
 _MODEL_FAILURE_STATUSES = frozenset(
     {
         "empty",
@@ -219,6 +225,8 @@ def classify_vote_failure_kind(receipt_or_decision: Any) -> VoteFailureKind:
     if str(receipt.get("reason") or "") != "uncertain_outside_session_fail_open":
         return VoteFailureKind.NONE
     status = _semantic_vote_status(receipt)
+    if status in _NON_FAILURE_STATUSES:
+        return VoteFailureKind.NONE
     if status in _TIMEOUT_FAILURE_STATUSES:
         return VoteFailureKind.TIMEOUT
     if status in _MODEL_FAILURE_STATUSES:
@@ -230,9 +238,11 @@ def classify_vote_failure_kind(receipt_or_decision: Any) -> VoteFailureKind:
             if "timeout" in normalized
             else VoteFailureKind.MODEL_FAILURE
         )
+    if not status:
+        return VoteFailureKind.MODEL_FAILURE
     # This is an exact semantic-vote failure receipt. Unknown or future status
     # values must not make the failure disappear and reopen downstream work.
-    return VoteFailureKind.MODEL_FAILURE
+    return VoteFailureKind.UNKNOWN_STATUS
 
 
 def is_outside_session_vote_failure(receipt_or_decision: Any) -> bool:
@@ -249,11 +259,7 @@ def is_recoverable_outside_session_vote_timeout(receipt_or_decision: Any) -> boo
     it only prevents the advisory classifier from terminating the text turn.
     """
 
-    receipt = _receipt_mapping(receipt_or_decision)
-    return (
-        classify_vote_failure_kind(receipt_or_decision) is VoteFailureKind.TIMEOUT
-        and _semantic_vote_status(receipt) == "deadline_exceeded"
-    )
+    return classify_vote_failure_kind(receipt_or_decision) is VoteFailureKind.TIMEOUT
 
 
 def is_recoverable_outside_session_conversational_failure(
@@ -267,8 +273,7 @@ def is_recoverable_outside_session_conversational_failure(
     """
 
     kind = classify_vote_failure_kind(receipt_or_decision)
-    status = _semantic_vote_status(_receipt_mapping(receipt_or_decision))
-    if kind is VoteFailureKind.TIMEOUT and status == "deadline_exceeded":
+    if kind is VoteFailureKind.TIMEOUT:
         return True
     receipt = _receipt_mapping(receipt_or_decision)
     return (
@@ -283,7 +288,23 @@ def clarification_for_vote_failure(receipt_or_decision: Any) -> str | None:
         return MODEL_TIMEOUT_CLARIFICATION
     if kind is VoteFailureKind.MODEL_FAILURE:
         return MODEL_FAILURE_CLARIFICATION
+    if kind is VoteFailureKind.UNKNOWN_STATUS:
+        return UNKNOWN_STATUS_CLARIFICATION
     return None
+
+
+def unknown_vote_status_receipt(receipt_or_decision: Any) -> dict[str, Any] | None:
+    """Return a countable defect receipt for an unrecognized vote status."""
+
+    if classify_vote_failure_kind(receipt_or_decision) is not VoteFailureKind.UNKNOWN_STATUS:
+        return None
+    status = _semantic_vote_status(_receipt_mapping(receipt_or_decision))
+    return {
+        "vote_failure_kind": "UNKNOWN_STATUS",
+        "status": status,
+        "defect_signal": "semantic_vote_unknown_status",
+        "occurrence_count": 1,
+    }
 
 
 def classify_vote_timeout_disposition(
@@ -341,6 +362,7 @@ __all__ = [
     "ExplicitDigestIntent",
     "MODEL_FAILURE_CLARIFICATION",
     "MODEL_TIMEOUT_CLARIFICATION",
+    "UNKNOWN_STATUS_CLARIFICATION",
     "VoteFailureKind",
     "VoteTimeoutDisposition",
     "WARM_TIMEOUT_CLARIFICATION",
@@ -352,5 +374,6 @@ __all__ = [
     "is_outside_session_vote_failure",
     "is_recoverable_outside_session_conversational_failure",
     "is_recoverable_outside_session_vote_timeout",
+    "unknown_vote_status_receipt",
     "warm_clarification_for_vote_timeout",
 ]

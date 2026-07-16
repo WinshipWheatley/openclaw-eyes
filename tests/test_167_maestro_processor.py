@@ -15,6 +15,10 @@ EXPECTED_MODEL_FAILURE_CLARIFICATION = (
     "The language model didn't return a usable routing decision. I left your "
     "request untouched; please try again in a moment."
 )
+EXPECTED_UNKNOWN_STATUS_CLARIFICATION = (
+    "The language model vote returned an unrecognized result. I left your "
+    "request untouched; please try again in a moment."
+)
 
 
 def _force_vote_failure(monkeypatch: pytest.MonkeyPatch, status: str = "error:TimeoutError"):
@@ -64,9 +68,8 @@ def test_non_string_vote_status_cannot_impersonate_recoverable_timeout() -> None
         ("empty", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("invalid", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("timeout_or_invalid", EXPECTED_MODEL_FAILURE_CLARIFICATION),
-        ("error:TimeoutError", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
         ("error:RuntimeError", EXPECTED_MODEL_FAILURE_CLARIFICATION),
-        ("future_unrecognized_status", EXPECTED_MODEL_FAILURE_CLARIFICATION),
+        ("future_unrecognized_status", EXPECTED_UNKNOWN_STATUS_CLARIFICATION),
     ),
 )
 def test_maestro_vote_failure_returns_exact_cautious_line_and_no_second_model(
@@ -101,9 +104,72 @@ def test_maestro_vote_failure_returns_exact_cautious_line_and_no_second_model(
     assert result.machine_proof["cassandra_handle_called"] is False
     assert result.machine_proof["workflow_package_staged"] is False
     assert result.machine_proof["vote_timeout_post_launder_assertion"] is True
+    if status == "future_unrecognized_status":
+        assert result.machine_proof["vote_failure_receipt"] == {
+            "vote_failure_kind": "UNKNOWN_STATUS",
+            "status": status,
+            "defect_signal": "semantic_vote_unknown_status",
+            "occurrence_count": 1,
+        }
 
 
-@pytest.mark.parametrize("status", ("deadline_exceeded",))
+def test_unknown_vote_status_tripwire_survives_processor_payload(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import maestro_listener
+    import openclaw_request_processor as processor
+    import protected_generate
+
+    status = "future_unrecognized_status"
+    calls = _force_vote_failure(monkeypatch, status)
+    monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "0")
+    monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "0")
+    monkeypatch.setattr(
+        protected_generate,
+        "protected_generate_with_receipt",
+        _forbidden_downstream,
+    )
+    request = maestro_listener.build_operator_maestro_chat_request(
+        AMBIGUOUS,
+        message_id="task-167-unknown-status-tripwire",
+        chat_id=42,
+        created_at="2026-07-16T15:20:00+00:00",
+    )
+    request_path = tmp_path / "mission_control_operator_instruction_request_unknown.json"
+    request_path.write_text(
+        json.dumps(request, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at="2026-07-16T15:20:00+00:00",
+        duplicate_check=False,
+    )
+    payload, _status = processor.build_payloads(
+        response,
+        generated_at="2026-07-16T15:20:00+00:00",
+    )
+    expected_receipt = {
+        "vote_failure_kind": "UNKNOWN_STATUS",
+        "status": status,
+        "defect_signal": "semantic_vote_unknown_status",
+        "occurrence_count": 1,
+    }
+
+    assert calls == [AMBIGUOUS]
+    assert response.operator_message == EXPECTED_UNKNOWN_STATUS_CLARIFICATION
+    assert response.proof_to_response["vote_failure_receipt"] == expected_receipt
+    assert payload["proof_to_response"]["vote_failure_receipt"] == expected_receipt
+    assert payload["machine_proof"]["vote_failure_receipt"] == expected_receipt
+
+
+@pytest.mark.parametrize(
+    "status",
+    ("deadline_exceeded", "error:TimeoutError", "error:GPU TIMEOUT"),
+)
 def test_maestro_vote_timeout_recovers_with_downstream_text_answer(
     status: str,
     monkeypatch: pytest.MonkeyPatch,
@@ -135,6 +201,7 @@ def test_maestro_vote_timeout_recovers_with_downstream_text_answer(
                 "external_llm_invoked": False,
                 "local_model_invoked": True,
                 "model_call_performed": True,
+                "model_selected": "qwen3:8b-q4_K_M",
             },
         }
 
@@ -154,6 +221,121 @@ def test_maestro_vote_timeout_recovers_with_downstream_text_answer(
     assert result.machine_proof["downstream_model_call_performed"] is True
     assert result.machine_proof["second_model_call_performed"] is True
     assert result.machine_proof["vote_timeout_recovery_applied"] is True
+    assert result.machine_proof["same_model_for_both_passes"] is True
+    assert result.machine_proof["workflow_package_staged"] is False
+    assert result.machine_proof["cassandra_handle_called"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
+
+
+@pytest.mark.parametrize(
+    "status",
+    ("deadline_exceeded", "error:TimeoutError", "error:GPU TIMEOUT"),
+)
+def test_maestro_vote_timeout_without_downstream_model_call_keeps_honest_floor(
+    status: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import maestro_cassandra_responder as maestro
+    import maestro_context_packet
+
+    calls = _force_vote_failure(monkeypatch, status)
+    downstream_calls: list[str] = []
+    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
+    monkeypatch.setattr(
+        maestro_context_packet,
+        "build_maestro_context_packet",
+        lambda **_kwargs: {
+            "packet_id": "timeout-no-model-packet",
+            "facts": [],
+            "source_refs": [],
+            "packet_text": "",
+        },
+    )
+
+    def unavailable_answer(text: str, **_kwargs):
+        downstream_calls.append(text)
+        return {
+            "text": "",
+            "receipt": {
+                "status": "MODEL_UNAVAILABLE",
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+                "model_call_performed": False,
+            },
+        }
+
+    result = maestro.answer_frontdoor_chat(
+        AMBIGUOUS,
+        handle_fn=_forbidden_downstream,
+        protected_generate_fn=unavailable_answer,
+    )
+
+    assert calls == [AMBIGUOUS]
+    assert downstream_calls == [AMBIGUOUS]
+    assert result.plain_summary == EXPECTED_MODEL_TIMEOUT_CLARIFICATION
+    assert result.machine_proof["downstream_model_call_performed"] is False
+    assert result.machine_proof.get("vote_timeout_recovery_applied", False) is False
+    assert result.machine_proof["workflow_package_staged"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
+
+
+def test_maestro_accepted_unresolved_continues_with_raw_message_to_protected_answer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import maestro_cassandra_responder as maestro
+    import maestro_context_packet
+    import typed_contract_decision as typed
+
+    vote_calls: list[str] = []
+    answer_calls: list[str] = []
+
+    def accepted_unresolved_vote(text, *_args, **_kwargs):
+        vote_calls.append(str(text))
+        return (typed.ContractLabel.UNRESOLVED, 0.99, False), "accepted"
+
+    monkeypatch.setenv(typed.SEMANTIC_VOTE_ENV, "maestro")
+    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
+    monkeypatch.setattr(typed, "_call_semantic_vote", accepted_unresolved_vote)
+    monkeypatch.setattr(
+        maestro_context_packet,
+        "build_maestro_context_packet",
+        lambda **_kwargs: {
+            "packet_id": "accepted-unresolved-answer-packet",
+            "facts": [],
+            "source_refs": [],
+            "packet_text": "",
+        },
+    )
+
+    def protected_answer(text: str, **_kwargs):
+        answer_calls.append(text)
+        return {
+            "text": "Here is the bounded answer after an explicit uncertain vote.",
+            "receipt": {
+                "receipt_id": "protected-generate:accepted-unresolved",
+                "model_call_performed": True,
+                "local_model_invoked": True,
+                "external_llm_invoked": False,
+                "model_selected": "qwen3:8b-q4_K_M",
+            },
+        }
+
+    result = maestro.answer_frontdoor_chat(
+        AMBIGUOUS,
+        handle_fn=_forbidden_downstream,
+        protected_generate_fn=protected_answer,
+    )
+
+    receipt = result.machine_proof["typed_contract_decision"]
+    assert vote_calls == [AMBIGUOUS]
+    assert answer_calls == [AMBIGUOUS]
+    assert result.plain_summary == (
+        "Here is the bounded answer after an explicit uncertain vote."
+    )
+    assert AMBIGUOUS not in result.plain_summary
+    assert receipt["semantic_vote_status"] == "accepted_unresolved"
+    assert result.machine_proof["workflow_package_staged"] is False
+    assert result.machine_proof["external_llm_invoked"] is False
 
 
 def test_maestro_below_threshold_continues_with_verbatim_bound_two_pass_answer(
@@ -570,7 +752,7 @@ def test_public_finalizer_reasserts_after_an_inflated_answer_topic() -> None:
     assert finalized.machine_proof["vote_timeout_post_launder_assertion"] is True
 
 
-def test_error_timeout_finalizer_reasserts_floor_without_erasing_downstream_evidence() -> None:
+def test_error_timeout_finalizer_preserves_bounded_downstream_recovery_evidence() -> None:
     import maestro_cassandra_responder as maestro
     import typed_contract_decision as typed
 
@@ -589,12 +771,14 @@ def test_error_timeout_finalizer_reasserts_floor_without_erasing_downstream_evid
         status="ANSWER_READY",
         intent_class="bad_future_fallthrough",
         allowed_to_call_handle=False,
-        one_line_answer="Contaminated answer.",
-        plain_summary="Contaminated answer.",
+        one_line_answer="Bounded protected answer.",
+        plain_summary="Bounded protected answer.",
         machine_proof={
             "protected_generate_called": True,
             "downstream_model_call_performed": True,
             "second_model_call_performed": True,
+            "external_llm_invoked": False,
+            "protected_generate_receipt_id": "protected-generate:test",
         },
     )
 
@@ -610,11 +794,17 @@ def test_error_timeout_finalizer_reasserts_floor_without_erasing_downstream_evid
     assert finalized.machine_proof["protected_generate_called"] is True
     assert finalized.machine_proof["downstream_model_call_performed"] is True
     assert finalized.machine_proof["second_model_call_performed"] is True
-    assert finalized.machine_proof.get("vote_timeout_recovery_applied", False) is False
-    assert finalized.plain_summary == EXPECTED_MODEL_TIMEOUT_CLARIFICATION
+    assert finalized.machine_proof["vote_timeout_recovery_applied"] is True
+    assert finalized.machine_proof["external_llm_invoked"] is False
+    assert finalized.plain_summary == "Bounded protected answer."
 
 
+@pytest.mark.parametrize(
+    "status",
+    ("deadline_exceeded", "error:TimeoutError", "error:GPU TIMEOUT"),
+)
 def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
+    status: str,
     tmp_path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -623,7 +813,7 @@ def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
     import openclaw_request_processor as processor
     import protected_generate
     import reply_pipeline
-    calls = _force_vote_failure(monkeypatch, "deadline_exceeded")
+    calls = _force_vote_failure(monkeypatch, status)
     monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "0")
     monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "0")
     monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
@@ -691,7 +881,7 @@ def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
     assert receipt == response.detail_disclosure["typed_contract_decision"]
     assert receipt["action"] == "pass_through"
     assert receipt["reason"] == "uncertain_outside_session_fail_open"
-    assert receipt["semantic_vote_status"] == "deadline_exceeded"
+    assert receipt["semantic_vote_status"] == status
     assert response.proof_to_response["vote_timeout_recovery_applied"] is True
     assert response.proof_to_response["downstream_model_call_performed"] is True
     assert response.proof_to_response["second_model_call_performed"] is True
