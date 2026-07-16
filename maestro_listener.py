@@ -26,6 +26,7 @@ from fleet_receipt_index import (
     DEFAULT_SQLITE_PATH as DEFAULT_FLEET_RECEIPT_INDEX_PATH,
     ReceiptDescriptor,
     register_delivered_receipt,
+    register_delivered_text_receipt,
     render_receipt_safe_visible_text,
     resolve_receipt_request,
 )
@@ -83,6 +84,7 @@ INTERIM_OR_STAGING_MARKERS = (
     "recorded, no action ran - i can answer date / system-orbit",
     "capability readback is live after reconcile",
     "workflow package staged",
+    "staged a package instead of answering",
 )
 
 AUTHORITY_BOUNDARY = {
@@ -786,9 +788,9 @@ def _blocked_or_unknown_response(payload: Mapping[str, Any] | None) -> bool:
     headline = str(payload.get("operator_headline") or payload.get("headline") or "").lower()
     if internal_status and internal_status != "RESPONSE_READY":
         return True
-    if request_type == "WORKFLOW_PACKAGE_REQUEST":
+    if request_type == "WORKFLOW_PACKAGE_REQUEST" and not _best_final_text(payload):
         return True
-    if "workflow package staged" in headline:
+    if "workflow package staged" in headline and not _best_final_text(payload):
         return True
     return False
 
@@ -868,7 +870,7 @@ def _failure_specific_reply(payload: Mapping[str, Any] | None) -> str:
     if "timeout" in timeout_blob or "timed out" in timeout_blob or "deadline_exceeded" in timeout_blob:
         return _best_final_text(payload) or TIMEOUT_REPLY
     if request_type == "WORKFLOW_PACKAGE_REQUEST" or "workflow package staged" in headline:
-        return WORKFLOW_STAGED_REPLY
+        return _best_final_text(payload) or WORKFLOW_STAGED_REPLY
     if payload.get("terminal") is False or payload.get("processing_heartbeat_id"):
         return PROCESSING_ONLY_REPLY
     return _best_final_text(payload) or BLOCKED_OR_UNKNOWN_REPLY
@@ -1095,6 +1097,38 @@ def _register_maestro_receipt_after_delivery(
         )
 
 
+def _register_maestro_delivered_text_after_delivery(
+    *,
+    delivered_text: str,
+    source_request_id: str,
+    chat_id: int | str,
+    source_message_id: str,
+    delivered_message: Any,
+) -> None:
+    """Fail-soft delivery-boundary proof for every final Maestro reply."""
+
+    delivered_message_id = str(getattr(delivered_message, "message_id", "") or "")
+    if not delivered_message_id or not source_message_id or not source_request_id:
+        return
+    try:
+        register_delivered_text_receipt(
+            surface="operator_maestro_chat",
+            bot_identity="maestro",
+            chat_id=str(chat_id),
+            source_message_id=source_message_id,
+            delivered_message_id=delivered_message_id,
+            source_request_id=source_request_id,
+            delivered_text=delivered_text,
+            delivery_succeeded=True,
+            db_path=_fleet_receipt_index_path(),
+        )
+    except Exception as exc:
+        print(
+            f"[maestro_listener] delivered text receipt skipped: {exc.__class__.__name__}",
+            flush=True,
+        )
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.message.text:
         return
@@ -1206,6 +1240,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             advertise=receipt_descriptor is not None,
         ), source_request=text)
         delivered_message = await update.message.reply_text(_maestro_reply)
+        _register_maestro_delivered_text_after_delivery(
+            delivered_text=_maestro_reply,
+            source_request_id=request_id_for_reply,
+            chat_id=chat_id,
+            source_message_id=delivery_source_message_id,
+            delivered_message=delivered_message,
+        )
         _register_maestro_receipt_after_delivery(
             receipt_descriptor,
             chat_id=chat_id,

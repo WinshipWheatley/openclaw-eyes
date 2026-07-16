@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 import sqlite3
 import threading
@@ -70,6 +71,57 @@ def test_failed_delivery_does_not_create_or_mutate_an_index(tmp_path: Path) -> N
     )
     assert not db_path.exists()
     assert not db_path.parent.exists()
+
+
+def test_failed_text_delivery_does_not_create_or_mutate_an_index(tmp_path: Path) -> None:
+    db_path = tmp_path / "not-created" / "fleet.sqlite3"
+
+    result = receipts.register_delivered_text_receipt(
+        surface="operator_maestro_chat",
+        bot_identity="maestro",
+        chat_id="chat-42",
+        source_message_id="1665",
+        delivered_message_id="9005",
+        source_request_id="maestro_telegram_1665_ce0ca2b9fad1",
+        delivered_text="Final workflow answer.",
+        delivery_succeeded=False,
+        db_path=db_path,
+    )
+
+    assert result.registered is False
+    assert result.outcome == "delivery_not_succeeded"
+    assert not db_path.exists()
+    assert not db_path.parent.exists()
+
+
+def test_successful_text_delivery_records_exact_hash_without_raw_text(tmp_path: Path) -> None:
+    db_path = tmp_path / "fleet.sqlite3"
+    delivered_text = "Final workflow answer."
+
+    result = receipts.register_delivered_text_receipt(
+        surface="operator_maestro_chat",
+        bot_identity="maestro",
+        chat_id="chat-42",
+        source_message_id="1665",
+        delivered_message_id="9005",
+        source_request_id="maestro_telegram_1665_ce0ca2b9fad1",
+        delivered_text=delivered_text,
+        delivery_succeeded=True,
+        delivered_at="2026-07-16T17:42:06+00:00",
+        db_path=db_path,
+    )
+
+    expected_hash = "sha256:" + hashlib.sha256(delivered_text.encode("utf-8")).hexdigest()
+    assert result.registered is True
+    assert result.delivered_text_hash == expected_hash
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute("SELECT * FROM fleet_delivered_text_receipts").fetchone()
+    assert row is not None
+    assert row["source_request_id"] == "maestro_telegram_1665_ce0ca2b9fad1"
+    assert row["delivered_text_hash"] == expected_hash
+    assert row["delivered_text_length"] == len(delivered_text)
+    assert delivered_text not in dict(row).values()
 
 
 def test_only_literal_true_counts_as_delivery_success(tmp_path: Path) -> None:

@@ -243,6 +243,13 @@ class RegistrationResult:
 
 
 @dataclass(frozen=True, slots=True)
+class DeliveredTextRegistrationResult:
+    outcome: str
+    registered: bool
+    delivered_text_hash: str
+
+
+@dataclass(frozen=True, slots=True)
 class ReceiptRequest:
     alias: str = ""
 
@@ -395,6 +402,27 @@ def _connect(path: Path) -> sqlite3.Connection:
           ON fleet_receipt_deliveries (
             surface, bot_identity, chat_id, delivered_at, id
           );
+        CREATE TABLE IF NOT EXISTS fleet_delivered_text_receipts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          delivery_key TEXT NOT NULL UNIQUE,
+          schema_version TEXT NOT NULL CHECK (
+            schema_version='fleet_delivered_text_receipt_v1'
+          ),
+          surface TEXT NOT NULL,
+          bot_identity TEXT NOT NULL,
+          chat_id TEXT NOT NULL,
+          source_message_id TEXT NOT NULL,
+          delivered_message_id TEXT NOT NULL,
+          source_request_id TEXT NOT NULL,
+          delivered_at TEXT NOT NULL,
+          delivered_text_hash TEXT NOT NULL,
+          delivered_text_length INTEGER NOT NULL CHECK (delivered_text_length >= 0),
+          delivery_succeeded INTEGER NOT NULL CHECK (delivery_succeeded=1)
+        );
+        CREATE INDEX IF NOT EXISTS idx_fleet_delivered_text_request
+          ON fleet_delivered_text_receipts (
+            source_request_id, delivered_at, id
+          );
         """
     )
     connection.commit()
@@ -507,6 +535,114 @@ def register_delivered_receipt(
             )
             connection.commit()
     return RegistrationResult("registered", True, alias)
+
+
+def register_delivered_text_receipt(
+    *,
+    surface: str,
+    bot_identity: str,
+    chat_id: str,
+    source_message_id: str,
+    delivered_message_id: str,
+    source_request_id: str,
+    delivered_text: str,
+    delivery_succeeded: bool,
+    delivered_at: str | None = None,
+    db_path: str | Path = DEFAULT_SQLITE_PATH,
+) -> DeliveredTextRegistrationResult:
+    """Record the exact final reply hash only after Telegram confirms delivery."""
+
+    if delivery_succeeded is not True:
+        return DeliveredTextRegistrationResult("delivery_not_succeeded", False, "")
+
+    surface_value = _binding_value(surface, field_name="surface")
+    bot_value = _binding_value(bot_identity, field_name="bot_identity").lower()
+    chat_value = _binding_value(chat_id, field_name="chat_id")
+    source_value = _binding_value(source_message_id, field_name="source_message_id")
+    delivered_value = _binding_value(
+        delivered_message_id,
+        field_name="delivered_message_id",
+    )
+    request_value = _binding_value(source_request_id, field_name="source_request_id")
+    text = str(delivered_text or "")
+    if not text:
+        raise ValueError("delivered_text is required")
+    if len(text) > 65_536:
+        raise ValueError("delivered_text exceeds the bounded receipt length")
+    text_hash = "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    delivered_timestamp = _timestamp(
+        delivered_at or _utc_now(),
+        field_name="delivered_at",
+    )
+    key_material = json.dumps(
+        {
+            "surface": surface_value,
+            "bot_identity": bot_value,
+            "chat_id": chat_value,
+            "source_message_id": source_value,
+            "delivered_message_id": delivered_value,
+            "source_request_id": request_value,
+            "delivered_text_hash": text_hash,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    delivery_key = hashlib.sha256(key_material.encode("utf-8")).hexdigest()
+
+    with closing(_connect(Path(db_path))) as connection:
+        with connection:
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO fleet_delivered_text_receipts (
+                  delivery_key, schema_version, surface, bot_identity, chat_id,
+                  source_message_id, delivered_message_id, source_request_id,
+                  delivered_at, delivered_text_hash, delivered_text_length,
+                  delivery_succeeded
+                ) VALUES (?, 'fleet_delivered_text_receipt_v1', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                """,
+                (
+                    delivery_key,
+                    surface_value,
+                    bot_value,
+                    chat_value,
+                    source_value,
+                    delivered_value,
+                    request_value,
+                    delivered_timestamp,
+                    text_hash,
+                    len(text),
+                ),
+            )
+            registered = connection.total_changes > 0
+    return DeliveredTextRegistrationResult(
+        "registered" if registered else "already_registered",
+        registered,
+        text_hash,
+    )
+
+
+def read_delivered_text_receipts(
+    *,
+    db_path: str | Path = DEFAULT_SQLITE_PATH,
+    source_request_id: str = "",
+) -> tuple[dict[str, Any], ...]:
+    """Read delivery proofs without exposing or storing raw final reply text."""
+
+    path = Path(db_path)
+    if source_request_id:
+        rows = _safe_rows(
+            path,
+            "SELECT * FROM fleet_delivered_text_receipts WHERE source_request_id=? ORDER BY id",
+            (_binding_value(source_request_id, field_name="source_request_id"),),
+        )
+    else:
+        rows = _safe_rows(
+            path,
+            "SELECT * FROM fleet_delivered_text_receipts ORDER BY id",
+            (),
+        )
+    return tuple(dict(row) for row in rows)
 
 
 def _safe_rows(path: Path, sql: str, values: tuple[Any, ...]) -> list[sqlite3.Row]:
@@ -715,6 +851,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "SUPPORTED_PROVIDERS",
     "FleetReceiptIndex",
+    "DeliveredTextRegistrationResult",
     "ReceiptDescriptor",
     "ReceiptIndexUnavailable",
     "ReceiptProvider",
@@ -726,6 +863,8 @@ __all__ = [
     "machine_receipt_disclosure",
     "parse_receipt_request",
     "register_delivered_receipt",
+    "register_delivered_text_receipt",
+    "read_delivered_text_receipts",
     "render_receipt_safe_visible_text",
     "resolve_receipt_lookup",
     "resolve_receipt_request",

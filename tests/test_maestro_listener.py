@@ -3,6 +3,7 @@ import ast
 import json
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -11,6 +12,14 @@ import maestro_listener
 
 FIXED_NOW = "2026-06-19T15:18:00+00:00"
 REPO_ROOT = Path(__file__).resolve().parents[1]
+DRIFT_AWARE_ANSWER = (
+    "The St. Anne's invoice dry-run passed and nothing was sent. "
+    "The June workbook has 7 services totaling $875, while the work-log mirror has 0 confirmed."
+)
+LOCATOR_ANSWER = (
+    "I found one canonical St. Anne's June invoice PDF across 2 verified copies. "
+    "It comes from invoice.xlsx sheet June 2026, invoice 3, totals $875, is draft, and was never sent."
+)
 
 
 @pytest.fixture(autouse=True)
@@ -472,6 +481,79 @@ def test_workflow_staging_bridge_response_is_explicit_and_model_call_agnostic(mo
     assert "can't verify from this payload whether a model ran" in reply
     assert "no send, workflow, model, tool" not in reply
     assert "capability readback is live after reconcile" not in reply
+
+
+@pytest.mark.parametrize("answer", [DRIFT_AWARE_ANSWER, LOCATOR_ANSWER])
+def test_final_workflow_answers_are_not_classified_as_staging_text(answer):
+    payload = {
+        "internal_status": "RESPONSE_READY",
+        "request_type": "WORKFLOW_PACKAGE_REQUEST",
+        "operator_headline": "Workflow package staged",
+        "one_line_answer": answer,
+        "operator_message": answer,
+        "terminal": True,
+    }
+
+    assert maestro_listener._looks_like_interim_or_staging_text(answer) is False
+    assert maestro_listener.reply_text_from_bridge_response(payload) == answer
+
+
+def test_exact_1665_workflow_answer_reaches_private_reply_once_with_delivery_receipt(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
+    monkeypatch.setenv("OPENCLAW_MAESTRO_REPLY_ONLY", "1")
+    monkeypatch.setattr(maestro_listener, "record_maestro_intake_metadata", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        maestro_listener,
+        "build_operator_maestro_chat_request",
+        lambda *_args, **_kwargs: {"request_id": "maestro_telegram_1665_ce0ca2b9fad1"},
+    )
+    monkeypatch.setattr(
+        maestro_listener,
+        "write_bridge_request",
+        lambda *_args, **_kwargs: tmp_path / "request.json",
+    )
+
+    async def fake_poll(*_args, **_kwargs):
+        return {
+            "source_request_id": "maestro_telegram_1665_ce0ca2b9fad1",
+            "internal_status": "RESPONSE_READY",
+            "request_type": "WORKFLOW_PACKAGE_REQUEST",
+            "operator_headline": "St. Anne's invoice sources need reconciliation",
+            "one_line_answer": DRIFT_AWARE_ANSWER,
+            "operator_message": DRIFT_AWARE_ANSWER,
+            "terminal": True,
+        }
+
+    delivery_calls: list[dict] = []
+    monkeypatch.setattr(maestro_listener, "poll_bridge_response", fake_poll)
+    monkeypatch.setattr(
+        maestro_listener,
+        "register_delivered_text_receipt",
+        lambda **kwargs: delivery_calls.append(kwargs),
+    )
+
+    class DeliveryMessage(FakeMessage):
+        def __init__(self, text: str):
+            super().__init__(text)
+            self.message_id = 1665
+
+        async def reply_text(self, text: str):
+            self.replies.append(text)
+            return SimpleNamespace(message_id=9005)
+
+    update = FakeUpdate(text="What's going on with the St Annes invoice test?", user_id=123)
+    update.message = DeliveryMessage(update.message.text)
+
+    asyncio.run(maestro_listener.handle_message(update, FakeContext()))
+
+    assert update.message.replies == [DRIFT_AWARE_ANSWER]
+    assert len(delivery_calls) == 1
+    assert delivery_calls[0]["delivered_text"] == DRIFT_AWARE_ANSWER
+    assert delivery_calls[0]["source_request_id"] == "maestro_telegram_1665_ce0ca2b9fad1"
+    assert delivery_calls[0]["delivery_succeeded"] is True
 
 
 def test_guardian_denial_keeps_guardian_truth_instead_of_lying_no_model_floor():
