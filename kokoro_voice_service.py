@@ -21,6 +21,7 @@ import json
 import os
 import shutil
 import subprocess
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
@@ -31,6 +32,7 @@ DEFAULT_PORT = int(os.environ.get("OPENCLAW_KOKORO_VOICE_PORT", "8771"))
 DEFAULT_OUT_DIR = Path(os.environ.get("OPENCLAW_KOKORO_VOICE_DIR", "/tmp/openclaw_kokoro_voice"))
 
 _WARM = False
+_REQUEST_LOCK = threading.Lock()
 
 
 def wav_to_ogg(wav_path: str) -> str | None:
@@ -82,14 +84,61 @@ def build_voice_audio(
     return {"ok": True, "ogg": None, "wav": wav, "format": "wav"}
 
 
+def build_voice_audio_guarded(
+    agent: str,
+    text: str,
+    *,
+    synth_fn: Callable[[str, str, str], tuple[bool, str]] = _default_synth,
+    convert_fn: Callable[[str], str | None] = wav_to_ogg,
+    out_dir: str | Path = DEFAULT_OUT_DIR,
+    request_lock: threading.Lock = _REQUEST_LOCK,
+) -> dict[str, Any]:
+    """Run at most one synthesis; reject contention instead of queueing it."""
+
+    if not request_lock.acquire(blocking=False):
+        return {"ok": False, "error": "busy"}
+    try:
+        return build_voice_audio(
+            agent,
+            text,
+            synth_fn=synth_fn,
+            convert_fn=convert_fn,
+            out_dir=out_dir,
+        )
+    finally:
+        request_lock.release()
+
+
+def cleanup_result_audio(result: dict[str, Any]) -> None:
+    """Remove only audio artifacts named by a completed synthesis result."""
+
+    seen: set[Path] = set()
+    for key in ("wav", "ogg"):
+        value = result.get(key)
+        if not isinstance(value, str) or not value:
+            continue
+        path = Path(value)
+        if path in seen or path.suffix.lower() not in {".wav", ".ogg"}:
+            continue
+        seen.add(path)
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
 class _Handler(BaseHTTPRequestHandler):
-    def _json(self, code: int, payload: dict[str, Any]) -> None:
+    def _json(self, code: int, payload: dict[str, Any]) -> bool:
         body = json.dumps(payload).encode("utf-8")
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return True
+        except (BrokenPipeError, ConnectionResetError):
+            return False
 
     def log_message(self, *args: Any) -> None:  # quiet
         pass
@@ -112,8 +161,10 @@ class _Handler(BaseHTTPRequestHandler):
         except Exception:
             self._json(400, {"ok": False, "error": "bad_request"})
             return
-        result = build_voice_audio(agent, text)
-        self._json(200 if result.get("ok") else 422, result)
+        result = build_voice_audio_guarded(agent, text)
+        delivered = self._json(200 if result.get("ok") else 422, result)
+        if not delivered:
+            cleanup_result_audio(result)
 
 
 def main() -> int:
@@ -121,7 +172,7 @@ def main() -> int:
     DEFAULT_OUT_DIR.mkdir(parents=True, exist_ok=True)
     # Warm the model so the first real request is fast (load KPipeline once, here).
     try:
-        warm = build_voice_audio("hermes", "Voice service online.")
+        warm = build_voice_audio_guarded("hermes", "Voice service online.")
         _WARM = bool(warm.get("ok"))
     except Exception:
         _WARM = False
