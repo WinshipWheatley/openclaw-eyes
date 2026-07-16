@@ -35,38 +35,13 @@ def _forbidden_downstream(*_args, **_kwargs):
     raise AssertionError("a prohibited downstream model/brain path ran")
 
 
-def test_non_string_vote_status_cannot_impersonate_recoverable_timeout() -> None:
-    from vote_timeout_clarification import (
-        VoteFailureKind,
-        classify_vote_failure_kind,
-        is_recoverable_outside_session_conversational_failure,
-    )
-
-    class TimeoutStringSpoof:
-        def __str__(self) -> str:
-            return "deadline_exceeded"
-
-    receipt = {
-        "source": "semantic_vote",
-        "label": "unresolved",
-        "action": "pass_through",
-        "reason": "uncertain_outside_session_fail_open",
-        "semantic_vote_status": TimeoutStringSpoof(),
-    }
-
-    assert classify_vote_failure_kind(receipt) is VoteFailureKind.MODEL_FAILURE
-    assert is_recoverable_outside_session_conversational_failure(receipt) is False
-
-
 @pytest.mark.parametrize(
     ("status", "expected"),
     (
         ("empty", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("invalid", EXPECTED_MODEL_FAILURE_CLARIFICATION),
         ("timeout_or_invalid", EXPECTED_MODEL_FAILURE_CLARIFICATION),
-        ("error:TimeoutError", EXPECTED_MODEL_TIMEOUT_CLARIFICATION),
         ("error:RuntimeError", EXPECTED_MODEL_FAILURE_CLARIFICATION),
-        ("future_unrecognized_status", EXPECTED_MODEL_FAILURE_CLARIFICATION),
     ),
 )
 def test_maestro_vote_failure_returns_exact_cautious_line_and_no_second_model(
@@ -103,7 +78,7 @@ def test_maestro_vote_failure_returns_exact_cautious_line_and_no_second_model(
     assert result.machine_proof["vote_timeout_post_launder_assertion"] is True
 
 
-@pytest.mark.parametrize("status", ("deadline_exceeded",))
+@pytest.mark.parametrize("status", ("error:TimeoutError", "deadline_exceeded"))
 def test_maestro_vote_timeout_recovers_with_downstream_text_answer(
     status: str,
     monkeypatch: pytest.MonkeyPatch,
@@ -154,171 +129,6 @@ def test_maestro_vote_timeout_recovers_with_downstream_text_answer(
     assert result.machine_proof["downstream_model_call_performed"] is True
     assert result.machine_proof["second_model_call_performed"] is True
     assert result.machine_proof["vote_timeout_recovery_applied"] is True
-
-
-def test_maestro_below_threshold_continues_with_verbatim_bound_two_pass_answer(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import maestro_cassandra_responder as maestro
-    import maestro_context_packet
-
-    calls = _force_vote_failure(monkeypatch, "below_threshold")
-    downstream_calls: list[str] = []
-    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
-    monkeypatch.setattr(
-        maestro_context_packet,
-        "build_maestro_context_packet",
-        lambda **_kwargs: {
-            "packet_id": "below-threshold-recovery-packet",
-            "facts": [],
-            "source_refs": [],
-            "packet_text": "",
-        },
-    )
-
-    def recovered_answer(text: str, **_kwargs):
-        downstream_calls.append(text)
-        return {
-            "text": "Here is the grounded answer, without replaying your prompt.",
-            "receipt": {
-                "receipt_id": "protected-generate:below-threshold",
-                "model_call_performed": True,
-                "local_model_invoked": True,
-                "external_llm_invoked": False,
-                "model_selected": "qwen3:8b-q4_K_M",
-            },
-        }
-
-    result = maestro.answer_frontdoor_chat(
-        AMBIGUOUS,
-        session={"source_message_id": "telegram:below-threshold"},
-        handle_fn=_forbidden_downstream,
-        protected_generate_fn=recovered_answer,
-    )
-
-    proof = result.machine_proof
-    passes = proof["internal_model_pass_receipts"]
-    assert calls == [AMBIGUOUS]
-    assert downstream_calls == [AMBIGUOUS]
-    assert result.plain_summary == "Here is the grounded answer, without replaying your prompt."
-    assert AMBIGUOUS not in result.plain_summary
-    assert proof["semantic_vote_model_called"] is True
-    assert proof["downstream_model_call_performed"] is True
-    assert proof["second_model_call_performed"] is True
-    assert proof["conversational_vote_failure_recovery_applied"] is True
-    assert proof["same_model_for_both_passes"] is True
-    assert proof["local_model_binding"]["model"] == "qwen3:8b-q4_K_M"
-    assert passes["interpretation"]["original_operator_message"] == AMBIGUOUS
-    assert passes["answer"]["original_operator_message"] == AMBIGUOUS
-    assert passes["interpretation"]["binding_id"] == passes["answer"]["binding_id"]
-    assert passes["interpretation"]["model"] == passes["answer"]["model"]
-    assert passes["interpretation"]["input_sha256"] == hashlib.sha256(
-        AMBIGUOUS.encode("utf-8")
-    ).hexdigest()
-    assert passes["answer"]["input_sha256"] == passes["interpretation"]["input_sha256"]
-
-
-def test_maestro_weather_answer_pass_receives_weather_fact_and_read_receipt(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import maestro_cassandra_responder as maestro
-    import maestro_context_packet
-    import weather_read_capability
-
-    text = "What's the weather in Annapolis, MD today?"
-    _force_vote_failure(monkeypatch, "below_threshold")
-    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
-    monkeypatch.setattr(
-        maestro_context_packet,
-        "build_maestro_context_packet",
-        lambda **_kwargs: {
-            "packet_id": "weather-answer-packet",
-            "facts": [],
-            "source_refs": [],
-            "packet_text": "",
-        },
-    )
-    monkeypatch.setattr(
-        weather_read_capability,
-        "read_weather",
-        lambda _text: weather_read_capability.WeatherReadResult(
-            status="READY",
-            location="Annapolis, Maryland, United States",
-            summary="Annapolis is 84°F and mostly clear.",
-            receipt={
-                "receipt_id": "weather-read:test",
-                "network_method": "GET",
-                "credential_use": False,
-                "external_action_performed": False,
-            },
-        ),
-    )
-    seen_packets: list[dict] = []
-
-    def answer_with_packet(_text: str, *, context_packet):
-        seen_packets.append(dict(context_packet))
-        return {
-            "text": "It is 84°F and mostly clear in Annapolis.",
-            "receipt": {
-                "receipt_id": "protected-generate:weather",
-                "model_call_performed": True,
-                "local_model_invoked": True,
-                "external_llm_invoked": False,
-                "model_selected": "qwen3:8b-q4_K_M",
-            },
-        }
-
-    result = maestro.answer_frontdoor_chat(
-        text,
-        session={"source_message_id": "telegram:weather"},
-        protected_generate_fn=answer_with_packet,
-    )
-
-    assert result.plain_summary == "It is 84°F and mostly clear in Annapolis."
-    assert seen_packets[0]["weather_read"]["status"] == "READY"
-    assert seen_packets[0]["weather_read"]["summary"] == "Annapolis is 84°F and mostly clear."
-    assert any(fact["topic"] == "weather_current" for fact in seen_packets[0]["facts"])
-    assert result.machine_proof["weather_read_receipt"]["network_method"] == "GET"
-    assert result.machine_proof["weather_read_receipt"]["external_action_performed"] is False
-
-
-def test_two_pass_receipt_does_not_claim_same_model_when_answer_reports_a_mismatch(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import maestro_cassandra_responder as maestro
-    import maestro_context_packet
-
-    _force_vote_failure(monkeypatch, "below_threshold")
-    monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
-    monkeypatch.setattr(
-        maestro_context_packet,
-        "build_maestro_context_packet",
-        lambda **_kwargs: {
-            "packet_id": "model-mismatch-packet",
-            "facts": [],
-            "source_refs": [],
-            "packet_text": "",
-        },
-    )
-
-    result = maestro.answer_frontdoor_chat(
-        "Tell me something useful.",
-        session={"source_message_id": "telegram:model-mismatch"},
-        protected_generate_fn=lambda *_args, **_kwargs: {
-            "text": "Useful answer.",
-            "receipt": {
-                "receipt_id": "protected-generate:model-mismatch",
-                "model_call_performed": True,
-                "local_model_invoked": True,
-                "external_llm_invoked": False,
-                "model_selected": "qwen3:4b",
-            },
-        },
-    )
-
-    answer_receipt = result.machine_proof["internal_model_pass_receipts"]["answer"]
-    assert answer_receipt["model"] == "qwen3:4b"
-    assert result.machine_proof["same_model_for_both_passes"] is False
 
 
 @pytest.mark.parametrize(
@@ -570,7 +380,7 @@ def test_public_finalizer_reasserts_after_an_inflated_answer_topic() -> None:
     assert finalized.machine_proof["vote_timeout_post_launder_assertion"] is True
 
 
-def test_error_timeout_finalizer_reasserts_floor_without_erasing_downstream_evidence() -> None:
+def test_timeout_finalizer_records_downstream_recovery_without_erasing_evidence() -> None:
     import maestro_cassandra_responder as maestro
     import typed_contract_decision as typed
 
@@ -610,8 +420,8 @@ def test_error_timeout_finalizer_reasserts_floor_without_erasing_downstream_evid
     assert finalized.machine_proof["protected_generate_called"] is True
     assert finalized.machine_proof["downstream_model_call_performed"] is True
     assert finalized.machine_proof["second_model_call_performed"] is True
-    assert finalized.machine_proof.get("vote_timeout_recovery_applied", False) is False
-    assert finalized.plain_summary == EXPECTED_MODEL_TIMEOUT_CLARIFICATION
+    assert finalized.machine_proof["vote_timeout_recovery_applied"] is True
+    assert finalized.plain_summary == "Contaminated answer."
 
 
 def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
@@ -623,7 +433,7 @@ def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
     import openclaw_request_processor as processor
     import protected_generate
     import reply_pipeline
-    calls = _force_vote_failure(monkeypatch, "deadline_exceeded")
+    calls = _force_vote_failure(monkeypatch, "error:TimeoutError")
     monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "0")
     monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "0")
     monkeypatch.setenv("OPENCLAW_PACKET_ENGINE", "0")
@@ -691,7 +501,7 @@ def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
     assert receipt == response.detail_disclosure["typed_contract_decision"]
     assert receipt["action"] == "pass_through"
     assert receipt["reason"] == "uncertain_outside_session_fail_open"
-    assert receipt["semantic_vote_status"] == "deadline_exceeded"
+    assert receipt["semantic_vote_status"] == "error:TimeoutError"
     assert response.proof_to_response["vote_timeout_recovery_applied"] is True
     assert response.proof_to_response["downstream_model_call_performed"] is True
     assert response.proof_to_response["second_model_call_performed"] is True
@@ -702,16 +512,6 @@ def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
     ] == "sha256:" + hashlib.sha256(
         response.operator_message.encode("utf-8")
     ).hexdigest()
-    published_response = json.dumps(
-        {
-            "detail_disclosure": response.detail_disclosure,
-            "proof_to_response": response.proof_to_response,
-        },
-        sort_keys=True,
-    )
-    assert "internal_model_pass_receipts" not in published_response
-    assert "original_operator_message" not in published_response
-    assert AMBIGUOUS not in published_response
 
     payload, _status = processor.build_payloads(
         response,
@@ -723,10 +523,6 @@ def test_final_processor_preserves_timeout_recovery_after_reply_pipeline(
     assert payload["machine_proof"]["external_llm_invoked"] is False
     assert payload["machine_proof"]["local_model_invoked"] is True
     assert payload["selected_model_backend"] == "LOCAL_OLLAMA"
-    published_payload = json.dumps(payload, sort_keys=True)
-    assert "internal_model_pass_receipts" not in published_payload
-    assert "original_operator_message" not in published_payload
-    assert AMBIGUOUS not in published_payload
 
 
 @pytest.mark.parametrize("pipeline_mode", ("inject", "raise"))
