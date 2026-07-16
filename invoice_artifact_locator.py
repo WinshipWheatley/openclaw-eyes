@@ -13,6 +13,7 @@ from typing import Any
 
 SCHEMA_VERSION = "invoice_artifact_locator_v0"
 MANIFEST_SCHEMA = "openclaw_invoice_manifest_v1"
+PROMOTION_SCHEMA = "openclaw_invoice_artifact_promotion_v1"
 QUARANTINE_SEGMENT = ".openclaw_scope_quarantine"
 
 
@@ -49,6 +50,38 @@ def _period_from_manifest(manifest: dict[str, Any]) -> str:
     invoice_key = str(manifest.get("invoice_key") or "").strip()
     match = re.match(r"^(\d{4}-\d{2})[_-]", invoice_key)
     return match.group(1) if match else ""
+
+
+def _verified_test_promotion(manifest: dict[str, Any]) -> dict[str, Any] | None:
+    raw = manifest.get("promotion")
+    if not isinstance(raw, dict):
+        return None
+    supersedes = raw.get("supersedes_pdf_sha256")
+    if (
+        raw.get("schema") != PROMOTION_SCHEMA
+        or raw.get("scope") != "test"
+        or raw.get("status") != "verified"
+        or not isinstance(supersedes, list)
+        or not supersedes
+        or not str(raw.get("verification_receipt_ref") or "").strip()
+        or not str(raw.get("operator_confirmation_source_ref") or "").strip()
+    ):
+        return None
+    normalized = [str(item).strip().lower() for item in supersedes]
+    if len(set(normalized)) != len(normalized) or any(
+        re.fullmatch(r"[0-9a-f]{64}", item) is None for item in normalized
+    ):
+        return None
+    return {
+        "schema": PROMOTION_SCHEMA,
+        "scope": "test",
+        "status": "verified",
+        "supersedes_pdf_sha256": sorted(normalized),
+        "verification_receipt_ref": str(raw["verification_receipt_ref"]).strip(),
+        "operator_confirmation_source_ref": str(
+            raw["operator_confirmation_source_ref"]
+        ).strip(),
+    }
 
 
 def _within(path: Path, root: Path) -> bool:
@@ -101,7 +134,7 @@ def _verify_manifest_candidate(
         return None, "manifest_provenance_incomplete"
     if isinstance(amount, bool) or not isinstance(amount, (int, float)):
         return None, "manifest_amount_invalid"
-    return {
+    candidate = {
         "manifest_path": manifest_path.as_posix(),
         "workbook_path": workbook_path.as_posix(),
         "pdf_path": pdf_path.as_posix(),
@@ -114,7 +147,11 @@ def _verify_manifest_candidate(
         "amount": float(amount),
         "invoice_status": str(manifest.get("status") or ""),
         "send_receipt_present": bool(manifest.get("latest_send_receipt_path")),
-    }, ""
+    }
+    promotion = _verified_test_promotion(manifest)
+    if promotion is not None:
+        candidate["promotion"] = promotion
+    return candidate, ""
 
 
 def _base_result(client_ref: str, service_period: str, roots: Sequence[Path]) -> dict[str, Any]:
@@ -125,6 +162,7 @@ def _base_result(client_ref: str, service_period: str, roots: Sequence[Path]) ->
         "status": "NOT_FOUND",
         "canonical_candidate": None,
         "candidate_groups": [],
+        "superseded_pdf_sha256": [],
         "rejections": [],
         "searched_roots": [Path(root).as_posix() for root in roots],
         "agentic_fallback_required": False,
@@ -138,6 +176,7 @@ def _base_result(client_ref: str, service_period: str, roots: Sequence[Path]) ->
             "allowlisted_roots_only": True,
             "quarantine_excluded": True,
             "manifest_hashes_verified": False,
+            "promotion_chain_verified": False,
             "external_action_performed": False,
             "attachment_sent": False,
             "workbook_mutation_performed": False,
@@ -189,7 +228,20 @@ def locate_invoice_artifacts(
     candidate_groups: list[dict[str, Any]] = []
     for pdf_hash in sorted(grouped):
         copies = sorted(grouped[pdf_hash], key=lambda item: item["manifest_path"])
-        canonical = dict(copies[0])
+        promotions = {
+            json.dumps(item["promotion"], sort_keys=True, separators=(",", ":"))
+            for item in copies
+            if isinstance(item.get("promotion"), dict)
+        }
+        promoted_copy = next(
+            (item for item in copies if isinstance(item.get("promotion"), dict)),
+            None,
+        )
+        canonical = dict(
+            promoted_copy if promoted_copy is not None and len(promotions) == 1 else copies[0]
+        )
+        if len(promotions) != 1:
+            canonical.pop("promotion", None)
         canonical["duplicate_pdf_paths"] = sorted(item["pdf_path"] for item in copies)
         canonical["duplicate_manifest_paths"] = sorted(item["manifest_path"] for item in copies)
         candidate_groups.append(canonical)
@@ -199,7 +251,26 @@ def locate_invoice_artifacts(
         result["canonical_candidate"] = candidate_groups[0]
         result["machine_proof"]["manifest_hashes_verified"] = True
     elif len(candidate_groups) > 1:
-        result["status"] = "AMBIGUOUS"
+        all_hashes = {item["pdf_sha256"] for item in candidate_groups}
+        promoted = []
+        for candidate in candidate_groups:
+            promotion = candidate.get("promotion")
+            if not isinstance(promotion, dict):
+                continue
+            if set(promotion["supersedes_pdf_sha256"]) == all_hashes - {
+                candidate["pdf_sha256"]
+            }:
+                promoted.append(candidate)
+        if len(promoted) == 1:
+            result["status"] = "FOUND"
+            result["canonical_candidate"] = promoted[0]
+            result["superseded_pdf_sha256"] = list(
+                promoted[0]["promotion"]["supersedes_pdf_sha256"]
+            )
+            result["machine_proof"]["manifest_hashes_verified"] = True
+            result["machine_proof"]["promotion_chain_verified"] = True
+        else:
+            result["status"] = "AMBIGUOUS"
     else:
         result["agentic_fallback_required"] = True
     return result

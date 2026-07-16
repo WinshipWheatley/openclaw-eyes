@@ -20,6 +20,7 @@ def _package(
     client_slug: str = "st-annes",
     period: str = "2026-06",
     pdf_hash: str | None = None,
+    promotion: dict | None = None,
 ) -> Path:
     package_dir = root / name
     package_dir.mkdir(parents=True)
@@ -39,6 +40,8 @@ def _package(
         "current_pdf_sha256": pdf_hash or _sha256(pdf_bytes),
         "latest_send_receipt_path": None,
     }
+    if promotion is not None:
+        manifest["promotion"] = promotion
     manifest_path = package_dir / "invoice_manifest.json"
     manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
     return manifest_path
@@ -102,3 +105,57 @@ def test_nonidentical_valid_candidates_are_ambiguous(tmp_path: Path) -> None:
     assert result["status"] == "AMBIGUOUS"
     assert result["canonical_candidate"] is None
     assert len(result["candidate_groups"]) == 2
+
+
+def test_verified_test_promotion_can_supersede_older_hash_without_overwrite(tmp_path: Path) -> None:
+    root = tmp_path / "handoffs"
+    old_pdf = b"clipped version"
+    new_pdf = b"operator verified v4"
+    old_hash = _sha256(old_pdf)
+    new_manifest = _package(
+        root,
+        "st-annes-june-v4",
+        pdf_bytes=new_pdf,
+        promotion={
+            "schema": "openclaw_invoice_artifact_promotion_v1",
+            "scope": "test",
+            "status": "verified",
+            "supersedes_pdf_sha256": [old_hash],
+            "verification_receipt_ref": "SOL-INVOICE-V4-VERIFY-PASS-20260716.md",
+            "operator_confirmation_source_ref": "claude-session:operator-confirmed-v4",
+        },
+    )
+    _package(root, "st-annes-june-old", pdf_bytes=old_pdf)
+
+    result = locator.locate_invoice_artifacts("st_annes", "2026-06", roots=[root])
+
+    assert result["status"] == "FOUND"
+    assert result["canonical_candidate"]["pdf_sha256"] == _sha256(new_pdf)
+    assert result["canonical_candidate"]["manifest_path"] == new_manifest.as_posix()
+    assert result["canonical_candidate"]["promotion"]["scope"] == "test"
+    assert result["superseded_pdf_sha256"] == [old_hash]
+    assert result["machine_proof"]["promotion_chain_verified"] is True
+
+
+def test_incomplete_promotion_does_not_resolve_ambiguity(tmp_path: Path) -> None:
+    root = tmp_path / "handoffs"
+    _package(root, "st-annes-june-old", pdf_bytes=b"version a")
+    _package(
+        root,
+        "st-annes-june-new",
+        pdf_bytes=b"version b",
+        promotion={
+            "schema": "openclaw_invoice_artifact_promotion_v1",
+            "scope": "test",
+            "status": "verified",
+            "supersedes_pdf_sha256": [],
+            "verification_receipt_ref": "receipt",
+            "operator_confirmation_source_ref": "operator-source",
+        },
+    )
+
+    result = locator.locate_invoice_artifacts("st_annes", "2026-06", roots=[root])
+
+    assert result["status"] == "AMBIGUOUS"
+    assert result["canonical_candidate"] is None
+    assert result["machine_proof"]["promotion_chain_verified"] is False

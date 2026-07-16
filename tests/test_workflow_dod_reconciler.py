@@ -297,7 +297,10 @@ def test_collect_trusted_evidence_normalizes_workflow_truth_and_drift_receipts(
                 "entities": {
                     "st_annes.invoice_2026_06.pdf_confirmation": {
                         "entity_key": "st_annes.invoice_2026_06.pdf_confirmation",
-                        "value": "confirmed",
+                        "value": (
+                            "Confirmed St. Anne's June 2026 invoice PDF v4 after two final visual "
+                            f"checks; SHA-256 {'a' * 64}."
+                        ),
                         "provenance": "operator_corrected",
                         "source_surface": "operator_terminal",
                         "source_ref": "operator-msg:confirmed-pdf",
@@ -341,7 +344,13 @@ def test_collect_trusted_evidence_normalizes_workflow_truth_and_drift_receipts(
     )
 
     assert [(item["store"], item["claims"]) for item in evidence] == [
-        ("operator_truth_store", {"operator_confirmed_pdf": True}),
+        (
+            "operator_truth_store",
+            {
+                "operator_confirmed_pdf": True,
+                "operator_confirmed_pdf_sha256": "a" * 64,
+            },
+        ),
         ("st_annes_truth_drift_receipts", {"work_log_reconciled": True}),
         ("workflow_package_queue_receipts", {"artifact_locator_status": "FOUND"}),
     ]

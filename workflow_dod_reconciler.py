@@ -512,15 +512,30 @@ def _operator_truth_evidence(path: Path) -> list[dict[str, Any]]:
     if not re.fullmatch(r"[0-9a-f]{64}", source_hash) or not source_ref or not source_surface:
         return []
     value = str(record.get("value") or "").strip().lower()
-    if value not in {"confirmed", "denied"}:
-        return []
+    artifact_hash = ""
+    if value in {"confirmed", "denied"}:
+        confirmed = value == "confirmed"
+    else:
+        hash_match = re.search(r"\bsha-?256\s*:?[ ]*([0-9a-f]{64})\b", value)
+        if hash_match is None or "invoice pdf" not in value:
+            return []
+        if value.startswith("confirmed "):
+            confirmed = True
+        elif value.startswith("denied "):
+            confirmed = False
+        else:
+            return []
+        artifact_hash = hash_match.group(1)
+    claims: dict[str, Any] = {"operator_confirmed_pdf": confirmed}
+    if artifact_hash:
+        claims["operator_confirmed_pdf_sha256"] = artifact_hash
     return [
         _normalized_evidence(
             store="operator_truth_store",
             receipt_ref=f"operator-truth:{source_ref}",
             writer="operator_winship",
             subject_ref=_ST_ANNES_SUBJECT,
-            claims={"operator_confirmed_pdf": value == "confirmed"},
+            claims=claims,
         )
     ]
 
