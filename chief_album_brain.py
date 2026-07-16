@@ -255,9 +255,7 @@ def _call_album_model(prompt: str, *, adaptive_call_fn=None) -> str:
     from local_model_governance import (
         INTERACTIVE_KEEP_ALIVE,
         INTERACTIVE_MODEL,
-        INTERACTIVE_NUM_BATCH,
         INTERACTIVE_NUM_CTX,
-        INTERACTIVE_NUM_GPU,
     )
 
     call = adaptive_call_fn or adaptive_ollama_text
@@ -271,13 +269,7 @@ def _call_album_model(prompt: str, *, adaptive_call_fn=None) -> str:
             attempts=1,
             think=False,
             num_predict=256,
-            options={
-                "format": "json",
-                "num_batch": INTERACTIVE_NUM_BATCH,
-                "num_ctx": INTERACTIVE_NUM_CTX,
-                "num_gpu": INTERACTIVE_NUM_GPU,
-                "temperature": 0,
-            },
+            options={"format": "json", "num_ctx": INTERACTIVE_NUM_CTX, "temperature": 0},
             keep_alive=INTERACTIVE_KEEP_ALIVE,
             retry=False,
         )

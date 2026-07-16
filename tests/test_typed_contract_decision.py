@@ -241,8 +241,7 @@ def test_semantic_vote_uses_strict_safe_label_and_cannot_authorize():
     assert seen["kwargs"]["options"] == {
         "format": "json",
         "temperature": 0,
-        "num_batch": 128,
-        "num_ctx": 2048,
+        "num_ctx": 1024,
         "num_gpu": 999,
     }
     assert seen["kwargs"]["keep_alive"] == "10m"
@@ -253,18 +252,18 @@ def test_semantic_vote_uses_strict_safe_label_and_cannot_authorize():
 @pytest.mark.parametrize(
     ("raw", "expected"),
     (
-        (None, 30.0),
-        ("", 30.0),
-        ("0", 30.0),
-        ("-1", 30.0),
-        ("60.01", 30.0),
-        ("not-a-number", 30.0),
+        (None, 8.0),
+        ("", 8.0),
+        ("0", 8.0),
+        ("-1", 8.0),
+        ("10.01", 8.0),
+        ("not-a-number", 8.0),
         ("0.01", 0.01),
-        ("30.5", 30.5),
-        ("60", 60.0),
+        ("8.5", 8.5),
+        ("10", 10.0),
     ),
 )
-def test_semantic_vote_timeout_keeps_closed_bounds_with_thirty_second_default(
+def test_semantic_vote_timeout_keeps_closed_bounds_with_eight_second_default(
     raw: str | None,
     expected: float,
 ) -> None:
@@ -273,7 +272,7 @@ def test_semantic_vote_timeout_keeps_closed_bounds_with_thirty_second_default(
     assert contract.semantic_vote_timeout_seconds(environ=environ) == expected
 
 
-def test_default_semantic_vote_budget_keeps_one_attempt_two_twenty_eight_split(
+def test_default_semantic_vote_budget_keeps_one_attempt_two_six_split(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     seen = {}
@@ -297,7 +296,7 @@ def test_default_semantic_vote_budget_keeps_one_attempt_two_twenty_eight_split(
     assert seen["attempts"] == 1
     assert seen["retry"] is False
     assert seen["model_slot_max_wait_seconds"] == pytest.approx(2.0)
-    assert seen["timeout"] == pytest.approx(28.0)
+    assert seen["timeout"] == pytest.approx(6.0)
 
 
 def test_adapter_vote_default_is_real_without_env_and_explicit_off_is_safe():
