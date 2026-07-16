@@ -3850,6 +3850,14 @@ def _process_workflow_package_request(
     message = str(operator_display.get("plain_summary") or "I staged this as a dry-run package. No business action ran.")
     status_tone = str(operator_display.get("tone") or ("blocked" if blocker else "calm"))
     next_safe_action = str(operator_display.get("next_safe_action") or result.next_safe_action)
+    display_missing_items = operator_display.get("missing_items")
+    missing_items = tuple(
+        str(item).strip()
+        for item in (display_missing_items if isinstance(display_missing_items, (list, tuple)) else ())
+        if str(item).strip()
+    )
+    if not missing_items and blocker:
+        missing_items = (blocker,)
     response_classification = _workflow_package_request_classification(classification)
     layered_fields = {
         "response_kind": "WORKFLOW_PACKAGE_REQUEST_RESPONSE",
@@ -3866,7 +3874,7 @@ def _process_workflow_package_request(
         "primary_status": str(operator_display.get("status_label") or ("Needs review" if package_recorded else "Blocked")),
         "primary_blocker": blocker or "None",
         "next_action": f"Next: {next_safe_action}",
-        "missing_items_short": (blocker,) if blocker else (),
+        "missing_items_short": missing_items,
         "detail_summary": (
             "System question answered from local read models, wiki refs, and SQLite metadata; no package queue row was written."
             if system_question_answered

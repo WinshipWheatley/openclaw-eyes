@@ -101,6 +101,43 @@ def test_st_annes_invoice_review_dry_run_renders_pdf_first_before_send_permissio
     assert package["business_action_gate_result"]["sent"] is False
 
 
+def test_st_annes_billable_readiness_uses_hygiene_truth(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(queue, "DEFAULT_EXPORT_ROOT", tmp_path)
+    (tmp_path / "st_annes_work_log_hygiene.json").write_text(
+        json.dumps({"business_confirmed_ready_event_ids": []}) + "\n",
+        encoding="utf-8",
+    )
+
+    readiness = queue._st_annes_billable_session_readiness()
+
+    assert readiness["confirmed_billable_session_count"] == 0
+    assert readiness["missing_items"] == [
+        "Confirm billable work sessions (0 confirmed)"
+    ]
+
+
+def test_st_annes_billable_readiness_fails_closed_on_malformed_truth(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(queue, "DEFAULT_EXPORT_ROOT", tmp_path)
+    (tmp_path / "st_annes_work_log_hygiene.json").write_text(
+        json.dumps({"business_confirmed_ready_event_ids": "not-a-list"}) + "\n",
+        encoding="utf-8",
+    )
+
+    readiness = queue._st_annes_billable_session_readiness()
+
+    assert readiness["confirmed_billable_session_count"] == 0
+    assert readiness["readiness_available"] is False
+    assert readiness["missing_items"] == [
+        "Confirm billable work sessions (readiness unavailable)"
+    ]
+
+
 def test_st_annes_invoice_send_blocks_for_artifact_when_permission_ready():
     package = _package(
         "Send St. Anne's invoice.",

@@ -1182,6 +1182,34 @@ def _st_annes_invoice_artifact_sources() -> list[dict[str, Any]]:
     ]
 
 
+def _st_annes_billable_session_readiness() -> dict[str, Any]:
+    hygiene_path = _source_path(DEFAULT_EXPORT_ROOT / "st_annes_work_log_hygiene.json")
+    payload = _json_object(hygiene_path)
+    raw_ids = payload.get("business_confirmed_ready_event_ids")
+    readiness_available = hygiene_path.is_file() and isinstance(raw_ids, list)
+    confirmed_ids = sorted(
+        {
+            str(item).strip()
+            for item in (raw_ids if isinstance(raw_ids, list) else [])
+            if str(item).strip()
+        }
+    )
+    confirmed_count = len(confirmed_ids)
+    if confirmed_count:
+        missing_items: list[str] = []
+    elif readiness_available:
+        missing_items = ["Confirm billable work sessions (0 confirmed)"]
+    else:
+        missing_items = ["Confirm billable work sessions (readiness unavailable)"]
+    return {
+        "source_ref": _display_source_ref(hygiene_path),
+        "readiness_available": readiness_available,
+        "confirmed_billable_session_count": confirmed_count,
+        "confirmed_billable_session_ids": confirmed_ids,
+        "missing_items": missing_items,
+    }
+
+
 def _st_annes_monthly_invoice_source_room_context() -> dict[str, Any]:
     scenario_ref = "st_annes_monthly_invoice_rollup"
     sources = [
@@ -1391,6 +1419,40 @@ def operator_display_for_package(
             "show_machine_details_by_default": False,
         }
     if workflow_ref == "st_annes_monthly_invoice_rollup":
+        readiness = _st_annes_billable_session_readiness()
+        confirmed_count = int(readiness["confirmed_billable_session_count"])
+        missing_items = list(readiness["missing_items"])
+        if package_status == "OPERATOR_REVIEW_REQUIRED":
+            if missing_items:
+                plain_summary = (
+                    "The St. Anne's invoice dry-run passed and nothing was sent. "
+                    f"Confirm billable work sessions to proceed; {confirmed_count} are confirmed."
+                )
+                next_safe_action = "Confirm billable work sessions before preparing the invoice."
+            else:
+                plain_summary = (
+                    "The St. Anne's invoice dry-run passed and nothing was sent. "
+                    f"{confirmed_count} confirmed billable work sessions are ready for invoice review."
+                )
+                next_safe_action = "Review the invoice proof before any send gate."
+            return {
+                **voice_fields,
+                "headline": "St. Anne's invoice is not ready to send",
+                "subheadline": "The local proof dry-run passed; the send gate remains closed.",
+                "status_label": "Dry-run passed",
+                "tone": "warning" if missing_items else "calm",
+                "plain_summary": plain_summary,
+                "next_safe_action": next_safe_action,
+                "why_it_matters": "Only confirmed billable work can enter the invoice, and sending still requires explicit operator authority.",
+                "primary_fact": "The dry-run passed and nothing was sent.",
+                "secondary_facts": [
+                    f"Confirmed billable work sessions: {confirmed_count}.",
+                    "Excel and the ledger were not touched.",
+                ],
+                "missing_items": missing_items,
+                "proof_caption": "Proof available.",
+                "show_machine_details_by_default": False,
+            }
         missing = "the required invoice permission and artifact gates"
         if package_status == "ARTIFACT_REQUIRED":
             missing = "an approved invoice PDF artifact"

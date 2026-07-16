@@ -178,7 +178,7 @@ def test_maestro_telegram_invoice_test_routes_to_st_annes_dryrun_not_freeform(
     assert "coupa" not in response.operator_message.lower()
 
 
-def test_service_exact_1643_message_reaches_st_annes_workflow_rail(
+def test_service_exact_1652_message_reaches_st_annes_workflow_rail(
     tmp_path: Path,
     capsys,
     monkeypatch,
@@ -191,16 +191,25 @@ def test_service_exact_1643_message_reaches_st_annes_workflow_rail(
         consumer.SQLITE_PATH_ENV,
         str(tmp_path / "workflow_package_queue.sqlite"),
     )
+    monkeypatch.setattr(
+        consumer.workflow_package_queue,
+        "_st_annes_billable_session_readiness",
+        lambda: {
+            "confirmed_billable_session_count": 0,
+            "missing_items": ["Confirm billable work sessions (0 confirmed)"],
+        },
+        raising=False,
+    )
     request = maestro_listener.build_operator_maestro_chat_request(
         (
             "whats going on with the st. annes invoice test? are we done what we need "
             "to test it? if so lets test it"
         ),
-        message_id="1643",
+        message_id="1652",
         chat_id=123,
-        created_at="2026-07-16T15:48:10+00:00",
+        created_at="2026-07-16T16:29:35+00:00",
     )
-    request_path = inbox / "mission_control_operator_instruction_request_maestro_telegram_1643.json"
+    request_path = inbox / "mission_control_operator_instruction_request_maestro_telegram_1652.json"
     request_path.write_text(
         json.dumps(request, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -219,7 +228,7 @@ def test_service_exact_1643_message_reaches_st_annes_workflow_rail(
             "--export-root",
             str(export_root),
             "--generated-at",
-            "2026-07-16T15:48:10+00:00",
+            "2026-07-16T16:29:35+00:00",
             "--format",
             "json",
         ]
@@ -244,6 +253,14 @@ def test_service_exact_1643_message_reaches_st_annes_workflow_rail(
     assert receipt["capability_gate_status"] == "ALLOW_DRY_RUN"
     assert receipt["machine_proof"]["email_send_performed"] is False
     assert receipt["machine_proof"]["pdf_export_performed"] is False
+    assert response["one_line_answer"] == (
+        "The St. Anne's invoice dry-run passed and nothing was sent. "
+        "Confirm billable work sessions to proceed; 0 are confirmed."
+    )
+    assert response["eliwinship"] == response["one_line_answer"]
+    assert response["missing_items_short"] == [
+        "Confirm billable work sessions (0 confirmed)"
+    ]
 
 
 def test_legacy_bare_hex_hash_still_validates_when_source_text_matches() -> None:
