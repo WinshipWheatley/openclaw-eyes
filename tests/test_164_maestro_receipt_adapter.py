@@ -52,7 +52,7 @@ def _update(message: _Message):
     return SimpleNamespace(
         update_id=777777,
         effective_user=SimpleNamespace(id=123),
-        effective_chat=SimpleNamespace(id=456),
+        effective_chat=SimpleNamespace(id=123),
         message=message,
     )
 
@@ -137,7 +137,7 @@ def test_show_receipt_short_circuits_before_governed_intake_or_bridge(monkeypatc
         descriptor,
         surface="operator_maestro_chat",
         bot_identity="maestro",
-        chat_id="456",
+        chat_id="123",
         source_message_id="444",
         delivered_message_id="9001",
         delivery_succeeded=True,

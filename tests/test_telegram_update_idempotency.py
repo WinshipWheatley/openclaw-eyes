@@ -168,7 +168,7 @@ def _import_listener(module_name: str, monkeypatch):
 class _AuthorizedDuplicateUpdate:
     update_id = 2112
     effective_user = SimpleNamespace(id=123, full_name="Operator")
-    effective_chat = SimpleNamespace(id=456)
+    effective_chat = SimpleNamespace(id=123)
     message = SimpleNamespace(text="status?", voice=object())
     callback_query = SimpleNamespace(from_user=SimpleNamespace(id=123))
 

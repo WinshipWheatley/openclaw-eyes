@@ -10,6 +10,7 @@ import maestro_listener
 
 
 FIXED_NOW = "2026-06-19T15:18:00+00:00"
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(autouse=True)
@@ -37,10 +38,10 @@ class FakeMessage:
 
 
 class FakeUpdate:
-    def __init__(self, *, text: str, user_id: int, chat_id: int = 456, update_id: int = 789):
+    def __init__(self, *, text: str, user_id: int, chat_id: int | None = None, update_id: int = 789):
         self.message = FakeMessage(text)
         self.effective_user = FakeUser(user_id)
-        self.effective_chat = FakeChat(chat_id)
+        self.effective_chat = FakeChat(user_id if chat_id is None else chat_id)
         self.update_id = update_id
 
 
@@ -55,6 +56,16 @@ class FakeBot:
 class FakeContext:
     def __init__(self):
         self.bot = FakeBot()
+
+
+def test_maestro_listener_service_defaults_to_reply_only_egress():
+    service = (REPO_ROOT / "systemd/user/maestro-listener.service.in").read_text(encoding="utf-8")
+
+    assert "Environment=OPENCLAW_MAESTRO_REPLY_ONLY=1" in service
+    assert (
+        "source @REPO_ROOT@/.chief.env && export OPENCLAW_MAESTRO_REPLY_ONLY=1 && exec"
+        in service
+    )
 
 
 def test_env_file_loads_maestro_token_without_printing(tmp_path, capsys, monkeypatch):
@@ -316,7 +327,7 @@ def test_authorized_date_question_replies_from_bridge_and_sends_typing(monkeypat
     monkeypatch.setattr(maestro_listener, "poll_bridge_response", fake_poll)
     monkeypatch.setattr(maestro_listener, "record_maestro_intake_metadata", lambda **kwargs: records.append(kwargs))
 
-    update = FakeUpdate(text="what day is it", user_id=123, chat_id=456, update_id=42)
+    update = FakeUpdate(text="what day is it", user_id=123, update_id=42)
     context = FakeContext()
     asyncio.run(maestro_listener.handle_message(update, context))
 
@@ -325,8 +336,42 @@ def test_authorized_date_question_replies_from_bridge_and_sends_typing(monkeypat
     assert written[0]["protected_text_hash"].startswith("sha256:")
     assert written[0]["source_text_ref"] == "protected_text_hash:" + written[0]["protected_text_hash"]
     assert update.message.replies == [f"Today is {date.today().isoformat()}."]
-    assert context.bot.actions == [(456, "typing")]
+    assert context.bot.actions == [(123, "typing")]
     assert records[0]["operator_message"] is True
+
+
+def test_reply_only_egress_emits_one_bound_reply_without_typing_ack_or_voice(monkeypatch, tmp_path):
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
+    monkeypatch.setenv("OPENCLAW_MAESTRO_REPLY_ONLY", "1")
+    writes: list[dict] = []
+    voice_calls: list[tuple[str, int]] = []
+
+    monkeypatch.setattr(
+        maestro_listener,
+        "write_bridge_request",
+        lambda request, **kwargs: writes.append(request) or tmp_path / "request.json",
+    )
+
+    async def fake_poll(*args, **kwargs):
+        await asyncio.sleep(0)
+        return {"one_line_answer": "Bound answer."}
+
+    monkeypatch.setattr(maestro_listener, "poll_bridge_response", fake_poll)
+    monkeypatch.setattr(maestro_listener, "record_maestro_intake_metadata", lambda **kwargs: None)
+    monkeypatch.setattr(
+        maestro_listener,
+        "_fire_maestro_voice",
+        lambda text, chat_id: voice_calls.append((text, chat_id)),
+    )
+
+    update = FakeUpdate(text="status?", user_id=123, update_id=43)
+    context = FakeContext()
+    asyncio.run(maestro_listener.handle_message(update, context))
+
+    assert writes
+    assert update.message.replies == ["Bound answer."]
+    assert context.bot.actions == []
+    assert voice_calls == []
 
 
 def test_unauthorized_user_does_not_enter_governed_business_intake_or_reply(monkeypatch):
@@ -342,6 +387,36 @@ def test_unauthorized_user_does_not_enter_governed_business_intake_or_reply(monk
     assert update.message.replies == []
     assert writes == []
     assert records == []
+
+
+def test_authorized_user_in_non_private_chat_does_not_claim_or_reply(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
+    claims: list[str] = []
+    writes: list[dict] = []
+    monkeypatch.setattr(
+        maestro_listener,
+        "claim_listener_update",
+        lambda *args, **kwargs: claims.append("claim") or True,
+    )
+    monkeypatch.setattr(
+        maestro_listener,
+        "write_bridge_request",
+        lambda request, **kwargs: writes.append(request),
+    )
+
+    async def fake_poll(*args, **kwargs):
+        return {"one_line_answer": "should not be delivered"}
+
+    monkeypatch.setattr(maestro_listener, "poll_bridge_response", fake_poll)
+
+    update = FakeUpdate(text="status?", user_id=123, chat_id=-100456)
+    context = FakeContext()
+    asyncio.run(maestro_listener.handle_message(update, context))
+
+    assert claims == []
+    assert writes == []
+    assert context.bot.actions == []
+    assert update.message.replies == []
 
 
 def test_first_touch_refusal_precedes_governed_intake_and_bridge(tmp_path, monkeypatch):

@@ -248,6 +248,12 @@ def authorized_user_id() -> int:
     return int(env_value("TELEGRAM_AUTHORIZED_USER_ID"))
 
 
+def _is_authorized_operator_private_chat(update: Update, auth_id: int) -> bool:
+    user_id = getattr(getattr(update, "effective_user", None), "id", None)
+    chat_id = getattr(getattr(update, "effective_chat", None), "id", None)
+    return user_id == auth_id and chat_id == auth_id
+
+
 async def _telegram_typing_loop(bot, chat_id: int | None) -> None:
     if chat_id is None:
         return
@@ -930,6 +936,16 @@ _FAST_ACK_PHRASES = (
 )
 
 
+def _reply_only_egress_enabled(env: Mapping[str, Any] | None = None) -> bool:
+    e = os.environ if env is None else env
+    return str(e.get("OPENCLAW_MAESTRO_REPLY_ONLY", "0")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
 def _fast_ack_enabled(env: Mapping[str, Any] | None = None) -> bool:
     e = os.environ if env is None else env
     return str(e.get("OPENCLAW_FAST_ACK", "1")).strip().lower() not in (
@@ -1087,8 +1103,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     auth_id = authorized_user_id()
-    is_authorized_user = bool(update.effective_user and update.effective_user.id == auth_id)
-    if not is_authorized_user:
+    if not _is_authorized_operator_private_chat(update, auth_id):
         return
     if not claim_listener_update(update, role="maestro", source_channel="maestro_listener"):
         return
@@ -1148,7 +1163,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
 
     message_id = delivery_source_message_id or intake_source_message_id or _short_hash(text)
-    typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
+    reply_only_egress = _reply_only_egress_enabled()
+    typing_task = (
+        None
+        if reply_only_egress
+        else asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
+    )
 
     # Fast "I'm on it" ack — fires only if the answer takes longer than the delay.
     async def _send_delayed_ack() -> None:
@@ -1165,7 +1185,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except Exception:
             pass  # a failed ack must never affect the real reply
 
-    ack_task = asyncio.create_task(_send_delayed_ack()) if _fast_ack_enabled() else None
+    ack_task = (
+        asyncio.create_task(_send_delayed_ack())
+        if not reply_only_egress and _fast_ack_enabled()
+        else None
+    )
 
     request_id_for_reply: str | None = None
     try:
@@ -1188,7 +1212,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             source_message_id=delivery_source_message_id,
             delivered_message=delivered_message,
         )
-        _fire_maestro_voice(_maestro_reply, chat_id)
+        if not reply_only_egress:
+            _fire_maestro_voice(_maestro_reply, chat_id)
     except Exception as exc:
         print(f"[maestro_listener] bridge error: {exc.__class__.__name__}", flush=True)
         await update.message.reply_text(
@@ -1201,7 +1226,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
         )
     finally:
-        typing_task.cancel()
+        if typing_task is not None:
+            typing_task.cancel()
         if ack_task is not None:
             ack_task.cancel()
         for _t in (typing_task, ack_task):
@@ -1258,7 +1284,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if not update.message:
         return
     auth_id = authorized_user_id()
-    if not update.effective_user or update.effective_user.id != auth_id:
+    if not _is_authorized_operator_private_chat(update, auth_id):
         return
     if not claim_listener_update(update, role="maestro", source_channel="maestro_listener"):
         return
@@ -1283,7 +1309,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     request_id_for_reply: str | None = None
-    typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
+    reply_only_egress = _reply_only_egress_enabled()
+    typing_task = (
+        None
+        if reply_only_egress
+        else asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
+    )
     try:
         intake_dir = DEFAULT_IMAGE_INTAKE_DIR / _safe_filename_part(message_id)
         intake_dir.mkdir(parents=True, exist_ok=True)
@@ -1330,7 +1361,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             source_request=caption,
         )
         await update.message.reply_text(_maestro_photo_reply)
-        _fire_maestro_voice(_maestro_photo_reply, chat_id)
+        if not reply_only_egress:
+            _fire_maestro_voice(_maestro_photo_reply, chat_id)
     except Exception as exc:
         print(f"[maestro_listener] image bridge error: {exc.__class__.__name__}", flush=True)
         await update.message.reply_text(
@@ -1343,11 +1375,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )
         )
     finally:
-        typing_task.cancel()
-        try:
-            await typing_task
-        except asyncio.CancelledError:
-            pass
+        if typing_task is not None:
+            typing_task.cancel()
+            try:
+                await typing_task
+            except asyncio.CancelledError:
+                pass
 
 
 def build_application():
