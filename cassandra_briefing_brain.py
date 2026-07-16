@@ -80,6 +80,7 @@ _MORNING_TEST_MODE_ENV = "CASSANDRA_MORNING_BRIEF_TEST_MODE"
 _NON_MORNING_BRIEF_TOTAL_TIMEOUT_SECONDS = 300
 _NON_MORNING_BRIEF_PRIMARY_TIMEOUT_SECONDS = 180
 _NON_MORNING_BRIEF_FALLBACK_MODEL = "qwen3:8b-q4_K_M"
+_SCHEDULED_BRIEF_TASK_CLASS = "cassandra_scheduled_brief"
 _MORNING_DELIVERY_TIMEOUT_SECONDS = _env_int("OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS", 420, minimum=60)
 _MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS", 90, minimum=30)
 _MORNING_STACK_CHIEF_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_CHIEF_TIMEOUT_SECONDS", 420, minimum=60)
@@ -968,12 +969,22 @@ def _run_briefing_stage(
 ) -> dict:
     started = harness_context.now()
     t0 = time.monotonic()
-    model, resolved_lane = resolve_local_model(prompt, lane=lane)
+    model, resolved_lane = resolve_local_model(
+        prompt,
+        lane=lane,
+        task_class=_SCHEDULED_BRIEF_TASK_CLASS,
+    )
     print(
         f"[cassandra_briefing] stage={name} role={role} lane={resolved_lane} model={model} started",
         flush=True,
     )
-    result = _local_model_call(prompt, timeout=timeout, model=model)
+    result = _local_model_call(
+        prompt,
+        timeout=timeout,
+        model=model,
+        task_class=_SCHEDULED_BRIEF_TASK_CLASS,
+        retry=False,
+    )
     cleaned = _clean_briefing_stage_text(name, result)
     attempt_count = 1
     retry_used = False
@@ -985,7 +996,13 @@ def _run_briefing_stage(
             f"retry=compact-fallback",
             flush=True,
         )
-        result = _local_model_call(fallback_prompt, timeout=timeout, model=model)
+        result = _local_model_call(
+            fallback_prompt,
+            timeout=timeout,
+            model=model,
+            task_class=_SCHEDULED_BRIEF_TASK_CLASS,
+            retry=False,
+        )
         cleaned = _clean_briefing_stage_text(name, result)
     finished = harness_context.now()
     duration_ms = int((time.monotonic() - t0) * 1000)
@@ -999,6 +1016,7 @@ def _run_briefing_stage(
         "role": role,
         "lane": resolved_lane,
         "model": model,
+        "task_class": _SCHEDULED_BRIEF_TASK_CLASS,
         "inference_mode": "live",
         "timing_basis": "per_stage_wall_clock_including_internal_ollama_retries",
         "prompt_words": len(prompt.split()),
@@ -1274,7 +1292,11 @@ def generate_briefing(slot: str) -> str:
     """
     _, _, directive = SLOTS[slot]
     morning_reference: dict | None = None
-    task_class, mode = _morning_task_config() if slot == "morning" else ("cassandra_user_reply", "llm")
+    task_class, mode = (
+        _morning_task_config()
+        if slot == "morning"
+        else (_SCHEDULED_BRIEF_TASK_CLASS, "llm")
+    )
     
     if slot == "morning":
         morning_reference = _build_morning_context_from_synthesis()
@@ -1359,6 +1381,7 @@ def generate_briefing(slot: str) -> str:
             timeout=primary_timeout,
             model=model,
             task_class=task_class,
+            retry=False,
         )
         if not result:
             result = _local_model_call(
@@ -1366,6 +1389,7 @@ def generate_briefing(slot: str) -> str:
                 timeout=_remaining_non_morning_brief_timeout(started),
                 model=_NON_MORNING_BRIEF_FALLBACK_MODEL,
                 task_class=task_class,
+                retry=False,
             )
 
     if result:
