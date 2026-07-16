@@ -180,6 +180,8 @@
 !simple_invoice_workflow_fixtures.py
 !simple_invoice_event_bridge_rail_registry.py
 !invoice_generator.py
+!invoice_artifact_locator.py
+!tests/test_invoice_artifact_locator.py
 !st_annes_invoice_status.py
 !st_annes_invoice_truth_drift.py
 !tests/test_st_annes_invoice_truth_drift.py
