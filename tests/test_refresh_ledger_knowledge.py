@@ -52,3 +52,40 @@ def test_staleness_reports_never_before_first_fold(tmp_path: Path, monkeypatch) 
     ))
     rows = refresh.staleness(ledger)
     assert rows[0]["prefix"] == "alpha" and rows[0]["last_fold"] is None
+
+
+def test_confirmed_refresh_invokes_capability_reconciler_once(tmp_path: Path, monkeypatch) -> None:
+    ledger = tmp_path / "ledger.sqlite"
+    sqlite3.connect(ledger).close()
+    monkeypatch.setattr(refresh, "KNOWLEDGE_SOURCES", ())
+    calls: list[dict] = []
+
+    def fake_reconcile(**kwargs):
+        calls.append(kwargs)
+        return {
+            "status": "CONFIRMED",
+            "batch_id": "capability-reconcile:test",
+            "activation_count": 4,
+            "changed_count": 4,
+            "decision_count": 4,
+            "drift_count": 1,
+            "activations": [{"sensitive": "not exported by refresh"}],
+        }
+
+    monkeypatch.setattr(
+        refresh.capability_ledger_reconciler,
+        "reconcile_capabilities",
+        fake_reconcile,
+    )
+
+    result = refresh.refresh(ledger)
+
+    assert calls == [{"ledger_path": ledger, "confirm": True}]
+    assert result["capability_reconciliation"] == {
+        "status": "CONFIRMED",
+        "batch_id": "capability-reconcile:test",
+        "activation_count": 4,
+        "changed_count": 4,
+        "decision_count": 4,
+        "drift_count": 1,
+    }

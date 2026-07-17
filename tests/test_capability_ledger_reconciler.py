@@ -6,6 +6,7 @@ from pathlib import Path
 
 import business_ops_ledger
 import capability_ledger_reconciler as reconciler
+import activation_gate_register
 
 
 OBSERVED_AT = "2026-07-17T16:30:00+00:00"
@@ -461,3 +462,17 @@ def test_confirm_rolls_back_mirror_packet_and_decisions_together(tmp_path: Path)
         assert conn.execute("SELECT count(*) FROM capability_decisions").fetchone()[0] == 0
         assert conn.execute("SELECT count(*) FROM events WHERE event_type='capability_reconciliation'").fetchone()[0] == 0
         assert conn.execute("SELECT count(*) FROM packets WHERE intent_name='capability_reconciliation'").fetchone()[0] == 0
+
+
+def test_reconciler_self_registers_on_existing_refresh_owner() -> None:
+    payload = activation_gate_register.build_activation_gate_register()
+    row = next(
+        item
+        for item in payload["capabilities"]
+        if item["capability_id"] == "capability_ledger_reconciler"
+    )
+    assert row["gate_stage"] == "canary"
+    assert row["activation_allowed_now"] is False
+    assert "refresh_ledger_knowledge.py --confirm" in " ".join(row["flag_or_config"])
+    assert "capability_ledger_reconciler.py" in row["source_files"]
+    assert "tests/test_capability_ledger_reconciler.py" in row["tests"]

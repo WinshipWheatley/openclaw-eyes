@@ -21,8 +21,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fold_satellite_to_ledger as fold  # noqa: E402
+import capability_ledger_reconciler  # noqa: E402
 
 DEFAULT_LEDGER = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 
@@ -95,7 +97,26 @@ def refresh(ledger: Path) -> dict:
         stamp.commit()
     finally:
         stamp.close()
-    return {"refreshed_at": _utc_now(), "sources": results}
+    capability_result = capability_ledger_reconciler.reconcile_capabilities(
+        ledger_path=ledger,
+        confirm=True,
+    )
+    capability_summary = {
+        key: capability_result.get(key)
+        for key in (
+            "status",
+            "batch_id",
+            "activation_count",
+            "changed_count",
+            "decision_count",
+            "drift_count",
+        )
+    }
+    return {
+        "refreshed_at": _utc_now(),
+        "sources": results,
+        "capability_reconciliation": capability_summary,
+    }
 
 
 def main() -> int:

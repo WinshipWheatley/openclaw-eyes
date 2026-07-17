@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sqlite3
 from typing import Any, Callable, Mapping, Sequence
 
 
@@ -35,6 +36,7 @@ def _packet_engine_enabled() -> bool:
 
 MAC_RENDER_HINT = "COMPACT_WITH_DISCLOSURE"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
+DEFAULT_CAPABILITY_LEDGER_PATH = Path(".openclaw/business_ops/ledger.sqlite")
 CAPABILITY_INDEX_READ_MODEL = "openclaw_capability_index.json"
 AGENT_PRESENCE_READ_MODEL = "agent_presence.json"
 CHIEF_STATUS_READ_MODEL = "chief_status_rail.json"
@@ -518,6 +520,20 @@ def _is_conversational_status_capability_prompt(text: str) -> bool:
         "how can openclaw help",
     )
     return any(phrase in text for phrase in capability_phrases)
+
+
+def _is_built_vs_on_ledger_prompt(text: str) -> bool:
+    return any(
+        phrase in text
+        for phrase in (
+            "what's built and what's actually on",
+            "whats built and whats actually on",
+            "what is built and what is actually on",
+            "what is built versus what is on",
+            "built vs on",
+            "built versus on",
+        )
+    )
 def _path_is_under(path: Path, root: Path) -> bool:
     try:
         path.relative_to(root)
@@ -1728,6 +1744,19 @@ def _answer_frontdoor_chat_impl(
             machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
         )
 
+    if intent_class == "status_capability_readback" and _is_built_vs_on_ledger_prompt(_normalize(text)):
+        answer = build_ledger_capability_answer()
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=answer["one_line_answer"],
+            plain_summary=answer["plain_summary"],
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof=_adapter_machine_proof(handle_called=False) | answer["machine_proof"],
+        )
+
     if intent_class == "status_capability_readback" and _is_conversational_status_capability_prompt(_normalize(text)):
         return _answer_status_capability_with_brain(
             text,
@@ -2911,6 +2940,105 @@ def build_maestro_bare_status_answer(*, session: Mapping[str, Any] | None = None
     }
 
 
+def build_ledger_capability_answer(
+    *,
+    ledger_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Answer built-vs-on from the canonical ledger mirror without a model or runtime probe."""
+
+    path = Path(ledger_path or DEFAULT_CAPABILITY_LEDGER_PATH)
+    rows: list[sqlite3.Row] = []
+    if path.is_file():
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        try:
+            has_table = conn.execute(
+                "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='capability_activations'"
+            ).fetchone()[0] == 1
+            if has_table:
+                rows = conn.execute(
+                    "SELECT * FROM capability_activations ORDER BY machine, capability_id"
+                ).fetchall()
+        finally:
+            conn.close()
+    registered = [row for row in rows if str(row["register_stage"]) != "unregistered"]
+    artifact_present = [row for row in registered if row["artifact_present"] == 1]
+    artifact_unknown = [row for row in registered if row["artifact_present"] is None]
+    configured = [row for row in rows if row["configured"] == 1]
+    running = [
+        row
+        for row in rows
+        if row["runtime_confirmed"] == 1 and str(row["runtime_state"]) == "running"
+    ]
+    running_unregistered = [row for row in running if str(row["register_stage"]) == "unregistered"]
+    authorized = [row for row in rows if row["authority_granted"] == 1]
+    drifted = [row for row in rows if row["drift_flag"] == 1]
+    running_by_machine = {
+        machine: sum(1 for row in running if str(row["machine"]) == machine)
+        for machine in ("pc", "mac")
+    }
+
+    def _noun(count: int, singular: str, plural: str | None = None) -> str:
+        return singular if count == 1 else (plural or singular + "s")
+
+    if not rows:
+        one_line = "Ledger-only capability readback is unavailable because the capability mirror has no rows."
+        plain = one_line
+    else:
+        one_line = (
+            "Ledger-only capability readback: "
+            f"{len(artifact_present)} registered {_noun(len(artifact_present), 'artifact')} "
+            f"{_noun(len(artifact_present), 'is', 'are')} present, "
+            f"{len(running)} runtime {_noun(len(running), 'row')} "
+            f"{_noun(len(running), 'is', 'are')} confirmed on, and "
+            f"{len(running_unregistered)} running {_noun(len(running_unregistered), 'row')} "
+            f"{_noun(len(running_unregistered), 'is', 'are')} unregistered."
+        )
+        lines = [
+            one_line,
+            f"Configured rows: {len(configured)}. Capability activation authority recorded: {len(authorized)}.",
+            f"Confirmed on by machine: PC {running_by_machine['pc']}; Mac {running_by_machine['mac']}.",
+            f"Registered artifact proof unknown: {len(artifact_unknown)}. Drifted rows: {len(drifted)}.",
+        ]
+        bridge_rows = [row for row in rows if str(row["capability_id"]) == "runtime.bridge.openclaw-e"]
+        if bridge_rows:
+            try:
+                health = json.loads(str(bridge_rows[0]["health_json"] or "{}"))
+            except json.JSONDecodeError:
+                health = {}
+            if health:
+                lines.append(
+                    "Mac bridge: "
+                    f"mount {'confirmed' if health.get('mount_present') else 'not confirmed'}, "
+                    f"{health.get('free_gib', 'unknown')} GiB free, "
+                    f"{health.get('used_percent', 'unknown')}% used."
+                )
+        plain = "\n".join(lines)
+    return {
+        "one_line_answer": _one_line_answer(one_line),
+        "plain_summary": plain,
+        "machine_proof": {
+            "capability_ledger_only": True,
+            "capability_activations_used": bool(rows),
+            "capability_activation_row_count": len(rows),
+            "registered_artifact_present_count": len(artifact_present),
+            "registered_artifact_unknown_count": len(artifact_unknown),
+            "configured_count": len(configured),
+            "runtime_confirmed_count": len(running),
+            "running_unregistered_count": len(running_unregistered),
+            "authority_granted_count": len(authorized),
+            "drift_count": len(drifted),
+            "source_truth_refs": (f"{path}#capability_activations",),
+            "read_model_used": False,
+            "runtime_collection_performed": False,
+            "protected_generate_called": False,
+            "external_llm_invoked": False,
+            "external_send_performed": False,
+            "runtime_execution_triggered": False,
+        },
+    }
+
+
 def build_truthful_status_capability_answer(
     *,
     session: Mapping[str, Any] | None = None,
@@ -3462,6 +3590,12 @@ def _is_system_knowledge_intent(text: str) -> bool:
 
 def _is_status_capability_intent(text: str) -> bool:
     direct_phrases = (
+        "what's built and what's actually on",
+        "whats built and whats actually on",
+        "what is built and what is actually on",
+        "what is built versus what is on",
+        "built vs on",
+        "built versus on",
         "what's going on",
         "whats going on",
         "what is going on",

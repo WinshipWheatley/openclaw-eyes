@@ -26,10 +26,10 @@ This register is descriptive only. It does not enable features, edit production 
 
 ## Summary
 
-- Total capabilities registered: `48`
+- Total capabilities registered: `49`
 - Verified enabled/live: `continuity_capsule`, `external_brain_router`, `fleet_voice_boundary`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Activation allowed now: none recorded
-- Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
+- Ready for canary queue: `capability_ledger_reconciler`, `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 - Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `packet_delta_receipts`, `packet_engine_spine`, `polish_loop_file_ledger_bridge`, `polish_loop_local_builder_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
@@ -43,6 +43,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Authority gate + SEND_HOLD sentinel (`authority_gate_send_hold`) | `operator_approved_live` | `not_applicable` | enabled guardrail: default-deny authority gate and SEND_HOLD sentinel keep send surfaces denied; no new activation authority | no | keep SEND_HOLD in place; audit any future send-surface change before activation |
 | Generic recurrence-driven invoice prepare scheduler (`autonomous_invoice_prepare_scheduler`) | `operator_approved_live` | `not_applicable` | installed timer is enabled and active; generic Live Arts monthly prepare path ran in production and stopped idempotently on its second pass | no | keep the timer active and monitor prepare-only receipts; July's $100 remains an operator-review target, not a send |
 | Brain dump parser CLI (`brain_dump_parser_cli`) | `intentionally_off` | `not_applicable` | manual CLI can dry-run; non-dry-run can call local Ollama and write handoff files, so it remains intentionally off for unattended use | no | wait for deterministic size/risk routing before any queue-ready parser automation |
+| Two-machine capability ledger reconciler (`capability_ledger_reconciler`) | `canary` | `not_applicable` | one-way register, runtime, file-inventory, and Mac census mirror is built with deterministic drift and ledger-only Maestro readback | no | deploy, run two production confirmed batches, inject drift in an isolated fixture, and prove the real Maestro front door reads the ledger alone |
 | Cassandra morning-brief test mode (`cassandra_morning_brief_test_mode`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | use only in synthetic tests unless Opus queues a separate briefing canary |
 | Cassandra / Telegram delivery (`cassandra_telegram_delivery`) | `intentionally_off` | `not_applicable` | code default dry-run/off; production toggle and authorized user were not inspected | no | keep disabled unless Opus defines an operator-watched internal-only canary |
 | Cassandra Telegram dry-run inbox (`cassandra_telegram_dryrun_inbox`) | `dry_run` | `dry_run_verified` | dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting | no | keep as a synthetic proof source; do not connect to Telegram |
@@ -257,6 +258,35 @@ Live-state evidence:
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `brain_dump_parser.py:--dry-run`, `brain_dump_parser.py:ollama invocation`
 - Last verified at: `2026-07-17T10:48:00-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: no whitelisted live variable is mapped to this capability
+
+### Two-machine capability ledger reconciler (`capability_ledger_reconciler`)
+
+- Flag/config: `scripts/refresh_ledger_knowledge.py --confirm via existing */30 cron owner`, `capability_ledger_reconciler.py defaults to dry-run unless --confirm`
+- Default state: `scheduled_with_existing_refresh_owner`
+- Current state if verifiable: one-way register, runtime, file-inventory, and Mac census mirror is built with deterministic drift and ledger-only Maestro readback
+- Production state: `production deployment and confirmed batch pending`
+- Live production state: `not_applicable`
+- Gate stage: `canary`
+- Canary status: `production dry run: 170 rows across PC/Mac, all 34 Mac census verdicts, bridge health, and no writes; temp atomic confirm/idempotence/injected-failure tests pass; production confirm pending`
+- Risk level: `medium`
+- Owner: `Maestro / PC Codex Desktop`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: production owner path has not yet completed its confirmed activation canaries
+- Enabled by: existing refresh_ledger_knowledge */30 cron plus confirmed production batch and ledger-only Maestro canary
+- Disabled by: remove the reconciler call from refresh_ledger_knowledge; the existing knowledge fold remains available
+- Rollback: remove only the reconciler call and leave additive ledger tables as inert historical receipts
+- Next required step: deploy, run two production confirmed batches, inject drift in an isolated fixture, and prove the real Maestro front door reads the ledger alone
+- Source files: `capability_ledger_reconciler.py`, `scripts/refresh_ledger_knowledge.py`, `maestro_cassandra_responder.py`
+- Tests: `tests/test_capability_ledger_reconciler.py`, `tests/test_refresh_ledger_knowledge.py`, `tests/test_maestro_capability_ledger_readback.py`
+- Audits: `/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md`, `/home/openclaw/Operator/to-codex/FABLE-ALIGN-CAPABILITY-LEDGER-RECONCILER-BUILD-GO-20260717.md`
+- Evidence refs: `workspaces/openclaw_program/activation_records/CAPABILITY_LEDGER_RECONCILER_20260717.md`, `/home/openclaw/Operator/from-codex/CAPABILITY-LEDGER-RECONCILER-R0-RECEIPT-20260717-PC-Codex-Desktop.json`, `/home/openclaw/Operator/from-codex/CAPABILITY-LEDGER-RECONCILER-R1-RECEIPT-20260717-PC-Codex-Desktop.json`
+- Last verified at: `2026-07-17T12:38:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1542,7 +1572,7 @@ Live-state evidence:
 - `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`: `found` in `activation_gate_register.py`, `chief_llm.py`
 - `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`: `found` in `activation_gate_register.py`, `cassandra_briefing_brain.py`, `chief_llm.py`
 - `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`: `found` in `activation_gate_register.py`, `chief_llm.py`
-- `OPENCLAW_CONTINUITY_CAPSULE`: `found` in `activation_gate_register.py`, `maestro_context_packet.py`, `maestro_listener.py`, `openclaw_request_processor.py`, `tests/test_activation_gate_register.py`
+- `OPENCLAW_CONTINUITY_CAPSULE`: `found` in `activation_gate_register.py`, `maestro_cassandra_responder.py`, `maestro_context_packet.py`, `maestro_listener.py`, `openclaw_request_processor.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_CONTROL_PLANE_EMIT`: `found` in `activation_gate_register.py`, `polish_loop/pc4_heal_emitter.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_ENABLE_LM_CONSULTS`: `found` in `activation_gate_register.py`, `openclaw_lm_consult_spine.py`
 - `OPENCLAW_EXTERNAL_BRAIN_ROUTER`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_protected_generate.py`
@@ -1562,7 +1592,7 @@ Live-state evidence:
 - `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
 - `OPENCLAW_GEMINI_FORM_MODEL`: `found` in `activation_gate_register.py`, `openclaw_lm_consult_spine.py`
 - `OPENCLAW_GEMINI_MODEL`: `found` in `activation_gate_register.py`, `openclaw_lm_consult_spine.py`
-- `OPENCLAW_INTERPRETER_LM`: `found` in `activation_gate_register.py`, `interpreter_lm.py`, `maestro_context_packet.py`, `openclaw_request_processor.py`, `tests/test_activation_gate_register.py`, `tests/test_continuity_stamp.py`, `tests/test_interpreter_lm_integration.py`
+- `OPENCLAW_INTERPRETER_LM`: `found` in `activation_gate_register.py`, `interpreter_lm.py`, `maestro_cassandra_responder.py`, `maestro_context_packet.py`, `openclaw_request_processor.py`, `tests/test_activation_gate_register.py`, `tests/test_continuity_stamp.py`, `tests/test_interpreter_lm_integration.py`
 - `OPENCLAW_LEGAL_PRIVATE_ROOT`: `found` in `activation_gate_register.py`
 - `OPENCLAW_LLM_DIAGNOSTICS`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_LM1_SHARED_SEAM`: `found` in `activation_gate_register.py`, `maestro_context_packet.py`, `openclaw_request_processor.py`, `tests/test_activation_gate_register.py`, `tests/test_interpreter_lm_integration.py`
@@ -1570,8 +1600,8 @@ Live-state evidence:
 - `OPENCLAW_MAESTRO_BRAIN_LIVE`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_OLLAMA_MODEL`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_OLLAMA_MODEL_DEEP`: `found` in `activation_gate_register.py`, `chief_llm.py`
-- `OPENCLAW_PACKET_DELTA`: `found` in `activation_gate_register.py`, `tests/test_activation_gate_register.py`
-- `OPENCLAW_PACKET_ENGINE`: `found` in `activation_gate_register.py`, `tests/test_activation_gate_register.py`
+- `OPENCLAW_PACKET_DELTA`: `found` in `activation_gate_register.py`, `maestro_cassandra_responder.py`, `tests/test_activation_gate_register.py`
+- `OPENCLAW_PACKET_ENGINE`: `found` in `activation_gate_register.py`, `maestro_cassandra_responder.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_PACKET_SOURCE`: `found` in `activation_gate_register.py`, `maestro_context_packet.py`, `tests/test_activation_gate_register.py`, `tests/test_packet_sqlite_flip.py`
 - `OPENCLAW_POLISH_LANE_WORKER_CMD`: `found` in `activation_gate_register.py`, `polish_loop/lane_launcher.py`
 - `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`: `found` in `activation_gate_register.py`, `polish_loop/orchestrator.py`, `tests/test_activation_gate_register.py`

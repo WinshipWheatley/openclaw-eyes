@@ -294,6 +294,59 @@
     {
       "activation_allowed_now": false,
       "audits": [
+        "/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md",
+        "/home/openclaw/Operator/to-codex/FABLE-ALIGN-CAPABILITY-LEDGER-RECONCILER-BUILD-GO-20260717.md"
+      ],
+      "canary_status": "production dry run: 170 rows across PC/Mac, all 34 Mac census verdicts, bridge health, and no writes; temp atomic confirm/idempotence/injected-failure tests pass; production confirm pending",
+      "capability_id": "capability_ledger_reconciler",
+      "current_state_if_verifiable": {
+        "audit_report": "real production dry run collected PC systemd/cron/listener and all MacSol verdict rows without writing the ledger",
+        "code_default": "dry-run; confirmed batch is metadata-only and cannot activate services, mutate the register, grant authority, send, move money, or delete",
+        "production": "production deployment and confirmed batch pending",
+        "summary": "one-way register, runtime, file-inventory, and Mac census mirror is built with deterministic drift and ledger-only Maestro readback"
+      },
+      "default_state": "scheduled_with_existing_refresh_owner",
+      "disabled_by": "remove the reconciler call from refresh_ledger_knowledge; the existing knowledge fold remains available",
+      "display_name": "Two-machine capability ledger reconciler",
+      "enabled_by": "existing refresh_ledger_knowledge */30 cron plus confirmed production batch and ledger-only Maestro canary",
+      "evidence_refs": [
+        "workspaces/openclaw_program/activation_records/CAPABILITY_LEDGER_RECONCILER_20260717.md",
+        "/home/openclaw/Operator/from-codex/CAPABILITY-LEDGER-RECONCILER-R0-RECEIPT-20260717-PC-Codex-Desktop.json",
+        "/home/openclaw/Operator/from-codex/CAPABILITY-LEDGER-RECONCILER-R1-RECEIPT-20260717-PC-Codex-Desktop.json"
+      ],
+      "flag_or_config": [
+        "scripts/refresh_ledger_knowledge.py --confirm via existing */30 cron owner",
+        "capability_ledger_reconciler.py defaults to dry-run unless --confirm"
+      ],
+      "gate_stage": "canary",
+      "last_verified_at": "2026-07-17T12:38:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
+      "next_required_step": "deploy, run two production confirmed batches, inject drift in an isolated fixture, and prove the real Maestro front door reads the ledger alone",
+      "operator_approval_required": true,
+      "owner": "Maestro / PC Codex Desktop",
+      "reason_if_off": "production owner path has not yet completed its confirmed activation canaries",
+      "risk_level": "medium",
+      "rollback_note": "remove only the reconciler call and leave additive ledger tables as inert historical receipts",
+      "source_files": [
+        "capability_ledger_reconciler.py",
+        "scripts/refresh_ledger_knowledge.py",
+        "maestro_cassandra_responder.py"
+      ],
+      "tests": [
+        "tests/test_capability_ledger_reconciler.py",
+        "tests/test_refresh_ledger_knowledge.py",
+        "tests/test_maestro_capability_ledger_readback.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
         "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
       ],
@@ -3393,12 +3446,13 @@
       "walk_away_autonomy_mode"
     ],
     "ready_for_canary": [
+      "capability_ledger_reconciler",
       "control_plane_heal_emission",
       "frontdoor_model_profile",
       "lm1_shared_seam",
       "packet_source_sqlite_flip"
     ],
-    "total_capabilities": 48,
+    "total_capabilities": 49,
     "unknown_production_state": [
       "agent_package_preview_contract",
       "cassandra_telegram_delivery",
@@ -3563,6 +3617,7 @@
       "OPENCLAW_CONTINUITY_CAPSULE": {
         "files": [
           "activation_gate_register.py",
+          "maestro_cassandra_responder.py",
           "maestro_context_packet.py",
           "maestro_listener.py",
           "openclaw_request_processor.py",
@@ -3733,6 +3788,7 @@
         "files": [
           "activation_gate_register.py",
           "interpreter_lm.py",
+          "maestro_cassandra_responder.py",
           "maestro_context_packet.py",
           "openclaw_request_processor.py",
           "tests/test_activation_gate_register.py",
@@ -3798,6 +3854,7 @@
       "OPENCLAW_PACKET_DELTA": {
         "files": [
           "activation_gate_register.py",
+          "maestro_cassandra_responder.py",
           "tests/test_activation_gate_register.py"
         ],
         "status": "found"
@@ -3805,6 +3862,7 @@
       "OPENCLAW_PACKET_ENGINE": {
         "files": [
           "activation_gate_register.py",
+          "maestro_cassandra_responder.py",
           "tests/test_activation_gate_register.py"
         ],
         "status": "found"
