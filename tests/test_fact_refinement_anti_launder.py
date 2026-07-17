@@ -190,4 +190,13 @@ def test_month_bounded_receivables_question_with_structured_fact_gets_real_answe
 
     assert "not tracked: month-bounded receivables" not in packet["packet_text"].lower()
     assert not [fact for fact in packet["facts"] if fact.get("topic") == "money_not_tracked"]
-    assert "1,095" in packet["packet_text"]
+    assert "1,095" not in packet["packet_text"]
+    [live_arts] = [
+        fact
+        for fact in packet["facts"]
+        if fact.get("topic") == "receivable_month_bounded"
+        and fact.get("client_ref") == "live_arts_md"
+        and fact.get("month") == "2026-06"
+    ]
+    assert live_arts["open_minor_units"] == 0
+    assert live_arts["payment_status"] == "settled"

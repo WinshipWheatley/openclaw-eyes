@@ -18,6 +18,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = REPO_ROOT / "generated" / "read_models"
 MONEY_SOURCE_TOKENS = ("receivable", "invoice", "finance", "billing", "payment")
+MONEY_FACT_FRESHNESS_MAX_AGE_DAYS = 7
 # Task 127 (task 138: added expected_uninvoiced): mirrors operator_surface_guard.
 # _UNKNOWN_AMOUNT_STATUSES -- a pending "check expected" item is plate-worthy even before
 # the amount is confirmed. expected_uninvoiced (133/136a's tier -- owed but not yet invoiced,
@@ -48,7 +49,7 @@ def build_morning_brief(*, read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT
     root = Path(read_model_root)
     today_value = today or date.today()
 
-    money_items = collect_open_money_items(root)
+    money_items = collect_open_money_items(root, today=today_value)
     events = collect_today_events(root, today_value)
     decisions = collect_decision_items(root)
     health = system_health_line(root)
@@ -85,8 +86,9 @@ def build_morning_brief(*, read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT
     return " ".join(parts)
 
 
-def collect_open_money_items(root: Path) -> list[MoneyItem]:
+def collect_open_money_items(root: Path, *, today: date | None = None) -> list[MoneyItem]:
     items: list[MoneyItem] = []
+    today_value = today or date.today()
     for path in _candidate_json_paths(root, MONEY_SOURCE_TOKENS):
         payload = _load_json(path)
         if payload is None:
@@ -104,6 +106,8 @@ def collect_open_money_items(root: Path) -> list[MoneyItem]:
             label = _money_label(obj, context)
             if not as_of or not label:
                 continue
+            if _money_fact_is_stale(as_of, today=today_value):
+                continue
             items.append(
                 MoneyItem(
                     label=label,
@@ -114,6 +118,14 @@ def collect_open_money_items(root: Path) -> list[MoneyItem]:
                 )
             )
     return _dedupe_dataclasses(items)
+
+
+def _money_fact_is_stale(as_of: str, *, today: date) -> bool:
+    try:
+        fact_date = _parse_date(_date_part(as_of))
+    except ValueError:
+        return True
+    return fact_date is not None and (today - fact_date).days > MONEY_FACT_FRESHNESS_MAX_AGE_DAYS
 
 
 def collect_today_events(root: Path, today: date) -> list[DayEvent]:

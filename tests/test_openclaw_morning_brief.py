@@ -118,6 +118,32 @@ def test_morning_brief_uses_approved_humanizer_for_known_amount(tmp_path) -> Non
     assert "2026-06" not in brief
 
 
+def test_morning_brief_never_asserts_eight_day_old_debt_as_current(tmp_path) -> None:
+    root = tmp_path / "read_models"
+    _write_json(
+        root / "receivables_month_bounded.json",
+        {
+            "generated_at": "2026-07-09T21:59:57+00:00",
+            "rows": [
+                {
+                    "client_ref": "live_arts_md",
+                    "month": "2026-06",
+                    "open_minor_units": 109500,
+                    "currency_iso": "USD",
+                    "payment_status": "needs_reconcile",
+                    "current_truth": True,
+                }
+            ],
+        },
+    )
+
+    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 17))
+
+    assert "Live Arts" not in brief
+    assert "$1,095" not in brief
+    assert brief == "Morning."
+
+
 def test_morning_brief_includes_unknown_amount_item_as_attention_line(tmp_path) -> None:
     """Task 127: a pending 'check expected' item is plate-worthy even with no confirmed
     amount -- must not be silently dropped just because there's no number yet."""
@@ -193,15 +219,12 @@ def test_morning_brief_live_probe_quality_money_decisions_and_voice(tmp_path) ->
         {"agents": [{"agent_id": "maestro", "display_name": "Maestro", "actual_state": "online"}]},
     )
 
-    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 7))
+    brief = morning.build_morning_brief(read_model_root=root, today=date(2026, 7, 17))
     lowered = brief.lower()
 
-    assert "live arts" in lowered
-    assert "$1,095" in brief
-    # Task 127: zero raw snake_case tokens -- the approved humanizer renders "needs your
-    # reconcile", never the machine status token.
+    assert "live arts" not in lowered
+    assert "$1,095" not in brief
     assert "needs_reconcile" not in lowered
-    assert "needs your reconcile" in lowered
     assert "Intent:" not in brief
     assert "Hermes, synthesize current posture" not in brief
     assert "Approve Capital Hilton invoice review packet" in brief

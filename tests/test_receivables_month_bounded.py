@@ -205,6 +205,30 @@ def test_default_capital_hilton_unknown_amount_is_not_invented(tmp_path: Path) -
     assert "capital_hilton" not in payload["summary"]["open_minor_units_by_client"]
 
 
+def test_default_live_arts_fact_uses_operator_graded_zero_balance(tmp_path: Path) -> None:
+    from receivables_month_bounded import build_receivables_month_bounded
+
+    payload = build_receivables_month_bounded(
+        g2c_db_path=tmp_path / "missing-g2c.sqlite3",
+        facts_path=None,
+        generated_at="2026-07-17T22:30:00+00:00",
+    )
+
+    live_arts = _row(payload, "live_arts_md", "2026-06")
+    assert live_arts["invoiced_minor_units"] == 100000
+    assert live_arts["paid_minor_units"] == 100000
+    assert live_arts["open_minor_units"] == 0
+    assert live_arts["payment_status"] == "settled"
+    assert live_arts["needs_reconcile"] is False
+    assert live_arts["settled_past_no_compound"] is True
+    assert live_arts["source_refs"] == [
+        "operator_graded_fact:live_arts_md:2026-07-17:telegram_msg_1781:zero_current_balance"
+    ]
+    assert live_arts["source_kinds"] == ["operator_graded_fact"]
+    assert "live_arts_md:2026-06" not in payload["summary"]["needs_reconcile_keys"]
+    assert payload["summary"]["open_minor_units_by_client"]["live_arts_md"] == 0
+
+
 def test_unevidenced_canonical_amount_fails_validation(tmp_path: Path) -> None:
     from receivables_month_bounded import build_receivables_month_bounded
 

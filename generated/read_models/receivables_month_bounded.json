@@ -13,7 +13,7 @@
     "money_answers_source": "receivables_month_bounded rows only; do not infer totals from narrative.",
     "settle_past_no_compound": "Rows with payment_status=settled force open_minor_units=0 and do not resurface as owed."
   },
-  "generated_at": "2026-07-08T01:24:07+00:00",
+  "generated_at": "2026-07-17T22:25:05+00:00",
   "read_model_id": "receivables_month_bounded",
   "rows": [
     {
@@ -48,23 +48,23 @@
       "client_ref": "live_arts_md",
       "currency_iso": "USD",
       "current_truth": true,
-      "invoiced_derived": true,
-      "invoiced_minor_units": 199500,
+      "invoiced_derived": false,
+      "invoiced_minor_units": 100000,
       "month": "2026-06",
-      "needs_reconcile": true,
+      "needs_reconcile": false,
       "notes": [
-        "$900 paid; $1,095 remains open pending operator reconciliation."
+        "Operator-confirmed 2026-07-17: $900 invoice 2026-1001 and $100 June rental invoice are paid; $1,000 issued, $1,000 paid, $0 open."
       ],
-      "open_minor_units": 109500,
-      "paid_minor_units": 90000,
-      "payment_status": "needs_reconcile",
+      "open_minor_units": 0,
+      "paid_minor_units": 100000,
+      "payment_status": "settled",
       "receivable_ids": [],
-      "settled_past_no_compound": false,
+      "settled_past_no_compound": true,
       "source_kinds": [
-        "canonical_business_fact"
+        "operator_graded_fact"
       ],
       "source_refs": [
-        "canonical_business_fact:live_arts_md:2026-06:1095_open_900_paid"
+        "operator_graded_fact:live_arts_md:2026-07-17:telegram_msg_1781:zero_current_balance"
       ],
       "structured_fact": true
     },
@@ -150,10 +150,10 @@
   "schema_version": "receivables_month_bounded_v1",
   "source_refs": [
     "canonical_business_fact:capital_hilton:2026-06:check_unverified",
-    "canonical_business_fact:live_arts_md:2026-06:1095_open_900_paid",
     "canonical_business_fact:st_annes:2026-04:apr_may_paid",
     "canonical_business_fact:st_annes:2026-05:apr_may_paid",
-    "canonical_business_fact:st_annes_current_open:2026-07:expected_uninvoiced"
+    "canonical_business_fact:st_annes_current_open:2026-07:expected_uninvoiced",
+    "operator_graded_fact:live_arts_md:2026-07-17:telegram_msg_1781:zero_current_balance"
   ],
   "source_status": {
     "canonical_month_fact_count": 5,
@@ -166,20 +166,19 @@
   "summary": {
     "client_count": 3,
     "invoiced_minor_units_by_client": {
-      "live_arts_md": 199500,
+      "live_arts_md": 100000,
       "st_annes": 125000
     },
     "month_count": 4,
     "needs_reconcile_keys": [
-      "capital_hilton:2026-06",
-      "live_arts_md:2026-06"
+      "capital_hilton:2026-06"
     ],
     "open_minor_units_by_client": {
-      "live_arts_md": 109500,
+      "live_arts_md": 0,
       "st_annes": 0
     },
     "paid_minor_units_by_client": {
-      "live_arts_md": 90000,
+      "live_arts_md": 100000,
       "st_annes": 125000
     },
     "row_count": 5,

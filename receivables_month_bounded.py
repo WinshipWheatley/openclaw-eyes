@@ -32,14 +32,17 @@ DEFAULT_CANONICAL_RECEIVABLE_MONTH_FACTS: tuple[dict[str, Any], ...] = (
         "client_display_name": "Live Arts MD",
         "month": "2026-06",
         "currency_iso": "USD",
-        "invoiced_minor_units": 199500,
-        "paid_minor_units": 90000,
-        "open_minor_units": 109500,
-        "invoiced_derived": True,
-        "needs_reconcile": True,
-        "payment_status": "needs_reconcile",
-        "notes": ["$900 paid; $1,095 remains open pending operator reconciliation."],
-        "source_ref": "canonical_business_fact:live_arts_md:2026-06:1095_open_900_paid",
+        "invoiced_minor_units": 100000,
+        "paid_minor_units": 100000,
+        "open_minor_units": 0,
+        "amount_evidence_minor_units": [90000, 10000, 100000, 0],
+        "invoiced_derived": False,
+        "needs_reconcile": False,
+        "payment_status": "settled",
+        "notes": [
+            "Operator-confirmed 2026-07-17: $900 invoice 2026-1001 and $100 June rental invoice are paid; $1,000 issued, $1,000 paid, $0 open."
+        ],
+        "source_ref": "operator_graded_fact:live_arts_md:2026-07-17:telegram_msg_1781:zero_current_balance",
     },
     {
         "client_ref": "st_annes",
@@ -435,8 +438,10 @@ def _merge_canonical_fact(
         bucket["settled_past_no_compound"] = True
     for note in _notes(fact.get("notes") or fact.get("note")):
         _append_unique(bucket["notes"], note)
-    bucket["source_kinds"].add("canonical_business_fact")
-    _append_unique(bucket["source_refs"], _source_ref(fact, f"canonical_business_fact:{client_ref}:{month}"))
+    source_ref = _source_ref(fact, f"canonical_business_fact:{client_ref}:{month}")
+    source_kind = "operator_graded_fact" if source_ref.startswith("operator_graded_fact:") else "canonical_business_fact"
+    bucket["source_kinds"].add(source_kind)
+    _append_unique(bucket["source_refs"], source_ref)
 
 
 def _finalize_bucket(bucket: Mapping[str, Any]) -> dict[str, Any]:
