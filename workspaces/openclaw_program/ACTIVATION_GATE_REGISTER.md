@@ -1,7 +1,7 @@
 # Activation Gate Register
 
 Schema: `activation_gate_register_v0`
-Generated: `2026-06-26T00:00:00-04:00`
+Generated: `2026-07-16T22:34:41-04:00`
 
 This register is descriptive only. It does not enable features, edit production config, inspect secrets, touch systemd, run canaries, or perform live external actions.
 
@@ -11,7 +11,7 @@ This register is descriptive only. It does not enable features, edit production 
 - `descriptive_only`: `true`
 - `features_enabled_by_this_register`: `false`
 - `live_env_raw_values_stored`: `false`
-- `live_env_reconciliation_enabled`: `false`
+- `live_env_reconciliation_enabled`: `true`
 - `live_env_reconciliation_read_only`: `true`
 - `live_env_secrets_printed_or_stored`: `false`
 - `live_env_whitelist_only`: `true`
@@ -20,66 +20,66 @@ This register is descriptive only. It does not enable features, edit production 
 - `production_env_files_inspected`: `false`
 - `production_flags_changed`: `false`
 - `systemctl_invoked`: `false`
-- `systemd_inspected_or_modified`: `false`
+- `systemd_inspected_or_modified`: `true`
 - `systemd_modified`: `false`
-- `systemd_user_unit_files_inspected_read_only`: `false`
+- `systemd_user_unit_files_inspected_read_only`: `true`
 
 ## Summary
 
 - Total capabilities registered: `45`
-- Verified enabled/live: none recorded
+- Verified enabled/live: `continuity_capsule`, `external_brain_router`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Activation allowed now: none recorded
-- Ready for canary queue: `control_plane_heal_emission`, `external_brain_router`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
+- Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 - Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `packet_delta_receipts`, `packet_engine_spine`, `polish_loop_file_ledger_bridge`, `polish_loop_local_builder_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
-- Unknown production state: `action_runtime`, `active_machinery_classification`, `agent_package_preview_contract`, `cassandra_telegram_delivery`, `cassandra_telegram_dryrun_inbox`, `computer_use_worker_gateway`, `continuity_capsule`, `draft_only_email_adapter`, `external_model_openrouter_path`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
+- Unknown production state: `agent_package_preview_contract`, `cassandra_telegram_delivery`, `computer_use_worker_gateway`, `draft_only_email_adapter`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 
 | Capability | Stage | Live production state | Current state | Activation allowed now | Next required step |
 | --- | --- | --- | --- | --- | --- |
-| Action runtime (`action_runtime`) | `intentionally_off` | `not_applicable` | built but intentionally off; dispatch raises while the flag is off | no | prove synthetic executor canary and rollback before any live action runtime activation |
-| Active Machinery classification orchestrator (`active_machinery_classification`) | `dry_run` | `not_applicable` | classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch | no | record a synthetic-to-canary plan before any Gemini worker dispatch |
+| Action runtime (`action_runtime`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | prove synthetic executor canary and rollback before any live action runtime activation |
+| Active Machinery classification orchestrator (`active_machinery_classification`) | `dry_run` | `dry_run_verified` | classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch | no | record a synthetic-to-canary plan before any Gemini worker dispatch |
 | Agent package preview contract (`agent_package_preview_contract`) | `intentionally_off` | `not_applicable` | metadata-only preview contract exists; all dispatch/external authority toggles are false | no | use as review artifact only; do not grant package send authority |
 | Authority gate + SEND_HOLD sentinel (`authority_gate_send_hold`) | `operator_approved_live` | `not_applicable` | enabled guardrail: default-deny authority gate and SEND_HOLD sentinel keep send surfaces denied; no new activation authority | no | keep SEND_HOLD in place; audit any future send-surface change before activation |
 | Brain dump parser CLI (`brain_dump_parser_cli`) | `intentionally_off` | `not_applicable` | manual CLI can dry-run; non-dry-run can call local Ollama and write handoff files, so it remains intentionally off for unattended use | no | wait for deterministic size/risk routing before any queue-ready parser automation |
-| Cassandra morning-brief test mode (`cassandra_morning_brief_test_mode`) | `intentionally_off` | `not_applicable` | test-mode branch exists for synthetic morning brief context; production morning path is separate | no | use only in synthetic tests unless Opus queues a separate briefing canary |
+| Cassandra morning-brief test mode (`cassandra_morning_brief_test_mode`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | use only in synthetic tests unless Opus queues a separate briefing canary |
 | Cassandra / Telegram delivery (`cassandra_telegram_delivery`) | `intentionally_off` | `not_applicable` | code default dry-run/off; production toggle and authorized user were not inspected | no | keep disabled unless Opus defines an operator-watched internal-only canary |
-| Cassandra Telegram dry-run inbox (`cassandra_telegram_dryrun_inbox`) | `dry_run` | `not_applicable` | dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting | no | keep as a synthetic proof source; do not connect to Telegram |
+| Cassandra Telegram dry-run inbox (`cassandra_telegram_dryrun_inbox`) | `dry_run` | `dry_run_verified` | dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting | no | keep as a synthetic proof source; do not connect to Telegram |
 | Claude agent hard-block (`claude_agent_hard_block`) | `blocked` | `not_applicable` | agent-side Claude calls are hard-blocked and should remain blocked | no | keep permanently blocked unless Opus writes a new human-only design |
 | Computer Use Worker Gateway (`computer_use_worker_gateway`) | `proposed` | `not_applicable` | proposed only; no production flag or built gateway was verified in this branch | no | write a design/proposal before implementation; do not grant desktop/browser authority |
-| Continuity Capsule (`continuity_capsule`) | `operator_approved_live` | `not_applicable` | unknown unless reconciled from live env sources; live reconciliation records OPENCLAW_CONTINUITY_CAPSULE without granting activation authority | no | keep canary evidence current; live reconciliation does not grant activation authority |
-| Control-plane heal emission (`control_plane_heal_emission`) | `canary` | `not_applicable` | built detector-to-ledger emission gate remains off pending supervised canary | no | queue a synthetic/supervised canary with temp ledger proof before activation |
+| Continuity Capsule (`continuity_capsule`) | `operator_approved_live` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | keep canary evidence current; live reconciliation does not grant activation authority |
+| Control-plane heal emission (`control_plane_heal_emission`) | `canary` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | queue a synthetic/supervised canary with temp ledger proof before activation |
 | Draft-only email adapter (`draft_only_email_adapter`) | `synthetic` | `not_applicable` | adapter exists as deterministic local artifact generator; live draft and send authority are false; production wiring unknown | no | wire only a synthetic/operator-review draft lane with receipts; do not create live Gmail/Mail drafts |
-| Subscription external-brain router (`external_brain_router`) | `canary` | `not_applicable` | model-agnostic lane and effort router is under TDD; live external routing remains off | no | finish TDD, produce shadow receipts in the same or next session, then surface the one-tap operator gate; never activate from this register |
-| External model / OpenRouter path (`external_model_openrouter_path`) | `intentionally_off` | `not_applicable` | code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected | no | keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded |
+| Subscription external-brain router (`external_brain_router`) | `operator_approved_live` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | monitor safe route receipts and immediately roll back on privacy, protocol, headroom, or parity failure |
+| External model / OpenRouter path (`external_model_openrouter_path`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded |
 | External-model packet safety policy (`external_model_packet_policy`) | `operator_approved_live` | `not_applicable` | enabled guardrail: cloud eligibility policy fails closed and does not authorize external calls by itself | no | keep active and require policy/canary proof before any external egress activation |
-| External shadow LM config (`external_shadow_lm_config`) | `intentionally_off` | `not_applicable` | shadow-only config records redacted credential presence but grants no provider call authority | no | keep shadow-only; any external call path requires high-risk provider activation approval |
-| Front-door model profile (`frontdoor_model_profile`) | `canary` | `not_applicable` | canary failed 3/3 before model-fit repair; recanary required before this register grants any activation authority | no | run recanary with current model-fit resource probe before any activation authority |
+| External shadow LM config (`external_shadow_lm_config`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep shadow-only; any external call path requires high-risk provider activation approval |
+| Front-door model profile (`frontdoor_model_profile`) | `canary` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | run recanary with current model-fit resource probe before any activation authority |
 | Gated email send rail (`gated_email_send_rail`) | `intentionally_off` | `not_applicable` | send rail exists as a deterministic fail-closed receipt surface; live provider/network authority is false | no | do not activate; use draft-only review rail instead |
 | Polish Loop git task guard (`git_task_guard`) | `intentionally_off` | `not_applicable` | catalogued from audit as repo-mutation guard; current base may not contain the script | no | reconcile source presence and audit branch-mutation behavior before any use |
-| Human-in-the-loop pending action pipeline (`hitl_pipeline`) | `intentionally_off` | `not_applicable` | built but intentionally off; pending action mutation is a high-risk action surface | no | define a synthetic-only pending-action canary before any live enablement |
+| Human-in-the-loop pending action pipeline (`hitl_pipeline`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | define a synthetic-only pending-action canary before any live enablement |
 | Governed interactive 8B keep-warm timer (`interactive_8b_keepwarm_timer`) | `operator_approved_live` | `not_applicable` | enabled 2026-07-16; governed timer keeps the operator-bound 8B resident without evicting or preempting other work | no | after an overnight idle interval, record first-touch latency under the warm threshold; keep the existing GPU health watcher as the latency observer |
-| Interpreter-LM (`interpreter_lm`) | `intentionally_off` | `not_applicable` | code default off; activation sprint keeps Interpreter-LM queued for repair because processor wiring is blocked and front-door model-fit canary must pass first | no | unblock task-013 wiring repair, review task-014 model-fit recipe, then run contained Interpreter-LM/front-door canaries before any live activation |
+| Interpreter-LM (`interpreter_lm`) | `intentionally_off` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | unblock task-013 wiring repair, review task-014 model-fit recipe, then run contained Interpreter-LM/front-door canaries before any live activation |
 | Legal Sealed ingestion (`legal_sealed_ingestion`) | `blocked` | `not_applicable` | local legal policies and console bridge are synthetic/local-only; real sealed/private ingestion remains blocked | no | complete legal authorization and sealed-ingestion design before any implementation or test with real material |
-| LLM diagnostics logging (`llm_diagnostics_logging`) | `operator_approved_live` | `not_applicable` | already-on internal observability; no external action or activation authority | no | keep as internal read-only observability; do not expose secrets in logs |
-| LM1 shared request seam (`lm1_shared_seam`) | `canary` | `not_applicable` | shared LM1 seam is built but must prove live-fire receipt use before remaining live-on | no | watch lm1_shared_seam_counter; if used_count stays zero under live traffic, ask Fable whether to flip the flag off |
+| LLM diagnostics logging (`llm_diagnostics_logging`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep as internal read-only observability; do not expose secrets in logs |
+| LM1 shared request seam (`lm1_shared_seam`) | `canary` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | watch lm1_shared_seam_counter; if used_count stays zero under live traffic, ask Fable whether to flip the flag off |
 | Advisory LM consult spine (`lm_consult_spine`) | `intentionally_off` | `not_applicable` | advisory-only consult spine is built; provider credentials/config and production env were not inspected | no | keep advisory-only and record any provider probe evidence separately without exposing credentials |
-| Maestro brain live (`maestro_brain_live`) | `operator_approved_live` | `not_applicable` | already-on runtime lane per Opus decision; disabled under TEST_MODE and does not grant new activation authority | no | keep watching model-fit and timeout behavior; do not change this flag in this task |
+| Maestro brain live (`maestro_brain_live`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep watching model-fit and timeout behavior; do not change this flag in this task |
 | Model-selection policy contract (`model_selection_policy_contract`) | `intentionally_off` | `not_applicable` | metadata-only contract exists with no runtime/model/provider authority | no | keep as metadata; future runtime policy wiring needs a separate default-off task |
-| Nemotron provider (`nemotron_provider`) | `intentionally_off` | `not_applicable` | external provider path exists but is intentionally off for live use without policy-safe caller and credentials | no | keep off until external egress policy and canary evidence are recorded |
+| Nemotron provider (`nemotron_provider`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep off until external egress policy and canary evidence are recorded |
 | Niles album evidence intake boundary (`niles_album_evidence_intake_boundary`) | `synthetic` | `not_applicable` | metadata-only boundary exists; raw audio, DAW contents, broad drive scans, automation, and mutation are blocked | no | if needed, run only synthetic metadata tests or operator-supplied metadata review |
-| Ollama model defaults (`ollama_model_defaults`) | `operator_approved_live` | `not_applicable` | already-on local model default lane; model-fit repair remains needed for strong/deep references | no | repair strong/deep lane model-fit references before expanding model routing |
-| OpenAI adapter stub (`openai_adapter_stub`) | `blocked` | `not_applicable` | adapter exists only as a hard unavailable stub; no live OpenAI provider path is enabled | no | DEPRECATED_OR_REMOVE_LATER unless Opus queues a credential-safe OpenAI design |
-| Packet delta receipt rail (`packet_delta_receipts`) | `intentionally_off` | `not_applicable` | packet delta receipts are a built spine candidate from task 100 but remain descriptive until Fable promotes and verifies wiring | no | Fable should verify task-100 promotion state and define a focused canary before enabling packet delta receipts |
-| Packet engine spine (`packet_engine_spine`) | `intentionally_off` | `not_applicable` | packet engine spine is a built candidate from task 100 but this register does not wire or enable it | no | Fable should verify task-100 promotion state and define a focused canary before enabling packet engine routing |
-| Packet-source SQLite flip (`packet_source_sqlite_flip`) | `canary` | `not_applicable` | LIVE: OPENCLAW_PACKET_SOURCE=sqlite verified on the processor live env 2026-06-28 (flip.conf drop-in) | no | keep canary evidence current; live reconciliation does not grant activation authority |
+| Ollama model defaults (`ollama_model_defaults`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | repair strong/deep lane model-fit references before expanding model routing |
+| OpenAI adapter stub (`openai_adapter_stub`) | `blocked` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | DEPRECATED_OR_REMOVE_LATER unless Opus queues a credential-safe OpenAI design |
+| Packet delta receipt rail (`packet_delta_receipts`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | Fable should verify task-100 promotion state and define a focused canary before enabling packet delta receipts |
+| Packet engine spine (`packet_engine_spine`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | Fable should verify task-100 promotion state and define a focused canary before enabling packet engine routing |
+| Packet-source SQLite flip (`packet_source_sqlite_flip`) | `canary` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | keep canary evidence current; live reconciliation does not grant activation authority |
 | Polish Loop factory mode (`polish_loop_factory_mode`) | `blocked` | `not_applicable` | factory remains NOT_READY; no live loop was run or enabled | no | repair blockers #2 and #3, re-audit all 10 switch criteria, then separately approve activation |
-| Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `not_applicable` | bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger | no | HELD OFF deliberately 2026-06-28: keep canary requirement before any future enable; close the nonce-hardening item first (task-007: status.json snapshot omits phase_c_lease_nonce) |
-| Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `intentionally_off` | `not_applicable` | ACTIVATED 2026-06-28: enabled in the polish-loop cron after Opus verification (37 bridge tests + contained end-to-end admit->build->VERIFYING->accept->DONE) | no | run supervised canary and close NOT_READY blockers before runtime activation |
-| Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`) | `intentionally_off` | `not_applicable` | planned default-off size/type/risk router record from task-012; catalog-only here and no runtime wiring in this branch | no | Opus review/integration of task-012, then separate synthetic/canary authorization if Polish Loop switch criteria otherwise pass |
-| Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`) | `intentionally_off` | `not_applicable` | size/type/risk routing is built as a default-off candidate to classify ledger tasks before dispatchability | no | Opus review of size-router wiring, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass |
-| Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`) | `intentionally_off` | `not_applicable` | ACTIVATED 2026-06-28: enabled in the polish-loop cron alongside the local-builder bridge; materializes the deterministic task package the builder consumes (fail-closed on missing fields) | no | run supervised canary before runtime activation; factory completion tracked under the local-builder bridge |
-| protected_generate Ollama timeouts (`protected_generate_ollama_timeouts`) | `operator_approved_live` | `not_applicable` | already-on internal timeout knobs with safe defaults; they tune bounded local generation behavior only | no | keep defaults; record any future timeout tuning receipt |
+| Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | HELD OFF deliberately 2026-06-28: keep canary requirement before any future enable; close the nonce-hardening item first (task-007: status.json snapshot omits phase_c_lease_nonce) |
+| Polish Loop local builder bridge (`polish_loop_local_builder_bridge`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | run supervised canary and close NOT_READY blockers before runtime activation |
+| Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | Opus review/integration of task-012, then separate synthetic/canary authorization if Polish Loop switch criteria otherwise pass |
+| Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | Opus review of size-router wiring, then a separate synthetic/canary authorization task if factory switch criteria otherwise pass |
+| Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | run supervised canary before runtime activation; factory completion tracked under the local-builder bridge |
+| protected_generate Ollama timeouts (`protected_generate_ollama_timeouts`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep defaults; record any future timeout tuning receipt |
 | Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`) | `blocked` | `not_applicable` | v0 gate always blocks runtime/module activation and claims no runtime health | no | satisfy and record all gate prerequisites before runtime/module activation |
 | Walk-away autonomy mode (`walk_away_autonomy_mode`) | `intentionally_off` | `not_applicable` | built but intentionally off by default; enabling writes an autonomy mode state file | no | do not enable from the register; require an operator-approved autonomy receipt |
 
@@ -89,9 +89,9 @@ This register is descriptive only. It does not enable features, edit production 
 
 - Flag/config: `OPENCLAW_ACTION_RUNTIME`
 - Default state: `off`
-- Current state if verifiable: built but intentionally off; dispatch raises while the flag is off
-- Production state: `not_enabled_by_this_register; production action runtime remains off or unknown`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `not_run_live`
 - Risk level: `high`
@@ -107,20 +107,21 @@ This register is descriptive only. It does not enable features, edit production 
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `action_runtime.py:_action_runtime_enabled`, `action_runtime.py:dispatch_action`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_ACTION_RUNTIME` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Active Machinery classification orchestrator (`active_machinery_classification`)
 
 - Flag/config: `dry_run mode; Gemini worker dispatch operator-gated`
 - Default state: `dry_run`
 - Current state if verifiable: classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch
-- Production state: `unknown_not_read_from_env_files_or_services`
-- Live production state: `not_applicable`
+- Production state: `dry_run_verified`
+- Live production state: `dry_run_verified`
 - Gate stage: `dry_run`
 - Canary status: `synthetic_ready`
 - Risk level: `medium`
@@ -136,12 +137,12 @@ Live-state evidence:
 - Tests: `tests/test_active_machinery_classification_orchestrator.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `active_machinery_classification_orchestrator.py`, `tests/test_active_machinery_classification_orchestrator.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `dry_run_verified`
+- Confidence: `medium`
+- Notes: capability is static dry-run/synthetic; no live feature flag is defined for reconciliation
 
 ### Agent package preview contract (`agent_package_preview_contract`)
 
@@ -165,12 +166,12 @@ Live-state evidence:
 - Tests: `tests/test_agent_package_preview_contract.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `agent_package_preview_contract.py`, `tests/test_agent_package_preview_contract.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Authority gate + SEND_HOLD sentinel (`authority_gate_send_hold`)
 
@@ -194,12 +195,12 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `authority_gate.py:decide`, `authority_gate.py:DEFAULT_SEND_HOLD_PATH`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Brain dump parser CLI (`brain_dump_parser_cli`)
 
@@ -223,20 +224,20 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `brain_dump_parser.py:--dry-run`, `brain_dump_parser.py:ollama invocation`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Cassandra morning-brief test mode (`cassandra_morning_brief_test_mode`)
 
 - Flag/config: `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`
 - Default state: `test_mode_off`
-- Current state if verifiable: test-mode branch exists for synthetic morning brief context; production morning path is separate
-- Production state: `not_enabled_by_this_register; live briefing not touched`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `synthetic_test_mode_only`
 - Risk level: `low`
@@ -252,12 +253,13 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_briefing_context.py`, `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `cassandra_briefing_brain.py:_MORNING_TEST_MODE_ENV`, `chief_llm.py:_CASSANDRA_MORNING_TEST_TIMEOUT`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `CASSANDRA_MORNING_BRIEF_TEST_MODE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Cassandra / Telegram delivery (`cassandra_telegram_delivery`)
 
@@ -281,20 +283,20 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_telegram_delivery.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `cassandra_telegram_delivery.py:TOGGLE_ENV_VAR`, `cassandra_telegram_delivery.py:TelegramDeliveryReceipt`, `tests/test_cassandra_telegram_delivery.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Cassandra Telegram dry-run inbox (`cassandra_telegram_dryrun_inbox`)
 
 - Flag/config: `local JSON dry-run inbox paths; no live Telegram credential flag`
 - Default state: `dry_run`
 - Current state if verifiable: dry-run inbox is local-only and denies Telegram live connection, credentials, send, email, browser, and ledger posting
-- Production state: `unknown_not_read_from_env_files_or_services`
-- Live production state: `not_applicable`
+- Production state: `dry_run_verified`
+- Live production state: `dry_run_verified`
 - Gate stage: `dry_run`
 - Canary status: `synthetic_only`
 - Risk level: `medium`
@@ -310,12 +312,12 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_telegram_dryrun_inbox.py`
 - Audits: none recorded
 - Evidence refs: `cassandra_telegram_dryrun_inbox.py:AUTHORITY_BOUNDARY`, `tests/test_cassandra_telegram_dryrun_inbox.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `dry_run_verified`
+- Confidence: `medium`
+- Notes: capability is static dry-run/synthetic; no live feature flag is defined for reconciliation
 
 ### Claude agent hard-block (`claude_agent_hard_block`)
 
@@ -339,12 +341,12 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:claude_call`, `chief_llm.py:claude_json`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Computer Use Worker Gateway (`computer_use_worker_gateway`)
 
@@ -368,20 +370,20 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `user task scope: required proposed capability`
 - Evidence refs: `required by activation gate register task`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Continuity Capsule (`continuity_capsule`)
 
 - Flag/config: `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`
 - Default state: `off`
-- Current state if verifiable: unknown unless reconciled from live env sources; live reconciliation records OPENCLAW_CONTINUITY_CAPSULE without granting activation authority
-- Production state: `unknown; audit_reported live context must be reconciled through live_env_sources`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
 - Gate stage: `operator_approved_live`
 - Canary status: `LIVE — verified on the processor 2026-06-28`
 - Risk level: `low`
@@ -397,20 +399,24 @@ Live-state evidence:
 - Tests: `tests/test_continuity_stamp.py`, `tests/test_packet_sqlite_flip.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md`
 - Evidence refs: `maestro_listener.py:_continuity_enabled`, `tests/test_continuity_stamp.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: live source verifies this capability/config is active; this does not grant new activation authority
+- Finding: `OPENCLAW_CONTINUITY_CAPSULE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_CONTINUITY_CAPSULE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Related finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf` -> `set_sqlite` (confidence `high`; raw value redacted)
+- Related finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf` -> `set_sqlite` (confidence `high`; raw value redacted)
 
 ### Control-plane heal emission (`control_plane_heal_emission`)
 
 - Flag/config: `OPENCLAW_CONTROL_PLANE_EMIT`
 - Default state: `off`
-- Current state if verifiable: built detector-to-ledger emission gate remains off pending supervised canary
-- Production state: `not_enabled_by_this_register; production ledger not touched`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `canary`
 - Canary status: `queued_for_supervised_canary`
 - Risk level: `medium`
@@ -426,12 +432,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `polish_loop/pc4_heal_emitter.py:_control_plane_emit_enabled`, `polish_loop/pc4_heal_emitter.py:emit_heal_task`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_CONTROL_PLANE_EMIT` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Draft-only email adapter (`draft_only_email_adapter`)
 
@@ -455,49 +462,50 @@ Live-state evidence:
 - Tests: `tests/test_gated_email_draft_adapter.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `gated_email_draft_adapter.py:AUTHORITY_BOUNDARY`, `tests/test_gated_email_draft_adapter.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Subscription external-brain router (`external_brain_router`)
 
 - Flag/config: `OPENCLAW_EXTERNAL_BRAIN_ROUTER`, `model_lane_bindings.json`
-- Default state: `off_pending_shadow_proof`
-- Current state if verifiable: model-agnostic lane and effort router is under TDD; live external routing remains off
-- Production state: `not enabled by this build; operator gate remains closed`
-- Live production state: `not_applicable`
-- Gate stage: `canary`
-- Canary status: `pending shadow receipts proving fail-local or Guardian approval boundary at 80%, Legal stays local, raw prompt verbatim, and local parity`
+- Default state: `on_guarded_subscription`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
+- Gate stage: `operator_approved_live`
+- Canary status: `passed PUBLIC-CANARY-OK through dedicated 0.144.5 app-server at 14% usage; 80% Guardian boundary stops before model/list or turn; Legal stays local; raw prompt remains verbatim; local parity passes`
 - Risk level: `high`
 - Owner: `Fable / PC Codex Desktop`
 - Activation allowed now: `no`
 - Operator approval required: `yes`
-- Reason if off: money-safety shadow proof is incomplete; this is a measured hours-scale off window
-- Enabled by: one operator tap after all activation-record proof criteria pass
+- Reason if off: only rollback or a failed privacy, protocol, headroom, model, or local-parity guard
+- Enabled by: operator binding activation directive after real-process canary and money-guard proof
 - Disabled by: OPENCLAW_EXTERNAL_BRAIN_ROUTER unset or false; any failed or stale gate proof
 - Rollback: unset OPENCLAW_EXTERNAL_BRAIN_ROUTER and retain the existing local Ollama path; do not alter bindings during rollback
-- Next required step: finish TDD, produce shadow receipts in the same or next session, then surface the one-tap operator gate; never activate from this register
-- Source files: `external_brain_router.py`, `codex_app_server_client.py`, `model_lane_bindings.json`
-- Tests: `tests/test_external_brain_router.py`, `tests/test_codex_app_server_client.py`
+- Next required step: monitor safe route receipts and immediately roll back on privacy, protocol, headroom, or parity failure
+- Source files: `external_brain_router.py`, `codex_app_server_client.py`, `model_lane_bindings.json`, `protected_generate.py`
+- Tests: `tests/test_external_brain_router.py`, `tests/test_codex_app_server_client.py`, `tests/test_protected_generate.py`
 - Audits: `workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md`
-- Evidence refs: `workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md`, `tests/test_external_brain_router.py`, `tests/test_codex_app_server_client.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Evidence refs: `workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md`, `tests/test_external_brain_router.py`, `tests/test_codex_app_server_client.py`, `tests/test_protected_generate.py`, `/home/openclaw/Operator/from-codex/EXTERNAL-BRAIN-PUBLIC-CANARY-20260716-PC-Codex-Desktop.jsonl`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: live source verifies this capability/config is active; this does not grant new activation authority
+- Finding: `OPENCLAW_EXTERNAL_BRAIN_ROUTER` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf` -> `set_true` (confidence `high`; raw value redacted)
 
 ### External model / OpenRouter path (`external_model_openrouter_path`)
 
 - Flag/config: `OPENCLAW_FREEFORM_CLOUD`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`
 - Default state: `fail_closed/no_external_call`
-- Current state if verifiable: code requires explicit cloud flag, configured model/key, and safety eligibility; secret values and production env were not inspected
-- Production state: `unknown_not_read_from_env_files_or_services`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `not_run_live`
 - Risk level: `high`
@@ -513,12 +521,13 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `docs/operations/OPENROUTER_KEY_STORAGE.md`, `docs/planning/OPENCLAW_LANE_A_OPENROUTER_SCOUT_BACKLOG.md`
 - Evidence refs: `protected_generate.py:OPENCLAW_FREEFORM_CLOUD`, `chief_llm.py:OPENROUTER_API_KEY`, `chief_llm.py:_external_model_configured`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_FREEFORM_CLOUD` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### External-model packet safety policy (`external_model_packet_policy`)
 
@@ -542,20 +551,20 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:external_model_packet_policy`, `chief_llm.py:external_model_allowed`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### External shadow LM config (`external_shadow_lm_config`)
 
 - Flag/config: `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
 - Default state: `shadow_only/no_production_authority`
-- Current state if verifiable: shadow-only config records redacted credential presence but grants no provider call authority
-- Production state: `not_enabled_by_this_register; credential presence not inspected`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `shadow_only_no_live_canary`
 - Risk level: `low`
@@ -571,20 +580,21 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `external_shadow_provider_config.py:AUTHORITY_BOUNDARY`, `external_shadow_provider_config.py:ExternalShadowProviderConfigRecord`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Front-door model profile (`frontdoor_model_profile`)
 
 - Flag/config: `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`
 - Default state: `off`
-- Current state if verifiable: canary failed 3/3 before model-fit repair; recanary required before this register grants any activation authority
-- Production state: `live process may have front-door profile env set, but this register treats that as runtime context only; activation authority remains false until recanary evidence is current`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
 - Gate stage: `canary`
 - Canary status: `recanary required; prior canary failed 3/3 before model-fit repair`
 - Risk level: `medium`
@@ -600,12 +610,18 @@ Live-state evidence:
 - Tests: `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/04_frontdoor_canary_decision.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:_frontdoor_model_profile_flag_enabled`, `protected_generate.py:_frontdoor_ollama_options`, `protected_generate.py:_frontdoor_keep_alive`, `chief_llm.py:select_frontdoor_model`, `maestro_cassandra_responder.py:664 (live caller of protected_generate_with_receipt)`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`, `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/05_frontdoor_recanary_activation.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_recanary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: live source verifies this capability/config is active; this does not grant new activation authority
+- Finding: `OPENCLAW_FRONTDOOR_MODEL_PROFILE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Related finding: `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf` -> `set_other_redacted` (confidence `high`; raw value redacted)
+- Related finding: `OPENCLAW_FRONTDOOR_NUM_CTX` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf` -> `set_other_redacted` (confidence `high`; raw value redacted)
+- Related finding: `OPENCLAW_FRONTDOOR_NUM_GPU` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf` -> `set_other_redacted` (confidence `high`; raw value redacted)
+- Related finding: `OPENCLAW_FRONTDOOR_KEEP_ALIVE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf` -> `set_other_redacted` (confidence `high`; raw value redacted)
+- Related finding: `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf` -> `set_other_redacted` (confidence `high`; raw value redacted)
 
 ### Gated email send rail (`gated_email_send_rail`)
 
@@ -629,12 +645,12 @@ Live-state evidence:
 - Tests: `tests/test_gated_email_send_adapter.py`
 - Audits: none recorded
 - Evidence refs: `gated_email_send_adapter.py:AUTHORITY_BOUNDARY`, `tests/test_gated_email_send_adapter.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Polish Loop git task guard (`git_task_guard`)
 
@@ -658,20 +674,20 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `polish_loop/git_task_guard.sh:audit reference`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Human-in-the-loop pending action pipeline (`hitl_pipeline`)
 
 - Flag/config: `HITL_ENABLED`, `HITL_FLAG_PATH`
 - Default state: `off`
-- Current state if verifiable: built but intentionally off; pending action mutation is a high-risk action surface
-- Production state: `not_enabled_by_this_register; live state requires redacted operator verification`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `not_run_live`
 - Risk level: `high`
@@ -687,12 +703,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `hitl_pending_store.py:is_hitl_enabled`, `hitl_pending_action.py:_hitl_enabled`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `HITL_ENABLED` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Governed interactive 8B keep-warm timer (`interactive_8b_keepwarm_timer`)
 
@@ -716,20 +733,20 @@ Live-state evidence:
 - Tests: `tests/test_openclaw_8b_keepwarm.py`, `tests/test_local_model_governance.py`
 - Audits: `/home/openclaw/Operator/to-codex/FABLE-CONCUR-KEEPWARM-GO-PROMOTE-20260716.md`, `/home/openclaw/Operator/from-codex/SOL-8B-KEEPWARM-PREPROMOTE-20260716.md`
 - Evidence refs: `/home/openclaw/.openclaw/receipts/openclaw_8b_keepwarm_latest.json`, `systemctl:user:openclaw-8b-keepwarm.timer`, `commit:ffb5543e`, `synthetic_receipt:/tmp/openclaw_8b_keepwarm_synthetic_defer_20260716T1914.json`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Interpreter-LM (`interpreter_lm`)
 
 - Flag/config: `OPENCLAW_INTERPRETER_LM`
 - Default state: `off`
-- Current state if verifiable: code default off; activation sprint keeps Interpreter-LM queued for repair because processor wiring is blocked and front-door model-fit canary must pass first
-- Production state: `not_enabled_by_this_task; production activation prohibited`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
 - Gate stage: `intentionally_off`
 - Canary status: `queued_for_repair; task-013 blocked; front-door model-fit recanary required first`
 - Risk level: `medium`
@@ -745,12 +762,13 @@ Live-state evidence:
 - Tests: `tests/test_continuity_stamp.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/02_interpreter_lm_decision.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
 - Evidence refs: `interpreter_lm.py:_interpreter_enabled`, `tests/test_continuity_stamp.py:interpreter flag test coverage`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/02_interpreter_lm_decision.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: live source verifies this capability/config is active; this does not grant new activation authority
+- Finding: `OPENCLAW_INTERPRETER_LM` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf` -> `set_true` (confidence `high`; raw value redacted)
 
 ### Legal Sealed ingestion (`legal_sealed_ingestion`)
 
@@ -774,20 +792,20 @@ Live-state evidence:
 - Tests: `tests/test_alternative_methods.py`, `tests/test_support_packet.py`, `tests/test_legal_mock_discovery_demo.py`, `tests/test_legal_synthetic_stress_pack.py`
 - Audits: `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md`, `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_MAC_BRIDGE_VALIDATION_PROTOCOL.md`, `docs/planning/openclaw_legal/law_program/LEGAL_VAULT_PATH_CONTRACT.md`
 - Evidence refs: `legal/local_capability_policy.py`, `legal/path_guard.py`, `apps/legal-console-spike/src-tauri/src/run.rs:synthetic_only`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### LLM diagnostics logging (`llm_diagnostics_logging`)
 
 - Flag/config: `OPENCLAW_LLM_DIAGNOSTICS`
 - Default state: `enabled_by_default`
-- Current state if verifiable: already-on internal observability; no external action or activation authority
-- Production state: `enabled_verified_by_code_default_and_opus_decision`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `operator_approved_live`
 - Canary status: `not_applicable_internal_observability`
 - Risk level: `low`
@@ -803,20 +821,21 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:_diagnostics_enabled`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_LLM_DIAGNOSTICS` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### LM1 shared request seam (`lm1_shared_seam`)
 
 - Flag/config: `OPENCLAW_LM1_SHARED_SEAM`
 - Default state: `default-off/canary-required`
-- Current state if verifiable: shared LM1 seam is built but must prove live-fire receipt use before remaining live-on
-- Production state: `not_enabled_by_this_register; live reconciliation may verify a flag but grants no activation authority`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
 - Gate stage: `canary`
 - Canary status: `receipt counter required; zero live-fire receipts should be reported to Fable for flip-off decision`
 - Risk level: `medium`
@@ -832,12 +851,14 @@ Live-state evidence:
 - Tests: `tests/test_interpreter_lm_integration.py`, `tests/test_openclaw_request_processor.py`, `tests/test_activation_gate_register.py`
 - Audits: `/home/openclaw/Operator/from-codex/79-shared-seam-lm1-consolidation-RESULT.md`
 - Evidence refs: `openclaw_request_processor.py:_build_lm1_shared_request_seam`, `openclaw_request_processor.py:_try_interpreter_brain_divert`, `openclaw_request_processor.py:lm1_shared_seam_counter`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: live source verifies this capability/config is active; this does not grant new activation authority
+- Finding: `OPENCLAW_LM1_SHARED_SEAM` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Related finding: `OPENCLAW_INTERPRETER_LM` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf` -> `set_true` (confidence `high`; raw value redacted)
 
 ### Advisory LM consult spine (`lm_consult_spine`)
 
@@ -861,20 +882,20 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: none recorded
 - Evidence refs: `openclaw_lm_consult_spine.py:GENERIC_ENABLE_ENV`, `openclaw_lm_consult_spine.py:AUTHORITY_FALSE`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Maestro brain live (`maestro_brain_live`)
 
 - Flag/config: `OPENCLAW_MAESTRO_BRAIN_LIVE`
 - Default state: `enabled_by_default_outside_test_mode`
-- Current state if verifiable: already-on runtime lane per Opus decision; disabled under TEST_MODE and does not grant new activation authority
-- Production state: `enabled_verified_by_opus_decision; this catalog task did not inspect live services`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `operator_approved_live`
 - Canary status: `already_live_watch_timeout_lane`
 - Risk level: `medium`
@@ -890,12 +911,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:_maestro_brain_live_enabled`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_MAESTRO_BRAIN_LIVE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Model-selection policy contract (`model_selection_policy_contract`)
 
@@ -919,20 +941,20 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `model_selection_policy_contract.py:NO_AUTHORITY_FLAGS`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Nemotron provider (`nemotron_provider`)
 
 - Flag/config: `NVIDIA_API_KEY`, `NEMOTRON_URL`, `NEMOTRON_MODEL`
 - Default state: `provider_config_required/fail_closed`
-- Current state if verifiable: external provider path exists but is intentionally off for live use without policy-safe caller and credentials
-- Production state: `not_enabled_by_this_register; credential presence not inspected`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `not_run_live`
 - Risk level: `high`
@@ -948,12 +970,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:nemotron_call`, `chief_llm.py:_nemotron_api_key`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `NVIDIA_API_KEY` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Niles album evidence intake boundary (`niles_album_evidence_intake_boundary`)
 
@@ -977,20 +1000,20 @@ Live-state evidence:
 - Tests: `tests/test_niles_album_evidence_intake_boundary.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `niles_album_evidence_intake_boundary.py:NO_AUTHORITY_FLAGS`, `tests/test_niles_album_evidence_intake_boundary.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Ollama model defaults (`ollama_model_defaults`)
 
 - Flag/config: `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`
 - Default state: `enabled_by_code_default_qwen3_8b`
-- Current state if verifiable: already-on local model default lane; model-fit repair remains needed for strong/deep references
-- Production state: `enabled_verified_by_code_default_and_opus_decision`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `operator_approved_live`
 - Canary status: `already_local_default; model_fit_repair_pending`
 - Risk level: `medium`
@@ -1006,20 +1029,21 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:OLLAMA_MODEL`, `chief_llm.py:OLLAMA_MODEL_DEEP`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_OLLAMA_MODEL` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### OpenAI adapter stub (`openai_adapter_stub`)
 
 - Flag/config: `OPENAI_API_KEY`, `OpenAIConsultAdapter`
 - Default state: `stub_unavailable`
-- Current state if verifiable: adapter exists only as a hard unavailable stub; no live OpenAI provider path is enabled
-- Production state: `not_enabled_by_this_register; credential presence not inspected`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `blocked`
 - Canary status: `not_applicable_stub`
 - Risk level: `high`
@@ -1035,20 +1059,21 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `openclaw_lm_consult_spine.py:OpenAIConsultAdapter`, `openclaw_lm_consult_spine.py:adapter_stub_not_live`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENAI_API_KEY` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Packet delta receipt rail (`packet_delta_receipts`)
 
 - Flag/config: `OPENCLAW_PACKET_DELTA`
 - Default state: `default-off/register-only`
-- Current state if verifiable: packet delta receipts are a built spine candidate from task 100 but remain descriptive until Fable promotes and verifies wiring
-- Production state: `not_enabled_by_this_register; live reconciliation may verify a flag but grants no activation authority`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `not_run_live; requires Fable review of task-100 wiring before runtime use`
 - Risk level: `medium`
@@ -1064,20 +1089,21 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`, `tests/test_agent_conversation_handoff_step_packet_contract.py`
 - Audits: `/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md`
 - Evidence refs: `Operator/from-codex/100-packet-engine-spine-RESULT.md`, `activation_gate_register.py:packet_delta_receipts`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_PACKET_DELTA` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Packet engine spine (`packet_engine_spine`)
 
 - Flag/config: `OPENCLAW_PACKET_ENGINE`
 - Default state: `default-off/register-only`
-- Current state if verifiable: packet engine spine is a built candidate from task 100 but this register does not wire or enable it
-- Production state: `not_enabled_by_this_register; live reconciliation may verify a flag but grants no activation authority`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `not_run_live; requires Fable review of task-100 wiring before runtime use`
 - Risk level: `medium`
@@ -1093,20 +1119,21 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`, `tests/test_packet_sqlite_flip.py`
 - Audits: `/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md`
 - Evidence refs: `Operator/from-codex/100-packet-engine-spine-RESULT.md`, `activation_gate_register.py:packet_engine_spine`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_PACKET_ENGINE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Packet-source SQLite flip (`packet_source_sqlite_flip`)
 
 - Flag/config: `OPENCLAW_PACKET_SOURCE`
 - Default state: `flat/default`
-- Current state if verifiable: LIVE: OPENCLAW_PACKET_SOURCE=sqlite verified on the processor live env 2026-06-28 (flip.conf drop-in)
-- Production state: `ENABLED (sqlite) on the processor service; /proc live env confirmed`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
 - Gate stage: `canary`
 - Canary status: `canary/live verification recorded; does not grant activation authority`
 - Risk level: `medium`
@@ -1122,12 +1149,14 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `maestro_context_packet.py:OPENCLAW_PACKET_SOURCE`, `activation_gate_register.py:continuity related runtime context`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: live source verifies this capability/config is active; this does not grant new activation authority
+- Finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf` -> `set_sqlite` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf` -> `set_sqlite` (confidence `high`; raw value redacted)
 
 ### Polish Loop factory mode (`polish_loop_factory_mode`)
 
@@ -1151,20 +1180,20 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_self_scaling.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
 - Evidence refs: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md:10-point switch criteria`, `polish_loop/orchestrator.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`)
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`
 - Default state: `default-off`
-- Current state if verifiable: bridge is built as a default-off candidate to reconcile legacy file-loop results with the SQLite Control Plane ledger
-- Production state: `not_enabled_by_this_task; production activation prohibited`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `synthetic_only; canary required before runtime activation`
 - Risk level: `medium`
@@ -1180,20 +1209,21 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_file_ledger_reconciliation.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_IMPL_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
 - Evidence refs: `polish_loop/orchestrator.py:reconcile_file_loop_result_with_ledger`, `tests/test_polish_loop_file_ledger_reconciliation.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Polish Loop local builder bridge (`polish_loop_local_builder_bridge`)
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`
 - Default state: `candidate default-off; not present in this base branch`
-- Current state if verifiable: ACTIVATED 2026-06-28: enabled in the polish-loop cron after Opus verification (37 bridge tests + contained end-to-end admit->build->VERIFYING->accept->DONE)
-- Production state: `ENABLED in crontab via env OPENCLAW_POLISH_LOOP_LOCAL_BUILDER=1 on the */5 orchestrator --once line`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `synthetic_only; canary required before runtime activation`
 - Risk level: `high`
@@ -1209,20 +1239,21 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_closure_bridge.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
 - Evidence refs: `polish_loop/worker_runtime.py:run_local_builder_worker`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`)
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`
 - Default state: `planned/default-off`
-- Current state if verifiable: planned default-off size/type/risk router record from task-012; catalog-only here and no runtime wiring in this branch
-- Production state: `not_enabled_by_this_task; production activation prohibited`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `planned_synthetic_only; queued_for_repair/integration; canary required before runtime activation`
 - Risk level: `medium`
@@ -1238,20 +1269,21 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`, `tests/test_polish_loop_size_routing.py`, `tests/test_polish_loop_size_router_wire.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
 - Evidence refs: `polish_loop/task_routing.py:classify_task_routing`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`)
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`
 - Default state: `default-off`
-- Current state if verifiable: size/type/risk routing is built as a default-off candidate to classify ledger tasks before dispatchability
-- Production state: `not_enabled_by_this_task; production activation prohibited`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `synthetic_only; canary required before runtime activation`
 - Risk level: `medium`
@@ -1267,20 +1299,21 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_size_router_wire.py`, `tests/test_polish_loop_size_routing.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
 - Evidence refs: `polish_loop/control_plane.py:SIZE_ROUTER_FLAG`, `polish_loop/task_routing.py:classify_task_routing`, `tests/test_polish_loop_size_router_wire.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`)
 
 - Flag/config: `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`
 - Default state: `default-off`
-- Current state if verifiable: ACTIVATED 2026-06-28: enabled in the polish-loop cron alongside the local-builder bridge; materializes the deterministic task package the builder consumes (fail-closed on missing fields)
-- Production state: `ENABLED in crontab via env OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1=1 on the */5 orchestrator --once line`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
 - Canary status: `synthetic_only; canary required before runtime activation`
 - Risk level: `medium`
@@ -1296,20 +1329,21 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_task_package_materialization.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
 - Evidence refs: `polish_loop/worker_runtime.py:build_task_package_markdown`, `polish_loop/orchestrator.py:write_phase_c_fix_directive`, `tests/test_polish_loop_task_package_materialization.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### protected_generate Ollama timeouts (`protected_generate_ollama_timeouts`)
 
 - Flag/config: `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`
 - Default state: `enabled_by_safe_defaults`
-- Current state if verifiable: already-on internal timeout knobs with safe defaults; they tune bounded local generation behavior only
-- Production state: `enabled_verified_by_code_default_and_opus_decision`
-- Live production state: `not_applicable`
+- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
+- Production state: `unset_default_off`
+- Live production state: `unset_default_off`
 - Gate stage: `operator_approved_live`
 - Canary status: `not_applicable_internal_tuning`
 - Risk level: `low`
@@ -1325,12 +1359,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `protected_generate.py:OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
-- Status: `not_applicable`
-- Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Status: `unset_default_off`
+- Confidence: `high`
+- Notes: primary flag/config was absent from inspected sources and defaults off
+- Finding: `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`)
 
@@ -1354,12 +1389,12 @@ Live-state evidence:
 - Tests: `tests/test_runtime_activation_gate.py`
 - Audits: none recorded
 - Evidence refs: `scripts/check_runtime_activation_gate.py:build_activation_gate_report`, `tests/test_runtime_activation_gate.py`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ### Walk-away autonomy mode (`walk_away_autonomy_mode`)
 
@@ -1383,12 +1418,12 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `autonomy_mode.py:_default_state`, `autonomy_mode.py:cmd_enable`
-- Last verified at: `2026-06-26T00:00:00-04:00`
+- Last verified at: `2026-07-16T22:34:41-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
-- Notes: live environment reconciliation was not requested for this register generation
+- Notes: no whitelisted live variable is mapped to this capability
 
 ## Flag Detection
 
@@ -1413,7 +1448,7 @@ Live-state evidence:
 - `OPENCLAW_CONTINUITY_CAPSULE`: `found` in `activation_gate_register.py`, `maestro_context_packet.py`, `maestro_listener.py`, `openclaw_request_processor.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_CONTROL_PLANE_EMIT`: `found` in `activation_gate_register.py`, `polish_loop/pc4_heal_emitter.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_ENABLE_LM_CONSULTS`: `found` in `activation_gate_register.py`, `openclaw_lm_consult_spine.py`
-- `OPENCLAW_EXTERNAL_BRAIN_ROUTER`: `found` in `activation_gate_register.py`, `tests/test_activation_gate_register.py`
+- `OPENCLAW_EXTERNAL_BRAIN_ROUTER`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_protected_generate.py`
 - `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`: `found` in `activation_gate_register.py`, `external_shadow_provider_config.py`
 - `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`: `found` in `activation_gate_register.py`, `external_shadow_provider_config.py`
 - `OPENCLAW_EXTERNAL_MODEL`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_chief_llm_router.py`
@@ -1458,18 +1493,35 @@ Live-state evidence:
 
 ## Live Environment Reconciliation
 
-- Enabled for this generation: `no`
-- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_LM1_SHARED_SEAM`, `OPENCLAW_PACKET_DELTA`, `OPENCLAW_PACKET_ENGINE`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `OPENAI_API_KEY`, `OPENCLAW_MAESTRO_BRAIN_LIVE`, `OPENCLAW_LLM_DIAGNOSTICS`, `HITL_ENABLED`, `OPENCLAW_ACTION_RUNTIME`, `OPENCLAW_CONTROL_PLANE_EMIT`, `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`, `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`, `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`, `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
-- Packet source runtime context: `not_applicable`
+- Enabled for this generation: `yes`
+- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_LM1_SHARED_SEAM`, `OPENCLAW_PACKET_DELTA`, `OPENCLAW_PACKET_ENGINE`, `OPENCLAW_EXTERNAL_BRAIN_ROUTER`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `OPENAI_API_KEY`, `OPENCLAW_MAESTRO_BRAIN_LIVE`, `OPENCLAW_LLM_DIAGNOSTICS`, `HITL_ENABLED`, `OPENCLAW_ACTION_RUNTIME`, `OPENCLAW_CONTROL_PLANE_EMIT`, `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`, `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`, `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`, `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
+- Packet source runtime context: `enabled_verified`
+- Packet source finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf` -> `set_sqlite`
+- Packet source finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf` -> `set_sqlite`
 
 Sources inspected:
-- none recorded
+- `process_env` `current_process_env`: `inspected` (only whitelisted variable names were checked from the current process environment)
+- `systemd_user_unit` `/home/openclaw/.config/systemd/user/maestro-listener.service`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_unit` `/home/openclaw/.config/systemd/user/openclaw-request-response.service`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 
 Sources not inspected:
-- `live_env_reconciliation` `all_live_sources`: not requested for this deterministic generation
+- `systemctl_user_show_environment` `systemctl --user show ... -p Environment`: not used because it can dump non-whitelisted environment values
+- `secret_env_file` `.chief.env and producer.env`: not read wholesale; secret-bearing env files require operator-approved whitelisted grep if needed
 
 ## Evidence Gaps
 
-- Missing repository evidence files referenced by register: `brain_dump_parser.py`, `polish_loop/git_task_guard.sh`
-- Production env/service state: `not inspected by this task`
+- Missing repository evidence files referenced by register: none recorded
+- Production env/service state: `redacted live reconciliation enabled`
 - Feature activation performed by this task: `no`
