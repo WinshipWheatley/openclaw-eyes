@@ -80,7 +80,14 @@ def test_confirmed_refresh_invokes_capability_reconciler_once(tmp_path: Path, mo
 
     result = refresh.refresh(ledger)
 
-    assert calls == [{"ledger_path": ledger, "confirm": True}]
+    assert calls == [
+        {
+            "ledger_path": ledger,
+            "confirm": True,
+            "receipt_path": tmp_path / "capability_ledger_reconciler_receipt.json",
+            "attention_path": tmp_path / "capability_ledger_drift_attention.json",
+        }
+    ]
     assert result["capability_reconciliation"] == {
         "status": "CONFIRMED",
         "batch_id": "capability-reconcile:test",

@@ -97,9 +97,16 @@ def refresh(ledger: Path) -> dict:
         stamp.commit()
     finally:
         stamp.close()
+    capability_projection_paths: dict[str, Path] = {}
+    if ledger.resolve(strict=False) != DEFAULT_LEDGER.resolve(strict=False):
+        capability_projection_paths = {
+            "receipt_path": ledger.parent / "capability_ledger_reconciler_receipt.json",
+            "attention_path": ledger.parent / "capability_ledger_drift_attention.json",
+        }
     capability_result = capability_ledger_reconciler.reconcile_capabilities(
         ledger_path=ledger,
         confirm=True,
+        **capability_projection_paths,
     )
     capability_summary = {
         key: capability_result.get(key)
