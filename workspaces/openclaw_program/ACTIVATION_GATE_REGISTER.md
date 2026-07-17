@@ -26,11 +26,11 @@ This register is descriptive only. It does not enable features, edit production 
 
 ## Summary
 
-- Total capabilities registered: `51`
+- Total capabilities registered: `54`
 - Verified enabled/live: `continuity_capsule`, `external_brain_router`, `fleet_voice_boundary`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Activation allowed now: none recorded
 - Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
-- Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
+- Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `mac_codex_desktop_seat_auto_resume`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 - Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `packet_delta_receipts`, `packet_engine_spine`, `polish_loop_file_ledger_bridge`, `polish_loop_local_builder_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
 - Unknown production state: `agent_package_preview_contract`, `cassandra_telegram_delivery`, `computer_use_worker_gateway`, `draft_only_email_adapter`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
@@ -63,13 +63,16 @@ This register is descriptive only. It does not enable features, edit production 
 | Human-in-the-loop pending action pipeline (`hitl_pipeline`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | define a synthetic-only pending-action canary before any live enablement |
 | Governed interactive 8B keep-warm timer (`interactive_8b_keepwarm_timer`) | `operator_approved_live` | `not_applicable` | enabled 2026-07-16; governed timer keeps the operator-bound 8B resident without evicting or preempting other work | no | after an overnight idle interval, record first-touch latency under the warm threshold; keep the existing GPU health watcher as the latency observer |
 | Interpreter-LM (`interpreter_lm`) | `intentionally_off` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | unblock task-013 wiring repair, review task-014 model-fit recipe, then run contained Interpreter-LM/front-door canaries before any live activation |
-| Immutable invoice-send class waist and Cassandra PREPARED transaction path (`invoice_send_class_waist`) | `operator_approved_live` | `not_applicable` | deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false | no | monitor PREPARED receipts; keep provider draft, approval, send, money, and workbook gates closed until their later waves |
+| Immutable invoice-send class waist and Cassandra transaction lifecycle path (`invoice_send_class_waist`) | `operator_approved_live` | `not_applicable` | deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false | no | monitor the sole finalized PREPARED receipt; keep provider draft, approval, send, money, and workbook gates closed until their later waves |
 | Canonical invoice source-workbook and finalized-artifact locator (`invoice_source_workbook_locator`) | `operator_approved_live` | `not_applicable` | the deployed W1 owner selects one immutable source by content hash and publishes into the existing manifest-first proof path | no | keep SEND_HOLD and downstream provider-draft/send gates closed until their separately accepted waves |
 | Trusted Excel invoice verification and finalization owner (`invoice_workbook_verification_finalizer`) | `operator_approved_live` | `not_applicable` | the deployed owner repairs an isolated workbook copy, runs Excel full rebuild, verifies caches/totals/formulas/semantics, and atomically publishes one finalized package | no | keep SEND_HOLD active; use the finalized artifact only for review until later provider/Guardian waves are accepted |
 | Legal Sealed ingestion (`legal_sealed_ingestion`) | `blocked` | `not_applicable` | local legal policies and console bridge are synthetic/local-only; real sealed/private ingestion remains blocked | no | complete legal authorization and sealed-ingestion design before any implementation or test with real material |
 | LLM diagnostics logging (`llm_diagnostics_logging`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep as internal read-only observability; do not expose secrets in logs |
 | LM1 shared request seam (`lm1_shared_seam`) | `canary` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | watch lm1_shared_seam_counter; if used_count stays zero under live traffic, ask Fable whether to flip the flag off |
 | Advisory LM consult spine (`lm_consult_spine`) | `intentionally_off` | `not_applicable` | advisory-only consult spine is built; provider credentials/config and production env were not inspected | no | keep advisory-only and record any provider probe evidence separately without exposing credentials |
+| Mac Codex Desktop bridge event receiver (`mac_codex_desktop_event_receiver`) | `operator_approved_live` | `not_applicable` | one launchd-owned kqueue receiver detects new desktop missions, appends its mission ledger, and atomically publishes honest bridge delivery notices | no | monitor notice and ACK latency; keep auto-resume separately blocked until a documented Codex Desktop endpoint exists |
+| Mac Codex Desktop seat auto-resume (`mac_codex_desktop_seat_auto_resume`) | `blocked` | `not_applicable` | auto-resume is intentionally separate from bridge file detection and delivery-notice receipt metadata | no | revisit only when Codex Desktop exposes a documented, seat-correct resume endpoint |
+| Mac selected-invoice PDF export helper (`mac_selected_invoice_pdf_export_helper`) | `operator_approved_live` | `not_applicable` | the current-base helper is installed at the stable owner path and atomically publishes only a verified selected-invoice PDF | no | keep SEND_HOLD and all provider/send/money gates closed; recanary after any bundle, source, or identity-baseline change |
 | Maestro brain live (`maestro_brain_live`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep watching model-fit and timeout behavior; do not change this flag in this task |
 | Model-selection policy contract (`model_selection_policy_contract`) | `intentionally_off` | `not_applicable` | metadata-only contract exists with no runtime/model/provider authority | no | keep as metadata; future runtime policy wiring needs a separate default-off task |
 | Nemotron provider (`nemotron_provider`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep off until external egress policy and canary evidence are recorded |
@@ -870,15 +873,15 @@ Live-state evidence:
 - Notes: live source verifies this capability/config is active; this does not grant new activation authority
 - Finding: `OPENCLAW_INTERPRETER_LM` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf` -> `set_true` (confidence `high`; raw value redacted)
 
-### Immutable invoice-send class waist and Cassandra PREPARED transaction path (`invoice_send_class_waist`)
+### Immutable invoice-send class waist and Cassandra transaction lifecycle path (`invoice_send_class_waist`)
 
 - Flag/config: `Cassandra objective route; provider draft/send authority always false in W0`
 - Default state: `fail_closed_prepare_only`
 - Current state if verifiable: deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false
-- Production state: `Cassandra and request-response owners restarted on the production commits; exact front-door canary created one PREPARED row and replayed idempotently`
+- Production state: `the W0 provisional row is SUPERSEDED by append-only decision 46aefafd5e78; finalized W1 transaction 495069a26823 is the sole Live Arts July PREPARED obligation`
 - Live production state: `not_applicable`
 - Gate stage: `operator_approved_live`
-- Canary status: `deployed no-send front-door canary passed; canonical transaction invoice-send-tx:2bd8efb929ecbed5376b2204; second exact request idempotent; five negative probes fail-local; provider/draft/send/money/workbook calls 0`
+- Canary status: `W0 provisional 2bd8efb929ec SUPERSEDED by decision 46aefafd5e78; finalized transaction 495069a26823 is the sole Live Arts July PREPARED row; same-obligation conflicts 0; exact replay idempotent; provider/draft/send/money/workbook/ledger calls 0`
 - Risk level: `high`
 - Owner: `Cassandra / PC Codex Desktop`
 - Activation allowed now: `no`
@@ -887,12 +890,12 @@ Live-state evidence:
 - Enabled by: operator W0 GO plus production deploy, Cassandra restart, and immutable no-send front-door canary
 - Disabled by: remove the structured invoice packet route; existing non-W0 Cassandra routes remain available
 - Rollback: revert the W0 integration commit and restart Cassandra; no provider draft or send state requires cleanup
-- Next required step: monitor PREPARED receipts; keep provider draft, approval, send, money, and workbook gates closed until their later waves
+- Next required step: monitor the sole finalized PREPARED receipt; keep provider draft, approval, send, money, and workbook gates closed until their later waves
 - Source files: `invoice_send_transaction.py`, `cassandra_operator_objective_loop.py`, `cassandra_custom_tools.py`, `operator_conversation_router.py`, `invoice_cockpit_ops.py`
 - Tests: `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`, `tests/test_invoice_cockpit_ops.py`, `tests/test_fleet_voice_live_boundary.py`
 - Audits: `/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md`, `/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md`
-- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md`, `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`
-- Last verified at: `2026-07-17T12:19:10-04:00`
+- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md`, `/home/openclaw/Operator/from-codex/W1-LAMD-PROVISIONAL-SUPERSESSION-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json`, `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`
+- Last verified at: `2026-07-17T15:00:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1070,6 +1073,93 @@ Live-state evidence:
 - Audits: none recorded
 - Evidence refs: `openclaw_lm_consult_spine.py:GENERIC_ENABLE_ENV`, `openclaw_lm_consult_spine.py:AUTHORITY_FALSE`
 - Last verified at: `2026-07-17T10:48:00-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: no whitelisted live variable is mapped to this capability
+
+### Mac Codex Desktop bridge event receiver (`mac_codex_desktop_event_receiver`)
+
+- Flag/config: `/Volumes/openclaw_e/codex_mac_bridge/to-codex-mac-desktop`, `/Volumes/openclaw_e/codex_mac_bridge/from-codex-mac-desktop`, `com.openclaw.codex-desktop-bridge-receiver`
+- Default state: `event_driven_fail_closed_no_historical_replay`
+- Current state if verifiable: one launchd-owned kqueue receiver detects new desktop missions, appends its mission ledger, and atomically publishes honest bridge delivery notices
+- Production state: `launchd state=running with active count 1 after restart; the fresh mission produced one automatic notice and one exact ACK with zero historical replay`
+- Live production state: `not_applicable`
+- Gate stage: `operator_approved_live`
+- Canary status: `PASS: 9 tests; launchd running active=1 runs=2; kqueue event 1; atomic notice 1 in 90ms; exact ACK 1 in 58835ms; processed 1; historical replay 0; business dispatch 0`
+- Risk level: `medium`
+- Owner: `Mac Sol / Mac Codex Desktop bridge lane`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: only roll back after a launchd ownership, kqueue detection, notice publication, ACK binding, or historical-replay regression
+- Enabled by: Fable-approved bridge-notice endpoint plus one loaded launchd kqueue owner and fresh automatic notice/ACK proof
+- Disabled by: bootout only com.openclaw.codex-desktop-bridge-receiver; preserve support files, notices, and the append-only ledger
+- Rollback: bootout only this owner and preserve all support files, notices, and append-only evidence
+- Next required step: monitor notice and ACK latency; keep auto-resume separately blocked until a documented Codex Desktop endpoint exists
+- Source files: `/Users/hwinshipwheatley/Library/Application Support/OpenClaw/DesktopBridgeWake/desktop_bridge_receiver.py`, `/Users/hwinshipwheatley/Library/Application Support/OpenClaw/DesktopBridgeWake/config.json`, `/Users/hwinshipwheatley/Library/LaunchAgents/com.openclaw.codex-desktop-bridge-receiver.plist`
+- Tests: `/Users/hwinshipwheatley/Library/Application Support/OpenClaw/DesktopBridgeWake/tests/test_desktop_bridge_receiver.py`, `/private/tmp/openclaw_desktop_receiver_tests_20260717_v3.log`
+- Audits: `/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/FABLE-RULING-SEAT-RECEIVER-ENDPOINT-20260717.md`, `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-DESKTOP-RECEIVER-SLICE-RECEIPT-20260717-V2.md`, `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-ACTIVATION-RECEIPT-20260717-V2.json`, `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/RECEIVER-DELIVERY-NOTICE-w1-desktop-receiver-launchd-canary-20260717.md`
+- Evidence refs: `desktop_bridge_receiver.py sha256=b848c8e376c30c30cf7e967fec42cfd90ee2e891a1a020464099af5f55f065fb`, `config.json sha256=9d01d9893dbd1a45aebdfcd50b326dec9381f973588b4dc3235fedb8904db0ff`, `plist sha256=475959686b28e4e5b51220987d30901795e90672a4e7b36adad770ef83b1a19e`, `receipt_ledger.jsonl sha256=b005f816d12b1cf8ce4d1e3d6b59c67ed1a4867ba4d3774828230399335b0118`, `launchctl capture sha256=598898eb253281cc29787dd79541a592f2ba6be01c7ce11b9bbceea19b068d07`, `delivery notice sha256=ae44e565881bd57eadd518567a26f1f989725b0f204d3475a4bb2ea92fb89e47`
+- Last verified at: `2026-07-17T15:31:15-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: no whitelisted live variable is mapped to this capability
+
+### Mac Codex Desktop seat auto-resume (`mac_codex_desktop_seat_auto_resume`)
+
+- Flag/config: `no endpoint configured`
+- Default state: `blocked_without_verified_endpoint`
+- Current state if verifiable: auto-resume is intentionally separate from bridge file detection and delivery-notice receipt metadata
+- Production state: `no Codex Desktop wake/resume endpoint is configured or active`
+- Live production state: `not_applicable`
+- Gate stage: `blocked`
+- Canary status: `BLOCKED: no endpoint exists; no auto-resume canary claimed`
+- Risk level: `medium`
+- Owner: `Mac Codex Desktop / product endpoint dependency`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: no documented/verified Codex Desktop resume endpoint
+- Enabled by: a future documented and verified Codex Desktop resume endpoint plus explicit canary
+- Disabled by: no endpoint exists
+- Rollback: not applicable; capability is absent and blocked
+- Next required step: revisit only when Codex Desktop exposes a documented, seat-correct resume endpoint
+- Source files: none recorded
+- Tests: none recorded
+- Audits: `/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/FABLE-RULING-SEAT-RECEIVER-ENDPOINT-20260717.md`, `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-ACTIVATION-RECEIPT-20260717-V2.json`
+- Evidence refs: `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-DESKTOP-RECEIVER-SLICE-RECEIPT-20260717.md`
+- Last verified at: `2026-07-17T15:34:24-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: no whitelisted live variable is mapped to this capability
+
+### Mac selected-invoice PDF export helper (`mac_selected_invoice_pdf_export_helper`)
+
+- Flag/config: `com.winship.OpenClawExcelExportHelper`, `/Applications/OpenClawExcelExportHelper.app`, `OPENCLAW_EXCEL_EXPORT_HELPER_APP_PATH`, `/Volumes/openclaw_e/artifacts/invoice_workbooks/helper_jobs`
+- Default state: `installed_on_demand_inert_until_validated_job`
+- Current state if verifiable: the current-base helper is installed at the stable owner path and atomically publishes only a verified selected-invoice PDF
+- Production state: `LaunchServices resolves the installed owner; the exact installed binary passed a real isolated owner canary`
+- Live production state: `not_applicable`
+- Gate stage: `operator_approved_live`
+- Canary status: `SELECTED_INVOICE_ATOMIC_PUBLISH_SUCCEEDED; 337 tests passed; signed helper and full Release builds passed; installed binary SHA 255f1724774a; source unchanged; output 102166 bytes and one page; structure, identity, baseline, and semantic checks passed; provider/send/money/ledger/network actions 0`
+- Risk level: `medium`
+- Owner: `Mac Sol / OpenClaw Mission Control / PC register owner`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: only roll back after an owner-resolution, source-immutability, PDF, identity, semantic, or atomic-publication regression
+- Enabled by: Fable W1 authority plus installed current-base owner and exact real-host owner-binary canary
+- Disabled by: stop launching helper jobs or archive the installed bundle inert; existing evidence remains preserved
+- Rollback: launch no further jobs; archive the bundle inert and restore a verified prior owner if one existed
+- Next required step: keep SEND_HOLD and all provider/send/money gates closed; recanary after any bundle, source, or identity-baseline change
+- Source files: `OpenClaw Mission Controle/Support/ExcelExportHelper/OpenClawPDFPageSlicer.swift`, `OpenClaw Mission Controle/Support/ExcelExportHelper/OpenClawExcelExportJob.swift`, `OpenClawExcelExportHelper/Main.swift`
+- Tests: `OpenClaw Mission ControleTests/OpenClaw_Mission_ControleTests.swift`, `/private/tmp/openclaw-mission-control/logs/validate_debug_unit.log`, `/private/tmp/openclaw-mission-control/logs/validate_excel_export_helper.log`, `/private/tmp/openclaw-mission-control/logs/validate_release_build.log`
+- Audits: `/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/PC-CODEX-W1-MAC-EXPORT-AND-SEAT-RECEIVER-20260717.md`, `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-HELPER-SLICE-RECEIPT-20260717.md`, `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-ACTIVATION-RECEIPT-20260717-V2.json`
+- Evidence refs: `branch=codex-desktop/w1-atomic-selected-invoice-export`, `commit=2f76530f79d1a85c35e3b3a3b9044335c8f60569`, `/Applications/OpenClawExcelExportHelper.app/Contents/MacOS/OpenClawExcelExportHelper sha256=255f1724774a37706be8a5ece0638155f790cdcf4e10966fdb866a08666ed21c`, `/private/tmp/openclaw-w1-selected-invoice-owner-canary-20260717T1505/canary-result.json sha256=8d727ebdbe435b5abeb8f98d77085cdea64b9eafd4fba55aa53383cb072344a1`
+- Last verified at: `2026-07-17T15:11:21-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1635,6 +1725,7 @@ Live-state evidence:
 - `OPENCLAW_CONTINUITY_CAPSULE`: `found` in `activation_gate_register.py`, `maestro_cassandra_responder.py`, `maestro_context_packet.py`, `maestro_listener.py`, `openclaw_request_processor.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_CONTROL_PLANE_EMIT`: `found` in `activation_gate_register.py`, `polish_loop/pc4_heal_emitter.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_ENABLE_LM_CONSULTS`: `found` in `activation_gate_register.py`, `openclaw_lm_consult_spine.py`
+- `OPENCLAW_EXCEL_EXPORT_HELPER_APP_PATH`: `found` in `activation_gate_register.py`
 - `OPENCLAW_EXTERNAL_BRAIN_ROUTER`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_protected_generate.py`
 - `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`: `found` in `activation_gate_register.py`, `external_shadow_provider_config.py`
 - `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`: `found` in `activation_gate_register.py`, `external_shadow_provider_config.py`
@@ -1728,6 +1819,6 @@ Sources not inspected:
 
 ## Evidence Gaps
 
-- Missing repository evidence files referenced by register: none recorded
+- Missing repository evidence files referenced by register: `OpenClaw Mission Controle/Support/ExcelExportHelper/OpenClawExcelExportJob.swift`, `OpenClaw Mission Controle/Support/ExcelExportHelper/OpenClawPDFPageSlicer.swift`, `OpenClaw Mission ControleTests/OpenClaw_Mission_ControleTests.swift`, `OpenClawExcelExportHelper/Main.swift`
 - Production env/service state: `redacted live reconciliation enabled`
 - Feature activation performed by this task: `no`
