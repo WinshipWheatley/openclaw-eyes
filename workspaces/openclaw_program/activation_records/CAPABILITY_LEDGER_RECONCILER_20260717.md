@@ -16,7 +16,9 @@ No second cron, timer, daemon, or model polling loop is introduced.
 - R1 commit: `d0f42443`
 - R2 wiring commit: `690f3e8d`
 - typed-contract owner fix: `4700ffcb`
-- production deploy commits: `3b7790a9`, `745ebc96`, `abdf8200`, `1a7caeea`
+- runtime-owner binding fix: `75d1d96f`
+- live-record commit: `dff7229a`
+- production deploy commits: `3b7790a9`, `745ebc96`, `abdf8200`, `1a7caeea`, `aec7a984`, `c8771392`
 - active owners restarted: `maestro-listener.service`, `openclaw-request-response.service`
 
 ## Production Evidence
@@ -27,10 +29,12 @@ No second cron, timer, daemon, or model polling loop is introduced.
 - Mac bridge: mounted, 86 GiB free, 91% used
 - installed refresh-owner batch: `capability-reconcile:753374209b6299cd719b6bd6`, 172 rows / 172 changed decisions
 - next scheduled snapshot correctly appended one runtime transition for `openclaw-gpu-model-health.service`
-- repeated exact current snapshot: `IDEMPOTENT_REPLAY`, changed 0, decisions 0
+- corrected final production batch: `capability-reconcile:e08ad11b2e06e4de1cd39569`, 172 rows
+- repeated exact final snapshot: `IDEMPOTENT_REPLAY`, changed 0, decisions 0, collector errors 0
 - isolated real-process drift injection: running to dark emitted `REGISTERED_RUNTIME_DARK` and exactly one changed decision
-- deployed Maestro answer: 172 rows, 30 runtime-confirmed on, 21 running/unregistered, 96 registered artifact proofs honestly unknown
+- deployed Maestro answer: 172 rows, 32 runtime-confirmed on, 21 running/unregistered, 96 registered artifact proofs honestly unknown
 - Maestro proof: ledger only; no read model, runtime collection, protected generation, external model, Cassandra handler, or send
+- owner-binding regression proof: unset/off variables cannot inherit the reconciliation-summary list of inspected services
 
 ## Gates
 
