@@ -1,0 +1,29 @@
+{
+  "schema_version": "invoice_candidate_artifact_registry_v0",
+  "generated_at": "2026-07-17T21:26:02+00:00",
+  "candidates": [
+    {
+      "artifact_id": "invoice-candidate:live_arts_md:2026-07:2026-1004:B-job-column-width-fixed",
+      "client_ref": "live_arts_md",
+      "service_period": "2026-07",
+      "invoice_number": "2026-1004",
+      "review_label": "Candidate B with Job column width fixed at 10pt",
+      "status": "verified_review_candidate",
+      "active_for_review": true,
+      "finalized": false,
+      "validation_received": false,
+      "pdf_path": "/home/openclaw/Operator/from-codex/LAMD-JULY-2026-CANDIDATE-B-JOB-COLUMN-WIDTH-FIXED-REPREVIEW-20260717-PC-Codex-Desktop.pdf",
+      "pdf_sha256": "6b1ad7c4678a919db8d691cf6b47513987cb7acdfc67c73a37249b7533a07ccc",
+      "rendered_image_path": "/home/openclaw/Operator/from-codex/LAMD-JULY-2026-CANDIDATE-B-JOB-COLUMN-WIDTH-FIXED-REPREVIEW-20260717-PC-Codex-Desktop.png",
+      "rendered_image_sha256": "71018a717884e49a672bc1562469305bf43b66c22519d08d7013cd754144b18a",
+      "source_receipt_ref": "/home/openclaw/Operator/from-codex/W1-CANDIDATE-B-JOB-COLUMN-WIDTH-FIXED-REPREVIEW-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json"
+    }
+  ],
+  "authority_boundary": {
+    "operator_review_delivery_allowed": true,
+    "artifact_finalization_allowed": false,
+    "provider_draft_allowed": false,
+    "business_send_allowed": false,
+    "money_movement_allowed": false
+  }
+}

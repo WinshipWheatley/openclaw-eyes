@@ -860,6 +860,9 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
     normalized = _normalize(text)
     if not normalized:
         return ("empty", False, "empty_text")
+    artifact_surface_intent = _artifact_surface_intent_class(normalized)
+    if artifact_surface_intent:
+        return (artifact_surface_intent, True, "")
     if _is_hermes_truthful_intent(normalized):
         return ("hermes_truthful_advisory", True, "")
     if _is_recurrence_rule_statement_intent(text):
@@ -1171,6 +1174,12 @@ def _answer_frontdoor_chat_impl(
         session,
         request_key=str((session or {}).get("source_message_id") or text),
     )
+    artifact_surface_intent = _artifact_surface_intent_class(_normalize(text))
+    if artifact_surface_intent:
+        return _artifact_surface_intent_result(
+            artifact_surface_intent,
+            session=session,
+        )
     # Resolve the shared refusal seam before probe-state binding.  A caller's
     # hash/agent-bound pass marker is reused; otherwise this adapter evaluates
     # exactly once and forwards the resulting pass marker to the full typed
@@ -1291,6 +1300,20 @@ def _answer_frontdoor_chat_impl(
 
         def _status_renderer() -> str:
             nonlocal _contract_status_answer
+            if not _explicitly_requests_status(text):
+                _contract_status_answer = {
+                    "one_line_answer": "I couldn't route that question to a grounded answer.",
+                    "plain_summary": (
+                        "I couldn't route that question to a grounded answer. "
+                        "I will not substitute an unrelated status readback; nothing else ran."
+                    ),
+                    "machine_proof": {
+                        "canned_status_mismatch_blocked": True,
+                        "status_intent_mismatch_blocked": True,
+                        "status_renderer_called": False,
+                    },
+                }
+                return str(_contract_status_answer["plain_summary"])
             _contract_status_answer = _build_typed_contract_status_answer(
                 text,
                 agent=agent,
@@ -1580,6 +1603,12 @@ def _answer_frontdoor_chat_impl(
 
     intent_class, allowed, reason = classify_frontdoor_intent(text)
     forwarded_session = filtered_session(session)
+    if intent_class in {
+        "artifact_authenticity_challenge",
+        "surface_message_deletion_request",
+        "artifact_authenticity_and_surface_deletion_request",
+    }:
+        return _artifact_surface_intent_result(intent_class, session=forwarded_session)
     if intent_class == "calendar_or_briefing":
         _cal = _try_calendar(text, forwarded_session)
         if _cal is not None:
@@ -2597,6 +2626,13 @@ def _answer_with_maestro_brain(
         "I don't have that in the current Maestro packet."
     )
     answer_text = _enforce_answer_topic_presentation(answer_text, context_packet)
+    canned_status_mismatch_blocked = False
+    if _is_canned_status_answer(answer_text) and not _explicitly_requests_status(text):
+        answer_text = (
+            "I couldn't route that question to a grounded answer. "
+            "I will not substitute an unrelated status readback; nothing else ran."
+        )
+        canned_status_mismatch_blocked = True
     # ── SELF-IMPROVEMENT LOOP ─────────────────────────────────────────────────
     # If the operator just agreed to an improvement the agent recommended last turn, file it
     # as a REAL build request (-> PROPOSED + Guardian). Otherwise, if they're talking about
@@ -2707,6 +2743,7 @@ def _answer_with_maestro_brain(
             "workflow_package_staged": False,
             "send_hold_boundary_visible": True,
             "claims_trace_to_packet": True,
+            "canned_status_mismatch_blocked": canned_status_mismatch_blocked,
             # Interpreter-LM traceability (advisory only — None/empty when off):
             "interpreter_fact_selection_applied": list(_fact_selection or []),
             "interpreter_fact_selection_used": bool(_fact_selection),
@@ -2833,6 +2870,20 @@ def _is_bare_status_query(text: str) -> bool:
     stripped = str(text or "").strip().rstrip("?!.").strip()
     normalized = _normalize(stripped).replace("'", "")
     return normalized in _BARE_STATUS_PHRASES
+
+
+def _is_canned_status_answer(text: str) -> bool:
+    normalized = " ".join(str(text or "").strip().lower().split())
+    return normalized.startswith("fleet:") and "agents online" in normalized
+
+
+def _explicitly_requests_status(text: str) -> bool:
+    normalized = _normalize(text)
+    return bool(
+        _is_bare_status_query(text)
+        or _is_status_capability_intent(normalized)
+        or _is_system_health_readback_intent(normalized)
+    )
 
 
 def _read_model_stale_days(payload: Mapping[str, Any]) -> int | None:
@@ -3577,6 +3628,81 @@ def _is_date_awareness_intent(text: str) -> bool:
         "the date today",
     )
     return any(phrase in text for phrase in date_phrases)
+
+
+def _is_artifact_authenticity_challenge(text: str) -> bool:
+    artifact_terms = ("artifact", "invoice", "preview", "image", "pdf", "workbook", "export")
+    challenge_terms = (
+        "not an exported",
+        "not exported",
+        "not authentic",
+        "isn't authentic",
+        "is not authentic",
+        "not real",
+        "is that real",
+        "authenticity",
+    )
+    return any(term in text for term in artifact_terms) and any(
+        term in text for term in challenge_terms
+    )
+
+
+def _is_surface_message_deletion_request(text: str) -> bool:
+    return bool(
+        any(term in text for term in ("delete", "remove", "take down"))
+        and any(term in text for term in ("message", "image", "preview", "photo", "telegram", "channel"))
+    )
+
+
+def _artifact_surface_intent_class(text: str) -> str:
+    authenticity = _is_artifact_authenticity_challenge(text)
+    deletion = _is_surface_message_deletion_request(text)
+    if authenticity and deletion:
+        return "artifact_authenticity_and_surface_deletion_request"
+    if authenticity:
+        return "artifact_authenticity_challenge"
+    if deletion:
+        return "surface_message_deletion_request"
+    return ""
+
+
+def _artifact_surface_intent_result(
+    intent_class: str,
+    *,
+    session: Mapping[str, Any] | None,
+) -> MaestroCassandraResult:
+    authenticity = "artifact_authenticity" in intent_class
+    deletion = "surface_deletion" in intent_class
+    lines: list[str] = []
+    if authenticity:
+        lines.append(
+            "You're right to challenge the artifact. I will call an invoice authentic only when "
+            "its source-workbook export and displayed file are hash-verified; a rendered card is only a preview."
+        )
+    if deletion:
+        lines.append(
+            "I recognized the request to remove the surface message, but this turn has no bound owned-message "
+            "deletion receipt and deletion authority is closed, so nothing was deleted."
+        )
+    answer = " ".join(lines)
+    return MaestroCassandraResult(
+        status="ANSWER_READY",
+        intent_class=intent_class,
+        allowed_to_call_handle=False,
+        one_line_answer=_one_line_answer(answer),
+        plain_summary=answer,
+        mac_render_hint=MAC_RENDER_HINT,
+        session_forwarded=filtered_session(session),
+        machine_proof={
+            **_adapter_machine_proof(handle_called=False),
+            "artifact_authenticity_challenge_recognized": authenticity,
+            "surface_message_deletion_request_recognized": deletion,
+            "source_workbook_hash_proof_required": authenticity,
+            "surface_message_deleted": False,
+            "protected_generate_called": False,
+            "external_llm_invoked": False,
+        },
+    )
 
 
 def _is_system_knowledge_intent(text: str) -> bool:

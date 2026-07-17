@@ -39,6 +39,11 @@ _ACTION_PROMISE_PATTERNS = (
         re.IGNORECASE,
     ),
     re.compile(r"\b(?:one\s+sec|gimme\s+a\s+beat|hang\s+tight|lemme\s+think)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:just\s+)?(?:let\s+me\s+know|tell\s+me)\s+when\s+you(?:'re|\s+are)\s+ready\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\bwhen\s+you(?:'re|\s+are)\s+ready\s+to\s+go\b", re.IGNORECASE),
 )
 
 

@@ -20,7 +20,7 @@ def _write_read_models(root: Path) -> dict[str, str]:
     (root / "openclaw_capability_index.json").write_text(
         json.dumps(
             {
-                "generated_at": "2026-07-09T14:54:32+00:00",
+                "generated_at": "2026-07-17T20:44:00+00:00",
                 "generic_capabilities": [
                     {
                         "capability_id": "request_processing",
@@ -45,7 +45,7 @@ def _write_read_models(root: Path) -> dict[str, str]:
     (root / "agent_presence.json").write_text(
         json.dumps(
             {
-                "generated_at": "2026-07-09T14:54:32+00:00",
+                "generated_at": "2026-07-17T20:44:00+00:00",
                 "online_count": 2,
                 "next_safe_move": "Review the staged Maestro lane packet before any runtime action.",
                 "agents": [
@@ -73,7 +73,7 @@ def _write_read_models(root: Path) -> dict[str, str]:
     (root / "chief_status_rail.json").write_text(
         json.dumps(
             {
-                "generated_at": "2026-07-09T14:54:32+00:00",
+                "generated_at": "2026-07-17T20:44:00+00:00",
                 "chief_current_status": "safe_status_read_model_only",
                 "chief_current_proven_role": {
                     "role_summary": "Chief is proven for request-only coordination/status visibility.",

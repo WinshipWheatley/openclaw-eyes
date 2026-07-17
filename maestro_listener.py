@@ -17,6 +17,7 @@ import os
 import re
 import shlex
 import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -54,6 +55,13 @@ DEFAULT_REQUEST_INBOX = Path("/mnt/e/openclaw/mission_control_capture_requests/i
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
 DEFAULT_IMAGE_INTAKE_DIR = Path("/home/openclaw/state/telegram_image_intake/maestro")
 DEFAULT_DEFERRED_IMAGE_MARKER_DIR = Path("/home/openclaw/state/operator_file_metadata_intake/pending_vision")
+DEFAULT_ARTIFACT_RENDER_DIR = Path("/home/openclaw/state/operator_artifact_delivery/rendered")
+DEFAULT_ARTIFACT_DELIVERY_RECEIPT_PATH = Path(
+    "/home/openclaw/generated/receipts/operator_artifact_deliveries.jsonl"
+)
+DEFAULT_VOICE_DELIVERY_RECEIPT_PATH = Path(
+    "/home/openclaw/generated/receipts/agent_voice_deliveries.jsonl"
+)
 DEFAULT_RESPONSE_TIMEOUT_S = 45.0
 DEFAULT_RESPONSE_POLL_INTERVAL_S = 0.25
 
@@ -928,22 +936,6 @@ def reply_text_from_bridge_response(payload: Mapping[str, Any] | None, *, reques
     return _resilient_reply_text(reply, payload=payload, request_id=request_id)
 
 
-# ── Fast "hang on" ack ────────────────────────────────────────────────────────
-# When a reply takes longer than the delay, send a casual acknowledgment so the operator
-# sees it's being worked — the real answer follows. Fast answers cancel it before it
-# fires. Default ON; fail-safe (a failed ack never blocks the real reply).
-# Taste note: NO task-completion framing ("I'll get back to you when it's done") — that
-# reads wrong on a casual message where nothing needs doing. Just a light "hang on".
-# Varied by message content so it isn't the same robotic line every time.
-_FAST_ACK_PHRASES = (
-    "one sec…",
-    "gimme a beat…",
-    "hang tight…",
-    "on it — one moment.",
-    "lemme think on that…",
-)
-
-
 def _reply_only_egress_enabled(env: Mapping[str, Any] | None = None) -> bool:
     e = os.environ if env is None else env
     return str(e.get("OPENCLAW_MAESTRO_REPLY_ONLY", "0")).strip().lower() in (
@@ -954,53 +946,30 @@ def _reply_only_egress_enabled(env: Mapping[str, Any] | None = None) -> bool:
     )
 
 
-def _fast_ack_enabled(env: Mapping[str, Any] | None = None) -> bool:
-    e = os.environ if env is None else env
-    return str(e.get("OPENCLAW_FAST_ACK", "1")).strip().lower() not in (
-        "0", "false", "no", "off", "")
-
-
-def _fast_ack_delay(env: Mapping[str, Any] | None = None) -> float:
-    e = os.environ if env is None else env
+def _append_jsonl(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = (json.dumps(dict(payload), sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    descriptor = os.open(path, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o660)
     try:
-        return max(0.0, float(e.get("OPENCLAW_FAST_ACK_DELAY", "3")))
-    except Exception:
-        return 3.0
+        os.write(descriptor, body)
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
-def _fast_ack_text(env: Mapping[str, Any] | None = None, *, message: str = "") -> str:
-    e = os.environ if env is None else env
-    override = e.get("OPENCLAW_FAST_ACK_TEXT")
-    if override:
-        return str(override)
-    if not message:
-        return _FAST_ACK_PHRASES[0]
-    idx = int(hashlib.sha256(message.encode("utf-8")).hexdigest(), 16) % len(_FAST_ACK_PHRASES)
-    return _FAST_ACK_PHRASES[idx]
+def _voice_receipt_path() -> Path:
+    override = str(os.environ.get("OPENCLAW_VOICE_DELIVERY_RECEIPT_PATH") or "").strip()
+    return Path(override) if override else DEFAULT_VOICE_DELIVERY_RECEIPT_PATH
 
 
-def _bound_fast_ack_text(
+def _fire_agent_voice(
+    text: str,
+    chat_id: int | str | None,
     *,
-    message: str,
-    action_receipt_refs: tuple[str, ...],
-    env: Mapping[str, Any] | None = None,
-):
-    """Validate a delayed acknowledgement against its queued bridge receipt."""
-
-    import action_promise_integrity
-
-    return action_promise_integrity.enforce_action_promise_integrity(
-        _fast_ack_text(env, message=message),
-        speaker_ref="maestro",
-        action_receipt_refs=action_receipt_refs,
-    )
-
-
-def _fire_maestro_voice(text: str, chat_id: int | str | None) -> None:
-    """Fire-and-forget Maestro Kokoro voice note (am_michael), non-blocking + fail-soft.
-    Mirrors the producer/cassandra/chief listeners, which already voice their replies;
-    the Maestro listener was the one reply path never wired for it. Toggle with
-    OPENCLAW_AGENT_VOICE_NOTES=0."""
+    speaker: str,
+    source_request_id: str = "",
+) -> None:
+    """Use the addressed speaker's Kokoro profile through the Maestro carrier."""
     try:
         if os.environ.get("OPENCLAW_AGENT_VOICE_NOTES", "1").strip().lower() not in ("1", "true", "yes"):
             return
@@ -1009,11 +978,50 @@ def _fire_maestro_voice(text: str, chat_id: int | str | None) -> None:
             return
         import agent_voice_sender
 
-        asyncio.get_event_loop().run_in_executor(
-            None, lambda: agent_voice_sender.send_agent_voice_note("maestro", body, chat_id=chat_id)
-        )
+        speaker_ref = str(speaker or "maestro").strip().lower()
+
+        def _send_and_record() -> None:
+            receipt = agent_voice_sender.send_agent_voice_note(
+                speaker_ref,
+                body,
+                chat_id=chat_id,
+                carrier_agent="maestro",
+            )
+            _append_jsonl(
+                _voice_receipt_path(),
+                {
+                    "schema_version": "agent_voice_delivery_receipt_v1",
+                    "source_request_id": source_request_id,
+                    "speaker": receipt.agent,
+                    "carrier": receipt.carrier_agent or "maestro",
+                    "voice": receipt.voice,
+                    "text_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+                    "synthesized": receipt.synthesized,
+                    "delivery_succeeded": receipt.sent,
+                    "delivered_message_id": receipt.delivered_message_id,
+                    "delivered_at": receipt.delivered_at or utc_now(),
+                    "fallback": "words_already_delivered_as_text" if not receipt.sent else "",
+                    "error_class": receipt.error.split(":", 1)[0][:80] if receipt.error else "",
+                },
+            )
+
+        asyncio.get_running_loop().run_in_executor(None, _send_and_record)
     except Exception as exc:  # a voice issue must never break the text reply
-        print(f"[maestro_listener] maestro voice note skipped: {exc.__class__.__name__}", flush=True)
+        print(f"[maestro_listener] agent voice note skipped: {exc.__class__.__name__}", flush=True)
+
+
+def _fire_maestro_voice(
+    text: str,
+    chat_id: int | str | None,
+    *,
+    source_request_id: str = "",
+) -> None:
+    _fire_agent_voice(
+        text,
+        chat_id,
+        speaker="maestro",
+        source_request_id=source_request_id,
+    )
 
 
 def _fleet_receipt_index_path() -> Path:
@@ -1152,6 +1160,159 @@ def _register_maestro_delivered_text_after_delivery(
         )
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _bare_sha256(value: object) -> str:
+    text = str(value or "").strip().lower()
+    return text.removeprefix("sha256:")
+
+
+def _operator_response_disposition(
+    payload: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    detail = payload.get("detail_disclosure")
+    if not isinstance(detail, Mapping):
+        return None
+    disposition = detail.get("operator_response_disposition")
+    return disposition if isinstance(disposition, Mapping) else None
+
+
+def _selected_proof_artifact(payload: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    artifacts = payload.get("proof_artifacts")
+    if not isinstance(artifacts, list) or len(artifacts) != 1:
+        return None
+    artifact = artifacts[0]
+    return artifact if isinstance(artifact, Mapping) else None
+
+
+def _artifact_delivery_receipt_path() -> Path:
+    override = str(os.environ.get("OPENCLAW_ARTIFACT_DELIVERY_RECEIPT_PATH") or "").strip()
+    return Path(override) if override else DEFAULT_ARTIFACT_DELIVERY_RECEIPT_PATH
+
+
+def _verified_telegram_image(
+    artifact: Mapping[str, Any],
+) -> tuple[Path, str, str]:
+    rendered_path = Path(str(artifact.get("rendered_image_path") or ""))
+    rendered_sha = _bare_sha256(artifact.get("rendered_image_sha256"))
+    if rendered_path.is_absolute() and rendered_path.is_file() and rendered_sha:
+        actual = _sha256_file(rendered_path)
+        if actual != rendered_sha:
+            raise RuntimeError("rendered_image_hash_mismatch")
+        return rendered_path, actual, "preverified_render"
+
+    pdf_path = Path(str(artifact.get("bridge_path") or ""))
+    artifact_sha = _bare_sha256(artifact.get("sha256"))
+    if not pdf_path.is_absolute() or not pdf_path.is_file():
+        raise RuntimeError("artifact_pdf_missing")
+    if not artifact_sha or _sha256_file(pdf_path) != artifact_sha:
+        raise RuntimeError("artifact_pdf_hash_mismatch")
+    renderer = shutil.which("pdftoppm")
+    if not renderer:
+        raise RuntimeError("pdftoppm_unavailable")
+    DEFAULT_ARTIFACT_RENDER_DIR.mkdir(parents=True, exist_ok=True)
+    output_prefix = DEFAULT_ARTIFACT_RENDER_DIR / artifact_sha
+    image_path = output_prefix.with_suffix(".png")
+    if not image_path.is_file():
+        subprocess.run(
+            [
+                renderer,
+                "-f",
+                "1",
+                "-l",
+                "1",
+                "-singlefile",
+                "-png",
+                "-r",
+                "160",
+                pdf_path.as_posix(),
+                output_prefix.as_posix(),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=45,
+        )
+    return image_path, _sha256_file(image_path), "pdftoppm_page_1"
+
+
+def _response_speaker(payload: Mapping[str, Any] | None) -> str:
+    if not isinstance(payload, Mapping):
+        return "maestro"
+    detail = payload.get("detail_disclosure")
+    if isinstance(detail, Mapping):
+        display = detail.get("operator_display")
+        if isinstance(display, Mapping) and str(display.get("speaker_ref") or "").strip():
+            return str(display["speaker_ref"]).strip().lower()
+        disposition = detail.get("operator_response_disposition")
+        if isinstance(disposition, Mapping) and str(disposition.get("addressed_agent") or "").strip():
+            return str(disposition["addressed_agent"]).strip().lower()
+    return str(payload.get("response_author") or "maestro").strip().lower()
+
+
+async def _deliver_telegram_artifact(
+    *,
+    bot: Any,
+    chat_id: int | str,
+    caption: str,
+    payload: Mapping[str, Any],
+    source_request_id: str,
+    source_message_id: str,
+) -> Any:
+    artifact = _selected_proof_artifact(payload)
+    disposition = _operator_response_disposition(payload)
+    if artifact is None or disposition is None:
+        raise RuntimeError("telegram_artifact_disposition_incomplete")
+    image_path, rendered_sha, render_source = await asyncio.to_thread(
+        _verified_telegram_image,
+        artifact,
+    )
+    with image_path.open("rb") as photo:
+        delivered_message = await bot.send_photo(
+            chat_id=chat_id,
+            photo=photo,
+            caption=caption,
+        )
+    delivered_message_id = str(getattr(delivered_message, "message_id", "") or "")
+    if not delivered_message_id:
+        raise RuntimeError("telegram_photo_delivery_missing_message_id")
+    selected_artifact_sha = _bare_sha256(artifact.get("sha256"))
+    receipt = {
+        "schema_version": "operator_artifact_delivery_receipt_v1",
+        "receipt_id": "artifact-delivery:" + hashlib.sha256(
+            "\0".join((source_request_id, selected_artifact_sha, delivered_message_id)).encode("utf-8")
+        ).hexdigest()[:24],
+        "source_request_id": source_request_id,
+        "source_message_id": source_message_id,
+        "active_surface": "operator_maestro_chat",
+        "effective_bot_identity": "maestro",
+        "speaker": _response_speaker(payload),
+        "artifact_variant": str(disposition.get("artifact_variant") or "current"),
+        "selected_artifact_id": str(artifact.get("artifact_id") or ""),
+        "selected_artifact_sha256": selected_artifact_sha,
+        "rendered_image_sha256": rendered_sha,
+        "render_source": render_source,
+        "caption_sha256": hashlib.sha256(caption.encode("utf-8")).hexdigest(),
+        "delivered_message_id": delivered_message_id,
+        "delivered_at": utc_now(),
+        "delivery_succeeded": True,
+        "provider_draft_created": False,
+        "business_send_performed": False,
+        "money_moved": False,
+    }
+    _append_jsonl(_artifact_delivery_receipt_path(), receipt)
+    return delivered_message
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message or not update.message.text:
         return
@@ -1220,56 +1381,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
 
     message_id = delivery_source_message_id or intake_source_message_id or _short_hash(text)
-    reply_only_egress = _reply_only_egress_enabled()
-    typing_task = (
-        None
-        if reply_only_egress
-        else asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
-    )
+    typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
 
-    ack_task = None
     request_id_for_reply: str | None = None
     try:
         request = build_operator_maestro_chat_request(text, message_id=message_id, chat_id=chat_id)
         request_id_for_reply = str(request["request_id"])
         write_bridge_request(request)
-
-        # A delayed acknowledgement is created only after the bridge request
-        # exists. Its action language is therefore bound to a real queued job.
-        async def _send_delayed_ack() -> None:
-            try:
-                await asyncio.sleep(_fast_ack_delay())
-                bounded_ack = _bound_fast_ack_text(
-                    message=text,
-                    action_receipt_refs=(f"bridge_request:{request_id_for_reply}",),
-                )
-                await update.message.reply_text(
-                    _final_operator_reply(
-                        bounded_ack.visible_text,
-                        source_request=text,
-                        action_receipt_refs=bounded_ack.receipt.action_receipt_refs,
-                    )
-                )
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                pass  # a failed ack must never affect the real reply
-
-        ack_task = (
-            asyncio.create_task(_send_delayed_ack())
-            if not reply_only_egress and _fast_ack_enabled()
-            else None
-        )
         response = await poll_bridge_response(request_id_for_reply)
-        if ack_task is not None:
-            ack_task.cancel()  # answer arrived; if before the delay, the ack is suppressed
         receipt_descriptor = _receipt_descriptor_from_bridge_response(response)
         _maestro_reply = _final_operator_reply(_without_raw_receipt_ref(
             reply_text_from_bridge_response(response, request_id=request_id_for_reply),
             _raw_receipt_ref_from_bridge_response(response),
             advertise=receipt_descriptor is not None,
         ), source_request=text)
-        delivered_message = await update.message.reply_text(_maestro_reply)
+        disposition = _operator_response_disposition(response)
+        if (
+            isinstance(disposition, Mapping)
+            and disposition.get("delivery_mode") == "telegram_photo"
+        ):
+            delivered_message = await _deliver_telegram_artifact(
+                bot=context.bot,
+                chat_id=chat_id,
+                caption=_maestro_reply,
+                payload=response,
+                source_request_id=request_id_for_reply,
+                source_message_id=delivery_source_message_id,
+            )
+        else:
+            delivered_message = await update.message.reply_text(_maestro_reply)
         _register_maestro_delivered_text_after_delivery(
             delivered_text=_maestro_reply,
             source_request_id=request_id_for_reply,
@@ -1283,8 +1423,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             source_message_id=delivery_source_message_id,
             delivered_message=delivered_message,
         )
-        if not reply_only_egress:
-            _fire_maestro_voice(_maestro_reply, chat_id)
+        speaker = _response_speaker(response)
+        if speaker == "maestro":
+            _fire_maestro_voice(
+                _maestro_reply,
+                chat_id,
+                source_request_id=request_id_for_reply,
+            )
+        else:
+            _fire_agent_voice(
+                _maestro_reply,
+                chat_id,
+                speaker=speaker,
+                source_request_id=request_id_for_reply,
+            )
     except Exception as exc:
         print(f"[maestro_listener] bridge error: {exc.__class__.__name__}", flush=True)
         await update.message.reply_text(
@@ -1297,17 +1449,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
         )
     finally:
-        if typing_task is not None:
-            typing_task.cancel()
-        if ack_task is not None:
-            ack_task.cancel()
-        for _t in (typing_task, ack_task):
-            if _t is None:
-                continue
-            try:
-                await _t
-            except asyncio.CancelledError:
-                pass
+        typing_task.cancel()
+        try:
+            await typing_task
+        except asyncio.CancelledError:
+            pass
 
 
 def _ocr_read_document(image_path) -> dict | None:
@@ -1380,12 +1526,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     request_id_for_reply: str | None = None
-    reply_only_egress = _reply_only_egress_enabled()
-    typing_task = (
-        None
-        if reply_only_egress
-        else asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
-    )
+    typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
     try:
         intake_dir = DEFAULT_IMAGE_INTAKE_DIR / _safe_filename_part(message_id)
         intake_dir.mkdir(parents=True, exist_ok=True)
@@ -1432,8 +1573,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             source_request=caption,
         )
         await update.message.reply_text(_maestro_photo_reply)
-        if not reply_only_egress:
-            _fire_maestro_voice(_maestro_photo_reply, chat_id)
+        _fire_maestro_voice(
+            _maestro_photo_reply,
+            chat_id,
+            source_request_id=request_id_for_reply,
+        )
     except Exception as exc:
         print(f"[maestro_listener] image bridge error: {exc.__class__.__name__}", flush=True)
         await update.message.reply_text(
@@ -1446,12 +1590,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )
         )
     finally:
-        if typing_task is not None:
-            typing_task.cancel()
-            try:
-                await typing_task
-            except asyncio.CancelledError:
-                pass
+        typing_task.cancel()
+        try:
+            await typing_task
+        except asyncio.CancelledError:
+            pass
 
 
 def build_application():

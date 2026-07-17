@@ -62,15 +62,21 @@ def test_all_required_voice_profiles_exist():
     profiles = _by_role(payload["voice_profiles"])
 
     assert set(layer.AGENT_ROLES).issubset(set(profiles))
-    assert "concise operational commander" in profiles["CHIEF"]["tone_traits"]
-    assert "polished executive assistant" in profiles["CASSANDRA"]["tone_traits"]
+    assert "direct" in profiles["CHIEF"]["tone_traits"]
+    assert "relationship-aware" in profiles["CASSANDRA"]["tone_traits"]
     assert "proof-first" in profiles["GUARDIAN"]["tone_traits"]
-    assert "creative producer" in profiles["NILES"]["tone_traits"]
+    assert "musically literate" in profiles["NILES"]["tone_traits"]
     assert "CODEX" not in profiles
-    assert "skeptical" in profiles["HERMES"]["tone_traits"]
-    assert "replace Guardian" in profiles["HERMES"]["forbidden_moves"]
+    assert "pattern-aware" in profiles["HERMES"]["tone_traits"]
+    assert "Cannot execute." in profiles["HERMES"]["forbidden_moves"]
     assert "neutral" in profiles["OPENCLAW_SYSTEM"]["tone_traits"]
     assert "randomly choose persona" in profiles["UNKNOWN"]["forbidden_moves"]
+    assert "routing-aware" in profiles["MAESTRO"]["tone_traits"]
+    named_styles = {
+        role: tuple(profiles[role]["tone_traits"])
+        for role in layer.NAMED_AGENT_ROLES
+    }
+    assert len(set(named_styles.values())) == len(layer.NAMED_AGENT_ROLES)
 
 
 def test_all_required_vibe_profiles_exist():
@@ -112,7 +118,14 @@ def test_model_selection_policy_separates_agent_from_backend():
     policies = _by_id(payload["model_selection_policies"], "model_selection_id")
 
     assert "CODEX" not in payload["agent_roles"]
-    assert set(payload["named_agent_roles"]) == {"CHIEF", "CASSANDRA", "GUARDIAN", "NILES", "HERMES"}
+    assert set(payload["named_agent_roles"]) == {
+        "MAESTRO",
+        "CHIEF",
+        "CASSANDRA",
+        "GUARDIAN",
+        "NILES",
+        "HERMES",
+    }
     assert "OPENCLAW_SYSTEM" in payload["system_response_roles"]
     assert "CODEX" in payload["model_backends"]
     assert "NONE_DETERMINISTIC" in payload["model_backends"]

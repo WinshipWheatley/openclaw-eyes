@@ -51,6 +51,25 @@ def _request(text: str, *, request_id: str, created_at: str) -> dict:
     )
 
 
+def test_surface_classifier_prefers_origin_over_generic_operator_chat_ref() -> None:
+    from operator_response_disposition import surface_class_from_request
+
+    assert surface_class_from_request(
+        {
+            "active_surface_ref": "operator_maestro_chat",
+            "origin_surface": "mission_control_mac",
+            "source_channel": "mission_control",
+        }
+    ) == "mac"
+    assert surface_class_from_request(
+        {
+            "active_surface_ref": "operator_maestro_chat",
+            "origin_surface": "telegram_pc_maestro_listener",
+            "source_channel": "maestro_listener",
+        }
+    ) == "telegram"
+
+
 def test_historical_1690_replay_resolves_prior_st_annes_context_and_surfaces_pdf(
     tmp_path,
     monkeypatch,
@@ -110,16 +129,124 @@ def test_historical_1690_replay_resolves_prior_st_annes_context_and_surfaces_pdf
     artifact = response.proof_artifacts[0]
     assert artifact["bridge_path"] == pdf_path.as_posix()
     assert artifact["presentation"] == {
-        "presenter": "ProofPresenter",
-        "mode": "quicklook",
-        "should_open": True,
+        "presenter": "TelegramPhoto",
+        "mode": "photo",
+        "should_send": True,
     }
+    disposition = response.detail_disclosure["operator_response_disposition"]
+    assert disposition["active_surface"] == "telegram"
+    assert disposition["artifact_variant"] == "current"
+    assert disposition["delivery_mode"] == "telegram_photo"
+    assert "QuickLook" not in response.operator_message
+    assert "/Volumes/" not in response.operator_message
     assert payload["proof_artifacts"] == [artifact]
     assert "I'm on it" not in response.operator_message
     assert "pull that up" not in response.operator_message
     assert response.proof_to_response["artifact_locator_performed"] is True
     assert response.proof_to_response["proof_presentation_requested"] is True
     assert response.proof_to_response["external_action_performed"] is False
+
+
+def test_recommended_live_arts_cut_selects_verified_candidate_for_telegram(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    import invoice_proof_request
+    import openclaw_request_processor as processor
+
+    pdf = tmp_path / "candidate.pdf"
+    png = tmp_path / "candidate.png"
+    pdf.write_bytes(b"candidate pdf")
+    png.write_bytes(b"candidate png")
+    registry = tmp_path / "invoice_candidate_artifact_registry.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "schema_version": "invoice_candidate_artifact_registry_v0",
+                "candidates": [
+                    {
+                        "artifact_id": "lamd-2026-07-candidate-b",
+                        "client_ref": "live_arts_md",
+                        "service_period": "2026-07",
+                        "invoice_number": "2026-1004",
+                        "review_label": "Candidate B",
+                        "status": "verified_review_candidate",
+                        "active_for_review": True,
+                        "finalized": False,
+                        "pdf_path": pdf.as_posix(),
+                        "pdf_sha256": _sha256(pdf.read_bytes()),
+                        "rendered_image_path": png.as_posix(),
+                        "rendered_image_sha256": _sha256(png.read_bytes()),
+                        "source_receipt_ref": "receipt:test-candidate-b",
+                    }
+                ],
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(invoice_proof_request, "DEFAULT_CANDIDATE_REGISTRY_PATH", registry)
+    monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "0")
+    monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "0")
+
+    request_path = tmp_path / "mission_control_operator_instruction_request_maestro_telegram_1711.json"
+    request_path.write_text(
+        json.dumps(
+            _request(
+                "Let me see the Live Art, Maryland July invoice cut you recommend",
+                request_id="1711",
+                created_at="2026-07-17T20:13:22+00:00",
+            ),
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at="2026-07-17T20:13:23+00:00",
+        duplicate_check=False,
+    )
+
+    artifact = response.proof_artifacts[0]
+    disposition = response.detail_disclosure["operator_response_disposition"]
+    assert response.request_type == "ARTIFACT_RETRIEVAL"
+    assert response.detail_disclosure["invoice_artifact_retrieval"]["client_ref"] == "live_arts_md"
+    assert artifact["artifact_variant"] == "candidate"
+    assert artifact["sha256"] == "sha256:" + _sha256(pdf.read_bytes())
+    assert artifact["rendered_image_sha256"] == "sha256:" + _sha256(png.read_bytes())
+    assert artifact["presentation"]["mode"] == "photo"
+    assert disposition["artifact_variant"] == "candidate"
+    assert disposition["delivery_mode"] == "telegram_photo"
+    assert "candidate" in response.operator_message.lower()
+    assert "not final" in response.operator_message.lower()
+    assert "QuickLook" not in response.operator_message
+    assert pdf.as_posix() not in response.operator_message
+
+
+def test_remote_artifact_copy_preserves_each_addressed_agent_voice() -> None:
+    import agent_voice_profiles
+
+    messages = {
+        speaker: agent_voice_profiles.artifact_ready_message_for_speaker(
+            speaker,
+            label="Live Arts MD July candidate invoice",
+            path="/must/not/leak.pdf",
+            delivery_mode="telegram_photo",
+            artifact_variant="candidate",
+        )
+        for speaker in ("maestro", "chief", "cassandra", "guardian", "niles", "hermes")
+    }
+
+    assert len(set(messages.values())) == len(messages)
+    for speaker, message in messages.items():
+        assert "not final" in message.lower(), speaker
+        assert "QuickLook" not in message
+        assert "/must/not/leak.pdf" not in message
+        assert agent_voice_profiles.require_voice_conformance(speaker, message)["passed"] is True
 
 
 def test_addressed_agent_owns_proof_response_voice_without_changing_route(

@@ -177,6 +177,41 @@ ARTIFACT_READY_TEMPLATES = {
     ),
 }
 
+TELEGRAM_ARTIFACT_READY_TEMPLATES = {
+    "cassandra": (
+        "Here is the verified {label} as an image in this chat. {state} "
+        "Nothing was sent to the client or changed."
+    ),
+    "chief": (
+        "{label} verified and attached here as an image. {state} "
+        "No client send or business-state change occurred."
+    ),
+    "hermes": (
+        "The verified {label} is here as an image for your review. {state} "
+        "The artifact remains review-only."
+    ),
+    "guardian": (
+        "Verified proof: {label}, shown here as an image. {state} "
+        "Send and mutation authority remain closed."
+    ),
+    "niles": (
+        "Here is the verified {label} as an image in the chat. {state} "
+        "It is here for review only."
+    ),
+    "maestro": (
+        "Here is the verified {label} as an image in this chat. {state} "
+        "Nothing was sent or changed."
+    ),
+    "clara": (
+        "Here is the verified {label} as an image for review. {state} "
+        "Nothing was sent to the client or changed."
+    ),
+    "openclaw": (
+        "Verified {label}, shown here as an image. {state} "
+        "No external business action occurred."
+    ),
+}
+
 SHARED_CANNED_PHRASES = (
     "as an ai",
     "i hope this note finds you well",
@@ -403,15 +438,28 @@ def artifact_ready_message_for_speaker(
     *,
     label: str,
     path: str,
+    delivery_mode: str = "mac_quicklook",
+    artifact_variant: str = "current",
 ) -> str:
     """Render a verified artifact readback through the addressed speaker's register."""
 
     speaker = canonical_speaker_ref(speaker_ref)
-    message = ARTIFACT_READY_TEMPLATES[speaker].format(
-        label=str(label or "artifact").strip() or "artifact",
-        path=str(path or "verified local path unavailable").strip()
-        or "verified local path unavailable",
-    )
+    if str(delivery_mode or "") == "telegram_photo":
+        state = (
+            "This is a review candidate, not final."
+            if str(artifact_variant or "current") == "candidate"
+            else "This is the current hash-verified artifact."
+        )
+        message = TELEGRAM_ARTIFACT_READY_TEMPLATES[speaker].format(
+            label=str(label or "artifact").strip() or "artifact",
+            state=state,
+        )
+    else:
+        message = ARTIFACT_READY_TEMPLATES[speaker].format(
+            label=str(label or "artifact").strip() or "artifact",
+            path=str(path or "verified local path unavailable").strip()
+            or "verified local path unavailable",
+        )
     require_voice_conformance(speaker, message)
     return message
 

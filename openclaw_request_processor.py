@@ -42,6 +42,7 @@ import operator_file_metadata_intake
 import global_run_mode_context
 import maestro_cassandra_responder
 import operator_controller_event_router
+import operator_response_disposition
 import openclaw_request_router
 import proof_to_response_runtime
 import probe_state_contract
@@ -8961,6 +8962,16 @@ def _process_invoice_proof_request(
     agent = _resolved_frontdoor_agent(raw_request, _capsule=_capsule)
     agent_display = "Clara" if agent == "clara" else agent.capitalize()
     artifact = invoice_proof_request.proof_artifact_from_resolution(resolution)
+    artifact_variant = str(resolution.get("artifact_variant") or "current")
+    active_surface = str(resolution.get("active_surface") or "pc")
+    response_disposition = operator_response_disposition.build_operator_response_disposition(
+        intent="invoice_artifact_display",
+        addressed_agent=agent,
+        active_surface=active_surface,
+        artifact_variant=artifact_variant,
+        artifact=artifact,
+    )
+    delivery_mode = str(response_disposition.get("delivery_mode") or "text")
     context_status = str(resolution.get("status") or "NOT_FOUND")
     action_receipt_refs: tuple[str, ...] = ()
     proof_artifacts: tuple[dict[str, Any], ...] = ()
@@ -8975,10 +8986,17 @@ def _process_invoice_proof_request(
             agent,
             label=label,
             path=str(artifact.get("path") or ""),
+            delivery_mode=delivery_mode,
+            artifact_variant=artifact_variant,
         )
-        next_safe_move = (
-            "Review the QuickLook proof. If it does not open, use the verified path shown above."
-        )
+        if delivery_mode == "telegram_photo":
+            next_safe_move = "Review the hash-verified image delivered in this Telegram chat."
+        elif delivery_mode == "mac_quicklook":
+            next_safe_move = (
+                "Review the QuickLook proof. If it does not open, use the verified path shown above."
+            )
+        else:
+            next_safe_move = "Review the rendered image or verified local artifact path."
         internal_status = "RESPONSE_READY"
         blocked_reason = None
     else:
@@ -9011,6 +9029,8 @@ def _process_invoice_proof_request(
         "model_call_performed": False,
         "worker_dispatch_performed": False,
         "telegram_document_send_performed": False,
+        "telegram_photo_delivery_requested": delivery_mode == "telegram_photo" and artifact is not None,
+        "telegram_photo_send_performed": False,
         "email_send_performed": False,
         "external_action_performed": False,
         "business_state_mutation_performed": False,
@@ -9046,9 +9066,11 @@ def _process_invoice_proof_request(
         "request_classification": asdict(classification),
         "request_router_decision": dict(route_decision),
         "invoice_artifact_retrieval": dict(resolution),
+        "operator_response_disposition": dict(response_disposition),
         "proof_artifacts": [dict(item) for item in proof_artifacts],
         "action_receipt_refs": list(action_receipt_refs),
-        "proof_presenter_request_queued": artifact is not None,
+        "proof_presenter_request_queued": artifact is not None and delivery_mode == "mac_quicklook",
+        "telegram_photo_delivery_requested": artifact is not None and delivery_mode == "telegram_photo",
         "dynamic_card_response": card,
         "model_call_performed": False,
         "worker_dispatch_performed": False,
@@ -9074,14 +9096,14 @@ def _process_invoice_proof_request(
                 else "PC could not resolve a bounded invoice context."
             ),
             (
-                "PC verified the canonical PDF from allowlisted manifests and hashes and queued the typed QuickLook artifact."
+                f"PC verified the selected {artifact_variant} PDF and queued the typed {delivery_mode} artifact."
                 if artifact is not None
                 else "PC stopped without claiming that a proof file was opened."
             ),
             "No Telegram document, email, ledger write, workbook mutation, or external business action occurred.",
         ),
         why_it_happened=(
-            "Artifact-display language routes to the deterministic invoice locator and ProofPresenter contract."
+            "Artifact-display language routes through the deterministic invoice locator and typed surface disposition."
         ),
         how_to_fix=next_safe_move,
         visible_cards=(card,),
@@ -9092,7 +9114,7 @@ def _process_invoice_proof_request(
             {
                 "selected_worker_target": "LOCAL_ARTIFACT_LOCATOR",
                 "selected_machine": "PC_WSL",
-                "selected_rail": "invoice_artifact_locator+ProofPresenter",
+                "selected_rail": f"invoice_artifact_locator+{delivery_mode}",
                 "route_status": context_status,
                 "model_call_performed": False,
                 "external_action_performed": False,

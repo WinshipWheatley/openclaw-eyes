@@ -132,6 +132,23 @@ def test_external_brain_router_has_bounded_same_session_activation_record():
     assert "EXTERNAL_BRAIN_ROUTER_20260716.md" in " ".join(capability["evidence_refs"])
 
 
+def test_operator_frontdoor_f0_is_live_with_real_provider_evidence() -> None:
+    capability = _capabilities_by_id(_payload())["operator_frontdoor_surface_delivery"]
+
+    assert capability["gate_stage"] == "operator_approved_live"
+    assert capability["activation_allowed_now"] is False
+    assert "1697 current+telegram_photo" in capability["canary_status"]
+    assert "1711 verified candidate+not-final" in capability["canary_status"]
+    assert "1714/1719 honest route failure" in capability["canary_status"]
+    assert "typing calls 2" in capability["canary_status"]
+    assert "photo message 1786" in capability["canary_status"]
+    assert "Kokoro voice message 1787" in capability["canary_status"]
+    assert "business send/money 0" in capability["canary_status"]
+    assert "operator_response_disposition.py" in capability["source_files"]
+    assert "agent_voice_sender.py" in capability["source_files"]
+    assert "tests/test_maestro_cassandra_responder.py" in capability["tests"]
+
+
 def test_w1_invoice_verification_and_finalization_are_live_without_send_authority():
     capabilities = _capabilities_by_id(_payload())
 

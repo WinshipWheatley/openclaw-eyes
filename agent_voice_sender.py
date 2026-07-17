@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import logging
 import os
 from pathlib import Path
@@ -36,6 +37,9 @@ class AgentVoiceReceipt:
     chat_id: str | None = None
     token_env: str | None = None
     error: str = ""
+    carrier_agent: str = ""
+    delivered_message_id: str = ""
+    delivered_at: str = ""
 
 
 SendVoiceNoteFn = Callable[..., None]
@@ -115,7 +119,7 @@ def _chat_id_for_agent(agent: str, chat_id: str | int | None) -> str:
     raise RuntimeError(f"No Telegram chat id configured for agent voice lane {agent!r}.")
 
 
-def _send_telegram_voice_note(agent: str, audio_path: str, *, chat_id: str | int | None = None) -> str:
+def _send_telegram_voice_note(agent: str, audio_path: str, *, chat_id: str | int | None = None) -> tuple[str, str]:
     token_env = _token_env_for_agent(agent)
     token = os.environ[token_env]
     target_chat = _chat_id_for_agent(agent, chat_id)
@@ -142,7 +146,14 @@ def _send_telegram_voice_note(agent: str, audio_path: str, *, chat_id: str | int
                 timeout=30,
             )
         response.raise_for_status()
-        return target_chat
+        delivered_message_id = ""
+        try:
+            payload = response.json()
+            if isinstance(payload, dict) and isinstance(payload.get("result"), dict):
+                delivered_message_id = str(payload["result"].get("message_id") or "")
+        except Exception:
+            delivered_message_id = ""
+        return target_chat, delivered_message_id
     except Exception as exc:
         safe_message = redact_secrets(str(exc))
         LOGGER.warning("Telegram voice send failed for %s: %s", agent, safe_message)
@@ -163,19 +174,30 @@ def send_agent_voice_note(
     chat_id: str | int | None = None,
     speed: float | None = None,
     send_voice_note_fn: SendVoiceNoteFn | None = None,
+    carrier_agent: str | None = None,
 ) -> AgentVoiceReceipt:
     """Synthesize and send an agent voice note through that agent's Telegram lane."""
     receipt = synthesize_agent_wav(agent, text, wav_path=wav_path, speed=speed)
     if not receipt.synthesized:
         return receipt
+    carrier = _normalize_agent(carrier_agent or receipt.agent)
     try:
+        delivered_message_id = ""
         if send_voice_note_fn is None:
-            resolved_chat = _send_telegram_voice_note(receipt.agent, receipt.wav_path, chat_id=chat_id)
-            token_env = _token_env_for_agent(receipt.agent)
+            resolved_chat, delivered_message_id = _send_telegram_voice_note(
+                carrier,
+                receipt.wav_path,
+                chat_id=chat_id,
+            )
+            token_env = _token_env_for_agent(carrier)
         else:
             resolved_chat = str(chat_id) if chat_id is not None else None
             token_env = None
-            send_voice_note_fn(receipt.wav_path, chat_id=resolved_chat)
+            delivered = send_voice_note_fn(receipt.wav_path, chat_id=resolved_chat)
+            if isinstance(delivered, dict):
+                delivered_message_id = str(delivered.get("message_id") or "")
+            else:
+                delivered_message_id = str(getattr(delivered, "message_id", "") or "")
         return AgentVoiceReceipt(
             receipt.agent,
             receipt.voice,
@@ -184,6 +206,9 @@ def send_agent_voice_note(
             sent=True,
             chat_id=resolved_chat,
             token_env=token_env,
+            carrier_agent=carrier,
+            delivered_message_id=delivered_message_id,
+            delivered_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         )
     except Exception as exc:
         safe_message = redact_secrets(str(exc))
@@ -196,6 +221,8 @@ def send_agent_voice_note(
             sent=False,
             chat_id=str(chat_id) if chat_id is not None else None,
             error=safe_message,
+            carrier_agent=carrier,
+            delivered_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         )
 
 

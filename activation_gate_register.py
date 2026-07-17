@@ -29,6 +29,7 @@ W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT = "2026-07-17T14:27:29-04:00"
 MAC_W1_HELPER_LAST_VERIFIED_AT = "2026-07-17T15:11:21-04:00"
 MAC_DESKTOP_RECEIVER_LAST_VERIFIED_AT = "2026-07-17T15:31:15-04:00"
 MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT = "2026-07-17T15:34:24-04:00"
+OPERATOR_FRONTDOOR_F0_LAST_VERIFIED_AT = "2026-07-17T17:35:36-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -320,6 +321,7 @@ REQUIRED_CAPABILITY_IDS = (
     "mac_selected_invoice_pdf_export_helper",
     "mac_codex_desktop_event_receiver",
     "mac_codex_desktop_seat_auto_resume",
+    "operator_frontdoor_surface_delivery",
 )
 
 REGISTER_GAP_CAPABILITY_IDS = (
@@ -2395,6 +2397,64 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/Operator/to-codex/FABLE-DIRECTIVE-CLARA-VOICE-AND-ADAPTIVE-FOLLOWUP-20260717-ADDENDUM.md",
             ],
             last_verified_at=FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="operator_frontdoor_surface_delivery",
+            display_name="Surface-aware operator artifact, typing, and addressed-voice delivery",
+            flag_or_config=[
+                "typed operator_response_disposition on the request/response owner",
+                "always-on Maestro listener provider boundary",
+            ],
+            default_state="on_fail_closed",
+            current_state_if_verifiable=_state(
+                "artifact intent, addressed agent, active surface, and candidate/current variant produce one typed delivery disposition before provider egress",
+                code_default="remote artifacts require verified hashes and Telegram photo receipts; local paths remain receipt-only; voice failure leaves delivered words intact",
+                production="six agent owner services plus request/response are active on the shared F0 code; real bridge and provider canaries passed",
+                audit_report="1697 current and 1711 candidate routed correctly; 1714/1719 canned-status misvotes failed honestly; provider messages 1786/1787 prove photo and Kokoro voice",
+            ),
+            source_files=[
+                "operator_response_disposition.py",
+                "invoice_candidate_artifact_registry.py",
+                "invoice_proof_request.py",
+                "openclaw_request_processor.py",
+                "maestro_listener.py",
+                "maestro_cassandra_responder.py",
+                "agent_voice_profiles.py",
+                "agent_voice_sender.py",
+            ],
+            tests=[
+                "tests/test_invoice_proof_request_routing.py",
+                "tests/test_maestro_listener.py",
+                "tests/test_maestro_cassandra_responder.py",
+                "tests/test_agent_voice_qa_regressions.py",
+                "tests/test_agent_voice_response_layer.py",
+            ],
+            audits=[
+                "/home/openclaw/Operator/to-codex/FABLE-DIRECTIVE-CHANNEL-AWARE-ARTIFACT-DELIVERY-20260717.md",
+                "/home/openclaw/Operator/to-codex/FABLE-PASS-2-ALIGN-COMBINED-FRONTDOOR-BUILD-GO-20260717.md",
+            ],
+            canary_status=(
+                "deployed replays: 1697 current+telegram_photo, 1711 verified candidate+not-final, "
+                "1714/1719 honest route failure; real Maestro bot typing calls 2, photo message 1786, "
+                "Kokoro voice message 1787; six shared-profile owner services active; no voice fallback; business send/money 0"
+            ),
+            risk_level="medium",
+            owner="Maestro / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="Fable combined-frontdoor BUILD GO and operator demand for visible in-channel results and per-agent voice",
+            disabled_by="revert the F0 owner changes and restart openclaw-request-response.service plus maestro-listener.service",
+            rollback_note="restore text-only listener delivery while preserving SEND_HOLD and the existing read-only bridge",
+            next_required_step="monitor provider receipts and proceed to F1 closure-tuple instrumentation only after independent F0 review",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only explicit rollback after an artifact-selection, delivery, or voice regression",
+            evidence_refs=[
+                "workspaces/openclaw_program/activation_records/OPERATOR_FRONTDOOR_F0_20260717.md",
+                "generated/receipts/operator_artifact_deliveries.jsonl",
+                "generated/receipts/agent_voice_deliveries.jsonl",
+                "generated/read_models/invoice_candidate_artifact_registry.json",
+            ],
+            last_verified_at=OPERATOR_FRONTDOOR_F0_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="external_brain_router",

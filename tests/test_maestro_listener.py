@@ -25,6 +25,7 @@ LOCATOR_ANSWER = (
 @pytest.fixture(autouse=True)
 def _claimed_update(monkeypatch):
     monkeypatch.setattr(maestro_listener, "claim_listener_update", lambda *args, **kwargs: True)
+    monkeypatch.setenv("OPENCLAW_AGENT_VOICE_NOTES", "0")
 
 
 class FakeUser:
@@ -57,9 +58,16 @@ class FakeUpdate:
 class FakeBot:
     def __init__(self):
         self.actions: list[tuple[int, str]] = []
+        self.photos: list[dict] = []
 
     async def send_chat_action(self, *, chat_id: int, action: str) -> None:
         self.actions.append((chat_id, action))
+
+    async def send_photo(self, **kwargs):
+        payload = dict(kwargs)
+        payload["photo"] = payload["photo"].read()
+        self.photos.append(payload)
+        return SimpleNamespace(message_id=9101)
 
 
 class FakeContext:
@@ -349,7 +357,7 @@ def test_authorized_date_question_replies_from_bridge_and_sends_typing(monkeypat
     assert records[0]["operator_message"] is True
 
 
-def test_reply_only_egress_emits_one_bound_reply_without_typing_ack_or_voice(monkeypatch, tmp_path):
+def test_reply_only_egress_keeps_typing_and_voice_without_filler_ack(monkeypatch, tmp_path):
     monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
     monkeypatch.setenv("OPENCLAW_MAESTRO_REPLY_ONLY", "1")
     writes: list[dict] = []
@@ -370,7 +378,7 @@ def test_reply_only_egress_emits_one_bound_reply_without_typing_ack_or_voice(mon
     monkeypatch.setattr(
         maestro_listener,
         "_fire_maestro_voice",
-        lambda text, chat_id: voice_calls.append((text, chat_id)),
+        lambda text, chat_id, **_kwargs: voice_calls.append((text, chat_id)),
     )
 
     update = FakeUpdate(text="status?", user_id=123, update_id=43)
@@ -379,8 +387,83 @@ def test_reply_only_egress_emits_one_bound_reply_without_typing_ack_or_voice(mon
 
     assert writes
     assert update.message.replies == ["Bound answer."]
-    assert context.bot.actions == []
-    assert voice_calls == []
+    assert context.bot.actions == [(123, "typing")]
+    assert voice_calls == [("Bound answer.", 123)]
+
+
+def test_telegram_photo_disposition_delivers_verified_image_and_records_hashes(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "123")
+    monkeypatch.setenv("OPENCLAW_MAESTRO_REPLY_ONLY", "1")
+    image_path = tmp_path / "candidate.png"
+    image_path.write_bytes(b"verified candidate image")
+    image_sha = __import__("hashlib").sha256(image_path.read_bytes()).hexdigest()
+    receipt_path = tmp_path / "artifact-deliveries.jsonl"
+    monkeypatch.setenv("OPENCLAW_ARTIFACT_DELIVERY_RECEIPT_PATH", str(receipt_path))
+    monkeypatch.setattr(maestro_listener, "record_maestro_intake_metadata", lambda **kwargs: None)
+    monkeypatch.setattr(
+        maestro_listener,
+        "write_bridge_request",
+        lambda request, **kwargs: tmp_path / "request.json",
+    )
+    monkeypatch.setattr(
+        maestro_listener,
+        "build_operator_maestro_chat_request",
+        lambda *_args, **_kwargs: {"request_id": "f0-photo-canary"},
+    )
+    monkeypatch.setattr(maestro_listener, "_fire_maestro_voice", lambda *_args, **_kwargs: None)
+    delivered_text_receipts: list[dict] = []
+    monkeypatch.setattr(
+        maestro_listener,
+        "register_delivered_text_receipt",
+        lambda **kwargs: delivered_text_receipts.append(kwargs),
+    )
+
+    async def fake_poll(*args, **kwargs):
+        return {
+            "source_request_id": "f0-photo-canary",
+            "response_author": "MAESTRO",
+            "operator_message": "Here is the verified candidate preview. This is not final.",
+            "proof_artifacts": [
+                {
+                    "artifact_id": "lamd-candidate-b",
+                    "bridge_path": str(tmp_path / "candidate.pdf"),
+                    "sha256": "sha256:" + "a" * 64,
+                    "rendered_image_path": image_path.as_posix(),
+                    "rendered_image_sha256": "sha256:" + image_sha,
+                }
+            ],
+            "detail_disclosure": {
+                "operator_response_disposition": {
+                    "active_surface": "telegram",
+                    "delivery_mode": "telegram_photo",
+                    "artifact_variant": "candidate",
+                    "addressed_agent": "maestro",
+                }
+            },
+        }
+
+    monkeypatch.setattr(maestro_listener, "poll_bridge_response", fake_poll)
+    update = FakeUpdate(text="show the recommended invoice", user_id=123, update_id=1711)
+    update.message.message_id = 1711
+    context = FakeContext()
+
+    asyncio.run(maestro_listener.handle_message(update, context))
+
+    assert update.message.replies == []
+    assert context.bot.actions == [(123, "typing")]
+    assert len(context.bot.photos) == 1
+    assert context.bot.photos[0]["photo"] == image_path.read_bytes()
+    assert "QuickLook" not in context.bot.photos[0]["caption"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8").strip())
+    assert receipt["source_request_id"] == "f0-photo-canary"
+    assert receipt["selected_artifact_sha256"] == "a" * 64
+    assert receipt["rendered_image_sha256"] == image_sha
+    assert receipt["delivered_message_id"] == "9101"
+    assert receipt["delivery_succeeded"] is True
+    assert delivered_text_receipts[0]["delivered_text"] == context.bot.photos[0]["caption"]
 
 
 def test_unauthorized_user_does_not_enter_governed_business_intake_or_reply(monkeypatch):

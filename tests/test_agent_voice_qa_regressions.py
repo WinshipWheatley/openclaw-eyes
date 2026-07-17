@@ -243,6 +243,33 @@ def test_shared_agent_voice_sender_uses_mapped_voice_and_injected_delivery(
     assert deliveries == [(str(tmp_path / "niles.wav"), "operator-chat")]
 
 
+def test_addressed_speaker_voice_uses_maestro_as_distinct_carrier(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import agent_voice_sender
+
+    def fake_synth(text: str, voice: str, wav_path: Path, *, speed: float) -> bool:
+        wav_path.write_bytes(b"RIFF")
+        return True
+
+    monkeypatch.setattr(agent_voice_sender, "synth_kokoro_wav", fake_synth)
+    receipt = agent_voice_sender.send_agent_voice_note(
+        "chief",
+        "The proof is bound.",
+        wav_path=tmp_path / "chief.wav",
+        chat_id="operator-chat",
+        carrier_agent="maestro",
+        send_voice_note_fn=lambda *_args, **_kwargs: {"message_id": 9201},
+    )
+
+    assert receipt.agent == "chief"
+    assert receipt.voice == "bm_george"
+    assert receipt.carrier_agent == "maestro"
+    assert receipt.delivered_message_id == "9201"
+    assert receipt.sent is True
+
+
 def test_master_voice_shell_resolves_agent_voice_without_maestro_fallback() -> None:
     source = Path("master_voice.sh").read_text(encoding="utf-8")
 

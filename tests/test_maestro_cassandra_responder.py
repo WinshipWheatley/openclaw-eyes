@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -124,7 +126,7 @@ def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
         {
             "schema_version": "openclaw_capability_index_v0",
             "read_model_id": "openclaw_capability_index",
-            "generated_at": "2026-07-09T14:54:32+00:00",
+            "generated_at": "2026-07-17T20:44:00+00:00",
             "generic_capabilities": [
                 {
                     "capability_id": "request_processing",
@@ -151,7 +153,7 @@ def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
         read_model_root / "agent_presence.json",
         {
             "schema_version": "agent_presence_read_model_v0",
-            "generated_at": "2026-07-09T14:54:32+00:00",
+            "generated_at": "2026-07-17T20:44:00+00:00",
             "agents": [
                 {"agent_id": "chief", "display_name": "Chief", "actual_state": "online"},
                 {"agent_id": "cassandra", "display_name": "Cassandra", "actual_state": "online"},
@@ -163,7 +165,7 @@ def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
         read_model_root / "chief_status_rail.json",
         {
             "schema_version": "chief_status_rail_v0",
-            "generated_at": "2026-07-09T14:54:32+00:00",
+            "generated_at": "2026-07-17T20:44:00+00:00",
             "chief_current_status": "safe_status_read_model_only",
             "chief_current_proven_role": {
                 "role_summary": "Chief is proven for visibility and planning, not runtime execution.",
@@ -174,6 +176,7 @@ def _seed_truthful_status_read_models(tmp_path: Path) -> Path:
         read_model_root / "sync_health.json",
         {
             "schema_version": "sync_health_v0",
+            "generated_at": "2026-07-17T20:44:00+00:00",
             "mirror_status": "current",
             "display_status": "ready",
             "trust_status": "trusted",
@@ -755,6 +758,98 @@ def test_adapter_structural_imports_only_cassandra_handle_from_forbidden_family(
         "cassandra_sender",
     }
     assert forbidden_modules.isdisjoint(set(imported_modules))
+
+
+@pytest.mark.parametrize(
+    "operator_text",
+    (
+        "Also still look at Maestro's response to me. That part is not working right",
+        "Cool, I'm also noticing that maestro is not responding with a KOKORO voice, but yours does.",
+    ),
+)
+def test_unrelated_canned_fleet_answer_fails_to_honest_route_error(
+    operator_text,
+    monkeypatch,
+):
+    import maestro_context_packet
+
+    monkeypatch.setattr(
+        maestro_context_packet,
+        "build_maestro_context_packet",
+        lambda **_kwargs: {
+            "packet_id": "packet:f0-canned-floor",
+            "facts": [],
+            "source_refs": (),
+            "packet_text": "No matching receipt-backed fact is available.",
+        },
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        operator_text,
+        protected_generate_fn=lambda *_args, **_kwargs: {
+            "text": "Fleet: 6/6 agents online.",
+            "receipt": {
+                "status": "ANSWER_READY",
+                "decision": "LOCAL",
+                "model_call_performed": True,
+                "local_model_invoked": True,
+            },
+        },
+    )
+
+    assert result.intent_class == "maestro_brain_freeform"
+    assert "Fleet: 6/6" not in result.plain_summary
+    assert "couldn't route" in result.plain_summary
+    assert result.machine_proof["canned_status_mismatch_blocked"] is True
+
+
+def test_semantic_status_misvote_cannot_emit_unrelated_fleet_readback(
+    monkeypatch,
+) -> None:
+    import typed_contract_decision as typed
+
+    monkeypatch.setenv(typed.SEMANTIC_VOTE_ENV, "maestro")
+    monkeypatch.setattr(
+        typed,
+        "_call_semantic_vote",
+        lambda *_args, **_kwargs: (
+            (typed.ContractLabel.STATUS, 0.9, False),
+            "accepted",
+        ),
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        "Also still look at Maestro's response to me. That part is not working right",
+        protected_generate_fn=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("a handled status vote must not fall through")
+        ),
+    )
+
+    assert "Fleet: 6/6" not in result.plain_summary
+    assert "couldn't route" in result.plain_summary
+    assert result.machine_proof["status_intent_mismatch_blocked"] is True
+
+
+def test_artifact_authenticity_and_surface_deletion_fixture_is_deterministic() -> None:
+    text = (
+        "That is not an exported invoice from the Live Arts Maryland Excel workbook. "
+        "Delete the preview image from this Telegram channel."
+    )
+
+    result = maestro.answer_frontdoor_chat(
+        text,
+        protected_generate_fn=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("fixture must not reach a model")
+        ),
+    )
+
+    assert result.intent_class == "artifact_authenticity_and_surface_deletion_request"
+    assert "hash-verified" in result.plain_summary
+    assert "nothing was deleted" in result.plain_summary.lower()
+    assert result.machine_proof["artifact_authenticity_challenge_recognized"] is True
+    assert result.machine_proof["surface_message_deletion_request_recognized"] is True
+    assert result.machine_proof["surface_message_deleted"] is False
+    assert result.machine_proof["protected_generate_called"] is False
 
 
 def test_gitignore_allows_pc_maestro_listener_source():

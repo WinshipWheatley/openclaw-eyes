@@ -65,6 +65,7 @@ def test_every_canonical_speaker_has_a_distinct_honest_fallback() -> None:
         "I'm working on that now.",
         "Getting that for you now.",
         "I'll look into it.",
+        "Just let me know when you're ready to go.",
     ),
 )
 def test_action_promise_detection_covers_the_verb_class(promise: str) -> None:

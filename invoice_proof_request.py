@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import invoice_artifact_locator
+import invoice_candidate_artifact_registry
+import operator_response_disposition
 import workflow_package_queue
 
 
@@ -18,6 +20,9 @@ DEFAULT_INVOICE_ARTIFACT_ROOTS = (
     Path("/mnt/e/openclaw/artifacts/invoice_workbooks"),
     Path("/mnt/e/openclaw/codex_mac_bridge/from-codex-mac/invoice_handoffs"),
 )
+DEFAULT_CANDIDATE_REGISTRY_PATH = Path(
+    "generated/read_models/invoice_candidate_artifact_registry.json"
+)
 
 _DISPLAY_INTENT_RE = re.compile(
     r"\b(?:show|see|open|view|preview|pull\s+up|bring\s+up|let\s+me\s+see|let\s+me\s+get)\b",
@@ -25,11 +30,21 @@ _DISPLAY_INTENT_RE = re.compile(
 )
 _PROOF_SUBJECT_RE = re.compile(r"\b(?:proof|pdf|invoice|package|artifact)\b", re.IGNORECASE)
 _SEND_INTENT_RE = re.compile(r"\b(?:send|email|submit|deliver)\b", re.IGNORECASE)
+_CANDIDATE_INTENT_RE = re.compile(
+    r"\b(?:candidate|preview|recommend(?:ed|ation)?|what\s+you\s+recommend|cut)\b",
+    re.IGNORECASE,
+)
 
 _CLIENT_ALIASES = (
     (re.compile(r"\bst\.?\s*anne(?:'s|s)?\b", re.IGNORECASE), "st_annes"),
     (re.compile(r"\bcapital\s+hilton\b", re.IGNORECASE), "capital_hilton"),
-    (re.compile(r"\blive\s+arts(?:\s+md)?\b", re.IGNORECASE), "live_arts_md"),
+    (
+        re.compile(
+            r"\blive\s+arts?(?:\s+(?:md|maryland))?\b|\blive\s+art\s*,\s*maryland\b|\bspeaker\s+rental(?:s)?\b",
+            re.IGNORECASE,
+        ),
+        "live_arts_md",
+    ),
     (re.compile(r"\breynolds(?:\s+tavern)?\b", re.IGNORECASE), "reynolds_tavern"),
 )
 
@@ -64,6 +79,10 @@ def is_invoice_proof_request(text: str) -> bool:
         and _PROOF_SUBJECT_RE.search(value)
         and not _SEND_INTENT_RE.search(value)
     )
+
+
+def requested_artifact_variant(text: str) -> str:
+    return "candidate" if _CANDIDATE_INTENT_RE.search(str(text or "")) else "current"
 
 
 def _client_from_text(text: str) -> str:
@@ -178,8 +197,11 @@ def resolve_invoice_proof_request(
     request_path: Path,
     *,
     roots: Sequence[Path] | None = None,
+    candidate_registry_path: Path | None = None,
 ) -> dict[str, Any]:
     text = _source_text(raw_request)
+    artifact_variant = requested_artifact_variant(text)
+    active_surface = operator_response_disposition.surface_class_from_request(raw_request)
     result: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "matched": is_invoice_proof_request(text),
@@ -188,6 +210,8 @@ def resolve_invoice_proof_request(
         "service_period": "",
         "context_source": "",
         "context_request_id": "",
+        "artifact_variant": artifact_variant,
+        "active_surface": active_surface,
         "locator_result": {},
         "model_call_performed": False,
         "external_action_performed": False,
@@ -222,19 +246,35 @@ def resolve_invoice_proof_request(
         result["status"] = "CONTEXT_REQUIRED"
         return result
 
-    search_roots = tuple(Path(root) for root in (roots or DEFAULT_INVOICE_ARTIFACT_ROOTS))
-    locator_result = (
-        invoice_artifact_locator.locate_invoice_artifacts(
+    if artifact_variant == "candidate":
+        if not service_period:
+            search_roots = tuple(Path(root) for root in (roots or DEFAULT_INVOICE_ARTIFACT_ROOTS))
+            latest = invoice_artifact_locator.locate_latest_invoice_artifact(
+                client_ref,
+                roots=search_roots,
+            )
+            service_period = str(latest.get("service_period") or "")
+        locator_result = invoice_candidate_artifact_registry.locate_candidate_invoice_artifact(
             client_ref,
             service_period,
-            roots=search_roots,
+            registry_path=Path(candidate_registry_path or DEFAULT_CANDIDATE_REGISTRY_PATH),
         )
-        if service_period
-        else invoice_artifact_locator.locate_latest_invoice_artifact(
-            client_ref,
-            roots=search_roots,
+        result["locator_kind"] = "verified_candidate_registry"
+    else:
+        search_roots = tuple(Path(root) for root in (roots or DEFAULT_INVOICE_ARTIFACT_ROOTS))
+        locator_result = (
+            invoice_artifact_locator.locate_invoice_artifacts(
+                client_ref,
+                service_period,
+                roots=search_roots,
+            )
+            if service_period
+            else invoice_artifact_locator.locate_latest_invoice_artifact(
+                client_ref,
+                roots=search_roots,
+            )
         )
-    )
+        result["locator_kind"] = "canonical_manifest"
     result["locator_result"] = locator_result
     result["service_period"] = str(locator_result.get("service_period") or service_period)
     result["status"] = str(locator_result.get("status") or "NOT_FOUND")
@@ -264,21 +304,48 @@ def proof_artifact_from_resolution(resolution: Mapping[str, Any]) -> dict[str, A
         return None
     client_ref = str(candidate.get("client_ref") or resolution.get("client_ref") or "invoice")
     service_period = str(candidate.get("service_period") or resolution.get("service_period") or "latest")
+    artifact_variant = str(
+        candidate.get("artifact_variant") or resolution.get("artifact_variant") or "current"
+    )
+    active_surface = str(resolution.get("active_surface") or "pc")
+    if active_surface == "telegram":
+        presentation = {
+            "presenter": "TelegramPhoto",
+            "mode": "photo",
+            "should_send": True,
+        }
+    elif active_surface == "mac":
+        presentation = {
+            "presenter": "ProofPresenter",
+            "mode": "quicklook",
+            "should_open": True,
+        }
+    else:
+        presentation = {
+            "presenter": "RenderedImagePath",
+            "mode": "rendered_image_path",
+            "should_open": False,
+        }
+    rendered_image_path = str(candidate.get("rendered_image_path") or "")
+    rendered_image_sha = str(candidate.get("rendered_image_sha256") or "")
     return {
-        "artifact_id": f"invoice_pdf_{client_ref}_{service_period}_{pdf_hash[:12]}",
+        "artifact_id": str(candidate.get("artifact_id") or "")
+        or f"invoice_pdf_{client_ref}_{service_period}_{pdf_hash[:12]}",
         "artifact_type": "proof_pdf",
-        "role": "invoice_pdf",
+        "role": f"invoice_pdf_{artifact_variant}",
         "mime_type": "application/pdf",
         "path": _mac_path(bridge_path),
         "bridge_path": bridge_path,
         "sha256": "sha256:" + pdf_hash,
         "client_ref": client_ref,
         "service_period": service_period,
-        "presentation": {
-            "presenter": "ProofPresenter",
-            "mode": "quicklook",
-            "should_open": True,
-        },
+        "invoice_number": str(candidate.get("invoice_number") or ""),
+        "artifact_variant": artifact_variant,
+        "verification_state": str(candidate.get("invoice_status") or "verified"),
+        "review_label": str(candidate.get("review_label") or ""),
+        "rendered_image_path": rendered_image_path,
+        "rendered_image_sha256": "sha256:" + rendered_image_sha if rendered_image_sha else "",
+        "presentation": presentation,
         "review_only": True,
         "client_send_allowed": False,
         "external_action_allowed": False,
@@ -314,7 +381,9 @@ def artifact_label(resolution: Mapping[str, Any]) -> str:
         period_display = datetime.strptime(period, "%Y-%m").strftime("%B %Y")
     except ValueError:
         period_display = "latest"
-    return f"{client_display} {period_display} invoice PDF proof"
+    if str(resolution.get("artifact_variant") or "current") == "candidate":
+        return f"{client_display} {period_display} candidate invoice preview (not final)"
+    return f"{client_display} {period_display} current finalized invoice proof"
 
 
 __all__ = [
@@ -324,5 +393,6 @@ __all__ = [
     "artifact_label",
     "is_invoice_proof_request",
     "proof_artifact_from_resolution",
+    "requested_artifact_variant",
     "resolve_invoice_proof_request",
 ]
