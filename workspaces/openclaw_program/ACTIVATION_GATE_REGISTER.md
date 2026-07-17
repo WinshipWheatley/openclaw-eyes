@@ -1,7 +1,7 @@
 # Activation Gate Register
 
 Schema: `activation_gate_register_v0`
-Generated: `2026-07-16T22:34:41-04:00`
+Generated: `2026-07-17T10:48:00-04:00`
 
 This register is descriptive only. It does not enable features, edit production config, inspect secrets, touch systemd, run canaries, or perform live external actions.
 
@@ -26,8 +26,8 @@ This register is descriptive only. It does not enable features, edit production 
 
 ## Summary
 
-- Total capabilities registered: `45`
-- Verified enabled/live: `continuity_capsule`, `external_brain_router`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
+- Total capabilities registered: `46`
+- Verified enabled/live: `continuity_capsule`, `external_brain_router`, `fleet_voice_boundary`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Activation allowed now: none recorded
 - Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
@@ -54,6 +54,7 @@ This register is descriptive only. It does not enable features, edit production 
 | External model / OpenRouter path (`external_model_openrouter_path`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep unwired for live use until cloud policy, privacy routing, and audit/canary evidence are recorded |
 | External-model packet safety policy (`external_model_packet_policy`) | `operator_approved_live` | `not_applicable` | enabled guardrail: cloud eligibility policy fails closed and does not authorize external calls by itself | no | keep active and require policy/canary proof before any external egress activation |
 | External shadow LM config (`external_shadow_lm_config`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep shadow-only; any external call path requires high-risk provider activation approval |
+| Canonical fleet voice boundary and Clara loop-closing copy gate (`fleet_voice_boundary`) | `operator_approved_live` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | monitor profile substitution receipts and roll back only on a demonstrated false positive or owner-surface regression |
 | Front-door model profile (`frontdoor_model_profile`) | `canary` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | run recanary with current model-fit resource probe before any activation authority |
 | Gated email send rail (`gated_email_send_rail`) | `intentionally_off` | `not_applicable` | send rail exists as a deterministic fail-closed receipt surface; live provider/network authority is false | no | do not activate; use draft-only review rail instead |
 | Polish Loop git task guard (`git_task_guard`) | `intentionally_off` | `not_applicable` | catalogued from audit as repo-mutation guard; current base may not contain the script | no | reconcile source presence and audit branch-mutation behavior before any use |
@@ -107,13 +108,13 @@ This register is descriptive only. It does not enable features, edit production 
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `action_runtime.py:_action_runtime_enabled`, `action_runtime.py:dispatch_action`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_ACTION_RUNTIME` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_ACTION_RUNTIME` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Active Machinery classification orchestrator (`active_machinery_classification`)
 
@@ -137,7 +138,7 @@ Live-state evidence:
 - Tests: `tests/test_active_machinery_classification_orchestrator.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `active_machinery_classification_orchestrator.py`, `tests/test_active_machinery_classification_orchestrator.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `dry_run_verified`
@@ -166,7 +167,7 @@ Live-state evidence:
 - Tests: `tests/test_agent_package_preview_contract.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `agent_package_preview_contract.py`, `tests/test_agent_package_preview_contract.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -195,7 +196,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `authority_gate.py:decide`, `authority_gate.py:DEFAULT_SEND_HOLD_PATH`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -224,7 +225,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `brain_dump_parser.py:--dry-run`, `brain_dump_parser.py:ollama invocation`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -253,13 +254,13 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_briefing_context.py`, `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `cassandra_briefing_brain.py:_MORNING_TEST_MODE_ENV`, `chief_llm.py:_CASSANDRA_MORNING_TEST_TIMEOUT`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `CASSANDRA_MORNING_BRIEF_TEST_MODE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `CASSANDRA_MORNING_BRIEF_TEST_MODE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Cassandra / Telegram delivery (`cassandra_telegram_delivery`)
 
@@ -283,7 +284,7 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_telegram_delivery.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `cassandra_telegram_delivery.py:TOGGLE_ENV_VAR`, `cassandra_telegram_delivery.py:TelegramDeliveryReceipt`, `tests/test_cassandra_telegram_delivery.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -312,7 +313,7 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_telegram_dryrun_inbox.py`
 - Audits: none recorded
 - Evidence refs: `cassandra_telegram_dryrun_inbox.py:AUTHORITY_BOUNDARY`, `tests/test_cassandra_telegram_dryrun_inbox.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `dry_run_verified`
@@ -341,7 +342,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:claude_call`, `chief_llm.py:claude_json`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -370,7 +371,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `user task scope: required proposed capability`
 - Evidence refs: `required by activation gate register task`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -399,7 +400,7 @@ Live-state evidence:
 - Tests: `tests/test_continuity_stamp.py`, `tests/test_packet_sqlite_flip.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md`
 - Evidence refs: `maestro_listener.py:_continuity_enabled`, `tests/test_continuity_stamp.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -432,13 +433,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `polish_loop/pc4_heal_emitter.py:_control_plane_emit_enabled`, `polish_loop/pc4_heal_emitter.py:emit_heal_task`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_CONTROL_PLANE_EMIT` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_CONTROL_PLANE_EMIT` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Draft-only email adapter (`draft_only_email_adapter`)
 
@@ -462,7 +463,7 @@ Live-state evidence:
 - Tests: `tests/test_gated_email_draft_adapter.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `gated_email_draft_adapter.py:AUTHORITY_BOUNDARY`, `tests/test_gated_email_draft_adapter.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -521,13 +522,13 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `docs/operations/OPENROUTER_KEY_STORAGE.md`, `docs/planning/OPENCLAW_LANE_A_OPENROUTER_SCOUT_BACKLOG.md`
 - Evidence refs: `protected_generate.py:OPENCLAW_FREEFORM_CLOUD`, `chief_llm.py:OPENROUTER_API_KEY`, `chief_llm.py:_external_model_configured`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_FREEFORM_CLOUD` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_FREEFORM_CLOUD` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### External-model packet safety policy (`external_model_packet_policy`)
 
@@ -551,7 +552,7 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:external_model_packet_policy`, `chief_llm.py:external_model_allowed`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -580,13 +581,49 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `external_shadow_provider_config.py:AUTHORITY_BOUNDARY`, `external_shadow_provider_config.py:ExternalShadowProviderConfigRecord`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+
+### Canonical fleet voice boundary and Clara loop-closing copy gate (`fleet_voice_boundary`)
+
+- Flag/config: `OPENCLAW_FLEET_VOICE_BOUNDARY`
+- Default state: `on_fail_closed`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
+- Gate stage: `operator_approved_live`
+- Canary status: `deployed owner-surface canaries passed 8/8; seven services active with explicit flag; Clara loop ask bound to glenn_acknowledged; transport/send/money calls 0`
+- Risk level: `medium`
+- Owner: `Fable / PC Codex Desktop`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: only explicit rollback after a profile false positive or owner-surface regression
+- Enabled by: operator fleet-wide voice mandate plus explicit service environment setting
+- Disabled by: set OPENCLAW_FLEET_VOICE_BOUNDARY=0 and restart owning services
+- Rollback: set the boundary flag false to preserve the existing control-language and machine-output guards without profile enforcement
+- Next required step: monitor profile substitution receipts and roll back only on a demonstrated false positive or owner-surface regression
+- Source files: `agent_voice_profiles.py`, `final_output_boundary.py`, `frontdoor_prompt.py`, `operator_surface_guard.py`, `clara_invoice_email_draft_package.py`, `client_comms_thread_rail.py`, `client_followup_watch.py`, `st_annes_forward_tracking_workflow.py`
+- Tests: `tests/test_fleet_voice_live_boundary.py`, `tests/test_agent_voice_conformance.py`, `tests/test_165_output_boundary_integration.py`, `tests/test_st_annes_forward_tracking_workflow.py`
+- Audits: none recorded
+- Evidence refs: `tests/test_fleet_voice_live_boundary.py`, `workspaces/openclaw_program/activation_records/FLEET_VOICE_BOUNDARY_20260717.md`, `/home/openclaw/Operator/to-codex/FABLE-DIRECTIVE-CLARA-VOICE-AND-ADAPTIVE-FOLLOWUP-20260717-ADDENDUM.md`
+- Last verified at: `2026-07-17T10:48:00-04:00`
+
+Live-state evidence:
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: live source verifies this capability/config is active; this does not grant new activation authority
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
 
 ### Front-door model profile (`frontdoor_model_profile`)
 
@@ -610,7 +647,7 @@ Live-state evidence:
 - Tests: `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/04_frontdoor_canary_decision.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:_frontdoor_model_profile_flag_enabled`, `protected_generate.py:_frontdoor_ollama_options`, `protected_generate.py:_frontdoor_keep_alive`, `chief_llm.py:select_frontdoor_model`, `maestro_cassandra_responder.py:664 (live caller of protected_generate_with_receipt)`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`, `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/05_frontdoor_recanary_activation.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_recanary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -645,7 +682,7 @@ Live-state evidence:
 - Tests: `tests/test_gated_email_send_adapter.py`
 - Audits: none recorded
 - Evidence refs: `gated_email_send_adapter.py:AUTHORITY_BOUNDARY`, `tests/test_gated_email_send_adapter.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -674,7 +711,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `polish_loop/git_task_guard.sh:audit reference`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -703,13 +740,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `hitl_pending_store.py:is_hitl_enabled`, `hitl_pending_action.py:_hitl_enabled`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `HITL_ENABLED` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `HITL_ENABLED` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Governed interactive 8B keep-warm timer (`interactive_8b_keepwarm_timer`)
 
@@ -733,7 +770,7 @@ Live-state evidence:
 - Tests: `tests/test_openclaw_8b_keepwarm.py`, `tests/test_local_model_governance.py`
 - Audits: `/home/openclaw/Operator/to-codex/FABLE-CONCUR-KEEPWARM-GO-PROMOTE-20260716.md`, `/home/openclaw/Operator/from-codex/SOL-8B-KEEPWARM-PREPROMOTE-20260716.md`
 - Evidence refs: `/home/openclaw/.openclaw/receipts/openclaw_8b_keepwarm_latest.json`, `systemctl:user:openclaw-8b-keepwarm.timer`, `commit:ffb5543e`, `synthetic_receipt:/tmp/openclaw_8b_keepwarm_synthetic_defer_20260716T1914.json`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -762,7 +799,7 @@ Live-state evidence:
 - Tests: `tests/test_continuity_stamp.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/02_interpreter_lm_decision.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
 - Evidence refs: `interpreter_lm.py:_interpreter_enabled`, `tests/test_continuity_stamp.py:interpreter flag test coverage`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/02_interpreter_lm_decision.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -792,7 +829,7 @@ Live-state evidence:
 - Tests: `tests/test_alternative_methods.py`, `tests/test_support_packet.py`, `tests/test_legal_mock_discovery_demo.py`, `tests/test_legal_synthetic_stress_pack.py`
 - Audits: `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md`, `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_MAC_BRIDGE_VALIDATION_PROTOCOL.md`, `docs/planning/openclaw_legal/law_program/LEGAL_VAULT_PATH_CONTRACT.md`
 - Evidence refs: `legal/local_capability_policy.py`, `legal/path_guard.py`, `apps/legal-console-spike/src-tauri/src/run.rs:synthetic_only`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -821,13 +858,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:_diagnostics_enabled`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_LLM_DIAGNOSTICS` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_LLM_DIAGNOSTICS` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### LM1 shared request seam (`lm1_shared_seam`)
 
@@ -851,7 +888,7 @@ Live-state evidence:
 - Tests: `tests/test_interpreter_lm_integration.py`, `tests/test_openclaw_request_processor.py`, `tests/test_activation_gate_register.py`
 - Audits: `/home/openclaw/Operator/from-codex/79-shared-seam-lm1-consolidation-RESULT.md`
 - Evidence refs: `openclaw_request_processor.py:_build_lm1_shared_request_seam`, `openclaw_request_processor.py:_try_interpreter_brain_divert`, `openclaw_request_processor.py:lm1_shared_seam_counter`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -882,7 +919,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: none recorded
 - Evidence refs: `openclaw_lm_consult_spine.py:GENERIC_ENABLE_ENV`, `openclaw_lm_consult_spine.py:AUTHORITY_FALSE`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -911,13 +948,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:_maestro_brain_live_enabled`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_MAESTRO_BRAIN_LIVE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_MAESTRO_BRAIN_LIVE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Model-selection policy contract (`model_selection_policy_contract`)
 
@@ -941,7 +978,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `model_selection_policy_contract.py:NO_AUTHORITY_FLAGS`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -970,13 +1007,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:nemotron_call`, `chief_llm.py:_nemotron_api_key`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `NVIDIA_API_KEY` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `NVIDIA_API_KEY` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Niles album evidence intake boundary (`niles_album_evidence_intake_boundary`)
 
@@ -1000,7 +1037,7 @@ Live-state evidence:
 - Tests: `tests/test_niles_album_evidence_intake_boundary.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `niles_album_evidence_intake_boundary.py:NO_AUTHORITY_FLAGS`, `tests/test_niles_album_evidence_intake_boundary.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1029,13 +1066,13 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:OLLAMA_MODEL`, `chief_llm.py:OLLAMA_MODEL_DEEP`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_OLLAMA_MODEL` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_OLLAMA_MODEL` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### OpenAI adapter stub (`openai_adapter_stub`)
 
@@ -1059,13 +1096,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `openclaw_lm_consult_spine.py:OpenAIConsultAdapter`, `openclaw_lm_consult_spine.py:adapter_stub_not_live`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENAI_API_KEY` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENAI_API_KEY` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Packet delta receipt rail (`packet_delta_receipts`)
 
@@ -1089,13 +1126,13 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`, `tests/test_agent_conversation_handoff_step_packet_contract.py`
 - Audits: `/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md`
 - Evidence refs: `Operator/from-codex/100-packet-engine-spine-RESULT.md`, `activation_gate_register.py:packet_delta_receipts`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_PACKET_DELTA` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_PACKET_DELTA` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Packet engine spine (`packet_engine_spine`)
 
@@ -1119,13 +1156,13 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`, `tests/test_packet_sqlite_flip.py`
 - Audits: `/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md`
 - Evidence refs: `Operator/from-codex/100-packet-engine-spine-RESULT.md`, `activation_gate_register.py:packet_engine_spine`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_PACKET_ENGINE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_PACKET_ENGINE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Packet-source SQLite flip (`packet_source_sqlite_flip`)
 
@@ -1149,7 +1186,7 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `maestro_context_packet.py:OPENCLAW_PACKET_SOURCE`, `activation_gate_register.py:continuity related runtime context`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -1180,7 +1217,7 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_self_scaling.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
 - Evidence refs: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md:10-point switch criteria`, `polish_loop/orchestrator.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1209,13 +1246,13 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_file_ledger_reconciliation.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_IMPL_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
 - Evidence refs: `polish_loop/orchestrator.py:reconcile_file_loop_result_with_ledger`, `tests/test_polish_loop_file_ledger_reconciliation.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Polish Loop local builder bridge (`polish_loop_local_builder_bridge`)
 
@@ -1239,13 +1276,13 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_closure_bridge.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
 - Evidence refs: `polish_loop/worker_runtime.py:run_local_builder_worker`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`)
 
@@ -1269,13 +1306,13 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`, `tests/test_polish_loop_size_routing.py`, `tests/test_polish_loop_size_router_wire.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
 - Evidence refs: `polish_loop/task_routing.py:classify_task_routing`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Polish Loop size/type/risk router v1 (`polish_loop_size_router_v1`)
 
@@ -1299,13 +1336,13 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_size_router_wire.py`, `tests/test_polish_loop_size_routing.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
 - Evidence refs: `polish_loop/control_plane.py:SIZE_ROUTER_FLAG`, `polish_loop/task_routing.py:classify_task_routing`, `tests/test_polish_loop_size_router_wire.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`)
 
@@ -1329,13 +1366,13 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_task_package_materialization.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
 - Evidence refs: `polish_loop/worker_runtime.py:build_task_package_markdown`, `polish_loop/orchestrator.py:write_phase_c_fix_directive`, `tests/test_polish_loop_task_package_materialization.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### protected_generate Ollama timeouts (`protected_generate_ollama_timeouts`)
 
@@ -1359,13 +1396,13 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `protected_generate.py:OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
 - Confidence: `high`
 - Notes: primary flag/config was absent from inspected sources and defaults off
-- Finding: `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Finding: `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`)
 
@@ -1389,7 +1426,7 @@ Live-state evidence:
 - Tests: `tests/test_runtime_activation_gate.py`
 - Audits: none recorded
 - Evidence refs: `scripts/check_runtime_activation_gate.py:build_activation_gate_report`, `tests/test_runtime_activation_gate.py`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1418,7 +1455,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `autonomy_mode.py:_default_state`, `autonomy_mode.py:cmd_enable`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Last verified at: `2026-07-17T10:48:00-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1453,6 +1490,7 @@ Live-state evidence:
 - `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`: `found` in `activation_gate_register.py`, `external_shadow_provider_config.py`
 - `OPENCLAW_EXTERNAL_MODEL`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_chief_llm_router.py`
 - `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`: `found` in `activation_gate_register.py`, `external_shadow_provider_config.py`, `tests/test_activation_gate_register.py`
+- `OPENCLAW_FLEET_VOICE_BOUNDARY`: `found` in `activation_gate_register.py`, `final_output_boundary.py`, `tests/test_fleet_voice_live_boundary.py`
 - `OPENCLAW_FREEFORM_CLOUD`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_FRONTDOOR_KEEP_ALIVE`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`, `tests/test_frontdoor_warmpin_offload.py`
 - `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
@@ -1485,31 +1523,49 @@ Live-state evidence:
 - `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`: `found` in `activation_gate_register.py`, `protected_generate.py`
 - `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`: `found` in `activation_gate_register.py`, `protected_generate.py`
-- `OPENCLAW_SEND_HOLD`: `found` in `activation_gate_register.py`, `polish_loop/lane_launcher.py`, `polish_loop/orchestrator.py`, `polish_loop/pc4_heal_emitter.py`, `tests/test_polish_loop_self_scaling.py`
-- `OPENCLAW_TEST_MODE`: `found` in `activation_gate_register.py`, `local_model_governance.py`, `polish_loop/lane_launcher.py`, `polish_loop/orchestrator.py`, `polish_loop/pc4_heal_emitter.py`, `protected_generate.py`, `tests/test_continuity_stamp.py`, `tests/test_interpreter_lm_integration.py`, `tests/test_polish_loop_self_scaling.py`
+- `OPENCLAW_SEND_HOLD`: `found` in `activation_gate_register.py`, `operator_surface_guard.py`, `polish_loop/lane_launcher.py`, `polish_loop/orchestrator.py`, `polish_loop/pc4_heal_emitter.py`, `tests/test_polish_loop_self_scaling.py`
+- `OPENCLAW_TEST_MODE`: `found` in `activation_gate_register.py`, `local_model_governance.py`, `operator_surface_guard.py`, `polish_loop/lane_launcher.py`, `polish_loop/orchestrator.py`, `polish_loop/pc4_heal_emitter.py`, `protected_generate.py`, `tests/test_continuity_stamp.py`, `tests/test_interpreter_lm_integration.py`, `tests/test_polish_loop_self_scaling.py`
 - `OPENROUTER_API_KEY`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_activation_gate_register.py`, `tests/test_chief_llm_router.py`
 - `OPENROUTER_MODEL`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_activation_gate_register.py`, `tests/test_chief_llm_router.py`
-- `TELEGRAM_AUTHORIZED_USER_ID`: `found` in `activation_gate_register.py`, `cassandra_telegram_delivery.py`, `maestro_listener.py`
+- `TELEGRAM_AUTHORIZED_USER_ID`: `found` in `activation_gate_register.py`, `cassandra_telegram_delivery.py`, `maestro_listener.py`, `tests/test_165_output_boundary_integration.py`
 
 ## Live Environment Reconciliation
 
 - Enabled for this generation: `yes`
-- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_LM1_SHARED_SEAM`, `OPENCLAW_PACKET_DELTA`, `OPENCLAW_PACKET_ENGINE`, `OPENCLAW_EXTERNAL_BRAIN_ROUTER`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `OPENAI_API_KEY`, `OPENCLAW_MAESTRO_BRAIN_LIVE`, `OPENCLAW_LLM_DIAGNOSTICS`, `HITL_ENABLED`, `OPENCLAW_ACTION_RUNTIME`, `OPENCLAW_CONTROL_PLANE_EMIT`, `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`, `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`, `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`, `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
+- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_LM1_SHARED_SEAM`, `OPENCLAW_PACKET_DELTA`, `OPENCLAW_PACKET_ENGINE`, `OPENCLAW_EXTERNAL_BRAIN_ROUTER`, `OPENCLAW_FLEET_VOICE_BOUNDARY`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `OPENAI_API_KEY`, `OPENCLAW_MAESTRO_BRAIN_LIVE`, `OPENCLAW_LLM_DIAGNOSTICS`, `HITL_ENABLED`, `OPENCLAW_ACTION_RUNTIME`, `OPENCLAW_CONTROL_PLANE_EMIT`, `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`, `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`, `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`, `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
 - Packet source runtime context: `enabled_verified`
 - Packet source finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf` -> `set_sqlite`
 - Packet source finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf` -> `set_sqlite`
 
 Sources inspected:
 - `process_env` `current_process_env`: `inspected` (only whitelisted variable names were checked from the current process environment)
+- `systemd_user_unit` `/home/openclaw/.config/systemd/user/cassandra-listener.service`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_unit` `/home/openclaw/.config/systemd/user/chief-listener.service`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_unit` `/home/openclaw/.config/systemd/user/chief-guardian-listener.service`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_unit` `/home/openclaw/.config/systemd/user/niles-listener.service`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_unit` `/home/openclaw/.config/systemd/user/maestro-listener.service`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_unit` `/home/openclaw/.config/systemd/user/hermes-gateway.service`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_unit` `/home/openclaw/.config/systemd/user/openclaw-request-response.service`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
+- `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf`: `inspected` (read-only parse of whitelisted Environment assignments)
 - `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf`: `inspected` (read-only parse of whitelisted Environment assignments)

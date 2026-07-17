@@ -21,7 +21,7 @@ SCHEMA_VERSION = "activation_gate_register_v0"
 DEFAULT_LAST_VERIFIED_AT = "2026-06-26T00:00:00-04:00"
 DEFAULT_OUTPUT_DIR = Path("workspaces/openclaw_program")
 EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:20:00-04:00"
-FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT = "2026-07-17T11:00:00-04:00"
+FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT = "2026-07-17T10:48:00-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -1947,8 +1947,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             current_state_if_verifiable=_state(
                 "all eight canonical profiles feed the front-door prompt and final-output boundary; Clara email producers additionally require a workflow-bound human closing ask",
                 code_default="enabled unless OPENCLAW_FLEET_VOICE_BOUNDARY is explicitly false",
-                production="pending deployed owner-surface canaries",
-                audit_report="575 focused and broad voice, boundary, listener, and workflow tests passed before deployment",
+                production="enabled on seven active owner services; eight deployed owner surfaces passed",
+                audit_report="deployed owner-surface canary passed eight canonical profiles with off-voice substitution and truth preservation; Clara milestone was glenn_acknowledged",
             ),
             source_files=[
                 "agent_voice_profiles.py",
@@ -1967,19 +1967,23 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "tests/test_st_annes_forward_tracking_workflow.py",
             ],
             audits=[],
-            canary_status="deployed owner-surface canaries required before closure",
+            canary_status=(
+                "deployed owner-surface canaries passed 8/8; seven services active with explicit flag; "
+                "Clara loop ask bound to glenn_acknowledged; transport/send/money calls 0"
+            ),
             risk_level="medium",
             owner="Fable / PC Codex Desktop",
             gate_stage="operator_approved_live",
             enabled_by="operator fleet-wide voice mandate plus explicit service environment setting",
             disabled_by="set OPENCLAW_FLEET_VOICE_BOUNDARY=0 and restart owning services",
             rollback_note="set the boundary flag false to preserve the existing control-language and machine-output guards without profile enforcement",
-            next_required_step="deploy, restart every owner service, and record eight owner-surface canaries with profile receipts",
+            next_required_step="monitor profile substitution receipts and roll back only on a demonstrated false positive or owner-surface regression",
             activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="only explicit rollback after a profile false positive or owner-surface regression",
             evidence_refs=[
                 "tests/test_fleet_voice_live_boundary.py",
+                "workspaces/openclaw_program/activation_records/FLEET_VOICE_BOUNDARY_20260717.md",
                 "/home/openclaw/Operator/to-codex/FABLE-DIRECTIVE-CLARA-VOICE-AND-ADAPTIVE-FOLLOWUP-20260717-ADDENDUM.md",
             ],
             last_verified_at=FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT,
@@ -2277,7 +2281,15 @@ def _parse_whitelisted_assignments(text: str) -> dict[str, str | None]:
 def _default_systemd_user_paths(home: Path | None = None) -> list[Path]:
     user_home = home or Path.home()
     base = user_home / ".config" / "systemd" / "user"
-    service_names = ("maestro-listener.service", "openclaw-request-response.service")
+    service_names = (
+        "cassandra-listener.service",
+        "chief-listener.service",
+        "chief-guardian-listener.service",
+        "niles-listener.service",
+        "maestro-listener.service",
+        "hermes-gateway.service",
+        "openclaw-request-response.service",
+    )
     paths: list[Path] = []
     for service_name in service_names:
         service_path = base / service_name
