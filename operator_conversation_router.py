@@ -796,6 +796,11 @@ def _make_it_so_objective_result(request: Mapping[str, Any], *, generated_at: st
 
 def _cassandra_operator_objective_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
     context = _context(request)
+    cassandra_sqlite_path = sqlite_path
+    if request.get("deterministic_invoice_packet") is not None:
+        cassandra_sqlite_path = Path(
+            str(request.get("cassandra_objective_sqlite_path") or cassandra_operator_objective_loop.DEFAULT_SQLITE_PATH)
+        )
     response = cassandra_operator_objective_loop.route_cassandra_objective_message(
         _operator_text(request),
         source_channel="mac_app",
@@ -808,7 +813,7 @@ def _cassandra_operator_objective_result(request: Mapping[str, Any], *, generate
             "immutable_copy_contract": request.get("immutable_copy_contract"),
             "artifact_receipt": request.get("artifact_receipt"),
         },
-        sqlite_path=sqlite_path,
+        sqlite_path=cassandra_sqlite_path,
         ar_sqlite_path=str(request.get("ar_sqlite_path") or ""),
         generated_at=generated_at,
     )

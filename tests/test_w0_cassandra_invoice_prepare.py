@@ -76,6 +76,8 @@ def test_cassandra_real_objective_route_prepares_immutable_no_send_envelope(tmp_
         assert conn.execute("SELECT count(*) FROM invoice_send_transactions").fetchone()[0] == 1
         assert conn.execute("SELECT count(*) FROM cassandra_operator_objectives").fetchone()[0] == 1
 
+    frontdoor_sqlite_path = tmp_path / "frontdoor-objectives.sqlite"
+    cassandra_frontdoor_sqlite_path = tmp_path / "frontdoor-cassandra-objectives.sqlite"
     frontdoor = operator_conversation_router.route_conversation_text(
         {
             "request_id": "w0-frontdoor-canary-001",
@@ -91,10 +93,21 @@ def test_cassandra_real_objective_route_prepares_immutable_no_send_envelope(tmp_
             "deterministic_invoice_packet": packet,
             "immutable_copy_contract": contract,
             "artifact_receipt": artifact_receipt,
+            "cassandra_objective_sqlite_path": str(cassandra_frontdoor_sqlite_path),
         },
-        sqlite_path=tmp_path / "frontdoor-objectives.sqlite",
+        sqlite_path=frontdoor_sqlite_path,
         generated_at="2026-07-17T16:06:00+00:00",
     )
     assert frontdoor["route_status"] == "CASSANDRA_INVOICE_ENVELOPE_PREPARED"
     assert frontdoor["cassandra_operator_objective"]["response_status"] == "CASSANDRA_INVOICE_ENVELOPE_PREPARED"
     assert frontdoor["machine_proof"]["email_send_performed"] is False
+    with sqlite3.connect(cassandra_frontdoor_sqlite_path) as conn:
+        assert conn.execute("SELECT count(*) FROM invoice_send_transactions").fetchone()[0] == 1
+        assert conn.execute("SELECT count(*) FROM cassandra_operator_objectives").fetchone()[0] == 1
+    with sqlite3.connect(frontdoor_sqlite_path) as conn:
+        tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        }
+        assert "invoice_send_transactions" not in tables
+        assert "cassandra_operator_objectives" not in tables
