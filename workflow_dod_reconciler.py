@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -21,6 +22,8 @@ import fleet_receipt_index
 SCHEMA_VERSION = "workflow_dod_reconciler_v0"
 REGISTRY_VERSION = "2026-07-16.1"
 REGISTRY_SOURCE_REF = "FABLE-DIRECTIVE-DOD-REGISTRY-RECONCILER-20260716"
+ST_ANNES_REGISTRY_VERSION = "2026-07-17.1"
+ST_ANNES_REGISTRY_SOURCE_REF = "FABLE-RECONCILE-STANNES-SENT-TO-DRAPER-20260717"
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
 DEFAULT_FLEET_RECEIPT_INDEX_PATH = fleet_receipt_index.DEFAULT_SQLITE_PATH
 DEFAULT_OPERATOR_TRUTH_PATH = Path("/mnt/c/OpenClaw/logs/operator_truth_store.json")
@@ -29,6 +32,16 @@ DEFAULT_PROTECTED_GENERATE_AUDIT_PATH = Path(
     "/mnt/c/OpenClaw/logs/protected_generate_audit.jsonl"
 )
 DEFAULT_BROKER_AUDIT_PATH = Path("/mnt/c/OpenClaw/logs/google_access_audit.jsonl")
+DEFAULT_ST_ANNES_RECONCILIATION_RECEIPT_DIR = Path(
+    "/mnt/e/openclaw/artifacts/invoice_workbooks/st_annes/2026-06"
+)
+DEFAULT_ST_ANNES_RECONCILIATION_PDF_PATH = (
+    DEFAULT_ST_ANNES_RECONCILIATION_RECEIPT_DIR
+    / "canonical-test-v4-20260716T205023Z/invoice.pdf"
+)
+ST_ANNES_JUNE_2026_PDF_SHA256 = (
+    "a32fa83cde025d237531a3360108f6f9c4e3afa87e8f857fe05912c3d994ee1b"
+)
 TRUSTED_RECEIPT_STORES = frozenset(
     {
         "protected_generate_audit",
@@ -37,6 +50,7 @@ TRUSTED_RECEIPT_STORES = frozenset(
         "operator_truth_store",
         "broker_google_access_audit",
         "st_annes_truth_drift_receipts",
+        "operator_reconciliation_receipts",
     }
 )
 
@@ -80,7 +94,7 @@ BUILTIN_REGISTRY_ENTRIES: tuple[dict[str, Any], ...] = (
     {
         "schema_version": "workflow_dod_registry_entry_v0",
         "workflow_ref": "st_annes_invoice_e2e",
-        "registry_version": REGISTRY_VERSION,
+        "registry_version": ST_ANNES_REGISTRY_VERSION,
         "label": "St. Anne's invoice end-to-end",
         "workflow_data": {
             "client_ref": "st_annes",
@@ -101,7 +115,10 @@ BUILTIN_REGISTRY_ENTRIES: tuple[dict[str, Any], ...] = (
                     _condition(
                         "artifact_locator_status",
                         "FOUND",
-                        stores=("workflow_package_queue_receipts",),
+                        stores=(
+                            "workflow_package_queue_receipts",
+                            "operator_reconciliation_receipts",
+                        ),
                         subject_ref=_ST_ANNES_SUBJECT,
                     )
                 ],
@@ -115,75 +132,36 @@ BUILTIN_REGISTRY_ENTRIES: tuple[dict[str, Any], ...] = (
                     _condition(
                         "operator_confirmed_pdf",
                         True,
-                        stores=("operator_truth_store",),
+                        stores=(
+                            "operator_truth_store",
+                            "operator_reconciliation_receipts",
+                        ),
                         subject_ref=_ST_ANNES_SUBJECT,
                     )
                 ],
             ),
             _milestone(
-                "work_log_reconciled",
-                "Workbook and work-log mirror agree",
-                gate="auto",
-                advance="Prepare the hash-verified workbook to work-log reconciliation.",
+                "sent_to_draper",
+                "June invoice sent to Draper",
+                gate="operator-record",
+                advance="Record an operator-confirmed send receipt without performing a send.",
                 conditions=[
                     _condition(
-                        "work_log_reconciled",
+                        "sent_to_draper",
                         True,
-                        stores=("st_annes_truth_drift_receipts",),
+                        stores=("operator_reconciliation_receipts",),
                         subject_ref=_ST_ANNES_SUBJECT,
                     )
                 ],
             ),
             _milestone(
-                "telegram_pdf_delivered",
-                "Invoice proof delivered to the operator's phone",
-                gate="operator-word",
-                advance="Pop the verified PDF through the bound proof surface.",
+                "draper_forwarded_to_glenn",
+                "Draper forwarded the invoice to Glenn",
+                gate="observed-reply",
+                advance="Monitor for a verified Draper forward or reply; do not infer it.",
                 conditions=[
                     _condition(
-                        "telegram_pdf_delivered",
-                        True,
-                        stores=("fleet_receipt_index",),
-                        subject_ref=_ST_ANNES_SUBJECT,
-                    )
-                ],
-            ),
-            _milestone(
-                "clara_email_draft_ready",
-                "Clara Reid test email draft and attachment are ready",
-                gate="auto",
-                advance="Prepare Clara Reid's bounded draft with the verified PDF.",
-                conditions=[
-                    _condition(
-                        "clara_email_draft_ready",
-                        True,
-                        stores=("workflow_package_queue_receipts",),
-                        subject_ref=_ST_ANNES_SUBJECT,
-                    )
-                ],
-            ),
-            _milestone(
-                "guardian_approval_received",
-                "Guardian-line test-send approval received",
-                gate="money/send",
-                advance="Request approval through Guardian's Telegram line.",
-                conditions=[
-                    _condition(
-                        "guardian_approval_received",
-                        True,
-                        stores=("fleet_receipt_index", "operator_truth_store"),
-                        subject_ref=_ST_ANNES_SUBJECT,
-                    )
-                ],
-            ),
-            _milestone(
-                "test_loopback_sent",
-                "Test-mode email sent only to the operator",
-                gate="money/send",
-                advance="Send the approved test-mode loopback to the locked self recipient.",
-                conditions=[
-                    _condition(
-                        "test_loopback_sent",
+                        "draper_forwarded_to_glenn",
                         True,
                         stores=("broker_google_access_audit",),
                         subject_ref=_ST_ANNES_SUBJECT,
@@ -191,13 +169,13 @@ BUILTIN_REGISTRY_ENTRIES: tuple[dict[str, Any], ...] = (
                 ],
             ),
             _milestone(
-                "broker_self_check_passed",
-                "Returned email content and attachment verified",
-                gate="auto",
-                advance="Read the broker audit and compare subject, body, and attachment hash.",
+                "glenn_acknowledged",
+                "Glenn acknowledged the invoice",
+                gate="observed-reply",
+                advance="Monitor for a verified Glenn acknowledgment; do not infer it.",
                 conditions=[
                     _condition(
-                        "broker_self_check_passed",
+                        "glenn_acknowledged",
                         True,
                         stores=("broker_google_access_audit",),
                         subject_ref=_ST_ANNES_SUBJECT,
@@ -205,55 +183,13 @@ BUILTIN_REGISTRY_ENTRIES: tuple[dict[str, Any], ...] = (
                 ],
             ),
             _milestone(
-                "live_graduation_word_received",
-                "Explicit out-of-testmode instruction received",
-                gate="operator-word",
-                advance="Ask for the exact out-of-testmode instruction through a non-Guardian agent.",
+                "check_received",
+                "Payment check received",
+                gate="money-proof",
+                advance="Wait for operator-posted check proof; do not infer receipt.",
                 conditions=[
                     _condition(
-                        "live_graduation_word_received",
-                        True,
-                        stores=("operator_truth_store",),
-                        subject_ref=_ST_ANNES_SUBJECT,
-                    )
-                ],
-            ),
-            _milestone(
-                "live_invoice_sent",
-                "Live invoice sent to Draper with operator CC",
-                gate="money/send",
-                advance="Send only after the exact graduation word and live approval gate.",
-                conditions=[
-                    _condition(
-                        "live_invoice_sent",
-                        True,
-                        stores=("broker_google_access_audit", "fleet_receipt_index"),
-                        subject_ref=_ST_ANNES_SUBJECT,
-                    )
-                ],
-            ),
-            _milestone(
-                "treasurer_ack_observed",
-                "Glenn acknowledgment observed",
-                gate="auto",
-                advance="Monitor for Draper's reply or Glenn's acknowledgment.",
-                conditions=[
-                    _condition(
-                        "treasurer_ack_observed",
-                        True,
-                        stores=("broker_google_access_audit",),
-                        subject_ref=_ST_ANNES_SUBJECT,
-                    )
-                ],
-            ),
-            _milestone(
-                "check_observed",
-                "Check receipt or processed ledger proof observed",
-                gate="money/send",
-                advance="Wait for operator-posted check proof or verified ledger processing.",
-                conditions=[
-                    _condition(
-                        "check_observed",
+                        "check_received",
                         True,
                         stores=("operator_truth_store", "workflow_package_queue_receipts"),
                         subject_ref=_ST_ANNES_SUBJECT,
@@ -261,13 +197,13 @@ BUILTIN_REGISTRY_ENTRIES: tuple[dict[str, Any], ...] = (
                 ],
             ),
             _milestone(
-                "rollover_resolved",
-                "Late-payment rollover state resolved",
-                gate="auto",
-                advance="Remove paid rollover items from the next invoice when applicable.",
+                "invoice_paid",
+                "Invoice marked paid from verified payment proof",
+                gate="money-proof",
+                advance="Mark paid only after verified payment evidence and separate authority.",
                 conditions=[
                     _condition(
-                        "rollover_resolved",
+                        "invoice_paid",
                         True,
                         stores=("workflow_package_queue_receipts",),
                         subject_ref=_ST_ANNES_SUBJECT,
@@ -575,6 +511,130 @@ def _drift_evidence(path: Path) -> list[dict[str, Any]]:
     ]
 
 
+def _st_annes_reconciliation_evidence(
+    receipt_dir: Path,
+    *,
+    expected_pdf_path: Path,
+    expected_pdf_sha256: str,
+) -> list[dict[str, Any]]:
+    """Validate operator-confirmed external sends without treating them as broker sends."""
+
+    results: list[dict[str, Any]] = []
+    if not receipt_dir.is_dir():
+        return results
+    expected_downstream = {
+        "draper_forwarded_to_glenn",
+        "glenn_acknowledged",
+        "check_received",
+        "invoice_paid",
+    }
+    expected_authority_false = {
+        "openclaw_send_performed",
+        "send_performed_by_reconciliation",
+        "money_action_performed",
+        "ledger_posting_performed",
+        "paid_marking_performed",
+    }
+    for path in sorted(receipt_dir.glob("st_annes_external_agent_send_receipt_*.json")):
+        receipt = _json_object(path)
+        attachment = receipt.get("attachment")
+        downstream = receipt.get("downstream")
+        authority = receipt.get("authority_boundary")
+        if receipt.get("schema_version") != "st_annes_external_agent_send_receipt_v0":
+            continue
+        if (
+            receipt.get("subject_ref") != _ST_ANNES_SUBJECT
+            or receipt.get("client_ref") != "st_annes"
+            or receipt.get("service_period") != "2026-06"
+            or receipt.get("invoice_period") != "2026-06"
+            or str(receipt.get("invoice_number") or "") != "3"
+            or receipt.get("amount") != 875
+            or receipt.get("service_count") != 7
+            or receipt.get("status") != "SENT"
+            or receipt.get("provenance") != "external_agent_send"
+            or receipt.get("operator_authorized") is not True
+            or receipt.get("manual_send_out_of_band_known") is not True
+            or receipt.get("sent_by_openclaw") is not False
+            or receipt.get("email_send_allowed") is not False
+            or receipt.get("ledger_posting_allowed") is not False
+            or receipt.get("paid") is not False
+        ):
+            continue
+        try:
+            sent_at = datetime.fromisoformat(
+                str(receipt.get("sent_at_utc_iso") or "").replace("Z", "+00:00")
+            )
+        except ValueError:
+            continue
+        if sent_at.tzinfo is None or sent_at.utcoffset() is None:
+            continue
+        if sent_at.isoformat(timespec="seconds") != "2026-07-17T04:23:30+00:00":
+            continue
+        if sorted(str(item).casefold() for item in receipt.get("to") or []) != [
+            "draper.carter@gmail.com"
+        ]:
+            continue
+        if sorted(str(item).casefold() for item in receipt.get("cc") or []) != [
+            "winshiplive@gmail.com"
+        ]:
+            continue
+        if list(receipt.get("bcc") or []):
+            continue
+        normalized_subject = re.sub(
+            r"\s+",
+            " ",
+            str(receipt.get("subject") or "").replace("\u2014", "-").strip().casefold(),
+        )
+        if normalized_subject != "st. anne's invoice - june 2026 services":
+            continue
+        if receipt.get("gmail_message_id") != "19f6e50b5dc44aa6":
+            continue
+        if not isinstance(attachment, Mapping):
+            continue
+        artifact_path = Path(str(attachment.get("path") or ""))
+        artifact_hash = str(attachment.get("sha256") or "").strip().lower()
+        if (
+            attachment.get("filename") != "invoice_format_fixed_20260716.pdf"
+            or artifact_path.resolve() != expected_pdf_path.resolve()
+            or artifact_hash != expected_pdf_sha256
+            or not artifact_path.is_file()
+            or not re.fullmatch(r"[0-9a-f]{64}", artifact_hash)
+        ):
+            continue
+        if hashlib.sha256(artifact_path.read_bytes()).hexdigest() != artifact_hash:
+            continue
+        if not isinstance(downstream, Mapping) or set(downstream) != expected_downstream:
+            continue
+        if any(
+            not isinstance(downstream.get(key), Mapping)
+            or str(downstream[key].get("status") or "").upper() != "UNKNOWN"
+            or downstream[key].get("state") != "pending"
+            for key in expected_downstream
+        ):
+            continue
+        if not isinstance(authority, Mapping) or any(
+            authority.get(key) is not False for key in expected_authority_false
+        ):
+            continue
+        claims = {
+            "artifact_locator_status": "FOUND",
+            "operator_confirmed_pdf": True,
+            "operator_confirmed_pdf_sha256": artifact_hash,
+            "sent_to_draper": True,
+            "send_provenance": "external_agent_send",
+        }
+        results.append(
+            _normalized_evidence(
+                store="operator_reconciliation_receipts",
+                receipt_ref=str(receipt.get("receipt_ref") or path.name),
+                writer="operator_winship",
+                subject_ref=_ST_ANNES_SUBJECT,
+                claims=claims,
+            )
+        )
+    return results
+
+
 def _structured_audit_evidence(path: Path, *, store: str) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     try:
@@ -620,6 +680,9 @@ def collect_trusted_evidence(
     drift_receipt_path: Path = DEFAULT_DRIFT_RECEIPT_PATH,
     protected_generate_audit_path: Path = DEFAULT_PROTECTED_GENERATE_AUDIT_PATH,
     broker_audit_path: Path = DEFAULT_BROKER_AUDIT_PATH,
+    st_annes_reconciliation_receipt_dir: Path = DEFAULT_ST_ANNES_RECONCILIATION_RECEIPT_DIR,
+    st_annes_reconciliation_pdf_path: Path = DEFAULT_ST_ANNES_RECONCILIATION_PDF_PATH,
+    st_annes_reconciliation_pdf_sha256: str = ST_ANNES_JUNE_2026_PDF_SHA256,
 ) -> list[dict[str, Any]]:
     evidence = [
         *_workflow_response_evidence(Path(response_dir)),
@@ -629,6 +692,11 @@ def collect_trusted_evidence(
         ),
         *_operator_truth_evidence(Path(operator_truth_path)),
         *_drift_evidence(Path(drift_receipt_path)),
+        *_st_annes_reconciliation_evidence(
+            Path(st_annes_reconciliation_receipt_dir),
+            expected_pdf_path=Path(st_annes_reconciliation_pdf_path),
+            expected_pdf_sha256=str(st_annes_reconciliation_pdf_sha256).lower(),
+        ),
         *_structured_audit_evidence(
             Path(protected_generate_audit_path),
             store="protected_generate_audit",
@@ -649,10 +717,16 @@ def install_builtin_registry(
 ) -> dict[str, Any]:
     installed: list[str] = []
     for definition in BUILTIN_REGISTRY_ENTRIES:
+        workflow_ref = str(definition["workflow_ref"])
+        source_ref = (
+            ST_ANNES_REGISTRY_SOURCE_REF
+            if workflow_ref == "st_annes_invoice_e2e"
+            else REGISTRY_SOURCE_REF
+        )
         if not business_ops_ledger.record_workflow_dod_registry_entry(
             dict(definition),
             definition_hash=_definition_hash(definition),
-            source_ref=REGISTRY_SOURCE_REF,
+            source_ref=source_ref,
             installed_at=installed_at,
             db_path=db_path,
         ):
@@ -661,11 +735,54 @@ def install_builtin_registry(
                 "status": "INSTALL_FAILED",
                 "workflow_refs": installed,
             }
-        installed.append(str(definition["workflow_ref"]))
+        installed.append(workflow_ref)
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "INSTALLED",
         "workflow_refs": sorted(installed),
+    }
+
+
+def install_registry_entry(
+    workflow_ref: str,
+    *,
+    db_path: str | Path,
+    installed_at: str,
+) -> dict[str, Any]:
+    """Install one built-in definition without rewriting unrelated workflows."""
+
+    normalized_workflow_ref = str(workflow_ref or "").strip()
+    definition = next(
+        (
+            item
+            for item in BUILTIN_REGISTRY_ENTRIES
+            if item.get("workflow_ref") == normalized_workflow_ref
+        ),
+        None,
+    )
+    if definition is None:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "REGISTRY_ENTRY_NOT_FOUND",
+            "workflow_ref": normalized_workflow_ref,
+        }
+    source_ref = (
+        ST_ANNES_REGISTRY_SOURCE_REF
+        if normalized_workflow_ref == "st_annes_invoice_e2e"
+        else REGISTRY_SOURCE_REF
+    )
+    installed = business_ops_ledger.record_workflow_dod_registry_entry(
+        dict(definition),
+        definition_hash=_definition_hash(definition),
+        source_ref=source_ref,
+        installed_at=installed_at,
+        db_path=db_path,
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "INSTALLED" if installed else "INSTALL_FAILED",
+        "workflow_ref": str(definition["workflow_ref"]),
+        "registry_version": str(definition["registry_version"]),
     }
 
 
@@ -918,6 +1035,7 @@ __all__ = [
     "collect_trusted_evidence",
     "evidence_content_hash",
     "install_builtin_registry",
+    "install_registry_entry",
     "load_registry_entry",
     "main",
     "reconcile_workflow",

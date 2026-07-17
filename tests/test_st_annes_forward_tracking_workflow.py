@@ -15,6 +15,13 @@ SENT_RECEIPT = {
     "sent_at_utc_iso": "2026-07-06T12:00:00+00:00",
     "invoice_ref": "ST-ANNES-REAL-2026-06",
     "proof_ref": "gmail_send_receipt:st_annes:2026-07",
+    "invoice_status": "SENT",
+    "recipient": "draper.carter@gmail.com",
+    "cc": ["winshiplive@gmail.com"],
+    "subject": "St. Anne's Invoice - June 2026 Services",
+    "provenance": "external_agent_send",
+    "operator_authorized": True,
+    "gmail_message_id": "message-1",
 }
 
 
@@ -121,3 +128,36 @@ def test_day_four_followup_due_is_gated_and_never_sends(tmp_path: Path) -> None:
     assert "Please forward the St. Anne's invoice to Glenn after your review" in state["follow_up"]["proposal"]["draft"]["body"]
     assert state["follow_up"]["proposal"]["authority_boundary"]["send_hold_required"] is True
     assert state["follow_up"]["proposal"]["authority_boundary"]["guardian_required"] is True
+
+
+def test_sent_state_preserves_nothing_downstream_frontier_and_monitoring(tmp_path: Path) -> None:
+    contacts_db = tmp_path / "contacts.sqlite3"
+    ContactsRegistry(str(contacts_db), seed=True)
+
+    state = advance_st_annes_receivable_state(
+        sent_receipt=SENT_RECEIPT,
+        messages=[],
+        contacts_db_path=str(contacts_db),
+        generated_at_utc_iso="2026-07-06T12:05:00+00:00",
+    )
+
+    assert state["invoice_status"] == "SENT"
+    assert state["recipient"] == "draper.carter@gmail.com"
+    assert state["send_proof"]["provenance"] == "external_agent_send"
+    assert state["workflow_stage"] == "awaiting_forward_to_glenn"
+    assert state["operator_surface_flag"] == "AWAITING_DRAPER_FORWARD_TO_GLENN"
+    assert state["monitoring"]["status"] == "ARMED"
+    assert state["monitoring"]["auto_send"] is False
+    assert state["milestones"]["sent_to_draper"]["status"] == "PROVEN"
+    for milestone in (
+        "draper_forwarded_to_glenn",
+        "glenn_acknowledged",
+        "check_received",
+        "invoice_paid",
+    ):
+        assert state["milestones"][milestone] == {
+            "status": "UNKNOWN", "state": "pending"
+        }
+    assert state["payment_status"] == "NOT_MARKED_PAID"
+    assert state["paid"] is False
+    assert state["payment_check_cadence"]["status"] == "NOT_ARMED_AWAITING_GLENN_ACK"

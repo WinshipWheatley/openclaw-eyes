@@ -1,5 +1,6 @@
 import hashlib
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -52,14 +53,19 @@ def test_install_builtin_registry_adds_three_versioned_data_entries(tmp_path: Pa
         "st_annes_invoice_e2e",
     ]
     st_annes = reconciler.load_registry_entry("st_annes_invoice_e2e", db_path=ledger_path)
-    assert st_annes["registry_version"] == "2026-07-16.1"
-    assert [item["milestone_ref"] for item in st_annes["milestones"]][:3] == [
+    assert st_annes["registry_version"] == "2026-07-17.1"
+    assert [item["milestone_ref"] for item in st_annes["milestones"]] == [
         "invoice_artifact_verified",
         "operator_confirmed_pdf",
-        "work_log_reconciled",
+        "sent_to_draper",
+        "draper_forwarded_to_glenn",
+        "glenn_acknowledged",
+        "check_received",
+        "invoice_paid",
     ]
     assert st_annes["milestones"][1]["gate"] == "operator-word"
-    assert st_annes["milestones"][5]["gate"] == "money/send"
+    assert st_annes["milestones"][2]["gate"] == "operator-record"
+    assert st_annes["milestones"][6]["gate"] == "money-proof"
 
     lamd = reconciler.load_registry_entry("lamd_speaker_rental_monthly", db_path=ledger_path)
     assert lamd["workflow_data"]["amount"] == 100
@@ -76,6 +82,38 @@ def test_install_builtin_registry_adds_three_versioned_data_entries(tmp_path: Pa
     assert capital["workflow_data"]["excluded_gig_dates"] == ["2026-06-26"]
     assert capital["workflow_data"]["verify_or_credit_dates"] == ["2026-06-05"]
     assert capital["workflow_data"]["next_invoice_dates"] == ["2026-07-10"]
+
+
+def test_install_registry_entry_updates_only_requested_workflow(tmp_path: Path) -> None:
+    ledger_path = tmp_path / "business_ops.sqlite"
+
+    installed = reconciler.install_registry_entry(
+        "st_annes_invoice_e2e",
+        db_path=ledger_path,
+        installed_at=FIXED_NOW,
+    )
+
+    assert installed == {
+        "schema_version": reconciler.SCHEMA_VERSION,
+        "status": "INSTALLED",
+        "workflow_ref": "st_annes_invoice_e2e",
+        "registry_version": "2026-07-17.1",
+    }
+    st_annes = reconciler.load_registry_entry(
+        "st_annes_invoice_e2e",
+        db_path=ledger_path,
+    )
+    assert st_annes["registry_version"] == "2026-07-17.1"
+    with sqlite3.connect(ledger_path) as conn:
+        source_ref = conn.execute(
+            "SELECT source_ref FROM workflow_dod_registry_entries WHERE workflow_ref = ?",
+            ("st_annes_invoice_e2e",),
+        ).fetchone()[0]
+    assert source_ref == reconciler.ST_ANNES_REGISTRY_SOURCE_REF
+    assert reconciler.load_registry_entry(
+        "lamd_speaker_rental_monthly",
+        db_path=ledger_path,
+    ) is None
 
 
 def test_reconciler_accepts_only_allowlisted_hash_valid_evidence(tmp_path: Path) -> None:
@@ -119,6 +157,101 @@ def test_reconciler_accepts_only_allowlisted_hash_valid_evidence(tmp_path: Path)
     }
     assert result["machine_proof"]["advance_performed"] is False
     assert result["machine_proof"]["business_action_performed"] is False
+
+
+def test_operator_reconciliation_receipt_proves_send_and_leaves_downstream_unknown(
+    tmp_path: Path,
+) -> None:
+    artifact = tmp_path / "invoice.pdf"
+    artifact.write_bytes(b"operator-approved st annes invoice")
+    artifact_hash = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    receipt_path = receipt_dir / "st_annes_external_agent_send_receipt_20260717T042330Z.json"
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "st_annes_external_agent_send_receipt_v0",
+                "receipt_ref": "external-agent-send:gmail:message-1",
+                "subject_ref": "st_annes:2026-06",
+                    "client_ref": "st_annes",
+                    "service_period": "2026-06",
+                    "invoice_period": "2026-06",
+                "invoice_number": "3",
+                "amount": 875,
+                "service_count": 7,
+                "status": "SENT",
+                "sent_at_utc_iso": "2026-07-17T04:23:30+00:00",
+                "to": ["draper.carter@gmail.com"],
+                "cc": ["winshiplive@gmail.com"],
+                "bcc": [],
+                "subject": "St. Anne's Invoice - June 2026 Services",
+                    "gmail_message_id": "19f6e50b5dc44aa6",
+                    "provenance": "external_agent_send",
+                    "operator_authorized": True,
+                    "manual_send_out_of_band_known": True,
+                    "sent_by_openclaw": False,
+                    "email_send_allowed": False,
+                    "ledger_posting_allowed": False,
+                    "paid": False,
+                    "attachment": {
+                        "filename": "invoice_format_fixed_20260716.pdf",
+                    "path": str(artifact),
+                    "sha256": artifact_hash,
+                },
+                "downstream": {
+                    "draper_forwarded_to_glenn": {"status": "UNKNOWN", "state": "pending"},
+                    "glenn_acknowledged": {"status": "UNKNOWN", "state": "pending"},
+                    "check_received": {"status": "UNKNOWN", "state": "pending"},
+                    "invoice_paid": {"status": "UNKNOWN", "state": "pending"},
+                },
+                "authority_boundary": {
+                    "openclaw_send_performed": False,
+                    "send_performed_by_reconciliation": False,
+                    "money_action_performed": False,
+                    "ledger_posting_performed": False,
+                    "paid_marking_performed": False,
+                },
+            },
+            sort_keys=True,
+        ) + "\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconciler.collect_trusted_evidence(
+        response_dir=tmp_path / "responses",
+        fleet_receipt_index_path=tmp_path / "missing-fleet.sqlite3",
+        operator_truth_path=tmp_path / "missing-truth.json",
+        drift_receipt_path=tmp_path / "missing-drift.json",
+        protected_generate_audit_path=tmp_path / "missing-protected.jsonl",
+            broker_audit_path=tmp_path / "missing-broker.jsonl",
+            st_annes_reconciliation_receipt_dir=receipt_dir,
+            st_annes_reconciliation_pdf_path=artifact,
+            st_annes_reconciliation_pdf_sha256=artifact_hash,
+        )
+
+    assert len(evidence) == 1
+    assert evidence[0]["store"] == "operator_reconciliation_receipts"
+    assert evidence[0]["claims"] == {
+        "artifact_locator_status": "FOUND",
+        "operator_confirmed_pdf": True,
+        "operator_confirmed_pdf_sha256": artifact_hash,
+        "sent_to_draper": True,
+        "send_provenance": "external_agent_send",
+    }
+    ledger_path = tmp_path / "business_ops.sqlite"
+    reconciler.install_builtin_registry(db_path=ledger_path, installed_at=FIXED_NOW)
+    result = reconciler.reconcile_workflow(
+        "st_annes_invoice_e2e",
+        evidence=evidence,
+        db_path=ledger_path,
+        generated_at=FIXED_NOW,
+    )
+    assert [item["status"] for item in result["milestones"]] == [
+        "PROVEN", "PROVEN", "PROVEN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN"
+    ]
+    assert result["frontier"]["milestone_ref"] == "draper_forwarded_to_glenn"
+    assert result["anomalies"] == []
 
 
 def test_contradictory_receipts_block_and_cite_both_refs(tmp_path: Path) -> None:
@@ -174,10 +307,10 @@ def test_out_of_order_proof_reports_anomaly_without_inferring_operator_word(tmp_
             claims={"artifact_locator_status": "FOUND"},
         ),
         _evidence(
-            store="st_annes_truth_drift_receipts",
-            receipt_ref="drift:in-sync",
+            store="operator_reconciliation_receipts",
+            receipt_ref="operator-reconciliation:sent",
             subject_ref="st_annes:2026-06",
-            claims={"work_log_reconciled": True},
+            claims={"sent_to_draper": True},
         ),
     ]
 
@@ -195,7 +328,7 @@ def test_out_of_order_proof_reports_anomaly_without_inferring_operator_word(tmp_
         {
             "kind": "OUT_OF_ORDER_PROOF",
             "frontier_milestone_ref": "operator_confirmed_pdf",
-            "later_proven_milestone_refs": ["work_log_reconciled"],
+            "later_proven_milestone_refs": ["sent_to_draper"],
         }
     ]
     assert result["machine_proof"]["operator_word_inferred"] is False
@@ -365,9 +498,9 @@ def test_collect_trusted_evidence_normalizes_workflow_truth_and_drift_receipts(
     assert [item["status"] for item in result["milestones"][:3]] == [
         "PROVEN",
         "PROVEN",
-        "PROVEN",
+        "UNKNOWN",
     ]
-    assert result["frontier"]["milestone_ref"] == "telegram_pdf_delivered"
+    assert result["frontier"]["milestone_ref"] == "sent_to_draper"
 
 
 def test_collect_trusted_evidence_rejects_ungraded_operator_truth(tmp_path: Path) -> None:

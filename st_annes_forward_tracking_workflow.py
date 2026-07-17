@@ -357,10 +357,26 @@ def advance_st_annes_receivable_state(
     sent = bool(sent_receipt.get("ok"))
     invoice_ref = str(sent_receipt.get("invoice_ref") or "st_annes_invoice").strip()
     sent_at = _iso(sent_receipt.get("sent_at_utc_iso")) if sent else None
+    invoice_status = str(
+        sent_receipt.get("invoice_status") or ("SENT" if sent else "NOT_SENT")
+    )
+    recipient = str(
+        sent_receipt.get("recipient") or "draper.carter@gmail.com"
+    ).strip()
+    cc = [str(item) for item in sent_receipt.get("cc") or []]
+    subject = str(
+        sent_receipt.get("subject") or f"Invoice {invoice_ref}"
+    ).strip()
+    provenance = str(sent_receipt.get("provenance") or "").strip()
     send_proof = {
         "signal": "send_receipt_ok" if sent else "send_receipt_missing",
         "proof_ref": str(sent_receipt.get("proof_ref") or ""),
         "sent_at_utc_iso": sent_at,
+        "provenance": provenance,
+        "operator_authorized": sent_receipt.get("operator_authorized") is True,
+        "gmail_message_id": str(sent_receipt.get("gmail_message_id") or ""),
+        "recipient": recipient,
+        "cc": cc,
     }
 
     forward_proof = _detect_forward(message_list, contacts) if sent else None
@@ -385,6 +401,48 @@ def advance_st_annes_receivable_state(
         followup_step = None
         followup_baseline = None
 
+    follow_up = _follow_up(
+        step=followup_step,
+        baseline_at_utc_iso=followup_baseline,
+        now_utc_iso=generated_at,
+        invoice_ref=invoice_ref,
+    )
+    due_at = str(follow_up.get("due_at_utc_iso") or "")
+    surface_flags = {
+        "awaiting_send": "AWAITING_ST_ANNES_SEND",
+        "awaiting_forward_to_glenn": "AWAITING_DRAPER_FORWARD_TO_GLENN",
+        "awaiting_glenn_ack": "AWAITING_GLENN_ACKNOWLEDGMENT",
+        "awaiting_payment": "AWAITING_PAYMENT_PROOF",
+    }
+    unknown_pending = {"status": "UNKNOWN", "state": "pending"}
+    milestones = {
+        "sent_to_draper": (
+            {"status": "PROVEN", "state": "recorded", "proof_ref": send_proof["proof_ref"]}
+            if sent
+            else dict(unknown_pending)
+        ),
+        "draper_forwarded_to_glenn": (
+            {
+                "status": "PROVEN",
+                "state": "observed",
+                "proof_ref": str((forward_proof or {}).get("message_id") or ""),
+            }
+            if forward_proof
+            else dict(unknown_pending)
+        ),
+        "glenn_acknowledged": (
+            {
+                "status": "PROVEN",
+                "state": "observed",
+                "proof_ref": str((ack_proof or {}).get("message_id") or ""),
+            }
+            if ack_proof
+            else dict(unknown_pending)
+        ),
+        "check_received": dict(unknown_pending),
+        "invoice_paid": dict(unknown_pending),
+    }
+
     return {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -393,6 +451,12 @@ def advance_st_annes_receivable_state(
         "client_display_name": CLIENT_DISPLAY_NAME,
         "workflow_ref": WORKFLOW_REF,
         "invoice_ref": invoice_ref,
+        "invoice_status": invoice_status,
+        "recipient": recipient,
+        "cc": cc,
+        "subject": subject,
+        "send_provenance": provenance,
+        "operator_authorized": sent_receipt.get("operator_authorized") is True,
         "ar_expected_receivable_ref": f"expected_receivable:{invoice_ref}",
         "sent": sent,
         "sent_at_utc_iso": sent_at,
@@ -402,16 +466,28 @@ def advance_st_annes_receivable_state(
         "acknowledged_at_utc_iso": acknowledged_at,
         "glenn_note": glenn_note,
         "workflow_stage": workflow_stage,
+        "operator_surface_flag": surface_flags[workflow_stage],
         "payment_status": "NOT_MARKED_PAID",
+        "paid": False,
+        "check_received": False,
+        "milestones": milestones,
+        "monitoring": {
+            "status": "ARMED" if followup_step else "NOT_ARMED",
+            "step": followup_step or "",
+            "due_at_utc_iso": due_at,
+            "local_observed_messages_only": True,
+            "auto_send": False,
+        },
+        "payment_check_cadence": {
+            "status": "NOT_ARMED_AWAITING_GLENN_ACK",
+            "normal_mail_check_window": "15th-20th",
+            "defer_when_glenn_ack_after_day": 10,
+            "money_state_mutated": False,
+        },
         "send_proof": send_proof,
         "forward_proof": forward_proof,
         "ack_proof": ack_proof,
-        "follow_up": _follow_up(
-            step=followup_step,
-            baseline_at_utc_iso=followup_baseline,
-            now_utc_iso=generated_at,
-            invoice_ref=invoice_ref,
-        ),
+        "follow_up": follow_up,
         "observed_message_count": len(message_list),
         "contacts_source": contacts["contacts_source"],
         "draper_contact_id": (contacts.get("draper_contact") or {}).get("id"),

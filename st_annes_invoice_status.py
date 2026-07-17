@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sqlite3
 import subprocess
 from dataclasses import dataclass
@@ -32,6 +33,8 @@ SQLITE_SCHEMA_NAME = f"{READ_MODEL_ID}_SCHEMA.sql"
 SQLITE_SEED_NAME = f"{READ_MODEL_ID}_SEED.sql"
 
 INVOICE_STATUS = "MANUAL_SEND_OUT_OF_BAND_RECORDED"
+EXTERNAL_AGENT_SENT_STATUS = "SENT"
+EXTERNAL_AGENT_RECEIPT_SCHEMA_VERSION = "st_annes_external_agent_send_receipt_v0"
 CLIENT_REF = "st_annes"
 CLIENT_DISPLAY_NAME = "St. Anne's"
 INVOICE_PERIOD = "2026-05"
@@ -132,10 +135,11 @@ def validate_manual_send_receipt(
     receipt_path: Path,
     pdf_path: Path,
 ) -> dict[str, Any]:
+    external_agent_send = (
+        receipt.get("schema_version") == EXTERNAL_AGENT_RECEIPT_SCHEMA_VERSION
+    )
     expected_values = {
-        "status": INVOICE_STATUS,
         "client_ref": CLIENT_REF,
-        "invoice_period": INVOICE_PERIOD,
         "sent_by_openclaw": False,
         "manual_send_out_of_band_known": True,
         "email_send_allowed": False,
@@ -147,12 +151,89 @@ def validate_manual_send_receipt(
     for key, expected in expected_values.items():
         if receipt.get(key) != expected:
             failures.append(f"{key} expected {expected!r} got {receipt.get(key)!r}")
+    if external_agent_send:
+        if receipt.get("status") != EXTERNAL_AGENT_SENT_STATUS:
+            failures.append("external-agent receipt status must be SENT")
+        invoice_period = str(receipt.get("invoice_period") or "")
+        if not re.fullmatch(r"20\d{2}-(?:0[1-9]|1[0-2])", invoice_period):
+            failures.append("external-agent receipt invoice_period must be YYYY-MM")
+        if receipt.get("service_period") != invoice_period:
+            failures.append("external-agent receipt service_period must match invoice_period")
+        if str(receipt.get("invoice_number") or "") != "3":
+            failures.append("external-agent receipt invoice_number must be 3")
+        if receipt.get("amount") != 875:
+            failures.append("external-agent receipt amount must be 875")
+        if receipt.get("service_count") != 7:
+            failures.append("external-agent receipt service_count must be 7")
+        if receipt.get("provenance") != "external_agent_send":
+            failures.append("external-agent receipt provenance must be external_agent_send")
+        if receipt.get("operator_authorized") is not True:
+            failures.append("external-agent receipt must be operator authorized")
+        if [str(item).casefold() for item in receipt.get("to") or []] != [
+            "draper.carter@gmail.com"
+        ]:
+            failures.append("external-agent receipt recipient must be Draper")
+        if sorted(str(item).casefold() for item in receipt.get("cc") or []) != [
+            "winshiplive@gmail.com"
+        ]:
+            failures.append("external-agent receipt CC must be Winship")
+        if list(receipt.get("bcc") or []):
+            failures.append("external-agent receipt BCC must be empty")
+        normalized_subject = re.sub(
+            r"\s+",
+            " ",
+            str(receipt.get("subject") or "").replace("\u2014", "-").strip().casefold(),
+        )
+        if normalized_subject != "st. anne's invoice - june 2026 services":
+            failures.append("external-agent receipt subject must identify the June 2026 invoice")
+        if not str(receipt.get("gmail_message_id") or "").strip():
+            failures.append("external-agent receipt gmail_message_id is required")
+        try:
+            sent_at = datetime.fromisoformat(
+                str(receipt.get("sent_at_utc_iso") or "").replace("Z", "+00:00")
+            )
+        except ValueError:
+            sent_at = None
+        if sent_at is None or sent_at.tzinfo is None or sent_at.utcoffset() is None:
+            failures.append("external-agent receipt sent_at_utc_iso must be timezone-aware")
+        downstream = receipt.get("downstream")
+        expected_downstream = {
+            "draper_forwarded_to_glenn",
+            "glenn_acknowledged",
+            "check_received",
+            "invoice_paid",
+        }
+        if not isinstance(downstream, Mapping) or set(downstream) != expected_downstream:
+            failures.append("external-agent receipt downstream frontier is incomplete")
+        elif any(
+            not isinstance(downstream.get(key), Mapping)
+            or str(downstream[key].get("status") or "").upper() != "UNKNOWN"
+            or downstream[key].get("state") != "pending"
+            for key in expected_downstream
+        ):
+            failures.append("external-agent receipt downstream milestones must be UNKNOWN/pending")
+    else:
+        if receipt.get("status") != INVOICE_STATUS:
+            failures.append(
+                f"status expected {INVOICE_STATUS!r} got {receipt.get('status')!r}"
+            )
+        if receipt.get("invoice_period") != INVOICE_PERIOD:
+            failures.append(
+                f"invoice_period expected {INVOICE_PERIOD!r} got {receipt.get('invoice_period')!r}"
+            )
 
     if not pdf_path.exists():
         failures.append(f"PDF missing at {pdf_path}")
 
     pdf_sha = sha256_file(pdf_path) if pdf_path.exists() else ""
-    receipt_sha = str(receipt.get("sha256") or "")
+    attachment = receipt.get("attachment")
+    attachment = attachment if isinstance(attachment, Mapping) else {}
+    if external_agent_send:
+        if Path(str(attachment.get("path") or "")).resolve() != pdf_path.resolve():
+            failures.append("external-agent receipt attachment path must match the source PDF")
+        if not str(attachment.get("filename") or "").strip():
+            failures.append("external-agent receipt attachment filename is required")
+    receipt_sha = str(receipt.get("sha256") or attachment.get("sha256") or "")
     source_sha = str(receipt.get("source_sha256") or "")
     if pdf_sha and pdf_sha != receipt_sha:
         failures.append(f"PDF sha256 {pdf_sha} does not match receipt sha256 {receipt_sha}")
@@ -179,6 +260,7 @@ def validate_manual_send_receipt(
         "expected_page_count": 1,
         "page_count_ok": True,
         "field_checks_ok": True,
+        "external_agent_send": external_agent_send,
     }
 
 
@@ -193,6 +275,18 @@ def build_status_payload(
     pdf_sha = sha256_file(pdf_path)
     receipt_sha = sha256_file(receipt_path)
     generated_at = generated_at or utc_now()
+    invoice_period = str(receipt.get("invoice_period") or INVOICE_PERIOD)
+    invoice_status = str(receipt.get("status") or INVOICE_STATUS)
+    external_agent_send = validation["external_agent_send"] is True
+    recipients = [str(item) for item in receipt.get("to") or []]
+    downstream = receipt.get("downstream")
+    if not isinstance(downstream, Mapping):
+        downstream = {
+            "draper_forwarded_to_glenn": {"status": "UNKNOWN", "state": "pending"},
+            "glenn_acknowledged": {"status": "UNKNOWN", "state": "pending"},
+            "check_received": {"status": "UNKNOWN", "state": "pending"},
+            "invoice_paid": {"status": "UNKNOWN", "state": "pending"},
+        }
 
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -201,9 +295,13 @@ def build_status_payload(
         "client_ref": CLIENT_REF,
         "client_display_name": CLIENT_DISPLAY_NAME,
         "workflow_ref": "st_annes_invoice_workflow",
-        "month": INVOICE_PERIOD,
-        "invoice_period": INVOICE_PERIOD,
-        "invoice_status": INVOICE_STATUS,
+        "month": invoice_period,
+        "invoice_period": invoice_period,
+        "invoice_status": invoice_status,
+        "invoice_ref": str(
+            receipt.get("invoice_ref")
+            or f"ST-ANNES-{invoice_period}-INVOICE-{receipt.get('invoice_number') or 'unknown'}"
+        ),
         "payment_status": "NOT_MARKED_PAID",
         "artifact_kind": ARTIFACT_KIND,
         "source_pdf_path": str(pdf_path),
@@ -214,6 +312,10 @@ def build_status_payload(
         "source_receipt_sha256": receipt_sha,
         "source_receipt_generated_at": str(receipt.get("generated_at") or ""),
         "source_receipt_status": str(receipt.get("status") or ""),
+        "status_as_of_utc_iso": str(
+            receipt.get("sent_at_utc_iso") or receipt.get("generated_at") or ""
+        ),
+        "sent_at_utc_iso": str(receipt.get("sent_at_utc_iso") or ""),
         "manual_send_out_of_band_known": True,
         "sent_by_openclaw": False,
         "openclaw_send_performed": False,
@@ -223,6 +325,19 @@ def build_status_payload(
         "ledger_mutation_performed": False,
         "browser_or_coupa_submit_performed": False,
         "paid": False,
+        "recipient": recipients[0] if recipients else "",
+        "to": recipients,
+        "cc": [str(item) for item in receipt.get("cc") or []],
+        "bcc": [str(item) for item in receipt.get("bcc") or []],
+        "subject": str(receipt.get("subject") or ""),
+        "gmail_message_id": str(receipt.get("gmail_message_id") or ""),
+        "send_provenance": str(receipt.get("provenance") or "manual_out_of_band"),
+        "operator_authorized": receipt.get("operator_authorized") is True,
+        "invoice_number": str(receipt.get("invoice_number") or ""),
+        "amount": receipt.get("amount"),
+        "service_count": receipt.get("service_count"),
+        "downstream": {key: dict(value) for key, value in downstream.items()},
+        "supersedes": dict(receipt.get("supersedes") or {}),
         "ledger_posting_allowed": False,
         "email_send_allowed": False,
         "safety_flags": dict(SAFETY_FLAGS),
@@ -237,6 +352,9 @@ def build_status_payload(
         "validation": validation,
         "machine_proof": {
             "manual_send_out_of_band_recorded": True,
+            "reconciliation_record_only": external_agent_send,
+            "external_agent_send_provenance": external_agent_send,
+            "operator_authorized_fact": receipt.get("operator_authorized") is True,
             "openclaw_send_performed": False,
             "ledger_mutation_performed": False,
             "paid_false": True,
@@ -248,7 +366,11 @@ def build_status_payload(
             "source_pdf_sha256_matches_receipt": True,
             "business_authority_flags_false": all(value is False for value in SAFETY_FLAGS.values()),
         },
-        "next_safe_move": "Use this read model as manual-send evidence only; do not mark paid or post ledger without separate proof and approval.",
+        "next_safe_move": (
+            "Await Draper's verified forward to Glenn. Monitoring only; do not mark paid or send."
+            if external_agent_send
+            else "Use this read model as manual-send evidence only; do not mark paid or post ledger without separate proof and approval."
+        ),
     }
     payload["content_hash"] = "sha256:" + _sha256_bytes(stable_json(payload).encode("utf-8"))
     return payload

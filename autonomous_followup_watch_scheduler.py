@@ -95,6 +95,7 @@ def _load_sent_receipt(path: str | Path) -> dict[str, Any]:
     ok = bool(
         payload.get("manual_send_out_of_band_known") is True
         or payload.get("invoice_status") == "MANUAL_SEND_OUT_OF_BAND_RECORDED"
+        or payload.get("invoice_status") == "SENT"
         or payload.get("openclaw_send_performed") is True
     )
     if ok and not sent_at:
@@ -104,6 +105,13 @@ def _load_sent_receipt(path: str | Path) -> dict[str, Any]:
         "sent_at_utc_iso": str(sent_at or ""),
         "invoice_ref": str(payload.get("invoice_ref") or payload.get("invoice_period") or "st_annes_invoice"),
         "proof_ref": str(payload.get("content_hash") or payload.get("source_receipt_path") or path),
+        "invoice_status": str(payload.get("invoice_status") or ""),
+        "recipient": str(payload.get("recipient") or "draper.carter@gmail.com"),
+        "cc": [str(item) for item in payload.get("cc") or []],
+        "subject": str(payload.get("subject") or ""),
+        "provenance": str(payload.get("send_provenance") or ""),
+        "operator_authorized": payload.get("operator_authorized") is True,
+        "gmail_message_id": str(payload.get("gmail_message_id") or ""),
     }
 
 
@@ -181,6 +189,57 @@ def _st_annes_followup_event(
             "gmail_send_performed": False,
             "telegram_send_performed": False,
             "ledger_mutation_performed": False,
+            "business_action_performed": False,
+        },
+    }
+
+
+def _st_annes_monitoring_event(
+    tracking_state: Mapping[str, Any],
+    *,
+    generated_at: str,
+) -> dict[str, Any] | None:
+    monitoring = tracking_state.get("monitoring")
+    if (
+        tracking_state.get("workflow_stage") != "awaiting_forward_to_glenn"
+        or not isinstance(monitoring, Mapping)
+        or monitoring.get("status") != "ARMED"
+    ):
+        return None
+    invoice_ref = str(tracking_state.get("invoice_ref") or "st_annes_invoice")
+    sent_at = str(tracking_state.get("sent_at_utc_iso") or "")
+    return {
+        "event_id": f"autonomous_followup_watch:st_annes:armed:{invoice_ref}:{sent_at}",
+        "event_kind": "st_annes_receivable_monitor_armed",
+        "generated_at": generated_at,
+        "target_surface": "operator_attention_lane",
+        "headline": "St. Anne's forward monitor armed",
+        "operator_message": (
+            "The June invoice is recorded SENT to Draper. Monitoring is armed for "
+            "Draper's forward to Glenn; nothing downstream is recorded yet."
+        ),
+        "workflow_ref": str(
+            tracking_state.get("workflow_ref") or st_annes_tracking.WORKFLOW_REF
+        ),
+        "client_ref": "st_annes",
+        "invoice_ref": invoice_ref,
+        "operator_surface_flag": str(
+            tracking_state.get("operator_surface_flag")
+            or "AWAITING_DRAPER_FORWARD_TO_GLENN"
+        ),
+        "due_at_utc_iso": str(monitoring.get("due_at_utc_iso") or ""),
+        "payment_check_cadence": dict(
+            tracking_state.get("payment_check_cadence") or {}
+        ),
+        "authority_boundary": _safe_authority_boundary({}),
+        "machine_proof": {
+            "monitoring_only": True,
+            "local_observed_messages_only": True,
+            "email_send_performed": False,
+            "gmail_send_performed": False,
+            "telegram_send_performed": False,
+            "ledger_mutation_performed": False,
+            "paid_marking_performed": False,
             "business_action_performed": False,
         },
     }
@@ -326,6 +385,46 @@ def run_once(
         )
 
     followup_store = ClientFollowupWatchStore(str(_rooted(followup_db_path)))
+    armed_watch: dict[str, Any] = {}
+    if tracking_state.get("sent") is True:
+        armed_watch = followup_store.add_watch(
+            client_ref="st_annes",
+            client_name="St. Anne's",
+            recipient=str(
+                tracking_state.get("recipient") or "draper.carter@gmail.com"
+            ),
+            subject=str(
+                tracking_state.get("subject")
+                or f"Invoice {tracking_state.get('invoice_ref') or 'st_annes_invoice'}"
+            ),
+            sent_at_utc_iso=str(tracking_state.get("sent_at_utc_iso") or ""),
+            invoice_ref=str(
+                tracking_state.get("invoice_ref") or "st_annes_invoice"
+            ),
+            days_without_reply=st_annes_tracking.FOLLOWUP_CADENCE_DAYS,
+            created_at_utc_iso=generated_at,
+        )
+        forward_proof = tracking_state.get("forward_proof")
+        if isinstance(forward_proof, Mapping):
+            armed_watch = followup_store.record_reply_seen(
+                str(armed_watch["watch_id"]),
+                reply_seen_at_utc_iso=str(
+                    forward_proof.get("received_at_utc_iso") or generated_at
+                ),
+                reply_ref=str(forward_proof.get("message_id") or ""),
+            )
+        monitoring_event = _st_annes_monitoring_event(
+            tracking_state,
+            generated_at=generated_at,
+        )
+        if monitoring_event is not None:
+            _append_if_new(
+                event=monitoring_event,
+                state=state,
+                prepared=prepared,
+                skipped=skipped,
+                generated_at=generated_at,
+            )
     due_proposals = followup_store.due_followup_proposals(generated_at)
     for proposal in due_proposals:
         _append_if_new(
@@ -355,6 +454,7 @@ def run_once(
         "client_followup_watch": {
             "module_used": True,
             "db_path": str(_rooted(followup_db_path)),
+            "armed_watch": armed_watch,
             "due_proposals": due_proposals,
             "due_proposal_count": len(due_proposals),
         },
@@ -363,6 +463,7 @@ def run_once(
         "machine_proof": {
             "st_annes_forward_tracking_workflow_used": True,
             "client_followup_watch_used": True,
+            "followup_watch_armed": bool(armed_watch),
             "prepare_only": True,
             "local_observed_messages_only": True,
             "gmail_api_called": False,
