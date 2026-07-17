@@ -16,6 +16,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from agent_voice_profiles import require_voice_conformance, voice_copy_rules_for_speaker
+
 
 SCHEMA_VERSION = "client_comms_thread_rail_v0"
 READ_MODEL_ID = "client_comms_thread_rail"
@@ -201,20 +203,10 @@ def _client_display(client_ref: str) -> str:
 
 
 def _first_contact_sentence(policy: ClaraFirstContactPolicy, *, recipient_name: str, work_kind: str) -> str:
-    client = _client_display(policy.client_ref)
     if not policy.intro_required:
         return ""
-    if policy.client_ref == "live_arts_md":
-        return (
-            f"Hi {recipient_name} - I'm Clara Reid, helping Winship keep the {client} "
-            f"{work_kind} organized and easy to track."
-        )
-    if policy.client_ref == "capital_hilton":
-        return (
-            f"Hi {recipient_name} - I'm Clara Reid, helping Winship keep the Capital Hilton "
-            f"invoice package and follow-up details organized."
-        )
-    return f"Hi {recipient_name} - I'm Clara Reid, helping Winship keep this {work_kind} organized."
+    intro = str(voice_copy_rules_for_speaker("clara")["first_contact_intro"])
+    return f"Hi {recipient_name},\n\n{intro}"
 
 
 def build_clara_first_contact_draft(
@@ -270,6 +262,8 @@ def build_clara_first_contact_draft(
             "Clara Reid",
         ))
     thread_ref = f"client_comms_thread:{client_ref}:{_short_hash(workflow_ref, recipient_ref, subject)}"
+    body = "\n".join(body_lines)
+    voice_conformance = require_voice_conformance("clara", body)
     draft = ClaraDraftCandidate(
         draft_ref=f"clara_draft:{_short_hash(client_ref, workflow_ref, recipient_ref, subject)}",
         client_ref=client_ref,
@@ -280,7 +274,7 @@ def build_clara_first_contact_draft(
         audience="external_client",
         channel="email",
         subject=subject,
-        body="\n".join(body_lines),
+        body=body,
         draft_only=True,
         sent=False,
         send_allowed=False,
@@ -299,9 +293,12 @@ def build_clara_first_contact_draft(
         ),
         forbidden_claims=("sent", "resent", "submitted", "changed invoice amount", "paid", "posted"),
     )
+    draft_payload = asdict(draft)
+    draft_payload["voice_profile_ref"] = voice_conformance["voice_profile_ref"]
+    draft_payload["voice_conformance"] = voice_conformance
     return {
         "first_contact_policy": asdict(policy),
-        "draft_candidate": asdict(draft),
+        "draft_candidate": draft_payload,
         "thread_registry_record": asdict(
             CommsThreadRecord(
                 thread_ref=thread_ref,
@@ -348,14 +345,16 @@ def build_reply_watch_result(
     needs_child = intent == "CHANGE_INVOICE_AMOUNT"
     draft_candidate = None
     if allowed_to_draft:
+        signoff = str(voice_copy_rules_for_speaker("clara")["signoff"])
         body = (
-            "Hi [Name] -\n\n"
+            "Hi [Name],\n\n"
             "I can prepare the invoice resend once Winship approves the exact message and attachment. "
             "Nothing has been resent yet.\n\n"
-            "Best,\nClara Reid"
+            + signoff
             if intent == "RESEND_INVOICE_REQUEST"
-            else "Hi [Name] -\n\nI'll prepare a careful reply for Winship to review before anything is sent.\n\nBest,\nClara Reid"
+            else "Hi [Name],\n\nI'll prepare a careful reply for Winship to review before anything is sent.\n\n" + signoff
         )
+        voice_conformance = require_voice_conformance("clara", body)
         draft_candidate = asdict(
             ClaraDraftCandidate(
                 draft_ref=f"clara_reply_draft:{_short_hash(thread_ref, incoming_message_ref)}",
@@ -386,6 +385,8 @@ def build_reply_watch_result(
                 forbidden_claims=("resent", "sent", "changed invoice amount", "posted", "paid"),
             )
         )
+        draft_candidate["voice_profile_ref"] = voice_conformance["voice_profile_ref"]
+        draft_candidate["voice_conformance"] = voice_conformance
     return ReplyWatchResult(
         incoming_message_ref=incoming_message_ref,
         thread_ref=thread_ref,

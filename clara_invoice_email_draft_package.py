@@ -13,6 +13,8 @@ import json
 import re
 from typing import Any, Mapping
 
+from agent_voice_profiles import require_voice_conformance, voice_copy_rules_for_speaker
+
 
 CLARA_SELECTED_VOICE = "CLARA"
 CLARA_EXTERNAL_IDENTITY = "CLARA_REID"
@@ -137,17 +139,6 @@ CLIENT_FACING_FORBIDDEN_TERMS = (
     "backend",
     "proof ui",
 )
-
-_WARM_NO_ACTION_LINE = (
-    "There's nothing needed on your end right now; whenever it's convenient, just let me know if "
-    "anything would help it along. As always, it's a pleasure working with you."
-)
-_INTERMEDIARY_FORWARD_LINE = (
-    "Whenever you're happy with the invoice, just let us know once you've forwarded it to {forward_to} - "
-    "and if it's easy, feel free to copy me (winshiplive@gmail.com) on that note so I can keep the "
-    "record straight. As always, a pleasure working with you."
-)
-
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
@@ -495,11 +486,12 @@ def _contact_role_is_intermediary(contact: Mapping[str, Any] | None) -> bool:
 
 
 def _warm_closing_line(contact: Mapping[str, Any] | None) -> str:
+    copy_rules = voice_copy_rules_for_speaker("clara")
     forward_to_text = _clean_text((contact or {}).get("forward_to")) if contact else ""
     forward_to = forward_to_text.split()[0] if forward_to_text else ""
     if _contact_role_is_intermediary(contact) and forward_to:
-        return _INTERMEDIARY_FORWARD_LINE.format(forward_to=forward_to)
-    return _WARM_NO_ACTION_LINE
+        return str(copy_rules["intermediary_next_step"]).format(forward_to=forward_to)
+    return str(copy_rules["general_next_step"])
 
 
 def _general_contact_from_recipient_package(
@@ -612,41 +604,39 @@ def build_general_client_invoice_body(
         else invoice_data.get("first_contact_intro_required") is True
     )
 
+    copy_rules = voice_copy_rules_for_speaker("clara")
     lines = [_contact_greeting(contact), ""]
     if include_intro:
-        lines.append(
-            f"I'm Clara Reid, helping Winship keep the {client_name} invoice package organized and easy to track."
-        )
+        lines.extend((str(copy_rules["first_contact_intro"]), ""))
     if attachment_ready:
         attachment_label = f" ({attachment_filename})" if attachment_filename else ""
         if total:
             lines.append(
-                f"I hope this note finds you well. Winship's invoice for {client_name} is attached{attachment_label} - "
-                f"it covers {coverage}, coming to {total}."
+                f"Winship's invoice for {client_name} is attached{attachment_label}. "
+                f"It covers {coverage}, coming to {total}."
             )
         else:
             lines.append(
-                f"I hope this note finds you well. Winship's invoice for {client_name} is attached{attachment_label} - "
-                f"it covers {coverage}."
+                f"Winship's invoice for {client_name} is attached{attachment_label}. It covers {coverage}."
             )
     else:
         if total and coverage and not covered_has_amounts:
             lines.append(
-                f"I hope this note finds you well. Winship's confirmed {client_name} invoice, covering {coverage} ({total}), "
+                f"Winship's confirmed {client_name} invoice, covering {coverage} ({total}), "
                 "is on its way to you."
             )
         elif coverage:
             lines.append(
-                f"I hope this note finds you well. Winship's confirmed {client_name} invoice, covering {coverage}, "
+                f"Winship's confirmed {client_name} invoice, covering {coverage}, "
                 "is on its way to you."
             )
         elif total:
             lines.append(
-                f"I hope this note finds you well. Winship's confirmed {client_name} invoice, totaling {total}, "
+                f"Winship's confirmed {client_name} invoice, totaling {total}, "
                 "is on its way to you."
             )
         else:
-            lines.append(f"I hope this note finds you well. Winship's confirmed {client_name} invoice is on its way to you.")
+            lines.append(f"Winship's confirmed {client_name} invoice is on its way to you.")
     portal_provider = _clean_text(invoice_data.get("supplier_portal_provider"))
     if portal_provider and invoice_data.get("portal_submission_status") == "SUBMITTED_RECEIPT_CONFIRMED":
         lines.append(
@@ -657,12 +647,12 @@ def build_general_client_invoice_body(
         "",
         _warm_closing_line(contact),
         "",
-        "Warmly,",
-        "Clara Reid",
+        str(copy_rules["signoff"]),
     ))
     body = "\n".join(lines)
     if body_contains_backend_status_language(body):
         raise ValueError("Generated client-facing invoice body contains forbidden status language.")
+    require_voice_conformance("clara", body)
     return body
 
 
@@ -803,6 +793,7 @@ def build_clara_invoice_email_draft_package(
         general_contact,
         first_contact_intro_required=first_contact_intro_required,
     )
+    voice_conformance = require_voice_conformance("clara", body)
     line_items_present = bool(_line_items_from_invoice_data(general_invoice_data))
     target_blueprint = _general_target_blueprint(
         subject=subject,
@@ -846,6 +837,8 @@ def build_clara_invoice_email_draft_package(
         "workflow_ref": workflow_ref,
         "draft_ref": draft_ref,
         "selected_voice": CLARA_SELECTED_VOICE,
+        "voice_profile_ref": voice_conformance["voice_profile_ref"],
+        "voice_conformance": voice_conformance,
         "internal_identity": CASSANDRA_INTERNAL_IDENTITY,
         "external_identity": CLARA_EXTERNAL_IDENTITY,
         "draft_status": draft_status,

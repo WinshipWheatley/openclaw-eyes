@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -44,6 +45,66 @@ SPEAKER_REFS = (
 VOICE_PROFILE_REFS = {
     speaker_ref: f"agent_voice_profile:{speaker_ref}"
     for speaker_ref in SPEAKER_REFS
+}
+
+SHARED_CANNED_PHRASES = (
+    "as an ai",
+    "i hope this note finds you well",
+    "thank you for your patience and understanding",
+)
+
+VOICE_CONFORMANCE_CONTRACTS: dict[str, dict[str, Any]] = {
+    "cassandra": {
+        "style_traits": ("calm", "precise", "discreet", "warm", "relationship-aware"),
+        "forbidden_phrases": SHARED_CANNED_PHRASES + ("i went ahead and sent", "i already sent"),
+        "forbidden_patterns": (),
+    },
+    "chief": {
+        "style_traits": ("direct", "grounded", "practical", "receipt-focused", "status-first"),
+        "forbidden_phrases": SHARED_CANNED_PHRASES + ("everything is all set", "trust me"),
+        "forbidden_patterns": (),
+    },
+    "hermes": {
+        "style_traits": ("serene", "measured", "reflective", "pattern-aware", "advisory"),
+        "forbidden_phrases": SHARED_CANNED_PHRASES + ("i executed the fix", "i approved the architecture"),
+        "forbidden_patterns": (),
+    },
+    "guardian": {
+        "style_traits": ("firm", "brief", "protective", "proof-first", "non-alarmist"),
+        "forbidden_phrases": SHARED_CANNED_PHRASES + ("approved enough", "probably safe"),
+        "forbidden_patterns": (),
+    },
+    "niles": {
+        "style_traits": ("tasteful", "relaxed", "musically literate", "precise", "low-pressure"),
+        "forbidden_phrases": SHARED_CANNED_PHRASES + ("crikey", "good on ya", "i fixed the session"),
+        "forbidden_patterns": (),
+    },
+    "maestro": {
+        "style_traits": ("concise", "routing-aware", "calm", "proof-labeled", "operator-facing"),
+        "forbidden_phrases": SHARED_CANNED_PHRASES + ("i sent it", "i approved it"),
+        "forbidden_patterns": (),
+    },
+    "clara": {
+        "style_traits": ("warm", "competent", "professional-but-human", "concise", "direct"),
+        "forbidden_phrases": SHARED_CANNED_PHRASES
+        + (
+            "i'm clara reid, helping winship keep the",
+            "whenever you're happy with the invoice",
+            "just let us know once you've forwarded it",
+            "i wanted to follow up",
+        ),
+        "forbidden_patterns": (
+            {
+                "code": "over_narrowed_identity",
+                "pattern": r"\bi['’]m clara reid,?\s+helping winship keep .{0,160}\b(invoice|package|account)\b",
+            },
+        ),
+    },
+    "openclaw": {
+        "style_traits": ("neutral", "minimal", "factual", "objective", "low-personality"),
+        "forbidden_phrases": SHARED_CANNED_PHRASES + ("i feel", "personally, i think"),
+        "forbidden_patterns": (),
+    },
 }
 
 AUTHORITY_BOUNDARY_DEFAULT = {
@@ -90,6 +151,15 @@ def voice_profile_ref_for_speaker(speaker_ref: str) -> str:
     return VOICE_PROFILE_REFS.get(speaker_ref, VOICE_PROFILE_REFS["openclaw"])
 
 
+class VoiceConformanceError(ValueError):
+    """Raised when text fails its canonical speaker contract."""
+
+    def __init__(self, result: Mapping[str, Any]) -> None:
+        self.result = dict(result)
+        violations = ", ".join(str(item.get("code")) for item in result.get("violations", ()))
+        super().__init__(f"Voice conformance failed for {result.get('speaker_ref')}: {violations}")
+
+
 def _tts_profile(
     *,
     voice_target: str,
@@ -128,8 +198,76 @@ def _example(
 
 def _apply_perspective(profile: dict[str, Any]) -> dict[str, Any]:
     enriched = dict(profile)
+    contract = VOICE_CONFORMANCE_CONTRACTS[str(profile["speaker_ref"])]
+    enriched["voice_conformance"] = {
+        "enforcement": "fail_closed",
+        "style_traits": list(contract["style_traits"]),
+        "forbidden_phrases": list(contract["forbidden_phrases"]),
+        "forbidden_patterns": [dict(item) for item in contract["forbidden_patterns"]],
+    }
     enriched.update(perspective_policy_record(str(profile["speaker_ref"])))
     return enriched
+
+
+def voice_profile_for_speaker(speaker_ref: str) -> dict[str, Any]:
+    normalized = str(speaker_ref or "").strip().lower()
+    for profile in build_profiles():
+        if profile["speaker_ref"] == normalized:
+            return profile
+    raise KeyError(f"Unknown canonical speaker_ref: {speaker_ref}")
+
+
+def voice_copy_rules_for_speaker(speaker_ref: str) -> dict[str, Any]:
+    return dict(voice_profile_for_speaker(speaker_ref)["copy_rules"])
+
+
+def validate_voice_conformance(speaker_ref: str, text: str) -> dict[str, Any]:
+    normalized_speaker = str(speaker_ref or "").strip().lower()
+    value = str(text or "")
+    violations: list[dict[str, str]] = []
+    try:
+        profile = voice_profile_for_speaker(normalized_speaker)
+    except KeyError:
+        return {
+            "passed": False,
+            "speaker_ref": normalized_speaker,
+            "voice_profile_ref": None,
+            "enforcement": "fail_closed",
+            "violations": [{"code": "unknown_speaker", "detail": normalized_speaker}],
+        }
+
+    if not value.strip():
+        violations.append({"code": "empty_text", "detail": "Voice-bound text must not be empty."})
+
+    lowered = value.casefold()
+    contract = profile["voice_conformance"]
+    for phrase in contract["forbidden_phrases"]:
+        if str(phrase).casefold() in lowered:
+            violations.append({"code": "canned_phrase", "detail": str(phrase)})
+    for pattern in contract["forbidden_patterns"]:
+        if re.search(str(pattern["pattern"]), value, flags=re.IGNORECASE | re.DOTALL):
+            violations.append({"code": str(pattern["code"]), "detail": str(pattern["pattern"])})
+
+    if profile.get("register_kind") == "external_client_facing":
+        for term in profile["vocabulary"]["avoid"]:
+            if str(term).casefold() in lowered:
+                violations.append({"code": "internal_term", "detail": str(term)})
+
+    return {
+        "passed": not violations,
+        "speaker_ref": normalized_speaker,
+        "voice_profile_ref": profile["voice_profile_ref"],
+        "enforcement": "fail_closed",
+        "style_traits": list(contract["style_traits"]),
+        "violations": violations,
+    }
+
+
+def require_voice_conformance(speaker_ref: str, text: str) -> dict[str, Any]:
+    result = validate_voice_conformance(speaker_ref, text)
+    if not result["passed"]:
+        raise VoiceConformanceError(result)
+    return result
 
 
 def build_profiles() -> list[dict[str, Any]]:
@@ -447,6 +585,11 @@ def build_profiles() -> list[dict[str, Any]]:
                 "next_safe_action_style": "Ask operator to review or approve the draft.",
                 "proof_behavior": "collapsed_by_default",
                 "client_visibility": "external_allowed",
+                "first_contact_intro": "I'm Clara Reid, Winship's assistant.",
+                "intermediary_next_step": "Please forward this to {forward_to} after your review, or let me know if there are any issues.",
+                "general_next_step": "Please let me know if you have any questions or need anything else.",
+                "followup_body": "Could you let me know whether {invoice_ref} has reached the right person? If there are any issues or questions, I'm happy to help.",
+                "signoff": "Warmly,\nClara Reid",
             },
             "vocabulary": {
                 "use": ["proposal", "availability", "next step", "attached", "review", "happy to adjust"],
@@ -608,6 +751,7 @@ def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
             "default_voice_modes",
             "tts_profile",
             "copy_rules",
+            "voice_conformance",
             "vocabulary",
             "examples",
             "guardrails",

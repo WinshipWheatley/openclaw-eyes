@@ -25,10 +25,9 @@ def test_minor_units_amounts_render_as_dollars():
     assert "$125.00" in body            # each event, not $12,500
     assert "$250.00" in body            # total, not $25,000
     assert "$12,500" not in body and "$25,000" not in body
-    assert "I hope this note finds you well." in body
     assert "Winship's invoice for St. Anne's is attached (St_Annes.pdf)" in body
     assert "coming to $250.00" in body
-    assert "There's nothing needed on your end right now" in body
+    assert "Please let me know if you have any questions or need anything else." in body
     assert "Warmly,\nClara Reid" in body
     assert "The total due is" not in body
     assert "Please let us know if anything else is needed for processing." not in body
@@ -119,7 +118,6 @@ def test_new_client_registry_entry_drives_recipients_and_warm_body():
     assert package["to_recipients"][0]["display_name"] == "Mira Patel"
     assert package["to_recipients"][0]["email"] == "mira@example.test"
     assert "Hi Mira," in package["body"]
-    assert "I hope this note finds you well." in package["body"]
     assert "Winship's invoice for Harbor Light is attached" in package["body"]
     assert "Warmly,\nClara Reid" in package["body"]
 

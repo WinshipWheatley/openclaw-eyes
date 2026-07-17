@@ -116,5 +116,8 @@ def test_day_four_followup_due_is_gated_and_never_sends(tmp_path: Path) -> None:
     assert state["follow_up"]["cadence_days"] == 3
     assert state["follow_up"]["proposal"]["gated"] is True
     assert state["follow_up"]["proposal"]["send_performed"] is False
+    assert state["follow_up"]["proposal"]["voice_profile_ref"] == "agent_voice_profile:clara"
+    assert state["follow_up"]["proposal"]["voice_conformance"]["passed"] is True
+    assert "Please forward the St. Anne's invoice to Glenn after your review" in state["follow_up"]["proposal"]["draft"]["body"]
     assert state["follow_up"]["proposal"]["authority_boundary"]["send_hold_required"] is True
     assert state["follow_up"]["proposal"]["authority_boundary"]["guardian_required"] is True

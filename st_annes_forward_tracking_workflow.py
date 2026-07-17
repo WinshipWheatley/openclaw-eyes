@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from agent_voice_profiles import require_voice_conformance, voice_copy_rules_for_speaker
 from client_followup_watch import AUTHORITY_BOUNDARY_PROPOSAL
 from contacts_registry import DEFAULT_CONTACTS_DB_PATH, ContactsRegistry
 
@@ -267,15 +268,16 @@ def _detect_ack(
 
 
 def _followup_draft(step: str, invoice_ref: str) -> dict[str, str]:
+    signoff = str(voice_copy_rules_for_speaker("clara")["signoff"])
     if step == "forward_to_glenn":
         return {
             "to": "draper.carter@gmail.com",
             "subject": f"Following up: {invoice_ref}",
             "body": (
                 "Hi Draper,\n\n"
-                "Following up on the St. Anne's invoice. Please forward it to Glenn "
-                "and copy Winship Live so we can keep the receivable state current.\n\n"
-                "Best,\nClara Reid\nWinship Live"
+                "Please forward the St. Anne's invoice to Glenn after your review, "
+                "or let me know if there are any issues.\n\n"
+                + signoff
             ),
         }
     return {
@@ -283,9 +285,9 @@ def _followup_draft(step: str, invoice_ref: str) -> dict[str, str]:
         "subject": f"Following up with Glenn: {invoice_ref}",
         "body": (
             "Hi Draper,\n\n"
-            "Following up to confirm whether Glenn has acknowledged the St. Anne's "
-            "invoice you forwarded. Please keep Winship Live copied on the thread.\n\n"
-            "Best,\nClara Reid\nWinship Live"
+            "Could you let me know whether Glenn has acknowledged the St. Anne's invoice? "
+            "If there are any issues or questions, I'm happy to help.\n\n"
+            + signoff
         ),
     }
 
@@ -319,12 +321,15 @@ def _follow_up(
     }
     if status == "FOLLOW_UP_DUE":
         draft = _followup_draft(step, invoice_ref)
+        voice_conformance = require_voice_conformance("clara", draft["body"])
         payload["proposal"] = {
             "schema_version": "st_annes_followup_proposal_v0",
             "status": "FOLLOW_UP_PROPOSAL_READY",
             "step": step,
             "invoice_ref": invoice_ref,
             "draft": draft,
+            "voice_profile_ref": voice_conformance["voice_profile_ref"],
+            "voice_conformance": voice_conformance,
             "gated": True,
             "send_performed": False,
             "authority_boundary": {

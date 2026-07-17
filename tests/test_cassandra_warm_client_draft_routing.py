@@ -61,8 +61,7 @@ def test_warm_client_draft_routes_to_clara_not_payment_lookup(monkeypatch) -> No
     assert len(replies) == 1
     reply = replies[0]
     assert "Hi Draper," in reply
-    assert "forwarded it to Glenn" in reply
-    assert "copy me (winshiplive@gmail.com)" in reply
+    assert "Please forward this to Glenn after your review, or let me know if there are any issues." in reply
     assert "Warmly,\nClara Reid" in reply
     assert "Nothing has been sent" in reply
     assert "recent Gmail notifications" not in reply
@@ -123,7 +122,7 @@ def test_short_warm_note_to_draper_produces_inline_clara_draft_before_staging(mo
     reply = replies[0]
     assert "Clara draft (review only - not sent):" in reply
     assert "Hi Draper," in reply
-    assert "forwarded it to Glenn" in reply
+    assert "Please forward this to Glenn after your review, or let me know if there are any issues." in reply
     assert "Warmly,\nClara Reid" in reply
     assert "Nothing has been sent" in reply
     assert "Finance candidates" not in reply

@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from agent_voice_profiles import require_voice_conformance, voice_copy_rules_for_speaker
 from hitl_action_service import ACTION_TYPE_EXACT_GMAIL_SEND, build_operator_action_approval_payload
 
 
@@ -237,15 +238,18 @@ class ClientFollowupWatchStore:
     def _proposal_for_watch(self, watch: Mapping[str, Any], *, requested_at_utc: str) -> dict[str, Any]:
         invoice_ref = str(watch.get("invoice_ref") or watch.get("subject") or "").strip()
         client_name = str(watch.get("client_name") or watch.get("client_ref") or "there").strip()
+        copy_rules = voice_copy_rules_for_speaker("clara")
+        body = (
+            "Hello,\n\n"
+            + str(copy_rules["followup_body"]).format(invoice_ref=invoice_ref)
+            + "\n\n"
+            + str(copy_rules["signoff"])
+        )
+        voice_conformance = require_voice_conformance("clara", body)
         draft = {
             "to": watch["recipient"],
             "subject": "Following up: " + str(watch["subject"]),
-            "body": (
-                f"Hi {client_name},\n\n"
-                f"I wanted to follow up on {invoice_ref}. "
-                "Please let me know if you need anything else from us.\n\n"
-                "Best,\nClara Reid\nWinship Live"
-            ),
+            "body": body,
         }
         proposal_id = "client_followup_proposal:" + _short_hash(
             {"watch_id": watch["watch_id"], "draft": draft}
@@ -259,6 +263,8 @@ class ClientFollowupWatchStore:
             payload={
                 **draft,
                 "watch_id": watch["watch_id"],
+                "voice_profile_ref": voice_conformance["voice_profile_ref"],
+                "voice_conformance": voice_conformance,
                 "authority_boundary": dict(AUTHORITY_BOUNDARY_PROPOSAL),
             },
             risk_warning="Follow-up draft is proposal-only. SEND_HOLD and Guardian/operator approval are required before any send.",
@@ -280,6 +286,8 @@ class ClientFollowupWatchStore:
             "client_name": watch["client_name"],
             "due_at_utc_iso": watch["due_at_utc_iso"],
             "draft": draft,
+            "voice_profile_ref": voice_conformance["voice_profile_ref"],
+            "voice_conformance": voice_conformance,
             "approval_request": approval_request,
             "gated": True,
             "send_performed": False,

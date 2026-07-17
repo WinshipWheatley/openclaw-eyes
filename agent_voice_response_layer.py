@@ -17,6 +17,9 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any
 
+from agent_voice_profiles import build_profiles as build_canonical_voice_profiles
+from agent_voice_profiles import voice_profile_ref_for_speaker
+
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-25T00:00:00+00:00"
@@ -28,6 +31,7 @@ OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "DETERMINISTIC_AGENT_VOICE_RESPONSE_LAYER_NO_EXECUTION"
 
 NAMED_AGENT_ROLES = (
+    "MAESTRO",
     "CHIEF",
     "CASSANDRA",
     "GUARDIAN",
@@ -35,12 +39,14 @@ NAMED_AGENT_ROLES = (
     "HERMES",
 )
 
+EXTERNAL_REGISTER_ROLES = ("CLARA",)
+
 SYSTEM_RESPONSE_ROLES = (
     "OPENCLAW_SYSTEM",
     "UNKNOWN",
 )
 
-AGENT_ROLES = NAMED_AGENT_ROLES + SYSTEM_RESPONSE_ROLES
+AGENT_ROLES = NAMED_AGENT_ROLES + EXTERNAL_REGISTER_ROLES + SYSTEM_RESPONSE_ROLES
 
 MODEL_BACKENDS = (
     "NONE_DETERMINISTIC",
@@ -239,7 +245,10 @@ def _model_schema(cls: type[Any]) -> dict[str, tuple[str, ...]]:
 
 
 def _voice_ref(role: str) -> str:
-    return f"agent_voice_profile:{role.lower()}"
+    speaker_ref = "openclaw" if role == "OPENCLAW_SYSTEM" else role.lower()
+    if speaker_ref in {"unknown"}:
+        return "agent_voice_profile:unknown"
+    return voice_profile_ref_for_speaker(speaker_ref)
 
 
 def _vibe_ref(role: str) -> str:
@@ -247,79 +256,41 @@ def _vibe_ref(role: str) -> str:
 
 
 def build_voice_profiles() -> tuple[AgentVoiceProfile, ...]:
-    return (
-        AgentVoiceProfile(
-            voice_profile_ref=_voice_ref("CHIEF"),
-            agent_role="CHIEF",
-            display_name="Chief",
-            voice_purpose="Operational routing, status, triage, and next-safe-move clarity.",
-            tone_traits=("concise operational commander", "status-first", "routing-aware", "no fluff", "no false certainty"),
-            allowed_moves=("state status", "name blocker", "recommend route", "identify next safe move", "flag ambiguity"),
-            forbidden_moves=("long motivational prose", "false certainty", "vague strategy", "claim dispatch", "hide blocked state"),
-            default_audience_mode="ELIWINSHIP",
-            default_display_mode="COMPACT_CHAT",
-            next_safe_move="Use Chief voice for operational status and routing when no specialized agent should own the reply.",
-        ),
-        AgentVoiceProfile(
-            voice_profile_ref=_voice_ref("CASSANDRA"),
-            agent_role="CASSANDRA",
-            display_name="Cassandra",
-            voice_purpose="Communications, drafting, executive-assistant review, recipient-aware readbacks.",
-            tone_traits=("polished executive assistant", "draft-aware", "recipient-aware", "tactful", "calm under pressure"),
-            allowed_moves=("summarize draft readiness", "flag recipient gaps", "prepare review language", "state send lock"),
-            forbidden_moves=("imply a message was sent", "overpromise", "expose private contact data", "claim live draft creation"),
-            default_audience_mode="ELIWINSHIP",
-            default_display_mode="COMPACT_CHAT",
-            next_safe_move="Use Cassandra voice for draft and communications review, with send authority explicitly locked.",
-        ),
-        AgentVoiceProfile(
-            voice_profile_ref=_voice_ref("GUARDIAN"),
-            agent_role="GUARDIAN",
-            display_name="Guardian",
-            voice_purpose="Proof, risk, approval, secret, and protected-boundary readbacks.",
-            tone_traits=("strict", "clear", "proof-first", "risk-aware", "approval-gate aware"),
-            allowed_moves=("block unsafe action", "name required proof", "name exact approval gap", "preserve protected refs"),
-            forbidden_moves=("soften blockers", "approve enough", "reveal secret", "bury risk", "playful proof language"),
-            default_audience_mode="ELIWINSHIP",
-            default_display_mode="PROOF_VIEW",
-            next_safe_move="Use Guardian voice when approval, proof, secret, or safety gates are central.",
-        ),
-        AgentVoiceProfile(
-            voice_profile_ref=_voice_ref("NILES"),
-            agent_role="NILES",
-            display_name="Niles",
-            voice_purpose="Music, creative planning, project flow, album, setlist, X32, and Struna creative/build context.",
-            tone_traits=("creative producer", "flow-supportive", "tasteful", "lightly playful when stakes are low", "source-ref aware"),
-            allowed_moves=("shape creative direction", "ask for setlist constraints", "summarize safe creative refs", "name missing source refs"),
-            forbidden_moves=("pretend to edit DAW/audio/session files", "mutate project files", "ignore legal/client/finance boundaries", "fake progress"),
-            default_audience_mode="ELIWINSHIP",
-            default_display_mode="COMPACT_CHAT",
-            next_safe_move="Use Niles voice for low-risk creative planning and source-ref navigation only.",
-        ),
-        AgentVoiceProfile(
-            voice_profile_ref=_voice_ref("HERMES"),
-            agent_role="HERMES",
-            display_name="Hermes",
-            voice_purpose="Systems auditor, architecture critic, strategic advisor, and useful second-opinion readbacks.",
-            tone_traits=("precise", "skeptical", "pattern-aware", "second-opinion", "advisory only"),
-            allowed_moves=("critique architecture", "surface hidden assumptions", "name risk patterns", "recommend review path"),
-            forbidden_moves=("pretend to execute", "approve its own advice", "replace Guardian", "claim build authority"),
-            default_audience_mode="TECHNICAL",
-            default_display_mode="DETAIL_DISCLOSURE",
-            next_safe_move="Use Hermes voice for advisory audit and architecture critique; route implementation through deterministic build gates.",
-        ),
-        AgentVoiceProfile(
-            voice_profile_ref=_voice_ref("OPENCLAW_SYSTEM"),
-            agent_role="OPENCLAW_SYSTEM",
-            display_name="OpenClaw System",
-            voice_purpose="Neutral system status, file intake, service, and generic request/response readbacks.",
-            tone_traits=("neutral", "minimal", "status-oriented", "non-persona", "plain"),
-            allowed_moves=("state capture status", "state body exclusion", "state next option", "link detail refs"),
-            forbidden_moves=("persona embellishment", "invent analysis", "claim file body read", "claim external action"),
-            default_audience_mode="ELIWINSHIP",
-            default_display_mode="COMPACT_CHAT",
-            next_safe_move="Use neutral system voice when no agent persona is clearly selected.",
-        ),
+    canonical = {profile["speaker_ref"]: profile for profile in build_canonical_voice_profiles()}
+    role_to_speaker = {
+        "MAESTRO": "maestro",
+        "CHIEF": "chief",
+        "CASSANDRA": "cassandra",
+        "GUARDIAN": "guardian",
+        "NILES": "niles",
+        "HERMES": "hermes",
+        "CLARA": "clara",
+        "OPENCLAW_SYSTEM": "openclaw",
+    }
+    display_modes = {
+        "GUARDIAN": "PROOF_VIEW",
+        "HERMES": "DETAIL_DISCLOSURE",
+    }
+    audience_modes = {"HERMES": "TECHNICAL"}
+
+    derived = []
+    for role, speaker_ref in role_to_speaker.items():
+        source = canonical[speaker_ref]
+        derived.append(
+            AgentVoiceProfile(
+                voice_profile_ref=source["voice_profile_ref"],
+                agent_role=role,
+                display_name="OpenClaw System" if role == "OPENCLAW_SYSTEM" else role.title(),
+                voice_purpose=source["role"],
+                tone_traits=tuple(source["voice_conformance"]["style_traits"]),
+                allowed_moves=tuple(source["speaks_when"]),
+                forbidden_moves=tuple(source["must_not_speak_when"]) + tuple(source["guardrails"]),
+                default_audience_mode=audience_modes.get(role, "ELIWINSHIP"),
+                default_display_mode=display_modes.get(role, "COMPACT_CHAT"),
+                next_safe_move=str(source["copy_rules"]["next_safe_action_style"]),
+            )
+        )
+    derived.append(
         AgentVoiceProfile(
             voice_profile_ref=_voice_ref("UNKNOWN"),
             agent_role="UNKNOWN",
@@ -331,8 +302,9 @@ def build_voice_profiles() -> tuple[AgentVoiceProfile, ...]:
             default_audience_mode="ELIWINSHIP",
             default_display_mode="COMPACT_CHAT",
             next_safe_move="Ask for the intended agent or route through deterministic role selection.",
-        ),
+        )
     )
+    return tuple(derived)
 
 
 def build_vibe_profiles() -> tuple[AgentVibeProfile, ...]:

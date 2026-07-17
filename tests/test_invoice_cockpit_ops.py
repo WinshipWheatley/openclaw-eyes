@@ -145,8 +145,8 @@ def test_clara_draft_resolves_st_annes_registry_contact_for_greeting(tmp_path: P
 
     assert result["ok"] is True
     assert "Hi Draper," in messages[0]
-    assert "forwarded it to Glenn" in messages[0]
-    assert "copy me (winshiplive@gmail.com)" in messages[0]
+    assert "Please forward this to Glenn after your review, or let me know if there are any issues." in messages[0]
+    assert "copy me (winshiplive@gmail.com)" not in messages[0]
     assert "There's nothing needed on your end right now" not in messages[0]
 
 
@@ -225,8 +225,8 @@ def test_send_email_test_mode_uses_registry_contact_body(tmp_path: Path, monkeyp
 
     assert result["ok"] is True
     assert "Hi Draper," in calls[0][2]["body"]
-    assert "forwarded it to Glenn" in calls[0][2]["body"]
-    assert "copy me (winshiplive@gmail.com)" in calls[0][2]["body"]
+    assert "Please forward this to Glenn after your review, or let me know if there are any issues." in calls[0][2]["body"]
+    assert "copy me (winshiplive@gmail.com)" not in calls[0][2]["body"]
     assert "There's nothing needed on your end right now" not in calls[0][2]["body"]
     sent_pdf = Path(calls[0][2]["attachments"][0])
     assert sent_pdf.exists()
