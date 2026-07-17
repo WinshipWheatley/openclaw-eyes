@@ -23,7 +23,7 @@ DEFAULT_OUTPUT_DIR = Path("workspaces/openclaw_program")
 EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:20:00-04:00"
 FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT = "2026-07-17T10:48:00-04:00"
 W0_INVOICE_WAIST_LAST_VERIFIED_AT = "2026-07-17T12:19:10-04:00"
-CAPABILITY_LEDGER_RECONCILER_LAST_VERIFIED_AT = "2026-07-17T12:38:00-04:00"
+CAPABILITY_LEDGER_RECONCILER_LAST_VERIFIED_AT = "2026-07-17T13:01:00-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -1953,10 +1953,10 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ],
             default_state="scheduled_with_existing_refresh_owner",
             current_state_if_verifiable=_state(
-                "one-way register, runtime, file-inventory, and Mac census mirror is built with deterministic drift and ledger-only Maestro readback",
+                "existing scheduled refresh owner runs the one-way two-machine mirror; the deployed Maestro front door answers built-versus-on from the ledger alone",
                 code_default="dry-run; confirmed batch is metadata-only and cannot activate services, mutate the register, grant authority, send, move money, or delete",
-                production="production deployment and confirmed batch pending",
-                audit_report="real production dry run collected PC systemd/cron/listener and all MacSol verdict rows without writing the ledger",
+                production="installed */30 refresh owner executed confirmed production batches; exact repeated snapshot is idempotent and all owner services are active",
+                audit_report="production batch, append-on-change runtime transition, frozen-snapshot replay, isolated injected drift, and real Maestro ledger-only canary passed",
             ),
             source_files=[
                 "capability_ledger_reconciler.py",
@@ -1973,19 +1973,20 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/Operator/to-codex/FABLE-ALIGN-CAPABILITY-LEDGER-RECONCILER-BUILD-GO-20260717.md",
             ],
             canary_status=(
-                "production dry run: 170 rows across PC/Mac, all 34 Mac census verdicts, bridge health, and no writes; "
-                "temp atomic confirm/idempotence/injected-failure tests pass; production confirm pending"
+                "scheduled owner mirrored 172 PC/Mac rows; all 34 Mac census verdicts and bridge health present; "
+                "unchanged snapshot replays with changed/decision counts 0; injected REGISTERED_RUNTIME_DARK appended one decision; "
+                "deployed Maestro answered from capability_activations only with model/runtime/send calls 0"
             ),
             risk_level="medium",
             owner="Maestro / PC Codex Desktop",
-            gate_stage="canary",
+            gate_stage="operator_approved_live",
             enabled_by="existing refresh_ledger_knowledge */30 cron plus confirmed production batch and ledger-only Maestro canary",
             disabled_by="remove the reconciler call from refresh_ledger_knowledge; the existing knowledge fold remains available",
             rollback_note="remove only the reconciler call and leave additive ledger tables as inert historical receipts",
-            next_required_step="deploy, run two production confirmed batches, inject drift in an isolated fixture, and prove the real Maestro front door reads the ledger alone",
+            next_required_step="monitor scheduled batch receipts, stale inventory attention, and running-unregistered disposition; keep the mirror one-way",
             activation_allowed_now=False,
             operator_approval_required=True,
-            reason_if_off="production owner path has not yet completed its confirmed activation canaries",
+            reason_if_off="only rollback after an atomicity, source-truth, scheduler, or ledger-only readback regression",
             evidence_refs=[
                 "workspaces/openclaw_program/activation_records/CAPABILITY_LEDGER_RECONCILER_20260717.md",
                 "/home/openclaw/Operator/from-codex/CAPABILITY-LEDGER-RECONCILER-R0-RECEIPT-20260717-PC-Codex-Desktop.json",

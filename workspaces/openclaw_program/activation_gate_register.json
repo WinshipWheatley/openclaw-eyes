@@ -297,13 +297,13 @@
         "/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md",
         "/home/openclaw/Operator/to-codex/FABLE-ALIGN-CAPABILITY-LEDGER-RECONCILER-BUILD-GO-20260717.md"
       ],
-      "canary_status": "production dry run: 170 rows across PC/Mac, all 34 Mac census verdicts, bridge health, and no writes; temp atomic confirm/idempotence/injected-failure tests pass; production confirm pending",
+      "canary_status": "scheduled owner mirrored 172 PC/Mac rows; all 34 Mac census verdicts and bridge health present; unchanged snapshot replays with changed/decision counts 0; injected REGISTERED_RUNTIME_DARK appended one decision; deployed Maestro answered from capability_activations only with model/runtime/send calls 0",
       "capability_id": "capability_ledger_reconciler",
       "current_state_if_verifiable": {
-        "audit_report": "real production dry run collected PC systemd/cron/listener and all MacSol verdict rows without writing the ledger",
+        "audit_report": "production batch, append-on-change runtime transition, frozen-snapshot replay, isolated injected drift, and real Maestro ledger-only canary passed",
         "code_default": "dry-run; confirmed batch is metadata-only and cannot activate services, mutate the register, grant authority, send, move money, or delete",
-        "production": "production deployment and confirmed batch pending",
-        "summary": "one-way register, runtime, file-inventory, and Mac census mirror is built with deterministic drift and ledger-only Maestro readback"
+        "production": "installed */30 refresh owner executed confirmed production batches; exact repeated snapshot is idempotent and all owner services are active",
+        "summary": "existing scheduled refresh owner runs the one-way two-machine mirror; the deployed Maestro front door answers built-versus-on from the ledger alone"
       },
       "default_state": "scheduled_with_existing_refresh_owner",
       "disabled_by": "remove the reconciler call from refresh_ledger_knowledge; the existing knowledge fold remains available",
@@ -318,8 +318,8 @@
         "scripts/refresh_ledger_knowledge.py --confirm via existing */30 cron owner",
         "capability_ledger_reconciler.py defaults to dry-run unless --confirm"
       ],
-      "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T12:38:00-04:00",
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-07-17T13:01:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -327,10 +327,10 @@
         "notes": "no whitelisted live variable is mapped to this capability",
         "status": "not_applicable"
       },
-      "next_required_step": "deploy, run two production confirmed batches, inject drift in an isolated fixture, and prove the real Maestro front door reads the ledger alone",
+      "next_required_step": "monitor scheduled batch receipts, stale inventory attention, and running-unregistered disposition; keep the mirror one-way",
       "operator_approval_required": true,
       "owner": "Maestro / PC Codex Desktop",
-      "reason_if_off": "production owner path has not yet completed its confirmed activation canaries",
+      "reason_if_off": "only rollback after an atomicity, source-truth, scheduler, or ledger-only readback regression",
       "risk_level": "medium",
       "rollback_note": "remove only the reconciler call and leave additive ledger tables as inert historical receipts",
       "source_files": [
@@ -3446,7 +3446,6 @@
       "walk_away_autonomy_mode"
     ],
     "ready_for_canary": [
-      "capability_ledger_reconciler",
       "control_plane_heal_emission",
       "frontdoor_model_profile",
       "lm1_shared_seam",

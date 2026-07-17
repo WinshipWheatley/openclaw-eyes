@@ -471,7 +471,7 @@ def test_reconciler_self_registers_on_existing_refresh_owner() -> None:
         for item in payload["capabilities"]
         if item["capability_id"] == "capability_ledger_reconciler"
     )
-    assert row["gate_stage"] == "canary"
+    assert row["gate_stage"] == "operator_approved_live"
     assert row["activation_allowed_now"] is False
     assert "refresh_ledger_knowledge.py --confirm" in " ".join(row["flag_or_config"])
     assert "capability_ledger_reconciler.py" in row["source_files"]
