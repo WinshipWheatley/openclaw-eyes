@@ -135,6 +135,11 @@ def test_external_brain_router_has_bounded_same_session_activation_record():
 def test_w1_invoice_verification_and_finalization_are_live_without_send_authority():
     capabilities = _capabilities_by_id(_payload())
 
+    waist = capabilities["invoice_send_class_waist"]
+    assert "SUPERSEDED" in waist["current_state_if_verifiable"]["production"]
+    assert "495069a26823" in waist["canary_status"]
+    assert "same-obligation conflicts 0" in waist["canary_status"]
+
     for capability_id in (
         "invoice_source_workbook_locator",
         "invoice_workbook_verification_finalizer",
@@ -151,6 +156,29 @@ def test_w1_invoice_verification_and_finalization_are_live_without_send_authorit
     assert "CalculateFullRebuild" in finalizer["canary_status"]
     assert "one-page" in finalizer["canary_status"]
     assert "SEND_HOLD" in finalizer["next_required_step"]
+
+
+def test_w1_mac_export_is_live_while_receiver_and_auto_resume_preserve_truth():
+    capabilities = _capabilities_by_id(_payload())
+
+    helper = capabilities["mac_selected_invoice_pdf_export_helper"]
+    assert helper["gate_stage"] == "operator_approved_live"
+    assert helper["activation_allowed_now"] is False
+    assert "SELECTED_INVOICE_ATOMIC_PUBLISH_SUCCEEDED" in helper["canary_status"]
+    assert "255f1724774a" in helper["canary_status"]
+    assert "no-send" in helper["current_state_if_verifiable"]["code_default"]
+
+    receiver = capabilities["mac_codex_desktop_event_receiver"]
+    assert receiver["gate_stage"] == "operator_approved_live"
+    assert receiver["activation_allowed_now"] is False
+    assert "state=running" in receiver["current_state_if_verifiable"]["production"]
+    assert "58835ms" in receiver["canary_status"]
+    assert "historical replay 0" in receiver["canary_status"]
+
+    auto_resume = capabilities["mac_codex_desktop_seat_auto_resume"]
+    assert auto_resume["gate_stage"] == "blocked"
+    assert auto_resume["activation_allowed_now"] is False
+    assert "no documented/verified Codex Desktop resume endpoint" in auto_resume["reason_if_off"]
 
 
 def test_live_lm1_and_packet_flags_reconcile_without_activation_authority():

@@ -23,8 +23,12 @@ DEFAULT_OUTPUT_DIR = Path("workspaces/openclaw_program")
 EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:20:00-04:00"
 FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT = "2026-07-17T10:48:00-04:00"
 W0_INVOICE_WAIST_LAST_VERIFIED_AT = "2026-07-17T12:19:10-04:00"
+INVOICE_TRANSACTION_SUPERSESSION_LAST_VERIFIED_AT = "2026-07-17T15:00:00-04:00"
 CAPABILITY_LEDGER_RECONCILER_LAST_VERIFIED_AT = "2026-07-17T13:01:00-04:00"
 W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT = "2026-07-17T14:27:29-04:00"
+MAC_W1_HELPER_LAST_VERIFIED_AT = "2026-07-17T15:14:22-04:00"
+MAC_DESKTOP_RECEIVER_LAST_VERIFIED_AT = "2026-07-17T15:33:40-04:00"
+MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT = "2026-07-17T14:50:00-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -313,6 +317,9 @@ REQUIRED_CAPABILITY_IDS = (
     "capability_ledger_reconciler",
     "invoice_source_workbook_locator",
     "invoice_workbook_verification_finalizer",
+    "mac_selected_invoice_pdf_export_helper",
+    "mac_codex_desktop_event_receiver",
+    "mac_codex_desktop_seat_auto_resume",
 )
 
 REGISTER_GAP_CAPABILITY_IDS = (
@@ -1999,14 +2006,14 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
         ),
         _capability(
             capability_id="invoice_send_class_waist",
-            display_name="Immutable invoice-send class waist and Cassandra PREPARED transaction path",
+            display_name="Immutable invoice-send class waist and Cassandra transaction lifecycle path",
             flag_or_config=["Cassandra objective route; provider draft/send authority always false in W0"],
             default_state="fail_closed_prepare_only",
             current_state_if_verifiable=_state(
                 "deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false",
-                code_default="PREPARED is the only W0 lifecycle write; exact sender, recipient, copy, artifact, and source-fact hashes are immutable",
-                production="Cassandra and request-response owners restarted on the production commits; exact front-door canary created one PREPARED row and replayed idempotently",
-                audit_report="five negative real-process canaries failed locally before a second row; deployed eight-profile voice boundary passed 8/8",
+                code_default="PREPARED envelopes remain immutable; a same-obligation replacement may only add one append-only decision and transition the prior row to SUPERSEDED",
+                production="the W0 provisional row is SUPERSEDED by append-only decision 46aefafd5e78; finalized W1 transaction 495069a26823 is the sole Live Arts July PREPARED obligation",
+                audit_report="same-obligation conflict count is zero; exact supersession and finalized-front-door replays are idempotent; decision update/delete triggers fail closed",
             ),
             source_files=[
                 "invoice_send_transaction.py",
@@ -2026,8 +2033,9 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md",
             ],
             canary_status=(
-                "deployed no-send front-door canary passed; canonical transaction invoice-send-tx:2bd8efb929ecbed5376b2204; "
-                "second exact request idempotent; five negative probes fail-local; provider/draft/send/money/workbook calls 0"
+                "W0 provisional 2bd8efb929ec SUPERSEDED by decision 46aefafd5e78; finalized transaction 495069a26823 "
+                "is the sole Live Arts July PREPARED row; same-obligation conflicts 0; exact replay idempotent; "
+                "provider/draft/send/money/workbook/ledger calls 0"
             ),
             risk_level="high",
             owner="Cassandra / PC Codex Desktop",
@@ -2035,16 +2043,17 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             enabled_by="operator W0 GO plus production deploy, Cassandra restart, and immutable no-send front-door canary",
             disabled_by="remove the structured invoice packet route; existing non-W0 Cassandra routes remain available",
             rollback_note="revert the W0 integration commit and restart Cassandra; no provider draft or send state requires cleanup",
-            next_required_step="monitor PREPARED receipts; keep provider draft, approval, send, money, and workbook gates closed until their later waves",
+            next_required_step="monitor the sole finalized PREPARED receipt; keep provider draft, approval, send, money, and workbook gates closed until their later waves",
             activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="only rollback after an immutable-envelope, idempotency, voice, or owner-process regression",
             evidence_refs=[
                 "workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md",
+                "/home/openclaw/Operator/from-codex/W1-LAMD-PROVISIONAL-SUPERSESSION-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
                 "tests/test_invoice_send_transaction.py",
                 "tests/test_w0_cassandra_invoice_prepare.py",
             ],
-            last_verified_at=W0_INVOICE_WAIST_LAST_VERIFIED_AT,
+            last_verified_at=INVOICE_TRANSACTION_SUPERSESSION_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="autonomous_invoice_prepare_scheduler",
@@ -2198,6 +2207,143 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "tests/test_invoice_w1_owner.py",
             ],
             last_verified_at=W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="mac_selected_invoice_pdf_export_helper",
+            display_name="Mac selected-invoice PDF export helper",
+            flag_or_config=[
+                "com.winship.OpenClawExcelExportHelper",
+                "/Applications/OpenClawExcelExportHelper.app",
+                "OPENCLAW_EXCEL_EXPORT_HELPER_APP_PATH",
+                "/Volumes/openclaw_e/artifacts/invoice_workbooks/helper_jobs",
+            ],
+            default_state="installed_on_demand_inert_until_validated_job",
+            current_state_if_verifiable=_state(
+                "the current-base helper is installed at the stable owner path and atomically publishes only a verified selected-invoice PDF",
+                code_default="no-send/no-money on-demand owner; no daemon or autostart, and every job fails closed on structure, identity, scope, semantic, or atomic-publication error",
+                production="LaunchServices resolves the installed owner; the exact installed binary passed a real isolated owner canary",
+                audit_report="source remained byte-identical; the one-page output passed PDF, selected-identity, baseline, and semantic-finality verification",
+            ),
+            source_files=[
+                "OpenClaw Mission Controle/Support/ExcelExportHelper/OpenClawPDFPageSlicer.swift",
+                "OpenClaw Mission Controle/Support/ExcelExportHelper/OpenClawExcelExportJob.swift",
+                "OpenClawExcelExportHelper/Main.swift",
+            ],
+            tests=[
+                "OpenClaw Mission ControleTests/OpenClaw_Mission_ControleTests.swift",
+                "/private/tmp/openclaw-mission-control/logs/validate_debug_unit.log",
+                "/private/tmp/openclaw-mission-control/logs/validate_excel_export_helper.log",
+                "/private/tmp/openclaw-mission-control/logs/validate_release_build.log",
+            ],
+            audits=[
+                "/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/PC-CODEX-W1-MAC-EXPORT-AND-SEAT-RECEIVER-20260717.md",
+                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-HELPER-SLICE-RECEIPT-20260717.md",
+                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-ACTIVATION-RECEIPT-20260717.json",
+            ],
+            canary_status=(
+                "SELECTED_INVOICE_ATOMIC_PUBLISH_SUCCEEDED; 337 tests passed; signed helper and full Release builds passed; "
+                "installed binary SHA 255f1724774a; source unchanged; output 102166 bytes and one page; structure, identity, "
+                "baseline, and semantic checks passed; provider/send/money/ledger/network actions 0"
+            ),
+            risk_level="medium",
+            owner="Mac Sol / OpenClaw Mission Control / PC register owner",
+            gate_stage="operator_approved_live",
+            enabled_by="Fable W1 authority plus installed current-base owner and exact real-host owner-binary canary",
+            disabled_by="stop launching helper jobs or archive the installed bundle inert; existing evidence remains preserved",
+            rollback_note="launch no further jobs; archive the bundle inert and restore a verified prior owner if one existed",
+            next_required_step="keep SEND_HOLD and all provider/send/money gates closed; recanary after any bundle, source, or identity-baseline change",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only roll back after an owner-resolution, source-immutability, PDF, identity, semantic, or atomic-publication regression",
+            evidence_refs=[
+                "branch=codex-desktop/w1-atomic-selected-invoice-export",
+                "commit=2f76530f79d1a85c35e3b3a3b9044335c8f60569",
+                "/Applications/OpenClawExcelExportHelper.app/Contents/MacOS/OpenClawExcelExportHelper sha256=255f1724774a37706be8a5ece0638155f790cdcf4e10966fdb866a08666ed21c",
+                "/private/tmp/openclaw-w1-selected-invoice-owner-canary-20260717T1505/canary-result.json sha256=8d727ebdbe435b5abeb8f98d77085cdea64b9eafd4fba55aa53383cb072344a1",
+            ],
+            last_verified_at=MAC_W1_HELPER_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="mac_codex_desktop_event_receiver",
+            display_name="Mac Codex Desktop bridge event receiver",
+            flag_or_config=[
+                "/Volumes/openclaw_e/codex_mac_bridge/to-codex-mac-desktop",
+                "/Volumes/openclaw_e/codex_mac_bridge/from-codex-mac-desktop",
+                "com.openclaw.codex-desktop-bridge-receiver",
+            ],
+            default_state="event_driven_fail_closed_no_historical_replay",
+            current_state_if_verifiable=_state(
+                "one launchd-owned kqueue receiver detects new desktop missions, appends its mission ledger, and atomically publishes honest bridge delivery notices",
+                code_default="local delivery metadata only; business dispatch remains disabled, historical files are baselined, and mission id plus content hash is required for ACK closure",
+                production="launchd state=running with active count 1 after restart; the fresh mission produced one automatic notice and one exact ACK with zero historical replay",
+                audit_report="the notice explicitly records auto-resume false and human kick required; the separate auto-resume capability remains blocked",
+            ),
+            source_files=[
+                "/Users/hwinshipwheatley/Library/Application Support/OpenClaw/DesktopBridgeWake/desktop_bridge_receiver.py",
+                "/Users/hwinshipwheatley/Library/Application Support/OpenClaw/DesktopBridgeWake/config.json",
+                "/Users/hwinshipwheatley/Library/LaunchAgents/com.openclaw.codex-desktop-bridge-receiver.plist",
+            ],
+            tests=[
+                "/Users/hwinshipwheatley/Library/Application Support/OpenClaw/DesktopBridgeWake/tests/test_desktop_bridge_receiver.py",
+                "/private/tmp/openclaw_desktop_receiver_tests_20260717_v3.log",
+            ],
+            audits=[
+                "/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/FABLE-RULING-SEAT-RECEIVER-ENDPOINT-20260717.md",
+                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-DESKTOP-RECEIVER-SLICE-RECEIPT-20260717-V2.md",
+                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/RECEIVER-DELIVERY-NOTICE-w1-desktop-receiver-launchd-canary-20260717.md",
+            ],
+            canary_status="PASS: 9 tests; launchd running active=1 runs=2; kqueue event 1; atomic notice 1 in 90ms; exact ACK 1 in 58835ms; processed 1; historical replay 0; business dispatch 0",
+            risk_level="medium",
+            owner="Mac Sol / Mac Codex Desktop bridge lane",
+            gate_stage="operator_approved_live",
+            enabled_by="Fable-approved bridge-notice endpoint plus one loaded launchd kqueue owner and fresh automatic notice/ACK proof",
+            disabled_by="bootout only com.openclaw.codex-desktop-bridge-receiver; preserve support files, notices, and the append-only ledger",
+            rollback_note="bootout only this owner and preserve all support files, notices, and append-only evidence",
+            next_required_step="monitor notice and ACK latency; keep auto-resume separately blocked until a documented Codex Desktop endpoint exists",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only roll back after a launchd ownership, kqueue detection, notice publication, ACK binding, or historical-replay regression",
+            evidence_refs=[
+                "desktop_bridge_receiver.py sha256=b848c8e376c30c30cf7e967fec42cfd90ee2e891a1a020464099af5f55f065fb",
+                "config.json sha256=9d01d9893dbd1a45aebdfcd50b326dec9381f973588b4dc3235fedb8904db0ff",
+                "plist sha256=475959686b28e4e5b51220987d30901795e90672a4e7b36adad770ef83b1a19e",
+                "receipt_ledger.jsonl sha256=b005f816d12b1cf8ce4d1e3d6b59c67ed1a4867ba4d3774828230399335b0118",
+                "launchctl capture sha256=598898eb253281cc29787dd79541a592f2ba6be01c7ce11b9bbceea19b068d07",
+                "delivery notice sha256=ae44e565881bd57eadd518567a26f1f989725b0f204d3475a4bb2ea92fb89e47",
+            ],
+            last_verified_at=MAC_DESKTOP_RECEIVER_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="mac_codex_desktop_seat_auto_resume",
+            display_name="Mac Codex Desktop seat auto-resume",
+            flag_or_config=["no endpoint configured"],
+            default_state="blocked_without_verified_endpoint",
+            current_state_if_verifiable=_state(
+                "auto-resume is intentionally separate from bridge file detection and delivery-notice receipt metadata",
+                code_default="off; no UI automation, app focus, notification, VS Code binding, or polling substitute is accepted",
+                production="no Codex Desktop wake/resume endpoint is configured or active",
+                audit_report="Fable accepted the endpoint gap and ruled this capability separately BLOCKED",
+            ),
+            source_files=[],
+            tests=[],
+            audits=[
+                "/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/FABLE-RULING-SEAT-RECEIVER-ENDPOINT-20260717.md",
+            ],
+            canary_status="BLOCKED: no endpoint exists; no auto-resume canary claimed",
+            risk_level="medium",
+            owner="Mac Codex Desktop / product endpoint dependency",
+            gate_stage="blocked",
+            enabled_by="a future documented and verified Codex Desktop resume endpoint plus explicit canary",
+            disabled_by="no endpoint exists",
+            rollback_note="not applicable; capability is absent and blocked",
+            next_required_step="revisit only when Codex Desktop exposes a documented, seat-correct resume endpoint",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="no documented/verified Codex Desktop resume endpoint",
+            evidence_refs=[
+                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-DESKTOP-RECEIVER-SLICE-RECEIPT-20260717.md",
+            ],
+            last_verified_at=MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="fleet_voice_boundary",

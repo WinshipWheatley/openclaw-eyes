@@ -42,6 +42,34 @@ Canary receipt: `/mnt/e/openclaw/artifacts/invoice_workbooks/w1_canaries/pc-code
 - Exact second owner run: `IDEMPOTENT_REPLAY`; Excel and publication were not repeated
 - Production receipt: `/home/openclaw/generated/system_knowledge/invoice_w1_lamd_july_receipt.json`
 
+## Transaction Supersession
+
+Fable found the W0 provisional and W1 finalized obligations both at `PREPARED`. Production commit `0eb56264` added an atomic lifecycle transition plus append-only decision table and update/delete denial triggers.
+
+- W0 provisional `invoice-send-tx:2bd8efb929ecbed5376b2204`: `SUPERSEDED`
+- W1 finalized `invoice-send-tx:495069a26823c4d47826c151`: sole Live Arts July `PREPARED`
+- Decision: `invoice-send-decision:46aefafd5e78a792aa7651e2`
+- Same-obligation multi-`PREPARED` conflicts: 0
+- Exact transition replay: idempotent
+- Post-transition Cassandra front-door replay: finalized transaction only, one canonical row
+- Receipt: `/home/openclaw/Operator/from-codex/W1-LAMD-PROVISIONAL-SUPERSESSION-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json`
+
+## Mac Selected-Invoice Helper
+
+Mac current-base commit `2f76530f79d1a85c35e3b3a3b9044335c8f60569` is installed as `/Applications/OpenClawExcelExportHelper.app`. LaunchServices resolves the bundle id to that owner; the installed arm64 binary SHA-256 `255f1724774a37706be8a5ece0638155f790cdcf4e10966fdb866a08666ed21c` matches the validated build.
+
+The exact installed binary returned `SELECTED_INVOICE_ATOMIC_PUBLISH_SUCCEEDED` on a real isolated offline canary. Input SHA-256 `a5cbb556f9d9aed0880024a889db041f179effa63798aadaa352e9dda13b8d62` remained unchanged. The atomically published one-page output is 102,166 bytes, SHA-256 `40fcbdda636c78d81992dd3e6861054ad21bc614fedcf13cce8134680933478e`, with PDF structure, selected identity, baseline, and semantic-finality checks passed. Mac verification: 337 tests plus signed-helper and full Release builds passed.
+
+Receipt: `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-HELPER-SLICE-RECEIPT-20260717.md`.
+
+## Mac Desktop Receiver Split
+
+`mac_codex_desktop_event_receiver` is active under Fable's receiver-only bridge-notice contract. The loaded `com.openclaw.codex-desktop-bridge-receiver` owner reported `state=running`, active count 1, runs 2 after restart. A fresh mission produced one kqueue event, one append-only ledger path, and one atomic delivery notice in 90 ms; exact ACK latency was 58,835 ms, processed count 1, historical replay 0, and business dispatch 0. The notice explicitly states `Desktop seat auto-resumed: false` and `Human kick still required: true`.
+
+`mac_codex_desktop_seat_auto_resume` remains `BLOCKED`: no documented/verified Codex Desktop resume endpoint exists. VS Code, UI automation, app focus, notifications, polling, and model invocation are not substitutes.
+
+Receiver receipt: `/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-DESKTOP-RECEIVER-SLICE-RECEIPT-20260717-V2.md`.
+
 ## Fail-Closed Gates
 
 - ambiguous, missing, zero-byte, or hash-mismatched source
