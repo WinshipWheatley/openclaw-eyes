@@ -476,3 +476,37 @@ def test_reconciler_self_registers_on_existing_refresh_owner() -> None:
     assert "refresh_ledger_knowledge.py --confirm" in " ".join(row["flag_or_config"])
     assert "capability_ledger_reconciler.py" in row["source_files"]
     assert "tests/test_capability_ledger_reconciler.py" in row["tests"]
+
+
+def test_unset_live_variable_does_not_inherit_all_inspected_services() -> None:
+    capability = {
+        "capability_id": "intentionally_off_demo",
+        "display_name": "Intentionally off demo",
+        "gate_stage": "intentionally_off",
+        "owner": "Guardian",
+        "last_verified_at": OBSERVED_AT,
+        "source_files": [],
+        "flag_or_config": ["OPENCLAW_INTENTIONALLY_OFF_DEMO"],
+        "live_production_state": "unset_default_off",
+        "live_state": {
+            "status": "unset_default_off",
+            "findings": [
+                {
+                    "source_type": "reconciliation_summary",
+                    "redacted_value_category": "unset",
+                    "source_ref": "/home/openclaw/.config/systemd/user/demo.service",
+                }
+            ],
+        },
+        "canary_status": "not run",
+    }
+    row = reconciler._registered_pc_row(
+        capability,
+        inventory=_pc_inventory(),
+        file_inventory={"available": False, "stale": False},
+        observed_at=OBSERVED_AT,
+    )
+    assert row["configured"] is False
+    assert row["runtime_confirmed"] is False
+    assert row["runtime_state"] == "dark"
+    assert "systemd:demo.service" not in row["evidence_refs"]

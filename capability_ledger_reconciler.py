@@ -559,7 +559,10 @@ def _unit_refs(capability: Mapping[str, Any]) -> set[str]:
     if isinstance(live_state, Mapping):
         for finding in live_state.get("findings") or ():
             if isinstance(finding, Mapping):
-                values.append(finding.get("source_ref"))
+                source_type = str(finding.get("source_type") or "")
+                value_category = str(finding.get("redacted_value_category") or "")
+                if source_type != "reconciliation_summary" and value_category != "unset":
+                    values.append(finding.get("source_ref"))
     return {match.group(1) for value in values for match in _UNIT_RE.finditer(str(value or ""))}
 
 
