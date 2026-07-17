@@ -3,12 +3,27 @@
 - Capability: `external_brain_router`
 - Owner driving proof and review: Fable
 - Builder: PC Codex Desktop
-- Default state during build: OFF
-- Target off-window: hours; shadow proof in this or the next session
-- Operator activation: one explicit operator tap after all proof criteria pass
-- Live activation authority in this build: none
+- Default state during build: OFF; live state after proof: ON behind the guarded runtime flag
+- Operator activation: binding activation directive applied after the real-process canary passed
+- Live transport: dedicated `/home/openclaw/.nvm/versions/node/v24.14.0/bin/codex app-server`
+- Required app-server version: exactly `0.144.5`
 
-## Proof Required Before The Tap
+## Verified Evidence — 2026-07-16
+
+- Real model catalog: ChatGPT auth asserted; Luna, Terra, and Sol bindings all present.
+- Live headroom preflight: Pro subscription, 14% used in the 10080-minute window; no thread or turn
+  started during preflight.
+- Money boundary: a real child handshake with a synthetic 80% rate response returned
+  `guardian_approval_required` after `account/rateLimits/read`; no `model/list`, `thread/start`, or
+  `turn/start` occurred.
+- PUBLIC canary: `PUBLIC-CANARY-OK` returned through `protected_generate`; route was
+  `external_brain_router`, app-server `0.144.5`, Terra at medium effort, external invoked true,
+  local invoked false, fallback reason empty.
+- Focused regression: 84 router, adapter, protected-generate, and activation-register tests passed.
+- Safe canary receipt:
+  `/home/openclaw/Operator/from-codex/EXTERNAL-BRAIN-PUBLIC-CANARY-20260716-PC-Codex-Desktop.jsonl`.
+
+## Proof Gate — Passed
 
 1. Shadow receipts prove subscription usage below 80% admits only ChatGPT-subscription transport.
 2. At or above 80%, no external thread or turn starts without a verified, scoped, unexpired
@@ -32,8 +47,8 @@ operator-present gate.
 
 ## Activation And Rollback
 
-- Activation: the operator explicitly enables `OPENCLAW_EXTERNAL_BRAIN_ROUTER` after reviewing the
-  proof receipt set; Fable records the tap and live canary receipt.
+- Activation: `OPENCLAW_EXTERNAL_BRAIN_ROUTER=1` is installed on the owning request/response
+  service after the proof receipt set passes.
 - Immediate rollback: unset `OPENCLAW_EXTERNAL_BRAIN_ROUTER`; keep the existing local Ollama route.
 - Rollback trigger: any privacy leak, raw-prompt mutation, unreadable headroom, approval mismatch,
   unexpected authority, protocol failure, model absence, or local-parity regression.

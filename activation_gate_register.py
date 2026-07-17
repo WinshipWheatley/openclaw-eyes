@@ -40,6 +40,7 @@ LIVE_ENV_WHITELIST = (
     "OPENCLAW_LM1_SHARED_SEAM",
     "OPENCLAW_PACKET_DELTA",
     "OPENCLAW_PACKET_ENGINE",
+    "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
     "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
     "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
     "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
@@ -145,6 +146,10 @@ CAPABILITY_LIVE_VARIABLES = {
             "CASSANDRA_EXTERNAL_MODEL",
             "OPENROUTER_API_KEY",
         ),
+    },
+    "external_brain_router": {
+        "primary": ("OPENCLAW_EXTERNAL_BRAIN_ROUTER",),
+        "related": (),
     },
     "hitl_pipeline": {
         "primary": ("HITL_ENABLED",),
@@ -1934,49 +1939,53 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
                 "model_lane_bindings.json",
             ],
-            default_state="off_pending_shadow_proof",
+            default_state="on_guarded_subscription",
             current_state_if_verifiable=_state(
-                "model-agnostic lane and effort router is under TDD; live external routing remains off",
-                code_default="off unless OPENCLAW_EXTERNAL_BRAIN_ROUTER is explicitly enabled",
-                production="not enabled by this build; operator gate remains closed",
-                audit_report="binding activation record requires an hours-scale shadow-to-operator-gate path",
+                "guarded subscription router is wired into protected_generate and passed its real-process PUBLIC canary",
+                code_default="guarded by OPENCLAW_EXTERNAL_BRAIN_ROUTER and immediate local fallback",
+                production="enabled and canary-verified through the dedicated Codex CLI 0.144.5 app-server",
+                audit_report="real catalog, headroom, 80% boundary, PUBLIC turn, and local fallback evidence recorded",
             ),
             source_files=[
                 "external_brain_router.py",
                 "codex_app_server_client.py",
                 "model_lane_bindings.json",
+                "protected_generate.py",
             ],
             tests=[
                 "tests/test_external_brain_router.py",
                 "tests/test_codex_app_server_client.py",
+                "tests/test_protected_generate.py",
             ],
             audits=[
                 "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
             ],
             canary_status=(
-                "pending shadow receipts proving fail-local or Guardian approval boundary at 80%, "
-                "Legal stays local, raw prompt verbatim, and local parity"
+                "passed PUBLIC-CANARY-OK through dedicated 0.144.5 app-server at 14% usage; "
+                "80% Guardian boundary stops before model/list or turn; Legal stays local; "
+                "raw prompt remains verbatim; local parity passes"
             ),
             risk_level="high",
             owner="Fable / PC Codex Desktop",
-            gate_stage="canary",
-            enabled_by="one operator tap after all activation-record proof criteria pass",
+            gate_stage="operator_approved_live",
+            enabled_by="operator binding activation directive after real-process canary and money-guard proof",
             disabled_by="OPENCLAW_EXTERNAL_BRAIN_ROUTER unset or false; any failed or stale gate proof",
             rollback_note=(
                 "unset OPENCLAW_EXTERNAL_BRAIN_ROUTER and retain the existing local Ollama path; "
                 "do not alter bindings during rollback"
             ),
             next_required_step=(
-                "finish TDD, produce shadow receipts in the same or next session, then surface the "
-                "one-tap operator gate; never activate from this register"
+                "monitor safe route receipts and immediately roll back on privacy, protocol, headroom, or parity failure"
             ),
             activation_allowed_now=False,
             operator_approval_required=True,
-            reason_if_off="money-safety shadow proof is incomplete; this is a measured hours-scale off window",
+            reason_if_off="only rollback or a failed privacy, protocol, headroom, model, or local-parity guard",
             evidence_refs=[
                 "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
                 "tests/test_external_brain_router.py",
                 "tests/test_codex_app_server_client.py",
+                "tests/test_protected_generate.py",
+                "/home/openclaw/Operator/from-codex/EXTERNAL-BRAIN-PUBLIC-CANARY-20260716-PC-Codex-Desktop.jsonl",
             ],
             last_verified_at=last_verified_at,
         ),

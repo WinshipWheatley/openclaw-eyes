@@ -111,16 +111,21 @@ def test_external_brain_router_has_bounded_same_session_activation_record():
         "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
         "model_lane_bindings.json",
     ]
-    assert capability["default_state"] == "off_pending_shadow_proof"
-    assert capability["gate_stage"] == "canary"
+    assert capability["default_state"] == "on_guarded_subscription"
+    assert capability["gate_stage"] == "operator_approved_live"
     assert capability["activation_allowed_now"] is False
     assert capability["operator_approval_required"] is True
-    assert "one operator tap" in capability["enabled_by"]
+    assert "binding activation directive" in capability["enabled_by"]
+    assert "enabled and canary-verified" in capability["current_state_if_verifiable"]["production"]
+    assert "PUBLIC-CANARY-OK" in capability["canary_status"]
+    assert "14%" in capability["canary_status"]
     assert "80%" in capability["canary_status"]
     assert "Legal" in capability["canary_status"]
     assert "raw prompt" in capability["canary_status"]
     assert "local parity" in capability["canary_status"]
-    assert "same or next session" in capability["next_required_step"]
+    assert "monitor" in capability["next_required_step"]
+    assert "protected_generate.py" in capability["source_files"]
+    assert "tests/test_protected_generate.py" in capability["tests"]
     assert "EXTERNAL_BRAIN_ROUTER_20260716.md" in " ".join(capability["evidence_refs"])
 
 
