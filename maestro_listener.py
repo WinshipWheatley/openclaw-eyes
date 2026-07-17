@@ -148,7 +148,12 @@ def current_output_boundary_receipt() -> dict[str, Any] | None:
     return dict(receipt) if isinstance(receipt, dict) else None
 
 
-def _final_operator_reply(reply: str, *, source_request: str) -> str:
+def _final_operator_reply(
+    reply: str,
+    *,
+    source_request: str,
+    action_receipt_refs: tuple[str, ...] = (),
+) -> str:
     try:
         from operator_surface_guard import guard_operator_reply_with_receipt
 
@@ -156,6 +161,7 @@ def _final_operator_reply(reply: str, *, source_request: str) -> str:
             str(reply or ""),
             agent_role="MAESTRO",
             source_request=source_request,
+            action_receipt_refs=action_receipt_refs,
         )
         _OUTPUT_BOUNDARY_RECEIPT.set(bounded.receipt.to_dict())
         return bounded.visible_text
@@ -973,6 +979,23 @@ def _fast_ack_text(env: Mapping[str, Any] | None = None, *, message: str = "") -
     return _FAST_ACK_PHRASES[idx]
 
 
+def _bound_fast_ack_text(
+    *,
+    message: str,
+    action_receipt_refs: tuple[str, ...],
+    env: Mapping[str, Any] | None = None,
+):
+    """Validate a delayed acknowledgement against its queued bridge receipt."""
+
+    import action_promise_integrity
+
+    return action_promise_integrity.enforce_action_promise_integrity(
+        _fast_ack_text(env, message=message),
+        speaker_ref="maestro",
+        action_receipt_refs=action_receipt_refs,
+    )
+
+
 def _fire_maestro_voice(text: str, chat_id: int | str | None) -> None:
     """Fire-and-forget Maestro Kokoro voice note (am_michael), non-blocking + fail-soft.
     Mirrors the producer/cassandra/chief listeners, which already voice their replies;
@@ -1204,32 +1227,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         else asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
     )
 
-    # Fast "I'm on it" ack — fires only if the answer takes longer than the delay.
-    async def _send_delayed_ack() -> None:
-        try:
-            await asyncio.sleep(_fast_ack_delay())
-            await update.message.reply_text(
-                _final_operator_reply(
-                    _fast_ack_text(message=text),
-                    source_request=text,
-                )
-            )
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            pass  # a failed ack must never affect the real reply
-
-    ack_task = (
-        asyncio.create_task(_send_delayed_ack())
-        if not reply_only_egress and _fast_ack_enabled()
-        else None
-    )
-
+    ack_task = None
     request_id_for_reply: str | None = None
     try:
         request = build_operator_maestro_chat_request(text, message_id=message_id, chat_id=chat_id)
         request_id_for_reply = str(request["request_id"])
         write_bridge_request(request)
+
+        # A delayed acknowledgement is created only after the bridge request
+        # exists. Its action language is therefore bound to a real queued job.
+        async def _send_delayed_ack() -> None:
+            try:
+                await asyncio.sleep(_fast_ack_delay())
+                bounded_ack = _bound_fast_ack_text(
+                    message=text,
+                    action_receipt_refs=(f"bridge_request:{request_id_for_reply}",),
+                )
+                await update.message.reply_text(
+                    _final_operator_reply(
+                        bounded_ack.visible_text,
+                        source_request=text,
+                        action_receipt_refs=bounded_ack.receipt.action_receipt_refs,
+                    )
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                pass  # a failed ack must never affect the real reply
+
+        ack_task = (
+            asyncio.create_task(_send_delayed_ack())
+            if not reply_only_egress and _fast_ack_enabled()
+            else None
+        )
         response = await poll_bridge_response(request_id_for_reply)
         if ack_task is not None:
             ack_task.cancel()  # answer arrived; if before the delay, the ack is suppressed

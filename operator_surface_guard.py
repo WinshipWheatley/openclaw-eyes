@@ -21,7 +21,9 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import asdict, dataclass, replace
-from typing import Any
+from typing import Any, Iterable
+
+import action_promise_integrity
 
 from final_output_boundary import (
     FinalOutputBoundaryResult,
@@ -577,14 +579,40 @@ def guard_operator_reply_with_receipt(
     source_request: str = "",
     technical_intent: bool | None = None,
     boundary_context: OutputBoundaryContext | None = None,
+    action_receipt_refs: Iterable[object] = (),
 ) -> FinalOutputBoundaryResult:
-    """Apply the fragment boundary first, then the legacy machine-leak check."""
+    """Apply action integrity, then fragment and machine-leak boundaries."""
 
     context = boundary_context or OutputBoundaryContext.from_source_request(
         source_request,
         technical_intent=technical_intent,
     )
-    bounded = render_final_output(text, context=context)
+    action_integrity = action_promise_integrity.enforce_action_promise_integrity(
+        text,
+        speaker_ref=agent_role,
+        action_receipt_refs=action_receipt_refs,
+    )
+    bounded = render_final_output(action_integrity.visible_text, context=context)
+    action_reason = (
+        "action_promise_unbound_replaced"
+        if action_integrity.receipt.substituted
+        else (
+            "action_promise_bound_to_receipt"
+            if action_integrity.receipt.promise_detected
+            else ""
+        )
+    )
+    if action_reason:
+        bounded = FinalOutputBoundaryResult(
+            bounded.visible_text,
+            replace(
+                bounded.receipt,
+                reason_codes=tuple(
+                    dict.fromkeys((*bounded.receipt.reason_codes, action_reason))
+                ),
+            ),
+            bounded.context,
+        )
     if not bounded.visible_text.strip():
         return bounded
     audience = "TECHNICAL" if context.technical_intent else "ELIWINSHIP"
@@ -714,6 +742,7 @@ def guard_operator_reply(
     source_request: str = "",
     technical_intent: bool | None = None,
     boundary_context: OutputBoundaryContext | None = None,
+    action_receipt_refs: Iterable[object] = (),
 ) -> str:
     """Task 144: the fleet-wide reply-assembly guard point. Every agent-brain reply
     reaching an operator-facing Telegram/chat surface should pass through this before
@@ -732,6 +761,7 @@ def guard_operator_reply(
         source_request=source_request,
         technical_intent=technical_intent,
         boundary_context=boundary_context,
+        action_receipt_refs=action_receipt_refs,
     ).visible_text
 
 

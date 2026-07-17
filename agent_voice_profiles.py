@@ -47,6 +47,72 @@ VOICE_PROFILE_REFS = {
     for speaker_ref in SPEAKER_REFS
 }
 
+ACTION_PROMISE_FALLBACKS = {
+    "cassandra": (
+        "I haven't performed or queued that action because no receipt was recorded. "
+        "I can give you the verified next step instead."
+    ),
+    "chief": (
+        "No action receipt was recorded. That action was not performed or queued; "
+        "the next step needs verification."
+    ),
+    "hermes": (
+        "That promise has no action receipt behind it. Nothing ran; the sound next "
+        "step is to verify the available action."
+    ),
+    "guardian": (
+        "Blocked. No receipt proves the action ran or was queued. Nothing ran."
+    ),
+    "niles": (
+        "I haven't performed or queued that action. There is no bound receipt yet; "
+        "I can give you the verified next step."
+    ),
+    "maestro": (
+        "I haven't performed or queued that action. No action or queued-job receipt "
+        "was recorded; I can route a verified next step."
+    ),
+    "clara": (
+        "I haven't performed or queued that action. Nothing was sent or changed; "
+        "I can tell you the verified next step."
+    ),
+    "openclaw": "No action was performed or queued. No action receipt was recorded.",
+}
+
+ARTIFACT_READY_TEMPLATES = {
+    "cassandra": (
+        "Here is the verified {label} for review. QuickLook should open it now. "
+        "If it doesn't, use this verified path: {path}. Nothing was sent or changed."
+    ),
+    "chief": (
+        "{label} verified. The QuickLook request is queued. Verified path: {path}. "
+        "Nothing was sent or changed."
+    ),
+    "hermes": (
+        "The verified {label} is ready for review. QuickLook should open it; the "
+        "grounded fallback is {path}. Nothing was sent or changed."
+    ),
+    "guardian": (
+        "Verified proof found: {label}. The QuickLook request is queued. Path: {path}. "
+        "No send or mutation occurred."
+    ),
+    "niles": (
+        "Here is the verified {label}. QuickLook should bring it forward; if not, "
+        "the file is at {path}. Nothing was sent or changed."
+    ),
+    "maestro": (
+        "Verified {label} found. QuickLook should open it now; fallback path: {path}. "
+        "Nothing was sent or changed."
+    ),
+    "clara": (
+        "Here is the verified {label} for your review. QuickLook should open it now. "
+        "The verified local path is {path}. Nothing was sent or changed."
+    ),
+    "openclaw": (
+        "Verified {label} found. QuickLook request queued. Path: {path}. "
+        "No external action occurred."
+    ),
+}
+
 SHARED_CANNED_PHRASES = (
     "as an ai",
     "i hope this note finds you well",
@@ -151,6 +217,35 @@ def voice_profile_ref_for_speaker(speaker_ref: str) -> str:
     return VOICE_PROFILE_REFS.get(speaker_ref, VOICE_PROFILE_REFS["openclaw"])
 
 
+def _canonical_speaker_ref(speaker_ref: str) -> str:
+    normalized = str(speaker_ref or "").strip().lower()
+    return normalized if normalized in SPEAKER_REFS else "openclaw"
+
+
+def action_promise_fallback_for_speaker(speaker_ref: str) -> str:
+    """Return the canonical honest fallback for an unbound action promise."""
+
+    return ACTION_PROMISE_FALLBACKS[_canonical_speaker_ref(speaker_ref)]
+
+
+def artifact_ready_message_for_speaker(
+    speaker_ref: str,
+    *,
+    label: str,
+    path: str,
+) -> str:
+    """Render a verified artifact readback through the addressed speaker's register."""
+
+    speaker = _canonical_speaker_ref(speaker_ref)
+    message = ARTIFACT_READY_TEMPLATES[speaker].format(
+        label=str(label or "artifact").strip() or "artifact",
+        path=str(path or "verified local path unavailable").strip()
+        or "verified local path unavailable",
+    )
+    require_voice_conformance(speaker, message)
+    return message
+
+
 class VoiceConformanceError(ValueError):
     """Raised when text fails its canonical speaker contract."""
 
@@ -198,14 +293,17 @@ def _example(
 
 def _apply_perspective(profile: dict[str, Any]) -> dict[str, Any]:
     enriched = dict(profile)
-    contract = VOICE_CONFORMANCE_CONTRACTS[str(profile["speaker_ref"])]
+    speaker_ref = str(profile["speaker_ref"])
+    contract = VOICE_CONFORMANCE_CONTRACTS[speaker_ref]
     enriched["voice_conformance"] = {
         "enforcement": "fail_closed",
         "style_traits": list(contract["style_traits"]),
         "forbidden_phrases": list(contract["forbidden_phrases"]),
         "forbidden_patterns": [dict(item) for item in contract["forbidden_patterns"]],
     }
-    enriched.update(perspective_policy_record(str(profile["speaker_ref"])))
+    enriched["action_promise_fallback"] = ACTION_PROMISE_FALLBACKS[speaker_ref]
+    enriched["artifact_ready_template"] = ARTIFACT_READY_TEMPLATES[speaker_ref]
+    enriched.update(perspective_policy_record(speaker_ref))
     return enriched
 
 

@@ -25,6 +25,7 @@ from typing import Any, Callable, Mapping
 
 import chat_readback_card_mirror
 import chat_workflow_visual_event_package_compiler
+import agent_voice_profiles
 import capital_hilton_invoice_operator_readback
 import client_invoice_audit_handoff
 import client_invoice_sheet_audit
@@ -34,6 +35,7 @@ import deterministic_intent_interpreter
 import evidence_intake
 import first_touch_decision
 import guardian_output_gate
+import invoice_proof_request
 import invoice_review_action_request_handler
 import local_surface_request_contract
 import operator_file_metadata_intake
@@ -641,6 +643,7 @@ class OpenClawResponseForMac:
     detail_disclosure: dict[str, Any]
     readback_files: tuple[str, ...]
     next_safe_move: str
+    proof_artifacts: tuple[dict[str, Any], ...] = field(default_factory=tuple)
     proof_to_response: dict[str, Any] = field(default_factory=dict)
     proof_to_response_status: str = ""
     # Durable across dataclasses.replace() publication substitutions. The
@@ -8933,6 +8936,183 @@ def _process_first_touch_decision(
     )
 
 
+def _process_invoice_proof_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any],
+    _capsule: Any | None = None,
+) -> OpenClawResponseForMac | None:
+    """Resolve display-only proof requests before any chat/model path."""
+
+    resolution = invoice_proof_request.resolve_invoice_proof_request(
+        raw_request,
+        request_path,
+    )
+    if resolution.get("matched") is not True:
+        return None
+
+    request_id = str(
+        raw_request.get("request_id")
+        or raw_request.get("source_request_id")
+        or f"missing_request_id_{request_path.stem}"
+    )
+    agent = _resolved_frontdoor_agent(raw_request, _capsule=_capsule)
+    agent_display = "Clara" if agent == "clara" else agent.capitalize()
+    artifact = invoice_proof_request.proof_artifact_from_resolution(resolution)
+    context_status = str(resolution.get("status") or "NOT_FOUND")
+    action_receipt_refs: tuple[str, ...] = ()
+    proof_artifacts: tuple[dict[str, Any], ...] = ()
+    if artifact is not None:
+        proof_artifacts = (artifact,)
+        action_receipt_refs = invoice_proof_request.action_receipt_refs_for_artifact(
+            artifact
+        )
+        label = invoice_proof_request.artifact_label(resolution)
+        headline = f"{label} found"
+        message = agent_voice_profiles.artifact_ready_message_for_speaker(
+            agent,
+            label=label,
+            path=str(artifact.get("path") or ""),
+        )
+        next_safe_move = (
+            "Review the QuickLook proof. If it does not open, use the verified path shown above."
+        )
+        internal_status = "RESPONSE_READY"
+        blocked_reason = None
+    else:
+        headline = "Invoice proof needs more context"
+        if context_status == "CONTEXT_REQUIRED":
+            message = (
+                f"{agent_display} could not identify which invoice proof you meant, so no file was "
+                "claimed or opened. Name the client and month for a verified local lookup."
+            )
+            next_safe_move = "Name the invoice client and service month."
+            blocked_reason = "invoice_proof_context_required"
+        else:
+            message = (
+                f"{agent_display} ran the verified local invoice lookup, but no single canonical "
+                "PDF was available. No file was claimed or opened."
+            )
+            next_safe_move = "Review the locator status and resolve the missing or ambiguous artifact."
+            blocked_reason = f"invoice_proof_{context_status.lower()}"
+        internal_status = "BLOCKED_WITH_REASON"
+
+    locator_result = resolution.get("locator_result")
+    locator_result = dict(locator_result) if isinstance(locator_result, Mapping) else {}
+    proof = {
+        "invoice_artifact_retrieval_matched": True,
+        "artifact_locator_performed": bool(locator_result),
+        "artifact_locator_status": str(locator_result.get("status") or context_status),
+        "proof_presentation_requested": artifact is not None,
+        "proof_artifact_count": len(proof_artifacts),
+        "action_receipt_refs": list(action_receipt_refs),
+        "model_call_performed": False,
+        "worker_dispatch_performed": False,
+        "telegram_document_send_performed": False,
+        "email_send_performed": False,
+        "external_action_performed": False,
+        "business_state_mutation_performed": False,
+    }
+    provenance = {
+        "speaker": agent_display,
+        "actor": agent,
+        "surface_ref": _maestro_frontdoor_surface(raw_request) or "operator_maestro_chat",
+        "message_role": "invoice_proof_readback",
+        "source_request_id": request_id,
+    }
+    card = {
+        "schema_version": "invoice_proof_readback_card_v0",
+        "card_id": f"invoice_proof_{_short_hash(request_id, context_status)}",
+        "card_type": "INVOICE_PROOF_READBACK",
+        "title": headline,
+        "summary": message,
+        "status_label": "Verified locally" if artifact is not None else "Needs context",
+        "actions": [],
+        "proof_artifacts": [dict(item) for item in proof_artifacts],
+        "provenance": provenance,
+        "proof": {"machine_proof": proof},
+    }
+    detail = {
+        "message_provenance": provenance,
+        "operator_display": {
+            "speaker_ref": agent,
+            "voice_profile_ref": f"agent_voice_profile:{agent}",
+            "voice_mode": "operator_calm",
+            "audience": "internal_operator",
+            "routing_reason": "addressed-agent display-only invoice proof retrieval",
+        },
+        "request_classification": asdict(classification),
+        "request_router_decision": dict(route_decision),
+        "invoice_artifact_retrieval": dict(resolution),
+        "proof_artifacts": [dict(item) for item in proof_artifacts],
+        "action_receipt_refs": list(action_receipt_refs),
+        "proof_presenter_request_queued": artifact is not None,
+        "dynamic_card_response": card,
+        "model_call_performed": False,
+        "worker_dispatch_performed": False,
+        "telegram_document_send_performed": False,
+        "external_actions_locked": True,
+    }
+    workflow_ref = (
+        f"{str(resolution.get('client_ref') or 'invoice')}_invoice_proof_retrieval"
+    )
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=workflow_ref,
+        request_type="ARTIFACT_RETRIEVAL",
+        internal_status=internal_status,
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC recognized a display-only invoice proof request before the chat/model path.",
+            (
+                "PC resolved the invoice context from the bounded current or prior same-chat request."
+                if resolution.get("context_source")
+                else "PC could not resolve a bounded invoice context."
+            ),
+            (
+                "PC verified the canonical PDF from allowlisted manifests and hashes and queued the typed QuickLook artifact."
+                if artifact is not None
+                else "PC stopped without claiming that a proof file was opened."
+            ),
+            "No Telegram document, email, ledger write, workbook mutation, or external business action occurred.",
+        ),
+        why_it_happened=(
+            "Artifact-display language routes to the deterministic invoice locator and ProofPresenter contract."
+        ),
+        how_to_fix=next_safe_move,
+        visible_cards=(card,),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": "LOCAL_ARTIFACT_LOCATOR",
+                "selected_machine": "PC_WSL",
+                "selected_rail": "invoice_artifact_locator+ProofPresenter",
+                "route_status": context_status,
+                "model_call_performed": False,
+                "external_action_performed": False,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=blocked_reason,
+        detail_disclosure=detail,
+        readback_files=(),
+        next_safe_move=next_safe_move,
+        proof_artifacts=proof_artifacts,
+        proof_to_response=proof,
+        proof_to_response_status=(
+            "INVOICE_PROOF_PRESENTATION_REQUESTED"
+            if artifact is not None
+            else "INVOICE_PROOF_NOT_PRESENTED"
+        ),
+    )
+
+
 def _process_request_path_core(
     request_path: Path,
     *,
@@ -9053,6 +9233,15 @@ def _process_request_path_core(
     )
     if first_touch_response is not None:
         return first_touch_response
+    invoice_proof_response = _process_invoice_proof_request(
+        request_path,
+        raw_request,
+        classification=effective_classification,
+        route_decision=route_decision,
+        _capsule=_capsule,
+    )
+    if invoice_proof_response is not None:
+        return invoice_proof_response
     if classification.request_family == "CHAT" and _is_workbook_candidate_replace_choice_request(raw_request):
         return _process_workbook_candidate_replace_choice_request(
             request_path,
@@ -9512,6 +9701,93 @@ def _is_vote_timeout_response(response: OpenClawResponseForMac) -> bool:
         return False
 
 
+def _action_receipt_refs(response: OpenClawResponseForMac) -> tuple[str, ...]:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    proof = response.proof_to_response if isinstance(response.proof_to_response, Mapping) else {}
+    values: list[object] = []
+    for container in (detail, proof):
+        refs = container.get("action_receipt_refs")
+        if isinstance(refs, (list, tuple)):
+            values.extend(refs)
+    return tuple(
+        dict.fromkeys(
+            str(value).strip()
+            for value in values
+            if str(value or "").strip()
+        )
+    )
+
+
+def _canonical_integrity_speaker(author: str) -> str:
+    value = str(author or "").strip().lower()
+    if value == "openclaw_system":
+        return "openclaw"
+    return value if value in agent_voice_profiles.SPEAKER_REFS else "openclaw"
+
+
+def _apply_action_promise_integrity(
+    response: OpenClawResponseForMac,
+    *,
+    author: str,
+) -> OpenClawResponseForMac:
+    import action_promise_integrity
+
+    result = action_promise_integrity.enforce_action_promise_integrity(
+        response.operator_message,
+        speaker_ref=_canonical_integrity_speaker(author),
+        action_receipt_refs=_action_receipt_refs(response),
+    )
+    detail = dict(response.detail_disclosure or {})
+    detail["action_promise_integrity"] = result.receipt.to_dict()
+    if not result.receipt.substituted:
+        return replace(response, detail_disclosure=detail)
+
+    visible = result.visible_text
+
+    def bounded(value: object) -> object:
+        if isinstance(value, str) and action_promise_integrity.contains_action_promise(value):
+            return visible
+        return value
+
+    dynamic_card = detail.get("dynamic_card_response")
+    if isinstance(dynamic_card, Mapping):
+        rebound = dict(dynamic_card)
+        for key in ("title", "summary"):
+            if key in rebound:
+                rebound[key] = bounded(rebound[key])
+        detail["dynamic_card_response"] = rebound
+    responder = detail.get("maestro_cassandra_responder")
+    if isinstance(responder, Mapping):
+        rebound = dict(responder)
+        for key in ("one_line_answer", "plain_summary"):
+            if key in rebound:
+                rebound[key] = bounded(rebound[key])
+        detail["maestro_cassandra_responder"] = rebound
+    layered = detail.get("layered_response_fields")
+    if isinstance(layered, Mapping):
+        rebound = dict(layered)
+        for key in ("headline", "one_line_answer", "eliwinship", "next_action"):
+            if key in rebound:
+                rebound[key] = bounded(rebound[key])
+        detail["layered_response_fields"] = rebound
+
+    visible_cards: list[dict[str, Any]] = []
+    for card in response.visible_cards:
+        rebound = dict(card)
+        for key in ("title", "summary"):
+            if key in rebound:
+                rebound[key] = bounded(rebound[key])
+        visible_cards.append(rebound)
+    headline = bounded(response.operator_headline)
+    return replace(
+        response,
+        operator_headline=str(headline or visible),
+        operator_message=visible,
+        visible_cards=tuple(visible_cards),
+        detail_disclosure=detail,
+    )
+
+
 def _enrich_operator_surface(
     response: OpenClawResponseForMac,
     request_path: Path,
@@ -9580,6 +9856,7 @@ def _enrich_operator_surface(
         )
         if isinstance(enriched, str) and enriched.strip() and enriched != message:
             response = replace(response, operator_message=enriched)
+        response = _apply_action_promise_integrity(response, author=author)
         # ── RESPONSE VALIDATION Stage 1 — operator_surface_guard (task 144) ───
         # Task 144 (CLASS #5): this used to be gated behind _continuity_enabled(), an
         # unrelated conversation-memory flag that defaults OFF -- meaning the one real
@@ -9601,6 +9878,7 @@ def _enrich_operator_surface(
                     _surface_text,
                     agent_role=agent_id,
                     boundary_context=_boundary_context,
+                    action_receipt_refs=_action_receipt_refs(response),
                 )
             else:
                 # The legacy machine-leak gate may be explicitly disabled, but
@@ -9619,20 +9897,35 @@ def _enrich_operator_surface(
         return _reassert_vote_timeout_operator_message(response, question=question)
     except Exception:
         try:
+            import action_promise_integrity
             from final_output_boundary import OutputBoundaryContext, render_final_output
 
+            _safe_text = str(getattr(response, "operator_message", "") or "")
+            _integrity = action_promise_integrity.enforce_action_promise_integrity(
+                _safe_text,
+                speaker_ref="openclaw",
+                action_receipt_refs=_action_receipt_refs(response),
+            )
             _bounded = render_final_output(
-                str(getattr(response, "operator_message", "") or ""),
+                _integrity.visible_text,
                 context=OutputBoundaryContext.from_source_request(reassert_question),
                 classifier=lambda _text: (_ for _ in ()).throw(
                     RuntimeError("boundary unavailable")
                 ),
             )
             _detail = dict(getattr(response, "detail_disclosure", {}) or {})
+            _detail["action_promise_integrity"] = _integrity.receipt.to_dict()
             _detail["output_boundary_receipt"] = _bounded.receipt.to_dict()
             return _reassert_vote_timeout_operator_message(
                 replace(
                     response,
+                    operator_headline=(
+                        _bounded.visible_text
+                        if action_promise_integrity.contains_action_promise(
+                            str(getattr(response, "operator_headline", "") or "")
+                        )
+                        else response.operator_headline
+                    ),
                     operator_message=_bounded.visible_text,
                     detail_disclosure=_detail,
                 ),
@@ -10372,6 +10665,9 @@ def build_payloads(
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
+    response_payload["proof_artifacts"] = [
+        dict(item) for item in response.proof_artifacts
+    ]
     _rehydrate_typed_contract_trace_payload(response_payload, response.typed_contract_trace)
     local_surface_request = local_surface_request_contract.infer_surface_request(response_payload)
     response_payload["local_surface_request"] = local_surface_request

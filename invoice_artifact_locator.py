@@ -274,3 +274,43 @@ def locate_invoice_artifacts(
     else:
         result["agentic_fallback_required"] = True
     return result
+
+
+def locate_latest_invoice_artifact(
+    client_ref: str,
+    *,
+    roots: Sequence[Path],
+) -> dict[str, Any]:
+    """Locate the newest manifest-backed service period for one client."""
+
+    normalized_client = _client_key(client_ref)
+    periods: set[str] = set()
+    for raw_root in roots:
+        root = Path(raw_root)
+        if not root.is_dir():
+            continue
+        for manifest_path in sorted(root.rglob("invoice_manifest.json")):
+            if not _within(manifest_path, root) or QUARANTINE_SEGMENT in manifest_path.parts:
+                continue
+            manifest = _json_object(manifest_path)
+            if _client_key(manifest.get("client_slug")) != normalized_client:
+                continue
+            period = _period_from_manifest(manifest)
+            if re.fullmatch(r"\d{4}-\d{2}", period):
+                periods.add(period)
+
+    if not periods:
+        result = _base_result(normalized_client.replace("-", "_"), "", roots)
+        result["agentic_fallback_required"] = True
+        result["query_resolution"] = "latest_service_period_not_found"
+        return result
+
+    latest_period = sorted(periods, reverse=True)[0]
+    result = locate_invoice_artifacts(
+        normalized_client,
+        latest_period,
+        roots=roots,
+    )
+    result["query_resolution"] = "latest_manifest_service_period"
+    result["available_service_periods"] = sorted(periods, reverse=True)
+    return result

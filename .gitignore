@@ -1470,3 +1470,8 @@ generated/system_knowledge/*.sqlite
 !tests/test_167_fleet_timeout_adapters.py
 !tests/test_167_guardian_listener_boundary.py
 !tests/test_167_chief_listener_boundary.py
+!action_promise_integrity.py
+!invoice_proof_request.py
+!tests/test_action_promise_integrity.py
+!tests/test_invoice_proof_request_routing.py
+!tests/test_maestro_fast_ack.py
