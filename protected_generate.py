@@ -37,6 +37,13 @@ class ProtectedGenerateOutcome:
     receipt: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class _ExternalBrainAttempt:
+    source: str
+    text: str
+    receipt: dict[str, Any]
+
+
 class ProtectedGenerateBlocked(RuntimeError):
     """Raised only for callers that opt into exceptions; default is a blocked outcome."""
 
@@ -461,6 +468,138 @@ def _live_model_allowed(explicit: bool | None = None) -> bool:
     if os.environ.get("OPENCLAW_TEST_MODE") == "1":
         return False
     return os.environ.get("OPENCLAW_MAESTRO_BRAIN_LIVE", "1").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _external_brain_shadow_enabled(explicit: bool | None = None) -> bool:
+    if explicit is not None:
+        return bool(explicit)
+    return os.environ.get("OPENCLAW_EXTERNAL_BRAIN_SHADOW", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _external_brain_router_enabled() -> bool:
+    return os.environ.get("OPENCLAW_EXTERNAL_BRAIN_ROUTER", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _external_brain_live_attempt(
+    *,
+    raw_operator_prompt: str,
+    safe_packet: str,
+    privacy_metadata: Mapping[str, Any],
+    task_type: str,
+    role: str,
+    risk_tier: str,
+    context_size: str,
+) -> _ExternalBrainAttempt:
+    """Run one guarded subscription turn or return an immediate local fallback."""
+
+    from codex_app_server_client import (
+        CodexAppServerClient,
+        REQUIRED_APP_SERVER_VERSION,
+        build_safe_subscription_receipt,
+        open_dedicated_app_server_peer,
+    )
+    from external_brain_router import (
+        LOCAL_SAFE_LANE,
+        build_safe_route_receipt,
+        load_model_lane_bindings,
+        route_external_brain_request,
+    )
+
+    decision = route_external_brain_request(
+        raw_operator_prompt=raw_operator_prompt,
+        task_type=task_type,
+        chain_lane="LM2_ROLE_RESPONSE",
+        role=role,
+        risk_tier=risk_tier,
+        context_size=context_size,
+        privacy_metadata=privacy_metadata,
+        activation_enabled=True,
+    )
+    receipt = build_safe_route_receipt(decision)
+    receipt["mode"] = "live_guarded_subscription"
+    if decision.effective_lane_id == LOCAL_SAFE_LANE:
+        return _ExternalBrainAttempt(source="local_fallback", text="", receipt=receipt)
+
+    bindings = load_model_lane_bindings()["lanes"]
+    binding = bindings.get(decision.effective_lane_id)
+    if not isinstance(binding, Mapping) or binding.get("transport") != "codex_app_server":
+        receipt.update(
+            {
+                "effective_lane_id": LOCAL_SAFE_LANE,
+                "fallback_reason": "external_binding_unavailable",
+            }
+        )
+        return _ExternalBrainAttempt(source="local_fallback", text="", receipt=receipt)
+
+    model = str(binding.get("model") or "")
+    try:
+        with open_dedicated_app_server_peer(cwd="/tmp") as peer:
+            client = CodexAppServerClient(peer)
+            admission = client.preflight(
+                model=model,
+                effort_level=decision.effort_level,
+                request_hash=decision.request_hash,
+                lane_id=decision.effective_lane_id,
+            )
+            receipt.update(
+                build_safe_subscription_receipt(
+                    admission,
+                    request_hash=decision.request_hash,
+                    lane_id=decision.effective_lane_id,
+                    fallback_reason="" if admission.allowed else admission.reason,
+                )
+            )
+            receipt["app_server_version"] = REQUIRED_APP_SERVER_VERSION
+            if not admission.allowed:
+                receipt.update(
+                    {
+                        "effective_lane_id": LOCAL_SAFE_LANE,
+                        "fallback_reason": admission.reason,
+                    }
+                )
+                return _ExternalBrainAttempt(source="local_fallback", text="", receipt=receipt)
+
+            try:
+                decoded_packet = json.loads(safe_packet)
+            except (TypeError, json.JSONDecodeError):
+                decoded_packet = {"packet_text": safe_packet}
+            context_aid = (
+                dict(decoded_packet)
+                if isinstance(decoded_packet, Mapping)
+                else {"packet": decoded_packet}
+            )
+            turn = client.run_read_only_turn(
+                admission=admission,
+                raw_operator_prompt=raw_operator_prompt,
+                context_aid=context_aid,
+                cwd="/tmp",
+            )
+            receipt.update(
+                {
+                    "thread_id_hash": turn.thread_id_hash,
+                    "turn_id_hash": turn.turn_id_hash,
+                    "fallback_reason": "",
+                }
+            )
+            return _ExternalBrainAttempt(source="external_brain", text=turn.text, receipt=receipt)
+    except Exception as exc:
+        receipt.update(
+            {
+                "effective_lane_id": LOCAL_SAFE_LANE,
+                "fallback_reason": f"app_server_failure:{type(exc).__name__}",
+            }
+        )
+        return _ExternalBrainAttempt(source="local_fallback", text="", receipt=receipt)
 
 
 def _float_env(name: str, default: float) -> float:
@@ -1573,6 +1712,7 @@ def protected_generate_with_receipt(
     context_facts_dropped: int | None = None,
     prompt_chars: int | None = None,
     agent: str = "maestro",
+    external_brain_shadow: bool | None = None,
 ) -> ProtectedGenerateOutcome:
     """Generate text through graded PII tokenization and an audit receipt.
 
@@ -1593,7 +1733,8 @@ def protected_generate_with_receipt(
     can alternatively return a dict carrying done_reason).
     """
 
-    raw_prompt = str(prompt or "").strip()
+    operator_prompt = str(prompt or "")
+    raw_prompt = operator_prompt.strip()
     packet = _packet_mapping(context_packet)
     front_door_profile = _frontdoor_profile_active(front_door_profile, context_packet)
     fd_ledger_guard_failed = False
@@ -1675,6 +1816,58 @@ def protected_generate_with_receipt(
         unresolved_sensitive_values=unresolved_sensitive_values,
         secrets_present=secrets_present,
     )
+    if _external_brain_shadow_enabled(external_brain_shadow):
+        try:
+            from external_brain_router import (
+                build_safe_route_receipt,
+                load_model_lane_bindings,
+                route_external_brain_request,
+            )
+
+            context_chars = len(safe_packet)
+            if context_chars >= 20_000:
+                external_context_size = "huge"
+            elif context_chars >= 8_000:
+                external_context_size = "large"
+            else:
+                external_context_size = "small"
+            external_risk_tier = {
+                PUBLIC: "low",
+                LIGHT: "low",
+                MED: "medium",
+                HIGH: "high",
+                MAX: "critical",
+            }.get(tier, "critical")
+            shadow_decision = route_external_brain_request(
+                raw_operator_prompt=raw_prompt,
+                task_type="standard advisory response",
+                chain_lane="LM2_ROLE_RESPONSE",
+                role=agent,
+                risk_tier=external_risk_tier,
+                context_size=external_context_size,
+                privacy_metadata=metadata,
+                activation_enabled=False,
+            )
+            shadow_receipt = build_safe_route_receipt(shadow_decision)
+            lane_bindings = load_model_lane_bindings()["lanes"]
+            binding = lane_bindings.get(shadow_decision.candidate_lane_id, {})
+            shadow_receipt.update(
+                {
+                    "mode": "shadow_only_no_external_call",
+                    "binding_model_id": str(binding.get("model") or ""),
+                    "chatgpt_auth_asserted": False,
+                    "used_percent": None,
+                    "window_duration_mins": None,
+                }
+            )
+            receipt["external_brain_shadow"] = shadow_receipt
+        except Exception as exc:
+            receipt["external_brain_shadow"] = {
+                "schema_version": "external_brain_route_receipt_v1",
+                "mode": "shadow_only_no_external_call",
+                "effective_lane_id": "local_safe_lane",
+                "fallback_reason": f"shadow_route_error:{type(exc).__name__}",
+            }
     external_safe = False
     external_policy_reason = "not_checked"
     external_model_configured = False
@@ -1776,6 +1969,7 @@ def protected_generate_with_receipt(
     route = "deterministic_fallback"
     local_invoked = False
     external_invoked = False
+    external_brain_refused = False
     # Tracks whether an injected generator's output is actually DELIVERED. Starts as
     # generator_fn (off-path unchanged) and is cleared only if the front-door profile
     # discards the model output, so model_call_performed / decision /
@@ -1825,8 +2019,38 @@ def protected_generate_with_receipt(
                 receipt=dict(receipt),
             )
     elif _live_model_allowed(allow_live_model):
+        if _external_brain_router_enabled() and not fd_ledger_guard_failed:
+            context_chars = len(safe_packet)
+            external_context_size = (
+                "huge" if context_chars >= 20_000 else ("large" if context_chars >= 8_000 else "small")
+            )
+            external_risk_tier = {
+                PUBLIC: "low",
+                LIGHT: "low",
+                MED: "medium",
+                HIGH: "high",
+                MAX: "critical",
+            }.get(tier, "critical")
+            attempt = _external_brain_live_attempt(
+                raw_operator_prompt=operator_prompt,
+                safe_packet=safe_packet,
+                privacy_metadata=metadata,
+                task_type="standard advisory response",
+                role=agent,
+                risk_tier=external_risk_tier,
+                context_size=external_context_size,
+            )
+            receipt["external_brain"] = attempt.receipt
+            if attempt.source == "external_brain" and attempt.text:
+                raw_output = attempt.text
+                external_invoked = True
+                route = "external_brain_router"
+            else:
+                external_brain_refused = True
         if (
-            external_safe
+            not raw_output
+            and not external_brain_refused
+            and external_safe
             and external_model_configured
             and os.environ.get("OPENCLAW_FREEFORM_CLOUD", "").strip().lower() in {"1", "true", "yes"}
             and not front_door_profile
@@ -1842,7 +2066,15 @@ def protected_generate_with_receipt(
                 route = "external_exception_fallback"
         if not raw_output:
             try:
-                if front_door_profile:
+                if external_brain_refused and not front_door_profile:
+                    raw_output = _call_local_ollama(
+                        system_prompt,
+                        timeout=local_timeout,
+                        attempts=local_attempts,
+                    )
+                    local_invoked = bool(raw_output)
+                    route = "local_ollama" if raw_output else "local_ollama_empty"
+                elif front_door_profile:
                     if fd_ledger_guard_failed:
                         # Ledger guard errored: fail closed to the deterministic
                         # grounded fallback without invoking any model.

@@ -99,6 +99,135 @@ def test_critical_or_huge_task_signal_selects_xhigh_effort() -> None:
     assert huge.effort_reason == "huge_context"
 
 
+def test_external_route_reuses_model_policy_after_privacy_packaging(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_select(request):
+        captured.update(request)
+        return {
+            "selected_model_class": router.model_router_policy.STRONG_EXTERNAL_ROLE_MODEL,
+            "selection_reason": "external role model is policy eligible",
+            "blocked_reasons": [],
+        }
+
+    monkeypatch.setattr(router.model_router_policy, "select_model_class", fake_select)
+    decision = router.route_external_brain_request(
+        raw_operator_prompt="Verbatim private operator words must never enter the route receipt.",
+        task_type="code implementation with tests",
+        chain_lane="LM2_ROLE_RESPONSE",
+        risk_tier="medium",
+        context_size="small",
+        privacy_metadata={
+            "classification": "sanitized",
+            "original_pii_tier": "HIGH",
+            "cloud_allowed": True,
+            "local_required": False,
+            "tokenization_applied": True,
+            "package_minimized": True,
+            "raw_values_included": False,
+            "secrets_present": False,
+        },
+        activation_enabled=False,
+    )
+
+    assert captured["tokenization_applied"] is True
+    assert captured["package_minimized"] is True
+    assert captured["raw_values_included"] is False
+    assert captured["external_lm_allowed"] is True
+    assert "Verbatim private operator words" not in json.dumps(captured)
+    assert decision.candidate_lane_id == "mid_lane"
+    assert decision.effective_lane_id == "local_safe_lane"
+    assert decision.fallback_reason == "external_router_default_off"
+
+
+def test_external_route_activates_candidate_only_when_policy_and_gate_allow(monkeypatch) -> None:
+    monkeypatch.setattr(
+        router.model_router_policy,
+        "select_model_class",
+        lambda _request: {
+            "selected_model_class": router.model_router_policy.FAST_EXTERNAL_INTENT_MODEL,
+            "selection_reason": "eligible",
+            "blocked_reasons": [],
+        },
+    )
+    decision = router.route_external_brain_request(
+        raw_operator_prompt="Public quick task",
+        task_type="quick summary",
+        chain_lane="LM1_INTENT_PROPOSAL",
+        privacy_metadata={
+            "classification": "public",
+            "original_pii_tier": "PUBLIC",
+            "cloud_allowed": True,
+            "local_required": False,
+            "tokenization_applied": False,
+            "package_minimized": True,
+            "raw_values_included": False,
+            "secrets_present": False,
+        },
+        activation_enabled=True,
+    )
+
+    assert decision.candidate_lane_id == "easy_lane"
+    assert decision.effective_lane_id == "easy_lane"
+    assert decision.fallback_reason == ""
+
+
+def test_policy_local_or_unsafe_decision_fails_to_local_lane(monkeypatch) -> None:
+    monkeypatch.setattr(
+        router.model_router_policy,
+        "select_model_class",
+        lambda _request: {
+            "selected_model_class": router.model_router_policy.LOCAL_FALLBACK_MODEL,
+            "selection_reason": "private package",
+            "blocked_reasons": ["PRIVATE"],
+        },
+    )
+    decision = router.route_external_brain_request(
+        raw_operator_prompt="contains protected material",
+        task_type="architecture review",
+        privacy_metadata={
+            "classification": "private",
+            "original_pii_tier": "MAX",
+            "cloud_allowed": False,
+            "local_required": True,
+            "tokenization_applied": False,
+            "package_minimized": False,
+            "raw_values_included": True,
+            "secrets_present": False,
+        },
+        activation_enabled=True,
+    )
+
+    assert decision.candidate_lane_id == "local_safe_lane"
+    assert decision.effective_lane_id == "local_safe_lane"
+    assert decision.fallback_reason == "model_policy_selected_local"
+
+
+def test_safe_route_receipt_contains_no_prompt_or_concrete_model() -> None:
+    decision = router.ExternalRouteDecision(
+        request_hash="sha256:test",
+        candidate_lane_id="hard_lane",
+        effective_lane_id="local_safe_lane",
+        effort_level="high",
+        effort_reason="binding_default",
+        policy_model_class="STRONG_EXTERNAL_ROLE_MODEL",
+        policy_reason="eligible",
+        pii_verdict="sanitized",
+        difficulty_evidence=("risk=high", "context=large"),
+        fallback_reason="external_router_default_off",
+        activation_enabled=False,
+    )
+
+    receipt = router.build_safe_route_receipt(decision)
+
+    assert receipt["request_hash"] == "sha256:test"
+    assert receipt["selected_effort"] == "high"
+    assert receipt["effort_reason"] == "binding_default"
+    encoded = json.dumps(receipt)
+    assert "raw_operator_prompt" not in encoded
+    assert "gpt-" not in encoded.lower()
+
+
 def test_binding_loader_rejects_missing_required_lane(tmp_path: Path) -> None:
     path = tmp_path / "bindings.json"
     path.write_text('{"schema_version":"model_lane_bindings_v1","lanes":{}}', encoding="utf-8")
