@@ -14,3 +14,14 @@ CREATE TABLE IF NOT EXISTS st_annes_invoice_status_receipt (
   paid INTEGER NOT NULL CHECK(paid IN (0, 1)),
   payload_json TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS st_annes_invoice_send_history (
+  gmail_message_id TEXT PRIMARY KEY,
+  gmail_thread_id TEXT NOT NULL,
+  sent_at_utc_iso TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  attachment_filename TEXT NOT NULL,
+  attachment_sha256 TEXT NOT NULL,
+  disposition TEXT NOT NULL CHECK(disposition IN ('RECORDED', 'SUPERSEDED', 'OPERATIVE')),
+  operative_receipt_sha256 TEXT NOT NULL,
+  payload_json TEXT NOT NULL
+);
