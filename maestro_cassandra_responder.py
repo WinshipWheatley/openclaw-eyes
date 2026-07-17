@@ -534,6 +534,36 @@ def _is_built_vs_on_ledger_prompt(text: str) -> bool:
             "built versus on",
         )
     )
+
+
+def _build_typed_contract_status_answer(
+    text: str,
+    *,
+    agent: str,
+    session: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    normalized = _normalize(text)
+    if agent == "maestro" and _is_built_vs_on_ledger_prompt(normalized):
+        return build_ledger_capability_answer()
+    rich_status_markers = (
+        "status readback",
+        "who are the agents",
+        "what does each agent do",
+        "what does each do",
+        "agent roster",
+        "agent list",
+        "system-wide next safe move",
+        "system wide next safe move",
+        "next safe move",
+        "next safest move",
+        "safe next move",
+    )
+    if agent == "maestro" and any(marker in normalized for marker in rich_status_markers):
+        return build_truthful_status_capability_answer(
+            session=session,
+            focus=_status_capability_readback_focus(normalized),
+        )
+    return build_targeted_bare_status_answer(text, agent=agent, session=session)
 def _path_is_under(path: Path, root: Path) -> bool:
     try:
         path.relative_to(root)
@@ -1261,31 +1291,11 @@ def _answer_frontdoor_chat_impl(
 
         def _status_renderer() -> str:
             nonlocal _contract_status_answer
-            _status_text = _normalize(text)
-            _rich_status_markers = (
-                "status readback",
-                "who are the agents",
-                "what does each agent do",
-                "what does each do",
-                "agent roster",
-                "agent list",
-                "system-wide next safe move",
-                "system wide next safe move",
-                "next safe move",
-                "next safest move",
-                "safe next move",
+            _contract_status_answer = _build_typed_contract_status_answer(
+                text,
+                agent=agent,
+                session=session,
             )
-            if agent == "maestro" and any(marker in _status_text for marker in _rich_status_markers):
-                _contract_status_answer = build_truthful_status_capability_answer(
-                    session=session,
-                    focus=_status_capability_readback_focus(_status_text),
-                )
-            else:
-                _contract_status_answer = build_targeted_bare_status_answer(
-                    text,
-                    agent=agent,
-                    session=session,
-                )
             return str(_contract_status_answer["plain_summary"])
 
         def _handoff_stager(raw_text: str, _context: ContractContext) -> HandoffResult:
@@ -3018,6 +3028,7 @@ def build_ledger_capability_answer(
         "one_line_answer": _one_line_answer(one_line),
         "plain_summary": plain,
         "machine_proof": {
+            "status_capability_readback_performed": True,
             "capability_ledger_only": True,
             "capability_activations_used": bool(rows),
             "capability_activation_row_count": len(rows),

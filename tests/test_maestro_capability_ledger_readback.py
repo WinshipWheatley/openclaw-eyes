@@ -58,3 +58,18 @@ def test_maestro_frontdoor_routes_exact_built_vs_on_question_to_ledger(tmp_path:
     assert result.machine_proof["capability_ledger_only"] is True
     assert result.machine_proof["protected_generate_called"] is False
     assert result.machine_proof["external_llm_invoked"] is False
+
+
+def test_typed_contract_status_owner_uses_ledger_answer_not_bare_status(tmp_path: Path, monkeypatch) -> None:
+    ledger = _confirmed_ledger(tmp_path)
+    monkeypatch.setattr(maestro, "DEFAULT_CAPABILITY_LEDGER_PATH", ledger)
+
+    answer = maestro._build_typed_contract_status_answer(
+        "what's built and what's actually on?",
+        agent="maestro",
+        session=None,
+    )
+
+    assert answer["machine_proof"]["status_capability_readback_performed"] is True
+    assert answer["machine_proof"]["capability_ledger_only"] is True
+    assert "Ledger-only capability readback:" in answer["plain_summary"]
