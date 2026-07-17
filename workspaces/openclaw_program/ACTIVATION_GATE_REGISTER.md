@@ -477,7 +477,7 @@ Live-state evidence:
 - Production state: `enabled_verified`
 - Live production state: `enabled_verified`
 - Gate stage: `operator_approved_live`
-- Canary status: `passed PUBLIC-CANARY-OK through dedicated 0.144.5 app-server at 14% usage; 80% Guardian boundary stops before model/list or turn; Legal stays local; raw prompt remains verbatim; local parity passes`
+- Canary status: `passed exact PUBLIC marker through dedicated 0.144.5 app-server at 18% usage; +1 tier promoted easy to Terra/mid with mandatory packet critique and validated ledger row; 80% Guardian boundary stops before model/list or turn; Legal stays local; raw prompt remains verbatim; local parity passes`
 - Risk level: `high`
 - Owner: `Fable / PC Codex Desktop`
 - Activation allowed now: `no`
@@ -487,11 +487,11 @@ Live-state evidence:
 - Disabled by: OPENCLAW_EXTERNAL_BRAIN_ROUTER unset or false; any failed or stale gate proof
 - Rollback: unset OPENCLAW_EXTERNAL_BRAIN_ROUTER and retain the existing local Ollama path; do not alter bindings during rollback
 - Next required step: monitor safe route receipts and immediately roll back on privacy, protocol, headroom, or parity failure
-- Source files: `external_brain_router.py`, `codex_app_server_client.py`, `model_lane_bindings.json`, `protected_generate.py`
-- Tests: `tests/test_external_brain_router.py`, `tests/test_codex_app_server_client.py`, `tests/test_protected_generate.py`
+- Source files: `external_brain_router.py`, `codex_app_server_client.py`, `external_brain_runtime.py`, `model_lane_bindings.json`, `packet_quality_telemetry.py`, `protected_generate.py`
+- Tests: `tests/test_external_brain_router.py`, `tests/test_codex_app_server_client.py`, `tests/test_external_brain_runtime.py`, `tests/test_packet_quality_telemetry.py`, `tests/test_protected_generate.py`
 - Audits: `workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md`
-- Evidence refs: `workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md`, `tests/test_external_brain_router.py`, `tests/test_codex_app_server_client.py`, `tests/test_protected_generate.py`, `/home/openclaw/Operator/from-codex/EXTERNAL-BRAIN-PUBLIC-CANARY-20260716-PC-Codex-Desktop.jsonl`
-- Last verified at: `2026-07-16T22:34:41-04:00`
+- Evidence refs: `workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md`, `tests/test_external_brain_router.py`, `tests/test_codex_app_server_client.py`, `tests/test_external_brain_runtime.py`, `tests/test_packet_quality_telemetry.py`, `tests/test_protected_generate.py`, `/home/openclaw/Operator/from-codex/EXTERNAL-BRAIN-PUBLIC-CANARY-20260716-PC-Codex-Desktop.jsonl`
+- Last verified at: `2026-07-17T10:05:00-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -1522,6 +1522,6 @@ Sources not inspected:
 
 ## Evidence Gaps
 
-- Missing repository evidence files referenced by register: none recorded
+- Missing repository evidence files referenced by register: `brain_dump_parser.py`, `polish_loop/git_task_guard.sh`
 - Production env/service state: `redacted live reconciliation enabled`
 - Feature activation performed by this task: `no`

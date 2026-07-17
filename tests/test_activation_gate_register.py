@@ -117,15 +117,18 @@ def test_external_brain_router_has_bounded_same_session_activation_record():
     assert capability["operator_approval_required"] is True
     assert "binding activation directive" in capability["enabled_by"]
     assert "enabled and canary-verified" in capability["current_state_if_verifiable"]["production"]
-    assert "PUBLIC-CANARY-OK" in capability["canary_status"]
-    assert "14%" in capability["canary_status"]
+    assert "packet critique" in capability["canary_status"]
+    assert "+1 tier" in capability["canary_status"]
+    assert "18%" in capability["canary_status"]
     assert "80%" in capability["canary_status"]
     assert "Legal" in capability["canary_status"]
     assert "raw prompt" in capability["canary_status"]
     assert "local parity" in capability["canary_status"]
     assert "monitor" in capability["next_required_step"]
     assert "protected_generate.py" in capability["source_files"]
+    assert "packet_quality_telemetry.py" in capability["source_files"]
     assert "tests/test_protected_generate.py" in capability["tests"]
+    assert "tests/test_packet_quality_telemetry.py" in capability["tests"]
     assert "EXTERNAL_BRAIN_ROUTER_20260716.md" in " ".join(capability["evidence_refs"])
 
 

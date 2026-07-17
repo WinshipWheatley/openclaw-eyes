@@ -672,10 +672,10 @@
       "audits": [
         "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md"
       ],
-      "canary_status": "passed PUBLIC-CANARY-OK through dedicated 0.144.5 app-server at 14% usage; 80% Guardian boundary stops before model/list or turn; Legal stays local; raw prompt remains verbatim; local parity passes",
+      "canary_status": "passed exact PUBLIC marker through dedicated 0.144.5 app-server at 18% usage; +1 tier promoted easy to Terra/mid with mandatory packet critique and validated ledger row; 80% Guardian boundary stops before model/list or turn; Legal stays local; raw prompt remains verbatim; local parity passes",
       "capability_id": "external_brain_router",
       "current_state_if_verifiable": {
-        "audit_report": "real catalog, headroom, 80% boundary, PUBLIC turn, and local fallback evidence recorded",
+        "audit_report": "real +1-tier PUBLIC turn, dual output, ledger validation, and 80% fail-local evidence recorded",
         "code_default": "guarded by OPENCLAW_EXTERNAL_BRAIN_ROUTER and immediate local fallback",
         "production": "enabled_verified",
         "summary": "live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false"
@@ -688,6 +688,8 @@
         "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
         "tests/test_external_brain_router.py",
         "tests/test_codex_app_server_client.py",
+        "tests/test_external_brain_runtime.py",
+        "tests/test_packet_quality_telemetry.py",
         "tests/test_protected_generate.py",
         "/home/openclaw/Operator/from-codex/EXTERNAL-BRAIN-PUBLIC-CANARY-20260716-PC-Codex-Desktop.jsonl"
       ],
@@ -696,7 +698,7 @@
         "model_lane_bindings.json"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-16T22:34:41-04:00",
+      "last_verified_at": "2026-07-17T10:05:00-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -723,12 +725,16 @@
       "source_files": [
         "external_brain_router.py",
         "codex_app_server_client.py",
+        "external_brain_runtime.py",
         "model_lane_bindings.json",
+        "packet_quality_telemetry.py",
         "protected_generate.py"
       ],
       "tests": [
         "tests/test_external_brain_router.py",
         "tests/test_codex_app_server_client.py",
+        "tests/test_external_brain_runtime.py",
+        "tests/test_packet_quality_telemetry.py",
         "tests/test_protected_generate.py"
       ]
     },
@@ -3544,6 +3550,9 @@
         "status": "found"
       }
     },
-    "missing_repo_evidence_files": []
+    "missing_repo_evidence_files": [
+      "brain_dump_parser.py",
+      "polish_loop/git_task_guard.sh"
+    ]
   }
 }

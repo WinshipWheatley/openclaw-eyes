@@ -20,6 +20,7 @@ from typing import Any, Iterable, Mapping, Sequence
 SCHEMA_VERSION = "activation_gate_register_v0"
 DEFAULT_LAST_VERIFIED_AT = "2026-06-26T00:00:00-04:00"
 DEFAULT_OUTPUT_DIR = Path("workspaces/openclaw_program")
+EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:05:00-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -1941,27 +1942,32 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ],
             default_state="on_guarded_subscription",
             current_state_if_verifiable=_state(
-                "guarded subscription router is wired into protected_generate and passed its real-process PUBLIC canary",
+                "router v2 is wired into protected_generate with +1-tier work calls, mandatory packet critique, and durable packet-quality telemetry",
                 code_default="guarded by OPENCLAW_EXTERNAL_BRAIN_ROUTER and immediate local fallback",
-                production="enabled and canary-verified through the dedicated Codex CLI 0.144.5 app-server",
-                audit_report="real catalog, headroom, 80% boundary, PUBLIC turn, and local fallback evidence recorded",
+                production="enabled and canary-verified through the dedicated Codex CLI 0.144.5 app-server with ledger-backed packet-quality receipt",
+                audit_report="real +1-tier PUBLIC turn, dual output, ledger validation, and 80% fail-local evidence recorded",
             ),
             source_files=[
                 "external_brain_router.py",
                 "codex_app_server_client.py",
+                "external_brain_runtime.py",
                 "model_lane_bindings.json",
+                "packet_quality_telemetry.py",
                 "protected_generate.py",
             ],
             tests=[
                 "tests/test_external_brain_router.py",
                 "tests/test_codex_app_server_client.py",
+                "tests/test_external_brain_runtime.py",
+                "tests/test_packet_quality_telemetry.py",
                 "tests/test_protected_generate.py",
             ],
             audits=[
                 "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
             ],
             canary_status=(
-                "passed PUBLIC-CANARY-OK through dedicated 0.144.5 app-server at 14% usage; "
+                "passed exact PUBLIC marker through dedicated 0.144.5 app-server at 18% usage; "
+                "+1 tier promoted easy to Terra/mid with mandatory packet critique and validated ledger row; "
                 "80% Guardian boundary stops before model/list or turn; Legal stays local; "
                 "raw prompt remains verbatim; local parity passes"
             ),
@@ -1984,10 +1990,12 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
                 "tests/test_external_brain_router.py",
                 "tests/test_codex_app_server_client.py",
+                "tests/test_external_brain_runtime.py",
+                "tests/test_packet_quality_telemetry.py",
                 "tests/test_protected_generate.py",
                 "/home/openclaw/Operator/from-codex/EXTERNAL-BRAIN-PUBLIC-CANARY-20260716-PC-Codex-Desktop.jsonl",
             ],
-            last_verified_at=last_verified_at,
+            last_verified_at=EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="lm_consult_spine",

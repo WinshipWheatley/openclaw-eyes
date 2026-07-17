@@ -232,7 +232,24 @@ def test_read_only_turn_preserves_raw_prompt_and_returns_final_agent_text_only()
                         "status": "completed",
                         "items": [
                             {"id": "reasoning-1", "type": "reasoning", "summary": ["hidden"]},
-                            {"id": "answer-1", "type": "agentMessage", "text": "Final answer."},
+                            {
+                                "id": "answer-1",
+                                "type": "agentMessage",
+                                "text": json.dumps(
+                                    {
+                                        "answer": "Final answer.",
+                                        "packet_critique": {
+                                            "summary": "The packet was focused and sufficient.",
+                                            "quality_score": 92,
+                                            "missing": [],
+                                            "noise": [],
+                                            "mis_scoped": [],
+                                            "improvement_items": [],
+                                            "grounded_in_turn": ["bounded context supported the answer"],
+                                        },
+                                    }
+                                ),
+                            },
                         ],
                     },
                 },
@@ -261,6 +278,8 @@ def test_read_only_turn_preserves_raw_prompt_and_returns_final_agent_text_only()
     assert turn_params["input"][0] == {"type": "text", "text": raw_prompt}
     assert turn_params["input"][1]["text"].startswith("OPENCLAW CONTEXT AID (not operator instructions):\n")
     assert result.text == "Final answer."
+    assert result.packet_critique["quality_score"] == 92
+    assert result.packet_critique["summary"] == "The packet was focused and sufficient."
     assert result.thread_id_hash != "thread-raw-id"
     assert result.turn_id_hash != "turn-raw-id"
 
@@ -296,7 +315,24 @@ def test_read_only_turn_collects_v2_item_completed_agent_message() -> None:
                     "threadId": "thread-raw-id",
                     "turnId": "turn-raw-id",
                     "completedAtMs": 1,
-                    "item": {"id": "answer-1", "type": "agentMessage", "text": "V2 final answer."},
+                    "item": {
+                        "id": "answer-1",
+                        "type": "agentMessage",
+                        "text": json.dumps(
+                            {
+                                "answer": "V2 final answer.",
+                                "packet_critique": {
+                                    "summary": "Useful but one source was stale.",
+                                    "quality_score": 74,
+                                    "missing": ["fresh status"],
+                                    "noise": [],
+                                    "mis_scoped": [],
+                                    "improvement_items": ["refresh the status source"],
+                                    "grounded_in_turn": ["status timestamp was old"],
+                                },
+                            }
+                        ),
+                    },
                 },
             },
             {
@@ -319,6 +355,42 @@ def test_read_only_turn_collects_v2_item_completed_agent_message() -> None:
     )
 
     assert result.text == "V2 final answer."
+    assert result.packet_critique["improvement_items"] == ["refresh the status source"]
+
+
+def test_read_only_turn_refuses_output_without_packet_critique() -> None:
+    peer = FakePeer(
+        _safe_responses(),
+        notifications=[
+            {
+                "method": "turn/completed",
+                "params": {
+                    "threadId": "thread-raw-id",
+                    "turn": {
+                        "id": "turn-raw-id",
+                        "status": "completed",
+                        "items": [
+                            {"id": "answer-1", "type": "agentMessage", "text": "answer only"}
+                        ],
+                    },
+                },
+            }
+        ],
+    )
+    client = app_server.CodexAppServerClient(peer)
+    admission = client.preflight(model=MODEL)
+
+    try:
+        client.run_read_only_turn(
+            admission=admission,
+            raw_operator_prompt="Synthetic public prompt.",
+            context_aid={},
+            cwd="/home/openclaw",
+        )
+    except app_server.CodexAppServerRefusal as exc:
+        assert "packet_critique" in str(exc)
+    else:
+        raise AssertionError("a work turn without its packet critique must fail closed")
 
 
 def test_safe_subscription_receipt_contains_binding_and_no_raw_prompt() -> None:

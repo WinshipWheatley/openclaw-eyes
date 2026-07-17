@@ -38,6 +38,7 @@ class RouteSelection:
 @dataclass(frozen=True)
 class ExternalRouteDecision:
     request_hash: str
+    nominal_lane_id: str
     candidate_lane_id: str
     effective_lane_id: str
     effort_level: str
@@ -48,6 +49,7 @@ class ExternalRouteDecision:
     difficulty_evidence: tuple[str, ...]
     fallback_reason: str
     activation_enabled: bool
+    graduation_headroom_applied: bool
 
 
 def _normalized(value: object) -> str:
@@ -185,6 +187,19 @@ def route_external_brain_request(
         effort_override=effort_override,
         bindings_path=bindings_path,
     )
+    nominal_lane_id = difficulty_route.lane_id
+    work_lane_id = {
+        EASY_LANE: MID_LANE,
+        MID_LANE: HARD_LANE,
+        HARD_LANE: HARD_LANE,
+    }.get(nominal_lane_id, nominal_lane_id)
+    effort_level = difficulty_route.effort_level
+    effort_reason = difficulty_route.effort_reason
+    if work_lane_id != nominal_lane_id and effort_reason == "binding_default":
+        bindings = load_model_lane_bindings(bindings_path)
+        effort_level = str(bindings["lanes"][work_lane_id]["default_effort"])
+        effort_reason = "graduated_binding_default"
+
     policy_request = {
         "request_id": request_hash,
         "chain_lane": chain_lane,
@@ -230,7 +245,7 @@ def route_external_brain_request(
         and privacy_metadata.get("cloud_allowed") is True
         and privacy_metadata.get("local_required") is not True
     )
-    candidate_lane_id = difficulty_route.lane_id if policy_allows_external else LOCAL_SAFE_LANE
+    candidate_lane_id = work_lane_id if policy_allows_external else LOCAL_SAFE_LANE
     if not policy_allows_external:
         effective_lane_id = LOCAL_SAFE_LANE
         fallback_reason = "model_policy_selected_local"
@@ -243,20 +258,23 @@ def route_external_brain_request(
 
     return ExternalRouteDecision(
         request_hash=request_hash,
+        nominal_lane_id=nominal_lane_id,
         candidate_lane_id=candidate_lane_id,
         effective_lane_id=effective_lane_id,
-        effort_level=difficulty_route.effort_level,
-        effort_reason=difficulty_route.effort_reason,
+        effort_level=effort_level,
+        effort_reason=effort_reason,
         policy_model_class=policy_model_class,
         policy_reason=policy_reason,
         pii_verdict=str(privacy_metadata.get("classification") or "unknown"),
         difficulty_evidence=(
-            f"difficulty_lane={difficulty_route.lane_id}",
+            f"nominal_lane={nominal_lane_id}",
+            f"work_lane={work_lane_id}",
             f"risk={_normalized(risk_tier) or 'low'}",
             f"context={_normalized(context_size) or 'small'}",
         ),
         fallback_reason=fallback_reason,
         activation_enabled=bool(activation_enabled),
+        graduation_headroom_applied=work_lane_id != nominal_lane_id,
     )
 
 
@@ -266,6 +284,7 @@ def build_safe_route_receipt(decision: ExternalRouteDecision) -> dict[str, Any]:
     return {
         "schema_version": "external_brain_route_receipt_v1",
         "request_hash": decision.request_hash,
+        "nominal_lane_id": decision.nominal_lane_id,
         "candidate_lane_id": decision.candidate_lane_id,
         "effective_lane_id": decision.effective_lane_id,
         "selected_effort": decision.effort_level,
@@ -276,4 +295,5 @@ def build_safe_route_receipt(decision: ExternalRouteDecision) -> dict[str, Any]:
         "difficulty_evidence": list(decision.difficulty_evidence),
         "fallback_reason": decision.fallback_reason,
         "activation_enabled": decision.activation_enabled,
+        "graduation_headroom_applied": decision.graduation_headroom_applied,
     }

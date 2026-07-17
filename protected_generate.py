@@ -505,101 +505,55 @@ def _external_brain_live_attempt(
     from codex_app_server_client import (
         CodexAppServerClient,
         REQUIRED_APP_SERVER_VERSION,
-        build_safe_subscription_receipt,
         open_dedicated_app_server_peer,
     )
-    from external_brain_router import (
-        LOCAL_SAFE_LANE,
-        build_safe_route_receipt,
-        load_model_lane_bindings,
-        route_external_brain_request,
-    )
+    from external_brain_runtime import run_external_brain_request
 
-    decision = route_external_brain_request(
-        raw_operator_prompt=raw_operator_prompt,
-        task_type=task_type,
-        chain_lane="LM2_ROLE_RESPONSE",
-        role=role,
-        risk_tier=risk_tier,
-        context_size=context_size,
-        privacy_metadata=privacy_metadata,
-        activation_enabled=True,
-    )
-    receipt = build_safe_route_receipt(decision)
-    receipt["mode"] = "live_guarded_subscription"
-    if decision.effective_lane_id == LOCAL_SAFE_LANE:
-        return _ExternalBrainAttempt(source="local_fallback", text="", receipt=receipt)
-
-    bindings = load_model_lane_bindings()["lanes"]
-    binding = bindings.get(decision.effective_lane_id)
-    if not isinstance(binding, Mapping) or binding.get("transport") != "codex_app_server":
-        receipt.update(
-            {
-                "effective_lane_id": LOCAL_SAFE_LANE,
-                "fallback_reason": "external_binding_unavailable",
-            }
-        )
-        return _ExternalBrainAttempt(source="local_fallback", text="", receipt=receipt)
-
-    model = str(binding.get("model") or "")
     try:
+        try:
+            decoded_packet = json.loads(safe_packet)
+        except (TypeError, json.JSONDecodeError):
+            decoded_packet = {"packet_text": safe_packet}
+        context_aid = (
+            dict(decoded_packet)
+            if isinstance(decoded_packet, Mapping)
+            else {"packet": decoded_packet}
+        )
         with open_dedicated_app_server_peer(cwd="/tmp") as peer:
-            client = CodexAppServerClient(peer)
-            admission = client.preflight(
-                model=model,
-                effort_level=decision.effort_level,
-                request_hash=decision.request_hash,
-                lane_id=decision.effective_lane_id,
-            )
-            receipt.update(
-                build_safe_subscription_receipt(
-                    admission,
-                    request_hash=decision.request_hash,
-                    lane_id=decision.effective_lane_id,
-                    fallback_reason="" if admission.allowed else admission.reason,
-                )
-            )
-            receipt["app_server_version"] = REQUIRED_APP_SERVER_VERSION
-            if not admission.allowed:
-                receipt.update(
-                    {
-                        "effective_lane_id": LOCAL_SAFE_LANE,
-                        "fallback_reason": admission.reason,
-                    }
-                )
-                return _ExternalBrainAttempt(source="local_fallback", text="", receipt=receipt)
-
-            try:
-                decoded_packet = json.loads(safe_packet)
-            except (TypeError, json.JSONDecodeError):
-                decoded_packet = {"packet_text": safe_packet}
-            context_aid = (
-                dict(decoded_packet)
-                if isinstance(decoded_packet, Mapping)
-                else {"packet": decoded_packet}
-            )
-            turn = client.run_read_only_turn(
-                admission=admission,
+            result = run_external_brain_request(
                 raw_operator_prompt=raw_operator_prompt,
                 context_aid=context_aid,
+                privacy_metadata=privacy_metadata,
+                task_type=task_type,
+                chain_lane="LM2_ROLE_RESPONSE",
+                role=role,
+                risk_tier=risk_tier,
+                context_size=context_size,
+                client=CodexAppServerClient(peer),
+                local_fallback=lambda: "",
                 cwd="/tmp",
+                activation_enabled=True,
             )
-            receipt.update(
-                {
-                    "thread_id_hash": turn.thread_id_hash,
-                    "turn_id_hash": turn.turn_id_hash,
-                    "fallback_reason": "",
-                }
+            receipt = dict(result.receipt)
+            receipt["mode"] = "live_guarded_subscription"
+            receipt["app_server_version"] = REQUIRED_APP_SERVER_VERSION
+            return _ExternalBrainAttempt(
+                source=result.source,
+                text=result.text,
+                receipt=receipt,
             )
-            return _ExternalBrainAttempt(source="external_brain", text=turn.text, receipt=receipt)
     except Exception as exc:
-        receipt.update(
-            {
-                "effective_lane_id": LOCAL_SAFE_LANE,
+        return _ExternalBrainAttempt(
+            source="local_fallback",
+            text="",
+            receipt={
+                "schema_version": "external_brain_route_receipt_v1",
+                "effective_lane_id": "local_safe_lane",
                 "fallback_reason": f"app_server_failure:{type(exc).__name__}",
-            }
+                "mode": "live_guarded_subscription",
+                "app_server_version": REQUIRED_APP_SERVER_VERSION,
+            },
         )
-        return _ExternalBrainAttempt(source="local_fallback", text="", receipt=receipt)
 
 
 def _float_env(name: str, default: float) -> float:

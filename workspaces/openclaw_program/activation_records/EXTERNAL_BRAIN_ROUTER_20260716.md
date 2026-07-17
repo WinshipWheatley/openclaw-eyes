@@ -23,6 +23,34 @@
 - Safe canary receipt:
   `/home/openclaw/Operator/from-codex/EXTERNAL-BRAIN-PUBLIC-CANARY-20260716-PC-Codex-Desktop.jsonl`.
 
+## Router v2 Evidence — 2026-07-17
+
+- The existing guarded runtime now makes the WORK call one capability tier above
+  the nominal task grade: easy to mid, mid to hard, with hard capped at hard.
+  Binding-default effort follows the promoted work lane; explicit effort remains
+  an independent override.
+- The same read-only subscription turn must return both `answer` and a structured,
+  turn-grounded `packet_critique`. Missing or malformed critique output fails to
+  the existing local route.
+- Packet delivery records the original packet hash/id, build time, builder name,
+  delivery builder version, and builder config hash. Raw operator prompts and
+  answer text are not written to packet-quality telemetry.
+- Packet-quality reports are active in
+  `/home/openclaw/.openclaw/business_ops/ledger.sqlite`, with validated work
+  evidence required before a task class can become eligible for lower-lane trials.
+  Model self-score alone cannot graduate a class.
+- Real PUBLIC v2 canary: nominal easy promoted to Terra/mid at medium effort,
+  exact marker observed, packet critique score 85, Pro window 18% used, and report
+  `sha256:b6ad523249fa2aebbcd54a905696545a` was durably recorded and validated by
+  `external_brain_canary:exact_public_marker`.
+- Updated money boundary: real dedicated 0.144.5 child handshake plus synthetic
+  80% usage refused the promoted mid-lane call with
+  `guardian_approval_required`. Observed methods stopped at `initialize`,
+  `account/read`, and `account/rateLimits/read`; no `model/list`, `thread/start`,
+  or `turn/start` occurred.
+- Focused v2 regression: 113 router, app-server, runtime, telemetry,
+  protected-generate, work-package-router, and model-policy tests passed.
+
 ## Proof Gate — Passed
 
 1. Shadow receipts prove subscription usage below 80% admits only ChatGPT-subscription transport.
@@ -33,9 +61,13 @@
 4. The raw operator prompt reaches the advisory model verbatim, with minimized context attached as a
    separately labeled aid.
 5. Local fallback output and authority behavior remain at parity with the existing Ollama path.
-6. External turns are ephemeral, read-only, approval-never, network-disabled, and return text only.
-7. Receipts contain only safe metadata: lane, effort and reason, privacy verdict, usage/window,
+6. External turns are ephemeral, read-only, approval-never, network-disabled, and
+   return answer plus packet critique only; the application publishes only the answer.
+7. Receipts contain only safe metadata: nominal/work lane, effort and reason, privacy verdict, usage/window,
    binding id, fallback reason, and hashed request/thread ids.
+8. Packet-quality telemetry stores critique summaries/items and build provenance,
+   never raw prompts, packet bodies, or answer text. Regression comparisons name
+   the last known-good builder/config version for a controlled code/config revert.
 
 ## 80% Guardian Boundary
 

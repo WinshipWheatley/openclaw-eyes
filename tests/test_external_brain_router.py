@@ -135,7 +135,11 @@ def test_external_route_reuses_model_policy_after_privacy_packaging(monkeypatch)
     assert captured["raw_values_included"] is False
     assert captured["external_lm_allowed"] is True
     assert "Verbatim private operator words" not in json.dumps(captured)
-    assert decision.candidate_lane_id == "mid_lane"
+    assert decision.nominal_lane_id == "mid_lane"
+    assert decision.candidate_lane_id == "hard_lane"
+    assert decision.graduation_headroom_applied is True
+    assert decision.effort_level == "high"
+    assert decision.effort_reason == "graduated_binding_default"
     assert decision.effective_lane_id == "local_safe_lane"
     assert decision.fallback_reason == "external_router_default_off"
 
@@ -167,8 +171,11 @@ def test_external_route_activates_candidate_only_when_policy_and_gate_allow(monk
         activation_enabled=True,
     )
 
-    assert decision.candidate_lane_id == "easy_lane"
-    assert decision.effective_lane_id == "easy_lane"
+    assert decision.nominal_lane_id == "easy_lane"
+    assert decision.candidate_lane_id == "mid_lane"
+    assert decision.effective_lane_id == "mid_lane"
+    assert decision.graduation_headroom_applied is True
+    assert decision.effort_level == "medium"
     assert decision.fallback_reason == ""
 
 
@@ -206,6 +213,7 @@ def test_policy_local_or_unsafe_decision_fails_to_local_lane(monkeypatch) -> Non
 def test_safe_route_receipt_contains_no_prompt_or_concrete_model() -> None:
     decision = router.ExternalRouteDecision(
         request_hash="sha256:test",
+        nominal_lane_id="mid_lane",
         candidate_lane_id="hard_lane",
         effective_lane_id="local_safe_lane",
         effort_level="high",
@@ -216,11 +224,15 @@ def test_safe_route_receipt_contains_no_prompt_or_concrete_model() -> None:
         difficulty_evidence=("risk=high", "context=large"),
         fallback_reason="external_router_default_off",
         activation_enabled=False,
+        graduation_headroom_applied=True,
     )
 
     receipt = router.build_safe_route_receipt(decision)
 
     assert receipt["request_hash"] == "sha256:test"
+    assert receipt["nominal_lane_id"] == "mid_lane"
+    assert receipt["candidate_lane_id"] == "hard_lane"
+    assert receipt["graduation_headroom_applied"] is True
     assert receipt["selected_effort"] == "high"
     assert receipt["effort_reason"] == "binding_default"
     encoded = json.dumps(receipt)
