@@ -319,9 +319,78 @@ def test_excel_com_workers_are_owned_bounded_and_never_kill_ambient_excel() -> N
     assert "AskToUpdateLinks = $false" in combined
     assert "LinkSources" in recalc
     assert "ExportAsFixedFormat" in export
+    assert "[string]$PrintArea" in export
+    assert "$worksheet.PageSetup.PrintArea = $PrintArea" in export
     assert "Stop-Process" not in combined
     assert "taskkill" not in combined.lower()
     assert "Get-Process" not in combined
+
+
+def test_pdf_export_applies_bounded_print_area_without_mutating_workbook(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workbook = tmp_path / "invoice.xlsx"
+    output = tmp_path / "candidate-b.pdf"
+    _lamd_fixture(workbook)
+    source_sha256 = _sha256(workbook)
+    captured: dict[str, object] = {}
+
+    def fake_excel_worker(script: Path, args: list[str], *, timeout: int) -> dict[str, str]:
+        captured.update({"script": script, "args": args, "timeout": timeout})
+        temporary = Path(args[args.index("-OutputPath") + 1])
+        temporary.write_bytes(b"%PDF-1.4\n%%EOF\n")
+        return {"excel_version": "16.0", "print_area": "$A$1:$H$48"}
+
+    monkeypatch.setattr(finalizer, "_windows_path", lambda path: str(path))
+    monkeypatch.setattr(finalizer, "_run_excel_worker", fake_excel_worker)
+    monkeypatch.setattr(
+        finalizer,
+        "_validate_pdf",
+        lambda path: {
+            "sha256": _sha256(path),
+            "size": path.stat().st_size,
+            "page_count": 1,
+        },
+    )
+
+    receipt = finalizer.export_invoice_pdf_with_excel(
+        workbook,
+        sheet_name="July 2026",
+        output_path=output,
+        print_area="$A$1:$H$48",
+    )
+
+    assert captured["args"][-2:] == ["-PrintArea", "$A$1:$H$48"]
+    assert receipt["print_area_applied"] == "$A$1:$H$48"
+    assert receipt["workbook_sha256_before"] == source_sha256
+    assert receipt["workbook_sha256_after"] == source_sha256
+    assert receipt["workbook_unchanged"] is True
+    assert _sha256(workbook) == source_sha256
+    assert output.is_file()
+
+
+@pytest.mark.parametrize(
+    "print_area",
+    ["A1:H48", "$A$0:$H$48", "$A$1:$H$48, $A$50:$H$56", "July 2026!$A$1:$H$48"],
+)
+def test_pdf_export_rejects_unbounded_print_area_before_owner_process(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, print_area: str
+) -> None:
+    workbook = tmp_path / "invoice.xlsx"
+    _lamd_fixture(workbook)
+    monkeypatch.setattr(
+        finalizer,
+        "_run_excel_worker",
+        lambda *_args, **_kwargs: pytest.fail("owner process must not run"),
+    )
+
+    with pytest.raises(finalizer.InvoiceFinalizationError, match="PRINT_AREA_INVALID"):
+        finalizer.export_invoice_pdf_with_excel(
+            workbook,
+            sheet_name="July 2026",
+            output_path=tmp_path / "preview.pdf",
+            print_area=print_area,
+        )
 
 
 def test_excel_adapter_rejects_source_output_alias_before_process_call(tmp_path: Path) -> None:

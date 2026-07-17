@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$InputPath,
     [Parameter(Mandatory = $true)][string]$SheetName,
-    [Parameter(Mandatory = $true)][string]$OutputPath
+    [Parameter(Mandatory = $true)][string]$OutputPath,
+    [string]$PrintArea = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,6 +13,7 @@ $result = [ordered]@{
     status = "FAILED"
     error_code = "EXCEL_PDF_EXPORT_FAILED"
     excel_version = ""
+    print_area = ""
 }
 
 try {
@@ -38,6 +40,13 @@ try {
         throw "EXTERNAL_LINKS_PRESENT"
     }
     $worksheet = $workbook.Worksheets.Item($SheetName)
+    if ($PrintArea -ne "") {
+        if ($PrintArea -notmatch '^\$[A-Z]{1,3}\$[1-9][0-9]*:\$[A-Z]{1,3}\$[1-9][0-9]*$') {
+            throw "PRINT_AREA_INVALID"
+        }
+        $worksheet.PageSetup.PrintArea = $PrintArea
+        $result.print_area = [string]$worksheet.PageSetup.PrintArea
+    }
     $worksheet.ExportAsFixedFormat(0, $OutputPath)
     if (-not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
         throw "PDF_OUTPUT_MISSING"

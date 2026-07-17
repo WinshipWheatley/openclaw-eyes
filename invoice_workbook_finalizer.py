@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from openpyxl import load_workbook
+from openpyxl.utils.cell import column_index_from_string
 
 
 SCHEMA_VERSION = "invoice_workbook_finalizer_v1"
@@ -33,10 +34,30 @@ SEMANTIC_MARKERS = (
     ("TODO", re.compile(r"\bto\s*do\b", re.IGNORECASE)),
     ("PLACEHOLDER", re.compile(r"\bplaceholder\b|\badd confirmed\b", re.IGNORECASE)),
 )
+ABSOLUTE_PRINT_AREA = re.compile(
+    r"^\$([A-Z]{1,3})\$([1-9]\d*):\$([A-Z]{1,3})\$([1-9]\d*)$"
+)
 
 
 class InvoiceFinalizationError(RuntimeError):
     """Fail-closed W1 verification error with a stable machine code."""
+
+
+def _validated_print_area(value: str) -> str:
+    match = ABSOLUTE_PRINT_AREA.fullmatch(value)
+    if match is None:
+        raise InvoiceFinalizationError("PRINT_AREA_INVALID")
+    start_column, start_row, end_column, end_row = match.groups()
+    start_column_index = column_index_from_string(start_column)
+    end_column_index = column_index_from_string(end_column)
+    if (
+        start_column_index > end_column_index
+        or int(start_row) > int(end_row)
+        or end_column_index > 16384
+        or int(end_row) > 1048576
+    ):
+        raise InvoiceFinalizationError("PRINT_AREA_INVALID")
+    return value
 
 
 def _sha256(path: Path) -> str:
@@ -412,6 +433,7 @@ def export_invoice_pdf_with_excel(
     *,
     sheet_name: str,
     output_path: str | Path,
+    print_area: str | None = None,
     timeout: int = 180,
 ) -> dict[str, Any]:
     workbook = Path(workbook_path)
@@ -420,20 +442,33 @@ def export_invoice_pdf_with_excel(
         raise InvoiceFinalizationError("WORKBOOK_MISSING")
     if output.exists():
         raise InvoiceFinalizationError("PDF_OUTPUT_ALREADY_EXISTS")
+    bounded_print_area = _validated_print_area(print_area) if print_area else None
+    workbook_sha256_before = _sha256(workbook)
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.parent / f".{output.name}.tmp.{uuid.uuid4().hex}.pdf"
+    worker_args = [
+        "-InputPath",
+        _windows_path(workbook),
+        "-SheetName",
+        sheet_name,
+        "-OutputPath",
+        _windows_path(temporary),
+    ]
+    if bounded_print_area:
+        worker_args.extend(["-PrintArea", bounded_print_area])
     receipt = _run_excel_worker(
         EXPORT_PDF_SCRIPT,
-        [
-            "-InputPath",
-            _windows_path(workbook),
-            "-SheetName",
-            sheet_name,
-            "-OutputPath",
-            _windows_path(temporary),
-        ],
+        worker_args,
         timeout=timeout,
     )
+    workbook_sha256_after = _sha256(workbook)
+    if workbook_sha256_after != workbook_sha256_before:
+        temporary.unlink(missing_ok=True)
+        raise InvoiceFinalizationError("WORKBOOK_MUTATED_DURING_EXPORT")
+    excel_print_area = str(receipt.get("print_area") or "")
+    if bounded_print_area and not excel_print_area:
+        temporary.unlink(missing_ok=True)
+        raise InvoiceFinalizationError("PRINT_AREA_NOT_APPLIED")
     proof = _validate_pdf(temporary)
     os.replace(temporary, output)
     return {
@@ -444,6 +479,11 @@ def export_invoice_pdf_with_excel(
         "pdf_page_count": proof["page_count"],
         "excel_version": str(receipt.get("excel_version") or ""),
         "sheet_name": sheet_name,
+        "print_area_applied": bounded_print_area,
+        "excel_print_area_reported": excel_print_area,
+        "workbook_sha256_before": workbook_sha256_before,
+        "workbook_sha256_after": workbook_sha256_after,
+        "workbook_unchanged": True,
         "atomic_publish": True,
         "external_send_performed": False,
     }
