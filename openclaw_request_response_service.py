@@ -722,6 +722,48 @@ def _is_bounded_maestro_listener_envelope(raw_request: Mapping[str, Any]) -> boo
     )
 
 
+def _is_bounded_maestro_replay_envelope(raw_request: Mapping[str, Any]) -> bool:
+    """Recognize a processor-only replay that is structurally unable to reach Telegram."""
+
+    authority = raw_request.get("authority_boundary")
+    provenance = raw_request.get("message_provenance")
+    correlation = raw_request.get("correlation")
+    if not isinstance(authority, Mapping) or not authority:
+        return False
+    if not all(value is False for value in authority.values()):
+        return False
+    if not isinstance(provenance, Mapping) or not isinstance(correlation, Mapping):
+        return False
+    replay_actor = "pc_codex_desktop_replay"
+    replay_speaker = "PC Codex Desktop replay"
+    return bool(
+        str(raw_request.get("kind") or "").upper() == "OPERATOR_INSTRUCTION_PACKAGE_REQUEST"
+        and str(raw_request.get("request_type") or "").upper() == "WORKFLOW_PACKAGE_REQUEST_V0"
+        and str(raw_request.get("active_surface_ref") or "") == "operator_maestro_chat"
+        and str(raw_request.get("actor") or "") == replay_actor
+        and str(raw_request.get("speaker") or "") == replay_speaker
+        and str(raw_request.get("replay_mode") or "") == "bounded_synthetic"
+        and raw_request.get("test_actor") is True
+        and raw_request.get("delivery_suppressed") is True
+        and str(raw_request.get("telegram_chat_ref") or "") == "suppressed"
+        and str(correlation.get("telegram_chat_ref") or "") == "suppressed"
+        and str(raw_request.get("origin_surface") or "") == "telegram_pc_maestro_listener"
+        and str(raw_request.get("source_channel") or "") == "maestro_listener"
+        and str(raw_request.get("lane") or "") == "telegram_pc_maestro_listener"
+        and raw_request.get("pc_listener_wrote_request_only") is True
+        and raw_request.get("mac_wrote_request_only") is False
+        and raw_request.get("no_external_action") is True
+        and raw_request.get("relay_origin") is None
+        and str(provenance.get("actor") or "") == replay_actor
+        and str(provenance.get("speaker") or "") == replay_speaker
+        and str(provenance.get("lane") or "") == "pc_codex_desktop_replay"
+        and str(provenance.get("surface_ref") or "") == "operator_maestro_chat"
+        and str(provenance.get("message_role") or "") == "synthetic_replay_prompt"
+        and provenance.get("relay_origin") is None
+        and bool(_operator_message_text(raw_request))
+    )
+
+
 def _reality_bounce_db_path() -> Path:
     configured = os.environ.get("OPENCLAW_REALITY_BOUNCE_DB_PATH")
     return Path(configured) if configured else DEFAULT_REALITY_BOUNCE_DB_PATH
@@ -832,7 +874,9 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             future_worker_blocked=False,
         )
     if request_type == "WORKFLOW_PACKAGE_REQUEST" and _claims_maestro_listener_envelope(raw_request):
-        if not _is_bounded_maestro_listener_envelope(raw_request):
+        live_operator_envelope = _is_bounded_maestro_listener_envelope(raw_request)
+        bounded_replay_envelope = _is_bounded_maestro_replay_envelope(raw_request)
+        if not (live_operator_envelope or bounded_replay_envelope):
             return RouteDecision(
                 routing_status="PROCESSING_ON_PC",
                 selected_worker_target="PC_CODEX",
@@ -858,7 +902,8 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             operator_message="OpenClaw picked this up and is checking the bounded Maestro answer path.",
             next_safe_move="Wait for the scoped Maestro answer.",
             route_reason=(
-                "The envelope matches the deployed Maestro listener shape with every authority flag false. "
+                "The envelope matches the deployed Maestro listener or delivery-suppressed replay shape "
+                "with every authority flag false. "
                 "This selects the conversational processor only; refusal-first and action/session gates still decide the response."
             ),
             pc_handled=True,

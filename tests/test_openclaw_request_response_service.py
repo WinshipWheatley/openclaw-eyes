@@ -210,6 +210,18 @@ def _write_maestro_listener_request(path: Path, *, message: str, suffix: str) ->
     return request
 
 
+def _write_maestro_replay_request(path: Path, *, message: str, suffix: str) -> dict:
+    import maestro_listener
+
+    request = maestro_listener.build_maestro_chat_replay_request(
+        message,
+        message_id=suffix,
+        created_at=FIXED_NOW,
+    )
+    path.write_text(maestro_listener.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _write_capital_hilton_status_request(path: Path, suffix: str = "service_fixture") -> dict:
     request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
     request.update(
@@ -1857,6 +1869,25 @@ def test_real_maestro_listener_envelopes_reach_pc_processor_before_reality_bounc
         request_path,
         message=message,
         suffix=suffix,
+    )
+
+    identity = service.read_request_identity(request_path)
+    route = service._route_for_request(request_path, identity, request)
+
+    assert route.routing_status == "PROCESSING_ON_PC"
+    assert route.processing_status == "CHECKING_MAESTRO_FRONTDOOR"
+    assert route.pc_handled is True
+    assert route.selected_worker_target == "PC_CODEX"
+
+
+def test_delivery_suppressed_maestro_replay_reaches_pc_processor_before_reality_bounce(
+    tmp_path,
+):
+    request_path = tmp_path / "mission_control_operator_instruction_request_replay.json"
+    request = _write_maestro_replay_request(
+        request_path,
+        message="Let me see the Live Art, Maryland July invoice cut you recommend",
+        suffix="bounded-replay",
     )
 
     identity = service.read_request_identity(request_path)
