@@ -28,6 +28,20 @@ The owner defaults to dry-run. `--confirm` creates an isolated reconciliation co
 
 Canary receipt: `/mnt/e/openclaw/artifacts/invoice_workbooks/w1_canaries/pc-codex-desktop-20260717-live-arts-july-v3/live_process_receipt.json`.
 
+## Production Activation
+
+- Production commit: `36b0a5ca`
+- Owner run: `PUBLISHED_VERIFIED` at `2026-07-17T18:27:29+00:00`
+- Run id: `invoice-w1-c46bd4613552a57f5196c69b`
+- Package: `/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-07/w1-finalized-2026-1004`
+- Production workbook SHA-256: `e476354bb18ce836a92b11daa2188967ac210fb88a25cd496035c4cae271da12`
+- Production PDF SHA-256: `a9f22070e97db9b780b95061e7d3373eb537171f48ee94895fb32e38e63d44fb`
+- Formula freshness receipt: `invoice-w1-formula:dae6f1ba6c6c4f672ccb64eb`
+- Artifact verification receipt: `invoice-w1-verify:e476354bb18ce836a92b11da`
+- Canonical proof resolver: `FOUND`, manifest hashes verified, model/external actions false
+- Exact second owner run: `IDEMPOTENT_REPLAY`; Excel and publication were not repeated
+- Production receipt: `/home/openclaw/generated/system_knowledge/invoice_w1_lamd_july_receipt.json`
+
 ## Fail-Closed Gates
 
 - ambiguous, missing, zero-byte, or hash-mismatched source

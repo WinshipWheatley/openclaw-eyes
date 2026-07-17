@@ -24,7 +24,7 @@ EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:20:00-04:00"
 FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT = "2026-07-17T10:48:00-04:00"
 W0_INVOICE_WAIST_LAST_VERIFIED_AT = "2026-07-17T12:19:10-04:00"
 CAPABILITY_LEDGER_RECONCILER_LAST_VERIFIED_AT = "2026-07-17T13:01:00-04:00"
-W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT = "2026-07-17T14:10:00-04:00"
+W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT = "2026-07-17T14:27:29-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -2123,7 +2123,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ],
             canary_status=(
                 "real source SHA a21ad71694fb selected uniquely; source semantic markers found before repair; "
-                "source unchanged; finalized 2026-1004 package resolves through the canonical locator"
+                "source unchanged; production 2026-1004 package workbook SHA e476354bb18c and PDF SHA a9f22070e97d "
+                "resolve through the canonical locator; exact owner replay was idempotent"
             ),
             risk_level="medium",
             owner="Cassandra / PC Codex Desktop",
@@ -2138,6 +2139,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             evidence_refs=[
                 "workspaces/openclaw_program/activation_records/INVOICE_SEND_W1_20260717.md",
                 "/mnt/e/openclaw/artifacts/invoice_workbooks/w1_canaries/pc-codex-desktop-20260717-live-arts-july-v3/live_process_receipt.json",
+                "generated/system_knowledge/invoice_w1_lamd_july_receipt.json",
                 "tests/test_invoice_artifact_locator.py",
                 "tests/test_invoice_w1_owner.py",
             ],
@@ -2175,8 +2177,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ],
             canary_status=(
                 "real Excel 16 CalculateFullRebuild completed with two reopens; formula SHA dae6f1ba6c6 preserved; "
-                "independent subtotal/total/balance all $100; one-page PDF 178656 bytes SHA 09f6f12b82d1; "
-                "2026-1004; drafts/sends/money/ledger calls 0"
+                "independent subtotal/total/balance all $100; production one-page PDF 178656 bytes SHA a9f22070e97d; "
+                "workbook SHA e476354bb18c; exact replay idempotent; 2026-1004; drafts/sends/money/ledger calls 0"
             ),
             risk_level="high",
             owner="Cassandra / PC Codex Desktop",
@@ -2191,6 +2193,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             evidence_refs=[
                 "workspaces/openclaw_program/activation_records/INVOICE_SEND_W1_20260717.md",
                 "/mnt/e/openclaw/artifacts/invoice_workbooks/w1_canaries/pc-codex-desktop-20260717-live-arts-july-v3/live_process_receipt.json",
+                "generated/system_knowledge/invoice_w1_lamd_july_receipt.json",
                 "tests/test_invoice_workbook_finalizer.py",
                 "tests/test_invoice_w1_owner.py",
             ],
