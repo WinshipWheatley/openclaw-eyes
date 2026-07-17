@@ -12,6 +12,7 @@ from typing import Any
 
 
 SCHEMA_VERSION = "invoice_artifact_locator_v0"
+SOURCE_SCHEMA_VERSION = "invoice_source_workbook_locator_v1"
 MANIFEST_SCHEMA = "openclaw_invoice_manifest_v1"
 PROMOTION_SCHEMA = "openclaw_invoice_artifact_promotion_v1"
 QUARANTINE_SEGMENT = ".openclaw_scope_quarantine"
@@ -183,6 +184,72 @@ def _base_result(client_ref: str, service_period: str, roots: Sequence[Path]) ->
             "ledger_mutation_performed": False,
         },
     }
+
+
+def locate_source_workbook(
+    candidates: Sequence[Path],
+    *,
+    expected_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Select one immutable source workbook by content, without opening it."""
+
+    result: dict[str, Any] = {
+        "schema_version": SOURCE_SCHEMA_VERSION,
+        "status": "NOT_FOUND",
+        "canonical_path": None,
+        "source_sha256": "",
+        "duplicate_paths": [],
+        "candidate_groups": [],
+        "rejections": [],
+        "machine_proof": {
+            "workbook_opened": False,
+            "source_mutated": False,
+            "external_action_performed": False,
+        },
+    }
+    grouped: dict[str, list[str]] = defaultdict(list)
+    normalized_expected = str(expected_sha256 or "").strip().lower()
+    if normalized_expected and re.fullmatch(r"[0-9a-f]{64}", normalized_expected) is None:
+        result["status"] = "INVALID_QUERY"
+        result["rejections"].append({"path": "", "reason": "expected_sha256_invalid"})
+        return result
+
+    for raw_path in sorted({Path(item) for item in candidates}, key=lambda item: item.as_posix()):
+        path = Path(raw_path)
+        if not path.is_file():
+            result["rejections"].append({"path": path.as_posix(), "reason": "workbook_missing"})
+            continue
+        if path.suffix.lower() not in {".xlsx", ".xlsm"}:
+            result["rejections"].append(
+                {"path": path.as_posix(), "reason": "workbook_extension_unsupported"}
+            )
+            continue
+        if path.stat().st_size == 0:
+            result["rejections"].append({"path": path.as_posix(), "reason": "zero_byte_workbook"})
+            continue
+        digest = _sha256(path)
+        if normalized_expected and digest != normalized_expected:
+            result["rejections"].append({"path": path.as_posix(), "reason": "source_hash_mismatch"})
+            continue
+        grouped[digest].append(path.as_posix())
+
+    result["candidate_groups"] = [
+        {"source_sha256": digest, "paths": sorted(paths)}
+        for digest, paths in sorted(grouped.items())
+    ]
+    if len(grouped) == 1:
+        digest, paths = next(iter(sorted(grouped.items())))
+        result.update(
+            {
+                "status": "FOUND",
+                "canonical_path": sorted(paths)[0],
+                "source_sha256": digest,
+                "duplicate_paths": sorted(paths),
+            }
+        )
+    elif len(grouped) > 1:
+        result["status"] = "AMBIGUOUS"
+    return result
 
 
 def locate_invoice_artifacts(

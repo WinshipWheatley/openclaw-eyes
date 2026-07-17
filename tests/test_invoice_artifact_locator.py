@@ -159,3 +159,42 @@ def test_incomplete_promotion_does_not_resolve_ambiguity(tmp_path: Path) -> None
     assert result["status"] == "AMBIGUOUS"
     assert result["canonical_candidate"] is None
     assert result["machine_proof"]["promotion_chain_verified"] is False
+
+
+def test_source_workbook_locator_accepts_identical_copies_by_content_hash(tmp_path: Path) -> None:
+    first = tmp_path / "first.xlsx"
+    second = tmp_path / "second.xlsx"
+    first.write_bytes(b"same workbook")
+    second.write_bytes(b"same workbook")
+
+    result = locator.locate_source_workbook([second, first])
+
+    assert result["status"] == "FOUND"
+    assert result["canonical_path"] == first.as_posix()
+    assert result["source_sha256"] == _sha256(b"same workbook")
+    assert result["duplicate_paths"] == [first.as_posix(), second.as_posix()]
+    assert result["machine_proof"]["workbook_opened"] is False
+
+
+def test_source_workbook_locator_fails_closed_on_distinct_candidates(tmp_path: Path) -> None:
+    first = tmp_path / "first.xlsx"
+    second = tmp_path / "second.xlsx"
+    first.write_bytes(b"first workbook")
+    second.write_bytes(b"second workbook")
+
+    result = locator.locate_source_workbook([first, second])
+
+    assert result["status"] == "AMBIGUOUS"
+    assert result["canonical_path"] is None
+
+
+def test_source_workbook_locator_rejects_zero_byte_operative_file(tmp_path: Path) -> None:
+    empty = tmp_path / "invoice.xlsx"
+    empty.touch()
+
+    result = locator.locate_source_workbook([empty])
+
+    assert result["status"] == "NOT_FOUND"
+    assert result["rejections"] == [
+        {"path": empty.as_posix(), "reason": "zero_byte_workbook"}
+    ]

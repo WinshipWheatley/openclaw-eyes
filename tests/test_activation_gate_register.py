@@ -132,6 +132,27 @@ def test_external_brain_router_has_bounded_same_session_activation_record():
     assert "EXTERNAL_BRAIN_ROUTER_20260716.md" in " ".join(capability["evidence_refs"])
 
 
+def test_w1_invoice_verification_and_finalization_are_live_without_send_authority():
+    capabilities = _capabilities_by_id(_payload())
+
+    for capability_id in (
+        "invoice_source_workbook_locator",
+        "invoice_workbook_verification_finalizer",
+    ):
+        capability = capabilities[capability_id]
+        assert capability["gate_stage"] == "operator_approved_live"
+        assert capability["activation_allowed_now"] is False
+        assert capability["operator_approval_required"] is True
+        assert "no-send" in capability["current_state_if_verifiable"]["code_default"]
+        assert "2026-1004" in capability["canary_status"]
+        assert "tests/test_invoice_workbook_finalizer.py" in capability["tests"]
+
+    finalizer = capabilities["invoice_workbook_verification_finalizer"]
+    assert "CalculateFullRebuild" in finalizer["canary_status"]
+    assert "one-page" in finalizer["canary_status"]
+    assert "SEND_HOLD" in finalizer["next_required_step"]
+
+
 def test_live_lm1_and_packet_flags_reconcile_without_activation_authority():
     payload = _live_payload([
         _test_source(

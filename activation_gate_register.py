@@ -24,6 +24,7 @@ EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:20:00-04:00"
 FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT = "2026-07-17T10:48:00-04:00"
 W0_INVOICE_WAIST_LAST_VERIFIED_AT = "2026-07-17T12:19:10-04:00"
 CAPABILITY_LEDGER_RECONCILER_LAST_VERIFIED_AT = "2026-07-17T13:01:00-04:00"
+W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT = "2026-07-17T14:10:00-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -310,6 +311,8 @@ REQUIRED_CAPABILITY_IDS = (
     "invoice_send_class_waist",
     "autonomous_invoice_prepare_scheduler",
     "capability_ledger_reconciler",
+    "invoice_source_workbook_locator",
+    "invoice_workbook_verification_finalizer",
 )
 
 REGISTER_GAP_CAPABILITY_IDS = (
@@ -2089,6 +2092,109 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "systemd/user/openclaw-autonomous-invoice-prep.timer.in",
             ],
             last_verified_at=W0_INVOICE_WAIST_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="invoice_source_workbook_locator",
+            display_name="Canonical invoice source-workbook and finalized-artifact locator",
+            flag_or_config=[
+                "content-hash source selection; manifest-first finalized artifact lookup",
+                "/mnt/e/openclaw/artifacts/invoice_workbooks allowlisted root",
+            ],
+            default_state="on_fail_closed",
+            current_state_if_verifiable=_state(
+                "the deployed W1 owner selects one immutable source by content hash and publishes into the existing manifest-first proof path",
+                code_default="no-send hash/metadata selection only; ambiguous, missing, zero-byte, or hash-mismatched sources fail before workbook open or output write",
+                production="real Live Arts source selected uniquely and the published July package is consumable by the existing proof locator",
+                audit_report="source SHA stayed unchanged through reconciliation, Excel rebuild, export, and package publication",
+            ),
+            source_files=[
+                "invoice_artifact_locator.py",
+                "invoice_w1_owner.py",
+                "invoice_proof_request.py",
+            ],
+            tests=[
+                "tests/test_invoice_artifact_locator.py",
+                "tests/test_invoice_workbook_finalizer.py",
+                "tests/test_invoice_w1_owner.py",
+            ],
+            audits=[
+                "/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md",
+                "/home/openclaw/Operator/to-codex/ACK-FABLE-VERIFIED-RECONCILER-R2-COMPLETE-20260717.md",
+            ],
+            canary_status=(
+                "real source SHA a21ad71694fb selected uniquely; source semantic markers found before repair; "
+                "source unchanged; finalized 2026-1004 package resolves through the canonical locator"
+            ),
+            risk_level="medium",
+            owner="Cassandra / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="Fable W1 baton plus deployed owner run and canonical locator readback",
+            disabled_by="remove the W1 owner command; existing manifest locator remains read-only",
+            rollback_note="stop new finalization runs and leave published immutable package/receipts as evidence",
+            next_required_step="keep SEND_HOLD and downstream provider-draft/send gates closed until their separately accepted waves",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only rollback after source-selection, immutability, or manifest-readback regression",
+            evidence_refs=[
+                "workspaces/openclaw_program/activation_records/INVOICE_SEND_W1_20260717.md",
+                "/mnt/e/openclaw/artifacts/invoice_workbooks/w1_canaries/pc-codex-desktop-20260717-live-arts-july-v3/live_process_receipt.json",
+                "tests/test_invoice_artifact_locator.py",
+                "tests/test_invoice_w1_owner.py",
+            ],
+            last_verified_at=W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="invoice_workbook_verification_finalizer",
+            display_name="Trusted Excel invoice verification and finalization owner",
+            flag_or_config=[
+                "scripts/finalize_lamd_july_invoice.py --confirm",
+                "owned Windows Excel COM instance; macros/links/prompts disabled",
+            ],
+            default_state="dry_run_until_confirmed_no_send",
+            current_state_if_verifiable=_state(
+                "the deployed owner repairs an isolated workbook copy, runs Excel full rebuild, verifies caches/totals/formulas/semantics, and atomically publishes one finalized package",
+                code_default="no-send/no-money finalization only; provider draft, external send, payment, ledger posting, and source mutation remain false",
+                production="real Live Arts July workbook reached verified 2026-1004 at $100 and published through the canonical owner path",
+                audit_report="pre-repair semantic marker gate, stale-cache gate, formula mutation gate, zero-byte PDF gate, and PDF semantic marker gate all fail before publish",
+            ),
+            source_files=[
+                "invoice_workbook_finalizer.py",
+                "invoice_w1_owner.py",
+                "scripts/recalculate_invoice_with_excel.ps1",
+                "scripts/export_invoice_pdf_with_excel.ps1",
+                "scripts/finalize_lamd_july_invoice.py",
+            ],
+            tests=[
+                "tests/test_invoice_workbook_finalizer.py",
+                "tests/test_invoice_w1_owner.py",
+                "tests/test_invoice_artifact_locator.py",
+            ],
+            audits=[
+                "/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md",
+                "/home/openclaw/Operator/to-codex/ACK-FABLE-VERIFIED-RECONCILER-R2-COMPLETE-20260717.md",
+            ],
+            canary_status=(
+                "real Excel 16 CalculateFullRebuild completed with two reopens; formula SHA dae6f1ba6c6 preserved; "
+                "independent subtotal/total/balance all $100; one-page PDF 178656 bytes SHA 09f6f12b82d1; "
+                "2026-1004; drafts/sends/money/ledger calls 0"
+            ),
+            risk_level="high",
+            owner="Cassandra / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="Fable W1 baton plus real Excel owner-process canary and atomic package readback",
+            disabled_by="stop invoking the W1 owner; no daemon or downstream send path is enabled by this capability",
+            rollback_note="preserve immutable evidence and stop new finalizations; source workbook remains unchanged",
+            next_required_step="keep SEND_HOLD active; use the finalized artifact only for review until later provider/Guardian waves are accepted",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only rollback after Excel, formula/cache, semantic, PDF, or atomic-publication regression",
+            evidence_refs=[
+                "workspaces/openclaw_program/activation_records/INVOICE_SEND_W1_20260717.md",
+                "/mnt/e/openclaw/artifacts/invoice_workbooks/w1_canaries/pc-codex-desktop-20260717-live-arts-july-v3/live_process_receipt.json",
+                "tests/test_invoice_workbook_finalizer.py",
+                "tests/test_invoice_w1_owner.py",
+            ],
+            last_verified_at=W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="fleet_voice_boundary",
