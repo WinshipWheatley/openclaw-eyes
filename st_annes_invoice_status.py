@@ -35,6 +35,9 @@ SQLITE_SEED_NAME = f"{READ_MODEL_ID}_SEED.sql"
 INVOICE_STATUS = "MANUAL_SEND_OUT_OF_BAND_RECORDED"
 EXTERNAL_AGENT_SENT_STATUS = "SENT"
 EXTERNAL_AGENT_RECEIPT_SCHEMA_VERSION = "st_annes_external_agent_send_receipt_v0"
+CORRECTED_SEND_RECEIPT_SCHEMA_VERSION = (
+    "st_annes_external_agent_corrected_send_receipt_v1"
+)
 CLIENT_REF = "st_annes"
 CLIENT_DISPLAY_NAME = "St. Anne's"
 INVOICE_PERIOD = "2026-05"
@@ -135,9 +138,15 @@ def validate_manual_send_receipt(
     receipt_path: Path,
     pdf_path: Path,
 ) -> dict[str, Any]:
-    external_agent_send = (
-        receipt.get("schema_version") == EXTERNAL_AGENT_RECEIPT_SCHEMA_VERSION
-    )
+    receipt_schema = str(receipt.get("schema_version") or "")
+    corrected_send = receipt_schema == CORRECTED_SEND_RECEIPT_SCHEMA_VERSION
+    external_agent_send = receipt_schema in {
+        EXTERNAL_AGENT_RECEIPT_SCHEMA_VERSION,
+        CORRECTED_SEND_RECEIPT_SCHEMA_VERSION,
+    }
+    attachment = receipt.get("attachment")
+    attachment = attachment if isinstance(attachment, Mapping) else {}
+    local_artifact_available = attachment.get("local_artifact_available") is not False
     expected_values = {
         "client_ref": CLIENT_REF,
         "sent_by_openclaw": False,
@@ -184,7 +193,12 @@ def validate_manual_send_receipt(
             " ",
             str(receipt.get("subject") or "").replace("\u2014", "-").strip().casefold(),
         )
-        if normalized_subject != "st. anne's invoice - june 2026 services":
+        expected_subject = (
+            "corrected: st. anne's invoice - june 2026 services"
+            if corrected_send
+            else "st. anne's invoice - june 2026 services"
+        )
+        if normalized_subject != expected_subject:
             failures.append("external-agent receipt subject must identify the June 2026 invoice")
         if not str(receipt.get("gmail_message_id") or "").strip():
             failures.append("external-agent receipt gmail_message_id is required")
@@ -212,6 +226,43 @@ def validate_manual_send_receipt(
             for key in expected_downstream
         ):
             failures.append("external-agent receipt downstream milestones must be UNKNOWN/pending")
+        if corrected_send:
+            if not str(receipt.get("gmail_thread_id") or "").strip():
+                failures.append("corrected receipt gmail_thread_id is required")
+            authoritative = receipt.get("authoritative_source")
+            authoritative = authoritative if isinstance(authoritative, Mapping) else {}
+            authoritative_path = Path(str(authoritative.get("path") or ""))
+            authoritative_sha = str(authoritative.get("sha256") or "")
+            if not authoritative_path.is_file():
+                failures.append("corrected receipt authoritative source is missing")
+            elif sha256_file(authoritative_path) != authoritative_sha:
+                failures.append("corrected receipt authoritative source sha256 does not match")
+            if authoritative.get("gmail_sent_readback_confirmed") is not True:
+                failures.append("corrected receipt Gmail sent readback must be confirmed")
+            if authoritative.get("attachment_metadata_confirmed") is not True:
+                failures.append("corrected receipt attachment metadata must be confirmed")
+            superseded = receipt.get("superseded_send")
+            superseded = superseded if isinstance(superseded, Mapping) else {}
+            if superseded.get("disposition") != "SUPERSEDED":
+                failures.append("corrected receipt must preserve the prior send as SUPERSEDED")
+            if not str(superseded.get("gmail_message_id") or "").strip():
+                failures.append("corrected receipt superseded gmail_message_id is required")
+            if not re.fullmatch(r"[0-9a-f]{64}", str(superseded.get("attachment_sha256") or "")):
+                failures.append("corrected receipt superseded attachment sha256 is required")
+            workbook = receipt.get("workbook_finalization")
+            workbook = workbook if isinstance(workbook, Mapping) else {}
+            if workbook.get("semantic_diff_passed") is not True:
+                failures.append("corrected receipt workbook semantic diff must pass")
+            if list(workbook.get("changed_cells") or []) != ["June 2026!G2", "June 2026!G4"]:
+                failures.append("corrected receipt workbook changed cells must be G2 and G4 only")
+            if not re.fullmatch(r"[0-9a-f]{64}", str(workbook.get("backup_sha256") or "")):
+                failures.append("corrected receipt workbook backup sha256 is required")
+            closure = receipt.get("loop_closure")
+            closure = closure if isinstance(closure, Mapping) else {}
+            if closure.get("milestone_ref") != "glenn_acknowledged":
+                failures.append("corrected receipt loop closure must target glenn_acknowledged")
+            if closure.get("expected_evidence") != "reply_or_note_from_glenn":
+                failures.append("corrected receipt expected evidence must be a Glenn reply or note")
     else:
         if receipt.get("status") != INVOICE_STATUS:
             failures.append(
@@ -222,25 +273,34 @@ def validate_manual_send_receipt(
                 f"invoice_period expected {INVOICE_PERIOD!r} got {receipt.get('invoice_period')!r}"
             )
 
-    if not pdf_path.exists():
+    if local_artifact_available and not pdf_path.exists():
         failures.append(f"PDF missing at {pdf_path}")
 
-    pdf_sha = sha256_file(pdf_path) if pdf_path.exists() else ""
-    attachment = receipt.get("attachment")
-    attachment = attachment if isinstance(attachment, Mapping) else {}
+    pdf_sha = sha256_file(pdf_path) if local_artifact_available and pdf_path.exists() else ""
     if external_agent_send:
-        if Path(str(attachment.get("path") or "")).resolve() != pdf_path.resolve():
+        if local_artifact_available and Path(str(attachment.get("path") or "")).resolve() != pdf_path.resolve():
             failures.append("external-agent receipt attachment path must match the source PDF")
         if not str(attachment.get("filename") or "").strip():
             failures.append("external-agent receipt attachment filename is required")
     receipt_sha = str(receipt.get("sha256") or attachment.get("sha256") or "")
     source_sha = str(receipt.get("source_sha256") or "")
+    attachment_sha = str(attachment.get("sha256") or "")
+    if corrected_send and receipt_sha != attachment_sha:
+        failures.append("corrected receipt attachment sha256 must match receipt sha256")
+    if corrected_send and not re.fullmatch(r"[0-9a-f]{64}", receipt_sha):
+        failures.append("corrected receipt attachment sha256 is invalid")
+    if corrected_send and int(attachment.get("size_bytes") or 0) <= 0:
+        failures.append("corrected receipt attachment size is required")
     if pdf_sha and pdf_sha != receipt_sha:
         failures.append(f"PDF sha256 {pdf_sha} does not match receipt sha256 {receipt_sha}")
     if source_sha and pdf_sha and source_sha != pdf_sha:
         failures.append(f"source_sha256 {source_sha} does not match PDF sha256 {pdf_sha}")
 
-    observed_page_count = pdf_page_count(pdf_path) if pdf_path.exists() else None
+    observed_page_count = (
+        pdf_page_count(pdf_path)
+        if local_artifact_available and pdf_path.exists()
+        else int(receipt.get("page_count") or 0) or None
+    )
     if observed_page_count != 1:
         failures.append(f"PDF page_count expected 1 got {observed_page_count!r}")
     if receipt.get("page_count") != 1:
@@ -251,16 +311,32 @@ def validate_manual_send_receipt(
 
     return {
         "receipt_path": str(receipt_path),
-        "pdf_path": str(pdf_path),
-        "pdf_exists": True,
+        "pdf_path": str(pdf_path) if local_artifact_available else str(attachment.get("path") or ""),
+        "pdf_exists": bool(local_artifact_available and pdf_path.exists()),
+        "local_artifact_available": local_artifact_available,
+        "artifact_validation_mode": (
+            "local_file_sha256"
+            if local_artifact_available
+            else "authoritative_sent_readback"
+        ),
         "receipt_status_ok": True,
-        "pdf_sha256_matches_receipt": True,
-        "receipt_source_sha256_matches_pdf": not source_sha or source_sha == pdf_sha,
+        "pdf_sha256_matches_receipt": bool(
+            local_artifact_available and pdf_sha == receipt_sha
+        ),
+        "attachment_sha256_receipt_consistent": bool(
+            receipt_sha and attachment_sha == receipt_sha
+        ),
+        "receipt_source_sha256_matches_pdf": bool(
+            (not source_sha or source_sha == pdf_sha)
+            if local_artifact_available
+            else (not source_sha or source_sha == receipt_sha)
+        ),
         "observed_page_count": observed_page_count,
         "expected_page_count": 1,
         "page_count_ok": True,
         "field_checks_ok": True,
         "external_agent_send": external_agent_send,
+        "corrected_send": corrected_send,
     }
 
 
@@ -272,7 +348,24 @@ def build_status_payload(
 ) -> dict[str, Any]:
     receipt = read_json(receipt_path)
     validation = validate_manual_send_receipt(receipt, receipt_path=receipt_path, pdf_path=pdf_path)
-    pdf_sha = sha256_file(pdf_path)
+    attachment = receipt.get("attachment")
+    attachment = attachment if isinstance(attachment, Mapping) else {}
+    local_artifact_available = validation["local_artifact_available"] is True
+    pdf_sha = (
+        sha256_file(pdf_path)
+        if local_artifact_available
+        else str(receipt.get("sha256") or attachment.get("sha256") or "")
+    )
+    source_pdf_path = (
+        str(pdf_path)
+        if local_artifact_available
+        else str(attachment.get("path") or "")
+    )
+    source_pdf_size = (
+        pdf_path.stat().st_size
+        if local_artifact_available
+        else int(attachment.get("size_bytes") or 0)
+    )
     receipt_sha = sha256_file(receipt_path)
     generated_at = generated_at or utc_now()
     invoice_period = str(receipt.get("invoice_period") or INVOICE_PERIOD)
@@ -304,10 +397,11 @@ def build_status_payload(
         ),
         "payment_status": "NOT_MARKED_PAID",
         "artifact_kind": ARTIFACT_KIND,
-        "source_pdf_path": str(pdf_path),
+        "source_pdf_path": source_pdf_path,
         "source_pdf_sha256": pdf_sha,
+        "source_pdf_local_available": local_artifact_available,
         "source_pdf_page_count": 1,
-        "source_pdf_file_size_bytes": pdf_path.stat().st_size,
+        "source_pdf_file_size_bytes": source_pdf_size,
         "source_receipt_path": str(receipt_path),
         "source_receipt_sha256": receipt_sha,
         "source_receipt_generated_at": str(receipt.get("generated_at") or ""),
@@ -331,13 +425,37 @@ def build_status_payload(
         "bcc": [str(item) for item in receipt.get("bcc") or []],
         "subject": str(receipt.get("subject") or ""),
         "gmail_message_id": str(receipt.get("gmail_message_id") or ""),
+        "gmail_thread_id": str(receipt.get("gmail_thread_id") or ""),
         "send_provenance": str(receipt.get("provenance") or "manual_out_of_band"),
         "operator_authorized": receipt.get("operator_authorized") is True,
         "invoice_number": str(receipt.get("invoice_number") or ""),
         "amount": receipt.get("amount"),
         "service_count": receipt.get("service_count"),
         "downstream": {key: dict(value) for key, value in downstream.items()},
-        "supersedes": dict(receipt.get("supersedes") or {}),
+        "supersedes": dict(
+            receipt.get("superseded_send")
+            or receipt.get("supersedes")
+            or {}
+        ),
+        "send_history": (
+            [
+                dict(receipt.get("superseded_send") or {}),
+                {
+                    "disposition": "OPERATIVE",
+                    "gmail_message_id": str(receipt.get("gmail_message_id") or ""),
+                    "gmail_thread_id": str(receipt.get("gmail_thread_id") or ""),
+                    "sent_at_utc_iso": str(receipt.get("sent_at_utc_iso") or ""),
+                    "subject": str(receipt.get("subject") or ""),
+                    "attachment_filename": str(attachment.get("filename") or ""),
+                    "attachment_sha256": pdf_sha,
+                },
+            ]
+            if validation["corrected_send"] is True
+            else []
+        ),
+        "workbook_finalization": dict(receipt.get("workbook_finalization") or {}),
+        "loop_closure": dict(receipt.get("loop_closure") or {}),
+        "authoritative_source": dict(receipt.get("authoritative_source") or {}),
         "ledger_posting_allowed": False,
         "email_send_allowed": False,
         "safety_flags": dict(SAFETY_FLAGS),
@@ -360,14 +478,19 @@ def build_status_payload(
             "paid_false": True,
             "email_send_allowed_false": True,
             "ledger_posting_allowed_false": True,
-            "pdf_exists": True,
+            "pdf_exists": bool(local_artifact_available),
+            "local_pdf_inspected": bool(local_artifact_available),
+            "artifact_metadata_receipt_verified": validation["artifact_validation_mode"] == "authoritative_sent_readback",
             "pdf_page_count_is_one": True,
-            "pdf_sha256_matches_receipt": True,
-            "source_pdf_sha256_matches_receipt": True,
+            "pdf_sha256_matches_receipt": validation["pdf_sha256_matches_receipt"],
+            "source_pdf_sha256_matches_receipt": validation["receipt_source_sha256_matches_pdf"],
+            "attachment_sha256_receipt_consistent": validation["attachment_sha256_receipt_consistent"],
             "business_authority_flags_false": all(value is False for value in SAFETY_FLAGS.values()),
         },
         "next_safe_move": (
-            "Await Draper's verified forward to Glenn. Monitoring only; do not mark paid or send."
+            "Await observed Glenn reply or note evidence. Keep forward, acknowledgment, check, and paid milestones pending; do not send or mark paid."
+            if validation["corrected_send"] is True
+            else "Await Draper's verified forward to Glenn. Monitoring only; do not mark paid or send."
             if external_agent_send
             else "Use this read model as manual-send evidence only; do not mark paid or post ledger without separate proof and approval."
         ),
@@ -504,7 +627,7 @@ def export_st_annes_invoice_status(
         bridge_read_model_path=str(bridge_read_model_path),
         sqlite_path=str(resolved_sqlite_path),
         source_receipt_path=str(receipt_path),
-        source_pdf_path=str(pdf_path),
+        source_pdf_path=str(payload["source_pdf_path"]),
         source_pdf_sha256=str(payload["source_pdf_sha256"]),
         status=str(payload["invoice_status"]),
     )
