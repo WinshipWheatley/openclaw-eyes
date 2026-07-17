@@ -7,14 +7,18 @@ delete anything.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import re
 import sqlite3
+import subprocess
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
+
+import business_ops_ledger
 
 
 SCHEMA_VERSION = "capability_ledger_reconciler_v1"
@@ -37,6 +41,7 @@ DRIFT_CODES = (
 FILE_INVENTORY_MAX_AGE_SECONDS = 24 * 60 * 60
 MACHINE_INVENTORY_MAX_AGE_SECONDS = 24 * 60 * 60
 _UNIT_RE = re.compile(r"\b([A-Za-z0-9@_.-]+\.(?:service|timer))\b")
+_MAC_LABEL_RE = re.compile(r"\b(com\.openclaw\.[A-Za-z0-9_.-]+)")
 
 
 def _stable_json(value: Any) -> str:
@@ -124,6 +129,373 @@ def ensure_capability_ledger_schema(conn: sqlite3.Connection) -> None:
         );
         """
     )
+
+
+def _markdown_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _plain_markdown(value: str) -> str:
+    return " ".join(value.replace("`", "").replace("**", "").split())
+
+
+def _slug(value: str) -> str:
+    text = re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
+    return text[:48] or "observed-capability"
+
+
+def _mac_snapshot(text: str, fallback: str) -> str:
+    match = re.search(
+        r"Snapshot:\*\*\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s+(EDT|EST|UTC)",
+        text,
+    )
+    if not match:
+        return fallback
+    offset = {"EDT": "-04:00", "EST": "-05:00", "UTC": "+00:00"}[match.group(3)]
+    return f"{match.group(1)}T{match.group(2)}:00{offset}"
+
+
+def _mac_table_rows(text: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    section = ""
+    headers: list[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if line.startswith("### "):
+            section = _plain_markdown(line[4:])
+            headers = []
+            continue
+        if not line.startswith("|") or not section[:1] in {"A", "B", "C"}:
+            continue
+        cells = _markdown_cells(line)
+        if cells and all(set(cell) <= {"-", ":"} for cell in cells):
+            continue
+        if not headers:
+            headers = cells
+            continue
+        if len(cells) != len(headers):
+            continue
+        row = dict(zip(headers, cells))
+        row["_section"] = section
+        rows.append(row)
+    return rows
+
+
+def _mac_decision(verdict: str) -> str:
+    folded = verdict.casefold()
+    if "archive" in folded:
+        return "ARCHIVE"
+    if "fix before" in folded and "activate" in folded:
+        return "FIX_BEFORE_ACTIVATE"
+    if "wire-in" in folded or "wire in" in folded:
+        return "WIRE_IN"
+    if "activate" in folded:
+        return "ACTIVATE"
+    return "REVIEW"
+
+
+def _mac_row_from_table(row: Mapping[str, str], *, snapshot: str) -> dict[str, Any]:
+    source = _plain_markdown(
+        row.get("Exact path / activation")
+        or row.get("Exact path / capability")
+        or row.get("Exact path")
+        or ""
+    )
+    capability = _plain_markdown(row.get("Capability") or "")
+    ground = _plain_markdown(row.get("Ground truth") or row.get("Local branch / base; behind/ahead; merge state") or "")
+    state = _plain_markdown(row.get("State") or "").upper()
+    grade = _plain_markdown(row.get("Grade") or "")
+    verdict = _plain_markdown(row.get("Verdict") or "")
+    label_match = _MAC_LABEL_RE.search(source)
+    if label_match:
+        display = label_match.group(1).removesuffix(".plist")
+        capability_id = f"runtime.launchd.{display}"
+    else:
+        display = capability or Path(source.split(" and ", 1)[0]).name or "Mac census capability"
+        basis = {"section": row.get("_section"), "source": source, "capability": capability}
+        capability_id = f"mac.census.{_slug(display)}.{_sha256(basis)[:10]}"
+
+    unknown_runtime = "unknown" in f"{grade} {ground}".casefold()
+    if state.startswith("RUNNING"):
+        configured: bool | None = True
+        runtime_confirmed: bool | None = True
+        runtime_state = "running"
+    elif state.startswith("BUILT-NOT-WIRED"):
+        configured = False
+        runtime_confirmed = False
+        runtime_state = "dark"
+    elif state.startswith("WIRED-BUT-OFF"):
+        configured = True
+        runtime_confirmed = None if unknown_runtime else False
+        runtime_state = "unknown" if runtime_confirmed is None else "dark"
+    elif state.startswith("STALE"):
+        configured = True if any(token in ground.casefold() for token in ("plist", "installed", "configuration")) else None
+        runtime_confirmed = None if unknown_runtime else False
+        runtime_state = "unknown" if runtime_confirmed is None else "dark"
+    else:
+        configured = None
+        runtime_confirmed = None
+        runtime_state = "unknown"
+    artifact_present = False if "missing" in f"{source} {ground}".casefold() else True
+    authority_granted = False if any(
+        token in f"{ground} {verdict}".casefold()
+        for token in ("do not activate", "no activation", "approval", "authority unknown")
+    ) else None
+    evidence_id = _sha256({"section": row.get("_section"), "source": source, "state": state})[:16]
+    return {
+        "capability_id": capability_id,
+        "display_name": display,
+        "artifact_present": artifact_present,
+        "configured": configured,
+        "runtime_confirmed": runtime_confirmed,
+        "authority_granted": authority_granted,
+        "owner": "MacSol census / unregistered",
+        "last_seen": snapshot,
+        "register_stage": "unregistered",
+        "runtime_state": runtime_state,
+        "machine_applicability": "applicable",
+        "observed_decision": _mac_decision(verdict),
+        "evidence_refs": [f"mac-census:{_slug(str(row.get('_section') or 'inventory'))}:{evidence_id}"],
+    }
+
+
+def load_mac_inventory(path: str | Path, *, observed_at: str) -> dict[str, Any]:
+    """Load a future JSON emitter or the current bounded MacSol Markdown report."""
+
+    source = Path(path)
+    if not source.is_file():
+        return {
+            "machine": "mac",
+            "observed_at": observed_at,
+            "source_ref": source.name,
+            "capabilities": [],
+            "bridge_health": {},
+            "errors": ["MISSING_MAC_INVENTORY"],
+        }
+    raw = source.read_bytes()
+    source_hash = "sha256:" + hashlib.sha256(raw).hexdigest()
+    if source.suffix.casefold() == ".json":
+        payload = json.loads(raw.decode("utf-8"))
+        result = dict(payload)
+        result.setdefault("machine", "mac")
+        result.setdefault("observed_at", observed_at)
+        result.setdefault("capabilities", [])
+        result.setdefault("bridge_health", {})
+        result.setdefault("errors", [])
+        result["source_ref"] = source.name
+        result["source_sha256"] = source_hash
+        return result
+
+    text = raw.decode("utf-8")
+    snapshot = _mac_snapshot(text, observed_at)
+    by_id: dict[str, dict[str, Any]] = {}
+    for table_row in _mac_table_rows(text):
+        item = _mac_row_from_table(table_row, snapshot=snapshot)
+        by_id[item["capability_id"]] = item
+    health: dict[str, Any] = {}
+    capacity = re.search(
+        r"(\d+)\s+GiB total,\s*(\d+)\s+GiB used,\s*(\d+)(?:-\d+)?\s+GiB free\s*\((\d+)% used\)",
+        text,
+    )
+    if capacity:
+        health = {
+            "mount_present": "/Volumes/openclaw_e" in text and "mounted" in text,
+            "total_gib": int(capacity.group(1)),
+            "used_gib": int(capacity.group(2)),
+            "free_gib": int(capacity.group(3)),
+            "used_percent": int(capacity.group(4)),
+        }
+    errors = [] if by_id else ["MAC_INVENTORY_TABLES_NOT_PARSED"]
+    return {
+        "machine": "mac",
+        "observed_at": snapshot,
+        "source_ref": source.name,
+        "source_sha256": source_hash,
+        "capabilities": [by_id[key] for key in sorted(by_id)],
+        "bridge_health": health,
+        "errors": errors,
+    }
+
+
+def _run_readonly(command: Sequence[str]) -> tuple[int, str, str]:
+    completed = subprocess.run(
+        list(command),
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return completed.returncode, completed.stdout, completed.stderr
+
+
+def _openclaw_runtime_text(value: str) -> bool:
+    folded = value.casefold()
+    return any(
+        token in folded
+        for token in (
+            "openclaw",
+            "cassandra",
+            "chief",
+            "guardian",
+            "hermes",
+            "maestro",
+            "niles",
+            "clara",
+            "invoice",
+            "gpu-model",
+            "ollama",
+        )
+    )
+
+
+def _parse_systemd_list_units(output: str) -> dict[str, dict[str, Any]]:
+    units: dict[str, dict[str, Any]] = {}
+    for line in output.splitlines():
+        parts = line.split(None, 4)
+        if len(parts) < 4:
+            continue
+        unit, _load, active, sub = parts[:4]
+        description = parts[4] if len(parts) == 5 else unit
+        if not _openclaw_runtime_text(f"{unit} {description}"):
+            continue
+        units[unit] = {
+            "unit": unit,
+            "description": description,
+            "configured": None,
+            "runtime_confirmed": active == "active",
+            "runtime_state": "running" if active == "active" else "dark",
+            "active_state": active,
+            "sub_state": sub,
+            "process_basenames": [],
+        }
+    return units
+
+
+def _parse_systemd_unit_files(output: str) -> dict[str, str]:
+    states: dict[str, str] = {}
+    for line in output.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and _openclaw_runtime_text(parts[0]):
+            states[parts[0]] = parts[1]
+    return states
+
+
+def _parse_crontab(output: str, *, observed_at: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or ("=" in line and len(line.split()) == 1):
+            continue
+        parts = line.split(None, 5)
+        if len(parts) < 6 or not _openclaw_runtime_text(line):
+            continue
+        command = parts[5]
+        command_hash = hashlib.sha256(command.encode("utf-8")).hexdigest()[:20]
+        safe_paths = sorted(
+            set(
+                re.findall(
+                    r"/home/openclaw/[A-Za-z0-9_.@/+:-]+",
+                    command,
+                )
+            )
+        )
+        rows.append(
+            {
+                "command_hash": command_hash,
+                "display_name": Path(safe_paths[-1]).name if safe_paths else "OpenClaw scheduled job",
+                "owner": "OpenClaw user crontab",
+                "artifact_present": any(Path(path).exists() for path in safe_paths) if safe_paths else None,
+                "runtime_confirmed": None,
+                "runtime_state": "unknown",
+                "last_seen": observed_at,
+                "evidence_refs": [f"cron:sha256:{command_hash}"] + [f"script:{path}" for path in safe_paths],
+            }
+        )
+    return rows
+
+
+def _parse_listener_processes(output: str, *, observed_at: str) -> list[dict[str, Any]]:
+    by_script: dict[str, dict[str, Any]] = {}
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line or "/home/openclaw" not in line or not _openclaw_runtime_text(line):
+            continue
+        script_matches = re.findall(r"/home/openclaw/[A-Za-z0-9_.@/+:-]+", line)
+        if not script_matches:
+            continue
+        script = Path(script_matches[-1]).name
+        if not script:
+            continue
+        by_script[script] = {
+            "script_basename": script,
+            "runtime_confirmed": True,
+            "last_seen": observed_at,
+            "evidence_ref": f"process-script:{script}",
+        }
+    return [by_script[key] for key in sorted(by_script)]
+
+
+def collect_pc_runtime(*, observed_at: str) -> dict[str, Any]:
+    """Collect bounded, metadata-only systemd, cron, and listener process state."""
+
+    errors: list[str] = []
+    rc, stdout, _stderr = _run_readonly(
+        ("systemctl", "--user", "list-units", "--type=service", "--type=timer", "--all", "--no-legend", "--plain")
+    )
+    if rc != 0:
+        errors.append("SYSTEMD_LIST_UNITS_FAILED")
+        units: dict[str, dict[str, Any]] = {}
+    else:
+        units = _parse_systemd_list_units(stdout)
+    rc, stdout, _stderr = _run_readonly(
+        ("systemctl", "--user", "list-unit-files", "--type=service", "--type=timer", "--no-legend", "--plain")
+    )
+    if rc != 0:
+        errors.append("SYSTEMD_LIST_UNIT_FILES_FAILED")
+        unit_files: dict[str, str] = {}
+    else:
+        unit_files = _parse_systemd_unit_files(stdout)
+    for unit, state in unit_files.items():
+        item = units.setdefault(
+            unit,
+            {
+                "unit": unit,
+                "description": unit,
+                "runtime_confirmed": False,
+                "runtime_state": "dark",
+                "active_state": "inactive",
+                "sub_state": "unknown",
+                "process_basenames": [],
+            },
+        )
+        item["configured"] = state not in {"disabled", "masked", "bad"}
+        item["unit_file_state"] = state
+
+    rc, stdout, _stderr = _run_readonly(("ps", "-eo", "pid=,args="))
+    listeners = _parse_listener_processes(stdout, observed_at=observed_at) if rc == 0 else []
+    if rc != 0:
+        errors.append("LISTENER_PROCESS_LIST_FAILED")
+    scripts = [item["script_basename"] for item in listeners]
+    for item in units.values():
+        item["process_basenames"] = scripts if item.get("runtime_confirmed") else []
+        item["last_seen"] = observed_at
+
+    rc, stdout, stderr = _run_readonly(("crontab", "-l"))
+    if rc == 0:
+        cron = _parse_crontab(stdout, observed_at=observed_at)
+    elif "no crontab" in stderr.casefold():
+        cron = []
+    else:
+        cron = []
+        errors.append("CRONTAB_READ_FAILED")
+    return {
+        "machine": "pc",
+        "observed_at": observed_at,
+        "systemd": [units[key] for key in sorted(units)],
+        "cron": cron,
+        "listener_processes": listeners,
+        "errors": errors,
+    }
 
 
 def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
@@ -436,17 +808,316 @@ def _finalize_row(row: Mapping[str, Any]) -> dict[str, Any]:
     return item
 
 
+def _atomic_json_write(path: str | Path, payload: Mapping[str, Any]) -> None:
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_name(f".{target.name}.tmp")
+    temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.replace(target)
+
+
+def _attention_payload(rows: Sequence[Mapping[str, Any]], *, observed_at: str, batch_id: str) -> dict[str, Any]:
+    drift = [
+        {
+            "capability_id": row["capability_id"],
+            "machine": row["machine"],
+            "display_name": row["display_name"],
+            "drift_codes": list(row["drift_codes"]),
+            "runtime_state": row["runtime_state"],
+            "owner": row["owner"],
+        }
+        for row in rows
+        if row["drift_flag"]
+    ]
+    bridge_health = [
+        {
+            "capability_id": row["capability_id"],
+            "machine": row["machine"],
+            "health": dict(row["health"]),
+            "attention_reasons": ["BRIDGE_SPACE_HIGH"]
+            if int((row.get("health") or {}).get("used_percent") or 0) >= 90
+            else [],
+        }
+        for row in rows
+        if row.get("health")
+    ]
+    return {
+        "schema_version": "capability_ledger_drift_attention_v1",
+        "read_model_id": "capability_ledger_drift_attention",
+        "status": "ATTENTION_REQUIRED" if drift or any(item["attention_reasons"] for item in bridge_health) else "CURRENT",
+        "generated_at": observed_at,
+        "batch_id": batch_id,
+        "drift_count": len(drift),
+        "drift": drift,
+        "bridge_health": bridge_health,
+        "machine_proof": {
+            "ledger_only_projection": True,
+            "register_mutated": False,
+            "runtime_mutated": False,
+            "external_send_performed": False,
+        },
+    }
+
+
+def _projection_receipt(result: Mapping[str, Any]) -> dict[str, Any]:
+    keys = (
+        "schema_version",
+        "status",
+        "observed_at",
+        "source_fingerprint",
+        "batch_id",
+        "packet_id",
+        "machine_counts",
+        "activation_count",
+        "drift_count",
+        "changed_count",
+        "decision_count",
+        "idempotent_replay",
+        "authority_boundary",
+    )
+    return {key: result.get(key) for key in keys}
+
+
+def _persist_batch(
+    *,
+    ledger_path: Path,
+    rows: Sequence[Mapping[str, Any]],
+    source_fingerprint: str,
+    observed_at: str,
+) -> dict[str, Any]:
+    business_ops_ledger.init_business_ops_ledger(str(ledger_path))
+    conn = sqlite3.connect(ledger_path, timeout=60)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA busy_timeout=60000")
+        ensure_capability_ledger_schema(conn)
+        conn.commit()
+        existing = {
+            (str(row["capability_id"]), str(row["machine"])): str(row["state_fingerprint"])
+            for row in conn.execute(
+                "SELECT capability_id, machine, state_fingerprint FROM capability_activations"
+            )
+        }
+        changed = [
+            row
+            for row in rows
+            if existing.get((str(row["capability_id"]), str(row["machine"])))
+            != row["state_fingerprint"]
+        ]
+        base_batch_id = f"capability-reconcile:{source_fingerprint.split(':', 1)[-1][:24]}"
+        existing_run = conn.execute(
+            "SELECT batch_id, receipt_json FROM capability_reconciliation_runs WHERE batch_id=?",
+            (base_batch_id,),
+        ).fetchone()
+        if not changed and existing_run is not None:
+            return {
+                "status": "IDEMPOTENT_REPLAY",
+                "batch_id": str(existing_run["batch_id"]),
+                "packet_id": str(existing_run["batch_id"]),
+                "changed_count": 0,
+                "decision_count": 0,
+                "idempotent_replay": True,
+            }
+        batch_id = base_batch_id
+        if existing_run is not None:
+            prior_fingerprint = _sha256(sorted(existing.items()))[:10]
+            batch_id = f"{base_batch_id}:repair:{prior_fingerprint}"
+        drift_count = sum(1 for row in rows if row["drift_flag"])
+        packet_safe = {
+            "schema_version": SCHEMA_VERSION,
+            "batch_id": batch_id,
+            "activation_count": len(rows),
+            "changed_count": len(changed),
+            "drift_count": drift_count,
+            "machines": dict(sorted(Counter(str(row["machine"]) for row in rows).items())),
+            "metadata_only": True,
+            "register_writeback": False,
+            "runtime_activation": False,
+        }
+        receipt = {
+            **packet_safe,
+            "packet_id": batch_id,
+            "source_fingerprint": source_fingerprint,
+            "observed_at": observed_at,
+            "decision_count": len(changed),
+            "status": "CONFIRMED",
+            "authority_boundary": {
+                "ledger_mirror_write_performed": True,
+                "register_mutated": False,
+                "service_or_cron_mutated": False,
+                "runtime_activation_performed": False,
+                "authority_granted": False,
+                "external_send_performed": False,
+                "money_moved": False,
+                "delete_performed": False,
+            },
+        }
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            """
+            INSERT INTO events (
+                event_id, ts, event_type, actor, prompt_hash,
+                operator_visible_summary, raw_sensitive_data_stored, replay_safe
+            ) VALUES (?, ?, 'capability_reconciliation', 'capability_ledger_reconciler', ?, ?, 0, 1)
+            """,
+            (
+                batch_id,
+                observed_at,
+                source_fingerprint,
+                f"Mirrored {len(rows)} capability-machine rows; {drift_count} carry deterministic drift.",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO packets (
+                packet_id, event_id, intent_name, request_category, actor_name,
+                execution_authority, approval_required, approval_tier, action_status,
+                packet_json_safe
+            ) VALUES (?, ?, 'capability_reconciliation', 'metadata_mirror',
+                      'capability_ledger_reconciler', 0, 0, NULL, 'mirror_recorded', ?)
+            """,
+            (batch_id, batch_id, _stable_json(packet_safe)),
+        )
+        for row in changed:
+            conn.execute(
+                """
+                INSERT INTO capability_activations (
+                    capability_id, machine, display_name, artifact_present, configured,
+                    runtime_confirmed, authority_granted, owner, last_seen, observed_at,
+                    register_stage, runtime_state, machine_applicability, observed_decision,
+                    evidence_refs_json, health_json, drift_codes_json, drift_flag,
+                    state_fingerprint, recorded_at, batch_id
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(capability_id, machine) DO UPDATE SET
+                    display_name=excluded.display_name,
+                    artifact_present=excluded.artifact_present,
+                    configured=excluded.configured,
+                    runtime_confirmed=excluded.runtime_confirmed,
+                    authority_granted=excluded.authority_granted,
+                    owner=excluded.owner,
+                    last_seen=excluded.last_seen,
+                    observed_at=excluded.observed_at,
+                    register_stage=excluded.register_stage,
+                    runtime_state=excluded.runtime_state,
+                    machine_applicability=excluded.machine_applicability,
+                    observed_decision=excluded.observed_decision,
+                    evidence_refs_json=excluded.evidence_refs_json,
+                    health_json=excluded.health_json,
+                    drift_codes_json=excluded.drift_codes_json,
+                    drift_flag=excluded.drift_flag,
+                    state_fingerprint=excluded.state_fingerprint,
+                    recorded_at=excluded.recorded_at,
+                    batch_id=excluded.batch_id
+                """,
+                (
+                    row["capability_id"],
+                    row["machine"],
+                    row["display_name"],
+                    _bool_int(row.get("artifact_present")),
+                    _bool_int(row.get("configured")),
+                    _bool_int(row.get("runtime_confirmed")),
+                    _bool_int(row.get("authority_granted")),
+                    row["owner"],
+                    row.get("last_seen"),
+                    row["observed_at"],
+                    row["register_stage"],
+                    row["runtime_state"],
+                    row["machine_applicability"],
+                    row.get("observed_decision"),
+                    _stable_json(row["evidence_refs"]),
+                    _stable_json(row["health"]),
+                    _stable_json(row["drift_codes"]),
+                    _bool_int(bool(row["drift_flag"])),
+                    row["state_fingerprint"],
+                    observed_at,
+                    batch_id,
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO capability_decisions (packet_id, capability_name, decision, reason)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    batch_id,
+                    f"{row['capability_id']}@{row['machine']}",
+                    row.get("observed_decision") or "MIRROR_STATE_CHANGED",
+                    _stable_json(
+                        {
+                            "artifact_present": row.get("artifact_present"),
+                            "configured": row.get("configured"),
+                            "runtime_confirmed": row.get("runtime_confirmed"),
+                            "authority_granted": row.get("authority_granted"),
+                            "register_stage": row["register_stage"],
+                            "runtime_state": row["runtime_state"],
+                            "drift_codes": row["drift_codes"],
+                        }
+                    ),
+                ),
+            )
+        conn.execute(
+            """
+            INSERT INTO operator_explanations (event_id, packet_id, summary, safe_for_telegram)
+            VALUES (?, ?, ?, 1)
+            """,
+            (
+                batch_id,
+                batch_id,
+                f"Capability mirror refreshed: {len(rows)} rows, {len(changed)} changed, {drift_count} drifted.",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO capability_reconciliation_runs (
+                batch_id, observed_at, source_fingerprint, activation_count,
+                changed_count, decision_count, drift_count, status, receipt_json, recorded_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?)
+            """,
+            (
+                batch_id,
+                observed_at,
+                source_fingerprint,
+                len(rows),
+                len(changed),
+                len(changed),
+                drift_count,
+                _stable_json(receipt),
+                observed_at,
+            ),
+        )
+        conn.commit()
+        return {
+            "status": "CONFIRMED",
+            "batch_id": batch_id,
+            "packet_id": batch_id,
+            "changed_count": len(changed),
+            "decision_count": len(changed),
+            "idempotent_replay": False,
+        }
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def reconcile_capabilities(
     *,
     register_path: str | Path = DEFAULT_REGISTER_PATH,
     ledger_path: str | Path = DEFAULT_LEDGER_PATH,
-    pc_inventory: Mapping[str, Any],
-    mac_inventory: Mapping[str, Any],
-    observed_at: str,
+    pc_inventory: Mapping[str, Any] | None = None,
+    mac_inventory: Mapping[str, Any] | None = None,
+    mac_inventory_path: str | Path = DEFAULT_MAC_REPORT_PATH,
+    observed_at: str | None = None,
     confirm: bool = False,
     receipt_path: str | Path = DEFAULT_RECEIPT_PATH,
     attention_path: str | Path = DEFAULT_ATTENTION_PATH,
 ) -> dict[str, Any]:
+    observed_at = observed_at or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    pc_inventory = dict(pc_inventory or collect_pc_runtime(observed_at=observed_at))
+    mac_inventory = dict(
+        mac_inventory or load_mac_inventory(mac_inventory_path, observed_at=observed_at)
+    )
     register_file = Path(register_path)
     ledger_file = Path(ledger_path)
     register = json.loads(register_file.read_text(encoding="utf-8"))
@@ -477,15 +1148,13 @@ def reconcile_capabilities(
     source_fingerprint = "sha256:" + _sha256(
         {
             "register": register,
-            "pc_inventory": pc_inventory,
-            "mac_inventory": mac_inventory,
             "file_inventory_last_seen": file_inventory.get("last_seen"),
             "states": [row["state_fingerprint"] for row in activations],
         }
     )
     result = {
         "schema_version": SCHEMA_VERSION,
-        "status": "DRY_RUN_CONFIRM_REQUIRED" if not confirm else "CONFIRM_NOT_IMPLEMENTED",
+        "status": "DRY_RUN_CONFIRM_REQUIRED",
         "observed_at": observed_at,
         "source_fingerprint": source_fingerprint,
         "machine_counts": machine_counts,
@@ -493,6 +1162,7 @@ def reconcile_capabilities(
         "drift_count": sum(1 for row in activations if row["drift_flag"]),
         "activations": activations,
         "authority_boundary": {
+            "ledger_mirror_write_performed": False,
             "activation_performed": False,
             "register_mutated": False,
             "service_mutated": False,
@@ -501,7 +1171,59 @@ def reconcile_capabilities(
             "delete_performed": False,
         },
     }
+    if confirm:
+        persisted = _persist_batch(
+            ledger_path=ledger_file,
+            rows=activations,
+            source_fingerprint=source_fingerprint,
+            observed_at=observed_at,
+        )
+        result.update(persisted)
+        result["authority_boundary"] = {
+            "ledger_mirror_write_performed": not bool(persisted["idempotent_replay"]),
+            "activation_performed": False,
+            "register_mutated": False,
+            "service_mutated": False,
+            "external_send_performed": False,
+            "money_moved": False,
+            "delete_performed": False,
+        }
+        _atomic_json_write(receipt_path, _projection_receipt(result))
+        _atomic_json_write(
+            attention_path,
+            _attention_payload(activations, observed_at=observed_at, batch_id=result["batch_id"]),
+        )
     return result
+
+
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Mirror capability/register/runtime state into the business ledger.")
+    parser.add_argument("--register", default=str(DEFAULT_REGISTER_PATH))
+    parser.add_argument("--ledger", default=str(DEFAULT_LEDGER_PATH))
+    parser.add_argument("--mac-inventory", default=str(DEFAULT_MAC_REPORT_PATH))
+    parser.add_argument("--receipt", default=str(DEFAULT_RECEIPT_PATH))
+    parser.add_argument("--attention", default=str(DEFAULT_ATTENTION_PATH))
+    parser.add_argument("--observed-at")
+    parser.add_argument("--confirm", action="store_true")
+    parser.add_argument("--once", action="store_true", help="Compatibility marker for scheduled one-shot invocation.")
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_args(argv)
+    result = reconcile_capabilities(
+        register_path=args.register,
+        ledger_path=args.ledger,
+        mac_inventory_path=args.mac_inventory,
+        observed_at=args.observed_at,
+        confirm=bool(args.confirm),
+        receipt_path=args.receipt,
+        attention_path=args.attention,
+    )
+    display = {key: value for key, value in result.items() if key != "activations"}
+    display["activation_preview_count"] = len(result.get("activations") or ())
+    print(json.dumps(display, indent=2, sort_keys=True))
+    return 0
 
 
 __all__ = [
@@ -512,6 +1234,13 @@ __all__ = [
     "DEFAULT_REGISTER_PATH",
     "DRIFT_CODES",
     "RUNTIME_STATES",
+    "collect_pc_runtime",
     "ensure_capability_ledger_schema",
+    "load_mac_inventory",
+    "main",
     "reconcile_capabilities",
 ]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
