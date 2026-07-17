@@ -16,7 +16,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-from agent_voice_profiles import require_voice_conformance, voice_copy_rules_for_speaker
+from agent_voice_profiles import (
+    loop_closing_ask_for_workflow,
+    render_loop_closing_ask,
+    require_clara_copy_conformance,
+    voice_copy_rules_for_speaker,
+)
 
 
 SCHEMA_VERSION = "client_comms_thread_rail_v0"
@@ -261,9 +266,16 @@ def build_clara_first_contact_draft(
             "Best,",
             "Clara Reid",
         ))
+    closure = loop_closing_ask_for_workflow(workflow_ref, client_ref=client_ref)
+    body_lines[-3:-3] = [render_loop_closing_ask(closure), ""]
     thread_ref = f"client_comms_thread:{client_ref}:{_short_hash(workflow_ref, recipient_ref, subject)}"
     body = "\n".join(body_lines)
-    voice_conformance = require_voice_conformance("clara", body)
+    clara_conformance = require_clara_copy_conformance(
+        body,
+        workflow_ref=workflow_ref,
+        client_ref=client_ref,
+    )
+    voice_conformance = clara_conformance["voice_conformance"]
     draft = ClaraDraftCandidate(
         draft_ref=f"clara_draft:{_short_hash(client_ref, workflow_ref, recipient_ref, subject)}",
         client_ref=client_ref,
@@ -296,6 +308,7 @@ def build_clara_first_contact_draft(
     draft_payload = asdict(draft)
     draft_payload["voice_profile_ref"] = voice_conformance["voice_profile_ref"]
     draft_payload["voice_conformance"] = voice_conformance
+    draft_payload["loop_closing_ask_conformance"] = clara_conformance["loop_closing_ask"]
     return {
         "first_contact_policy": asdict(policy),
         "draft_candidate": draft_payload,
@@ -346,15 +359,27 @@ def build_reply_watch_result(
     draft_candidate = None
     if allowed_to_draft:
         signoff = str(voice_copy_rules_for_speaker("clara")["signoff"])
+        closure = loop_closing_ask_for_workflow(workflow_ref, client_ref=client_ref)
+        opening = (
+            "I can prepare the invoice resend once Winship approves the exact message and attachment. "
+            "Nothing has been resent yet."
+            if intent == "RESEND_INVOICE_REQUEST"
+            else "I'll prepare a careful reply for Winship to review before anything is sent."
+        )
         body = (
             "Hi [Name],\n\n"
-            "I can prepare the invoice resend once Winship approves the exact message and attachment. "
-            "Nothing has been resent yet.\n\n"
+            + opening
+            + "\n\n"
+            + render_loop_closing_ask(closure)
+            + "\n\n"
             + signoff
-            if intent == "RESEND_INVOICE_REQUEST"
-            else "Hi [Name],\n\nI'll prepare a careful reply for Winship to review before anything is sent.\n\n" + signoff
         )
-        voice_conformance = require_voice_conformance("clara", body)
+        clara_conformance = require_clara_copy_conformance(
+            body,
+            workflow_ref=workflow_ref,
+            client_ref=client_ref,
+        )
+        voice_conformance = clara_conformance["voice_conformance"]
         draft_candidate = asdict(
             ClaraDraftCandidate(
                 draft_ref=f"clara_reply_draft:{_short_hash(thread_ref, incoming_message_ref)}",
@@ -387,6 +412,7 @@ def build_reply_watch_result(
         )
         draft_candidate["voice_profile_ref"] = voice_conformance["voice_profile_ref"]
         draft_candidate["voice_conformance"] = voice_conformance
+        draft_candidate["loop_closing_ask_conformance"] = clara_conformance["loop_closing_ask"]
     return ReplyWatchResult(
         incoming_message_ref=incoming_message_ref,
         thread_ref=thread_ref,

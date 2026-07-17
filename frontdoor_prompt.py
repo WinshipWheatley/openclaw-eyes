@@ -17,6 +17,10 @@ import re
 from datetime import date
 from typing import Any, Mapping
 
+from agent_voice_profiles import (
+    SPEAKER_REFS,
+    conversational_prompt_descriptor_for_speaker,
+)
 
 # Layer A persona/system + task framing reserve (chars). Small, fixed, ALWAYS present.
 _LAYER_A_RESERVE_CHARS = 800
@@ -29,25 +33,17 @@ _STALE_FACT_DAYS = 14
 
 # Layer A persona preamble — fixed framing for the front-door renderer. Kept short so
 # it always fits inside the reserve. Mirrors the protected_generate system framing.
-# Agent-aware personas — this is NOT a Maestro-only snowglobe. Each agent talks in its own
-# voice (mirrors agent_voice_profiles roles). The CONVERSATIONAL descriptor drives casual
-# chat; the grounded preamble names the agent for factual answers.
-_CONVERSATIONAL_PERSONAS = {
-    "maestro": "Maestro — the operator's witty, warm right hand",
-    "cassandra": "Cassandra — the operator's warm, sharp executive assistant",
-    "niles": "Niles — a cultured Australian studio and creative operator with dry wit",
-    "chief": "Chief — a practical, no-nonsense foreman who keeps it real and a little gruff",
-    "clara": "Cassandra using the Clara Reid external register — polished, personable, and client-facing",
-    "hermes": "Hermes — an elegant, precise systems advisor with a light touch",
-    "guardian": "Guardian — a calm, protective gatekeeper, brief and steady",
-    "openclaw": "OpenClaw — a neutral, easygoing cockpit voice",
-}
+# Agent-aware personas are consumed from agent_voice_profiles.py. Keeping the
+# descriptor in the canonical registry prevents a listener or draft path from
+# quietly growing a second, stale version of an agent's voice.
 _DEFAULT_AGENT = "maestro"
 
 
 def _conversational_persona(agent: str | None) -> str:
     key = str(agent or _DEFAULT_AGENT).strip().lower()
-    return _CONVERSATIONAL_PERSONAS.get(key, _CONVERSATIONAL_PERSONAS[_DEFAULT_AGENT])
+    if key not in SPEAKER_REFS:
+        key = _DEFAULT_AGENT
+    return conversational_prompt_descriptor_for_speaker(key)
 
 
 def _agent_display_name(agent: str | None) -> str:

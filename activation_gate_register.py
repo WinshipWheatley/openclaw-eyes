@@ -21,6 +21,7 @@ SCHEMA_VERSION = "activation_gate_register_v0"
 DEFAULT_LAST_VERIFIED_AT = "2026-06-26T00:00:00-04:00"
 DEFAULT_OUTPUT_DIR = Path("workspaces/openclaw_program")
 EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:20:00-04:00"
+FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT = "2026-07-17T11:00:00-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -42,6 +43,7 @@ LIVE_ENV_WHITELIST = (
     "OPENCLAW_PACKET_DELTA",
     "OPENCLAW_PACKET_ENGINE",
     "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
+    "OPENCLAW_FLEET_VOICE_BOUNDARY",
     "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
     "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
     "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
@@ -150,6 +152,10 @@ CAPABILITY_LIVE_VARIABLES = {
     },
     "external_brain_router": {
         "primary": ("OPENCLAW_EXTERNAL_BRAIN_ROUTER",),
+        "related": (),
+    },
+    "fleet_voice_boundary": {
+        "primary": ("OPENCLAW_FLEET_VOICE_BOUNDARY",),
         "related": (),
     },
     "hitl_pipeline": {
@@ -1932,6 +1938,51 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "tests/test_niles_album_evidence_intake_boundary.py",
             ],
             last_verified_at=last_verified_at,
+        ),
+        _capability(
+            capability_id="fleet_voice_boundary",
+            display_name="Canonical fleet voice boundary and Clara loop-closing copy gate",
+            flag_or_config=["OPENCLAW_FLEET_VOICE_BOUNDARY"],
+            default_state="on_fail_closed",
+            current_state_if_verifiable=_state(
+                "all eight canonical profiles feed the front-door prompt and final-output boundary; Clara email producers additionally require a workflow-bound human closing ask",
+                code_default="enabled unless OPENCLAW_FLEET_VOICE_BOUNDARY is explicitly false",
+                production="pending deployed owner-surface canaries",
+                audit_report="575 focused and broad voice, boundary, listener, and workflow tests passed before deployment",
+            ),
+            source_files=[
+                "agent_voice_profiles.py",
+                "final_output_boundary.py",
+                "frontdoor_prompt.py",
+                "operator_surface_guard.py",
+                "clara_invoice_email_draft_package.py",
+                "client_comms_thread_rail.py",
+                "client_followup_watch.py",
+                "st_annes_forward_tracking_workflow.py",
+            ],
+            tests=[
+                "tests/test_fleet_voice_live_boundary.py",
+                "tests/test_agent_voice_conformance.py",
+                "tests/test_165_output_boundary_integration.py",
+                "tests/test_st_annes_forward_tracking_workflow.py",
+            ],
+            audits=[],
+            canary_status="deployed owner-surface canaries required before closure",
+            risk_level="medium",
+            owner="Fable / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="operator fleet-wide voice mandate plus explicit service environment setting",
+            disabled_by="set OPENCLAW_FLEET_VOICE_BOUNDARY=0 and restart owning services",
+            rollback_note="set the boundary flag false to preserve the existing control-language and machine-output guards without profile enforcement",
+            next_required_step="deploy, restart every owner service, and record eight owner-surface canaries with profile receipts",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only explicit rollback after a profile false positive or owner-surface regression",
+            evidence_refs=[
+                "tests/test_fleet_voice_live_boundary.py",
+                "/home/openclaw/Operator/to-codex/FABLE-DIRECTIVE-CLARA-VOICE-AND-ADAPTIVE-FOLLOWUP-20260717-ADDENDUM.md",
+            ],
+            last_verified_at=FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="external_brain_router",

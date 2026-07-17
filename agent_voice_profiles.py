@@ -8,6 +8,7 @@ business state, or perform TTS.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from datetime import datetime, timezone
@@ -46,6 +47,69 @@ VOICE_PROFILE_REFS = {
     speaker_ref: f"agent_voice_profile:{speaker_ref}"
     for speaker_ref in SPEAKER_REFS
 }
+
+PROMPT_DESCRIPTORS = {
+    "cassandra": "Cassandra - the operator's warm, sharp executive assistant",
+    "chief": "Chief - a practical, no-nonsense foreman who keeps it real and a little gruff",
+    "hermes": "Hermes - an elegant, precise systems advisor with a light touch",
+    "guardian": "Guardian - a calm, protective gatekeeper, brief and steady",
+    "niles": "Niles - a cultured Australian studio and creative operator with dry wit",
+    "maestro": "Maestro - the operator's witty, warm right hand",
+    "clara": "Cassandra using the Clara Reid external register - polished, personable, and client-facing",
+    "openclaw": "OpenClaw - a neutral, easygoing cockpit voice",
+}
+
+VOICE_BOUNDARY_FALLBACKS = {
+    "cassandra": "I couldn't use that wording. The verified facts above are still intact.",
+    "chief": "Voice check failed. The verified status above still stands.",
+    "hermes": "That phrasing did not fit this advisory register. The grounded point above remains.",
+    "guardian": "Blocked: that wording failed the voice check. The proof above remains valid.",
+    "niles": "That phrasing was off-register. The concrete session detail above still holds.",
+    "maestro": "That line failed the voice check. The routed fact above is unchanged.",
+    "clara": "I couldn't use that wording. The confirmed client detail above is unchanged.",
+    "openclaw": "Voice conformance failed for that line. The verified statement above is unchanged.",
+}
+
+LOOP_CLOSING_ASK_POLICIES: dict[str, dict[str, str]] = {
+    "st_annes": {
+        "policy_ref": "clara_loop_closure:st_annes",
+        "milestone_ref": "glenn_acknowledged",
+        "ask_text": (
+            "Once you've passed it along to Glenn, could you ask him to send me a quick "
+            "note when he has it?"
+        ),
+        "why_text": (
+            "That way I know it landed and don't have to keep bothering either of you."
+        ),
+    },
+    "live_arts_md": {
+        "policy_ref": "clara_loop_closure:live_arts_md",
+        "milestone_ref": "accountant_acknowledged",
+        "ask_text": "Could you send me a quick note once the invoice is in your accounting queue?",
+        "why_text": "That helps me know it landed and keeps our records straight.",
+    },
+    "capital_hilton": {
+        "policy_ref": "clara_loop_closure:capital_hilton_email",
+        "milestone_ref": "invoice_email_acknowledged",
+        "ask_text": "Could you send me a quick note once the invoice reaches the right person?",
+        "why_text": "That helps me know it landed and avoids an unnecessary follow-up.",
+    },
+    "default": {
+        "policy_ref": "clara_loop_closure:counterparty_email",
+        "milestone_ref": "counterparty_acknowledged",
+        "ask_text": "Could you send me a quick note once this reaches the right person?",
+        "why_text": "That helps me know it landed and keeps me from following up unnecessarily.",
+    },
+}
+
+_LOOP_CLOSURE_MACHINE_TERMS = (
+    "tracking requirements",
+    "workflow milestone",
+    "milestone_ref",
+    "monitor status",
+    "receipt requirement",
+    "system needs",
+)
 
 ACTION_PROMISE_FALLBACKS = {
     "cassandra": (
@@ -217,15 +281,121 @@ def voice_profile_ref_for_speaker(speaker_ref: str) -> str:
     return VOICE_PROFILE_REFS.get(speaker_ref, VOICE_PROFILE_REFS["openclaw"])
 
 
-def _canonical_speaker_ref(speaker_ref: str) -> str:
+def canonical_speaker_ref(speaker_ref: str) -> str:
     normalized = str(speaker_ref or "").strip().lower()
+    if normalized == "openclaw_system":
+        normalized = "openclaw"
     return normalized if normalized in SPEAKER_REFS else "openclaw"
 
 
 def action_promise_fallback_for_speaker(speaker_ref: str) -> str:
     """Return the canonical honest fallback for an unbound action promise."""
 
-    return ACTION_PROMISE_FALLBACKS[_canonical_speaker_ref(speaker_ref)]
+    return ACTION_PROMISE_FALLBACKS[canonical_speaker_ref(speaker_ref)]
+
+
+def conversational_prompt_descriptor_for_speaker(speaker_ref: str) -> str:
+    """Return the single canonical prompt description for a live speaker."""
+
+    return PROMPT_DESCRIPTORS[canonical_speaker_ref(speaker_ref)]
+
+
+def voice_boundary_fallback_for_speaker(speaker_ref: str) -> str:
+    """Return a distinct fail-closed sentence for off-register final text."""
+
+    return VOICE_BOUNDARY_FALLBACKS[canonical_speaker_ref(speaker_ref)]
+
+
+def loop_closing_ask_for_workflow(
+    workflow_ref: str,
+    *,
+    client_ref: str = "",
+) -> dict[str, str]:
+    """Bind one human ask policy to the exact workflow producing the email."""
+
+    workflow = str(workflow_ref or "").strip()
+    client = str(client_ref or "").strip().lower()
+    if workflow == "st_annes_invoice_forward_tracking" or client == "st_annes":
+        policy_key = "st_annes"
+    elif client in {"live_arts_md", "capital_hilton"}:
+        policy_key = client
+    else:
+        policy_key = "default"
+    return {
+        **LOOP_CLOSING_ASK_POLICIES[policy_key],
+        "workflow_ref": workflow,
+        "client_ref": client,
+    }
+
+
+def render_loop_closing_ask(policy: Mapping[str, Any]) -> str:
+    ask = str(policy.get("ask_text") or "").strip()
+    why = str(policy.get("why_text") or "").strip()
+    return f"{ask} {why}".strip()
+
+
+def _sha256(value: str) -> str:
+    return "sha256:" + hashlib.sha256(str(value or "").encode("utf-8")).hexdigest()
+
+
+def require_clara_copy_conformance(
+    text: str,
+    *,
+    workflow_ref: str,
+    client_ref: str = "",
+) -> dict[str, Any]:
+    """Fail closed unless Clara copy carries its workflow's natural closing ask."""
+
+    voice = validate_voice_conformance("clara", text)
+    closure = loop_closing_ask_for_workflow(workflow_ref, client_ref=client_ref)
+    value = str(text or "")
+    ask = closure["ask_text"]
+    why = closure["why_text"]
+    violations = list(voice["violations"])
+    if value.count(ask) != 1:
+        violations.append({
+            "code": "loop_closing_ask_missing",
+            "detail": closure["milestone_ref"],
+        })
+    if value.count(why) != 1:
+        violations.append({
+            "code": "loop_closing_human_why_missing",
+            "detail": closure["milestone_ref"],
+        })
+    closure_text = render_loop_closing_ask(closure).casefold()
+    for term in _LOOP_CLOSURE_MACHINE_TERMS:
+        if term.casefold() in closure_text:
+            violations.append({"code": "loop_closing_machine_speak", "detail": term})
+    if "?" not in ask:
+        violations.append({
+            "code": "loop_closing_ask_not_plain_question",
+            "detail": closure["milestone_ref"],
+        })
+    result = {
+        "passed": not violations,
+        "speaker_ref": "clara",
+        "voice_profile_ref": VOICE_PROFILE_REFS["clara"],
+        "enforcement": "fail_closed",
+        "violations": violations,
+        "voice_conformance": voice,
+        "loop_closing_ask": {
+            "passed": not any(
+                str(item.get("code") or "").startswith("loop_closing_")
+                for item in violations
+            ),
+            "policy_ref": closure["policy_ref"],
+            "workflow_ref": closure["workflow_ref"],
+            "client_ref": closure["client_ref"],
+            "milestone_ref": closure["milestone_ref"],
+            "ask_text_sha256": _sha256(ask),
+            "why_text_sha256": _sha256(why),
+            "body_sha256": _sha256(value),
+            "raw_body_included": False,
+        },
+    }
+    if violations:
+        raise VoiceConformanceError(result)
+    return result
 
 
 def artifact_ready_message_for_speaker(
@@ -236,7 +406,7 @@ def artifact_ready_message_for_speaker(
 ) -> str:
     """Render a verified artifact readback through the addressed speaker's register."""
 
-    speaker = _canonical_speaker_ref(speaker_ref)
+    speaker = canonical_speaker_ref(speaker_ref)
     message = ARTIFACT_READY_TEMPLATES[speaker].format(
         label=str(label or "artifact").strip() or "artifact",
         path=str(path or "verified local path unavailable").strip()
@@ -301,6 +471,8 @@ def _apply_perspective(profile: dict[str, Any]) -> dict[str, Any]:
         "forbidden_phrases": list(contract["forbidden_phrases"]),
         "forbidden_patterns": [dict(item) for item in contract["forbidden_patterns"]],
     }
+    enriched["prompt_descriptor"] = PROMPT_DESCRIPTORS[speaker_ref]
+    enriched["voice_boundary_fallback"] = VOICE_BOUNDARY_FALLBACKS[speaker_ref]
     enriched["action_promise_fallback"] = ACTION_PROMISE_FALLBACKS[speaker_ref]
     enriched["artifact_ready_template"] = ARTIFACT_READY_TEMPLATES[speaker_ref]
     enriched.update(perspective_policy_record(speaker_ref))
@@ -688,6 +860,9 @@ def build_profiles() -> list[dict[str, Any]]:
                 "general_next_step": "Please let me know if you have any questions or need anything else.",
                 "followup_body": "Could you let me know whether {invoice_ref} has reached the right person? If there are any issues or questions, I'm happy to help.",
                 "signoff": "Warmly,\nClara Reid",
+                "loop_closing_ask_policies": {
+                    key: dict(value) for key, value in LOOP_CLOSING_ASK_POLICIES.items()
+                },
             },
             "vocabulary": {
                 "use": ["proposal", "availability", "next step", "attached", "review", "happy to adjust"],

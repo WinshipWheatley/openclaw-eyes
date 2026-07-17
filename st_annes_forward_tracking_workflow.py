@@ -14,7 +14,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from agent_voice_profiles import require_voice_conformance, voice_copy_rules_for_speaker
+from agent_voice_profiles import (
+    loop_closing_ask_for_workflow,
+    render_loop_closing_ask,
+    require_clara_copy_conformance,
+    voice_copy_rules_for_speaker,
+)
 from client_followup_watch import AUTHORITY_BOUNDARY_PROPOSAL
 from contacts_registry import DEFAULT_CONTACTS_DB_PATH, ContactsRegistry
 
@@ -269,14 +274,17 @@ def _detect_ack(
 
 def _followup_draft(step: str, invoice_ref: str) -> dict[str, str]:
     signoff = str(voice_copy_rules_for_speaker("clara")["signoff"])
+    closure = loop_closing_ask_for_workflow(WORKFLOW_REF, client_ref=CLIENT_REF)
     if step == "forward_to_glenn":
         return {
             "to": "draper.carter@gmail.com",
             "subject": f"Following up: {invoice_ref}",
             "body": (
                 "Hi Draper,\n\n"
-                "Please forward the St. Anne's invoice to Glenn after your review, "
-                "or let me know if there are any issues.\n\n"
+                "I'm checking in on the St. Anne's invoice. If there are any issues, "
+                "I'm happy to help.\n\n"
+                + render_loop_closing_ask(closure)
+                + "\n\n"
                 + signoff
             ),
         }
@@ -285,8 +293,10 @@ def _followup_draft(step: str, invoice_ref: str) -> dict[str, str]:
         "subject": f"Following up with Glenn: {invoice_ref}",
         "body": (
             "Hi Draper,\n\n"
-            "Could you let me know whether Glenn has acknowledged the St. Anne's invoice? "
-            "If there are any issues or questions, I'm happy to help.\n\n"
+            "I'm checking in on the St. Anne's invoice. If Glenn has any issues or questions, "
+            "I'm happy to help.\n\n"
+            + render_loop_closing_ask(closure)
+            + "\n\n"
             + signoff
         ),
     }
@@ -321,7 +331,12 @@ def _follow_up(
     }
     if status == "FOLLOW_UP_DUE":
         draft = _followup_draft(step, invoice_ref)
-        voice_conformance = require_voice_conformance("clara", draft["body"])
+        clara_conformance = require_clara_copy_conformance(
+            draft["body"],
+            workflow_ref=WORKFLOW_REF,
+            client_ref=CLIENT_REF,
+        )
+        voice_conformance = clara_conformance["voice_conformance"]
         payload["proposal"] = {
             "schema_version": "st_annes_followup_proposal_v0",
             "status": "FOLLOW_UP_PROPOSAL_READY",
@@ -330,6 +345,7 @@ def _follow_up(
             "draft": draft,
             "voice_profile_ref": voice_conformance["voice_profile_ref"],
             "voice_conformance": voice_conformance,
+            "loop_closing_ask_conformance": clara_conformance["loop_closing_ask"],
             "gated": True,
             "send_performed": False,
             "authority_boundary": {

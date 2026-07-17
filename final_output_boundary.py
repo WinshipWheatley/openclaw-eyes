@@ -9,10 +9,17 @@ substituted independently so grounded neighboring facts survive.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from dataclasses import asdict, dataclass
 from typing import Any, Callable
 
+from agent_voice_profiles import (
+    canonical_speaker_ref,
+    validate_voice_conformance,
+    voice_boundary_fallback_for_speaker,
+    voice_profile_ref_for_speaker,
+)
 from control_language_policy import (
     ControlLanguageClassification,
     classify_control_language,
@@ -21,6 +28,7 @@ from control_language_policy import (
 
 
 OUTPUT_BOUNDARY_SCHEMA_VERSION = "final_output_boundary_v1"
+FLEET_VOICE_BOUNDARY_ENV_VAR = "OPENCLAW_FLEET_VOICE_BOUNDARY"
 MAX_BOUNDED_SOURCE_REQUEST_CHARS = 512
 CONTROL_SUBSTITUTION = (
     "I couldn't use an internal control instruction as the answer. "
@@ -99,6 +107,11 @@ class OutputBoundaryReceipt:
     replaced_fragment_count: int
     classifier_error_count: int
     reason_codes: tuple[str, ...]
+    speaker_ref: str = "openclaw"
+    voice_profile_ref: str = "agent_voice_profile:openclaw"
+    voice_conformance_outcome: str = "not_checked"
+    voice_checked_fragment_count: int = 0
+    voice_replaced_fragment_count: int = 0
     raw_control_text_included: bool = False
     schema_version: str = OUTPUT_BOUNDARY_SCHEMA_VERSION
 
@@ -119,6 +132,16 @@ class FinalOutputBoundaryResult:
 
 
 Classifier = Callable[[str], ControlLanguageClassification]
+
+
+def fleet_voice_boundary_enabled() -> bool:
+    return os.environ.get(FLEET_VOICE_BOUNDARY_ENV_VAR, "1").strip().casefold() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+        "enabled",
+    }
 
 
 def split_output_fragments(text: Any) -> tuple[str, ...]:
@@ -162,6 +185,7 @@ def render_final_output(
     *,
     context: OutputBoundaryContext | None = None,
     classifier: Classifier = classify_control_language,
+    speaker_ref: str = "openclaw",
 ) -> FinalOutputBoundaryResult:
     """Render one final answer while preserving every classified-safe fragment."""
 
@@ -174,8 +198,12 @@ def render_final_output(
     preserved_count = 0
     replaced_count = 0
     classifier_errors = 0
+    voice_checked = 0
+    voice_replaced = 0
     emitted_substitutions: set[str] = set()
     inline_unsafe_continuation = False
+    speaker = canonical_speaker_ref(speaker_ref)
+    voice_enabled = fleet_voice_boundary_enabled()
 
     for piece in pieces:
         if not piece or not piece.strip() or piece.strip() in {"—", "–", "|"}:
@@ -209,8 +237,27 @@ def render_final_output(
             inline_unsafe_continuation = piece.rstrip().endswith((",", ":"))
         else:
             fragment_count += 1
-            preserved_count += 1
-            rendered.append(piece)
+            voice_result = (
+                validate_voice_conformance(speaker, piece)
+                if voice_enabled
+                else {"passed": True, "violations": []}
+            )
+            if voice_enabled:
+                voice_checked += 1
+            if voice_enabled and not voice_result["passed"]:
+                replaced_count += 1
+                voice_replaced += 1
+                reasons.extend(
+                    f"voice_conformance:{item['code']}"
+                    for item in voice_result["violations"]
+                )
+                fallback = voice_boundary_fallback_for_speaker(speaker)
+                if fallback not in emitted_substitutions:
+                    rendered.append(fallback)
+                    emitted_substitutions.add(fallback)
+            else:
+                preserved_count += 1
+                rendered.append(piece)
             inline_unsafe_continuation = False
 
     visible = "".join(rendered).strip()
@@ -223,6 +270,8 @@ def render_final_output(
     outcome = (
         "classifier_error"
         if classifier_errors
+        else "voice_substituted"
+        if voice_replaced
         else "substituted"
         if replaced_count
         else "unchanged"
@@ -240,6 +289,17 @@ def render_final_output(
         replaced_fragment_count=replaced_count,
         classifier_error_count=classifier_errors,
         reason_codes=reason_codes,
+        speaker_ref=speaker,
+        voice_profile_ref=voice_profile_ref_for_speaker(speaker),
+        voice_conformance_outcome=(
+            "disabled"
+            if not voice_enabled
+            else "substituted"
+            if voice_replaced
+            else "passed"
+        ),
+        voice_checked_fragment_count=voice_checked,
+        voice_replaced_fragment_count=voice_replaced,
     )
     return FinalOutputBoundaryResult(visible, receipt, resolved_context)
 
@@ -247,6 +307,7 @@ def render_final_output(
 __all__ = [
     "CLASSIFIER_ERROR_SUBSTITUTION",
     "CONTROL_SUBSTITUTION",
+    "FLEET_VOICE_BOUNDARY_ENV_VAR",
     "MAX_BOUNDED_SOURCE_REQUEST_CHARS",
     "OUTPUT_BOUNDARY_SCHEMA_VERSION",
     "RUNTIME_SUBSTITUTION",
@@ -254,6 +315,7 @@ __all__ = [
     "OutputBoundaryContext",
     "OutputBoundaryReceipt",
     "classify_control_language",
+    "fleet_voice_boundary_enabled",
     "render_final_output",
     "split_output_fragments",
 ]

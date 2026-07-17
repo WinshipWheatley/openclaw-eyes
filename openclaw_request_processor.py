@@ -9886,6 +9886,7 @@ def _enrich_operator_surface(
                 _bounded = render_final_output(
                     _surface_text,
                     context=_boundary_context,
+                    speaker_ref=agent_id,
                 )
             _detail = dict(response.detail_disclosure or {})
             _detail["output_boundary_receipt"] = _bounded.receipt.to_dict()
@@ -9909,6 +9910,7 @@ def _enrich_operator_surface(
             _bounded = render_final_output(
                 _integrity.visible_text,
                 context=OutputBoundaryContext.from_source_request(reassert_question),
+                speaker_ref="openclaw",
                 classifier=lambda _text: (_ for _ in ()).throw(
                     RuntimeError("boundary unavailable")
                 ),

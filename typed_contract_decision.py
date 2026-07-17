@@ -801,6 +801,7 @@ def _make_decision(
         bounded = render_final_output(
             reply,
             context=OutputBoundaryContext.from_source_request(text),
+            speaker_ref=context.agent,
         )
         reply = bounded.visible_text
         receipt = replace(

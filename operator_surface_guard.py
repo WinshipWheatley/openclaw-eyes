@@ -592,7 +592,11 @@ def guard_operator_reply_with_receipt(
         speaker_ref=agent_role,
         action_receipt_refs=action_receipt_refs,
     )
-    bounded = render_final_output(action_integrity.visible_text, context=context)
+    bounded = render_final_output(
+        action_integrity.visible_text,
+        context=context,
+        speaker_ref=agent_role,
+    )
     action_reason = (
         "action_promise_unbound_replaced"
         if action_integrity.receipt.substituted

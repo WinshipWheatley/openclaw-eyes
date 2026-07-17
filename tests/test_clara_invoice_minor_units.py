@@ -27,7 +27,8 @@ def test_minor_units_amounts_render_as_dollars():
     assert "$12,500" not in body and "$25,000" not in body
     assert "Winship's invoice for St. Anne's is attached (St_Annes.pdf)" in body
     assert "coming to $250.00" in body
-    assert "Please let me know if you have any questions or need anything else." in body
+    assert "Could you send me a quick note once this reaches the right person?" in body
+    assert "That helps me know it landed and keeps me from following up unnecessarily." in body
     assert "Warmly,\nClara Reid" in body
     assert "The total due is" not in body
     assert "Please let us know if anything else is needed for processing." not in body

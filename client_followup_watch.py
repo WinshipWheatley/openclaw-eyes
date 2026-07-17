@@ -14,7 +14,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from agent_voice_profiles import require_voice_conformance, voice_copy_rules_for_speaker
+from agent_voice_profiles import (
+    loop_closing_ask_for_workflow,
+    render_loop_closing_ask,
+    require_clara_copy_conformance,
+    voice_copy_rules_for_speaker,
+)
 from hitl_action_service import ACTION_TYPE_EXACT_GMAIL_SEND, build_operator_action_approval_payload
 
 
@@ -239,13 +244,25 @@ class ClientFollowupWatchStore:
         invoice_ref = str(watch.get("invoice_ref") or watch.get("subject") or "").strip()
         client_name = str(watch.get("client_name") or watch.get("client_ref") or "there").strip()
         copy_rules = voice_copy_rules_for_speaker("clara")
+        workflow_ref = f"client_followup_watch:{watch['watch_id']}"
+        closure = loop_closing_ask_for_workflow(
+            workflow_ref,
+            client_ref=str(watch.get("client_ref") or ""),
+        )
         body = (
             "Hello,\n\n"
-            + str(copy_rules["followup_body"]).format(invoice_ref=invoice_ref)
+            + f"I'm checking in on {invoice_ref}. If there are any issues or questions, I'm happy to help."
+            + "\n\n"
+            + render_loop_closing_ask(closure)
             + "\n\n"
             + str(copy_rules["signoff"])
         )
-        voice_conformance = require_voice_conformance("clara", body)
+        clara_conformance = require_clara_copy_conformance(
+            body,
+            workflow_ref=workflow_ref,
+            client_ref=str(watch.get("client_ref") or ""),
+        )
+        voice_conformance = clara_conformance["voice_conformance"]
         draft = {
             "to": watch["recipient"],
             "subject": "Following up: " + str(watch["subject"]),
@@ -265,6 +282,7 @@ class ClientFollowupWatchStore:
                 "watch_id": watch["watch_id"],
                 "voice_profile_ref": voice_conformance["voice_profile_ref"],
                 "voice_conformance": voice_conformance,
+                "loop_closing_ask_conformance": clara_conformance["loop_closing_ask"],
                 "authority_boundary": dict(AUTHORITY_BOUNDARY_PROPOSAL),
             },
             risk_warning="Follow-up draft is proposal-only. SEND_HOLD and Guardian/operator approval are required before any send.",
@@ -288,6 +306,7 @@ class ClientFollowupWatchStore:
             "draft": draft,
             "voice_profile_ref": voice_conformance["voice_profile_ref"],
             "voice_conformance": voice_conformance,
+            "loop_closing_ask_conformance": clara_conformance["loop_closing_ask"],
             "approval_request": approval_request,
             "gated": True,
             "send_performed": False,

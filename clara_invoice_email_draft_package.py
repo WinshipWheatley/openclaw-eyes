@@ -13,7 +13,12 @@ import json
 import re
 from typing import Any, Mapping
 
-from agent_voice_profiles import require_voice_conformance, voice_copy_rules_for_speaker
+from agent_voice_profiles import (
+    loop_closing_ask_for_workflow,
+    render_loop_closing_ask,
+    require_clara_copy_conformance,
+    voice_copy_rules_for_speaker,
+)
 
 
 CLARA_SELECTED_VOICE = "CLARA"
@@ -485,13 +490,15 @@ def _contact_role_is_intermediary(contact: Mapping[str, Any] | None) -> bool:
     return "intermediary" in role or "forward" in role
 
 
-def _warm_closing_line(contact: Mapping[str, Any] | None) -> str:
-    copy_rules = voice_copy_rules_for_speaker("clara")
-    forward_to_text = _clean_text((contact or {}).get("forward_to")) if contact else ""
-    forward_to = forward_to_text.split()[0] if forward_to_text else ""
-    if _contact_role_is_intermediary(contact) and forward_to:
-        return str(copy_rules["intermediary_next_step"]).format(forward_to=forward_to)
-    return str(copy_rules["general_next_step"])
+def _warm_closing_line(
+    contact: Mapping[str, Any] | None,
+    *,
+    workflow_ref: str,
+    client_ref: str,
+) -> str:
+    del contact
+    closure = loop_closing_ask_for_workflow(workflow_ref, client_ref=client_ref)
+    return render_loop_closing_ask(closure)
 
 
 def _general_contact_from_recipient_package(
@@ -582,6 +589,8 @@ def build_general_client_invoice_body(
     contact: Mapping[str, Any] | None,
     *,
     first_contact_intro_required: bool | None = None,
+    client_ref: str = "",
+    workflow_ref: str = "",
 ) -> str:
     """Build a reusable Clara invoice email body for clients without bespoke recipes."""
     client_name = _clean_text(
@@ -645,14 +654,22 @@ def build_general_client_invoice_body(
         )
     lines.extend((
         "",
-        _warm_closing_line(contact),
+        _warm_closing_line(
+            contact,
+            workflow_ref=workflow_ref,
+            client_ref=client_ref,
+        ),
         "",
         str(copy_rules["signoff"]),
     ))
     body = "\n".join(lines)
     if body_contains_backend_status_language(body):
         raise ValueError("Generated client-facing invoice body contains forbidden status language.")
-    require_voice_conformance("clara", body)
+    require_clara_copy_conformance(
+        body,
+        workflow_ref=workflow_ref,
+        client_ref=client_ref,
+    )
     return body
 
 
@@ -792,8 +809,15 @@ def build_clara_invoice_email_draft_package(
         general_invoice_data,
         general_contact,
         first_contact_intro_required=first_contact_intro_required,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
     )
-    voice_conformance = require_voice_conformance("clara", body)
+    clara_conformance = require_clara_copy_conformance(
+        body,
+        workflow_ref=workflow_ref,
+        client_ref=client_ref,
+    )
+    voice_conformance = clara_conformance["voice_conformance"]
     line_items_present = bool(_line_items_from_invoice_data(general_invoice_data))
     target_blueprint = _general_target_blueprint(
         subject=subject,
@@ -839,6 +863,7 @@ def build_clara_invoice_email_draft_package(
         "selected_voice": CLARA_SELECTED_VOICE,
         "voice_profile_ref": voice_conformance["voice_profile_ref"],
         "voice_conformance": voice_conformance,
+        "loop_closing_ask_conformance": clara_conformance["loop_closing_ask"],
         "internal_identity": CASSANDRA_INTERNAL_IDENTITY,
         "external_identity": CLARA_EXTERNAL_IDENTITY,
         "draft_status": draft_status,

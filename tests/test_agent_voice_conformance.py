@@ -82,13 +82,24 @@ def test_clara_invoice_body_uses_canonical_general_identity_and_direct_ask() -> 
         },
         {"name": "Draper Carter", "role": "intermediary", "forward_to": "Glenn"},
         first_contact_intro_required=True,
+        client_ref="st_annes",
+        workflow_ref="st_annes_invoice_forward_tracking",
     )
 
     assert "I'm Clara Reid, Winship's assistant." in body
-    assert "Please forward this to Glenn after your review, or let me know if there are any issues." in body
+    closure = voice_profiles.loop_closing_ask_for_workflow(
+        "st_annes_invoice_forward_tracking",
+        client_ref="st_annes",
+    )
+    assert closure["ask_text"] in body
+    assert closure["why_text"] in body
     assert "helping Winship keep the St. Anne's invoice package" not in body
     assert "I hope this note finds you well" not in body
-    assert voice_profiles.require_voice_conformance("clara", body)["passed"] is True
+    assert voice_profiles.require_clara_copy_conformance(
+        body,
+        workflow_ref="st_annes_invoice_forward_tracking",
+        client_ref="st_annes",
+    )["passed"] is True
 
 
 def test_due_followup_draft_is_canonical_clara_and_carries_gate_receipt(tmp_path) -> None:
@@ -108,8 +119,14 @@ def test_due_followup_draft_is_canonical_clara_and_carries_gate_receipt(tmp_path
     assert proposal["voice_profile_ref"] == "agent_voice_profile:clara"
     assert proposal["voice_conformance"]["passed"] is True
     assert "I wanted to follow up" not in proposal["draft"]["body"]
-    assert "Could you let me know whether" in proposal["draft"]["body"]
+    closure = voice_profiles.loop_closing_ask_for_workflow(
+        f"client_followup_watch:{proposal['watch_id']}",
+        client_ref="st_annes",
+    )
+    assert closure["ask_text"] in proposal["draft"]["body"]
+    assert closure["why_text"] in proposal["draft"]["body"]
     assert proposal["approval_request"]["payload"]["voice_conformance"]["passed"] is True
+    assert proposal["loop_closing_ask_conformance"]["milestone_ref"] == "glenn_acknowledged"
 
 
 def test_client_comms_thread_rail_consumes_canonical_clara_profile() -> None:
@@ -127,3 +144,4 @@ def test_client_comms_thread_rail_consumes_canonical_clara_profile() -> None:
     assert "helping Winship keep" not in draft["body"]
     assert draft["voice_profile_ref"] == "agent_voice_profile:clara"
     assert draft["voice_conformance"]["passed"] is True
+    assert draft["loop_closing_ask_conformance"]["milestone_ref"] == "accountant_acknowledged"
