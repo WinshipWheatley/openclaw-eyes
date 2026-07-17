@@ -368,6 +368,18 @@ def _client_slug_candidates(*sources: Any) -> tuple[str, ...]:
     return tuple(candidates)
 
 
+def _invoice_copy_context(*sources: Any) -> tuple[str, str]:
+    candidates = _client_slug_candidates(*sources)
+    client_ref = (candidates[0] if candidates else "").replace("-", "_")
+    if client_ref == "st_annes":
+        workflow_ref = "st_annes_invoice_forward_tracking"
+    elif client_ref:
+        workflow_ref = f"{client_ref}_invoice_send"
+    else:
+        workflow_ref = "counterparty_invoice_send"
+    return client_ref, workflow_ref
+
+
 def _contact_emails(contact: dict[str, Any]) -> tuple[str, ...]:
     emails = contact.get("emails")
     if isinstance(emails, (list, tuple)):
@@ -734,7 +746,13 @@ class RealCockpitOps:
         try:
             from clara_invoice_email_draft_package import build_general_client_invoice_body
             recipient = self._recipient_for_invoice(client=client, invoice_data=invoice_data)
-            body = build_general_client_invoice_body(invoice_data, recipient)
+            client_ref, workflow_ref = _invoice_copy_context(client, invoice_data)
+            body = build_general_client_invoice_body(
+                invoice_data,
+                recipient,
+                client_ref=client_ref,
+                workflow_ref=workflow_ref,
+            )
             msg = ("Clara's draft to " + str((invoice_data or {}).get("client_email") or "the client") +
                    ":\n\n" + body + "\n\n— Review the body above; the send stays behind the cockpit approval gate.")
             return self.telegram_message(msg)
@@ -813,7 +831,13 @@ class RealCockpitOps:
                 )
                 recipient = self._recipient_for_invoice(invoice_data=issued_data)
                 subject = f"Invoice — {issued_data.get('client_name','')}".strip()
-                body = build_general_client_invoice_body(issued_data, recipient)
+                client_ref, workflow_ref = _invoice_copy_context(issued_data)
+                body = build_general_client_invoice_body(
+                    issued_data,
+                    recipient,
+                    client_ref=client_ref,
+                    workflow_ref=workflow_ref,
+                )
                 params = {"to": to, "subject": subject, "body": body,
                           "attachments": [issued_attachment], "attachment_sha256": [issued_digest]}
                 grmc.handle_run_mode_set_request(grmc.DEFAULT_SQLITE_PATH, {
@@ -838,7 +862,13 @@ class RealCockpitOps:
             )
             recipient = self._recipient_for_invoice(invoice_data=issued_data)
             subject = f"Invoice — {issued_data.get('client_name','')}".strip()
-            body = build_general_client_invoice_body(issued_data, recipient)
+            client_ref, workflow_ref = _invoice_copy_context(issued_data)
+            body = build_general_client_invoice_body(
+                issued_data,
+                recipient,
+                client_ref=client_ref,
+                workflow_ref=workflow_ref,
+            )
             params = {"to": to, "subject": subject, "body": body,
                       "attachments": [issued_attachment], "attachment_sha256": [issued_digest]}
             res = broker.call("cassandra", "google.gmail.send", params)

@@ -38,7 +38,8 @@ DEFAULT_RECURRENCE_MODELS: dict[str, dict[str, Any]] = {
     },
     "live_arts_md": {
         "domain": "invoice",
-        "cadence": "per_event",
+        "cadence": "monthly",
+        "day_of_month": 16,
         "active": True,
     },
     "capital_hilton": {

@@ -58,6 +58,7 @@ ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST = "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
 ROUTE_STATUS_MAKE_IT_SO_GRANT_COMPILED = "MAKE_IT_SO_GRANT_COMPILED"
 ROUTE_STATUS_CASSANDRA_OBJECTIVE_WAITING = "CASSANDRA_OBJECTIVE_WAITING_FOR_LOOKUP_AUTHORITY"
 ROUTE_STATUS_CASSANDRA_AR_OBJECTIVE_PLANNED = "CASSANDRA_AR_OBJECTIVE_PLANNED"
+ROUTE_STATUS_CASSANDRA_INVOICE_ENVELOPE_PREPARED = "CASSANDRA_INVOICE_ENVELOPE_PREPARED"
 
 INTENT_CLASSES = (
     "payment_watch_next_step",
@@ -803,12 +804,26 @@ def _cassandra_operator_objective_result(request: Mapping[str, Any], *, generate
             "target_world_ref": context["world"],
             "target_thread_ref": context["thread"],
             "selected_card_id": context["selected_card_id"],
+            "deterministic_invoice_packet": request.get("deterministic_invoice_packet"),
+            "immutable_copy_contract": request.get("immutable_copy_contract"),
+            "artifact_receipt": request.get("artifact_receipt"),
         },
         sqlite_path=sqlite_path,
         ar_sqlite_path=str(request.get("ar_sqlite_path") or ""),
         generated_at=generated_at,
     )
-    if response.get("response_status") == ROUTE_STATUS_CASSANDRA_AR_OBJECTIVE_PLANNED:
+    if response.get("response_status") == ROUTE_STATUS_CASSANDRA_INVOICE_ENVELOPE_PREPARED:
+        display = _custom_display(
+            speaker_ref="cassandra",
+            voice_mode="client_safe",
+            headline="Invoice envelope ready",
+            summary=str(response.get("operator_reply") or "I prepared the immutable invoice envelope and stopped at review."),
+            next_safe_action=str(response.get("next_safe_step") or "Review the exact envelope facts."),
+        )
+        route_status = ROUTE_STATUS_CASSANDRA_INVOICE_ENVELOPE_PREPARED
+        suggested_controller_event = "review_invoice_envelope"
+        route_notes = ["cassandra_operator_objective:invoice_send_class_waist", "provider_and_send_gates_closed"]
+    elif response.get("response_status") == ROUTE_STATUS_CASSANDRA_AR_OBJECTIVE_PLANNED:
         display = _custom_display(
             speaker_ref="cassandra",
             voice_mode="client_safe",
@@ -1335,6 +1350,11 @@ def route_conversation_text(
             action_kind="dry_run_email_receipt",
             target_ref="winshiplive@gmail.com",
         )
+    if all(
+        isinstance(request.get(field), Mapping)
+        for field in ("deterministic_invoice_packet", "immutable_copy_contract", "artifact_receipt")
+    ):
+        return _cassandra_operator_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if cassandra_operator_objective_loop.detects_make_it_so_email_objective(text):
         return _cassandra_operator_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if cassandra_operator_objective_loop.detects_ar_counterparty_objective(text):

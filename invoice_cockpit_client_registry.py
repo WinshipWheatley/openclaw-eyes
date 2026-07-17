@@ -16,8 +16,11 @@ DEFAULT_CLARA_INVOICE_CLIENT_REGISTRY: dict[str, dict[str, Any]] = {
         "display_name": "Capital Hilton",
         "aliases": ("capital hilton", "capitol hilton", "hilton"),
         "send_state": "EXCEL_PATH",
-        "supplier_portal_required": True,
+        "delivery_channel": "email",
+        "supplier_portal_required": False,
         "supplier_portal_provider": "COUPA",
+        "coupa_transaction_class_in_scope": False,
+        "coupa_scope_note": "Coupa is a separate future transaction class and is not part of invoice email delivery.",
         "dual_path_note": (
             "Capital Hilton can go two ways: Coupa/PO when a PO is present, or Excel when "
             "the workbook path is approved. The 5-gig/$2000 trigger is noted; continuing "
@@ -29,12 +32,32 @@ DEFAULT_CLARA_INVOICE_CLIENT_REGISTRY: dict[str, dict[str, Any]] = {
         "client_display_name": "Live Arts MD",
         "display_name": "Live Arts MD",
         "aliases": ("live arts", "live arts md", "live arts maryland", "arts alive md"),
-        "send_block": True,
-        "send_state": "DO_NOT_SEND",
-        "refusal_message": (
-            "Live Arts MD is blocked - its numbers need reconciliation + payment terms; "
-            "not sending."
+        "send_block": False,
+        "send_state": "SEND_REQUIRES_GUARDIAN",
+        "canonical_recipient": "Accountant@liveartsmd.org",
+        "client_email": "Accountant@liveartsmd.org",
+        "recipient_role": "invoice_accountant",
+        "recipient_confirmation_status": "CONFIRMED_BY_RECEIPT",
+        "recipients": (
+            {
+                "display_name": "Live Arts MD Accountant",
+                "role": "invoice_accountant",
+                "lane": "to",
+                "email": "Accountant@liveartsmd.org",
+                "confirmation_status": "CONFIRMED_BY_RECEIPT",
+                "proof_ref": "Operator/to-codex/OPERATOR-DECISIONS-ALL-3-YES-PLUS-LAMD-FACTS-20260717.md",
+            },
         ),
+        "within_days": 30,
+        "recurrence": "monthly",
+        "due_day_of_month": 16,
+        "paid_through_period": "2026-06",
+        "numbering_collision_requires_reconciliation": True,
+        "numbering_allocation_authority": False,
+        "send_authority": False,
+        "payment_authority": False,
+        "workbook_mutation_authority": False,
+        "send_gate_note": "Exact immutable envelope plus Guardian and operator approval are required; SEND_HOLD remains authoritative.",
     },
     "reynolds_tavern": {
         "client_ref": "reynolds_tavern",

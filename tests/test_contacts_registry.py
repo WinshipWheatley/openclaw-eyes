@@ -58,6 +58,7 @@ def test_default_seed_loads_fuller_roster_into_sqlite_tables(tmp_path: Path) -> 
         "dane-krich",
         "draper-carter",
         "ernie-green",
+        "live-arts-md-accountant",
         "megan-rivas",
     ]
 
@@ -97,11 +98,12 @@ def test_get_contacts_for_client_live_arts_returns_human_business_contacts(tmp_p
     contacts = registry.get_contacts_for_client("live-arts-md")
     names = [contact["name"] for contact in contacts]
 
-    assert names == ["Dane Krich", "Draper Carter", "Ernie Green", "Megan Rivas"]
+    assert names == ["Dane Krich", "Draper Carter", "Ernie Green", "Live Arts MD Accountant", "Megan Rivas"]
     assert {contact["id"] for contact in contacts} == {
         "dane-krich",
         "draper-carter",
         "ernie-green",
+        "live-arts-md-accountant",
         "megan-rivas",
     }
     assert all("agent" not in alias.lower() for contact in contacts for alias in contact["aliases"])
@@ -172,11 +174,25 @@ def test_contact_question_prefers_named_client_role_match(tmp_path: Path) -> Non
 
     assert result["answered"] is True
     answer = result["answer"]
-    assert "Megan Rivas" in answer
+    assert "Live Arts MD Accountant" in answer
+    assert "Accountant@liveartsmd.org" in answer
     assert "accountant" in answer.lower()
     assert "Dane Krich" not in answer
     assert "Draper Carter" not in answer
     assert "Glenn Mortoro" not in answer
+
+
+def test_operator_confirmed_live_arts_accountant_mailbox_is_seeded(tmp_path: Path) -> None:
+    db_path = str(tmp_path / "contacts.sqlite3")
+    registry = ContactsRegistry(db_path)
+
+    accountant = registry.get_contact("Accountant@liveartsmd.org")
+
+    assert accountant is not None
+    assert accountant["name"] == "Live Arts MD Accountant"
+    assert accountant["email"] == "Accountant@liveartsmd.org"
+    assert accountant["role"] == "Live Arts invoice accountant"
+    assert accountant["connected_clients"] == ("live-arts-md",)
 
 
 def test_contact_question_named_role_gap_offers_only_named_client_contacts(tmp_path: Path) -> None:

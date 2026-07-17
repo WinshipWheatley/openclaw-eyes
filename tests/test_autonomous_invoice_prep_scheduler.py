@@ -89,3 +89,45 @@ def test_due_st_annes_invoice_prepares_dry_run_review_and_attention_once(tmp_pat
     assert len(attention_after["events"]) == 1
     with sqlite3.connect(queue_sqlite) as conn:
         assert conn.execute("SELECT COUNT(*) FROM packages").fetchone()[0] == 1
+
+
+def test_due_live_arts_monthly_invoice_uses_generic_prepare_only_path(tmp_path: Path) -> None:
+    paid_store_path = tmp_path / "client_paid_through.sqlite"
+    ClientPaidThroughStore(paid_store_path).set_paid_through(
+        "live_arts_md",
+        date(2026, 6, 30),
+        source_ref="operator_paid_through_june_20260717",
+    )
+    queue_sqlite = tmp_path / "workflow_package_queue.sqlite"
+    state_path = tmp_path / "autonomous_invoice_prep_state.json"
+    attention_path = tmp_path / "autonomous_invoice_prep_attention.json"
+
+    result = scheduler.run_once(
+        today=date(2026, 7, 17),
+        paid_through_store_path=paid_store_path,
+        queue_sqlite_path=queue_sqlite,
+        state_path=state_path,
+        attention_outbox_path=attention_path,
+        generated_at="2026-07-17T16:10:00+00:00",
+    )
+
+    prepared = [row for row in result["prepared"] if row["client_ref"] == "live_arts_md"]
+    assert len(prepared) == 1
+    assert prepared[0]["next_expected_invoice"] == "2026-07-16"
+    assert prepared[0]["workflow_ref"] == "live_arts_md_invoice_workflow"
+    assert prepared[0]["machine_proof"]["generic_prepare_path"] is True
+    assert result["machine_proof"]["email_send_performed"] is False
+    assert result["machine_proof"]["business_action_performed"] is False
+
+    second = scheduler.run_once(
+        today=date(2026, 7, 17),
+        paid_through_store_path=paid_store_path,
+        queue_sqlite_path=queue_sqlite,
+        state_path=state_path,
+        attention_outbox_path=attention_path,
+        generated_at="2026-07-17T16:11:00+00:00",
+    )
+    assert any(
+        row["client_ref"] == "live_arts_md" and row["reason"] == "already_prepared_for_cycle"
+        for row in second["skipped"]
+    )

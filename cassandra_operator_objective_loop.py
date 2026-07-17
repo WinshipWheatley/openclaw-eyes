@@ -22,6 +22,8 @@ import authority_secret_custody as custody
 from approval_gate_convergence import convergence_for_surface
 from authority_gate import ensure_send_hold_sentinel
 from email_send_executor import DEFAULT_SEND_HOLD_PATH
+from final_output_boundary import OutputBoundaryContext, render_final_output
+import invoice_send_transaction
 import mac_local_action_bridge
 
 
@@ -75,6 +77,7 @@ STATUS_BLOCKED = "blocked"
 STATUS_COMPLETE = "complete"
 STATUS_WAITING_MAC_LOCAL_ACTION_RESULT = "waiting_for_mac_local_action_result"
 STATUS_MAC_LOCAL_ACTION_COMPLETE = "mac_local_action_complete"
+STATUS_INVOICE_ENVELOPE_PREPARED = "invoice_envelope_prepared"
 
 MAC_LOCAL_SHADOW_RESULT_NEXT_SAFE_STEP = (
     "Mac Apple Mail live adapter is not enabled. Next: approve/build selected-message metadata proof harness if needed."
@@ -1204,6 +1207,91 @@ def route_cassandra_objective_message(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    context = dict(lane_context or {})
+    invoice_packet = context.get("deterministic_invoice_packet")
+    copy_contract = context.get("immutable_copy_contract")
+    artifact_receipt = context.get("artifact_receipt")
+    if all(isinstance(item, Mapping) for item in (invoice_packet, copy_contract, artifact_receipt)):
+        prepared = invoice_send_transaction.prepare_invoice_send(
+            raw_operator_ask=text,
+            deterministic_packet_aid=invoice_packet,
+            immutable_copy_contract=copy_contract,
+            artifact_receipt=artifact_receipt,
+            db_path=_rooted(sqlite_path),
+            generated_at=generated_at,
+        )
+        transaction = prepared["transaction"]
+        objective_id = "cassandra_invoice_prepare:" + str(transaction["transaction_id"]).rsplit(":", 1)[-1]
+        operator_reply = (
+            "I prepared the immutable invoice envelope and stopped at review. "
+            "Nothing was drafted or sent. Next, review the exact facts and attachment hash."
+        )
+        boundary = render_final_output(
+            operator_reply,
+            context=OutputBoundaryContext.from_source_request(text),
+            speaker_ref="cassandra",
+        )
+        objective = {
+            "schema_version": CASSANDRA_OPERATOR_OBJECTIVE_SCHEMA,
+            "objective_id": objective_id,
+            "actor": "Cassandra",
+            "requested_by_operator": "operator:winship",
+            "source_channel": source_channel,
+            "source_message_ref": source_message_ref,
+            "original_user_text": _strip_cassandra_prefix(text),
+            "lane_context": {
+                "target_world_ref": context.get("target_world_ref"),
+                "target_thread_ref": context.get("target_thread_ref"),
+                "invoice_packet_sha256": prepared["copy_result"]["immutable_input_hashes"]["deterministic_packet_aid"],
+            },
+            "client_or_counterparty": prepared["envelope"]["client_display_name"],
+            "objective_summary": "Prepare an immutable no-send invoice envelope for operator review.",
+            "intended_outcome": "Persist PREPARED transaction facts without provider or send activity.",
+            "current_step": "invoice_envelope_review",
+            "objective_status": STATUS_INVOICE_ENVELOPE_PREPARED,
+            "safe_next_step": "Review the exact envelope facts and attachment hash.",
+            "steps": [
+                _step(
+                    "invoice_envelope_prepare",
+                    "complete",
+                    capability_ids=["invoice_send_class_waist"],
+                    transaction_id=transaction["transaction_id"],
+                    envelope_hash=transaction["envelope_hash"],
+                ),
+                _step("provider_draft", "blocked", required_authority="W2 provider draft gate"),
+                _step("email_send", "blocked", required_authority="W3 exact send gate and SEND_HOLD lift"),
+            ],
+            "authority_refs": [],
+            "credential_lease_refs": [],
+            "receipts": [transaction["envelope_hash"]],
+            "proof_refs": [transaction["envelope_hash"]],
+            "denied_actions": list(DENIED_ACTIONS),
+            "created_at": generated_at,
+            "updated_at": generated_at,
+        }
+        _persist_objective(
+            objective,
+            sqlite_path,
+            generated_at=generated_at,
+            decision="immutable_invoice_envelope_prepared_no_send",
+        )
+        machine_proof = {
+            **dict(AUTHORITY_BOUNDARY),
+            **prepared["machine_proof"],
+            "immutable_envelope_persisted": True,
+            "invoice_transaction_state": invoice_send_transaction.PREPARED,
+        }
+        return {
+            "schema_version": "CASSANDRA_INVOICE_PREPARE_ROUTE_V1",
+            "recognized": True,
+            "response_status": "CASSANDRA_INVOICE_ENVELOPE_PREPARED",
+            "operator_reply": boundary.visible_text,
+            "next_safe_step": objective["safe_next_step"],
+            "objective": objective,
+            "invoice_prepare": prepared,
+            "voice_boundary_receipt": boundary.receipt.to_dict(),
+            "machine_proof": machine_proof,
+        }
     if source_channel == "telegram" and mac_local_action_bridge.detects_apple_mail_local_request(text):
         return route_mac_local_action_objective_message(
             text,

@@ -86,28 +86,35 @@ def _authority_boundary_all_false() -> dict[str, bool]:
     return {key: False for key in sorted(keys)}
 
 
-def _st_annes_review_request(*, next_due: date, generated_at: str) -> dict[str, Any]:
+CLIENT_DISPLAY_NAMES = {
+    "st_annes": "St. Anne's",
+    "live_arts_md": "Live Arts MD",
+}
+
+
+def _invoice_review_request(*, client_ref: str, next_due: date, generated_at: str) -> dict[str, Any]:
+    display_name = CLIENT_DISPLAY_NAMES[client_ref]
     source_text = (
-        "Autonomous invoice prep: St. Anne's invoice is due "
-        f"for {next_due.isoformat()}. Prepare a dry-run review and preview before send; "
+        f"Autonomous invoice prep: {display_name} invoice is due "
+        f"for {next_due.isoformat()}. Route this to Cassandra for a dry-run review and preview before send; "
         "show the proof packet first. No email send."
     )
     protected_hash = workflow_package_queue.protected_text_hash(source_text)
     return {
         "request_type": workflow_package_request_consumer.REQUEST_TYPE,
         "kind": workflow_package_request_consumer.REQUEST_KIND,
-        "request_id": f"autonomous_invoice_prep_st_annes_{next_due:%Y%m%d}",
+        "request_id": f"autonomous_invoice_prep_{client_ref}_{next_due:%Y%m%d}",
         "source_surface": "mission_control",
         "source_channel": "autonomous_invoice_prep_scheduler",
         "requested_mode": "operator",
         "world_ref": "finance",
-        "thread_ref": "st_annes",
+        "thread_ref": client_ref,
         "source_text": source_text,
         "source_text_ref": "protected_text_hash:" + protected_hash,
         "protected_text_hash": protected_hash,
         "result_receipt_required": True,
         "authority_boundary": _authority_boundary_all_false(),
-        "idempotency_key": f"autonomous_invoice_prep:st_annes:{next_due.isoformat()}",
+        "idempotency_key": f"autonomous_invoice_prep:{client_ref}:{next_due.isoformat()}",
         "created_at": generated_at,
         "no_external_action": True,
     }
@@ -115,23 +122,24 @@ def _st_annes_review_request(*, next_due: date, generated_at: str) -> dict[str, 
 
 def _attention_event(
     *,
+    client_ref: str,
     receipt: Mapping[str, Any],
     next_due: date,
     generated_at: str,
 ) -> dict[str, Any]:
     proof_refs = list(receipt.get("proof_refs") or [])
     return {
-        "event_id": f"autonomous_invoice_prep:st_annes:{next_due.isoformat()}",
+        "event_id": f"autonomous_invoice_prep:{client_ref}:{next_due.isoformat()}",
         "schema_version": "autonomous_invoice_prep_attention_event_v0",
         "generated_at": generated_at,
         "target_surface": "operator_attention_lane",
-        "headline": "St. Anne's invoice is due",
+        "headline": f"{CLIENT_DISPLAY_NAMES[client_ref]} invoice is due",
         "operator_message": (
-            "St. Anne's invoice is due; I prepared the dry-run review packet. "
+            f"{CLIENT_DISPLAY_NAMES[client_ref]} invoice is due; I prepared the dry-run review packet. "
             "Review it and approve to send only after Guardian approval."
         ),
-        "workflow_ref": str(receipt.get("workflow_ref") or "st_annes_monthly_invoice_rollup"),
-        "client_ref": "st_annes",
+        "workflow_ref": str(receipt.get("workflow_ref") or ""),
+        "client_ref": client_ref,
         "next_expected_invoice": next_due.isoformat(),
         "package_id": str(receipt.get("package_id") or ""),
         "package_status": str(receipt.get("package_status") or ""),
@@ -203,27 +211,29 @@ def _write_state(path: Path, state: Mapping[str, Any], *, generated_at: str) -> 
     _write_json(path, payload)
 
 
-def _prepare_st_annes(
+def _prepare_client(
     *,
+    client_ref: str,
     next_due: date,
     generated_at: str,
     queue_sqlite_path: Path,
 ) -> dict[str, Any]:
-    request = _st_annes_review_request(next_due=next_due, generated_at=generated_at)
+    request = _invoice_review_request(client_ref=client_ref, next_due=next_due, generated_at=generated_at)
     result = workflow_package_request_consumer.consume_workflow_package_request(
         request,
-        source_request_filename=f"autonomous_invoice_prep_st_annes_{next_due:%Y%m%d}.json",
+        source_request_filename=f"autonomous_invoice_prep_{client_ref}_{next_due:%Y%m%d}.json",
         generated_at=generated_at,
         sqlite_path=_rooted(queue_sqlite_path),
     )
     receipt = dict(result.receipt)
     return {
-        "client_ref": "st_annes",
+        "client_ref": client_ref,
         "next_expected_invoice": next_due.isoformat(),
         "workflow_ref": str(receipt.get("workflow_ref") or "st_annes_monthly_invoice_rollup"),
         "package_id": str(receipt.get("package_id") or ""),
         "receipt": receipt,
         "machine_proof": {
+            "generic_prepare_path": True,
             "dry_run_consumer_reused": True,
             "email_send_performed": False,
             "telegram_send_performed": False,
@@ -274,16 +284,18 @@ def run_once(
             skipped.append({**row, "reason": "already_prepared_for_cycle"})
             continue
 
-        if model.client_ref != "st_annes":
+        if model.client_ref not in CLIENT_DISPLAY_NAMES:
             skipped.append({**row, "reason": "no_autonomous_prepare_path"})
             continue
 
-        prep = _prepare_st_annes(
+        prep = _prepare_client(
+            client_ref=model.client_ref,
             next_due=next_due,
             generated_at=generated_at,
             queue_sqlite_path=_rooted(queue_sqlite_path),
         )
         event = _attention_event(
+            client_ref=model.client_ref,
             receipt=prep["receipt"],
             next_due=next_due,
             generated_at=generated_at,

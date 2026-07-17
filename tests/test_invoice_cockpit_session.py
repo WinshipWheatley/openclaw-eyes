@@ -140,20 +140,15 @@ def test_default_registry_trigger_starts_flow_and_sends_pdf():
     assert _prepare_calls(ops)[0][1]["client_ref"] == "st_annes"
 
 
-def test_live_arts_send_block_refuses_without_prepare_or_send():
+def test_live_arts_guardian_gated_registry_allows_intake_preview_but_no_send():
     store, ops = FakeStore(), FakeOps()
     result = cs.handle_invoice_cockpit_message("send the Live Arts MD invoice", ops=ops, store=store)
 
     assert result["handled"] is True
-    assert result["stage"] == cs.REFUSED
-    assert store.load() is None
-    assert any(
-        call[0] == "msg"
-        and "Live Arts MD is blocked" in call[1]
-        and "numbers need reconciliation + payment terms" in call[1]
-        for call in ops.calls
-    )
-    assert not _prepare_calls(ops)
+    assert result["stage"] == wf.AWAITING_INVOICE_APPROVAL
+    assert store.load() is not None
+    assert _prepare_calls(ops)[0][1]["send_state"] == "SEND_REQUIRES_GUARDIAN"
+    assert _prepare_calls(ops)[0][1]["send_authority"] is False
     assert not _send_calls(ops)
 
 

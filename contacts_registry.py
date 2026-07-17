@@ -91,6 +91,15 @@ DEFAULT_CONTACT_SEEDS: tuple[ContactSeed, ...] = (
         source_ref=CONTACTS_109_SOURCE_REF,
     ),
     ContactSeed(
+        id="live-arts-md-accountant",
+        name="Live Arts MD Accountant",
+        emails=("Accountant@liveartsmd.org",),
+        connected_clients=("live-arts-md",),
+        role="Live Arts invoice accountant",
+        aliases=("Live Arts accountant mailbox", "Live Arts accounting", "LAMD accountant"),
+        source_ref="Operator/to-codex/OPERATOR-DECISIONS-ALL-3-YES-PLUS-LAMD-FACTS-20260717.md",
+    ),
+    ContactSeed(
         id="megan-rivas",
         name="Megan Rivas",
         emails=(),
@@ -343,6 +352,80 @@ class ContactsRegistry:
                 except Exception:
                     conn.execute("ROLLBACK")
                     raise
+        finally:
+            conn.close()
+
+    def upsert_contact_additive(self, seed: ContactSeed) -> None:
+        """Add or refresh one contact without deleting existing aliases or links."""
+
+        contact_id = _slug_key(seed.id)
+        name = _clean_text(seed.name)
+        if not contact_id or not name:
+            raise ValueError("contact seed id and name are required")
+        emails = tuple(_clean_text(email) for email in seed.emails if _clean_text(email))
+        clients = tuple(dict.fromkeys(_client_slug(client) for client in seed.connected_clients if _client_slug(client)))
+        aliases = tuple(dict.fromkeys(_clean_text(alias) for alias in seed.aliases if _clean_text(alias)))
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                """
+                INSERT INTO contacts
+                    (id, name, primary_email, role, aliases_json, source_ref, seed_version, updated_at_utc_iso)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    name=excluded.name,
+                    primary_email=excluded.primary_email,
+                    role=excluded.role,
+                    aliases_json=excluded.aliases_json,
+                    source_ref=excluded.source_ref,
+                    seed_version=excluded.seed_version,
+                    updated_at_utc_iso=excluded.updated_at_utc_iso
+                """,
+                (
+                    contact_id,
+                    name,
+                    emails[0] if emails else None,
+                    _clean_text(seed.role),
+                    _stable_aliases_json(aliases),
+                    _clean_text(seed.source_ref),
+                    CONTACTS_SCHEMA_VERSION,
+                    _utc_now_iso(),
+                ),
+            )
+            for position, email in enumerate(emails):
+                conn.execute(
+                    """
+                    INSERT INTO contact_emails (contact_id, email, email_key, position)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(contact_id, email_key) DO UPDATE SET
+                        email=excluded.email, position=excluded.position
+                    """,
+                    (contact_id, email, email.lower(), position),
+                )
+            for position, alias in enumerate(dict.fromkeys((contact_id, name, *aliases))):
+                conn.execute(
+                    """
+                    INSERT INTO contact_aliases (contact_id, alias, alias_key, position)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(contact_id, alias_key) DO UPDATE SET
+                        alias=excluded.alias, position=excluded.position
+                    """,
+                    (contact_id, alias, _alias_key(alias), position),
+                )
+            for client_slug in clients:
+                conn.execute(
+                    """
+                    INSERT INTO contact_client_links (contact_id, client_slug, role)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(contact_id, client_slug) DO UPDATE SET role=excluded.role
+                    """,
+                    (contact_id, client_slug, _clean_text(seed.role)),
+                )
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
         finally:
             conn.close()
 
@@ -694,7 +777,9 @@ def _format_contact_sentence(contact: Mapping[str, Any]) -> str:
     if isinstance(clients, str):
         clients = (clients,)
     client_text = ", ".join(str(client) for client in clients) or "no client link"
-    return f"{name}: {role}; client: {client_text}."
+    email = str(contact.get("email") or "").strip()
+    email_text = f"; email: {email}" if email else ""
+    return f"{name}: {role}; client: {client_text}{email_text}."
 
 
 def _dedupe_contacts(contacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
