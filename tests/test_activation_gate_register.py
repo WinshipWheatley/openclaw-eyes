@@ -154,8 +154,8 @@ def test_w1_invoice_verification_and_finalization_are_live_without_send_authorit
 
     waist = capabilities["invoice_send_class_waist"]
     assert "SUPERSEDED" in waist["current_state_if_verifiable"]["production"]
-    assert "495069a26823" in waist["canary_status"]
-    assert "same-obligation conflicts 0" in waist["canary_status"]
+    assert "d6706f66ae8f" in waist["canary_status"]
+    assert "same-obligation PREPARED count 1" in waist["canary_status"]
 
     for capability_id in (
         "invoice_source_workbook_locator",
@@ -173,6 +173,16 @@ def test_w1_invoice_verification_and_finalization_are_live_without_send_authorit
     assert "CalculateFullRebuild" in finalizer["canary_status"]
     assert "one-page" in finalizer["canary_status"]
     assert "SEND_HOLD" in finalizer["next_required_step"]
+
+    validation_gate = capabilities["validated_invoice_send_authority_gate"]
+    assert validation_gate["gate_stage"] == "operator_approved_live"
+    assert validation_gate["activation_allowed_now"] is False
+    assert validation_gate["operator_approval_required"] is True
+    assert "99c0d53b8077" in validation_gate["canary_status"]
+    assert "sole PREPARED tx d6706f66ae8f" in validation_gate["canary_status"]
+    assert "Guardian action 5FF438AC delivered and waiting" in validation_gate["canary_status"]
+    assert "provider/draft/send/money/ledger calls 0" in validation_gate["canary_status"]
+    assert "SEND_HOLD" in validation_gate["next_required_step"]
 
 
 def test_w1_mac_export_is_live_while_receiver_and_auto_resume_preserve_truth():

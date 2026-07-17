@@ -250,6 +250,17 @@ def _format_operator_action_notification(action: dict, payload: dict) -> str:
     a_type = action.get("action_type", payload.get("action_type", "unknown"))
     exact_payload = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
     code = str(payload.get("typed_fallback_reply_code") or _reply_code(action_id))
+    operator_eli5 = " ".join(str(exact_payload.get("operator_eli5") or "").split())
+    if operator_eli5:
+        return "\n".join(
+            [
+                operator_eli5,
+                "",
+                "Use the buttons below, or reply with:",
+                f"{code} 1 to approve",
+                f"{code} 2 to deny",
+            ]
+        )
     risk = str(payload.get("risk_tier") or _svc.risk_tier_for_action_type(str(a_type))).upper()
     authority_refs = payload.get("authority_refs") if isinstance(payload.get("authority_refs"), list) else []
     credential_lease_refs = payload.get("credential_lease_refs") if isinstance(payload.get("credential_lease_refs"), list) else []

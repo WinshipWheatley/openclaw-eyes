@@ -1,29 +1,36 @@
 {
-  "schema_version": "invoice_candidate_artifact_registry_v0",
-  "generated_at": "2026-07-17T22:16:27+00:00",
+  "authority_boundary": {
+    "artifact_finalization_allowed": false,
+    "business_send_allowed": false,
+    "money_movement_allowed": false,
+    "operator_review_delivery_allowed": true,
+    "provider_draft_allowed": false
+  },
   "candidates": [
     {
+      "active_for_review": false,
       "artifact_id": "invoice-candidate:live_arts_md:2026-07:2026-1004:B-prior-balance-formula-fixed",
       "client_ref": "live_arts_md",
-      "service_period": "2026-07",
+      "finalized": true,
+      "finalized_at": "2026-07-17T22:35:34+00:00",
+      "finalized_pdf_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-07/w1-finalized-2026-1004/invoice.pdf",
+      "finalized_pdf_sha256": "99c0d53b8077a2c8f85a6e3a14d0d3df60c740dd179fa5da917983b28356ce78",
+      "finalized_workbook_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-07/w1-finalized-2026-1004/invoice.xlsx",
+      "finalized_workbook_sha256": "3eb8cd7c82c234cccc3051dadb692d8cb5c00afa0a11c9eca4b10927e8e80aad",
       "invoice_number": "2026-1004",
-      "review_label": "Candidate B with formula-driven prior balance and Job column width fixed",
-      "status": "verified_review_candidate",
-      "active_for_review": true,
-      "finalized": false,
-      "validation_received": false,
       "pdf_path": "/home/openclaw/Operator/from-codex/LAMD-JULY-2026-CANDIDATE-B-PRIOR-BALANCE-FORMULA-FIXED-REPREVIEW-20260717-PC-Codex-Desktop.pdf",
       "pdf_sha256": "99c0d53b8077a2c8f85a6e3a14d0d3df60c740dd179fa5da917983b28356ce78",
       "rendered_image_path": "/home/openclaw/Operator/from-codex/LAMD-JULY-2026-CANDIDATE-B-PRIOR-BALANCE-FORMULA-FIXED-REPREVIEW-20260717-PC-Codex-Desktop.png",
       "rendered_image_sha256": "806e86d0bfa67ea5c9007d3cbbda5329d469d7a586f65960356de9276f15eaa4",
-      "source_receipt_ref": "/home/openclaw/Operator/from-codex/W1-CANDIDATE-B-PRIOR-BALANCE-FORMULA-FIXED-REPREVIEW-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json"
+      "review_label": "Candidate B with formula-driven prior balance and Job column width fixed",
+      "service_period": "2026-07",
+      "source_receipt_ref": "/home/openclaw/Operator/from-codex/W1-CANDIDATE-B-PRIOR-BALANCE-FORMULA-FIXED-REPREVIEW-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+      "status": "finalized_validated",
+      "validation_event_id": "invoice-validation:ec1f6eb9ca786420cf61df67",
+      "validation_message_ref": "telegram:operator_maestro_chat:1794",
+      "validation_received": true
     }
   ],
-  "authority_boundary": {
-    "operator_review_delivery_allowed": true,
-    "artifact_finalization_allowed": false,
-    "provider_draft_allowed": false,
-    "business_send_allowed": false,
-    "money_movement_allowed": false
-  }
+  "generated_at": "2026-07-17T22:35:34+00:00",
+  "schema_version": "invoice_candidate_artifact_registry_v0"
 }

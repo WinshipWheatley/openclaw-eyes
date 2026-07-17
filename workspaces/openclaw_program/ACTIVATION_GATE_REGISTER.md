@@ -26,7 +26,7 @@ This register is descriptive only. It does not enable features, edit production 
 
 ## Summary
 
-- Total capabilities registered: `55`
+- Total capabilities registered: `56`
 - Verified enabled/live: `continuity_capsule`, `external_brain_router`, `fleet_voice_boundary`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Activation allowed now: none recorded
 - Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
@@ -63,7 +63,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Human-in-the-loop pending action pipeline (`hitl_pipeline`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | define a synthetic-only pending-action canary before any live enablement |
 | Governed interactive 8B keep-warm timer (`interactive_8b_keepwarm_timer`) | `operator_approved_live` | `not_applicable` | enabled 2026-07-16; governed timer keeps the operator-bound 8B resident without evicting or preempting other work | no | after an overnight idle interval, record first-touch latency under the warm threshold; keep the existing GPU health watcher as the latency observer |
 | Interpreter-LM (`interpreter_lm`) | `intentionally_off` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | unblock task-013 wiring repair, review task-014 model-fit recipe, then run contained Interpreter-LM/front-door canaries before any live activation |
-| Immutable invoice-send class waist and Cassandra transaction lifecycle path (`invoice_send_class_waist`) | `operator_approved_live` | `not_applicable` | deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false | no | monitor the sole finalized PREPARED receipt; keep provider draft, approval, send, money, and workbook gates closed until their later waves |
+| Immutable invoice-send class waist and Cassandra transaction lifecycle path (`invoice_send_class_waist`) | `operator_approved_live` | `not_applicable` | deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false | no | monitor the sole validation-bound PREPARED receipt; keep provider draft, send, money, and ledger gates closed until the signed action is approved and SEND_HOLD is separately lifted |
 | Canonical invoice source-workbook and finalized-artifact locator (`invoice_source_workbook_locator`) | `operator_approved_live` | `not_applicable` | the deployed W1 owner selects one immutable source by content hash and publishes into the existing manifest-first proof path | no | keep SEND_HOLD and downstream provider-draft/send gates closed until their separately accepted waves |
 | Trusted Excel invoice verification and finalization owner (`invoice_workbook_verification_finalizer`) | `operator_approved_live` | `not_applicable` | the deployed owner repairs an isolated workbook copy, runs Excel full rebuild, verifies caches/totals/formulas/semantics, and atomically publishes one finalized package | no | keep SEND_HOLD active; use the finalized artifact only for review until later provider/Guardian waves are accepted |
 | Legal Sealed ingestion (`legal_sealed_ingestion`) | `blocked` | `not_applicable` | local legal policies and console bridge are synthetic/local-only; real sealed/private ingestion remains blocked | no | complete legal authorization and sealed-ingestion design before any implementation or test with real material |
@@ -91,6 +91,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Polish Loop deterministic task package v1 (`polish_loop_task_package_v1`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | run supervised canary before runtime activation; factory completion tracked under the local-builder bridge |
 | protected_generate Ollama timeouts (`protected_generate_ollama_timeouts`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep defaults; record any future timeout tuning receipt |
 | Runtime / Module Activation Gate v0 (`runtime_module_activation_gate`) | `blocked` | `not_applicable` | v0 gate always blocks runtime/module activation and claims no runtime health | no | satisfy and record all gate prerequisites before runtime/module activation |
+| Validated invoice promotion and exact-send Guardian authority gate (`validated_invoice_send_authority_gate`) | `operator_approved_live` | `not_applicable` | operator validation is append-only and hash-bound; exact bytes are promoted before one replacement envelope and one signed Guardian action are created | no | wait for the signed Guardian decision; do not send while SEND_HOLD remains closed for this client |
 | Walk-away autonomy mode (`walk_away_autonomy_mode`) | `intentionally_off` | `not_applicable` | built but intentionally off by default; enabling writes an autonomy mode state file | no | do not enable from the register; require an operator-approved autonomy receipt |
 
 ## Capabilities
@@ -879,10 +880,10 @@ Live-state evidence:
 - Flag/config: `Cassandra objective route; provider draft/send authority always false in W0`
 - Default state: `fail_closed_prepare_only`
 - Current state if verifiable: deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false
-- Production state: `the W0 provisional row is SUPERSEDED by append-only decision 46aefafd5e78; finalized W1 transaction 495069a26823 is the sole Live Arts July PREPARED obligation`
+- Production state: `the prior W1 transaction 495069a26823 is SUPERSEDED by append-only decision a3c125e076bf; validation-bound transaction d6706f66ae8f is the sole Live Arts July PREPARED obligation`
 - Live production state: `not_applicable`
 - Gate stage: `operator_approved_live`
-- Canary status: `W0 provisional 2bd8efb929ec SUPERSEDED by decision 46aefafd5e78; finalized transaction 495069a26823 is the sole Live Arts July PREPARED row; same-obligation conflicts 0; exact replay idempotent; provider/draft/send/money/workbook/ledger calls 0`
+- Canary status: `prior transaction 495069a26823 SUPERSEDED by decision a3c125e076bf; validation-bound transaction d6706f66ae8f is the sole Live Arts July PREPARED row; same-obligation PREPARED count 1; exact replay idempotent; provider/draft/send/money/workbook/ledger calls 0`
 - Risk level: `high`
 - Owner: `Cassandra / PC Codex Desktop`
 - Activation allowed now: `no`
@@ -891,11 +892,11 @@ Live-state evidence:
 - Enabled by: operator W0 GO plus production deploy, Cassandra restart, and immutable no-send front-door canary
 - Disabled by: remove the structured invoice packet route; existing non-W0 Cassandra routes remain available
 - Rollback: revert the W0 integration commit and restart Cassandra; no provider draft or send state requires cleanup
-- Next required step: monitor the sole finalized PREPARED receipt; keep provider draft, approval, send, money, and workbook gates closed until their later waves
+- Next required step: monitor the sole validation-bound PREPARED receipt; keep provider draft, send, money, and ledger gates closed until the signed action is approved and SEND_HOLD is separately lifted
 - Source files: `invoice_send_transaction.py`, `cassandra_operator_objective_loop.py`, `cassandra_custom_tools.py`, `operator_conversation_router.py`, `invoice_cockpit_ops.py`
 - Tests: `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`, `tests/test_invoice_cockpit_ops.py`, `tests/test_fleet_voice_live_boundary.py`
 - Audits: `/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md`, `/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md`
-- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md`, `/home/openclaw/Operator/from-codex/W1-LAMD-PROVISIONAL-SUPERSESSION-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json`, `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`
+- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md`, `/home/openclaw/Operator/from-codex/W1-LAMD-PROVISIONAL-SUPERSESSION-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json`, `/home/openclaw/Operator/from-codex/W2-B-VALIDATION-EVENT-1-CHAIN-RECEIPT-20260717-PC-Codex-Desktop.json`, `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`
 - Last verified at: `2026-07-17T15:00:00-04:00`
 
 Live-state evidence:
@@ -908,10 +909,10 @@ Live-state evidence:
 - Flag/config: `content-hash source selection; manifest-first finalized artifact lookup`, `/mnt/e/openclaw/artifacts/invoice_workbooks allowlisted root`
 - Default state: `on_fail_closed`
 - Current state if verifiable: the deployed W1 owner selects one immutable source by content hash and publishes into the existing manifest-first proof path
-- Production state: `real Live Arts source selected uniquely and the published July package is consumable by the existing proof locator`
+- Production state: `real Live Arts source selected uniquely; the operator-validated July package resolves as the sole canonical finalized artifact at PDF SHA 99c0d53b8077`
 - Live production state: `not_applicable`
 - Gate stage: `operator_approved_live`
-- Canary status: `real source SHA a21ad71694fb selected uniquely; source semantic markers found before repair; source unchanged; production 2026-1004 package workbook SHA e476354bb18c and PDF SHA a9f22070e97d resolve through the canonical locator; exact owner replay was idempotent`
+- Canary status: `real source SHA a21ad71694fb selected uniquely; source semantic markers found before repair; source unchanged; production 2026-1004 package workbook SHA 3eb8cd7c82c2 and PDF SHA 99c0d53b8077 resolve as finalized_validated through the canonical locator; bounded owner replay selected the exact hash with delivery suppressed`
 - Risk level: `medium`
 - Owner: `Cassandra / PC Codex Desktop`
 - Activation allowed now: `no`
@@ -937,10 +938,10 @@ Live-state evidence:
 - Flag/config: `scripts/finalize_lamd_july_invoice.py --confirm`, `owned Windows Excel COM instance; macros/links/prompts disabled`
 - Default state: `dry_run_until_confirmed_no_send`
 - Current state if verifiable: the deployed owner repairs an isolated workbook copy, runs Excel full rebuild, verifies caches/totals/formulas/semantics, and atomically publishes one finalized package
-- Production state: `real Live Arts July workbook reached verified 2026-1004 at $100 and published through the canonical owner path`
+- Production state: `real Live Arts July workbook reached verified 2026-1004 at $100; operator validation event 1 promoted the exact approved bytes through the canonical owner path`
 - Live production state: `not_applicable`
 - Gate stage: `operator_approved_live`
-- Canary status: `real Excel 16 CalculateFullRebuild completed with two reopens; formula SHA dae6f1ba6c6 preserved; independent subtotal/total/balance all $100; production one-page PDF 178656 bytes SHA a9f22070e97d; workbook SHA e476354bb18c; exact replay idempotent; 2026-1004; drafts/sends/money/ledger calls 0`
+- Canary status: `real Excel 16 CalculateFullRebuild completed with two reopens; formula SHA dae6f1ba6c6 preserved; independent subtotal/total/balance all $100; production one-page PDF SHA 99c0d53b8077; workbook SHA 3eb8cd7c82c2; validated SHA equals finalized SHA; 2026-1004; drafts/sends/money/ledger calls 0`
 - Risk level: `high`
 - Owner: `Cassandra / PC Codex Desktop`
 - Activation allowed now: `no`
@@ -1697,6 +1698,35 @@ Live-state evidence:
 - Audits: none recorded
 - Evidence refs: `scripts/check_runtime_activation_gate.py:build_activation_gate_report`, `tests/test_runtime_activation_gate.py`
 - Last verified at: `2026-07-17T17:42:11-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: no whitelisted live variable is mapped to this capability
+
+### Validated invoice promotion and exact-send Guardian authority gate (`validated_invoice_send_authority_gate`)
+
+- Flag/config: `append-only invoice_artifact_validation_events`, `Guardian exact_gmail_send signed action; SEND_HOLD remains independent`
+- Default state: `validated_promotion_live_send_fail_closed`
+- Current state if verifiable: operator validation is append-only and hash-bound; exact bytes are promoted before one replacement envelope and one signed Guardian action are created
+- Production state: `validation event ec1f6eb9ca78 promoted PDF 99c0d53b8077; transaction d6706f66ae8f is the sole PREPARED row; Guardian action 5FF438AC is delivered and WAITING_FOR_APPROVAL`
+- Live production state: `not_applicable`
+- Gate stage: `operator_approved_live`
+- Canary status: `operator message 1794 recorded append-only; validated/finalized PDF SHA 99c0d53b8077 identical; prior tx 495069a26823 SUPERSEDED; sole PREPARED tx d6706f66ae8f; Guardian action 5FF438AC delivered and waiting; live owner replay selected finalized_validated hash with delivery suppressed; provider/draft/send/money/ledger calls 0`
+- Risk level: `high`
+- Owner: `Guardian / Cassandra / PC Codex Desktop`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: send execution is intentionally off until the signed Guardian action and independent SEND_HOLD gate both allow it
+- Enabled by: Fable-relayed operator validation event 1 plus exact-byte production promotion, transaction supersession, and live Guardian notification
+- Disabled by: stop validation-chain invocations; pending action remains deny/expire-capable and SEND_HOLD continues to block client transport
+- Rollback: do not delete immutable evidence; deny or expire the pending action and leave the validated package canonical
+- Next required step: wait for the signed Guardian decision; do not send while SEND_HOLD remains closed for this client
+- Source files: `invoice_validation_promotion.py`, `scripts/execute_lamd_validation_event_1.py`, `invoice_send_transaction.py`, `cassandra_operator_objective_loop.py`, `hitl_notification_service.py`, `hitl_pending_store.py`
+- Tests: `tests/test_invoice_validation_promotion.py`, `tests/test_hitl_notification_service.py`, `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`
+- Audits: `/home/openclaw/Operator/to-codex/FABLE-EXECUTE-VALIDATION-EVENT-1-FINALIZE-AND-SEND-BUTTON-20260717.md`
+- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_VALIDATION_W2_20260717.md`, `/home/openclaw/Operator/from-codex/W2-B-VALIDATION-EVENT-1-RECEIPT-20260717-PC-Codex-Desktop.json`, `/home/openclaw/Operator/from-codex/W2-B-VALIDATED-ARTIFACT-PROMOTION-RECEIPT-20260717-PC-Codex-Desktop.json`, `/home/openclaw/Operator/from-codex/W2-B-VALIDATION-EVENT-1-CHAIN-RECEIPT-20260717-PC-Codex-Desktop.json`
+- Last verified at: `2026-07-17T18:39:51-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`

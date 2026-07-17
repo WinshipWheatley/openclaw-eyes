@@ -30,6 +30,7 @@ MAC_W1_HELPER_LAST_VERIFIED_AT = "2026-07-17T15:11:21-04:00"
 MAC_DESKTOP_RECEIVER_LAST_VERIFIED_AT = "2026-07-17T15:31:15-04:00"
 MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT = "2026-07-17T15:34:24-04:00"
 OPERATOR_FRONTDOOR_F0_LAST_VERIFIED_AT = "2026-07-17T17:35:36-04:00"
+W2_VALIDATED_INVOICE_GATE_LAST_VERIFIED_AT = "2026-07-17T18:39:51-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -318,6 +319,7 @@ REQUIRED_CAPABILITY_IDS = (
     "capability_ledger_reconciler",
     "invoice_source_workbook_locator",
     "invoice_workbook_verification_finalizer",
+    "validated_invoice_send_authority_gate",
     "mac_selected_invoice_pdf_export_helper",
     "mac_codex_desktop_event_receiver",
     "mac_codex_desktop_seat_auto_resume",
@@ -2014,8 +2016,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             current_state_if_verifiable=_state(
                 "deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false",
                 code_default="PREPARED envelopes remain immutable; a same-obligation replacement may only add one append-only decision and transition the prior row to SUPERSEDED",
-                production="the W0 provisional row is SUPERSEDED by append-only decision 46aefafd5e78; finalized W1 transaction 495069a26823 is the sole Live Arts July PREPARED obligation",
-                audit_report="same-obligation conflict count is zero; exact supersession and finalized-front-door replays are idempotent; decision update/delete triggers fail closed",
+                production="the prior W1 transaction 495069a26823 is SUPERSEDED by append-only decision a3c125e076bf; validation-bound transaction d6706f66ae8f is the sole Live Arts July PREPARED obligation",
+                audit_report="same-obligation PREPARED count is one; exact supersession and finalized-front-door replays are idempotent; decision update/delete triggers fail closed",
             ),
             source_files=[
                 "invoice_send_transaction.py",
@@ -2035,8 +2037,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md",
             ],
             canary_status=(
-                "W0 provisional 2bd8efb929ec SUPERSEDED by decision 46aefafd5e78; finalized transaction 495069a26823 "
-                "is the sole Live Arts July PREPARED row; same-obligation conflicts 0; exact replay idempotent; "
+                "prior transaction 495069a26823 SUPERSEDED by decision a3c125e076bf; validation-bound transaction d6706f66ae8f "
+                "is the sole Live Arts July PREPARED row; same-obligation PREPARED count 1; exact replay idempotent; "
                 "provider/draft/send/money/workbook/ledger calls 0"
             ),
             risk_level="high",
@@ -2045,13 +2047,14 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             enabled_by="operator W0 GO plus production deploy, Cassandra restart, and immutable no-send front-door canary",
             disabled_by="remove the structured invoice packet route; existing non-W0 Cassandra routes remain available",
             rollback_note="revert the W0 integration commit and restart Cassandra; no provider draft or send state requires cleanup",
-            next_required_step="monitor the sole finalized PREPARED receipt; keep provider draft, approval, send, money, and workbook gates closed until their later waves",
+            next_required_step="monitor the sole validation-bound PREPARED receipt; keep provider draft, send, money, and ledger gates closed until the signed action is approved and SEND_HOLD is separately lifted",
             activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="only rollback after an immutable-envelope, idempotency, voice, or owner-process regression",
             evidence_refs=[
                 "workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md",
                 "/home/openclaw/Operator/from-codex/W1-LAMD-PROVISIONAL-SUPERSESSION-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+                "/home/openclaw/Operator/from-codex/W2-B-VALIDATION-EVENT-1-CHAIN-RECEIPT-20260717-PC-Codex-Desktop.json",
                 "tests/test_invoice_send_transaction.py",
                 "tests/test_w0_cassandra_invoice_prepare.py",
             ],
@@ -2115,8 +2118,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             current_state_if_verifiable=_state(
                 "the deployed W1 owner selects one immutable source by content hash and publishes into the existing manifest-first proof path",
                 code_default="no-send hash/metadata selection only; ambiguous, missing, zero-byte, or hash-mismatched sources fail before workbook open or output write",
-                production="real Live Arts source selected uniquely and the published July package is consumable by the existing proof locator",
-                audit_report="source SHA stayed unchanged through reconciliation, Excel rebuild, export, and package publication",
+                production="real Live Arts source selected uniquely; the operator-validated July package resolves as the sole canonical finalized artifact at PDF SHA 99c0d53b8077",
+                audit_report="source SHA stayed unchanged through reconciliation, Excel rebuild, export, exact-byte validation promotion, and canonical readback",
             ),
             source_files=[
                 "invoice_artifact_locator.py",
@@ -2134,8 +2137,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ],
             canary_status=(
                 "real source SHA a21ad71694fb selected uniquely; source semantic markers found before repair; "
-                "source unchanged; production 2026-1004 package workbook SHA e476354bb18c and PDF SHA a9f22070e97d "
-                "resolve through the canonical locator; exact owner replay was idempotent"
+                "source unchanged; production 2026-1004 package workbook SHA 3eb8cd7c82c2 and PDF SHA 99c0d53b8077 "
+                "resolve as finalized_validated through the canonical locator; bounded owner replay selected the exact hash with delivery suppressed"
             ),
             risk_level="medium",
             owner="Cassandra / PC Codex Desktop",
@@ -2167,8 +2170,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             current_state_if_verifiable=_state(
                 "the deployed owner repairs an isolated workbook copy, runs Excel full rebuild, verifies caches/totals/formulas/semantics, and atomically publishes one finalized package",
                 code_default="no-send/no-money finalization only; provider draft, external send, payment, ledger posting, and source mutation remain false",
-                production="real Live Arts July workbook reached verified 2026-1004 at $100 and published through the canonical owner path",
-                audit_report="pre-repair semantic marker gate, stale-cache gate, formula mutation gate, zero-byte PDF gate, and PDF semantic marker gate all fail before publish",
+                production="real Live Arts July workbook reached verified 2026-1004 at $100; operator validation event 1 promoted the exact approved bytes through the canonical owner path",
+                audit_report="pre-repair semantic marker, stale-cache, formula mutation, zero-byte PDF, PDF semantic marker, and validated-byte identity gates all fail before publish",
             ),
             source_files=[
                 "invoice_workbook_finalizer.py",
@@ -2188,8 +2191,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             ],
             canary_status=(
                 "real Excel 16 CalculateFullRebuild completed with two reopens; formula SHA dae6f1ba6c6 preserved; "
-                "independent subtotal/total/balance all $100; production one-page PDF 178656 bytes SHA a9f22070e97d; "
-                "workbook SHA e476354bb18c; exact replay idempotent; 2026-1004; drafts/sends/money/ledger calls 0"
+                "independent subtotal/total/balance all $100; production one-page PDF SHA 99c0d53b8077; "
+                "workbook SHA 3eb8cd7c82c2; validated SHA equals finalized SHA; 2026-1004; drafts/sends/money/ledger calls 0"
             ),
             risk_level="high",
             owner="Cassandra / PC Codex Desktop",
@@ -2209,6 +2212,60 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "tests/test_invoice_w1_owner.py",
             ],
             last_verified_at=W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="validated_invoice_send_authority_gate",
+            display_name="Validated invoice promotion and exact-send Guardian authority gate",
+            flag_or_config=[
+                "append-only invoice_artifact_validation_events",
+                "Guardian exact_gmail_send signed action; SEND_HOLD remains independent",
+            ],
+            default_state="validated_promotion_live_send_fail_closed",
+            current_state_if_verifiable=_state(
+                "operator validation is append-only and hash-bound; exact bytes are promoted before one replacement envelope and one signed Guardian action are created",
+                code_default="artifact approval grants finalization only; provider draft/send, money movement, and ledger posting remain false until a signed action and an independently open send gate are both present",
+                production="validation event ec1f6eb9ca78 promoted PDF 99c0d53b8077; transaction d6706f66ae8f is the sole PREPARED row; Guardian action 5FF438AC is delivered and WAITING_FOR_APPROVAL",
+                audit_report="validated and finalized hashes are identical; prior package is archived; prior transaction is append-only SUPERSEDED; execution-attempt count is zero",
+            ),
+            source_files=[
+                "invoice_validation_promotion.py",
+                "scripts/execute_lamd_validation_event_1.py",
+                "invoice_send_transaction.py",
+                "cassandra_operator_objective_loop.py",
+                "hitl_notification_service.py",
+                "hitl_pending_store.py",
+            ],
+            tests=[
+                "tests/test_invoice_validation_promotion.py",
+                "tests/test_hitl_notification_service.py",
+                "tests/test_invoice_send_transaction.py",
+                "tests/test_w0_cassandra_invoice_prepare.py",
+            ],
+            audits=[
+                "/home/openclaw/Operator/to-codex/FABLE-EXECUTE-VALIDATION-EVENT-1-FINALIZE-AND-SEND-BUTTON-20260717.md",
+            ],
+            canary_status=(
+                "operator message 1794 recorded append-only; validated/finalized PDF SHA 99c0d53b8077 identical; "
+                "prior tx 495069a26823 SUPERSEDED; sole PREPARED tx d6706f66ae8f; Guardian action 5FF438AC delivered and waiting; "
+                "live owner replay selected finalized_validated hash with delivery suppressed; provider/draft/send/money/ledger calls 0"
+            ),
+            risk_level="high",
+            owner="Guardian / Cassandra / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="Fable-relayed operator validation event 1 plus exact-byte production promotion, transaction supersession, and live Guardian notification",
+            disabled_by="stop validation-chain invocations; pending action remains deny/expire-capable and SEND_HOLD continues to block client transport",
+            rollback_note="do not delete immutable evidence; deny or expire the pending action and leave the validated package canonical",
+            next_required_step="wait for the signed Guardian decision; do not send while SEND_HOLD remains closed for this client",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="send execution is intentionally off until the signed Guardian action and independent SEND_HOLD gate both allow it",
+            evidence_refs=[
+                "workspaces/openclaw_program/activation_records/INVOICE_VALIDATION_W2_20260717.md",
+                "/home/openclaw/Operator/from-codex/W2-B-VALIDATION-EVENT-1-RECEIPT-20260717-PC-Codex-Desktop.json",
+                "/home/openclaw/Operator/from-codex/W2-B-VALIDATED-ARTIFACT-PROMOTION-RECEIPT-20260717-PC-Codex-Desktop.json",
+                "/home/openclaw/Operator/from-codex/W2-B-VALIDATION-EVENT-1-CHAIN-RECEIPT-20260717-PC-Codex-Desktop.json",
+            ],
+            last_verified_at=W2_VALIDATED_INVOICE_GATE_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="mac_selected_invoice_pdf_export_helper",
