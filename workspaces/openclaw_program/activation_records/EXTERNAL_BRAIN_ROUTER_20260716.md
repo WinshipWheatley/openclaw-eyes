@@ -43,6 +43,12 @@
   exact marker observed, packet critique score 85, Pro window 18% used, and report
   `sha256:b6ad523249fa2aebbcd54a905696545a` was durably recorded and validated by
   `external_brain_canary:exact_public_marker`.
+- Deployed `protected_generate` canary after production fast-forward and owner
+  service restart: nominal mid promoted to Sol/hard at high effort, exact marker
+  observed, external invoked true, local invoked false, packet critique score
+  94, Pro window 18% used, and report
+  `sha256:a71e39dc416666f21f78ff4fecf65738` was durably recorded and validated by
+  `protected_generate:router_v2_exact_public_marker`.
 - Updated money boundary: real dedicated 0.144.5 child handshake plus synthetic
   80% usage refused the promoted mid-lane call with
   `guardian_approval_required`. Observed methods stopped at `initialize`,

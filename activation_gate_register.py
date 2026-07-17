@@ -20,7 +20,7 @@ from typing import Any, Iterable, Mapping, Sequence
 SCHEMA_VERSION = "activation_gate_register_v0"
 DEFAULT_LAST_VERIFIED_AT = "2026-06-26T00:00:00-04:00"
 DEFAULT_OUTPUT_DIR = Path("workspaces/openclaw_program")
-EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:05:00-04:00"
+EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:20:00-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -1966,8 +1966,8 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
             ],
             canary_status=(
-                "passed exact PUBLIC marker through dedicated 0.144.5 app-server at 18% usage; "
-                "+1 tier promoted easy to Terra/mid with mandatory packet critique and validated ledger row; "
+                "deployed protected_generate exact PUBLIC marker passed through dedicated 0.144.5 app-server at 18% usage; "
+                "+1 tier promoted mid to Sol/hard with packet critique score 94 and validated ledger row; "
                 "80% Guardian boundary stops before model/list or turn; Legal stays local; "
                 "raw prompt remains verbatim; local parity passes"
             ),

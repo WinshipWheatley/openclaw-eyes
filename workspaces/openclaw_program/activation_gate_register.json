@@ -672,7 +672,7 @@
       "audits": [
         "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md"
       ],
-      "canary_status": "passed exact PUBLIC marker through dedicated 0.144.5 app-server at 18% usage; +1 tier promoted easy to Terra/mid with mandatory packet critique and validated ledger row; 80% Guardian boundary stops before model/list or turn; Legal stays local; raw prompt remains verbatim; local parity passes",
+      "canary_status": "deployed protected_generate exact PUBLIC marker passed through dedicated 0.144.5 app-server at 18% usage; +1 tier promoted mid to Sol/hard with packet critique score 94 and validated ledger row; 80% Guardian boundary stops before model/list or turn; Legal stays local; raw prompt remains verbatim; local parity passes",
       "capability_id": "external_brain_router",
       "current_state_if_verifiable": {
         "audit_report": "real +1-tier PUBLIC turn, dual output, ledger validation, and 80% fail-local evidence recorded",
@@ -698,7 +698,7 @@
         "model_lane_bindings.json"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T10:05:00-04:00",
+      "last_verified_at": "2026-07-17T10:20:00-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
