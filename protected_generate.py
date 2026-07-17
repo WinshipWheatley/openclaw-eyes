@@ -366,15 +366,45 @@ def _model_result_tuple(result: Any) -> tuple[str, str | None, int | None, dict[
     return str(result or ""), None, None, {}
 
 
-def _metadata_for_tier(tier: str, token_count: int) -> dict[str, Any]:
-    if tier == PUBLIC:
-        return {"classification": "public", "cloud_allowed": True, "tokenization_applied": False}
+def _metadata_for_tier(
+    tier: str,
+    token_count: int,
+    *,
+    package_minimized: bool = False,
+    legal_fully_tokenized: bool = False,
+    raw_values_included: bool = False,
+    unresolved_sensitive_values: bool = False,
+    secrets_present: bool = False,
+) -> dict[str, Any]:
+    """Describe external eligibility after deterministic privacy packaging.
+
+    The original PII tier remains visible as metadata, but a minimized package
+    whose sensitive values were tokenized is classified as sanitized for the
+    shared external-model gate. Any unresolved/raw/secret-bearing package stays
+    local regardless of its token count.
+    """
+
+    normalized_tier = str(tier or PUBLIC).upper()
+    tokenized = token_count > 0 or (normalized_tier == MAX and legal_fully_tokenized)
+    hard_local = bool(raw_values_included or unresolved_sensitive_values or secrets_present)
+    if normalized_tier == PUBLIC and not hard_local:
+        eligible = True
+    elif normalized_tier == MAX:
+        eligible = bool(package_minimized and legal_fully_tokenized and not hard_local)
+    else:
+        eligible = bool(package_minimized and tokenized and not hard_local)
     return {
-        "classification": "private",
-        "cloud_allowed": False,
-        "local_required": True,
-        "tokenization_applied": token_count > 0,
-        "sensitive": tier in {HIGH, MAX},
+        "classification": "public" if normalized_tier == PUBLIC else ("sanitized" if eligible else "private"),
+        "cloud_allowed": eligible,
+        "local_required": not eligible,
+        "tokenization_applied": tokenized,
+        "sensitive": not eligible and normalized_tier in {HIGH, MAX},
+        "original_pii_tier": normalized_tier,
+        "package_minimized": bool(package_minimized),
+        "legal_fully_tokenized": bool(legal_fully_tokenized),
+        "raw_values_included": bool(raw_values_included),
+        "unresolved_sensitive_values": bool(unresolved_sensitive_values),
+        "secrets_present": bool(secrets_present),
     }
 
 
@@ -1622,9 +1652,29 @@ def protected_generate_with_receipt(
     safe_prompt, ledger = tokenize_text_for_tier(raw_prompt, tier, ledger)
     safe_packet = _tokenize_packet(context_packet, tier, ledger)
     token_count = ledger.token_count()
-    tokenization_applied = token_count > 0
-    raw_values_included = tier in {LIGHT, MED} and token_count == 0
-    metadata = _metadata_for_tier(tier, token_count)
+    privacy = packet.get("privacy") if isinstance(packet.get("privacy"), Mapping) else {}
+    legal_full_tokenization_proven = tier == MAX and _legal_fully_tokenized(raw_prompt, packet)
+    tokenization_applied = token_count > 0 or legal_full_tokenization_proven
+    raw_values_included = tier != PUBLIC and not tokenization_applied
+    package_minimized = bool(
+        packet.get("package_minimized") is True
+        or privacy.get("package_minimized") is True
+    )
+    unresolved_sensitive_values = bool(privacy.get("unresolved_sensitive_values") is True)
+    source_text = f"{raw_prompt}\n{_packet_text(context_packet)}"
+    secrets_present = any(
+        kind in {"SECRET", "PEM_KEY"} and pattern.search(source_text)
+        for kind, pattern in TOKEN_PATTERNS
+    )
+    metadata = _metadata_for_tier(
+        tier,
+        token_count,
+        package_minimized=package_minimized,
+        legal_fully_tokenized=legal_full_tokenization_proven,
+        raw_values_included=raw_values_included,
+        unresolved_sensitive_values=unresolved_sensitive_values,
+        secrets_present=secrets_present,
+    )
     external_safe = False
     external_policy_reason = "not_checked"
     external_model_configured = False

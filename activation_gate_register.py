@@ -1928,6 +1928,59 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             last_verified_at=last_verified_at,
         ),
         _capability(
+            capability_id="external_brain_router",
+            display_name="Subscription external-brain router",
+            flag_or_config=[
+                "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
+                "model_lane_bindings.json",
+            ],
+            default_state="off_pending_shadow_proof",
+            current_state_if_verifiable=_state(
+                "model-agnostic lane and effort router is under TDD; live external routing remains off",
+                code_default="off unless OPENCLAW_EXTERNAL_BRAIN_ROUTER is explicitly enabled",
+                production="not enabled by this build; operator gate remains closed",
+                audit_report="binding activation record requires an hours-scale shadow-to-operator-gate path",
+            ),
+            source_files=[
+                "external_brain_router.py",
+                "codex_app_server_client.py",
+                "model_lane_bindings.json",
+            ],
+            tests=[
+                "tests/test_external_brain_router.py",
+                "tests/test_codex_app_server_client.py",
+            ],
+            audits=[
+                "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
+            ],
+            canary_status=(
+                "pending shadow receipts proving fail-local or Guardian approval boundary at 80%, "
+                "Legal stays local, raw prompt verbatim, and local parity"
+            ),
+            risk_level="high",
+            owner="Fable / PC Codex Desktop",
+            gate_stage="canary",
+            enabled_by="one operator tap after all activation-record proof criteria pass",
+            disabled_by="OPENCLAW_EXTERNAL_BRAIN_ROUTER unset or false; any failed or stale gate proof",
+            rollback_note=(
+                "unset OPENCLAW_EXTERNAL_BRAIN_ROUTER and retain the existing local Ollama path; "
+                "do not alter bindings during rollback"
+            ),
+            next_required_step=(
+                "finish TDD, produce shadow receipts in the same or next session, then surface the "
+                "one-tap operator gate; never activate from this register"
+            ),
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="money-safety shadow proof is incomplete; this is a measured hours-scale off window",
+            evidence_refs=[
+                "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
+                "tests/test_external_brain_router.py",
+                "tests/test_codex_app_server_client.py",
+            ],
+            last_verified_at=last_verified_at,
+        ),
+        _capability(
             capability_id="lm_consult_spine",
             display_name="Advisory LM consult spine",
             flag_or_config=[

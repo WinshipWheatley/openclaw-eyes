@@ -461,7 +461,7 @@
       "tests": []
     },
     {
-      "activation_allowed_now": true,
+      "activation_allowed_now": false,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md",
         "/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md"
@@ -469,10 +469,10 @@
       "canary_status": "LIVE \u2014 verified on the processor 2026-06-28",
       "capability_id": "continuity_capsule",
       "current_state_if_verifiable": {
-        "audit_report": "reconciled 2026-06-28 against the live process env",
+        "audit_report": "audit reported live continuity context, but static register remains non-authoritative",
         "code_default": "off unless OPENCLAW_CONTINUITY_CAPSULE is truthy",
-        "production": "ENABLED on the processor service; /proc live env confirmed",
-        "summary": "LIVE: OPENCLAW_CONTINUITY_CAPSULE=1 verified on the openclaw-request-response (processor) live process env 2026-06-28 (continuity.conf drop-in); OPENCLAW_PACKET_SOURCE=sqlite also live"
+        "production": "unknown; audit_reported live context must be reconciled through live_env_sources",
+        "summary": "unknown unless reconciled from live env sources; live reconciliation records OPENCLAW_CONTINUITY_CAPSULE without granting activation authority"
       },
       "default_state": "off",
       "disabled_by": "OPENCLAW_CONTINUITY_CAPSULE default 0",
@@ -495,7 +495,7 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "none \u2014 live and reconciled",
+      "next_required_step": "keep canary evidence current; live reconciliation does not grant activation authority",
       "operator_approval_required": true,
       "owner": "Opus",
       "reason_if_off": "LIVE 2026-06-28; if rolled back, continuity ids stop stamping",
@@ -600,6 +600,57 @@
       ],
       "tests": [
         "tests/test_gated_email_draft_adapter.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md"
+      ],
+      "canary_status": "pending shadow receipts proving fail-local or Guardian approval boundary at 80%, Legal stays local, raw prompt verbatim, and local parity",
+      "capability_id": "external_brain_router",
+      "current_state_if_verifiable": {
+        "audit_report": "binding activation record requires an hours-scale shadow-to-operator-gate path",
+        "code_default": "off unless OPENCLAW_EXTERNAL_BRAIN_ROUTER is explicitly enabled",
+        "production": "not enabled by this build; operator gate remains closed",
+        "summary": "model-agnostic lane and effort router is under TDD; live external routing remains off"
+      },
+      "default_state": "off_pending_shadow_proof",
+      "disabled_by": "OPENCLAW_EXTERNAL_BRAIN_ROUTER unset or false; any failed or stale gate proof",
+      "display_name": "Subscription external-brain router",
+      "enabled_by": "one operator tap after all activation-record proof criteria pass",
+      "evidence_refs": [
+        "workspaces/openclaw_program/activation_records/EXTERNAL_BRAIN_ROUTER_20260716.md",
+        "tests/test_external_brain_router.py",
+        "tests/test_codex_app_server_client.py"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
+        "model_lane_bindings.json"
+      ],
+      "gate_stage": "canary",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "finish TDD, produce shadow receipts in the same or next session, then surface the one-tap operator gate; never activate from this register",
+      "operator_approval_required": true,
+      "owner": "Fable / PC Codex Desktop",
+      "reason_if_off": "money-safety shadow proof is incomplete; this is a measured hours-scale off window",
+      "risk_level": "high",
+      "rollback_note": "unset OPENCLAW_EXTERNAL_BRAIN_ROUTER and retain the existing local Ollama path; do not alter bindings during rollback",
+      "source_files": [
+        "external_brain_router.py",
+        "codex_app_server_client.py",
+        "model_lane_bindings.json"
+      ],
+      "tests": [
+        "tests/test_external_brain_router.py",
+        "tests/test_codex_app_server_client.py"
       ]
     },
     {
@@ -752,7 +803,7 @@
       "tests": []
     },
     {
-      "activation_allowed_now": true,
+      "activation_allowed_now": false,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md",
@@ -761,13 +812,13 @@
         "/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json",
         "/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md"
       ],
-      "canary_status": "recanary PASSED (direct 6/6 + end-to-end through brain); ACTIVATED in prod 2026-06-27",
+      "canary_status": "recanary required; prior canary failed 3/3 before model-fit repair",
       "capability_id": "frontdoor_model_profile",
       "current_state_if_verifiable": {
-        "audit_report": "recanary PASSED 6/6 direct (p50 1.9s) and end-to-end through answer_frontdoor_chat (4 grounded 8b answers, no confabulation, out-of-packet control declined); 2 adversarial verifies (wiring+safety) held",
+        "audit_report": "front-door model-fit canary previously failed 3/3; current recanary evidence must be supplied before approval",
         "code_default": "off unless OPENCLAW_FRONTDOOR_MODEL_PROFILE is truthy and packet is a Maestro front-door packet",
-        "production": "ENABLED on openclaw-request-response.service (processor) via systemd --user drop-in frontdoor-model.conf with the 6-key envelope (PROFILE=1, REPLY_TIMEOUT=44, allowlist=qwen3:8b-q4_K_M, NUM_CTX=1024, NUM_GPU=999, KEEP_ALIVE=10m); live process env verified",
-        "summary": "ACTIVATED 2026-06-27 under operator keyboard authorization after a PASSING contained recanary (the prior 3/3 timeout was hardware memory/swap pressure, since cleared: 16GB free, GPU offload restored)"
+        "production": "live process may have front-door profile env set, but this register treats that as runtime context only; activation authority remains false until recanary evidence is current",
+        "summary": "canary failed 3/3 before model-fit repair; recanary required before this register grants any activation authority"
       },
       "default_state": "off",
       "disabled_by": "OPENCLAW_FRONTDOOR_MODEL_PROFILE default 0",
@@ -796,7 +847,7 @@
         "OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST",
         "OPENCLAW_FRONTDOOR_MODEL_MAX_GB"
       ],
-      "gate_stage": "operator_approved_live",
+      "gate_stage": "canary",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -805,10 +856,10 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "MONITOR live operator front-door latency/quality; OPTIONAL tuning: raise OPENCLAW_FRONTDOOR_NUM_PREDICT above 200 if broad 'big picture' asks keep hitting the truncation->deterministic-fallback path",
+      "next_required_step": "run recanary with current model-fit resource probe before any activation authority",
       "operator_approval_required": true,
       "owner": "Opus",
-      "reason_if_off": "ACTIVATED 2026-06-27; if rolled back, reverts to the deterministic grounded front-door (byte-identical to legacy). Prior 3/3 timeout was hardware memory/swap pressure, since cleared.",
+      "reason_if_off": "front-door canary failed 3/3 before model-fit repair; recanary evidence is required before activation authority",
       "risk_level": "medium",
       "rollback_note": "delete frontdoor-model.conf drop-in (or set OPENCLAW_FRONTDOOR_MODEL_PROFILE=0) on openclaw-request-response.service, then `systemctl --user daemon-reload && systemctl --user restart openclaw-request-response.service`; protected_generate falls back to deterministic/non-profile path (byte-identical to legacy)",
       "source_files": [
@@ -954,6 +1005,61 @@
         "hitl_pending_action.py"
       ],
       "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/Operator/to-codex/FABLE-CONCUR-KEEPWARM-GO-PROMOTE-20260716.md",
+        "/home/openclaw/Operator/from-codex/SOL-8B-KEEPWARM-PREPROMOTE-20260716.md"
+      ],
+      "canary_status": "first_fire_warmed_verified_2026_07_16; synthetic_lease_deferred_verified; overnight_idle_latency_pending",
+      "capability_id": "interactive_8b_keepwarm_timer",
+      "current_state_if_verifiable": {
+        "audit_report": "FABLE-CONCUR-KEEPWARM-GO-PROMOTE-20260716 approved the scoped promotion",
+        "code_default": "timer is absent until the scoped --keepwarm-only installer is explicitly applied",
+        "production": "enabled and active; first automatic fire proved qwen3:8b resident within 15 minutes at ctx 2048 with a 30-minute keep-alive",
+        "summary": "enabled 2026-07-16; governed timer keeps the operator-bound 8B resident without evicting or preempting other work"
+      },
+      "default_state": "operator_approved_live_timer",
+      "disabled_by": "disable the keep-warm timer; Ollama and the interactive model remain otherwise untouched",
+      "display_name": "Governed interactive 8B keep-warm timer",
+      "enabled_by": "operator direction in Maestro request 1679 plus Opus concurrence; scoped --apply --enable --keepwarm-only installer",
+      "evidence_refs": [
+        "/home/openclaw/.openclaw/receipts/openclaw_8b_keepwarm_latest.json",
+        "systemctl:user:openclaw-8b-keepwarm.timer",
+        "commit:ffb5543e",
+        "synthetic_receipt:/tmp/openclaw_8b_keepwarm_synthetic_defer_20260716T1914.json"
+      ],
+      "flag_or_config": [
+        "openclaw-8b-keepwarm.service",
+        "openclaw-8b-keepwarm.timer"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "after an overnight idle interval, record first-touch latency under the warm threshold; keep the existing GPU health watcher as the latency observer",
+      "operator_approval_required": true,
+      "owner": "Sol/Opus",
+      "reason_if_off": "the recurring cold-first-reply prevention would be inactive",
+      "risk_level": "low",
+      "rollback_note": "systemctl --user disable --now openclaw-8b-keepwarm.timer",
+      "source_files": [
+        "openclaw_8b_keepwarm.py",
+        "local_model_governance.py",
+        "systemd/user/openclaw-8b-keepwarm.service.in",
+        "systemd/user/openclaw-8b-keepwarm.timer.in",
+        "scripts/install_openclaw_stack.sh"
+      ],
+      "tests": [
+        "tests/test_openclaw_8b_keepwarm.py",
+        "tests/test_local_model_governance.py"
+      ]
     },
     {
       "activation_allowed_now": false,
@@ -1105,6 +1211,56 @@
         "chief_llm.py"
       ],
       "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/Operator/from-codex/79-shared-seam-lm1-consolidation-RESULT.md"
+      ],
+      "canary_status": "receipt counter required; zero live-fire receipts should be reported to Fable for flip-off decision",
+      "capability_id": "lm1_shared_seam",
+      "current_state_if_verifiable": {
+        "audit_report": "task-104 adds lm1_shared_seam_used receipts and a counter read-model so Fable can decide keep-on versus flip-off",
+        "code_default": "off unless OPENCLAW_LM1_SHARED_SEAM is truthy",
+        "production": "not_enabled_by_this_register; live reconciliation may verify a flag but grants no activation authority",
+        "summary": "shared LM1 seam is built but must prove live-fire receipt use before remaining live-on"
+      },
+      "default_state": "default-off/canary-required",
+      "disabled_by": "unset OPENCLAW_LM1_SHARED_SEAM or set it to 0 through approved runtime config",
+      "display_name": "LM1 shared request seam",
+      "enabled_by": "explicit OPENCLAW_LM1_SHARED_SEAM only after receipt/counter evidence and Fable review",
+      "evidence_refs": [
+        "openclaw_request_processor.py:_build_lm1_shared_request_seam",
+        "openclaw_request_processor.py:_try_interpreter_brain_divert",
+        "openclaw_request_processor.py:lm1_shared_seam_counter"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_LM1_SHARED_SEAM"
+      ],
+      "gate_stage": "canary",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "watch lm1_shared_seam_counter; if used_count stays zero under live traffic, ask Fable whether to flip the flag off",
+      "operator_approval_required": true,
+      "owner": "Fable / Opus",
+      "reason_if_off": "shared seam changes interpretation/packet reuse; canary evidence and operator approval remain required",
+      "risk_level": "medium",
+      "rollback_note": "unset OPENCLAW_LM1_SHARED_SEAM; interpreter and workflow paths fall back to their prior separate packet construction",
+      "source_files": [
+        "openclaw_request_processor.py",
+        "activation_gate_register.py"
+      ],
+      "tests": [
+        "tests/test_interpreter_lm_integration.py",
+        "tests/test_openclaw_request_processor.py",
+        "tests/test_activation_gate_register.py"
+      ]
     },
     {
       "activation_allowed_now": false,
@@ -1430,12 +1586,108 @@
       "tests": []
     },
     {
-      "activation_allowed_now": true,
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md"
+      ],
+      "canary_status": "not_run_live; requires Fable review of task-100 wiring before runtime use",
+      "capability_id": "packet_delta_receipts",
+      "current_state_if_verifiable": {
+        "audit_report": "task-104 records the missing activation gate entry so built packet-delta surface is not forgotten",
+        "code_default": "off unless OPENCLAW_PACKET_DELTA is truthy",
+        "production": "not_enabled_by_this_register; live reconciliation may verify a flag but grants no activation authority",
+        "summary": "packet delta receipts are a built spine candidate from task 100 but remain descriptive until Fable promotes and verifies wiring"
+      },
+      "default_state": "default-off/register-only",
+      "disabled_by": "OPENCLAW_PACKET_DELTA default off/unset",
+      "display_name": "Packet delta receipt rail",
+      "enabled_by": "future explicit operator approval plus Fable-verified packet-delta canary",
+      "evidence_refs": [
+        "Operator/from-codex/100-packet-engine-spine-RESULT.md",
+        "activation_gate_register.py:packet_delta_receipts"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_PACKET_DELTA"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "Fable should verify task-100 promotion state and define a focused canary before enabling packet delta receipts",
+      "operator_approval_required": true,
+      "owner": "Fable / Opus",
+      "reason_if_off": "packet delta receipts are not activation authority and need promotion/canary evidence before runtime use",
+      "risk_level": "medium",
+      "rollback_note": "unset OPENCLAW_PACKET_DELTA and keep packet delta outputs as non-live descriptive receipts",
+      "source_files": [
+        "activation_gate_register.py",
+        "agent_conversation_handoff_step_packet_contract.py"
+      ],
+      "tests": [
+        "tests/test_activation_gate_register.py",
+        "tests/test_agent_conversation_handoff_step_packet_contract.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md"
+      ],
+      "canary_status": "not_run_live; requires Fable review of task-100 wiring before runtime use",
+      "capability_id": "packet_engine_spine",
+      "current_state_if_verifiable": {
+        "audit_report": "task-104 records the missing activation gate entry so the packet engine surface is not forgotten",
+        "code_default": "off unless OPENCLAW_PACKET_ENGINE is truthy",
+        "production": "not_enabled_by_this_register; live reconciliation may verify a flag but grants no activation authority",
+        "summary": "packet engine spine is a built candidate from task 100 but this register does not wire or enable it"
+      },
+      "default_state": "default-off/register-only",
+      "disabled_by": "OPENCLAW_PACKET_ENGINE default off/unset",
+      "display_name": "Packet engine spine",
+      "enabled_by": "future explicit operator approval plus Fable-verified packet-engine canary",
+      "evidence_refs": [
+        "Operator/from-codex/100-packet-engine-spine-RESULT.md",
+        "activation_gate_register.py:packet_engine_spine"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_PACKET_ENGINE"
+      ],
+      "gate_stage": "intentionally_off",
+      "last_verified_at": "2026-06-26T00:00:00-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "live environment reconciliation was not requested for this register generation",
+        "status": "not_applicable"
+      },
+      "next_required_step": "Fable should verify task-100 promotion state and define a focused canary before enabling packet engine routing",
+      "operator_approval_required": true,
+      "owner": "Fable / Opus",
+      "reason_if_off": "packet engine routing can alter packet construction and needs promotion/canary evidence before runtime use",
+      "risk_level": "medium",
+      "rollback_note": "unset OPENCLAW_PACKET_ENGINE and fall back to the established packet-building paths",
+      "source_files": [
+        "activation_gate_register.py",
+        "maestro_context_packet.py"
+      ],
+      "tests": [
+        "tests/test_activation_gate_register.py",
+        "tests/test_packet_sqlite_flip.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md"
       ],
-      "canary_status": "LIVE (sqlite) \u2014 verified on the processor 2026-06-28",
+      "canary_status": "canary/live verification recorded; does not grant activation authority",
       "capability_id": "packet_source_sqlite_flip",
       "current_state_if_verifiable": {
         "audit_report": "reconciled 2026-06-28 against the live process env",
@@ -1454,7 +1706,7 @@
       "flag_or_config": [
         "OPENCLAW_PACKET_SOURCE"
       ],
-      "gate_stage": "operator_approved_live",
+      "gate_stage": "canary",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -1463,7 +1715,7 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "none \u2014 live and reconciled",
+      "next_required_step": "keep canary evidence current; live reconciliation does not grant activation authority",
       "operator_approval_required": true,
       "owner": "Opus",
       "reason_if_off": "LIVE (sqlite) 2026-06-28; if rolled back, reverts to flat packet source",
@@ -1571,7 +1823,7 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "HELD OFF deliberately 2026-06-28: the local-builder bridge (OPENCLAW_POLISH_LOOP_LOCAL_BUILDER) is the chosen closure path, making this legacy file-loop reconciliation redundant; before any future enable, close the nonce-hardening item (task-007: status.json snapshot omits phase_c_lease_nonce)",
+      "next_required_step": "HELD OFF deliberately 2026-06-28: keep canary requirement before any future enable; close the nonce-hardening item first (task-007: status.json snapshot omits phase_c_lease_nonce)",
       "operator_approval_required": true,
       "owner": "Opus",
       "reason_if_off": "changes runtime reconciliation behavior and Polish Loop remains NOT_READY; canary and Opus/operator approval are required",
@@ -1590,12 +1842,12 @@
       ]
     },
     {
-      "activation_allowed_now": true,
+      "activation_allowed_now": false,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md",
         "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md"
       ],
-      "canary_status": "VERIFIED + ACTIVATED 2026-06-28 (37 tests + contained end-to-end)",
+      "canary_status": "synthetic_only; canary required before runtime activation",
       "capability_id": "polish_loop_local_builder_bridge",
       "current_state_if_verifiable": {
         "audit_report": "closure-bridge tests pass; run_phase_c_once leases READY -> run_local_builder_worker -> VERIFYING; lease-authoritative; no status.json double-build",
@@ -1614,7 +1866,7 @@
       "flag_or_config": [
         "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"
       ],
-      "gate_stage": "operator_approved_live",
+      "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -1623,10 +1875,10 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "wire auto-acceptance (decide_acceptance/green-gate) so VERIFYING->DONE runs unattended; add a live agent-request entry",
+      "next_required_step": "run supervised canary and close NOT_READY blockers before runtime activation",
       "operator_approval_required": true,
       "owner": "Opus",
-      "reason_if_off": "ACTIVATED 2026-06-28; if rolled back, dispatch reverts to writing the FIX directive without running the builder (task stays LEASED)",
+      "reason_if_off": "NOT_READY: local builder bridge remains catalogued without activation authority",
       "risk_level": "high",
       "rollback_note": "edit crontab: drop OPENCLAW_POLISH_LOOP_LOCAL_BUILDER=1 from the */5 orchestrator line (backup at scratchpad/crontab.backup.txt); dispatch reverts to orphaned FIX directive (task stays LEASED, no build)",
       "source_files": [
@@ -1742,12 +1994,12 @@
       ]
     },
     {
-      "activation_allowed_now": true,
+      "activation_allowed_now": false,
       "audits": [
         "/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md",
         "/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md"
       ],
-      "canary_status": "VERIFIED + ACTIVATED 2026-06-28 (task-package tests + end-to-end)",
+      "canary_status": "synthetic_only; canary required before runtime activation",
       "capability_id": "polish_loop_task_package_v1",
       "current_state_if_verifiable": {
         "audit_report": "task-package materialization tests pass; blocker #3 (sparse/stale task.md) closed",
@@ -1769,7 +2021,7 @@
       "flag_or_config": [
         "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"
       ],
-      "gate_stage": "operator_approved_live",
+      "gate_stage": "intentionally_off",
       "last_verified_at": "2026-06-26T00:00:00-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
@@ -1778,7 +2030,7 @@
         "notes": "live environment reconciliation was not requested for this register generation",
         "status": "not_applicable"
       },
-      "next_required_step": "none for this flag; factory completion tracked under the local-builder bridge (auto-acceptance + agent-request entry)",
+      "next_required_step": "run supervised canary before runtime activation; factory completion tracked under the local-builder bridge",
       "operator_approval_required": true,
       "owner": "Opus",
       "reason_if_off": "ACTIVATED 2026-06-28; if rolled back, builder falls back to legacy task.md/directive materialization",
@@ -1952,6 +2204,9 @@
     "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
     "OPENCLAW_CONTINUITY_CAPSULE",
     "OPENCLAW_PACKET_SOURCE",
+    "OPENCLAW_LM1_SHARED_SEAM",
+    "OPENCLAW_PACKET_DELTA",
+    "OPENCLAW_PACKET_ENGINE",
     "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
     "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
     "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
@@ -2030,6 +2285,9 @@
       "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
       "OPENCLAW_CONTINUITY_CAPSULE",
       "OPENCLAW_PACKET_SOURCE",
+      "OPENCLAW_LM1_SHARED_SEAM",
+      "OPENCLAW_PACKET_DELTA",
+      "OPENCLAW_PACKET_ENGINE",
       "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
       "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE",
       "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1",
@@ -2122,13 +2380,7 @@
   ],
   "schema_version": "activation_gate_register_v0",
   "summary": {
-    "activation_allowed_now": [
-      "continuity_capsule",
-      "frontdoor_model_profile",
-      "packet_source_sqlite_flip",
-      "polish_loop_local_builder_bridge",
-      "polish_loop_task_package_v1"
-    ],
+    "activation_allowed_now": [],
     "blocked": [
       "claude_agent_hard_block",
       "legal_sealed_ingestion",
@@ -2156,10 +2408,14 @@
       "model_selection_policy_contract",
       "nemotron_provider",
       "openai_adapter_stub",
+      "packet_delta_receipts",
+      "packet_engine_spine",
       "polish_loop_factory_mode",
       "polish_loop_file_ledger_bridge",
+      "polish_loop_local_builder_bridge",
       "polish_loop_size_router_v1",
       "polish_loop_size_router_v1",
+      "polish_loop_task_package_v1",
       "runtime_module_activation_gate",
       "walk_away_autonomy_mode"
     ],
@@ -2178,15 +2434,23 @@
       "lm_consult_spine",
       "model_selection_policy_contract",
       "nemotron_provider",
+      "packet_delta_receipts",
+      "packet_engine_spine",
       "polish_loop_file_ledger_bridge",
+      "polish_loop_local_builder_bridge",
       "polish_loop_size_router_v1",
       "polish_loop_size_router_v1",
+      "polish_loop_task_package_v1",
       "walk_away_autonomy_mode"
     ],
     "ready_for_canary": [
-      "control_plane_heal_emission"
+      "control_plane_heal_emission",
+      "external_brain_router",
+      "frontdoor_model_profile",
+      "lm1_shared_seam",
+      "packet_source_sqlite_flip"
     ],
-    "total_capabilities": 40,
+    "total_capabilities": 45,
     "unknown_production_state": [
       "action_runtime",
       "active_machinery_classification",
@@ -2194,6 +2458,7 @@
       "cassandra_telegram_delivery",
       "cassandra_telegram_dryrun_inbox",
       "computer_use_worker_gateway",
+      "continuity_capsule",
       "draft_only_email_adapter",
       "external_model_openrouter_path",
       "gated_email_send_rail",
@@ -2349,6 +2614,7 @@
           "activation_gate_register.py",
           "maestro_context_packet.py",
           "maestro_listener.py",
+          "openclaw_request_processor.py",
           "tests/test_activation_gate_register.py"
         ],
         "status": "found"
@@ -2365,6 +2631,13 @@
         "files": [
           "activation_gate_register.py",
           "openclaw_lm_consult_spine.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_EXTERNAL_BRAIN_ROUTER": {
+        "files": [
+          "activation_gate_register.py",
+          "tests/test_activation_gate_register.py"
         ],
         "status": "found"
       },
@@ -2428,6 +2701,7 @@
         "files": [
           "activation_gate_register.py",
           "chief_llm.py",
+          "maestro_context_packet.py",
           "protected_generate.py",
           "tests/test_frontdoor_model_profile.py",
           "tests/test_frontdoor_warmpin_offload.py"
@@ -2499,8 +2773,10 @@
           "activation_gate_register.py",
           "interpreter_lm.py",
           "maestro_context_packet.py",
+          "openclaw_request_processor.py",
           "tests/test_activation_gate_register.py",
-          "tests/test_continuity_stamp.py"
+          "tests/test_continuity_stamp.py",
+          "tests/test_interpreter_lm_integration.py"
         ],
         "status": "found"
       },
@@ -2515,6 +2791,16 @@
           "activation_gate_register.py",
           "chief_llm.py",
           "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_LM1_SHARED_SEAM": {
+        "files": [
+          "activation_gate_register.py",
+          "maestro_context_packet.py",
+          "openclaw_request_processor.py",
+          "tests/test_activation_gate_register.py",
+          "tests/test_interpreter_lm_integration.py"
         ],
         "status": "found"
       },
@@ -2545,6 +2831,20 @@
         "files": [
           "activation_gate_register.py",
           "chief_llm.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_PACKET_DELTA": {
+        "files": [
+          "activation_gate_register.py",
+          "tests/test_activation_gate_register.py"
+        ],
+        "status": "found"
+      },
+      "OPENCLAW_PACKET_ENGINE": {
+        "files": [
+          "activation_gate_register.py",
+          "tests/test_activation_gate_register.py"
         ],
         "status": "found"
       },
@@ -2647,11 +2947,13 @@
       "OPENCLAW_TEST_MODE": {
         "files": [
           "activation_gate_register.py",
+          "local_model_governance.py",
           "polish_loop/lane_launcher.py",
           "polish_loop/orchestrator.py",
           "polish_loop/pc4_heal_emitter.py",
           "protected_generate.py",
           "tests/test_continuity_stamp.py",
+          "tests/test_interpreter_lm_integration.py",
           "tests/test_polish_loop_self_scaling.py"
         ],
         "status": "found"
@@ -2683,6 +2985,9 @@
         "status": "found"
       }
     },
-    "missing_repo_evidence_files": []
+    "missing_repo_evidence_files": [
+      "brain_dump_parser.py",
+      "polish_loop/git_task_guard.sh"
+    ]
   }
 }

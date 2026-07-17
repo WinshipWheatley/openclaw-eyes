@@ -104,6 +104,26 @@ def test_interactive_8b_keepwarm_has_live_activation_record_and_open_overnight_c
     assert "openclaw_8b_keepwarm_latest.json" in " ".join(capability["evidence_refs"])
 
 
+def test_external_brain_router_has_bounded_same_session_activation_record():
+    capability = _capabilities_by_id(_payload())["external_brain_router"]
+
+    assert capability["flag_or_config"] == [
+        "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
+        "model_lane_bindings.json",
+    ]
+    assert capability["default_state"] == "off_pending_shadow_proof"
+    assert capability["gate_stage"] == "canary"
+    assert capability["activation_allowed_now"] is False
+    assert capability["operator_approval_required"] is True
+    assert "one operator tap" in capability["enabled_by"]
+    assert "80%" in capability["canary_status"]
+    assert "Legal" in capability["canary_status"]
+    assert "raw prompt" in capability["canary_status"]
+    assert "local parity" in capability["canary_status"]
+    assert "same or next session" in capability["next_required_step"]
+    assert "EXTERNAL_BRAIN_ROUTER_20260716.md" in " ".join(capability["evidence_refs"])
+
+
 def test_live_lm1_and_packet_flags_reconcile_without_activation_authority():
     payload = _live_payload([
         _test_source(
