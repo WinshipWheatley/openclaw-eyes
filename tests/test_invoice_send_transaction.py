@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
 from dataclasses import FrozenInstanceError
 from pathlib import Path
@@ -146,3 +147,108 @@ def test_artifact_hash_mismatch_fails_before_transaction_write(tmp_path: Path) -
             generated_at=FIXED_NOW,
         )
     assert not (tmp_path / "objectives.sqlite").exists()
+
+
+def _prepare_same_obligation_pair(tmp_path: Path) -> tuple[Path, str, str]:
+    packet, contract, artifact = _inputs(tmp_path)
+    db_path = tmp_path / "objectives.sqlite"
+    first = waist.prepare_invoice_send(
+        raw_operator_ask="Prepare the provisional July invoice without sending.",
+        deterministic_packet_aid=packet,
+        immutable_copy_contract=contract,
+        artifact_receipt=artifact,
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    finalized_artifact = tmp_path / "lamd-july-finalized.pdf"
+    finalized_artifact.write_bytes(b"%PDF-1.4\nW1 finalized no-send canary\n")
+    finalized_receipt = {
+        **artifact,
+        "path": str(finalized_artifact),
+        "size_bytes": finalized_artifact.stat().st_size,
+        "sha256": hashlib.sha256(finalized_artifact.read_bytes()).hexdigest(),
+        "artifact_verification_receipt_id": "w1-canary-artifact-verified",
+        "formula_freshness_receipt_id": "w1-canary-formula-verified",
+    }
+    finalized_packet = {**packet, "invoice_number": "2026-1004"}
+    second = waist.prepare_invoice_send(
+        raw_operator_ask="Prepare the finalized July invoice without sending.",
+        deterministic_packet_aid=finalized_packet,
+        immutable_copy_contract=contract,
+        artifact_receipt=finalized_receipt,
+        db_path=db_path,
+        generated_at="2026-07-17T18:35:00+00:00",
+    )
+    return db_path, first["transaction"]["transaction_id"], second["transaction"]["transaction_id"]
+
+
+def test_supersede_prepared_transaction_is_append_only_and_idempotent(tmp_path: Path) -> None:
+    db_path, provisional_id, finalized_id = _prepare_same_obligation_pair(tmp_path)
+
+    first = waist.supersede_prepared_transaction(
+        db_path=db_path,
+        transaction_id=provisional_id,
+        superseded_by_transaction_id=finalized_id,
+        reason="W1 finalized artifact replaces the W0 provisional obligation",
+        decided_at="2026-07-17T18:55:00+00:00",
+    )
+    replay = waist.supersede_prepared_transaction(
+        db_path=db_path,
+        transaction_id=provisional_id,
+        superseded_by_transaction_id=finalized_id,
+        reason="W1 finalized artifact replaces the W0 provisional obligation",
+        decided_at="2026-07-17T18:55:00+00:00",
+    )
+
+    assert first["lifecycle_state"] == "SUPERSEDED"
+    assert first["superseded_by_transaction_id"] == finalized_id
+    assert first["idempotent_replay"] is False
+    assert replay["decision_id"] == first["decision_id"]
+    assert replay["idempotent_replay"] is True
+    assert first["authority_boundary"] == {
+        "provider_called": False,
+        "gmail_draft_created": False,
+        "email_send_performed": False,
+        "money_moved": False,
+        "workbook_mutated": False,
+        "ledger_posted": False,
+    }
+
+    with sqlite3.connect(db_path) as conn:
+        states = dict(conn.execute("SELECT transaction_id, lifecycle_state FROM invoice_send_transactions"))
+        assert states == {provisional_id: "SUPERSEDED", finalized_id: "PREPARED"}
+        assert conn.execute("SELECT count(*) FROM invoice_send_transaction_decisions").fetchone()[0] == 1
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            conn.execute("UPDATE invoice_send_transaction_decisions SET reason = 'changed'")
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            conn.execute("DELETE FROM invoice_send_transaction_decisions")
+
+
+def test_supersede_rejects_a_different_obligation_without_mutation(tmp_path: Path) -> None:
+    db_path, provisional_id, finalized_id = _prepare_same_obligation_pair(tmp_path)
+    with sqlite3.connect(db_path) as conn:
+        envelope_json = conn.execute(
+            "SELECT envelope_json FROM invoice_send_transactions WHERE transaction_id = ?",
+            (finalized_id,),
+        ).fetchone()[0]
+        envelope = json.loads(envelope_json)
+        envelope["amount_minor_units"] = 20000
+        conn.execute(
+            "UPDATE invoice_send_transactions SET envelope_json = ? WHERE transaction_id = ?",
+            (json.dumps(envelope, sort_keys=True, separators=(",", ":")), finalized_id),
+        )
+
+    with pytest.raises(waist.InvoiceEnvelopeError, match="same invoice obligation"):
+        waist.supersede_prepared_transaction(
+            db_path=db_path,
+            transaction_id=provisional_id,
+            superseded_by_transaction_id=finalized_id,
+            reason="must fail",
+            decided_at="2026-07-17T18:55:00+00:00",
+        )
+
+    with sqlite3.connect(db_path) as conn:
+        states = dict(conn.execute("SELECT transaction_id, lifecycle_state FROM invoice_send_transactions"))
+        assert states == {provisional_id: "PREPARED", finalized_id: "PREPARED"}
+        assert conn.execute("SELECT count(*) FROM invoice_send_transaction_decisions").fetchone()[0] == 0

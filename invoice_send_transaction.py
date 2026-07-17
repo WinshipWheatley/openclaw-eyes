@@ -28,8 +28,10 @@ COPY_SCHEMA_VERSION = "invoice_copy_candidate_v1"
 TRANSACTION_SCHEMA_VERSION = "invoice_send_transaction_v1"
 CANONICAL_SENDER = "winshiplive@gmail.com"
 PREPARED = "PREPARED"
+SUPERSEDED = "SUPERSEDED"
 LIFECYCLE_STATES = (
     PREPARED,
+    SUPERSEDED,
     "VERIFIED",
     "DRAFT_CREATED",
     "DRAFT_VERIFIED",
@@ -404,8 +406,163 @@ def ensure_invoice_transaction_schema(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_invoice_send_transactions_state
           ON invoice_send_transactions(lifecycle_state, client_ref);
+        CREATE TABLE IF NOT EXISTS invoice_send_transaction_decisions (
+          decision_id TEXT PRIMARY KEY,
+          transaction_id TEXT NOT NULL,
+          prior_lifecycle_state TEXT NOT NULL,
+          lifecycle_state TEXT NOT NULL,
+          superseded_by_transaction_id TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          decided_at TEXT NOT NULL,
+          decision_json TEXT NOT NULL,
+          UNIQUE(transaction_id, lifecycle_state, superseded_by_transaction_id)
+        );
+        CREATE TRIGGER IF NOT EXISTS invoice_send_transaction_decisions_no_update
+        BEFORE UPDATE ON invoice_send_transaction_decisions
+        BEGIN
+          SELECT RAISE(ABORT, 'invoice send transaction decisions are append-only');
+        END;
+        CREATE TRIGGER IF NOT EXISTS invoice_send_transaction_decisions_no_delete
+        BEFORE DELETE ON invoice_send_transaction_decisions
+        BEGIN
+          SELECT RAISE(ABORT, 'invoice send transaction decisions are append-only');
+        END;
         """
     )
+
+
+def _obligation_identity(row: sqlite3.Row) -> dict[str, Any]:
+    try:
+        payload = json.loads(str(row["envelope_json"]))
+        identity = {
+            "client_ref": _clean(payload["client_ref"]),
+            "service_period": _clean(payload["service_period"]),
+            "currency": _clean(payload["currency"]).upper(),
+            "amount_minor_units": int(payload["amount_minor_units"]),
+        }
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise InvoiceEnvelopeError("transaction has no valid invoice obligation identity") from exc
+    if identity["client_ref"] != _clean(row["client_ref"]):
+        raise InvoiceEnvelopeError("transaction client identity does not match its immutable envelope")
+    if identity["service_period"] != _clean(row["service_period"]):
+        raise InvoiceEnvelopeError("transaction service period does not match its immutable envelope")
+    return identity
+
+
+def supersede_prepared_transaction(
+    *,
+    db_path: str | Path,
+    transaction_id: str,
+    superseded_by_transaction_id: str,
+    reason: str,
+    decided_at: str | None = None,
+) -> dict[str, Any]:
+    path = Path(db_path)
+    prior_id = _clean(transaction_id)
+    successor_id = _clean(superseded_by_transaction_id)
+    clean_reason = _clean(reason)
+    if not prior_id or not successor_id or not clean_reason:
+        raise InvoiceEnvelopeError("supersession requires both transaction ids and a reason")
+    if prior_id == successor_id:
+        raise InvoiceEnvelopeError("a transaction cannot supersede itself")
+    timestamp = _clean(decided_at) or datetime.now(timezone.utc).isoformat()
+    decision_id = "invoice-send-decision:" + hashlib.sha256(
+        f"{prior_id}|{SUPERSEDED}|{successor_id}".encode("utf-8")
+    ).hexdigest()[:24]
+
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        ensure_invoice_transaction_schema(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        prior = conn.execute(
+            "SELECT * FROM invoice_send_transactions WHERE transaction_id = ?",
+            (prior_id,),
+        ).fetchone()
+        successor = conn.execute(
+            "SELECT * FROM invoice_send_transactions WHERE transaction_id = ?",
+            (successor_id,),
+        ).fetchone()
+        if prior is None or successor is None:
+            raise InvoiceEnvelopeError("supersession requires two existing invoice transactions")
+
+        existing = conn.execute(
+            "SELECT decision_json FROM invoice_send_transaction_decisions WHERE decision_id = ?",
+            (decision_id,),
+        ).fetchone()
+        if prior["lifecycle_state"] == SUPERSEDED:
+            if existing is None:
+                raise InvoiceEnvelopeError("superseded transaction is missing its append-only decision")
+            decision = json.loads(existing["decision_json"])
+            if decision["reason"] != clean_reason:
+                raise InvoiceEnvelopeError("supersession replay changed the immutable reason")
+            conn.commit()
+            return {**decision, "idempotent_replay": True}
+        if prior["lifecycle_state"] != PREPARED:
+            raise InvoiceEnvelopeError("only a PREPARED transaction can be superseded")
+        if successor["lifecycle_state"] != PREPARED:
+            raise InvoiceEnvelopeError("superseding transaction must remain PREPARED")
+
+        prior_obligation = _obligation_identity(prior)
+        successor_obligation = _obligation_identity(successor)
+        if prior_obligation != successor_obligation:
+            raise InvoiceEnvelopeError("transactions do not represent the same invoice obligation")
+
+        authority_boundary = {
+            "provider_called": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+            "money_moved": False,
+            "workbook_mutated": False,
+            "ledger_posted": False,
+        }
+        decision = {
+            "schema_version": "invoice_send_transaction_decision_v1",
+            "decision_id": decision_id,
+            "transaction_id": prior_id,
+            "prior_lifecycle_state": PREPARED,
+            "lifecycle_state": SUPERSEDED,
+            "superseded_by_transaction_id": successor_id,
+            "reason": clean_reason,
+            "decided_at": timestamp,
+            "obligation": prior_obligation,
+            "authority_boundary": authority_boundary,
+        }
+        changed = conn.execute(
+            """
+            UPDATE invoice_send_transactions
+               SET lifecycle_state = ?, updated_at = ?
+             WHERE transaction_id = ? AND lifecycle_state = ?
+            """,
+            (SUPERSEDED, timestamp, prior_id, PREPARED),
+        ).rowcount
+        if changed != 1:
+            raise InvoiceEnvelopeError("prepared transaction changed during supersession")
+        conn.execute(
+            """
+            INSERT INTO invoice_send_transaction_decisions (
+              decision_id, transaction_id, prior_lifecycle_state, lifecycle_state,
+              superseded_by_transaction_id, reason, decided_at, decision_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                decision_id,
+                prior_id,
+                PREPARED,
+                SUPERSEDED,
+                successor_id,
+                clean_reason,
+                timestamp,
+                _stable_json(decision),
+            ),
+        )
+        conn.commit()
+        return {**decision, "idempotent_replay": False}
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def record_prepared_transaction(
