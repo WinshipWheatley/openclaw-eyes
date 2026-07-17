@@ -212,6 +212,7 @@ def resolve_invoice_proof_request(
         "context_request_id": "",
         "artifact_variant": artifact_variant,
         "active_surface": active_surface,
+        "delivery_suppressed": raw_request.get("delivery_suppressed") is True,
         "locator_result": {},
         "model_call_performed": False,
         "external_action_performed": False,
@@ -308,12 +309,15 @@ def proof_artifact_from_resolution(resolution: Mapping[str, Any]) -> dict[str, A
         candidate.get("artifact_variant") or resolution.get("artifact_variant") or "current"
     )
     active_surface = str(resolution.get("active_surface") or "pc")
+    delivery_suppressed = resolution.get("delivery_suppressed") is True
     if active_surface == "telegram":
         presentation = {
             "presenter": "TelegramPhoto",
             "mode": "photo",
-            "should_send": True,
+            "should_send": not delivery_suppressed,
         }
+        if delivery_suppressed:
+            presentation["delivery_suppressed"] = True
     elif active_surface == "mac":
         presentation = {
             "presenter": "ProofPresenter",

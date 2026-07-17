@@ -227,6 +227,103 @@ def test_recommended_live_arts_cut_selects_verified_candidate_for_telegram(
     assert pdf.as_posix() not in response.operator_message
 
 
+def test_suppressed_replay_selects_photo_without_claiming_or_requesting_delivery(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    import invoice_proof_request
+    import maestro_listener
+    import openclaw_request_processor as processor
+
+    pdf = tmp_path / "candidate.pdf"
+    png = tmp_path / "candidate.png"
+    pdf.write_bytes(b"candidate pdf")
+    png.write_bytes(b"candidate png")
+    registry = tmp_path / "invoice_candidate_artifact_registry.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "schema_version": "invoice_candidate_artifact_registry_v0",
+                "candidates": [
+                    {
+                        "artifact_id": "lamd-2026-07-candidate-b",
+                        "client_ref": "live_arts_md",
+                        "service_period": "2026-07",
+                        "invoice_number": "2026-1004",
+                        "review_label": "Candidate B",
+                        "status": "verified_review_candidate",
+                        "active_for_review": True,
+                        "finalized": False,
+                        "pdf_path": pdf.as_posix(),
+                        "pdf_sha256": _sha256(pdf.read_bytes()),
+                        "rendered_image_path": png.as_posix(),
+                        "rendered_image_sha256": _sha256(png.read_bytes()),
+                        "source_receipt_ref": "receipt:test-candidate-b",
+                    }
+                ],
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(invoice_proof_request, "DEFAULT_CANDIDATE_REGISTRY_PATH", registry)
+    monkeypatch.setenv("OPENCLAW_INTERPRETER_LM", "0")
+    monkeypatch.setenv("OPENCLAW_LM1_SHARED_SEAM", "0")
+
+    request = maestro_listener.build_maestro_chat_replay_request(
+        "Let me see the Live Art, Maryland July invoice cut you recommend",
+        message_id="replay-1711",
+        created_at="2026-07-17T20:13:22+00:00",
+    )
+    request_path = tmp_path / "mission_control_operator_instruction_request_replay_1711.json"
+    request_path.write_text(json.dumps(request, sort_keys=True) + "\n", encoding="utf-8")
+
+    response = processor.process_request_path(
+        request_path,
+        export_root=tmp_path / "read_models",
+        generated_at="2026-07-17T20:13:23+00:00",
+        duplicate_check=False,
+    )
+
+    disposition = response.detail_disclosure["operator_response_disposition"]
+    proof = response.proof_to_response
+    presentation = response.proof_artifacts[0]["presentation"]
+    assert disposition["delivery_mode"] == "telegram_photo"
+    assert disposition["delivery_suppressed"] is True
+    assert disposition["delivery_status"] == "suppressed_test_replay"
+    assert proof["telegram_photo_delivery_requested"] is False
+    assert response.detail_disclosure["telegram_photo_delivery_requested"] is False
+    assert presentation["should_send"] is False
+    assert presentation["delivery_suppressed"] is True
+    assert "did not deliver" in response.operator_message.lower()
+    assert "as an image in this chat" not in response.operator_message.lower()
+    assert response.detail_disclosure["request_message_provenance"]["actor"] == "pc_codex_desktop_replay"
+
+
+def test_suppressed_replay_copy_preserves_each_addressed_agent_voice() -> None:
+    import agent_voice_profiles
+
+    messages = {
+        speaker: agent_voice_profiles.artifact_ready_message_for_speaker(
+            speaker,
+            label="Live Arts MD July candidate invoice",
+            path="/must/not/leak.pdf",
+            delivery_mode="telegram_photo",
+            artifact_variant="candidate",
+            delivery_suppressed=True,
+        )
+        for speaker in ("maestro", "chief", "cassandra", "guardian", "niles", "hermes")
+    }
+
+    assert len(set(messages.values())) == len(messages)
+    for speaker, message in messages.items():
+        assert "did not deliver" in message.lower(), speaker
+        assert "QuickLook" not in message
+        assert "/must/not/leak.pdf" not in message
+        assert agent_voice_profiles.require_voice_conformance(speaker, message)["passed"] is True
+
+
 def test_remote_artifact_copy_preserves_each_addressed_agent_voice() -> None:
     import agent_voice_profiles
 

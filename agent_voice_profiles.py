@@ -212,6 +212,41 @@ TELEGRAM_ARTIFACT_READY_TEMPLATES = {
     ),
 }
 
+TELEGRAM_ARTIFACT_REPLAY_TEMPLATES = {
+    "cassandra": (
+        "I verified the {label} in the bounded replay and selected Telegram photo delivery. {state} "
+        "It did not deliver to the live chat or alter the client record."
+    ),
+    "chief": (
+        "Replay check complete for {label}: Telegram photo was the correct route. {state} "
+        "It did not deliver to the live chat or change business state."
+    ),
+    "hermes": (
+        "The bounded replay found the {label} and chose the Telegram image path. {state} "
+        "It did not deliver to the live chat; the artifact remains review-only."
+    ),
+    "guardian": (
+        "Replay proof verified {label} and selected Telegram photo. {state} "
+        "It did not deliver to the live chat; send and mutation authority stayed closed."
+    ),
+    "niles": (
+        "The replay found the {label} and chose an image for Telegram review. {state} "
+        "It did not deliver to the live chat."
+    ),
+    "maestro": (
+        "The replay verified the {label} and selected Telegram photo delivery. {state} "
+        "It did not deliver to the live chat or change anything."
+    ),
+    "clara": (
+        "The replay verified the {label} and selected an image for Telegram review. {state} "
+        "It did not deliver to the live chat or change anything."
+    ),
+    "openclaw": (
+        "Replay verified {label} and selected Telegram photo delivery. {state} "
+        "It did not deliver to the live chat or perform an external action."
+    ),
+}
+
 SHARED_CANNED_PHRASES = (
     "as an ai",
     "i hope this note finds you well",
@@ -440,6 +475,7 @@ def artifact_ready_message_for_speaker(
     path: str,
     delivery_mode: str = "mac_quicklook",
     artifact_variant: str = "current",
+    delivery_suppressed: bool = False,
 ) -> str:
     """Render a verified artifact readback through the addressed speaker's register."""
 
@@ -450,7 +486,12 @@ def artifact_ready_message_for_speaker(
             if str(artifact_variant or "current") == "candidate"
             else "This is the current hash-verified artifact."
         )
-        message = TELEGRAM_ARTIFACT_READY_TEMPLATES[speaker].format(
+        templates = (
+            TELEGRAM_ARTIFACT_REPLAY_TEMPLATES
+            if delivery_suppressed
+            else TELEGRAM_ARTIFACT_READY_TEMPLATES
+        )
+        message = templates[speaker].format(
             label=str(label or "artifact").strip() or "artifact",
             state=state,
         )

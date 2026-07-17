@@ -394,6 +394,52 @@ def build_operator_maestro_chat_request(
     return request
 
 
+def build_maestro_chat_replay_request(
+    text: str,
+    *,
+    message_id: str,
+    created_at: str | None = None,
+    replay_actor: str = "pc_codex_desktop_replay",
+) -> dict[str, Any]:
+    """Build a Telegram-shaped processor probe that cannot impersonate or reach the operator."""
+
+    request = build_operator_maestro_chat_request(
+        text,
+        message_id=message_id,
+        chat_id=None,
+        created_at=created_at,
+    )
+    request.update(
+        {
+            "speaker": "PC Codex Desktop replay",
+            "actor": replay_actor,
+            "replay_mode": "bounded_synthetic",
+            "test_actor": True,
+            "delivery_suppressed": True,
+            "privacy_impact": "synthetic_replay_no_live_delivery",
+            "idempotency_key": (
+                f"maestro_listener:replay:{message_id}:{request['protected_text_hash']}"
+            ),
+            "telegram_chat_ref": "suppressed",
+        }
+    )
+    request["message_provenance"] = {
+        "speaker": "PC Codex Desktop replay",
+        "lane": "pc_codex_desktop_replay",
+        "relay_origin": None,
+        "actor": replay_actor,
+        "surface_ref": "operator_maestro_chat",
+        "message_role": "synthetic_replay_prompt",
+    }
+    request["correlation"] = {
+        **dict(request["correlation"]),
+        "telegram_message_id": str(message_id),
+        "telegram_chat_ref": "suppressed",
+    }
+    request["payload_hash"] = _content_hash(request)
+    return request
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with Path(path).open("rb") as fh:
@@ -1272,6 +1318,8 @@ async def _deliver_telegram_artifact(
     disposition = _operator_response_disposition(payload)
     if artifact is None or disposition is None:
         raise RuntimeError("telegram_artifact_disposition_incomplete")
+    if disposition.get("delivery_suppressed") is True:
+        raise RuntimeError("telegram_artifact_delivery_suppressed")
     image_path, rendered_sha, render_source = await asyncio.to_thread(
         _verified_telegram_image,
         artifact,

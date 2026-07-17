@@ -8972,6 +8972,11 @@ def _process_invoice_proof_request(
         artifact=artifact,
     )
     delivery_mode = str(response_disposition.get("delivery_mode") or "text")
+    delivery_suppressed = raw_request.get("delivery_suppressed") is True
+    response_disposition["delivery_suppressed"] = delivery_suppressed
+    response_disposition["delivery_status"] = (
+        "suppressed_test_replay" if delivery_suppressed else "owner_delivery_required"
+    )
     context_status = str(resolution.get("status") or "NOT_FOUND")
     action_receipt_refs: tuple[str, ...] = ()
     proof_artifacts: tuple[dict[str, Any], ...] = ()
@@ -8988,8 +8993,11 @@ def _process_invoice_proof_request(
             path=str(artifact.get("path") or ""),
             delivery_mode=delivery_mode,
             artifact_variant=artifact_variant,
+            delivery_suppressed=delivery_suppressed,
         )
-        if delivery_mode == "telegram_photo":
+        if delivery_mode == "telegram_photo" and delivery_suppressed:
+            next_safe_move = "No live delivery occurred; review the bounded replay receipt."
+        elif delivery_mode == "telegram_photo":
             next_safe_move = "Review the hash-verified image delivered in this Telegram chat."
         elif delivery_mode == "mac_quicklook":
             next_safe_move = (
@@ -9023,13 +9031,15 @@ def _process_invoice_proof_request(
         "invoice_artifact_retrieval_matched": True,
         "artifact_locator_performed": bool(locator_result),
         "artifact_locator_status": str(locator_result.get("status") or context_status),
-        "proof_presentation_requested": artifact is not None,
+        "proof_presentation_requested": artifact is not None and not delivery_suppressed,
         "proof_artifact_count": len(proof_artifacts),
         "action_receipt_refs": list(action_receipt_refs),
         "model_call_performed": False,
         "worker_dispatch_performed": False,
         "telegram_document_send_performed": False,
-        "telegram_photo_delivery_requested": delivery_mode == "telegram_photo" and artifact is not None,
+        "telegram_photo_delivery_requested": (
+            delivery_mode == "telegram_photo" and artifact is not None and not delivery_suppressed
+        ),
         "telegram_photo_send_performed": False,
         "email_send_performed": False,
         "external_action_performed": False,
@@ -9056,6 +9066,7 @@ def _process_invoice_proof_request(
     }
     detail = {
         "message_provenance": provenance,
+        "request_message_provenance": raw_request.get("message_provenance"),
         "operator_display": {
             "speaker_ref": agent,
             "voice_profile_ref": f"agent_voice_profile:{agent}",
@@ -9069,8 +9080,12 @@ def _process_invoice_proof_request(
         "operator_response_disposition": dict(response_disposition),
         "proof_artifacts": [dict(item) for item in proof_artifacts],
         "action_receipt_refs": list(action_receipt_refs),
-        "proof_presenter_request_queued": artifact is not None and delivery_mode == "mac_quicklook",
-        "telegram_photo_delivery_requested": artifact is not None and delivery_mode == "telegram_photo",
+        "proof_presenter_request_queued": (
+            artifact is not None and delivery_mode == "mac_quicklook" and not delivery_suppressed
+        ),
+        "telegram_photo_delivery_requested": (
+            artifact is not None and delivery_mode == "telegram_photo" and not delivery_suppressed
+        ),
         "dynamic_card_response": card,
         "model_call_performed": False,
         "worker_dispatch_performed": False,
@@ -9096,7 +9111,11 @@ def _process_invoice_proof_request(
                 else "PC could not resolve a bounded invoice context."
             ),
             (
-                f"PC verified the selected {artifact_variant} PDF and queued the typed {delivery_mode} artifact."
+                (
+                    f"PC verified the selected {artifact_variant} PDF and recorded a delivery-suppressed {delivery_mode} replay decision."
+                    if delivery_suppressed
+                    else f"PC verified the selected {artifact_variant} PDF and queued the typed {delivery_mode} artifact."
+                )
                 if artifact is not None
                 else "PC stopped without claiming that a proof file was opened."
             ),

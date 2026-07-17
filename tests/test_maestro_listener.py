@@ -144,6 +144,27 @@ def test_bridge_request_has_unique_id_and_full_false_authority_boundary(tmp_path
     assert "runtime_dispatch_allowed" in first["authority_boundary"]
 
 
+def test_replay_request_uses_test_actor_and_suppresses_live_delivery():
+    request = maestro_listener.build_maestro_chat_replay_request(
+        "show the recommended invoice",
+        message_id="replay-1711",
+        created_at=FIXED_NOW,
+    )
+
+    assert request["actor"] == "pc_codex_desktop_replay"
+    assert request["speaker"] == "PC Codex Desktop replay"
+    assert request["message_provenance"]["actor"] == "pc_codex_desktop_replay"
+    assert request["message_provenance"]["message_role"] == "synthetic_replay_prompt"
+    assert request["replay_mode"] == "bounded_synthetic"
+    assert request["test_actor"] is True
+    assert request["delivery_suppressed"] is True
+    assert request["correlation"]["telegram_chat_ref"] == "suppressed"
+    assert request["telegram_chat_ref"] == "suppressed"
+    assert request["no_external_action"] is True
+    assert all(value is False for value in request["authority_boundary"].values())
+    assert request["payload_hash"] == maestro_listener._content_hash(request)
+
+
 def test_listener_bridge_request_routes_through_pc_processor_for_date_answer(tmp_path):
     import openclaw_request_processor as processor
 
@@ -464,6 +485,42 @@ def test_telegram_photo_disposition_delivers_verified_image_and_records_hashes(
     assert receipt["delivered_message_id"] == "9101"
     assert receipt["delivery_succeeded"] is True
     assert delivered_text_receipts[0]["delivered_text"] == context.bot.photos[0]["caption"]
+
+
+def test_telegram_photo_delivery_refuses_suppressed_replay_payload(tmp_path):
+    payload = {
+        "proof_artifacts": [
+            {
+                "artifact_id": "lamd-candidate-b",
+                "bridge_path": str(tmp_path / "candidate.pdf"),
+                "sha256": "sha256:" + "a" * 64,
+            }
+        ],
+        "detail_disclosure": {
+            "operator_response_disposition": {
+                "active_surface": "telegram",
+                "delivery_mode": "telegram_photo",
+                "artifact_variant": "candidate",
+                "addressed_agent": "maestro",
+                "delivery_suppressed": True,
+            }
+        },
+    }
+    bot = FakeBot()
+
+    with pytest.raises(RuntimeError, match="telegram_artifact_delivery_suppressed"):
+        asyncio.run(
+            maestro_listener._deliver_telegram_artifact(
+                bot=bot,
+                chat_id=123,
+                caption="test replay",
+                payload=payload,
+                source_request_id="replay-1711",
+                source_message_id="replay-1711",
+            )
+        )
+
+    assert bot.photos == []
 
 
 def test_unauthorized_user_does_not_enter_governed_business_intake_or_reply(monkeypatch):
