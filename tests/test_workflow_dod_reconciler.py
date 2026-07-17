@@ -16,6 +16,16 @@ import fleet_receipt_index
 FIXED_NOW = "2026-07-16T17:40:00+00:00"
 
 
+def test_st_annes_reconciliation_defaults_bind_the_canonical_june_artifact() -> None:
+    assert reconciler.DEFAULT_ST_ANNES_RECONCILIATION_RECEIPT_DIR == Path(
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/st-annes/2026-06"
+    )
+    assert reconciler.DEFAULT_ST_ANNES_RECONCILIATION_PDF_PATH == (
+        reconciler.DEFAULT_ST_ANNES_RECONCILIATION_RECEIPT_DIR
+        / "canonical-test-v4-20260716T205023Z/invoice.pdf"
+    )
+
+
 def _evidence(
     *,
     store: str,

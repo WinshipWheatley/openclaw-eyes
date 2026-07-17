@@ -33,7 +33,7 @@ DEFAULT_PROTECTED_GENERATE_AUDIT_PATH = Path(
 )
 DEFAULT_BROKER_AUDIT_PATH = Path("/mnt/c/OpenClaw/logs/google_access_audit.jsonl")
 DEFAULT_ST_ANNES_RECONCILIATION_RECEIPT_DIR = Path(
-    "/mnt/e/openclaw/artifacts/invoice_workbooks/st_annes/2026-06"
+    "/mnt/e/openclaw/artifacts/invoice_workbooks/st-annes/2026-06"
 )
 DEFAULT_ST_ANNES_RECONCILIATION_PDF_PATH = (
     DEFAULT_ST_ANNES_RECONCILIATION_RECEIPT_DIR
