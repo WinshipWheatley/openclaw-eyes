@@ -26,7 +26,7 @@ This register is descriptive only. It does not enable features, edit production 
 
 ## Summary
 
-- Total capabilities registered: `49`
+- Total capabilities registered: `51`
 - Verified enabled/live: `continuity_capsule`, `external_brain_router`, `fleet_voice_boundary`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Activation allowed now: none recorded
 - Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
@@ -64,6 +64,8 @@ This register is descriptive only. It does not enable features, edit production 
 | Governed interactive 8B keep-warm timer (`interactive_8b_keepwarm_timer`) | `operator_approved_live` | `not_applicable` | enabled 2026-07-16; governed timer keeps the operator-bound 8B resident without evicting or preempting other work | no | after an overnight idle interval, record first-touch latency under the warm threshold; keep the existing GPU health watcher as the latency observer |
 | Interpreter-LM (`interpreter_lm`) | `intentionally_off` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | unblock task-013 wiring repair, review task-014 model-fit recipe, then run contained Interpreter-LM/front-door canaries before any live activation |
 | Immutable invoice-send class waist and Cassandra PREPARED transaction path (`invoice_send_class_waist`) | `operator_approved_live` | `not_applicable` | deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false | no | monitor PREPARED receipts; keep provider draft, approval, send, money, and workbook gates closed until their later waves |
+| Canonical invoice source-workbook and finalized-artifact locator (`invoice_source_workbook_locator`) | `operator_approved_live` | `not_applicable` | the deployed W1 owner selects one immutable source by content hash and publishes into the existing manifest-first proof path | no | keep SEND_HOLD and downstream provider-draft/send gates closed until their separately accepted waves |
+| Trusted Excel invoice verification and finalization owner (`invoice_workbook_verification_finalizer`) | `operator_approved_live` | `not_applicable` | the deployed owner repairs an isolated workbook copy, runs Excel full rebuild, verifies caches/totals/formulas/semantics, and atomically publishes one finalized package | no | keep SEND_HOLD active; use the finalized artifact only for review until later provider/Guardian waves are accepted |
 | Legal Sealed ingestion (`legal_sealed_ingestion`) | `blocked` | `not_applicable` | local legal policies and console bridge are synthetic/local-only; real sealed/private ingestion remains blocked | no | complete legal authorization and sealed-ingestion design before any implementation or test with real material |
 | LLM diagnostics logging (`llm_diagnostics_logging`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep as internal read-only observability; do not expose secrets in logs |
 | LM1 shared request seam (`lm1_shared_seam`) | `canary` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | watch lm1_shared_seam_counter; if used_count stays zero under live traffic, ask Fable whether to flip the flag off |
@@ -897,6 +899,64 @@ Live-state evidence:
 - Confidence: `none`
 - Notes: no whitelisted live variable is mapped to this capability
 
+### Canonical invoice source-workbook and finalized-artifact locator (`invoice_source_workbook_locator`)
+
+- Flag/config: `content-hash source selection; manifest-first finalized artifact lookup`, `/mnt/e/openclaw/artifacts/invoice_workbooks allowlisted root`
+- Default state: `on_fail_closed`
+- Current state if verifiable: the deployed W1 owner selects one immutable source by content hash and publishes into the existing manifest-first proof path
+- Production state: `real Live Arts source selected uniquely and the published July package is consumable by the existing proof locator`
+- Live production state: `not_applicable`
+- Gate stage: `operator_approved_live`
+- Canary status: `real source SHA a21ad71694fb selected uniquely; source semantic markers found before repair; source unchanged; production 2026-1004 package workbook SHA e476354bb18c and PDF SHA a9f22070e97d resolve through the canonical locator; exact owner replay was idempotent`
+- Risk level: `medium`
+- Owner: `Cassandra / PC Codex Desktop`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: only rollback after source-selection, immutability, or manifest-readback regression
+- Enabled by: Fable W1 baton plus deployed owner run and canonical locator readback
+- Disabled by: remove the W1 owner command; existing manifest locator remains read-only
+- Rollback: stop new finalization runs and leave published immutable package/receipts as evidence
+- Next required step: keep SEND_HOLD and downstream provider-draft/send gates closed until their separately accepted waves
+- Source files: `invoice_artifact_locator.py`, `invoice_w1_owner.py`, `invoice_proof_request.py`
+- Tests: `tests/test_invoice_artifact_locator.py`, `tests/test_invoice_workbook_finalizer.py`, `tests/test_invoice_w1_owner.py`
+- Audits: `/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md`, `/home/openclaw/Operator/to-codex/ACK-FABLE-VERIFIED-RECONCILER-R2-COMPLETE-20260717.md`
+- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_SEND_W1_20260717.md`, `/mnt/e/openclaw/artifacts/invoice_workbooks/w1_canaries/pc-codex-desktop-20260717-live-arts-july-v3/live_process_receipt.json`, `generated/system_knowledge/invoice_w1_lamd_july_receipt.json`, `tests/test_invoice_artifact_locator.py`, `tests/test_invoice_w1_owner.py`
+- Last verified at: `2026-07-17T14:27:29-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: no whitelisted live variable is mapped to this capability
+
+### Trusted Excel invoice verification and finalization owner (`invoice_workbook_verification_finalizer`)
+
+- Flag/config: `scripts/finalize_lamd_july_invoice.py --confirm`, `owned Windows Excel COM instance; macros/links/prompts disabled`
+- Default state: `dry_run_until_confirmed_no_send`
+- Current state if verifiable: the deployed owner repairs an isolated workbook copy, runs Excel full rebuild, verifies caches/totals/formulas/semantics, and atomically publishes one finalized package
+- Production state: `real Live Arts July workbook reached verified 2026-1004 at $100 and published through the canonical owner path`
+- Live production state: `not_applicable`
+- Gate stage: `operator_approved_live`
+- Canary status: `real Excel 16 CalculateFullRebuild completed with two reopens; formula SHA dae6f1ba6c6 preserved; independent subtotal/total/balance all $100; production one-page PDF 178656 bytes SHA a9f22070e97d; workbook SHA e476354bb18c; exact replay idempotent; 2026-1004; drafts/sends/money/ledger calls 0`
+- Risk level: `high`
+- Owner: `Cassandra / PC Codex Desktop`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: only rollback after Excel, formula/cache, semantic, PDF, or atomic-publication regression
+- Enabled by: Fable W1 baton plus real Excel owner-process canary and atomic package readback
+- Disabled by: stop invoking the W1 owner; no daemon or downstream send path is enabled by this capability
+- Rollback: preserve immutable evidence and stop new finalizations; source workbook remains unchanged
+- Next required step: keep SEND_HOLD active; use the finalized artifact only for review until later provider/Guardian waves are accepted
+- Source files: `invoice_workbook_finalizer.py`, `invoice_w1_owner.py`, `scripts/recalculate_invoice_with_excel.ps1`, `scripts/export_invoice_pdf_with_excel.ps1`, `scripts/finalize_lamd_july_invoice.py`
+- Tests: `tests/test_invoice_workbook_finalizer.py`, `tests/test_invoice_w1_owner.py`, `tests/test_invoice_artifact_locator.py`
+- Audits: `/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md`, `/home/openclaw/Operator/to-codex/ACK-FABLE-VERIFIED-RECONCILER-R2-COMPLETE-20260717.md`
+- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_SEND_W1_20260717.md`, `/mnt/e/openclaw/artifacts/invoice_workbooks/w1_canaries/pc-codex-desktop-20260717-live-arts-july-v3/live_process_receipt.json`, `generated/system_knowledge/invoice_w1_lamd_july_receipt.json`, `tests/test_invoice_workbook_finalizer.py`, `tests/test_invoice_w1_owner.py`
+- Last verified at: `2026-07-17T14:27:29-04:00`
+
+Live-state evidence:
+- Status: `not_applicable`
+- Confidence: `none`
+- Notes: no whitelisted live variable is mapped to this capability
+
 ### Legal Sealed ingestion (`legal_sealed_ingestion`)
 
 - Flag/config: `OPENCLAW_LEGAL_PRIVATE_ROOT`, `legal-console synthetic_only bridge`
@@ -1668,6 +1728,6 @@ Sources not inspected:
 
 ## Evidence Gaps
 
-- Missing repository evidence files referenced by register: `brain_dump_parser.py`, `polish_loop/git_task_guard.sh`
+- Missing repository evidence files referenced by register: none recorded
 - Production env/service state: `redacted live reconciliation enabled`
 - Feature activation performed by this task: `no`
