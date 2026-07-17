@@ -26,9 +26,9 @@ W0_INVOICE_WAIST_LAST_VERIFIED_AT = "2026-07-17T12:19:10-04:00"
 INVOICE_TRANSACTION_SUPERSESSION_LAST_VERIFIED_AT = "2026-07-17T15:00:00-04:00"
 CAPABILITY_LEDGER_RECONCILER_LAST_VERIFIED_AT = "2026-07-17T13:01:00-04:00"
 W1_INVOICE_FINALIZATION_LAST_VERIFIED_AT = "2026-07-17T14:27:29-04:00"
-MAC_W1_HELPER_LAST_VERIFIED_AT = "2026-07-17T15:14:22-04:00"
-MAC_DESKTOP_RECEIVER_LAST_VERIFIED_AT = "2026-07-17T15:33:40-04:00"
-MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT = "2026-07-17T14:50:00-04:00"
+MAC_W1_HELPER_LAST_VERIFIED_AT = "2026-07-17T15:11:21-04:00"
+MAC_DESKTOP_RECEIVER_LAST_VERIFIED_AT = "2026-07-17T15:31:15-04:00"
+MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT = "2026-07-17T15:34:24-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -2238,7 +2238,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             audits=[
                 "/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/PC-CODEX-W1-MAC-EXPORT-AND-SEAT-RECEIVER-20260717.md",
                 "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-HELPER-SLICE-RECEIPT-20260717.md",
-                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-ACTIVATION-RECEIPT-20260717.json",
+                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-ACTIVATION-RECEIPT-20260717-V2.json",
             ],
             canary_status=(
                 "SELECTED_INVOICE_ATOMIC_PUBLISH_SUCCEEDED; 337 tests passed; signed helper and full Release builds passed; "
@@ -2290,6 +2290,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             audits=[
                 "/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/FABLE-RULING-SEAT-RECEIVER-ENDPOINT-20260717.md",
                 "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-DESKTOP-RECEIVER-SLICE-RECEIPT-20260717-V2.md",
+                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-ACTIVATION-RECEIPT-20260717-V2.json",
                 "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/RECEIVER-DELIVERY-NOTICE-w1-desktop-receiver-launchd-canary-20260717.md",
             ],
             canary_status="PASS: 9 tests; launchd running active=1 runs=2; kqueue event 1; atomic notice 1 in 90ms; exact ACK 1 in 58835ms; processed 1; historical replay 0; business dispatch 0",
@@ -2328,6 +2329,7 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             tests=[],
             audits=[
                 "/mnt/e/openclaw/codex_mac_bridge/to-codex-mac-desktop/FABLE-RULING-SEAT-RECEIVER-ENDPOINT-20260717.md",
+                "/mnt/e/openclaw/codex_mac_bridge/from-codex-mac-desktop/MACSOL-W1-ACTIVATION-RECEIPT-20260717-V2.json",
             ],
             canary_status="BLOCKED: no endpoint exists; no auto-resume canary claimed",
             risk_level="medium",

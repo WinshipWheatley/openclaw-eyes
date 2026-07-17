@@ -159,7 +159,16 @@ def test_w1_invoice_verification_and_finalization_are_live_without_send_authorit
 
 
 def test_w1_mac_export_is_live_while_receiver_and_auto_resume_preserve_truth():
-    capabilities = _capabilities_by_id(_payload())
+    payload = _payload()
+    capabilities = _capabilities_by_id(payload)
+    capability_ids = [row["capability_id"] for row in payload["capabilities"]]
+
+    for capability_id in (
+        "mac_selected_invoice_pdf_export_helper",
+        "mac_codex_desktop_event_receiver",
+        "mac_codex_desktop_seat_auto_resume",
+    ):
+        assert capability_ids.count(capability_id) == 1
 
     helper = capabilities["mac_selected_invoice_pdf_export_helper"]
     assert helper["gate_stage"] == "operator_approved_live"
