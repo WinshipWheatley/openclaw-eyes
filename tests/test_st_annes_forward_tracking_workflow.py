@@ -80,6 +80,41 @@ def test_synthetic_forward_and_glenn_ack_drive_true_state_read_model(tmp_path: P
     assert payload == state
 
 
+def test_glenn_reply_itself_proves_forward_and_closes_ack_milestone(tmp_path: Path) -> None:
+    contacts_db = tmp_path / "contacts.sqlite3"
+    ContactsRegistry(str(contacts_db), seed=True)
+
+    state = advance_st_annes_receivable_state(
+        sent_receipt={
+            **SENT_RECEIPT,
+            "gmail_message_id": "19f7054d2e151aa4",
+            "subject": "Corrected: St. Anne's Invoice - June 2026 Services",
+        },
+        messages=[
+            {
+                "message_id": "gmail:glenn-direct-ack",
+                "thread_id": "19f7053211a51f52",
+                "from": "Glenn Mortoro <glennmortoro@gmail.com>",
+                "to": ["winshiplive@gmail.com"],
+                "received_at_utc_iso": "2026-07-17T16:00:00+00:00",
+                "subject": "Re: Corrected: St. Anne's Invoice - June 2026 Services",
+                "body": "I have the corrected invoice. Thanks.",
+            }
+        ],
+        contacts_db_path=str(contacts_db),
+        generated_at_utc_iso="2026-07-17T16:05:00+00:00",
+    )
+
+    assert state["forwarded_to_glenn"] is True
+    assert state["glenn_acknowledged"] is True
+    assert state["workflow_stage"] == "awaiting_payment"
+    assert state["forward_proof"]["signal"] == "forward_proven_by_glenn_acknowledgement"
+    assert state["forward_proof"]["message_id"] == "gmail:glenn-direct-ack"
+    assert state["ack_proof"]["message_id"] == "gmail:glenn-direct-ack"
+    assert state["milestones"]["draper_forwarded_to_glenn"]["status"] == "PROVEN"
+    assert state["milestones"]["glenn_acknowledged"]["status"] == "PROVEN"
+
+
 def test_draper_reply_saying_forwarded_is_secondary_forward_signal(tmp_path: Path) -> None:
     contacts_db = tmp_path / "contacts.sqlite3"
     ContactsRegistry(str(contacts_db), seed=True)

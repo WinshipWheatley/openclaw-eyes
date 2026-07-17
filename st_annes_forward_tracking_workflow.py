@@ -396,7 +396,16 @@ def advance_st_annes_receivable_state(
     }
 
     forward_proof = _detect_forward(message_list, contacts) if sent else None
-    ack_proof, glenn_note = _detect_ack(message_list, contacts, forward_proof) if forward_proof else (None, "")
+    ack_proof, glenn_note = (
+        _detect_ack(message_list, contacts, forward_proof)
+        if sent
+        else (None, "")
+    )
+    if ack_proof and not forward_proof:
+        forward_proof = {
+            **ack_proof,
+            "signal": "forward_proven_by_glenn_acknowledgement",
+        }
     forwarded_at = str((forward_proof or {}).get("received_at_utc_iso") or "") or None
     acknowledged_at = str((ack_proof or {}).get("received_at_utc_iso") or "") or None
 
