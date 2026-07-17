@@ -325,12 +325,28 @@ def test_sqlite_preserves_original_and_corrected_send_rows(tmp_path, monkeypatch
         rows = conn.execute(
             "SELECT payload_json FROM st_annes_invoice_status_receipt ORDER BY generated_at"
         ).fetchall()
+        history = conn.execute(
+            "SELECT gmail_message_id, disposition, attachment_sha256 "
+            "FROM st_annes_invoice_send_history ORDER BY sent_at_utc_iso"
+        ).fetchall()
     finally:
         conn.close()
 
     assert len(rows) == 2
     assert json.loads(rows[0][0])["gmail_message_id"] == "19f6e50b5dc44aa6"
     assert json.loads(rows[1][0])["gmail_message_id"] == "19f7054d2e151aa4"
+    assert history == [
+        (
+            "19f6e50b5dc44aa6",
+            "SUPERSEDED",
+            "a32fa83cde025d237531a3360108f6f9c4e3afa87e8f857fe05912c3d994ee1b",
+        ),
+        (
+            "19f7054d2e151aa4",
+            "OPERATIVE",
+            "1f2ebb6b77e7ddfe095b8a449d5c3eaf12ea61f74730b0a901fe800b3c81140e",
+        ),
+    ]
 
 
 def test_build_status_payload_rejects_unsafe_receipt(tmp_path, monkeypatch):

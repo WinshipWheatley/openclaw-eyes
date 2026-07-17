@@ -427,6 +427,13 @@ def build_status_payload(
         "gmail_message_id": str(receipt.get("gmail_message_id") or ""),
         "gmail_thread_id": str(receipt.get("gmail_thread_id") or ""),
         "send_provenance": str(receipt.get("provenance") or "manual_out_of_band"),
+        "send_disposition": (
+            "OPERATIVE"
+            if validation["corrected_send"] is True
+            else "RECORDED"
+            if external_agent_send
+            else "NOT_APPLICABLE"
+        ),
         "operator_authorized": receipt.get("operator_authorized") is True,
         "invoice_number": str(receipt.get("invoice_number") or ""),
         "amount": receipt.get("amount"),
@@ -516,6 +523,17 @@ def sqlite_schema_sql() -> str:
   paid INTEGER NOT NULL CHECK(paid IN (0, 1)),
   payload_json TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS st_annes_invoice_send_history (
+  gmail_message_id TEXT PRIMARY KEY,
+  gmail_thread_id TEXT NOT NULL,
+  sent_at_utc_iso TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  attachment_filename TEXT NOT NULL,
+  attachment_sha256 TEXT NOT NULL,
+  disposition TEXT NOT NULL CHECK(disposition IN ('RECORDED', 'SUPERSEDED', 'OPERATIVE')),
+  operative_receipt_sha256 TEXT NOT NULL,
+  payload_json TEXT NOT NULL
+);
 """
 
 
@@ -524,8 +542,50 @@ def _sql_literal(value: object) -> str:
     return "'" + text.replace("'", "''") + "'"
 
 
+def _normalized_send_history(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    history = payload.get("send_history")
+    if isinstance(history, list) and history:
+        return [dict(item) for item in history if isinstance(item, Mapping)]
+    message_id = str(payload.get("gmail_message_id") or "").strip()
+    if not message_id:
+        return []
+    return [
+        {
+            "gmail_message_id": message_id,
+            "gmail_thread_id": str(payload.get("gmail_thread_id") or ""),
+            "sent_at_utc_iso": str(payload.get("sent_at_utc_iso") or ""),
+            "subject": str(payload.get("subject") or ""),
+            "attachment_filename": Path(str(payload.get("source_pdf_path") or "")).name,
+            "attachment_sha256": str(payload.get("source_pdf_sha256") or ""),
+            "disposition": str(payload.get("send_disposition") or "RECORDED"),
+        }
+    ]
+
+
+def _sqlite_send_history_seed_sql(payload: Mapping[str, Any]) -> str:
+    statements: list[str] = []
+    for item in _normalized_send_history(payload):
+        statements.append(
+            "INSERT OR REPLACE INTO st_annes_invoice_send_history "
+            "(gmail_message_id, gmail_thread_id, sent_at_utc_iso, subject, "
+            "attachment_filename, attachment_sha256, disposition, "
+            "operative_receipt_sha256, payload_json) VALUES ("
+            f"{_sql_literal(item.get('gmail_message_id') or '')}, "
+            f"{_sql_literal(item.get('gmail_thread_id') or '')}, "
+            f"{_sql_literal(item.get('sent_at_utc_iso') or '')}, "
+            f"{_sql_literal(item.get('subject') or '')}, "
+            f"{_sql_literal(item.get('attachment_filename') or '')}, "
+            f"{_sql_literal(item.get('attachment_sha256') or '')}, "
+            f"{_sql_literal(item.get('disposition') or 'RECORDED')}, "
+            f"{_sql_literal(payload.get('source_receipt_sha256') or '')}, "
+            f"{_sql_literal(stable_json(item))}"
+            ");"
+        )
+    return "\n".join(statements) + ("\n" if statements else "")
+
+
 def sqlite_seed_sql(payload: Mapping[str, Any]) -> str:
-    return (
+    receipt_seed = (
         "INSERT OR REPLACE INTO st_annes_invoice_status_receipt "
         "(receipt_sha256, generated_at, client_ref, invoice_period, invoice_status, "
         "source_receipt_path, source_pdf_path, source_pdf_sha256, source_pdf_page_count, "
@@ -544,6 +604,7 @@ def sqlite_seed_sql(payload: Mapping[str, Any]) -> str:
         f"{_sql_literal(stable_json(payload))}"
         ");\n"
     )
+    return receipt_seed + _sqlite_send_history_seed_sql(payload)
 
 
 def record_sqlite_receipt(payload: Mapping[str, Any], sqlite_path: Path) -> None:
@@ -584,6 +645,34 @@ def record_sqlite_receipt(payload: Mapping[str, Any], sqlite_path: Path) -> None
                 stable_json(payload),
             ),
         )
+        for item in _normalized_send_history(payload):
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO st_annes_invoice_send_history (
+                  gmail_message_id,
+                  gmail_thread_id,
+                  sent_at_utc_iso,
+                  subject,
+                  attachment_filename,
+                  attachment_sha256,
+                  disposition,
+                  operative_receipt_sha256,
+                  payload_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(item.get("gmail_message_id") or ""),
+                    str(item.get("gmail_thread_id") or ""),
+                    str(item.get("sent_at_utc_iso") or ""),
+                    str(item.get("subject") or ""),
+                    str(item.get("attachment_filename") or ""),
+                    str(item.get("attachment_sha256") or ""),
+                    str(item.get("disposition") or "RECORDED"),
+                    str(payload.get("source_receipt_sha256") or ""),
+                    stable_json(item),
+                ),
+            )
         conn.commit()
     finally:
         conn.close()
