@@ -321,6 +321,9 @@ def test_excel_com_workers_are_owned_bounded_and_never_kill_ambient_excel() -> N
     assert "ExportAsFixedFormat" in export
     assert "[string]$PrintArea" in export
     assert "$worksheet.PageSetup.PrintArea = $PrintArea" in export
+    assert "$worksheet.PageSetup.Zoom = $false" in export
+    assert "$worksheet.PageSetup.FitToPagesWide = 1" in export
+    assert "$worksheet.PageSetup.FitToPagesTall = 1" in export
     assert "Stop-Process" not in combined
     assert "taskkill" not in combined.lower()
     assert "Get-Process" not in combined
@@ -339,7 +342,12 @@ def test_pdf_export_applies_bounded_print_area_without_mutating_workbook(
         captured.update({"script": script, "args": args, "timeout": timeout})
         temporary = Path(args[args.index("-OutputPath") + 1])
         temporary.write_bytes(b"%PDF-1.4\n%%EOF\n")
-        return {"excel_version": "16.0", "print_area": "$A$1:$H$48"}
+        return {
+            "excel_version": "16.0",
+            "print_area": "$A$1:$H$48",
+            "fit_to_pages_wide": 1,
+            "fit_to_pages_tall": 1,
+        }
 
     monkeypatch.setattr(finalizer, "_windows_path", lambda path: str(path))
     monkeypatch.setattr(finalizer, "_run_excel_worker", fake_excel_worker)
@@ -362,6 +370,8 @@ def test_pdf_export_applies_bounded_print_area_without_mutating_workbook(
 
     assert captured["args"][-2:] == ["-PrintArea", "$A$1:$H$48"]
     assert receipt["print_area_applied"] == "$A$1:$H$48"
+    assert receipt["fit_to_pages_wide"] == 1
+    assert receipt["fit_to_pages_tall"] == 1
     assert receipt["workbook_sha256_before"] == source_sha256
     assert receipt["workbook_sha256_after"] == source_sha256
     assert receipt["workbook_unchanged"] is True

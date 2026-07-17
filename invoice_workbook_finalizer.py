@@ -466,9 +466,13 @@ def export_invoice_pdf_with_excel(
         temporary.unlink(missing_ok=True)
         raise InvoiceFinalizationError("WORKBOOK_MUTATED_DURING_EXPORT")
     excel_print_area = str(receipt.get("print_area") or "")
-    if bounded_print_area and not excel_print_area:
+    fit_to_pages_wide = int(receipt.get("fit_to_pages_wide") or 0)
+    fit_to_pages_tall = int(receipt.get("fit_to_pages_tall") or 0)
+    if bounded_print_area and (
+        not excel_print_area or fit_to_pages_wide != 1 or fit_to_pages_tall != 1
+    ):
         temporary.unlink(missing_ok=True)
-        raise InvoiceFinalizationError("PRINT_AREA_NOT_APPLIED")
+        raise InvoiceFinalizationError("PRINT_FRAME_NOT_APPLIED")
     proof = _validate_pdf(temporary)
     os.replace(temporary, output)
     return {
@@ -481,6 +485,8 @@ def export_invoice_pdf_with_excel(
         "sheet_name": sheet_name,
         "print_area_applied": bounded_print_area,
         "excel_print_area_reported": excel_print_area,
+        "fit_to_pages_wide": fit_to_pages_wide,
+        "fit_to_pages_tall": fit_to_pages_tall,
         "workbook_sha256_before": workbook_sha256_before,
         "workbook_sha256_after": workbook_sha256_after,
         "workbook_unchanged": True,

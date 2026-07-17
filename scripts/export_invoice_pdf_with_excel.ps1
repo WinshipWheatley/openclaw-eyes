@@ -14,6 +14,8 @@ $result = [ordered]@{
     error_code = "EXCEL_PDF_EXPORT_FAILED"
     excel_version = ""
     print_area = ""
+    fit_to_pages_wide = 0
+    fit_to_pages_tall = 0
 }
 
 try {
@@ -45,7 +47,12 @@ try {
             throw "PRINT_AREA_INVALID"
         }
         $worksheet.PageSetup.PrintArea = $PrintArea
+        $worksheet.PageSetup.Zoom = $false
+        $worksheet.PageSetup.FitToPagesWide = 1
+        $worksheet.PageSetup.FitToPagesTall = 1
         $result.print_area = [string]$worksheet.PageSetup.PrintArea
+        $result.fit_to_pages_wide = [int]$worksheet.PageSetup.FitToPagesWide
+        $result.fit_to_pages_tall = [int]$worksheet.PageSetup.FitToPagesTall
     }
     $worksheet.ExportAsFixedFormat(0, $OutputPath)
     if (-not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
