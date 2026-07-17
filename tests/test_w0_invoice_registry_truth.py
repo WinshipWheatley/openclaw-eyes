@@ -34,7 +34,7 @@ def test_capital_hilton_email_scope_is_separate_from_coupa() -> None:
 def test_w0_capabilities_are_in_activation_gate_register() -> None:
     payload = activation_gate_register.build_activation_gate_register()
     rows = {row["capability_id"]: row for row in payload["capabilities"]}
-    assert rows["invoice_send_class_waist"]["gate_stage"] == "canary"
+    assert rows["invoice_send_class_waist"]["gate_stage"] == "operator_approved_live"
     assert rows["invoice_send_class_waist"]["activation_allowed_now"] is False
-    assert rows["autonomous_invoice_prepare_scheduler"]["gate_stage"] == "canary"
+    assert rows["autonomous_invoice_prepare_scheduler"]["gate_stage"] == "operator_approved_live"
     assert rows["autonomous_invoice_prepare_scheduler"]["activation_allowed_now"] is False

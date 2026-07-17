@@ -29,7 +29,7 @@ This register is descriptive only. It does not enable features, edit production 
 - Total capabilities registered: `48`
 - Verified enabled/live: `continuity_capsule`, `external_brain_router`, `fleet_voice_boundary`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Activation allowed now: none recorded
-- Ready for canary queue: `autonomous_invoice_prepare_scheduler`, `control_plane_heal_emission`, `frontdoor_model_profile`, `invoice_send_class_waist`, `lm1_shared_seam`, `packet_source_sqlite_flip`
+- Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 - Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `packet_delta_receipts`, `packet_engine_spine`, `polish_loop_file_ledger_bridge`, `polish_loop_local_builder_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
@@ -41,7 +41,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Active Machinery classification orchestrator (`active_machinery_classification`) | `dry_run` | `dry_run_verified` | classification orchestrator exists with dry-run/mock classification and no autonomous worker dispatch | no | record a synthetic-to-canary plan before any Gemini worker dispatch |
 | Agent package preview contract (`agent_package_preview_contract`) | `intentionally_off` | `not_applicable` | metadata-only preview contract exists; all dispatch/external authority toggles are false | no | use as review artifact only; do not grant package send authority |
 | Authority gate + SEND_HOLD sentinel (`authority_gate_send_hold`) | `operator_approved_live` | `not_applicable` | enabled guardrail: default-deny authority gate and SEND_HOLD sentinel keep send surfaces denied; no new activation authority | no | keep SEND_HOLD in place; audit any future send-surface change before activation |
-| Generic recurrence-driven invoice prepare scheduler (`autonomous_invoice_prepare_scheduler`) | `canary` | `not_applicable` | existing St. Anne's timer is active; generic Live Arts monthly prepare path passes focused tests | no | deploy, apply the receipted Live Arts truth batch, and run the installed systemd oneshot twice |
+| Generic recurrence-driven invoice prepare scheduler (`autonomous_invoice_prepare_scheduler`) | `operator_approved_live` | `not_applicable` | installed timer is enabled and active; generic Live Arts monthly prepare path ran in production and stopped idempotently on its second pass | no | keep the timer active and monitor prepare-only receipts; July's $100 remains an operator-review target, not a send |
 | Brain dump parser CLI (`brain_dump_parser_cli`) | `intentionally_off` | `not_applicable` | manual CLI can dry-run; non-dry-run can call local Ollama and write handoff files, so it remains intentionally off for unattended use | no | wait for deterministic size/risk routing before any queue-ready parser automation |
 | Cassandra morning-brief test mode (`cassandra_morning_brief_test_mode`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | use only in synthetic tests unless Opus queues a separate briefing canary |
 | Cassandra / Telegram delivery (`cassandra_telegram_delivery`) | `intentionally_off` | `not_applicable` | code default dry-run/off; production toggle and authorized user were not inspected | no | keep disabled unless Opus defines an operator-watched internal-only canary |
@@ -62,7 +62,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Human-in-the-loop pending action pipeline (`hitl_pipeline`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | define a synthetic-only pending-action canary before any live enablement |
 | Governed interactive 8B keep-warm timer (`interactive_8b_keepwarm_timer`) | `operator_approved_live` | `not_applicable` | enabled 2026-07-16; governed timer keeps the operator-bound 8B resident without evicting or preempting other work | no | after an overnight idle interval, record first-touch latency under the warm threshold; keep the existing GPU health watcher as the latency observer |
 | Interpreter-LM (`interpreter_lm`) | `intentionally_off` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | unblock task-013 wiring repair, review task-014 model-fit recipe, then run contained Interpreter-LM/front-door canaries before any live activation |
-| Immutable invoice-send class waist and Cassandra PREPARED transaction path (`invoice_send_class_waist`) | `canary` | `not_applicable` | immutable envelope, router-compose seam, semantic transaction table, and app-frontdoor route pass focused tests with all external authority false | no | deploy, restart the real Cassandra owner, run the no-send front-door canary, and update this record with its receipt |
+| Immutable invoice-send class waist and Cassandra PREPARED transaction path (`invoice_send_class_waist`) | `operator_approved_live` | `not_applicable` | deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false | no | monitor PREPARED receipts; keep provider draft, approval, send, money, and workbook gates closed until their later waves |
 | Legal Sealed ingestion (`legal_sealed_ingestion`) | `blocked` | `not_applicable` | local legal policies and console bridge are synthetic/local-only; real sealed/private ingestion remains blocked | no | complete legal authorization and sealed-ingestion design before any implementation or test with real material |
 | LLM diagnostics logging (`llm_diagnostics_logging`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | keep as internal read-only observability; do not expose secrets in logs |
 | LM1 shared request seam (`lm1_shared_seam`) | `canary` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | watch lm1_shared_seam_counter; if used_count stays zero under live traffic, ask Fable whether to flip the flag off |
@@ -209,25 +209,25 @@ Live-state evidence:
 
 - Flag/config: `openclaw-autonomous-invoice-prep.timer; prepare-only authority boundary`
 - Default state: `installed_daily_prepare_only`
-- Current state if verifiable: existing St. Anne's timer is active; generic Live Arts monthly prepare path passes focused tests
-- Production state: `timer installed and active; updated generic owner-process pass pending deployment`
+- Current state if verifiable: installed timer is enabled and active; generic Live Arts monthly prepare path ran in production and stopped idempotently on its second pass
+- Production state: `July 16 Live Arts cycle prepared workflow_package:057b0f98330cc0a2; second systemd oneshot returned IDLE/already_prepared_for_cycle`
 - Live production state: `not_applicable`
-- Gate stage: `canary`
-- Canary status: `existing timer active; generic Live Arts production oneshot pending`
+- Gate stage: `operator_approved_live`
+- Canary status: `timer enabled/active; first production oneshot PREPARED Live Arts July cycle; second production oneshot IDLE/already_prepared_for_cycle; SEND_HOLD unchanged; sends 0`
 - Risk level: `medium`
 - Owner: `Cassandra / PC Codex Desktop`
 - Activation allowed now: `no`
 - Operator approval required: `yes`
-- Reason if off: the updated generic prepare owner has not completed its production oneshot canary
+- Reason if off: only rollback after a recurrence, idempotency, or authority-boundary regression
 - Enabled by: operator W0 GO plus production truth batch and successful systemd oneshot
 - Disabled by: disable openclaw-autonomous-invoice-prep.timer; no send path is owned by this service
 - Rollback: disable the timer or revert the generic scheduler commit; prepared review records grant no external authority
-- Next required step: deploy, apply the receipted Live Arts truth batch, and run the installed systemd oneshot twice
+- Next required step: keep the timer active and monitor prepare-only receipts; July's $100 remains an operator-review target, not a send
 - Source files: `autonomous_invoice_prep_scheduler.py`, `temporal_recurrence_registry.py`, `workflow_package_request_consumer.py`, `systemd/user/openclaw-autonomous-invoice-prep.service.in`, `systemd/user/openclaw-autonomous-invoice-prep.timer.in`
 - Tests: `tests/test_autonomous_invoice_prep_scheduler.py`, `tests/test_w0_lamd_registry_truth_batch.py`
 - Audits: `/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md`
-- Evidence refs: `tests/test_autonomous_invoice_prep_scheduler.py`, `systemd/user/openclaw-autonomous-invoice-prep.timer.in`
-- Last verified at: `2026-07-17T11:37:13-04:00`
+- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md`, `generated/system_knowledge/w0_lamd_registry_truth_receipt.json`, `tests/test_autonomous_invoice_prep_scheduler.py`, `systemd/user/openclaw-autonomous-invoice-prep.timer.in`
+- Last verified at: `2026-07-17T12:19:10-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -842,25 +842,25 @@ Live-state evidence:
 
 - Flag/config: `Cassandra objective route; provider draft/send authority always false in W0`
 - Default state: `fail_closed_prepare_only`
-- Current state if verifiable: immutable envelope, router-compose seam, semantic transaction table, and app-frontdoor route pass focused tests with all external authority false
-- Production state: `operator GO received; deployment and real owner-process canary pending`
+- Current state if verifiable: deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false
+- Production state: `Cassandra and request-response owners restarted on the production commits; exact front-door canary created one PREPARED row and replayed idempotently`
 - Live production state: `not_applicable`
-- Gate stage: `canary`
-- Canary status: `focused_tests_passed; production owner-process canary pending`
+- Gate stage: `operator_approved_live`
+- Canary status: `deployed no-send front-door canary passed; canonical transaction invoice-send-tx:2bd8efb929ecbed5376b2204; second exact request idempotent; five negative probes fail-local; provider/draft/send/money/workbook calls 0`
 - Risk level: `high`
 - Owner: `Cassandra / PC Codex Desktop`
 - Activation allowed now: `no`
 - Operator approval required: `yes`
-- Reason if off: the new owner-process path is not yet deployed and live-verified
+- Reason if off: only rollback after an immutable-envelope, idempotency, voice, or owner-process regression
 - Enabled by: operator W0 GO plus production deploy, Cassandra restart, and immutable no-send front-door canary
 - Disabled by: remove the structured invoice packet route; existing non-W0 Cassandra routes remain available
 - Rollback: revert the W0 integration commit and restart Cassandra; no provider draft or send state requires cleanup
-- Next required step: deploy, restart the real Cassandra owner, run the no-send front-door canary, and update this record with its receipt
+- Next required step: monitor PREPARED receipts; keep provider draft, approval, send, money, and workbook gates closed until their later waves
 - Source files: `invoice_send_transaction.py`, `cassandra_operator_objective_loop.py`, `cassandra_custom_tools.py`, `operator_conversation_router.py`, `invoice_cockpit_ops.py`
 - Tests: `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`, `tests/test_invoice_cockpit_ops.py`, `tests/test_fleet_voice_live_boundary.py`
 - Audits: `/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md`, `/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md`
-- Evidence refs: `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`
-- Last verified at: `2026-07-17T11:37:13-04:00`
+- Evidence refs: `workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md`, `tests/test_invoice_send_transaction.py`, `tests/test_w0_cassandra_invoice_prepare.py`
+- Last verified at: `2026-07-17T12:19:10-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`

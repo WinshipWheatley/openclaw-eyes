@@ -22,7 +22,7 @@ DEFAULT_LAST_VERIFIED_AT = "2026-06-26T00:00:00-04:00"
 DEFAULT_OUTPUT_DIR = Path("workspaces/openclaw_program")
 EXTERNAL_BRAIN_ROUTER_LAST_VERIFIED_AT = "2026-07-17T10:20:00-04:00"
 FLEET_VOICE_BOUNDARY_LAST_VERIFIED_AT = "2026-07-17T10:48:00-04:00"
-W0_INVOICE_WAIST_LAST_VERIFIED_AT = "2026-07-17T11:37:13-04:00"
+W0_INVOICE_WAIST_LAST_VERIFIED_AT = "2026-07-17T12:19:10-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -1948,10 +1948,10 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             flag_or_config=["Cassandra objective route; provider draft/send authority always false in W0"],
             default_state="fail_closed_prepare_only",
             current_state_if_verifiable=_state(
-                "immutable envelope, router-compose seam, semantic transaction table, and app-frontdoor route pass focused tests with all external authority false",
+                "deployed app front door persists immutable PREPARED envelopes in Cassandra's canonical objective store with all external authority false",
                 code_default="PREPARED is the only W0 lifecycle write; exact sender, recipient, copy, artifact, and source-fact hashes are immutable",
-                production="operator GO received; deployment and real owner-process canary pending",
-                audit_report="W0 implementation branch focused tests passed before deployment",
+                production="Cassandra and request-response owners restarted on the production commits; exact front-door canary created one PREPARED row and replayed idempotently",
+                audit_report="five negative real-process canaries failed locally before a second row; deployed eight-profile voice boundary passed 8/8",
             ),
             source_files=[
                 "invoice_send_transaction.py",
@@ -1970,18 +1970,22 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md",
                 "/home/openclaw/Operator/to-codex/FABLE-GO-W0-AND-CAPABILITY-LEDGER-RECONCILER-20260717.md",
             ],
-            canary_status="focused_tests_passed; production owner-process canary pending",
+            canary_status=(
+                "deployed no-send front-door canary passed; canonical transaction invoice-send-tx:2bd8efb929ecbed5376b2204; "
+                "second exact request idempotent; five negative probes fail-local; provider/draft/send/money/workbook calls 0"
+            ),
             risk_level="high",
             owner="Cassandra / PC Codex Desktop",
-            gate_stage="canary",
+            gate_stage="operator_approved_live",
             enabled_by="operator W0 GO plus production deploy, Cassandra restart, and immutable no-send front-door canary",
             disabled_by="remove the structured invoice packet route; existing non-W0 Cassandra routes remain available",
             rollback_note="revert the W0 integration commit and restart Cassandra; no provider draft or send state requires cleanup",
-            next_required_step="deploy, restart the real Cassandra owner, run the no-send front-door canary, and update this record with its receipt",
+            next_required_step="monitor PREPARED receipts; keep provider draft, approval, send, money, and workbook gates closed until their later waves",
             activation_allowed_now=False,
             operator_approval_required=True,
-            reason_if_off="the new owner-process path is not yet deployed and live-verified",
+            reason_if_off="only rollback after an immutable-envelope, idempotency, voice, or owner-process regression",
             evidence_refs=[
+                "workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md",
                 "tests/test_invoice_send_transaction.py",
                 "tests/test_w0_cassandra_invoice_prepare.py",
             ],
@@ -1993,10 +1997,10 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             flag_or_config=["openclaw-autonomous-invoice-prep.timer; prepare-only authority boundary"],
             default_state="installed_daily_prepare_only",
             current_state_if_verifiable=_state(
-                "existing St. Anne's timer is active; generic Live Arts monthly prepare path passes focused tests",
+                "installed timer is enabled and active; generic Live Arts monthly prepare path ran in production and stopped idempotently on its second pass",
                 code_default="scheduler emits review packages and operator attention only; email, workbook, provider, money, and send authority remain false",
-                production="timer installed and active; updated generic owner-process pass pending deployment",
-                audit_report="W0 generic scheduler test proves July 16 Live Arts due cycle is idempotent and no-send",
+                production="July 16 Live Arts cycle prepared workflow_package:057b0f98330cc0a2; second systemd oneshot returned IDLE/already_prepared_for_cycle",
+                audit_report="truth batch receipt records June paid-through, July due, accountant contact, Guardian gate, and no external or financial action",
             ),
             source_files=[
                 "autonomous_invoice_prep_scheduler.py",
@@ -2012,18 +2016,23 @@ def _capability_templates(last_verified_at: str) -> list[dict[str, Any]]:
             audits=[
                 "/home/openclaw/Operator/from-codex/PASS-3-AGREED-FABLE-SYSTEM-INVOICE-SEND-E2E-20260717-PC-Codex-Desktop.md",
             ],
-            canary_status="existing timer active; generic Live Arts production oneshot pending",
+            canary_status=(
+                "timer enabled/active; first production oneshot PREPARED Live Arts July cycle; "
+                "second production oneshot IDLE/already_prepared_for_cycle; SEND_HOLD unchanged; sends 0"
+            ),
             risk_level="medium",
             owner="Cassandra / PC Codex Desktop",
-            gate_stage="canary",
+            gate_stage="operator_approved_live",
             enabled_by="operator W0 GO plus production truth batch and successful systemd oneshot",
             disabled_by="disable openclaw-autonomous-invoice-prep.timer; no send path is owned by this service",
             rollback_note="disable the timer or revert the generic scheduler commit; prepared review records grant no external authority",
-            next_required_step="deploy, apply the receipted Live Arts truth batch, and run the installed systemd oneshot twice",
+            next_required_step="keep the timer active and monitor prepare-only receipts; July's $100 remains an operator-review target, not a send",
             activation_allowed_now=False,
             operator_approval_required=True,
-            reason_if_off="the updated generic prepare owner has not completed its production oneshot canary",
+            reason_if_off="only rollback after a recurrence, idempotency, or authority-boundary regression",
             evidence_refs=[
+                "workspaces/openclaw_program/activation_records/INVOICE_SEND_W0_20260717.md",
+                "generated/system_knowledge/w0_lamd_registry_truth_receipt.json",
                 "tests/test_autonomous_invoice_prep_scheduler.py",
                 "systemd/user/openclaw-autonomous-invoice-prep.timer.in",
             ],
