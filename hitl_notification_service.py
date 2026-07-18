@@ -16,9 +16,8 @@ Token format:
 
 Decision values in token: "Y" (approve) or "N" (deny)
 
-Telegram commands injected into the notification:
-    /hitl_approve <token>
-    /hitl_deny    <token>
+Signed tokens are carried only in Telegram callback_data. Visible copy uses
+real buttons plus a short numeric fallback code.
 
 Public API
 ----------
@@ -48,6 +47,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import hitl_action_service as _svc
+from guardian_approval_ui import (
+    APPROVE_BUTTON_TEXT,
+    DENY_BUTTON_TEXT,
+    fallback_lines,
+    human_reply_code,
+    parse_human_reply,
+    terminal_outcome,
+)
 from hitl_pending_store import WAITING_FOR_APPROVAL
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -209,8 +216,8 @@ def _build_keyboard(action_id: str) -> dict:
     return {
         "inline_keyboard": [
             [
-                {"text": "Approve", "callback_data": f"HITL:{approve_token}"},
-                {"text": "Deny",    "callback_data": f"HITL:{deny_token}"},
+                {"text": APPROVE_BUTTON_TEXT, "callback_data": f"HITL:{approve_token}"},
+                {"text": DENY_BUTTON_TEXT, "callback_data": f"HITL:{deny_token}"},
             ],
             [
                 {"text": "Why now?", "callback_data": f"HITL_WHY:{action_id}"},
@@ -233,7 +240,7 @@ def _payload_preview(payload: dict, max_chars: int = 200) -> str:
 
 
 def _reply_code(action_id: str) -> str:
-    return str(action_id or "")[:4].upper()
+    return human_reply_code(action_id)
 
 
 def _operator_action_payload(action: dict) -> dict | None:
@@ -249,16 +256,15 @@ def _format_operator_action_notification(action: dict, payload: dict) -> str:
     action_id = action["action_id"]
     a_type = action.get("action_type", payload.get("action_type", "unknown"))
     exact_payload = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
-    code = str(payload.get("typed_fallback_reply_code") or _reply_code(action_id))
+    fallback = fallback_lines(action_id)
     operator_eli5 = " ".join(str(exact_payload.get("operator_eli5") or "").split())
     if operator_eli5:
         return "\n".join(
             [
                 operator_eli5,
                 "",
-                "Use the buttons below, or reply with:",
-                f"{code} 1 to approve",
-                f"{code} 2 to deny",
+                "Use the buttons below,",
+                *fallback,
             ]
         )
     risk = str(payload.get("risk_tier") or _svc.risk_tier_for_action_type(str(a_type))).upper()
@@ -307,9 +313,8 @@ def _format_operator_action_notification(action: dict, payload: dict) -> str:
     lines.extend(
         [
             "",
-            "Use the buttons below, or reply with:",
-            f"{code} 1 to approve",
-            f"{code} 2 to deny",
+            "Use the buttons below,",
+            *fallback,
         ]
     )
     return "\n".join(lines)
@@ -333,9 +338,6 @@ def format_notification(action: dict) -> str:
     if operator_payload is not None:
         return _format_operator_action_notification(action, operator_payload)
 
-    approve_token = generate_token(action_id, "Y")
-    deny_token = generate_token(action_id, "N")
-
     lines = [
         "🔔 HITL ACTION PENDING",
         f"ID: {action_id}",
@@ -354,14 +356,7 @@ def format_notification(action: dict) -> str:
         )
     if review_reasons:
         lines.append(f"Review reasons: {', '.join(review_reasons)}")
-    lines.extend([
-        "",
-        "To approve:",
-        f"/hitl_approve {approve_token}",
-        "",
-        "To deny:",
-        f"/hitl_deny {deny_token}",
-    ])
+    lines.extend(["", "Use the buttons below,", *fallback_lines(action_id)])
     return "\n".join(lines)
 
 
@@ -457,12 +452,12 @@ def process_callback(callback_data: str, *, approved_by: str = "operator") -> st
     result = handle_callback(raw_token, approved_by=approved_by)
 
     if result["ok"]:
-        decision_label = "Approved" if result["decision"] == "Y" else "Denied"
-        return f"[{decision_label}] {result['action_id']}"
+        return terminal_outcome("approved" if result["decision"] == "Y" else "denied")
 
     error = result.get("error", "unknown")
-    action_id = result.get("action_id") or "?"
-    return f"[Error] {action_id}: {error}"
+    if error in {"token_expired", "action_not_found_or_terminal"}:
+        return terminal_outcome("expired")
+    return terminal_outcome("unavailable")
 
 
 def explain_pending_action(action_id: str) -> str:
@@ -487,21 +482,7 @@ def explain_pending_action(action_id: str) -> str:
 
 
 def _parse_typed_decision(text: str, action: dict) -> tuple[str | None, str | None]:
-    payload = _operator_action_payload(action) or {}
-    code = str(payload.get("typed_fallback_reply_code") or _reply_code(action.get("action_id", ""))).upper()
-    parts = str(text or "").strip().split()
-    if len(parts) < 2:
-        return None, "reply_code_required"
-    if parts[0].upper() != code:
-        return None, "wrong_reply_code"
-    raw_decision = parts[1].strip().lower().rstrip(".")
-    approve = {"1", "y", "yes", "approve", "approved"}
-    deny = {"2", "n", "no", "deny", "denied"}
-    if raw_decision in approve:
-        return "Y", None
-    if raw_decision in deny:
-        return "N", None
-    return None, "invalid_reply_decision"
+    return parse_human_reply(text, str(action.get("action_id") or ""))
 
 
 def handle_typed_reply(text: str, *, approved_by: str = "operator") -> dict:
@@ -510,58 +491,65 @@ def handle_typed_reply(text: str, *, approved_by: str = "operator") -> dict:
     if not pending:
         return {"handled": False, "ok": False, "error": "no_pending_hitl_approval", "reply": ""}
 
-    wrong_code_seen = False
+    matches: list[tuple[dict, str]] = []
+    errors: list[str] = []
     for action in pending:
         decision, error = _parse_typed_decision(text, action)
-        if decision is None:
-            wrong_code_seen = wrong_code_seen or error == "wrong_reply_code"
-            if error == "wrong_reply_code":
-                continue
-            code = (_operator_action_payload(action) or {}).get("typed_fallback_reply_code") or _reply_code(action.get("action_id", ""))
-            return {
-                "handled": True,
-                "ok": False,
-                "error": error,
-                "action_id": action.get("action_id"),
-                "reply": f"Pending HITL approval. Reply with {code} 1 to approve or {code} 2 to deny.",
-            }
-        if decision == "Y":
-            ok = _svc.approve_action(action["action_id"], approved_by=approved_by)
-            label = "Approved" if ok else "Rejected"
-        else:
-            ok = _svc.deny_action(action["action_id"], reason="typed_fallback_deny")
-            label = "Denied" if ok else "Rejected"
-        if ok:
-            _audit_notify(
-                action["action_id"],
-                "typed_reply_applied",
-                {"decision": decision, "approved_by": approved_by},
-            )
-            return {
-                "handled": True,
-                "ok": True,
-                "action_id": action["action_id"],
-                "decision": decision,
-                "reply": f"[{label}] {action['action_id']}",
-            }
+        if decision is not None:
+            matches.append((action, decision))
+        elif error:
+            errors.append(error)
+
+    if len(matches) > 1:
+        return {
+            "handled": True,
+            "ok": False,
+            "error": "ambiguous_reply_code_collision",
+            "reply": "That short code matches more than one pending approval. Use the buttons; nothing was approved or denied.",
+        }
+    if not matches:
+        codes = [_reply_code(action.get("action_id", "")) for action in pending[:5]]
+        return {
+            "handled": True,
+            "ok": False,
+            "error": "wrong_reply_code" if "wrong_reply_code" in errors else "reply_code_required",
+            "reply": "Pending HITL approval. Use APPROVE or DENY with one of these codes: " + ", ".join(codes),
+        }
+
+    action, decision = matches[0]
+    try:
+        signed_token = generate_token(action["action_id"], decision)
+    except HitlNotificationConfigurationError:
         return {
             "handled": True,
             "ok": False,
             "action_id": action["action_id"],
             "decision": decision,
-            "error": "action_not_found_or_terminal",
-            "reply": f"[Error] {action['action_id']}: action_not_found_or_terminal",
+            "error": "hitl_notify_secret_unavailable",
+            "reply": terminal_outcome("unavailable"),
         }
-
-    codes = [
-        str((_operator_action_payload(action) or {}).get("typed_fallback_reply_code") or _reply_code(action.get("action_id", "")))
-        for action in pending[:5]
-    ]
+    signed_result = handle_callback(signed_token, approved_by=approved_by)
+    ok = bool(signed_result.get("ok"))
+    if ok:
+        _audit_notify(
+            action["action_id"],
+            "typed_reply_applied",
+            {"decision": decision, "approved_by": approved_by},
+        )
+        return {
+            "handled": True,
+            "ok": True,
+            "action_id": action["action_id"],
+            "decision": decision,
+            "reply": terminal_outcome("approved" if decision == "Y" else "denied"),
+        }
     return {
         "handled": True,
         "ok": False,
-        "error": "wrong_reply_code" if wrong_code_seen else "reply_code_required",
-        "reply": "Pending HITL approval. Reply with one of these codes: " + ", ".join(codes),
+        "action_id": action["action_id"],
+        "decision": decision,
+        "error": "action_not_found_or_terminal",
+        "reply": terminal_outcome("expired"),
     }
 
 
@@ -578,7 +566,10 @@ def handle_callback(raw_token: str, *, approved_by: str = "operator") -> dict:
         _audit_notify(
             result.get("action_id") or "unknown",
             "callback_rejected",
-            {"error": result["error"], "token_preview": raw_token[:20]},
+            {
+                "error": result["error"],
+                "token_fingerprint": hashlib.sha256(raw_token.encode("utf-8")).hexdigest()[:12],
+            },
         )
         return result
 

@@ -4,7 +4,7 @@ chief_guardian_listener.py
 Dedicated approval response listener for the Guardian bot channel.
 
 Primary path: Telegram inline tap buttons (Approve / Deny / Approve All).
-Fallback path: Typed CODE DECISION format (e.g. "A3F2 1") — explicit fallback
+Fallback path: short human code (e.g. "APPROVE 4382") — explicit fallback
   for cases where buttons are not delivered or not available.
 
 Both paths enforce the same security guarantees:
@@ -53,6 +53,7 @@ from telegram_listener_integrity import (
     run_verified_polling,
 )
 from chief_nonapproval_responder import guardian_no_pending_reply
+from guardian_approval_ui import human_reply_code, terminal_outcome
 from listener_resilience import clean_stale_carryover, honest_short_fail
 from telegram_receipt_adapter import (
     contract_delivery_descriptor,
@@ -203,11 +204,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     # Acknowledge the tap immediately to stop the Telegram loading spinner.
     await query.answer()
 
-    # Null-safe original text: query.message may be None if the message was deleted
-    # between send time and callback handling time.
-    _orig = (query.message.text if query.message else "") or ""
-
-    async def _update(text: str) -> None:
+    async def _update(text: str, *, retire_approval_id: str = "") -> None:
         """
         Edit the original approval message to show outcome and remove the keyboard.
 
@@ -218,20 +215,23 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         Other exceptions are re-raised so they surface in logs.
         """
         text = guardian_resilient_reply(text)
+        edited = False
         try:
             await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup([]))
+            edited = True
         except TelegramBadRequest as e:
             _reason = str(e).lower()
             if "message is not modified" in _reason:
                 # Edit is a no-op — content unchanged. Not an error; no fallback needed.
-                return
+                edited = True
             # Message unavailable (deleted, not found, can't edit) — log and fall back.
-            print(
-                f"[guardian] _update: BadRequest ({e.__class__.__name__}: {e}) "
-                "— edit unavailable, falling back to send_message.",
-                flush=True,
-            )
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+            else:
+                print(
+                    f"[guardian] _update: BadRequest ({e.__class__.__name__}: {e}) "
+                    "— edit unavailable, falling back to send_message.",
+                    flush=True,
+                )
+                await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
         except TelegramForbidden as e:
             # Bot was blocked or chat became unavailable — send_message would also fail.
             print(
@@ -239,10 +239,17 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 "— bot blocked or chat unavailable, status update not delivered.",
                 flush=True,
             )
+        if edited and retire_approval_id:
+            try:
+                from guardian_approval_board import mark_resolved
+
+                mark_resolved(retire_approval_id)
+            except Exception:
+                pass
 
     callback_data = query.data or ""
     if ":" not in callback_data:
-        await _update(_orig + "\n\n[Invalid button data — no action taken.]")
+        await _update(terminal_outcome("unavailable"))
         return
 
     decision_token, approval_id_from_cb = callback_data.split(":", 1)
@@ -252,7 +259,13 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         from hitl_notification_service import process_callback as _hitl_cb
         _approved_by = str(update.effective_user.id) if update.effective_user else "operator"
         _result = _hitl_cb(callback_data, approved_by=_approved_by)
-        await _update(f"{_orig}\n\n{_result}")
+        if decision_token == "HITL_WHY":
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=guardian_resilient_reply(_result),
+            )
+        else:
+            await _update(_result)
         return
 
     # ── Build-request approval (polish-loop factory intake, Gap A) ────────────
@@ -265,13 +278,16 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
             _br = handle_build_approval(callback_data, ledger=ControlPlaneLedger())
             if _br["result"] == "approved":
-                await _update(f"{_orig}\n\n✅ Approved — build queued (READY).")
+                await _update(
+                    terminal_outcome("approved", approved_suffix="build queued"),
+                    retire_approval_id=approval_id_from_cb,
+                )
             elif _br["result"] == "denied":
-                await _update(f"{_orig}\n\n🛑 Denied — build request dropped.")
+                await _update(terminal_outcome("denied"), retire_approval_id=approval_id_from_cb)
             else:
-                await _update(f"{_orig}\n\n[Build request no longer actionable.]")
+                await _update(terminal_outcome("expired"), retire_approval_id=approval_id_from_cb)
         except Exception as _exc:  # never crash the Guardian listener
-            await _update(f"{_orig}\n\n[Build approval error: {type(_exc).__name__}]")
+            await _update(terminal_outcome("unavailable"))
         return
 
     # ── Calendar delete approval (async Guardian-gated delete) ────────────────
@@ -283,17 +299,20 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             _cr = handle_calendar_delete_callback(callback_data)
             _title = _cr.get("title", "")
             if _cr["result"] == "deleted":
-                await _update(f"{_orig}\n\n✅ Deleted “{_title}”.")
+                await _update(
+                    terminal_outcome("approved", approved_suffix=f"deleted “{_title}”"),
+                    retire_approval_id=approval_id_from_cb,
+                )
             elif _cr["result"] == "denied":
-                await _update(f"{_orig}\n\n🛑 Kept “{_title}” — not deleted.")
+                await _update(terminal_outcome("denied"), retire_approval_id=approval_id_from_cb)
             elif _cr["result"] == "expired":
-                await _update(f"{_orig}\n\n[That delete request expired.]")
+                await _update(terminal_outcome("expired"), retire_approval_id=approval_id_from_cb)
             elif _cr["result"] == "error":
-                await _update(f"{_orig}\n\n[Delete failed: {_cr.get('error', '')}]")
+                await _update(terminal_outcome("unavailable"))
             else:
-                await _update(f"{_orig}\n\n[No longer actionable.]")
+                await _update(terminal_outcome("expired"))
         except Exception as _exc:  # never crash the Guardian listener
-            await _update(f"{_orig}\n\n[Calendar delete error: {type(_exc).__name__}]")
+            await _update(terminal_outcome("unavailable"))
         return
 
     from chief_approval_brain import (
@@ -305,7 +324,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         _pd = _load_pending()
         if not has_pending_approval() or _pd.get("id") != approval_id_from_cb:
             # Stale or expired — update the message (edit or fallback send).
-            await _update(_orig + "\n\n[Expired] No matching pending approval.")
+            await _update(terminal_outcome("expired"), retire_approval_id=approval_id_from_cb)
             return
         _action = _pd.get("action", "Unknown action")
         _requester = _pd.get("requester", "Unknown")
@@ -341,18 +360,18 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     if decision_token == "DELAY":
         _pd = _load_pending()
         if not has_pending_approval() or _pd.get("id") != approval_id_from_cb:
-            await _update(_orig + "\n\n[Expired] No matching pending approval to delay.")
+            await _update(terminal_outcome("expired"), retire_approval_id=approval_id_from_cb)
             return
         # Set status to "delayed" — the polling loop in request_approval() detects this,
         # resets its timeout window, and re-sends the approval message with fresh buttons.
         _pd["status"] = "delayed"
         _save_pending(_pd)
-        await _update(_orig + "\n\n[Delayed] Deferring — a new approval message will arrive shortly.")
+        await _update(terminal_outcome("delayed"), retire_approval_id=approval_id_from_cb)
         return
 
     # ── Normal decision path (YES / NO / YES_FOR_ALL) ─────────────────────────
     if not has_pending_approval():
-        await _update(_orig + "\n\nNo pending approval — tap ignored.")
+        await _update(terminal_outcome("expired"), retire_approval_id=approval_id_from_cb)
         return
 
     # Pass the ID from callback_data as expected_id.
@@ -363,20 +382,20 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     # Map record_decision() return strings to explicit, operator-correct status labels.
     # Binary approved/[Denied] would misclassify expired and rejected taps as denials.
     if reply in ("Approved.", "Approved for all."):
-        status = "[Approved]"
+        status = "approved"
     elif reply == "Denied.":
-        status = "[Denied]"
+        status = "denied"
     elif reply == "No pending approval request found.":
-        status = "[Expired]"
+        status = "expired"
     else:
-        status = "[Rejected]"
-    await _update(f"{_orig}\n\n{status} {reply}")
+        status = "unavailable"
+    await _update(terminal_outcome(status), retire_approval_id=approval_id_from_cb)
 
     # ── GREEN-CHECK ───────────────────────────────────────────────────────────
     # After a real Approve/Deny the one-at-a-time approval queue is empty, so send the
     # operator the "all clear" they actively look for: its ABSENCE means something is
     # still pending. Guarded so it can never crash the listener.
-    if status in ("[Approved]", "[Denied]") and not has_pending_approval():
+    if status in ("approved", "denied") and not has_pending_approval():
         try:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
@@ -388,7 +407,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Fallback approval path: typed CODE DECISION format (e.g. "A3F2 1").
+    Fallback approval path: typed human code (e.g. "APPROVE 4382").
 
     This path is retained as an explicit fallback for cases where inline buttons
     are not delivered or not available. It enforces the same security guarantees
@@ -508,7 +527,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     _pending_id = _pd.get("id", "")
     _options = _pd.get("options", 2)
 
-    # Strict CODE DECISION format required (e.g. "A3F2 1").
+    # Strict human-code format required (e.g. "APPROVE 4382").
     # parse_reply_code returns ("", error_msg) on any mismatch or format failure.
     decision, error = parse_reply_code(text, _pending_id, options=_options)
     if error:
@@ -610,9 +629,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # pending approval and answer it conversationally (bounded local LM, fail-closed),
         # then still show how to decide. A malformed decision attempt keeps the strict
         # hint. This never touches approval semantics.
-        _code = (_pending_id[:4] or "").upper()
+        _code = human_reply_code(_pending_id) if _pending_id else ""
         _ans = ""
-        if _code and not text.strip().upper().startswith(_code):
+        _decision_prefixes = ("APPROVE ", "DENY ")
+        if _code and not text.strip().upper().startswith(_decision_prefixes):
             try:
                 import asyncio as _asyncio
                 from chief_approval_brain import _build_eli5_packet, _is_hard_t2

@@ -26,7 +26,7 @@
         "OPENCLAW_ACTION_RUNTIME"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -80,7 +80,7 @@
         "dry_run mode; Gemini worker dispatch operator-gated"
       ],
       "gate_stage": "dry_run",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "dry_run_verified",
       "live_state": {
         "confidence": "medium",
@@ -126,7 +126,7 @@
         "contract toggles: runtime/model/agent/tool/package send authority false"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -174,7 +174,7 @@
         "SEND_HOLD.md"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -272,7 +272,7 @@
         "brain_dump_parser.py --dry-run"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -482,7 +482,7 @@
         "OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -543,7 +543,7 @@
         "TELEGRAM_AUTHORIZED_USER_ID"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -587,7 +587,7 @@
         "local JSON dry-run inbox paths; no live Telegram credential flag"
       ],
       "gate_stage": "dry_run",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "dry_run_verified",
       "live_state": {
         "confidence": "medium",
@@ -688,7 +688,7 @@
         "chief_llm.claude_json"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -731,7 +731,7 @@
         "unknown"
       ],
       "gate_stage": "proposed",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -775,7 +775,7 @@
         "OPENCLAW_PACKET_SOURCE"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -859,7 +859,7 @@
         "OPENCLAW_CONTROL_PLANE_EMIT"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -914,7 +914,7 @@
         "unknown_live_wiring_flag"
       ],
       "gate_stage": "synthetic",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1038,7 +1038,7 @@
         "CASSANDRA_EXTERNAL_MODEL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1097,7 +1097,7 @@
         "chief_llm.external_model_packet_policy"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1146,7 +1146,7 @@
         "OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1334,7 +1334,7 @@
         "OPENCLAW_FRONTDOOR_MODEL_MAX_GB"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -1431,7 +1431,7 @@
         "approval receipt inputs only; no live provider flag"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1477,7 +1477,7 @@
         "polish_loop/git_task_guard.sh"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1495,6 +1495,62 @@
         "polish_loop/git_task_guard.sh"
       ],
       "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/Operator/to-codex/FABLE-DIRECTIVE-GUARDIAN-BUTTON-UX-20260717.md"
+      ],
+      "canary_status": "LIVE-VERIFIED owner canary: exact button labels; HMAC signatures valid; raw callback text absent; short APPROVE/DENY code present; real isolated action DENIED; same-message outcome token-free; listener service restarted and identity verified; external/send/ledger calls 0",
+      "capability_id": "guardian_approval_button_ux",
+      "current_state_if_verifiable": {
+        "audit_report": "isolated real-state-machine owner canary cryptographically validated approve/deny callbacks, applied a real deny transition, and found zero raw token text on request or terminal outcome",
+        "code_default": "signed HITL material stays in callback_data; Chief action HMAC stays in pending state; visible copy carries neither",
+        "production": "LIVE on chief-guardian-listener.service PID 1160271 after restart; Guardian bot identity verified; SEND_HOLD remained active and no provider send was performed",
+        "summary": "actionable approvals render real inline buttons, short human fallback codes, and token-free same-message outcomes"
+      },
+      "default_state": "on_for_actionable_guardian_approvals",
+      "disabled_by": "revert shared Guardian approval UI integration and restart only chief-guardian-listener.service",
+      "display_name": "Guardian approval inline-button and clean-afterlife UX",
+      "enabled_by": "Fable-relayed operator Guardian button UX directive",
+      "evidence_refs": [
+        "Operator/from-codex/GUARDIAN-APPROVAL-BUTTON-UX-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+        "systemd:user:chief-guardian-listener.service#pid-1160271",
+        "tests/test_guardian_approval_button_ux.py"
+      ],
+      "flag_or_config": [
+        "chief-guardian-listener.service",
+        "HITL_NOTIFY_SECRET signed callback_data"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
+      "live_production_state": "not_applicable",
+      "live_state": {
+        "confidence": "none",
+        "findings": [],
+        "notes": "no whitelisted live variable is mapped to this capability",
+        "status": "not_applicable"
+      },
+      "next_required_step": "grade the next naturally occurring approval message and its terminal edit; do not create an external-action request solely for UX proof",
+      "operator_approval_required": true,
+      "owner": "Guardian / PC Codex Desktop",
+      "reason_if_off": "only explicit rollback after callback, listener, or operator-surface regression",
+      "risk_level": "medium",
+      "rollback_note": "retain signed callback validation and fail-closed decision semantics even if visible rendering is rolled back",
+      "source_files": [
+        "guardian_approval_ui.py",
+        "hitl_notification_service.py",
+        "chief_guardian_listener.py",
+        "chief_approval_brain.py",
+        "guardian_approval_board.py",
+        "guardian_approval_notifier.py"
+      ],
+      "tests": [
+        "tests/test_guardian_approval_button_ux.py",
+        "tests/test_hitl_notification_service.py",
+        "tests/test_chief_approval_brain.py",
+        "tests/test_guardian_approval_board.py"
+      ]
     },
     {
       "activation_allowed_now": false,
@@ -1523,7 +1579,7 @@
         "HITL_FLAG_PATH"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1582,7 +1638,7 @@
         "openclaw-8b-keepwarm.timer"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1638,7 +1694,7 @@
         "OPENCLAW_INTERPRETER_LM"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -1868,7 +1924,7 @@
         "legal-console synthetic_only bridge"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1919,7 +1975,7 @@
         "OPENCLAW_LLM_DIAGNOSTICS"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1974,7 +2030,7 @@
         "OPENCLAW_LM1_SHARED_SEAM"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -2046,7 +2102,7 @@
         "GOOGLE_GENERATIVE_AI_API_KEY"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2248,7 +2304,7 @@
         "OPENCLAW_MAESTRO_BRAIN_LIVE"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2302,7 +2358,7 @@
         "NO_AUTHORITY_FLAGS"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2349,7 +2405,7 @@
         "NEMOTRON_MODEL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2403,7 +2459,7 @@
         "metadata-only intake contract; no live private-root flag"
       ],
       "gate_stage": "synthetic",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2451,7 +2507,7 @@
         "OPENCLAW_OLLAMA_MODEL_DEEP"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2509,7 +2565,7 @@
         "OpenAIConsultAdapter"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2821,7 +2877,7 @@
         "OPENCLAW_PACKET_SOURCE"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -2894,7 +2950,7 @@
         "OPENCLAW_SEND_HOLD"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2947,7 +3003,7 @@
         "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3009,7 +3065,7 @@
         "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3069,7 +3125,7 @@
         "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3132,7 +3188,7 @@
         "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3194,7 +3250,7 @@
         "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3259,7 +3315,7 @@
         "OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3311,7 +3367,7 @@
         "scripted gate report; no enable flag"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -3415,7 +3471,7 @@
         "autonomy_mode.py state file"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T20:49:09-04:00",
+      "last_verified_at": "2026-07-17T21:14:16-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -3447,7 +3503,7 @@
     "proposed",
     "unknown"
   ],
-  "generated_at": "2026-07-17T20:49:09-04:00",
+  "generated_at": "2026-07-17T21:14:16-04:00",
   "live_env_whitelist": [
     "OPENCLAW_INTERPRETER_LM",
     "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
@@ -4085,7 +4141,7 @@
       "lm1_shared_seam",
       "packet_source_sqlite_flip"
     ],
-    "total_capabilities": 59,
+    "total_capabilities": 60,
     "unknown_production_state": [
       "agent_package_preview_contract",
       "cassandra_telegram_delivery",
@@ -4623,12 +4679,14 @@
       "OPENCLAW_TEST_MODE": {
         "files": [
           "activation_gate_register.py",
+          "chief_approval_brain.py",
           "local_model_governance.py",
           "operator_surface_guard.py",
           "polish_loop/lane_launcher.py",
           "polish_loop/orchestrator.py",
           "polish_loop/pc4_heal_emitter.py",
           "protected_generate.py",
+          "tests/test_chief_approval_brain.py",
           "tests/test_continuity_stamp.py",
           "tests/test_interpreter_lm_integration.py",
           "tests/test_polish_loop_self_scaling.py"
@@ -4658,8 +4716,11 @@
           "activation_gate_register.py",
           "agent_voice_sender.py",
           "cassandra_telegram_delivery.py",
+          "chief_guardian_listener.py",
           "maestro_listener.py",
           "tests/test_165_output_boundary_integration.py",
+          "tests/test_chief_approval_brain.py",
+          "tests/test_guardian_approval_button_ux.py",
           "tests/test_maestro_listener.py"
         ],
         "status": "found"

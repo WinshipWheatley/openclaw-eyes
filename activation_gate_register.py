@@ -33,6 +33,7 @@ OPERATOR_FRONTDOOR_F0_LAST_VERIFIED_AT = "2026-07-17T17:35:36-04:00"
 W2_VALIDATED_INVOICE_GATE_LAST_VERIFIED_AT = "2026-07-17T18:39:51-04:00"
 DANK_PACKET_PIPELINE_LAST_VERIFIED_AT = "2026-07-17T20:08:58-04:00"
 CLARA_COPY_TASTE_PASS_LAST_VERIFIED_AT = "2026-07-17T20:49:09-04:00"
+GUARDIAN_BUTTON_UI_LAST_VERIFIED_AT = "2026-07-17T21:14:16-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -321,6 +322,7 @@ REQUIRED_CAPABILITY_IDS = (
     "packet_dankness_loop",
     "canonical_persona_delivery",
     "clara_invoice_copy_taste_pass",
+    "guardian_approval_button_ux",
     "control_plane_heal_emission",
     "git_task_guard",
     "model_selection_policy_contract",
@@ -1068,6 +1070,65 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
                 "clara_invoice_copy_composer.py:compose_invoice_copy",
             ],
             last_verified_at=CLARA_COPY_TASTE_PASS_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="guardian_approval_button_ux",
+            display_name="Guardian approval inline-button and clean-afterlife UX",
+            flag_or_config=[
+                "chief-guardian-listener.service",
+                "HITL_NOTIFY_SECRET signed callback_data",
+            ],
+            default_state="on_for_actionable_guardian_approvals",
+            current_state_if_verifiable=_state(
+                "actionable approvals render real inline buttons, short human fallback codes, and token-free same-message outcomes",
+                code_default="signed HITL material stays in callback_data; Chief action HMAC stays in pending state; visible copy carries neither",
+                production=(
+                    "LIVE on chief-guardian-listener.service PID 1160271 after restart; Guardian bot identity verified; "
+                    "SEND_HOLD remained active and no provider send was performed"
+                ),
+                audit_report=(
+                    "isolated real-state-machine owner canary cryptographically validated approve/deny callbacks, "
+                    "applied a real deny transition, and found zero raw token text on request or terminal outcome"
+                ),
+            ),
+            source_files=[
+                "guardian_approval_ui.py",
+                "hitl_notification_service.py",
+                "chief_guardian_listener.py",
+                "chief_approval_brain.py",
+                "guardian_approval_board.py",
+                "guardian_approval_notifier.py",
+            ],
+            tests=[
+                "tests/test_guardian_approval_button_ux.py",
+                "tests/test_hitl_notification_service.py",
+                "tests/test_chief_approval_brain.py",
+                "tests/test_guardian_approval_board.py",
+            ],
+            audits=[
+                "/home/openclaw/Operator/to-codex/FABLE-DIRECTIVE-GUARDIAN-BUTTON-UX-20260717.md",
+            ],
+            canary_status=(
+                "LIVE-VERIFIED owner canary: exact button labels; HMAC signatures valid; raw callback text absent; "
+                "short APPROVE/DENY code present; real isolated action DENIED; same-message outcome token-free; "
+                "listener service restarted and identity verified; external/send/ledger calls 0"
+            ),
+            risk_level="medium",
+            owner="Guardian / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="Fable-relayed operator Guardian button UX directive",
+            disabled_by="revert shared Guardian approval UI integration and restart only chief-guardian-listener.service",
+            rollback_note="retain signed callback validation and fail-closed decision semantics even if visible rendering is rolled back",
+            next_required_step="grade the next naturally occurring approval message and its terminal edit; do not create an external-action request solely for UX proof",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only explicit rollback after callback, listener, or operator-surface regression",
+            evidence_refs=[
+                "Operator/from-codex/GUARDIAN-APPROVAL-BUTTON-UX-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+                "systemd:user:chief-guardian-listener.service#pid-1160271",
+                "tests/test_guardian_approval_button_ux.py",
+            ],
+            last_verified_at=GUARDIAN_BUTTON_UI_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="control_plane_heal_emission",

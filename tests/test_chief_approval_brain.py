@@ -92,6 +92,7 @@ class TestPendingApprovalState:
 class TestGuardianApprovalCards:
     def test_generic_non_email_approval_renders_as_before(self):
         import chief_approval_brain as approval_brain
+        from guardian_approval_ui import human_reply_code
 
         message = approval_brain._build_l2_message(
             "Google broker: chief → google.calendar.write",
@@ -104,10 +105,14 @@ class TestGuardianApprovalCards:
         assert "Mode:" not in message
         assert "Thread synopsis:" not in message
         assert "Draft preview:" not in message
-        assert "Reply code: ABCD" in message
+        code = human_reply_code("ABCD1234")
+        assert f"or reply: APPROVE {code}" in message
+        assert f"or reply: DENY {code}" in message
+        assert "HASH1234" not in message
 
     def test_eli5_lead_prepended_at_send_time_with_injected_fn(self):
         import chief_approval_brain as approval_brain
+        from guardian_approval_ui import human_reply_code
 
         base = approval_brain._build_l2_message("delete Blue Weather.md", "ABCD1234", "H", 2)
         out = approval_brain._prepend_eli5(
@@ -118,7 +123,8 @@ class TestGuardianApprovalCards:
         )
         assert out.startswith("Cassandra wants to delete a note.")
         assert "APPROVAL REQUIRED" in out  # original deterministic block preserved below the lead
-        assert "Reply code: ABCD" in out
+        assert f"or reply: APPROVE {human_reply_code('ABCD1234')}" in out
+        assert "Hash:" not in out
 
     def test_eli5_lead_disabled_by_flag(self):
         import chief_approval_brain as approval_brain
@@ -158,6 +164,7 @@ class TestGuardianApprovalCards:
 
     def test_cassandra_email_send_approval_renders_enriched_card(self):
         import chief_approval_brain as approval_brain
+        from guardian_approval_ui import human_reply_code
 
         message = approval_brain._build_l2_message(
             "Google broker: cassandra → google.gmail.send",
@@ -185,7 +192,8 @@ class TestGuardianApprovalCards:
         assert "Thread synopsis:" in message
         assert "Proposed send:" in message
         assert "Draft preview:" in message
-        assert "Reply code: ABCD" in message
+        assert f"or reply: APPROVE {human_reply_code('ABCD1234')}" in message
+        assert "HASH1234" not in message
 
 
 class TestGuardianSenderPolicy:

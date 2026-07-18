@@ -17,7 +17,11 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Mapping, Protocol
 
+from guardian_approval_ui import APPROVE_BUTTON_TEXT, DENY_BUTTON_TEXT
 from guardian_approval_humanizer import humanize_approval, render_operator_message
+
+
+DEFAULT_STATE_DB = Path("/home/openclaw/.openclaw/guardian/approval_board_state.sqlite")
 
 
 class TelegramOps(Protocol):
@@ -31,12 +35,12 @@ class TelegramOps(Protocol):
 def _buttons(approval_id: str, *, kind: str = "generic") -> dict:
     if kind == "build":
         return {"inline_keyboard": [[
-            {"text": "✅ Approve", "callback_data": f"BUILDOK:{approval_id}"},
-            {"text": "🚫 Deny", "callback_data": f"BUILDNO:{approval_id}"},
+            {"text": APPROVE_BUTTON_TEXT, "callback_data": f"BUILDOK:{approval_id}"},
+            {"text": DENY_BUTTON_TEXT, "callback_data": f"BUILDNO:{approval_id}"},
         ]]}
     return {"inline_keyboard": [[
-        {"text": "✅ Approve", "callback_data": f"YES:{approval_id}"},
-        {"text": "🚫 Deny", "callback_data": f"NO:{approval_id}"},
+        {"text": APPROVE_BUTTON_TEXT, "callback_data": f"YES:{approval_id}"},
+        {"text": DENY_BUTTON_TEXT, "callback_data": f"NO:{approval_id}"},
     ], [
         {"text": "❔ Why now?", "callback_data": f"WHY:{approval_id}"},
         {"text": "⏳ Later", "callback_data": f"DELAY:{approval_id}"},
@@ -85,6 +89,20 @@ def _set_checkmark(conn, mid: int | None) -> None:
         conn.execute("INSERT OR REPLACE INTO board_meta (k, v) VALUES ('checkmark_mid', ?)", (str(mid),))
 
 
+def mark_resolved(approval_id: str, *, state_db: str | Path = DEFAULT_STATE_DB) -> bool:
+    """Stop board reconciliation from overwriting a listener-rendered outcome."""
+
+    if not str(approval_id or ""):
+        return False
+    conn = _conn(state_db)
+    try:
+        cursor = conn.execute("DELETE FROM board_active WHERE approval_id=?", (str(approval_id),))
+        conn.commit()
+        return bool(cursor.rowcount)
+    finally:
+        conn.close()
+
+
 def sync_board(
     pending: list[Mapping[str, Any]],
     *,
@@ -112,7 +130,7 @@ def sync_board(
                         ops.edit(meta["message_id"], "↻ Superseded by a newer request — no action needed.")
                         superseded += 1
                     else:
-                        ops.delete(meta["message_id"])
+                        ops.edit(meta["message_id"], "⏰ Expired", buttons=None)
                         retired += 1
                 except Exception:
                     pass
@@ -163,4 +181,4 @@ def sync_board(
         conn.close()
 
 
-__all__ = ["sync_board", "TelegramOps"]
+__all__ = ["mark_resolved", "sync_board", "TelegramOps"]

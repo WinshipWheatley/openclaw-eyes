@@ -39,6 +39,13 @@ from datetime import datetime
 from pathlib import Path
 
 import chief_env
+from guardian_approval_ui import (
+    APPROVE_BUTTON_TEXT,
+    DENY_BUTTON_TEXT,
+    fallback_lines,
+    human_reply_code,
+    parse_human_reply,
+)
 
 DEFAULT_PENDING_FILE = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 PENDING_FILE    = DEFAULT_PENDING_FILE
@@ -117,11 +124,11 @@ def _build_l2_keyboard(approval_id: str, options: int, allow_delay: bool = True)
         return {
             "inline_keyboard": [
                 [
-                    {"text": "Approve", "callback_data": f"YES:{rc}"},
-                    {"text": "Approve All", "callback_data": f"YES_FOR_ALL:{rc}"},
+                    {"text": APPROVE_BUTTON_TEXT, "callback_data": f"YES:{rc}"},
+                    {"text": "✅ Approve all", "callback_data": f"YES_FOR_ALL:{rc}"},
                 ],
                 [
-                    {"text": "Deny", "callback_data": f"NO:{rc}"},
+                    {"text": DENY_BUTTON_TEXT, "callback_data": f"NO:{rc}"},
                 ],
                 _meta_row,
             ]
@@ -129,8 +136,8 @@ def _build_l2_keyboard(approval_id: str, options: int, allow_delay: bool = True)
     return {
         "inline_keyboard": [
             [
-                {"text": "Approve", "callback_data": f"YES:{rc}"},
-                {"text": "Deny", "callback_data": f"NO:{rc}"},
+                {"text": APPROVE_BUTTON_TEXT, "callback_data": f"YES:{rc}"},
+                {"text": DENY_BUTTON_TEXT, "callback_data": f"NO:{rc}"},
             ],
             _meta_row,
         ]
@@ -460,28 +467,17 @@ def _prepend_eli5(message: str, action: str, approval_context: dict | None, *,
 def _build_l2_message(action: str, approval_id: str, action_hash: str,
                       options: int, approval_context: dict | None = None) -> str:
     """Build the structured L2 approval message sent to the Guardian bot."""
-    hash_line = f"\nHash: {action_hash}" if action_hash else ""
+    del action_hash  # The HMAC remains in pending state and is never visible copy.
     risk_line = "\nRisk: Irreversible" if _is_hard_t2(action) else "\nRisk: Recoverable"
-    rc = approval_id[:4]  # 4-char reply code — user must prefix replies with this
-    if options == 3:
-        choice_line = (
-            f"\n\nReply code: {rc}\n"
-            f"{rc} 1 — Approve\n"
-            f"{rc} 2 — Approve for all\n"
-            f"{rc} 3 — Deny"
-        )
-    else:
-        choice_line = (
-            f"\n\nReply code: {rc}\n"
-            f"{rc} 1 — Approve\n"
-            f"{rc} 2 — Deny"
-        )
+    choice_line = "\n\n" + "\n".join(
+        fallback_lines(approval_id, allow_approve_all=options == 3)
+    )
 
     context_block = _build_approval_context_block(approval_context)
     if context_block:
-        action_block = f"{context_block}{hash_line}{risk_line}"
+        action_block = f"{context_block}{risk_line}"
     else:
-        action_block = f"Action: {action}{hash_line}{risk_line}"
+        action_block = f"Action: {action}{risk_line}"
 
     return (
         f"APPROVAL REQUIRED\n\n"
@@ -673,11 +669,11 @@ def request_approval(
     # Operator assist escalation for blocked terminals or agents (e.g. Claude Code)
     try:
         from chief_assist import escalate_to_operator
-        rc = approval_id[:4]
+        rc = human_reply_code(approval_id)
         assist_msg = escalate_to_operator(
             diagnosis=f"Approval Gate Locked: Pending authorization for '{_truncate_approval_text(action, 60)}'",
             reason="Irreversible action requires human judgment. TTY unavailable; escalated to phone/Telegram.",
-            primary_cmd=f"python3 /home/openclaw/chief_router.py \"{rc} 1\"",
+            primary_cmd=f"python3 /home/openclaw/chief_router.py \"APPROVE {rc}\"",
             context_cmd=f"cat {PENDING_FILE}"
         )
         print(f"\n{assist_msg}\n", flush=True)
@@ -816,53 +812,49 @@ def record_decision(decision: str, expected_id: str = "") -> str:
 
 def parse_reply_code(text: str, pending_id: str, options: int = 2) -> tuple[str, str]:
     """
-    Parse and validate a 'CODE DECISION' approval reply.
+    Parse and validate a short human-code approval reply.
 
-    Expected format: '<4-char code> <decision>'  e.g. 'A3F2 1', 'A3F2 YES'
-    The code is the first 4 characters of the active pending approval ID.
+    Preferred format: 'APPROVE <4 digits>' or 'DENY <4 digits>'. The numeric
+    code is derived from the active pending ID without exposing its HMAC.
+    The prior '<ID prefix> <decision>' form remains accepted for old clients.
 
     options: number of choices (2 or 3); used to build correct format hints only.
 
     Returns (decision, "") on success where decision is the bare token ('1', '2', etc.).
     Returns ("", error_msg) on failure:
-      - Wrong format (no code prefix, or part[0] is not 4 chars): returns an
-        options-aware hint, no log (could be a legitimate non-approval message).
+      - Wrong format: returns an options-aware hint, no log (could be a
+        legitimate non-approval message).
       - Wrong code: returns rejection and logs the mismatch.
       - No pending_id: returns rejection.
 
     Callers pass the extracted decision to record_decision(); they do not need
     to validate the decision token themselves — record_decision() handles that.
     """
-    reply_code = pending_id[:4].upper() if pending_id else ""
-    parts = text.strip().split(None, 1)
-
-    if len(parts) != 2 or len(parts[0]) != 4:
-        if reply_code:
-            if options == 3:
-                hint = (f"{reply_code} 1 (approve), "
-                        f"{reply_code} 2 (approve all), or "
-                        f"{reply_code} 3 (deny)")
-            else:
-                hint = f"{reply_code} 1 (approve) or {reply_code} 2 (deny)"
-        else:
-            hint = "CODE 1"
-        return "", f"Include reply code. Example: {hint}"
-
-    code, decision = parts[0].upper(), parts[1].strip()
-
-    if not reply_code:
+    if not pending_id:
         print("[approval] DENIED: parse_reply_code called with no active pending_id.", flush=True)
         return "", "No pending approval — reply not accepted."
-
-    if code != reply_code:
+    decision, error = parse_human_reply(
+        text,
+        pending_id,
+        allow_approve_all=options == 3,
+    )
+    if error == "wrong_reply_code":
+        expected = human_reply_code(pending_id)
         print(
             f"[approval] DENIED: reply code mismatch — "
-            f"expected={reply_code!r} got={code!r}",
+            f"expected={expected!r}",
             flush=True,
         )
-        return "", f"Wrong approval code. Expected {reply_code}."
-
-    return decision, ""
+        return "", f"Wrong approval code. Expected {expected}."
+    if error:
+        code = human_reply_code(pending_id)
+        if options == 3:
+            hint = f"APPROVE {code}, APPROVE ALL {code}, or DENY {code}"
+        else:
+            hint = f"APPROVE {code} or DENY {code}"
+        return "", f"Use the approval words and short code. Example: {hint}"
+    mapped = {"Y": "YES", "N": "NO", "A": "YES_FOR_ALL"}
+    return mapped[str(decision)], ""
 
 
 def get_pending_album_snapshot() -> dict | None:

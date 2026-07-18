@@ -15,6 +15,8 @@ from __future__ import annotations
 import re
 from typing import Any, Callable, Mapping
 
+from guardian_approval_ui import fallback_lines
+
 
 def _first(*vals: object) -> str:
     for v in vals:
@@ -144,9 +146,11 @@ def render_operator_message(h: Mapping[str, str], *, llm_polish: Callable[[str],
         h["plain"],
         "",
         f"✅ Approve → {h['if_approve']}",
-        f"🚫 Deny → {h['if_deny']}",
+        f"❌ Deny → {h['if_deny']}",
         "",
         h["risk"],
+        "",
+        *fallback_lines(h.get("ref", "")),
     ]
     deterministic = "\n".join(x for x in lines if x is not None)
     if llm_polish is None:

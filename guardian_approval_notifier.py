@@ -24,6 +24,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
 
+from guardian_approval_ui import (
+    APPROVE_BUTTON_TEXT,
+    DENY_BUTTON_TEXT,
+    fallback_lines,
+)
+
 DEFAULT_PENDING_FILE = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 DEFAULT_LEDGER = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 DEFAULT_STATE_DB = Path("/home/openclaw/.openclaw/guardian/approval_notifier_state.sqlite")
@@ -92,8 +98,8 @@ def _chief_keyboard(approval_id: str) -> dict[str, Any]:
     return {
         "inline_keyboard": [
             [
-                {"text": "Approve", "callback_data": f"YES:{approval_id}"},
-                {"text": "Deny", "callback_data": f"NO:{approval_id}"},
+                {"text": APPROVE_BUTTON_TEXT, "callback_data": f"YES:{approval_id}"},
+                {"text": DENY_BUTTON_TEXT, "callback_data": f"NO:{approval_id}"},
             ],
             [
                 {"text": "Delay 5m", "callback_data": f"DELAY:{approval_id}"},
@@ -218,7 +224,8 @@ def run_once(
                     f"Action: {str(chief.get('action') or '')[:400]}\n"
                     f"Requester: {chief.get('requester') or 'unknown'} | Tier: {chief.get('tier')}\n"
                     f"Requested: {chief.get('requested_at')}\n"
-                    f"ID: {approval_id}"
+                    f"ID: {approval_id}\n\n"
+                    + "\n".join(fallback_lines(approval_id))
                 )
                 try:
                     sender(message, reply_markup=_chief_keyboard(approval_id))

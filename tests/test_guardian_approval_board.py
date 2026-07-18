@@ -57,8 +57,9 @@ def test_green_checkmark_is_last_when_nothing_pending(tmp_path):
     s = board.sync_board([], ops=ops, state_db=tmp_path / "b.sqlite")
     assert s["active"] == 0
     live = list(ops.live().values())
-    # the ONLY live message is the green checkmark, and it's the last thing sent
-    assert len(live) == 1
+    # The old request remains as a clean terminal record, and the checkmark is last.
+    assert len(live) == 2
+    assert any(item["text"] == "⏰ Expired" and item["buttons"] is None for item in live)
     assert "✅" in live[-1]["text"]
     assert "clear" in live[-1]["text"].lower()
 
@@ -68,8 +69,9 @@ def test_resolved_approval_message_is_retired(tmp_path):
     board.sync_board([_approval("A1", "Send email")], ops=ops, state_db=tmp_path / "b.sqlite")
     a1_mid = next(iter(ops.sent))
     board.sync_board([], ops=ops, state_db=tmp_path / "b.sqlite")
-    # the original approval message is gone (deleted or edited to handled), not lingering active
-    assert ops.sent[a1_mid]["deleted"] or "handled" in ops.sent[a1_mid]["text"].lower()
+    # The same message becomes a token-free terminal record with no keyboard.
+    assert ops.sent[a1_mid]["text"] == "⏰ Expired"
+    assert ops.sent[a1_mid]["buttons"] is None
 
 
 def test_superseded_approval_retires_the_older(tmp_path):
