@@ -229,6 +229,28 @@ def test_answer_frontdoor_packet_engine_on_uses_agent_standing_persona(
     assert result.machine_proof["packet_engine_receipt_id"].startswith("packet_engine_receipt:")
 
 
+def test_answer_frontdoor_propagates_cassandra_quiet_luxury_doctrine_proof(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import maestro_context_packet
+    from maestro_cassandra_responder import answer_frontdoor_chat
+
+    monkeypatch.delenv("OPENCLAW_PACKET_ENGINE", raising=False)
+    monkeypatch.setattr(maestro_context_packet, "build_maestro_context_packet", lambda **_: _base_packet())
+    captured: dict[str, Any] = {}
+
+    result = answer_frontdoor_chat(
+        "restate this synthetic packet in Cassandra's voice",
+        agent="cassandra",
+        protected_generate_fn=_protected_capture(captured),
+    )
+
+    packet = captured["context_packet"]
+    assert packet["persona_delivery"]["doctrine_ref"] == "quiet_luxury:clara_cassandra:v1"
+    assert packet["machine_proof"]["packet_engine_doctrine_ref"] == "quiet_luxury:clara_cassandra:v1"
+    assert result.machine_proof["packet_engine_doctrine_ref"] == "quiet_luxury:clara_cassandra:v1"
+
+
 def test_answer_frontdoor_packet_engine_failure_falls_back_to_legacy_packet(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

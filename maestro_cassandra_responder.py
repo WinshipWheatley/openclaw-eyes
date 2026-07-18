@@ -486,6 +486,36 @@ def _protected_generate_receipt_machine_proof(receipt: Mapping[str, Any]) -> dic
     return proof
 
 
+def _packet_engine_delivery_proof(
+    *,
+    context_packet: Mapping[str, Any],
+    receipt: Mapping[str, Any] | None,
+    used: bool,
+    fallback_used: bool,
+    failure_type: str = "",
+) -> dict[str, Any]:
+    proof: dict[str, Any] = {
+        "packet_engine_used": used,
+        "packet_engine_fallback_used": fallback_used,
+    }
+    if receipt:
+        proof["packet_engine_receipt_id"] = str(receipt.get("receipt_id") or "")
+        proof["packet_engine_receipt_status"] = str(receipt.get("status") or "")
+    if failure_type:
+        proof["packet_engine_failure_type"] = failure_type
+
+    packet_proof = context_packet.get("machine_proof")
+    persona_delivery = context_packet.get("persona_delivery")
+    doctrine_ref = ""
+    if isinstance(packet_proof, Mapping):
+        doctrine_ref = str(packet_proof.get("packet_engine_doctrine_ref") or "").strip()
+    if not doctrine_ref and isinstance(persona_delivery, Mapping):
+        doctrine_ref = str(persona_delivery.get("doctrine_ref") or "").strip()
+    if doctrine_ref:
+        proof["packet_engine_doctrine_ref"] = doctrine_ref
+    return proof
+
+
 def _receipt_or_packet_has_skill(
     skill_id: str,
     *,
@@ -2138,15 +2168,13 @@ def _answer_status_capability_with_brain(
         answer_text = str(readback.get("plain_summary") or readback.get("one_line_answer") or "").strip()
 
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
-    packet_engine_proof: dict[str, Any] = {
-        "packet_engine_used": packet_engine_used,
-        "packet_engine_fallback_used": packet_engine_fallback_used,
-    }
-    if packet_engine_receipt:
-        packet_engine_proof["packet_engine_receipt_id"] = str(packet_engine_receipt.get("receipt_id") or "")
-        packet_engine_proof["packet_engine_receipt_status"] = str(packet_engine_receipt.get("status") or "")
-    if packet_engine_failure_type:
-        packet_engine_proof["packet_engine_failure_type"] = packet_engine_failure_type
+    packet_engine_proof = _packet_engine_delivery_proof(
+        context_packet=context_packet,
+        receipt=packet_engine_receipt,
+        used=packet_engine_used,
+        fallback_used=packet_engine_fallback_used,
+        failure_type=packet_engine_failure_type,
+    )
     return MaestroCassandraResult(
         status="ANSWER_READY",
         intent_class="status_capability_readback",
@@ -2726,15 +2754,13 @@ def _answer_with_maestro_brain(
         "receipt_id": str(receipt.get("receipt_id") or ""),
     }
     proof_refs = tuple(str(ref) for ref in context_packet.get("source_refs", ()) if str(ref).strip())
-    packet_engine_proof: dict[str, Any] = {
-        "packet_engine_used": packet_engine_used,
-        "packet_engine_fallback_used": packet_engine_fallback_used,
-    }
-    if packet_engine_receipt:
-        packet_engine_proof["packet_engine_receipt_id"] = str(packet_engine_receipt.get("receipt_id") or "")
-        packet_engine_proof["packet_engine_receipt_status"] = str(packet_engine_receipt.get("status") or "")
-    if packet_engine_failure_type:
-        packet_engine_proof["packet_engine_failure_type"] = packet_engine_failure_type
+    packet_engine_proof = _packet_engine_delivery_proof(
+        context_packet=context_packet,
+        receipt=packet_engine_receipt,
+        used=packet_engine_used,
+        fallback_used=packet_engine_fallback_used,
+        failure_type=packet_engine_failure_type,
+    )
     return MaestroCassandraResult(
         status="ANSWER_READY",
         intent_class=intent_class,
