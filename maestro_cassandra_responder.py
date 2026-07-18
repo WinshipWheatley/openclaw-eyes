@@ -878,6 +878,8 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
         return ("operator_truth_query", True, "")
     if _is_system_health_readback_intent(normalized):
         return ("system_health_readback", True, "")
+    if _is_advisory_judgment_intent(normalized):
+        return ("advisory_judgment", True, "")
     if _is_advisory_interrogative_intent(normalized):
         return ("maestro_brain_freeform", True, "")
     if _is_send_or_reply_intent(normalized):
@@ -1259,6 +1261,19 @@ def _answer_frontdoor_chat_impl(
     except Exception as exc:
         reason = str(getattr(exc, "reason", "probe_state_binding_failed"))
         return _probe_state_blocked_result(reason)
+    # Judgment questions are read-only BRAIN work. Resolve this named class before
+    # the typed action contract can misread "next step" as a handoff instruction.
+    if _is_advisory_judgment_intent(_normalize(text)):
+        return _answer_with_maestro_brain(
+            text,
+            session=session,
+            source_surface=source_surface,
+            forwarded_session=filtered_session(session),
+            protected_generate_fn=protected_generate_fn,
+            _capsule=_capsule,
+            agent=agent,
+            intent_class="advisory_judgment",
+        )
     # Task 151: one typed decision contract, adapted at this real Maestro
     # assembly point before legacy regex taps, sessions, digest, or model work.
     # Authority/domain pass-through decisions deliberately continue into their
@@ -2381,6 +2396,7 @@ def _answer_with_maestro_brain(
     protected_generate_fn: ProtectedGenerateFn | None,
     _capsule: Any | None = None,
     agent: str = "maestro",
+    intent_class: str = "maestro_brain_freeform",
 ) -> MaestroCassandraResult:
     packet_session = dict(session or {})
     packet_session["interpreter_route"] = "BRAIN"
@@ -2421,7 +2437,7 @@ def _answer_with_maestro_brain(
                 context_packet = build_agent_packet(
                     agent=agent,
                     question=text,
-                    question_class="maestro_brain_freeform",
+                    question_class=intent_class,
                     authority={
                         "source_surface": source_surface,
                         "send_hold": True,
@@ -2458,7 +2474,7 @@ def _answer_with_maestro_brain(
 
                     packet_engine_receipt = build_fallback_receipt(
                         agent=agent,
-                        question_class="maestro_brain_freeform",
+                        question_class=intent_class,
                         failure=exc,
                     )
                 except Exception:  # noqa: BLE001
@@ -2487,7 +2503,7 @@ def _answer_with_maestro_brain(
         )
         return MaestroCassandraResult(
             status="ANSWER_READY",
-            intent_class="maestro_brain_freeform",
+            intent_class=intent_class,
             allowed_to_call_handle=False,
             one_line_answer=_one_line_answer(answer),
             plain_summary=answer,
@@ -2670,7 +2686,8 @@ def _answer_with_maestro_brain(
 
         # COVERAGE: observe as the ACTUAL agent being answered (was hardcoded "maestro", which made
         # the dankifier loop churn on maestro alone and never enrich the other 5 agents' packets).
-        observe_packet_dankness(context_packet, text, agent)
+        if not isinstance(receipt.get("packet_dankness"), Mapping):
+            observe_packet_dankness(context_packet, text, agent)
     except Exception:
         pass
     # Defense-in-depth (persona-voice layer): flag if any machine-contract leaked past the
@@ -2720,7 +2737,7 @@ def _answer_with_maestro_brain(
         packet_engine_proof["packet_engine_failure_type"] = packet_engine_failure_type
     return MaestroCassandraResult(
         status="ANSWER_READY",
-        intent_class="maestro_brain_freeform",
+        intent_class=intent_class,
         allowed_to_call_handle=False,
         one_line_answer=_one_line_answer(answer_text),
         plain_summary=answer_text,
@@ -3924,6 +3941,25 @@ def _is_advisory_interrogative_intent(text: str) -> bool:
             r"is it safe to|"
             r"should i (?:send|pay|reply|respond|forward|email|mail|message|text|submit|approve)|"
             r"can i safely"
+            r")\b",
+            text,
+        )
+    )
+
+
+def _is_advisory_judgment_intent(text: str) -> bool:
+    """Recognize asks for judgment that must never become action staging."""
+
+    if re.search(r"^\s*(send|reply|forward|email|draft|pay|submit|approve|run|build|fix)\b", text):
+        return False
+    return bool(
+        re.search(
+            r"\b("
+            r"what do you think|"
+            r"what(?:'s| is) your (?:take|opinion|recommendation|judgment)|"
+            r"what would you recommend|"
+            r"what (?:is|would be) the next correct step|"
+            r"what should (?:we|i) do next"
             r")\b",
             text,
         )

@@ -59,6 +59,86 @@ PROMPT_DESCRIPTORS = {
     "openclaw": "OpenClaw - a neutral, easygoing cockpit voice",
 }
 
+REVOICE_STYLE_GUIDANCE = {
+    "maestro": (
+        "Warm right-hand voice: nimble, relaxed, and lightly witty. Use a natural "
+        "contraction and an upbeat ready-to-roll turn; avoid office-formal wording."
+    ),
+    "cassandra": (
+        "Discreet executive-assistant voice: warm, composed, and reassuring. Use one "
+        "clean, polished sentence with gentle confidence, preferably an 'everything is "
+        "in order' frame; avoid slang and wisecracks."
+    ),
+    "chief": (
+        "Practical foreman voice: blunt, clipped, and no-nonsense. Prefer two short "
+        "sentences in plain working language, one for each source claim; no flourish."
+    ),
+    "niles": (
+        "Cultured Australian studio voice: understated, dry, and lightly characterful. "
+        "A restrained turn such as 'Right' or 'all sorted' is welcome; never caricature."
+    ),
+    "guardian": (
+        "Protective gatekeeper voice: brief, firm, and steady. Lead with the verified "
+        "state, then give the no-change boundary as a separate sentence without cheerleading."
+    ),
+    "hermes": (
+        "Elegant systems-advisor voice: precise, balanced, and light. Use a graceful "
+        "'stands ready' / 'remains unchanged' sentence shape; avoid slang and forced wit."
+    ),
+    "clara": (
+        "Polished client-facing voice: personable, professional, and quietly helpful. "
+        "Use a gracious complete sentence; avoid internal jargon and casual slang."
+    ),
+    "openclaw": (
+        "Neutral cockpit voice: minimal, factual, and easygoing. Use the fewest clear "
+        "words possible and add no personality flourish."
+    ),
+}
+
+REVOICE_STYLE_MARKER_CONTRACTS: dict[str, dict[str, Any]] = {
+    "maestro": {
+        "requires_contraction": True,
+        "required_any": [("ready to roll", "all set", "good to go")],
+        "marker_ids": ("maestro_conversational_contraction", "maestro_upbeat_turn"),
+        "prompt_requirement": "Use a natural contraction and one of: ready to roll, all set, good to go.",
+    },
+    "cassandra": {
+        "required_any": [("prepared", "in order", "remains unchanged", "no changes have been made")],
+        "marker_ids": ("cassandra_polished_assurance",),
+        "prompt_requirement": "Use at least one of these exact polished phrases: prepared, in order, remains unchanged, no changes have been made.",
+    },
+    "chief": {
+        "min_sentences": 2,
+        "marker_ids": ("chief_two_sentence_shape",),
+        "prompt_requirement": "Use exactly two short sentences, one for readiness and one for no change.",
+    },
+    "niles": {
+        "required_exactly_one": [("right", "all sorted")],
+        "marker_ids": ("niles_understated_australian_turn",),
+        "prompt_requirement": "Use exactly one restrained turn: either start with Right, or say all sorted. Never use both.",
+    },
+    "guardian": {
+        "min_sentences": 2,
+        "marker_ids": ("guardian_state_then_boundary",),
+        "prompt_requirement": "Use exactly two firm sentences: verified ready state, then no-change boundary.",
+    },
+    "hermes": {
+        "required_any": [("stands ready",), ("remains unchanged", "unchanged")],
+        "marker_ids": ("hermes_stands_ready", "hermes_remains_unchanged"),
+        "prompt_requirement": "Use both phrases: stands ready and remains unchanged (or unchanged).",
+    },
+    "clara": {
+        "required_any": [("prepared", "ready for review", "remains unchanged")],
+        "marker_ids": ("clara_polished_client_frame",),
+        "prompt_requirement": "Use at least one polished phrase: prepared, ready for review, remains unchanged.",
+    },
+    "openclaw": {
+        "max_words": 12,
+        "marker_ids": ("openclaw_minimal_shape",),
+        "prompt_requirement": "Use no more than twelve words.",
+    },
+}
+
 VOICE_BOUNDARY_FALLBACKS = {
     "cassandra": "I couldn't use that wording. The verified facts above are still intact.",
     "chief": "Voice check failed. The verified status above still stands.",
@@ -307,6 +387,22 @@ VOICE_CONFORMANCE_CONTRACTS: dict[str, dict[str, Any]] = {
     },
 }
 
+FLEET_CULTURE_TRAITS = (
+    "fight_for_operator_and_mission",
+    "professional_and_calm_always",
+    "translate_operator_frustration_into_positive_communication",
+    "hold_the_line_when_dicey",
+    "camaraderie_only_from_ledger_grounded_shared_history",
+)
+
+PERSONA_SOURCE_REFS = (
+    "agent_voice_profiles.py",
+    "agent_perspective.py",
+    "agent_response_voice_modes.py",
+    "frontdoor_prompt.py",
+    "final_output_boundary.py",
+)
+
 AUTHORITY_BOUNDARY_DEFAULT = {
     "can_execute": False,
     "can_send": False,
@@ -368,6 +464,18 @@ def conversational_prompt_descriptor_for_speaker(speaker_ref: str) -> str:
     """Return the single canonical prompt description for a live speaker."""
 
     return PROMPT_DESCRIPTORS[canonical_speaker_ref(speaker_ref)]
+
+
+def revoice_prompt_guidance_for_speaker(speaker_ref: str) -> str:
+    return REVOICE_STYLE_GUIDANCE[canonical_speaker_ref(speaker_ref)]
+
+
+def revoice_style_marker_contract_for_speaker(speaker_ref: str) -> dict[str, Any]:
+    contract = REVOICE_STYLE_MARKER_CONTRACTS[canonical_speaker_ref(speaker_ref)]
+    return {
+        key: [list(group) for group in value] if key in {"required_any", "required_exactly_one"} else list(value) if key == "marker_ids" else value
+        for key, value in contract.items()
+    }
 
 
 def voice_boundary_fallback_for_speaker(speaker_ref: str) -> str:
@@ -561,6 +669,8 @@ def _apply_perspective(profile: dict[str, Any]) -> dict[str, Any]:
         "forbidden_patterns": [dict(item) for item in contract["forbidden_patterns"]],
     }
     enriched["prompt_descriptor"] = PROMPT_DESCRIPTORS[speaker_ref]
+    enriched["revoice_style_guidance"] = REVOICE_STYLE_GUIDANCE[speaker_ref]
+    enriched["revoice_style_marker_contract"] = revoice_style_marker_contract_for_speaker(speaker_ref)
     enriched["voice_boundary_fallback"] = VOICE_BOUNDARY_FALLBACKS[speaker_ref]
     enriched["action_promise_fallback"] = ACTION_PROMISE_FALLBACKS[speaker_ref]
     enriched["artifact_ready_template"] = ARTIFACT_READY_TEMPLATES[speaker_ref]
@@ -574,6 +684,49 @@ def voice_profile_for_speaker(speaker_ref: str) -> dict[str, Any]:
         if profile["speaker_ref"] == normalized:
             return profile
     raise KeyError(f"Unknown canonical speaker_ref: {speaker_ref}")
+
+
+def immutable_persona_core_for_speaker(speaker_ref: str) -> dict[str, Any]:
+    """Project the canonical voice profile into the operator-locked packet core."""
+
+    profile = voice_profile_for_speaker(canonical_speaker_ref(speaker_ref))
+    examples = tuple(
+        str(row.get("spoken_tts_text") or "").strip()
+        for row in profile.get("examples", ())
+        if isinstance(row, Mapping) and str(row.get("spoken_tts_text") or "").strip()
+    )[:2]
+    style_traits = list(profile["voice_conformance"]["style_traits"])
+    display_name = str(profile["self_identity"]["display_name"])
+    core = {
+        "persona_core_version": "persona_core_v3_canonical_voice_profile",
+        "agent": profile["speaker_ref"],
+        "voice_profile_ref": profile["voice_profile_ref"],
+        "identity": f"{display_name} speaks only as {profile['speaker_ref']}.",
+        "self_identity": dict(profile["self_identity"]),
+        "prompt_descriptor": profile["prompt_descriptor"],
+        "revoice_style_guidance": profile["revoice_style_guidance"],
+        "revoice_style_marker_contract": dict(profile["revoice_style_marker_contract"]),
+        "voice": profile["prompt_descriptor"],
+        "voice_charter": ", ".join(style_traits),
+        "style_traits": style_traits,
+        "role": profile["role"],
+        "duties": profile["role"],
+        "copy_rules": dict(profile["copy_rules"]),
+        "guardrails": list(profile["guardrails"]),
+        "voice_exemplars": examples,
+        "culture_traits": list(FLEET_CULTURE_TRAITS),
+        "operator_change_gate": "first_class_operator_approval_receipt_required",
+        "backstory_policy": {
+            "write_mode": "append_only_grounded_experience",
+            "source_requirement": "receipt_or_business_ledger_provenance",
+            "confabulated_memory_allowed": False,
+        },
+        "source_refs": list(PERSONA_SOURCE_REFS),
+    }
+    core["core_sha256"] = "sha256:" + hashlib.sha256(
+        stable_json(core).encode("utf-8")
+    ).hexdigest()
+    return core
 
 
 def voice_copy_rules_for_speaker(speaker_ref: str) -> dict[str, Any]:
@@ -1113,6 +1266,8 @@ def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
             "default_voice_modes",
             "tts_profile",
             "copy_rules",
+            "revoice_style_guidance",
+            "revoice_style_marker_contract",
             "voice_conformance",
             "vocabulary",
             "examples",

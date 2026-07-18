@@ -30,6 +30,7 @@ def _continuity_enabled() -> bool:
 
 SCHEMA_VERSION = "maestro_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
+DEFAULT_HITL_PENDING_STATE_PATH = Path("/mnt/c/OpenClaw/logs/hitl_pending_state.json")
 DEFAULT_SYSTEM_CATALOG_PATH = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 DEFAULT_FRONTDOOR_MODEL_MAX_GB = 6.0
 CLIENT_INVOICE_WORKFLOW_FRAMEWORK_READ_MODEL = "client_invoice_workflow_framework.json"
@@ -179,6 +180,79 @@ def _read_json(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _guardian_action_state_facts(
+    path: Path = DEFAULT_HITL_PENDING_STATE_PATH,
+) -> list[dict[str, Any]]:
+    """Read safe metadata for current unexpired Guardian decision states."""
+
+    payload = _read_json(path)
+    facts: list[dict[str, Any]] = []
+    now = datetime.now(timezone.utc)
+    for action_id, raw in payload.items():
+        status = str(raw.get("status") or "") if isinstance(raw, Mapping) else ""
+        if not isinstance(raw, Mapping) or status not in {"WAITING_FOR_APPROVAL", "APPROVED"}:
+            continue
+        expires_at = str(raw.get("expires_at") or "").strip()
+        try:
+            expiry = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            if expiry <= now:
+                continue
+        except ValueError:
+            continue
+        envelope = raw.get("payload") if isinstance(raw.get("payload"), Mapping) else {}
+        action_payload = (
+            envelope.get("payload") if isinstance(envelope.get("payload"), Mapping) else {}
+        )
+        send_hold = action_payload.get("send_hold_required") is True
+        invoice_number = str(action_payload.get("invoice_number") or "").strip()
+        action_type = str(raw.get("action_type") or "protected_action")
+        if invoice_number and action_type == "exact_gmail_send":
+            action_summary = f"The validated invoice {invoice_number} send button is ready"
+        else:
+            action_summary = "The protected action button is ready"
+        if status == "WAITING_FOR_APPROVAL":
+            topic = "pending_operator_action"
+            label = "Current Guardian approval waiting for the operator"
+            value = (
+                f"Action {action_id} ({action_type}) is WAITING_FOR_APPROVAL. "
+                f"{action_summary}; it has not executed. "
+                f"SEND_HOLD remains {'required' if send_hold else 'unchanged'}."
+            )
+        else:
+            topic = "current_guardian_action"
+            label = "Current Guardian decision with execution unproven"
+            value = (
+                f"Action {action_id} ({action_type}) records APPROVED. This is a decision "
+                f"record only; execution is not proven. {action_summary}; it has not "
+                f"executed from this packet. SEND_HOLD remains "
+                f"{'required' if send_hold else 'unchanged'}."
+            )
+        _append_fact(
+            facts,
+            topic=topic,
+            label=label,
+            value=value,
+            provenance="guardian_pending_action_owner",
+            source_ref=f"hitl_pending_store:{action_id}",
+            pii_tier="LIGHT",
+            freshness={"as_of": str(raw.get("requested_at") or ""), "source_ref": str(path)},
+        )
+        facts[-1]["decision_status"] = status
+    return facts
+
+
+def _pending_operator_action_facts(
+    path: Path = DEFAULT_HITL_PENDING_STATE_PATH,
+) -> list[dict[str, Any]]:
+    return [
+        fact
+        for fact in _guardian_action_state_facts(path)
+        if str(fact.get("topic") or "") == "pending_operator_action"
+    ]
 
 
 def _freshness(path: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -2346,6 +2420,25 @@ def _question_answer_scope_fact(*, established: bool) -> dict[str, Any]:
     return facts[0]
 
 
+def _advisory_current_state_scope_fact() -> dict[str, Any]:
+    facts: list[dict[str, Any]] = []
+    _append_fact(
+        facts,
+        topic="answer_scope",
+        label="Advisory current-state scope",
+        value=(
+            "Answer only from the current Guardian action fact in this packet. State the "
+            "recorded decision without treating it as execution authority, keep SEND_HOLD "
+            "explicit, and give one grounded verification step. Do not substitute unrelated "
+            "business or system state."
+        ),
+        provenance="question_relevance_contract",
+        source_ref="question_relevance_contract:advisory_current_state",
+        pii_tier="PUBLIC",
+    )
+    return facts[0]
+
+
 def _question_requests_global_overview(question: str) -> bool:
     lowered = str(question or "").casefold()
     return any(marker in lowered for marker in _GLOBAL_OVERVIEW_MARKERS)
@@ -2423,6 +2516,23 @@ def _apply_question_relevance_contract(
     original = [dict(fact) for fact in facts]
     if route != "BRAIN":
         return original, {}
+    current_actions = [
+        fact
+        for fact in original
+        if str(fact.get("topic") or "") in {"pending_operator_action", "current_guardian_action"}
+    ]
+    if current_actions and re.search(
+        r"\b(what do you think|next correct step|what should (?:we|i) do next|what would you recommend)\b",
+        str(question or "").lower(),
+    ):
+        scoped = [*current_actions, _advisory_current_state_scope_fact()]
+        return scoped, {
+            "question_relevance_contract_applied": True,
+            "question_relevance_scope": "advisory_current_state",
+            "question_relevance_established": True,
+            "question_relevance_dropped_fact_count": len(original) - len(current_actions),
+            "question_relevance_kept_fact_count": len(scoped),
+        }
     if _question_requests_global_overview(question):
         return original, {
             "question_relevance_contract_applied": True,
@@ -2706,7 +2816,14 @@ def build_maestro_context_packet(
     truth_facts = _resolve_operator_truth_drift(truth_facts, receivable_temporal_facts)
     contacts_facts, contacts_proof = _contacts_registry_facts(question)
     read_model_facts, read_model_refs, read_model_proof = _read_model_facts(root)
-    facts = [*receivable_temporal_facts, *truth_facts, *contacts_facts, *read_model_facts]
+    pending_action_facts = _guardian_action_state_facts()
+    facts = [
+        *pending_action_facts,
+        *receivable_temporal_facts,
+        *truth_facts,
+        *contacts_facts,
+        *read_model_facts,
+    ]
 
     # SQLite canonical-facts source — DEFAULT-OFF.
     # Enabled when packet_source param is "sqlite"/"hybrid", OR when
@@ -2719,7 +2836,14 @@ def build_maestro_context_packet(
         # operator truth) so they survive format_maestro_context_packet's facts[:30] cap on
         # packet_text. Appending at the end risked silent truncation when truth+read-models
         # already fill the cap (AGY-G flip-1 audit, hole #3).
-        facts = [*receivable_temporal_facts, *truth_facts, *contacts_facts, *sqlite_facts, *read_model_facts]
+        facts = [
+            *pending_action_facts,
+            *receivable_temporal_facts,
+            *truth_facts,
+            *contacts_facts,
+            *sqlite_facts,
+            *read_model_facts,
+        ]
 
     # ── Interpreter LM fact-selection elevation (flag-gated, ADDITIVE) ──────────
     # When OPENCLAW_INTERPRETER_LM is on AND fact_selection is a non-empty list,

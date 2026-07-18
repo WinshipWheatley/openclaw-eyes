@@ -1382,6 +1382,64 @@ def identity_persona_reply(agent: str) -> str:
     return _identity_grounded_answer(agent)
 
 
+_ADVISORY_JUDGMENT_RE = re.compile(
+    r"\b(what do you think|next correct step|what should (?:we|i) do next|what would you recommend)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _is_advisory_judgment(prompt: str) -> bool:
+    return bool(_ADVISORY_JUDGMENT_RE.search(str(prompt or "")))
+
+
+def _recommends_send_while_held(text: str) -> bool:
+    value = str(text or "").lower()
+    safe_negations = ("do not send", "don't send", "not send", "nothing has been sent", "nothing was sent")
+    if any(marker in value for marker in safe_negations):
+        return False
+    return bool(
+        re.search(
+            r"\b(send it(?: off)?|send (?:the|that|this)\b|should send\b|go ahead.{0,24}\bsend\b|get .{0,30}\bsent\b)",
+            value,
+        )
+    )
+
+
+def _current_guardian_action_facts(
+    context_packet: Mapping[str, Any] | str | None,
+) -> list[Mapping[str, Any]]:
+    packet = _packet_mapping(context_packet)
+    facts = packet.get("facts") if isinstance(packet, Mapping) else None
+    return [
+        fact
+        for fact in (facts or ())
+        if isinstance(fact, Mapping)
+        and str(fact.get("topic") or "") in {"pending_operator_action", "current_guardian_action"}
+    ]
+
+
+def _mentions_guardian_action_state(text: str) -> bool:
+    value = str(text or "").lower()
+    return any(
+        marker in value
+        for marker in ("guardian", "approval", "waiting for", "send_hold", "execution", "not executed")
+    )
+
+
+def _advisory_current_state_complete(
+    text: str,
+    context_packet: Mapping[str, Any] | str | None,
+) -> bool:
+    facts = _current_guardian_action_facts(context_packet)
+    value = str(text or "").lower()
+    if any(str(fact.get("topic") or "") == "current_guardian_action" for fact in facts):
+        return all(
+            marker in value
+            for marker in ("decision", "execution is not proven", "send_hold", "verif")
+        )
+    return _mentions_guardian_action_state(text)
+
+
 def _fallback_grounded_answer(
     prompt: str, context_packet: Mapping[str, Any] | str | None, agent: str = "maestro"
 ) -> str:
@@ -1406,6 +1464,38 @@ def _fallback_grounded_answer(
     packet = _packet_mapping(context_packet)
     facts = [fact for fact in packet.get("facts", ()) if isinstance(fact, Mapping)] if packet else []
     facts = _eligible_fallback_facts(facts)
+
+    if _is_advisory_judgment(prompt):
+        pending = next(
+            (fact for fact in facts if str(fact.get("topic") or "") == "pending_operator_action"),
+            None,
+        )
+        if pending is not None:
+            source_ref = str(pending.get("source_ref") or "")
+            action_id = source_ref.rsplit(":", 1)[-1] if ":" in source_ref else "pending"
+            return (
+                f"The current packet shows Guardian action {action_id} waiting for your approval. "
+                "The next correct step is to review that signed button. Nothing has been sent, "
+                "and SEND_HOLD remains in force until you approve that one action."
+            )
+        current = next(
+            (fact for fact in facts if str(fact.get("topic") or "") == "current_guardian_action"),
+            None,
+        )
+        if current is not None:
+            source_ref = str(current.get("source_ref") or "")
+            action_id = source_ref.rsplit(":", 1)[-1] if ":" in source_ref else "current"
+            return (
+                f"Guardian action {action_id} has a recorded decision, but this packet does "
+                "not prove execution. With SEND_HOLD still active, the next correct step "
+                "is to verify the signed action and current authority, not send from this "
+                "advisory. Nothing has been sent or staged here."
+            )
+        return (
+            "The current packet does not show a live Guardian action to take. With SEND_HOLD "
+            "active, the next correct step is to verify the current signed action state, not "
+            "send anything. Nothing has been sent or staged here."
+        )
 
     plate_intent = _is_plate_intent(prompt)
     if plate_intent:
@@ -1862,6 +1952,35 @@ def protected_generate_with_receipt(
             )
         except Exception:
             fd_prompt_manifest = {}
+    if front_door_profile and fd_prompt_manifest:
+        try:
+            from packet_dankness_critic import observe_packet_dankness
+
+            dankness = observe_packet_dankness(
+                packet,
+                raw_prompt,
+                agent,
+                sizing_manifest=fd_prompt_manifest,
+                consumer_id=str(packet.get("source_surface") or "frontdoor"),
+            )
+            if dankness is not None:
+                receipt["packet_dankness"] = {
+                    "overall": dankness.overall,
+                    "grounded": dankness.grounded,
+                    "current": dankness.current,
+                    "useful": dankness.useful,
+                    "lane_rich": dankness.lane_rich,
+                    "right_sized": dankness.right_sized,
+                    "size_state": dankness.size_state,
+                    "fact_count": dankness.fact_count,
+                    "source_fact_count": dankness.source_fact_count,
+                    "gap_kinds": [str(gap.get("kind") or "") for gap in dankness.gaps],
+                    "score_logged": True,
+                    "scored_before_model_call": True,
+                }
+        except Exception:
+            # Observation can never block the answer path.
+            pass
 
     fd_interactive_timeout_s = (
         float(interactive_timeout_s)
@@ -1942,6 +2061,10 @@ def protected_generate_with_receipt(
     fd_model_call_attempted = False
     fd_model_output_delivered = False
     fd_delivered_response_source = "grounded_fallback"
+    fd_revoice_repair_attempted = False
+    fd_revoice_repair_succeeded = False
+    fd_advisory_repair_attempted = False
+    fd_advisory_repair_succeeded = False
     fd_gpu_lease: dict[str, Any] | None = None
     fd_call_started = _now_ms()
     if generator_fn is not None and front_door_profile and fd_ledger_guard_failed:
@@ -2166,6 +2289,192 @@ def protected_generate_with_receipt(
             else:
                 fd_fallback_reason = "model_ok"
 
+            if fd_fallback_reason == "model_ok" and fd_prompt_manifest.get("task_kind") == "canned_revoice":
+                from frontdoor_prompt import canned_revoice_source, validate_canned_revoice_output
+
+                revoice_source = canned_revoice_source(safe_prompt) or ""
+                revoice_validation = validate_canned_revoice_output(
+                    revoice_source, raw_output, agent=agent
+                )
+                if not revoice_validation["passed"]:
+                    fd_revoice_repair_attempted = True
+                    repair_prompt = (
+                        f"{system_prompt}\n\nREPAIR PASS: The previous rewrite failed these contract "
+                        f"checks: {', '.join([*revoice_validation['missing_marker_ids'], *revoice_validation['missing_style_marker_ids'], *revoice_validation['violation_ids']])}. "
+                        "Rewrite the same SOURCE TEXT once more. Include every required meaning "
+                        "marker, preserve the assigned voice, add no facts, and do not echo the "
+                        "source verbatim. Return only the repaired line."
+                    )
+                    repair_output = ""
+                    try:
+                        repair_started = _now_ms()
+                        if generator_fn is not None:
+                            repair_output, repair_done, repair_elapsed, repair_metadata = _call_generator_capturing(
+                                generator_fn,
+                                repair_prompt,
+                                context_packet=safe_packet,
+                                metadata=metadata,
+                                receipt=dict(receipt),
+                            )
+                        elif local_invoked and route.startswith("local_ollama_frontdoor"):
+                            repair_lease = _acquire_frontdoor_gpu_lease(agent)
+                            try:
+                                repair_result = _call_local_ollama(
+                                    repair_prompt,
+                                    timeout=fd_interactive_timeout_s or local_timeout,
+                                    attempts=1,
+                                    model=fd_model_selected,
+                                    task_class="frontdoor_reply",
+                                    think=fd_model_think,
+                                    num_predict=fd_num_predict,
+                                    options=fd_ollama_options,
+                                    keep_alive=fd_keep_alive,
+                                    return_metadata=True,
+                                )
+                            finally:
+                                _release_frontdoor_gpu_lease(repair_lease)
+                            repair_output, repair_done, repair_elapsed, repair_metadata = _model_result_tuple(
+                                repair_result
+                            )
+                        else:
+                            repair_done, repair_elapsed, repair_metadata = None, None, {}
+                        repair_passed, repair_available, repair_reasons = _stage1_validate(repair_output)
+                        repair_semantic = validate_canned_revoice_output(
+                            revoice_source, repair_output, agent=agent
+                        )
+                        if repair_output and repair_available and repair_passed and repair_semantic["passed"]:
+                            raw_output = repair_output
+                            fd_revoice_repair_succeeded = True
+                            route = f"{route}_revoice_repair"
+                            if repair_done is not None:
+                                fd_captured_done_reason = repair_done
+                            fd_response_metadata = repair_metadata
+                            repair_cost = repair_elapsed if repair_elapsed is not None else _now_ms() - repair_started
+                            fd_model_elapsed_ms = (fd_model_elapsed_ms or 0) + repair_cost
+                        else:
+                            revoice_validation = repair_semantic
+                            fd_validation_reasons = tuple([*fd_validation_reasons, *repair_reasons])
+                    except Exception as exc:
+                        fd_validation_reasons = tuple(
+                            [*fd_validation_reasons, f"revoice_repair_error:{type(exc).__name__}"]
+                        )
+                    if not fd_revoice_repair_succeeded:
+                        fd_fallback_reason = "revoice_semantic_drift"
+                        fd_validation_reasons = tuple(
+                            [
+                                *fd_validation_reasons,
+                                *(
+                                    f"missing_revoice_marker:{marker}"
+                                    for marker in revoice_validation["missing_marker_ids"]
+                                ),
+                                *(
+                                    f"revoice_violation:{violation}"
+                                    for violation in revoice_validation["violation_ids"]
+                                ),
+                                *(
+                                    f"missing_revoice_style_marker:{marker}"
+                                    for marker in revoice_validation["missing_style_marker_ids"]
+                                ),
+                            ]
+                        )
+
+            if (
+                fd_fallback_reason == "model_ok"
+                and receipt.get("send_hold_active") is True
+                and _is_advisory_judgment(safe_prompt)
+                and _recommends_send_while_held(raw_output)
+            ):
+                fd_fallback_reason = "advisory_send_hold_conflict"
+                fd_validation_reasons = tuple(
+                    [*fd_validation_reasons, "advisory_recommended_send_while_send_hold_active"]
+                )
+            elif (
+                fd_fallback_reason == "model_ok"
+                and receipt.get("send_hold_active") is True
+                and _is_advisory_judgment(safe_prompt)
+                and re.search(r"\bapproved\b", str(raw_output or ""), flags=re.IGNORECASE)
+            ):
+                fd_fallback_reason = "advisory_approval_wording_conflict"
+                fd_validation_reasons = tuple(
+                    [*fd_validation_reasons, "advisory_used_overloaded_approved_word"]
+                )
+            elif (
+                fd_fallback_reason == "model_ok"
+                and _is_advisory_judgment(safe_prompt)
+                and _current_guardian_action_facts(context_packet)
+                and not _advisory_current_state_complete(raw_output, context_packet)
+            ):
+                fd_advisory_repair_attempted = True
+                repair_prompt = (
+                    f"{system_prompt}\n\nADVISORY REPAIR PASS: Return only a concise first-person "
+                    "answer that says a decision is recorded, uses the exact phrase "
+                    "'execution is not proven', keeps SEND_HOLD explicit, and makes verifying "
+                    "the signed action/current authority the next step. Do not use the word "
+                    "approved and do not recommend sending."
+                )
+                repair_output = ""
+                try:
+                    repair_started = _now_ms()
+                    if generator_fn is not None:
+                        repair_output, repair_done, repair_elapsed, repair_metadata = _call_generator_capturing(
+                            generator_fn,
+                            repair_prompt,
+                            context_packet=safe_packet,
+                            metadata=metadata,
+                            receipt=dict(receipt),
+                        )
+                    elif local_invoked and route.startswith("local_ollama_frontdoor"):
+                        repair_lease = _acquire_frontdoor_gpu_lease(agent)
+                        try:
+                            repair_result = _call_local_ollama(
+                                repair_prompt,
+                                timeout=fd_interactive_timeout_s or local_timeout,
+                                attempts=1,
+                                model=fd_model_selected,
+                                task_class="frontdoor_reply",
+                                think=fd_model_think,
+                                num_predict=fd_num_predict,
+                                options=fd_ollama_options,
+                                keep_alive=fd_keep_alive,
+                                return_metadata=True,
+                            )
+                        finally:
+                            _release_frontdoor_gpu_lease(repair_lease)
+                        repair_output, repair_done, repair_elapsed, repair_metadata = _model_result_tuple(
+                            repair_result
+                        )
+                    else:
+                        repair_done, repair_elapsed, repair_metadata = None, None, {}
+                    repair_passed, repair_available, repair_reasons = _stage1_validate(repair_output)
+                    repair_complete = (
+                        repair_output
+                        and repair_available
+                        and repair_passed
+                        and _advisory_current_state_complete(repair_output, context_packet)
+                        and not _recommends_send_while_held(repair_output)
+                        and not re.search(r"\bapproved\b", repair_output, flags=re.IGNORECASE)
+                    )
+                    if repair_complete:
+                        raw_output = repair_output
+                        fd_advisory_repair_succeeded = True
+                        route = f"{route}_advisory_repair"
+                        if repair_done is not None:
+                            fd_captured_done_reason = repair_done
+                        fd_response_metadata = repair_metadata
+                        repair_cost = repair_elapsed if repair_elapsed is not None else _now_ms() - repair_started
+                        fd_model_elapsed_ms = (fd_model_elapsed_ms or 0) + repair_cost
+                    else:
+                        fd_validation_reasons = tuple([*fd_validation_reasons, *repair_reasons])
+                except Exception as exc:
+                    fd_validation_reasons = tuple(
+                        [*fd_validation_reasons, f"advisory_repair_error:{type(exc).__name__}"]
+                    )
+                if not fd_advisory_repair_succeeded:
+                    fd_fallback_reason = "advisory_current_state_omitted"
+                    fd_validation_reasons = tuple(
+                        [*fd_validation_reasons, "advisory_omitted_current_guardian_action_state"]
+                    )
+
         # Any non-model_ok reason → never deliver a bad/late/truncated answer; drop the
         # model output, route to the grounded deterministic fallback, and reflect that
         # no model answer was delivered in the model_call fields.
@@ -2184,7 +2493,10 @@ def protected_generate_with_receipt(
             route = f"deterministic_fallback_{fd_fallback_reason}"
 
     if not raw_output:
-        raw_output = _fallback_grounded_answer(raw_prompt, context_packet, agent=agent)
+        if fd_prompt_manifest.get("task_kind") == "canned_revoice":
+            raw_output = "I couldn't safely revoice that line without changing its meaning. Nothing else ran."
+        else:
+            raw_output = _fallback_grounded_answer(raw_prompt, context_packet, agent=agent)
 
     text = ledger.rehydrate(raw_output)
     # Strip a leading "<AgentName>:" the front-door model occasionally echoes from the
@@ -2258,6 +2570,10 @@ def protected_generate_with_receipt(
                 "model_output_delivered": fd_model_output_delivered,
                 "delivered_response_source": fd_delivered_response_source,
                 "model_response_metadata": dict(fd_response_metadata),
+                "revoice_repair_attempted": fd_revoice_repair_attempted,
+                "revoice_repair_succeeded": fd_revoice_repair_succeeded,
+                "advisory_repair_attempted": fd_advisory_repair_attempted,
+                "advisory_repair_succeeded": fd_advisory_repair_succeeded,
                 **fd_resource_probe_fields,
             }
         )

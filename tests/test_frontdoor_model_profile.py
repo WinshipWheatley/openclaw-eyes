@@ -10,12 +10,14 @@ from __future__ import annotations
 import json
 import socket
 from contextlib import contextmanager
+from types import SimpleNamespace
 
 import pytest
 
 import chief_llm
+import protected_generate as pg
 from context_source import make_ledger_provenance
-from frontdoor_prompt import build_frontdoor_prompt
+from frontdoor_prompt import build_frontdoor_prompt, validate_canned_revoice_output
 from protected_generate import protected_generate_with_receipt
 
 
@@ -526,6 +528,98 @@ def test_build_frontdoor_prompt_keeps_question_domain_fact_for_agent(agent, ques
     assert str(fact["label"]) in prompt
 
 
+def test_canned_revoice_prompt_uses_canonical_persona_and_excludes_business_facts():
+    fact = {
+        "fact_id": "niles_track:midnight",
+        "topic": "niles_track",
+        "label": "Midnight in the Rearview",
+        "value": "The track is locked in.",
+        "source_ref": "generated/read_models/niles_track_registry.json",
+    }
+
+    prompt, manifest = build_frontdoor_prompt(
+        _packet([fact]),
+        "Rephrase this canned truth in your own natural voice: "
+        "The review packet is ready and nothing was changed.",
+        max_chars=2200,
+        agent="niles",
+    )
+
+    assert "Niles - a cultured Australian studio and creative operator with dry wit" in prompt
+    assert "SOURCE TEXT:\nThe review packet is ready and nothing was changed." in prompt
+    assert "Add no names, examples, packet facts" in prompt
+    assert "both words 'review packet'; ready, prepared, all set, or all sorted; nothing was changed" in prompt
+    assert "Use exactly one restrained turn: either start with Right, or say all sorted. Never use both." in prompt
+    assert "Midnight in the Rearview" not in prompt
+    assert manifest["task_kind"] == "canned_revoice"
+    assert manifest["business_facts_required"] is False
+    assert manifest["kept_fact_ids"] == []
+    assert manifest["dropped_fact_ids"] == ["niles_track:midnight"]
+
+
+def test_canned_revoice_semantic_markers_require_both_source_claims():
+    source = "The review packet is ready and nothing was changed."
+
+    assert validate_canned_revoice_output(
+        source, "Right, the review packet is all set and nothing's been touched."
+    )["passed"] is True
+    assert validate_canned_revoice_output(
+        source, "Right, the review packet is all sorted and remains untouched."
+    )["passed"] is True
+    drift = validate_canned_revoice_output(source, "The packet's ready.")
+    assert drift["passed"] is False
+    assert drift["missing_marker_ids"] == ["review_packet", "no_change"]
+    verbatim = validate_canned_revoice_output(
+        source, "The review packet is ready, and nothing was changed."
+    )
+    assert verbatim["passed"] is False
+    assert verbatim["violation_ids"] == ["verbatim_source_echo"]
+
+
+@pytest.mark.parametrize(
+    ("agent", "candidate"),
+    [
+        ("maestro", "The review packet's all set, and nothing's been touched."),
+        ("cassandra", "The review packet is prepared and remains unchanged."),
+        ("chief", "The review packet is ready. Nothing changed."),
+        ("niles", "The review packet is all sorted and remains unchanged."),
+        ("guardian", "The review packet is ready. No changes were made."),
+        ("hermes", "The review packet stands ready and remains unchanged."),
+    ],
+)
+def test_canned_revoice_style_markers_make_each_agent_machine_identifiable(agent, candidate):
+    result = validate_canned_revoice_output(
+        "The review packet is ready and nothing was changed.",
+        candidate,
+        agent=agent,
+    )
+
+    assert result["passed"] is True
+    assert result["missing_style_marker_ids"] == []
+
+
+def test_generic_revoice_fails_named_agent_style_contract():
+    result = validate_canned_revoice_output(
+        "The review packet is ready and nothing was changed.",
+        "The review packet is all set and nothing was changed.",
+        agent="cassandra",
+    )
+
+    assert result["passed"] is False
+    assert result["missing_style_marker_ids"] == ["cassandra_polished_assurance"]
+
+
+def test_niles_revoice_rejects_using_both_restrained_turns():
+    result = validate_canned_revoice_output(
+        "The review packet is ready and nothing was changed.",
+        "The review packet is all sorted and nothing changed. Right.",
+        agent="niles",
+    )
+
+    assert result["passed"] is False
+    assert result["missing_style_marker_ids"] == ["niles_understated_australian_turn"]
+
+
 # ── protected_generate_with_receipt: classification + telemetry ───────────────
 
 _PACKET = {
@@ -603,10 +697,58 @@ def test_pgwr_frontdoor_stop_complete_model_ok(tmp_path):
     assert "Winship is the operator." in outcome.text
 
 
+def test_pgwr_scores_exact_budgeted_packet_before_shared_model_call(tmp_path, monkeypatch):
+    import packet_dankness_critic as critic
+
+    captured = {}
+
+    def observe(packet, question, agent_id, **kwargs):
+        captured.update({"packet": packet, "question": question, "agent_id": agent_id, **kwargs})
+        return SimpleNamespace(
+            overall=0.91,
+            grounded=1.0,
+            current=0.8,
+            useful=1.0,
+            lane_rich=0.75,
+            right_sized=1.0,
+            size_state="right_sized",
+            fact_count=1,
+            source_fact_count=1,
+            gaps=(),
+        )
+
+    monkeypatch.setattr(critic, "observe_packet_dankness", observe)
+    outcome = protected_generate_with_receipt(
+        "Who is the operator?",
+        context_packet=_FRONTDOOR_PACKET,
+        generator_fn=_gen_returning("Winship is the operator.", done_reason="stop"),
+        audit_log_path=tmp_path / "a.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="chief",
+    )
+
+    assert captured["agent_id"] == "chief"
+    guarded_fact_ids = [fact["fact_id"] for fact in captured["packet"]["facts"]]
+    assert captured["sizing_manifest"]["kept_fact_ids"] == guarded_fact_ids
+    assert outcome.receipt["packet_dankness"] == {
+        "overall": 0.91,
+        "grounded": 1.0,
+        "current": 0.8,
+        "useful": 1.0,
+        "lane_rich": 0.75,
+        "right_sized": 1.0,
+        "size_state": "right_sized",
+        "fact_count": 1,
+        "source_fact_count": 1,
+        "gap_kinds": [],
+        "score_logged": True,
+        "scored_before_model_call": True,
+    }
+
+
 def test_pgwr_frontdoor_receipt_records_stale_fact_ids(tmp_path, monkeypatch):
     monkeypatch.setenv("OPENCLAW_TODAY", "2026-07-01")
-    import protected_generate as pg
-
     monkeypatch.setattr(pg, "_stage1_validate", lambda _text: (True, True, ()))
     packet = _packet(
         [

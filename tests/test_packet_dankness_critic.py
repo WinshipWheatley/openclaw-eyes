@@ -57,6 +57,7 @@ def _dank_packet(question_topic="progress"):
 def test_empty_packet_scores_zero_and_flags_gap():
     score = crit.score_packet_dankness({"facts": []}, "where are we at")
     assert score.overall == 0.0
+    assert score.right_sized == 0.0
     assert score.fact_count == 0
     assert any(g["kind"] == "empty_packet" for g in score.gaps)
 
@@ -67,7 +68,66 @@ def test_dank_packet_scores_high_on_matching_question():
     assert score.current == 1.0           # all fresh
     assert score.useful == 1.0            # 'progress' fact matches
     assert score.lane_rich == 1.0         # 4 distinct topics >= RICH_TARGET
+    assert score.right_sized == 1.0
     assert score.overall == 1.0
+    assert score.gaps == ()
+
+
+def test_budget_manifest_scores_trimmed_bloat_without_queueing_it(tmp_path):
+    facts = [
+        _fact(f"topic-{index}", f"progress detail {index}") | {"fact_id": f"fact-{index}"}
+        for index in range(20)
+    ]
+    manifest = {
+        "kept_fact_ids": [f"fact-{index}" for index in range(5)],
+        "dropped_fact_ids": [f"fact-{index}" for index in range(5, 20)],
+        "context_facts_kept": 5,
+        "context_facts_dropped": 15,
+        "over_budget": True,
+    }
+
+    score = crit.score_packet_dankness(
+        {"facts": facts},
+        "progress",
+        sizing_manifest=manifest,
+    )
+
+    assert score.fact_count == 5
+    assert score.source_fact_count == 20
+    assert score.right_sized == 0.25
+    assert score.size_state == "bloated_trimmed"
+    assert any(gap["kind"] == "bloated_packet" for gap in score.gaps)
+
+    ledger = ControlPlaneLedger(tmp_path / "cp.sqlite3", status_view_path=tmp_path / "s.json")
+    admitted = crit.emit_packet_enrich_tasks(
+        ledger,
+        score,
+        agent_id="maestro",
+        question="progress",
+        enabled=True,
+    )
+    assert admitted == []
+
+
+def test_social_lane_without_facts_is_neutral_for_packet_sizing():
+    manifest = {
+        "kept_fact_ids": [],
+        "dropped_fact_ids": [],
+        "context_facts_kept": 0,
+        "context_facts_dropped": 0,
+        "over_budget": False,
+        "conversational_lane": True,
+    }
+
+    score = crit.score_packet_dankness(
+        {"facts": []},
+        "tell me a joke",
+        sizing_manifest=manifest,
+    )
+
+    assert score.overall == 1.0
+    assert score.right_sized == 1.0
+    assert score.size_state == "social_no_facts_required"
     assert score.gaps == ()
 
 
@@ -77,6 +137,47 @@ def test_missing_fact_gap_when_question_unmatched():
     gaps = [g for g in score.gaps if g["kind"] == "missing_fact"]
     assert len(gaps) == 1
     assert "calendar" in gaps[0]["about"]
+
+
+def test_advisory_question_treats_pending_action_as_useful_current_state():
+    packet = {
+        "facts": [
+            _fact(
+                "pending_operator_action",
+                "Guardian action 5FF438AC is waiting for approval and has not executed",
+                source="hitl_pending_store:5FF438AC",
+            )
+        ]
+    }
+
+    score = crit.score_packet_dankness(
+        packet,
+        "Maestro, what do you think the next correct step is?",
+    )
+
+    assert score.useful == 1.0
+    assert not any(gap["kind"] == "missing_fact" for gap in score.gaps)
+
+
+def test_canned_revoice_lane_is_right_sized_without_business_facts():
+    packet = {"facts": [_fact("music", "Midnight in the Rearview is ready")]}
+
+    score = crit.score_packet_dankness(
+        packet,
+        "Rephrase this canned truth in your own natural voice: The packet is ready.",
+        sizing_manifest={
+            "task_kind": "canned_revoice",
+            "business_facts_required": False,
+            "kept_fact_ids": [],
+            "dropped_fact_ids": ["music"],
+        },
+    )
+
+    assert score.overall == 1.0
+    assert score.right_sized == 1.0
+    assert score.source_fact_count == 1
+    assert score.size_state == "canned_revoice_no_business_facts_required"
+    assert score.gaps == ()
 
 
 def test_stale_source_flagged_for_refresh():

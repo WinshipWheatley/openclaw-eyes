@@ -18,6 +18,8 @@ REQUIRED_PROFILE_FIELDS = {
     "default_voice_modes",
     "tts_profile",
     "copy_rules",
+    "revoice_style_guidance",
+    "revoice_style_marker_contract",
     "vocabulary",
     "examples",
     "guardrails",
@@ -142,6 +144,42 @@ def test_guardian_and_niles_guardrails_avoid_bad_characterization():
     assert "mate" in niles["vocabulary"]["avoid"]
     assert "crikey" in niles["vocabulary"]["avoid"]
     assert "ripper" in niles["vocabulary"]["avoid"]
+
+
+def test_immutable_persona_cores_derive_from_one_canonical_fleet_source():
+    cores = {
+        speaker: profiles.immutable_persona_core_for_speaker(speaker)
+        for speaker in ("cassandra", "chief", "hermes", "guardian", "niles", "maestro")
+    }
+
+    assert len({core["core_sha256"] for core in cores.values()}) == len(cores)
+    for speaker, core in cores.items():
+        profile = profiles.voice_profile_for_speaker(speaker)
+        assert core["agent"] == speaker
+        assert core["voice_profile_ref"] == profile["voice_profile_ref"]
+        assert core["prompt_descriptor"] == profile["prompt_descriptor"]
+        assert core["revoice_style_guidance"] == profile["revoice_style_guidance"]
+        assert core["revoice_style_marker_contract"] == profile["revoice_style_marker_contract"]
+        assert core["style_traits"] == profile["voice_conformance"]["style_traits"]
+        assert core["role"] == profile["role"]
+        assert core["operator_change_gate"] == "first_class_operator_approval_receipt_required"
+        assert "translate_operator_frustration_into_positive_communication" in core["culture_traits"]
+        assert core["backstory_policy"]["write_mode"] == "append_only_grounded_experience"
+
+
+def test_every_speaker_has_distinct_canonical_revoice_guidance():
+    guidance = {
+        speaker: profiles.revoice_prompt_guidance_for_speaker(speaker)
+        for speaker in profiles.SPEAKER_REFS
+    }
+
+    assert len(set(guidance.values())) == len(profiles.SPEAKER_REFS)
+    assert "right-hand" in guidance["maestro"]
+    assert "executive-assistant" in guidance["cassandra"]
+    assert "foreman" in guidance["chief"]
+    assert "Australian" in guidance["niles"]
+    assert "gatekeeper" in guidance["guardian"]
+    assert "systems-advisor" in guidance["hermes"]
 
 
 def test_read_model_machine_proof_and_tts_rules():

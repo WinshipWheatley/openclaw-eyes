@@ -31,6 +31,7 @@ MAC_DESKTOP_RECEIVER_LAST_VERIFIED_AT = "2026-07-17T15:31:15-04:00"
 MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT = "2026-07-17T15:34:24-04:00"
 OPERATOR_FRONTDOOR_F0_LAST_VERIFIED_AT = "2026-07-17T17:35:36-04:00"
 W2_VALIDATED_INVOICE_GATE_LAST_VERIFIED_AT = "2026-07-17T18:39:51-04:00"
+DANK_PACKET_PIPELINE_LAST_VERIFIED_AT = "2026-07-17T20:08:58-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -51,6 +52,7 @@ LIVE_ENV_WHITELIST = (
     "OPENCLAW_LM1_SHARED_SEAM",
     "OPENCLAW_PACKET_DELTA",
     "OPENCLAW_PACKET_ENGINE",
+    "OPENCLAW_PACKET_DANKIFY_EMIT",
     "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
     "OPENCLAW_FLEET_VOICE_BOUNDARY",
     "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
@@ -206,6 +208,16 @@ CAPABILITY_LIVE_VARIABLES = {
     "packet_engine_spine": {
         "primary": ("OPENCLAW_PACKET_ENGINE",),
         "related": (),
+        "unset_means_enabled": True,
+    },
+    "packet_dankness_loop": {
+        "primary": ("OPENCLAW_PACKET_DANKIFY_EMIT",),
+        "related": ("OPENCLAW_PACKET_ENGINE", "OPENCLAW_LM1_SHARED_SEAM"),
+        "unset_means_enabled": True,
+    },
+    "canonical_persona_delivery": {
+        "primary": ("OPENCLAW_FLEET_VOICE_BOUNDARY",),
+        "related": ("OPENCLAW_PACKET_ENGINE",),
     },
     "control_plane_heal_emission": {
         "primary": ("OPENCLAW_CONTROL_PLANE_EMIT",),
@@ -305,6 +317,8 @@ REQUIRED_CAPABILITY_IDS = (
     "lm1_shared_seam",
     "packet_delta_receipts",
     "packet_engine_spine",
+    "packet_dankness_loop",
+    "canonical_persona_delivery",
     "control_plane_heal_emission",
     "git_task_guard",
     "model_selection_policy_contract",
@@ -821,12 +835,12 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
             capability_id="packet_delta_receipts",
             display_name="Packet delta receipt rail",
             flag_or_config=["OPENCLAW_PACKET_DELTA"],
-            default_state="default-off/register-only",
+            default_state="archived_for_stateless_daemons",
             current_state_if_verifiable=_state(
-                "packet delta receipts are a built spine candidate from task 100 but remain descriptive until Fable promotes and verifies wiring",
+                "ARCHIVED for stateless daemon prompts; retained only as a future stateful spawned-consumer mechanism",
                 code_default="off unless OPENCLAW_PACKET_DELTA is truthy",
-                production="not_enabled_by_this_register; live reconciliation may verify a flag but grants no activation authority",
-                audit_report="task-104 records the missing activation gate entry so built packet-delta surface is not forgotten",
+                production="off on the active request-response owner; full current facts remain available on every stateless turn",
+                audit_report="dank sizing disposition rejects drop-seen on stateless consumers because the model retains no prior packet",
             ),
             source_files=[
                 "activation_gate_register.py",
@@ -839,61 +853,162 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
             audits=[
                 "/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md",
             ],
-            canary_status="not_run_live; requires Fable review of task-100 wiring before runtime use",
+            canary_status="not applicable while archived; prompt budgeter is the active deterministic bloat control",
             risk_level="medium",
-            owner="Fable / Opus",
+            owner="Fable / PC Codex Desktop",
             gate_stage="intentionally_off",
-            enabled_by="future explicit operator approval plus Fable-verified packet-delta canary",
+            enabled_by="future explicit operator approval for a stateful spawned consumer plus a session-retention canary",
             disabled_by="OPENCLAW_PACKET_DELTA default off/unset",
             rollback_note="unset OPENCLAW_PACKET_DELTA and keep packet delta outputs as non-live descriptive receipts",
-            next_required_step="Fable should verify task-100 promotion state and define a focused canary before enabling packet delta receipts",
+            next_required_step="none for daemon traffic; reassess only when a spawned consumer proves it retains prior package state",
             activation_allowed_now=False,
             operator_approval_required=True,
-            reason_if_off="packet delta receipts are not activation authority and need promotion/canary evidence before runtime use",
+            reason_if_off="dropping seen facts would starve the stateless front-door model; deterministic prompt budgeting is active instead",
             evidence_refs=[
                 "Operator/from-codex/100-packet-engine-spine-RESULT.md",
                 "activation_gate_register.py:packet_delta_receipts",
             ],
-            last_verified_at=last_verified_at,
+            last_verified_at=DANK_PACKET_PIPELINE_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="packet_engine_spine",
             display_name="Packet engine spine",
             flag_or_config=["OPENCLAW_PACKET_ENGINE"],
-            default_state="default-off/register-only",
+            default_state="enabled_by_default",
             current_state_if_verifiable=_state(
-                "packet engine spine is a built candidate from task 100 but this register does not wire or enable it",
-                code_default="off unless OPENCLAW_PACKET_ENGINE is truthy",
-                production="not_enabled_by_this_register; live reconciliation may verify a flag but grants no activation authority",
-                audit_report="task-104 records the missing activation gate entry so the packet engine surface is not forgotten",
+                "packet engine decorates every BRAIN packet and fails open to the established packet builder with a receipt",
+                code_default="on unless OPENCLAW_PACKET_ENGINE is explicitly false",
+                production="wired in maestro_cassandra_responder and enabled on the request-response owner",
+                audit_report="daemon packets carry a canonical persona reference; spawned packets carry the full core only in their first package",
             ),
             source_files=[
                 "activation_gate_register.py",
                 "maestro_context_packet.py",
+                "packet_engine.py",
+                "maestro_cassandra_responder.py",
             ],
             tests=[
                 "tests/test_activation_gate_register.py",
                 "tests/test_packet_sqlite_flip.py",
+                "tests/test_packet_engine.py",
             ],
             audits=[
                 "/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md",
             ],
-            canary_status="not_run_live; requires Fable review of task-100 wiring before runtime use",
+            canary_status=(
+                "LIVE-VERIFIED on request-response owner PID 1102767: advisory_judgment "
+                "maestro_telegram_dank-advisory-definitive2-20260718T000808Z_d92cb01f0b8d "
+                "used PacketEngine and delivered the current-state model answer with no staging"
+            ),
             risk_level="medium",
-            owner="Fable / Opus",
-            gate_stage="intentionally_off",
-            enabled_by="future explicit operator approval plus Fable-verified packet-engine canary",
+            owner="Fable / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="operator standing order to activate built packet machinery plus Fable stress/dankness directive",
             disabled_by="OPENCLAW_PACKET_ENGINE default off/unset",
             rollback_note="unset OPENCLAW_PACKET_ENGINE and fall back to the established packet-building paths",
-            next_required_step="Fable should verify task-100 promotion state and define a focused canary before enabling packet engine routing",
+            next_required_step="keep active and monitor packet-engine fallback receipts during the agreed stress battery",
             activation_allowed_now=False,
             operator_approval_required=True,
-            reason_if_off="packet engine routing can alter packet construction and needs promotion/canary evidence before runtime use",
+            reason_if_off="only explicit rollback after a demonstrated packet-construction regression",
             evidence_refs=[
                 "Operator/from-codex/100-packet-engine-spine-RESULT.md",
                 "activation_gate_register.py:packet_engine_spine",
+                "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
             ],
-            last_verified_at=last_verified_at,
+            last_verified_at=DANK_PACKET_PIPELINE_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="packet_dankness_loop",
+            display_name="Fleet packet dankness critic and grounded enrichment drain",
+            flag_or_config=["OPENCLAW_PACKET_DANKIFY_EMIT", "scripts/refresh_ledger_knowledge.py --confirm"],
+            default_state="on_grounded_only",
+            current_state_if_verifiable=_state(
+                "the shared protected_generate seam scores the exact budgeted packet for every agent before the model call",
+                code_default="observation and grounded gap queueing are on unless OPENCLAW_PACKET_DANKIFY_EMIT is explicitly false",
+                production="shared hook active; existing */30 refresh owner drains at most ten grounded tasks per run",
+                audit_report="critic scores grounded, current, useful, lane-rich, and right-sized dimensions; trimmed bloat is logged but not queued as enrichment",
+            ),
+            source_files=[
+                "packet_dankness_critic.py",
+                "packet_dankness_enricher.py",
+                "packet_dankness_drain.py",
+                "protected_generate.py",
+                "scripts/refresh_ledger_knowledge.py",
+            ],
+            tests=[
+                "tests/test_packet_dankness_critic.py",
+                "tests/test_packet_dankness_enricher.py",
+                "tests/test_packet_dankness_drain.py",
+                "tests/test_frontdoor_model_profile.py",
+                "tests/test_refresh_ledger_knowledge.py",
+            ],
+            audits=[
+                "/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md",
+            ],
+            canary_status=(
+                "LIVE-VERIFIED: advisory packet scored overall 0.8/useful 1.0/right-sized 1.0 "
+                "before the model call; V1-V6 each scored 1.0 with no business facts; bounded "
+                "drain processed 3 tasks (1 refreshed, 2 escalated)"
+            ),
+            risk_level="medium",
+            owner="Fable / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="operator standing-order update 1752 and Fable packet-dankness directive",
+            disabled_by="set OPENCLAW_PACKET_DANKIFY_EMIT=0 and remove the bounded drain call through approved rollback",
+            rollback_note="disable gap emission first; observation can remain read-only while the shared answer path continues normally",
+            next_required_step="keep the scheduled bounded drain active and grade score deltas during Fable's agreed battery",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only explicit rollback after control-plane churn or answer-path regression",
+            evidence_refs=[
+                "protected_generate.py:observe_packet_dankness",
+                "packet_dankness_critic.py:score_packet_dankness",
+                "scripts/refresh_ledger_knowledge.py:drain_packet_enrich_queue",
+                "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+            ],
+            last_verified_at=DANK_PACKET_PIPELINE_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="canonical_persona_delivery",
+            display_name="Canonical two-layer agent persona delivery",
+            flag_or_config=["OPENCLAW_FLEET_VOICE_BOUNDARY", "OPENCLAW_PACKET_ENGINE"],
+            default_state="on_from_canonical_profile",
+            current_state_if_verifiable=_state(
+                "immutable persona cores derive from agent_voice_profiles; no PacketEngine-local voice registry remains",
+                code_default="daemon consumers use a standing profile reference; spawned consumers receive the core only in the first package",
+                production=(
+                    "active on request-response owner PID 1102767; final V1-V6 delivery-suppressed "
+                    "model probes each published from the addressed speaker and canonical voice profile"
+                ),
+                audit_report="core changes require an operator approval receipt; growing backstory is append-only and must remain ledger-grounded",
+            ),
+            source_files=["agent_voice_profiles.py", "packet_engine.py", "frontdoor_prompt.py"],
+            tests=["tests/test_agent_voice_profiles.py", "tests/test_packet_engine.py"],
+            audits=[
+                "/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md",
+            ],
+            canary_status=(
+                "LIVE-VERIFIED V1-V6: Maestro conversational contraction, Cassandra polished "
+                "assurance, Chief clipped two-sentence shape, Niles one restrained Australian "
+                "turn, Guardian state/boundary split, Hermes stands-ready/remains-unchanged; "
+                "all semantic/style contracts passed with no wrong or double response"
+            ),
+            risk_level="medium",
+            owner="Fable / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="operator persona-to-packet mandate and existing fleet voice activation",
+            disabled_by="explicitly roll back PacketEngine persona projection while retaining final-output voice enforcement",
+            rollback_note="fall back to the canonical frontdoor voice prompt; never restore duplicated per-module persona text",
+            next_required_step="keep canonical style-marker and semantic-preservation checks active during the broader battery",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only explicit rollback after a demonstrated owner-surface voice regression",
+            evidence_refs=[
+                "agent_voice_profiles.py:immutable_persona_core_for_speaker",
+                "packet_engine.py:build_agent_packet",
+                "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+            ],
+            last_verified_at=DANK_PACKET_PIPELINE_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="control_plane_heal_emission",
@@ -3029,6 +3144,8 @@ def _capability_live_state(
         status = statuses[0]
         if status in {"disabled_verified", "unset_default_off"} and related_configured:
             status = "configured_but_inert"
+    elif statuses[0] == "unset_default_off" and variable_spec.get("unset_means_enabled") is True:
+        status = "enabled_verified"
     else:
         status = statuses[0]
 
@@ -3042,6 +3159,11 @@ def _capability_live_state(
         "dry_run_verified": "dry-run path remains non-live",
         "not_applicable": "no whitelisted live variable applies",
     }[status]
+    if status == "enabled_verified" and variable_spec.get("unset_means_enabled") is True:
+        notes = (
+            "primary flag is absent, so the documented default-on code path is effective; "
+            "live canary evidence remains the activation proof"
+        )
 
     return {
         "status": status,

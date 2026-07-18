@@ -862,3 +862,53 @@ def test_gitignore_allows_pc_maestro_listener_source():
     )
 
     assert result.returncode == 1, result.stdout + result.stderr
+
+
+def test_advisory_judgment_routes_to_brain_with_current_packet_and_never_stages(
+    monkeypatch,
+) -> None:
+    import maestro_context_packet
+
+    captured = {}
+    pending_fact = {
+        "fact_id": "pending_operator_action:5FF438AC",
+        "topic": "pending_operator_action",
+        "label": "Pending Guardian approval",
+        "value": "Finalization is complete; approve the send button when ready.",
+        "provenance": "guardian_pending_action_owner",
+        "source_ref": "hitl_pending_store:5FF438AC",
+        "pii_tier": "LIGHT",
+    }
+    monkeypatch.setattr(
+        maestro_context_packet,
+        "build_maestro_context_packet",
+        lambda **_kwargs: {
+            "packet_id": "packet:advisory-current-state",
+            "facts": [pending_fact],
+            "source_refs": (pending_fact["source_ref"],),
+            "packet_text": "Pending Guardian approval: finalization is complete.",
+        },
+    )
+
+    def protected(_question, **kwargs):
+        captured.update(kwargs)
+        return {
+            "text": "Finalization is complete. Approve the send button when it lands.",
+            "receipt": {
+                "status": "ANSWER_READY",
+                "decision": "LOCAL",
+                "model_call_performed": True,
+                "local_model_invoked": True,
+            },
+        }
+
+    result = maestro.answer_frontdoor_chat(
+        "Maestro, what do you think the next correct step is?",
+        protected_generate_fn=protected,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.intent_class == "advisory_judgment"
+    assert result.machine_proof["workflow_package_staged"] is False
+    assert result.machine_proof["protected_generate_called"] is True
+    assert captured["context_packet"]["facts"][0] == pending_fact

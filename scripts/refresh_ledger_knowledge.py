@@ -25,6 +25,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fold_satellite_to_ledger as fold  # noqa: E402
 import capability_ledger_reconciler  # noqa: E402
+from packet_dankness_drain import drain_packet_enrich_queue  # noqa: E402
+from polish_loop.control_plane import (  # noqa: E402
+    ControlPlaneLedger,
+    DEFAULT_LEDGER_PATH as DEFAULT_CONTROL_PLANE_LEDGER,
+)
 
 DEFAULT_LEDGER = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite")
 
@@ -119,10 +124,22 @@ def refresh(ledger: Path) -> dict:
             "drift_count",
         )
     }
+    packet_dankness_summary = {"processed": 0, "refreshed": 0, "escalated": 0}
+    if DEFAULT_CONTROL_PLANE_LEDGER.exists():
+        outcomes = drain_packet_enrich_queue(
+            ControlPlaneLedger(DEFAULT_CONTROL_PLANE_LEDGER),
+            max_tasks=10,
+        )
+        packet_dankness_summary = {
+            "processed": len(outcomes),
+            "refreshed": sum(1 for row in outcomes if row.get("outcome") == "refreshed"),
+            "escalated": sum(1 for row in outcomes if row.get("outcome") == "escalated"),
+        }
     return {
         "refreshed_at": _utc_now(),
         "sources": results,
         "capability_reconciliation": capability_summary,
+        "packet_dankness_drain": packet_dankness_summary,
     }
 
 

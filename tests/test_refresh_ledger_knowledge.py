@@ -96,3 +96,36 @@ def test_confirmed_refresh_invokes_capability_reconciler_once(tmp_path: Path, mo
         "decision_count": 4,
         "drift_count": 1,
     }
+
+
+def test_confirmed_refresh_drains_a_bounded_packet_enrich_batch(tmp_path: Path, monkeypatch) -> None:
+    ledger = tmp_path / "ledger.sqlite"
+    sqlite3.connect(ledger).close()
+    monkeypatch.setattr(refresh, "KNOWLEDGE_SOURCES", ())
+    monkeypatch.setattr(
+        refresh.capability_ledger_reconciler,
+        "reconcile_capabilities",
+        lambda **_kwargs: {"status": "CONFIRMED"},
+    )
+    calls = []
+
+    def fake_drain(control_plane, *, max_tasks):
+        calls.append((control_plane, max_tasks))
+        return [
+            {"task_id": "packet-enrich:1", "outcome": "refreshed"},
+            {"task_id": "packet-enrich:2", "outcome": "escalated"},
+        ]
+
+    monkeypatch.setattr(refresh, "drain_packet_enrich_queue", fake_drain)
+    monkeypatch.setattr(refresh, "ControlPlaneLedger", lambda _path: "control-plane-owner")
+    monkeypatch.setattr(refresh, "DEFAULT_CONTROL_PLANE_LEDGER", tmp_path / "control.sqlite3")
+    (tmp_path / "control.sqlite3").touch()
+
+    result = refresh.refresh(ledger)
+
+    assert calls == [("control-plane-owner", 10)]
+    assert result["packet_dankness_drain"] == {
+        "processed": 2,
+        "refreshed": 1,
+        "escalated": 1,
+    }

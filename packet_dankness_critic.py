@@ -16,6 +16,7 @@ the system hallucinate its way to a perfect score — fatal for a truth engine (
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import os
 import re
 from datetime import datetime, timezone
@@ -56,6 +57,9 @@ class DanknessScore:
     overall: float
     fact_count: int
     gaps: tuple[dict[str, Any], ...]
+    right_sized: float
+    source_fact_count: int
+    size_state: str
 
 
 def _terms(question: str) -> list[str]:
@@ -88,6 +92,10 @@ def _fact_text(fact: Mapping[str, Any]) -> str:
     return " ".join(
         str(fact.get(k) or "") for k in ("topic", "label", "value")
     ).lower()
+
+
+def _fact_id(fact: Mapping[str, Any]) -> str:
+    return str(fact.get("fact_id") or "").strip()
 
 
 def _gap_key(gap: Mapping[str, Any]) -> str:
@@ -173,6 +181,7 @@ def score_packet_dankness(
     question: str = "",
     *,
     useful_scorer: Callable[[Sequence[Mapping[str, Any]], str], float] | None = None,
+    sizing_manifest: Mapping[str, Any] | None = None,
 ) -> DanknessScore:
     """Score a built packet's dankness on real-source coverage; identify grounded gaps.
 
@@ -183,12 +192,31 @@ def score_packet_dankness(
     dimension with a semantic judge (e.g. an LLM via ``lm_useful_scorer``). It only RATES
     relevance — it never adds content, so it carries no confabulation risk.
     """
-    facts = [f for f in packet.get("facts", ()) if isinstance(f, Mapping)]
+    source_facts = [f for f in packet.get("facts", ()) if isinstance(f, Mapping)]
+    manifest = dict(sizing_manifest or {})
+    if manifest.get("task_kind") == "canned_revoice":
+        return DanknessScore(
+            1.0, 1.0, 1.0, 1.0, 1.0, 0, (), 1.0, len(source_facts),
+            "canned_revoice_no_business_facts_required",
+        )
+    if manifest.get("conversational_lane") is True and not source_facts:
+        return DanknessScore(
+            1.0, 1.0, 1.0, 1.0, 1.0, 0, (), 1.0, 0,
+            "social_no_facts_required",
+        )
+    kept_ids = {
+        str(item).strip() for item in manifest.get("kept_fact_ids", ()) if str(item).strip()
+    }
+    if sizing_manifest is not None:
+        facts = [fact for fact in source_facts if _fact_id(fact) in kept_ids]
+    else:
+        facts = source_facts
     n = len(facts)
+    source_n = len(source_facts)
     if n == 0:
         gaps = ({"kind": "empty_packet", "about": " ".join(_terms(question)[:4]),
                  "detail": "packet had zero facts"},)
-        return DanknessScore(0.0, 0.0, 0.0, 0.0, 0.0, 0, gaps)
+        return DanknessScore(0.0, 0.0, 0.0, 0.0, 0.0, 0, gaps, 0.0, source_n, "starved")
 
     grounded = sum(1 for f in facts if _grounded(f)) / n
     fresh_facts = [f for f in facts if _is_fresh(_as_of(f))]
@@ -200,6 +228,16 @@ def score_packet_dankness(
     useful_hits = [
         f for f in facts if q_terms and any(t in _fact_text(f) for t in q_terms)
     ]
+    if re.search(
+        r"\b(what do you think|next correct step|what should (?:we|i) do next|what would you recommend)\b",
+        question,
+        flags=re.IGNORECASE,
+    ):
+        useful_hits.extend(
+            fact
+            for fact in facts
+            if str(fact.get("topic") or "") in {"pending_operator_action", "current_guardian_action"}
+        )
     if not q_terms:
         useful = 1.0  # no question => relevance not assessable => neutral
     elif useful_scorer is not None:
@@ -208,6 +246,23 @@ def score_packet_dankness(
         useful = 1.0 if useful_hits else 0.0  # deterministic term-match
 
     gaps: list[dict[str, Any]] = []
+    dropped_count = int(
+        manifest.get("context_facts_dropped")
+        or len(manifest.get("dropped_fact_ids") or ())
+        or 0
+    )
+    if manifest.get("over_budget") is True:
+        sizing_total = max(1, n + dropped_count)
+        right_sized = n / sizing_total
+        size_state = "bloated_trimmed"
+        gaps.append({
+            "kind": "bloated_packet",
+            "about": "prompt_context_budget",
+            "detail": f"deterministic budgeter kept {n} facts and trimmed {dropped_count}",
+        })
+    else:
+        right_sized = 1.0
+        size_state = "right_sized"
     if q_terms and useful < 0.5:
         gaps.append({
             "kind": "missing_fact",
@@ -227,7 +282,7 @@ def score_packet_dankness(
                     "detail": f"source is older than {FRESH_DAYS}d; refresh its generator",
                 })
 
-    overall = round((grounded + current + useful + lane_rich) / 4, 4)
+    overall = round((grounded + current + useful + lane_rich + right_sized) / 5, 4)
     return DanknessScore(
         grounded=round(grounded, 4),
         current=round(current, 4),
@@ -236,6 +291,9 @@ def score_packet_dankness(
         overall=overall,
         fact_count=n,
         gaps=tuple(gaps),
+        right_sized=round(right_sized, 4),
+        source_fact_count=source_n,
+        size_state=size_state,
     )
 
 
@@ -326,6 +384,10 @@ def emit_packet_enrich_tasks(
         existing = set()
     admitted: list[str] = []
     for gap in score.gaps:
+        if gap.get("kind") == "bloated_packet":
+            # The deterministic budgeter already fixed this run. Record it for taste
+            # scoring; do not queue a source-enrichment task that cannot reduce bloat.
+            continue
         _key = _gap_key(gap)
         if _key in existing:
             continue
@@ -381,6 +443,9 @@ def observe_packet_dankness(
     agent_id: str,
     *,
     ledger: ControlPlaneLedger | None = None,
+    sizing_manifest: Mapping[str, Any] | None = None,
+    consumer_id: str = "frontdoor",
+    score_log_path: Any = None,
 ) -> DanknessScore | None:
     """Per-response hook for the live self-improving loop.
 
@@ -391,12 +456,64 @@ def observe_packet_dankness(
     response path stays cheap.
     """
     try:
-        score = score_packet_dankness(packet, question)
+        score = score_packet_dankness(
+            packet,
+            question,
+            sizing_manifest=sizing_manifest,
+        )
         if ledger is None:
             from polish_loop.control_plane import DEFAULT_LEDGER_PATH
 
             ledger = ControlPlaneLedger(DEFAULT_LEDGER_PATH)
         emit_packet_enrich_tasks(ledger, score, agent_id=agent_id, question=question)
+        from packet_dankness_enricher import (
+            SCORE_LOG_PATH,
+            SCORE_LOG_SCHEMA_VERSION,
+            _append_read_model_record,
+            _read_records,
+        )
+
+        log_path = SCORE_LOG_PATH if score_log_path is None else score_log_path
+        previous = next(
+            (
+                row for row in reversed(_read_records(log_path, "records"))
+                if row.get("agent_id") == agent_id and row.get("consumer_id") == consumer_id
+            ),
+            {},
+        )
+        previous_overall = previous.get("overall")
+        _append_read_model_record(
+            log_path,
+            {
+                "at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "agent_id": agent_id,
+                "consumer_id": consumer_id,
+                "question_sha256": "sha256:" + hashlib.sha256(
+                    str(question or "").encode("utf-8")
+                ).hexdigest(),
+                "packet_id": str(packet.get("packet_id") or ""),
+                "overall": score.overall,
+                "grounded": score.grounded,
+                "current": score.current,
+                "useful": score.useful,
+                "lane_rich": score.lane_rich,
+                "right_sized": score.right_sized,
+                "size_state": score.size_state,
+                "fact_count": score.fact_count,
+                "source_fact_count": score.source_fact_count,
+                "gap_kinds": [str(gap.get("kind") or "") for gap in score.gaps],
+                "previous_overall": previous_overall,
+                "overall_delta": (
+                    round(score.overall - float(previous_overall), 4)
+                    if isinstance(previous_overall, (int, float))
+                    else None
+                ),
+                "raw_question_included": False,
+            },
+            read_model_id="packet_dankness_log",
+            schema_version=SCORE_LOG_SCHEMA_VERSION,
+            collection_key="records",
+        )
         return score
     except Exception:  # noqa: BLE001 — observation must never break a live answer
         return None

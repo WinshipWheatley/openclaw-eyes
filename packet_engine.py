@@ -9,85 +9,22 @@ import time
 from typing import Any, Callable, Mapping
 
 
-PACKET_ENGINE_PERSONA_SOURCE = "packet_engine:persona_core_registry"
+PACKET_ENGINE_PERSONA_SOURCE = "agent_voice_profiles:immutable_persona_core"
 PACKET_ENGINE_FAILURE_STATUS = "PACKET_ENGINE_BUILD_FAILED"
-PERSONA_CORE_VERSION = "persona_core_v2_voice_exemplars"
 PERSONA_CORE_TOKEN_BUDGET = 220
 
-PERSONA_CORES: dict[str, dict[str, Any]] = {
-    "maestro": {
-        "agent": "maestro",
-        "identity": "Maestro is the warm operator router for OpenClaw.",
-        "voice": "sharp warm chief-of-staff, grounded, concise, and operator-facing",
-        "voice_charter": "Lead with the useful shape, name the safe next move, and keep uncertainty visible.",
-        "duties": "Route broad operator questions, ground replies in packet facts, and avoid side effects.",
-        "humor_policy": "Sparing warmth only; never on failures or money.",
-        "voice_exemplars": (
-            "Two things worth your attention: Live Arts still owes $1,095 pending your reconcile, and Friday's gig needs a stage plot by Wednesday. Everything else is handled.",
-            "You're clear today. One check may land from Capital Hilton — I'll flag it the moment it's confirmed, not before.",
-        ),
-    },
-    "chief": {
-        "agent": "chief",
-        "identity": "Chief is the operations lead for OpenClaw.",
-        "voice": "direct, operational, evidence-first, and bounded",
-        "voice_charter": "Crisp ops steward: state the blocker, the proof, and the next bounded action.",
-        "duties": "Summarize operational state, flag blockers, and preserve SEND_HOLD and money gates.",
-        "humor_policy": "Minimal wit; never on failures or money.",
-        "voice_exemplars": (
-            "Current state: one blocker, one safe next action, no external move.",
-            "I need the receipt before I mark this ready.",
-        ),
-    },
-    "niles": {
-        "agent": "niles",
-        "identity": "Niles is the playful audio and vibes specialist for OpenClaw.",
-        "voice": "most playful, studio-rat precise, punchy, audio-aware, and still grounded",
-        "voice_charter": "Keep it quick, tactile, and musically exact; charm never outruns proof.",
-        "duties": "Help with audio, music, and creative surface questions without inventing facts.",
-        "humor_policy": "Small studio wit is allowed; never on failures or money.",
-        "voice_exemplars": (
-            "That low-mid mud? Cut 250-350Hz on the pads, tuck the bass 1dB, and the vocal will sit down in the pocket.",
-            "Print the take. The timing's human in the good way — we can comp the bridge from pass two if you want it tighter.",
-        ),
-    },
-    "guardian": {
-        "agent": "guardian",
-        "identity": "Guardian is the serious safety boundary reviewer for OpenClaw.",
-        "voice": "dry, serious, safety-forward, and explicit about gates",
-        "voice_charter": "Most serious voice: answer plainly, cite the gate, and do not soften blocked states.",
-        "duties": "Review risk, enforce authority boundaries, and keep send/payment/ledger actions gated.",
-        "severity_policy": "No levity. Failures, money, and authority gates stay dry.",
-        "voice_exemplars": (
-            "No. The packet does not grant send, payment, or ledger authority.",
-            "Approval is missing; treat this as blocked until the required receipt exists.",
-        ),
-    },
-    "cassandra": {
-        "agent": "cassandra",
-        "identity": "Cassandra is Clara's client-warm specialist voice.",
-        "voice": "client-warm, polished, practical, and grounded",
-        "voice_charter": "Warm professional client voice: clear, useful, and never loose with proof.",
-        "duties": "Draft and reason about Clara-facing work while preserving source-of-truth boundaries.",
-        "humor_policy": "Client warmth over wit; never on failures or money.",
-        "voice_exemplars": (
-            "Hi Draper, I hope the week's treating you well. Could you confirm the St. Anne's invoice made its way to Glenn? No rush — just keeping it tidy on our end. Warmly, Clara",
-            "Megan, lovely to e-meet you. I'll have June's rental invoice over shortly — always happy to walk through any line item. Warmly, Clara",
-        ),
-    },
-    "hermes": {
-        "agent": "hermes",
-        "identity": "Hermes is the sidecar status and routing-boundary reviewer.",
-        "voice": "terse dispatch, status-clear, boundary-aware, and advisory",
-        "voice_charter": "Dispatch posture only: short status, route, blocker, no flourish.",
-        "duties": "Explain route posture and sidecar status without dispatching, sending, or bypassing gates.",
-        "humor_policy": "No flourish; never on failures or money.",
-        "voice_exemplars": (
-            "Route holds. Packet source is present. No dispatch authorized.",
-            "Status: ready for review, blocked for action.",
-        ),
-    },
-}
+
+def _canonical_persona_cores() -> dict[str, dict[str, Any]]:
+    from agent_voice_profiles import immutable_persona_core_for_speaker
+
+    return {
+        agent: immutable_persona_core_for_speaker(agent)
+        for agent in ("maestro", "chief", "niles", "guardian", "cassandra", "hermes")
+    }
+
+
+# Compatibility export for inspectors; authored only by agent_voice_profiles.
+PERSONA_CORES = _canonical_persona_cores()
 
 
 LegacyPacketBuilder = Callable[..., Mapping[str, Any]]
@@ -109,6 +46,9 @@ def build_agent_packet(
     question: str = "",
     question_class: str | None = None,
     authority: Mapping[str, Any] | None = None,
+    consumer_kind: str = "daemon",
+    session_id: str = "",
+    persona_already_delivered: bool = False,
     legacy_builder: LegacyPacketBuilder | None = None,
     **builder_kwargs: Any,
 ) -> dict[str, Any]:
@@ -120,6 +60,9 @@ def build_agent_packet(
     """
     started = time.perf_counter()
     normalized_agent = _normalize_agent(agent)
+    normalized_consumer = str(consumer_kind or "daemon").strip().lower()
+    if normalized_consumer not in {"daemon", "spawned"}:
+        raise ValueError(f"Unsupported packet consumer_kind: {consumer_kind}")
     persona_core = _persona_core_for(normalized_agent)
     question_class_value = str(question_class or "")
     failures: list[dict[str, str]] = []
@@ -140,6 +83,9 @@ def build_agent_packet(
             question_class=question_class_value,
             authority=authority,
             persona_core=persona_core,
+            consumer_kind=normalized_consumer,
+            session_id=session_id,
+            persona_already_delivered=persona_already_delivered,
             builder_ref=builder_ref,
             build_ms=build_ms,
             failures=failures,
@@ -151,6 +97,9 @@ def build_agent_packet(
         question_class=question_class_value,
         authority=authority,
         persona_core=persona_core,
+        consumer_kind=normalized_consumer,
+        session_id=session_id,
+        persona_already_delivered=persona_already_delivered,
         builder_ref=builder_ref,
         build_ms=build_ms,
         failures=failures,
@@ -204,8 +153,9 @@ def _normalize_agent(agent: str) -> str:
 
 
 def _persona_core_for(agent: str) -> dict[str, Any]:
-    core = dict(PERSONA_CORES.get(agent) or PERSONA_CORES["maestro"] | {"agent": agent})
-    core.setdefault("persona_core_version", PERSONA_CORE_VERSION)
+    from agent_voice_profiles import immutable_persona_core_for_speaker
+
+    core = dict(immutable_persona_core_for_speaker(agent))
     core.setdefault("token_budget", PERSONA_CORE_TOKEN_BUDGET)
     core["voice_exemplars"] = tuple(str(item) for item in core.get("voice_exemplars", ()) if str(item).strip())
     core["estimated_token_count"] = _estimate_persona_tokens(core)
@@ -269,6 +219,9 @@ def _decorate_packet(
     question_class: str,
     authority: Mapping[str, Any] | None,
     persona_core: Mapping[str, Any],
+    consumer_kind: str,
+    session_id: str,
+    persona_already_delivered: bool,
     builder_ref: str,
     build_ms: int,
     failures: list[dict[str, str]],
@@ -276,19 +229,35 @@ def _decorate_packet(
     facts = [row for row in packet.get("facts", ()) if isinstance(row, Mapping)]
     source_refs = _source_refs(packet.get("source_refs", ()))
     persona = dict(persona_core)
-    sections = ["persona_core", "legacy_packet"]
-    packet["agent_id"] = agent
-    packet["persona_core"] = persona
-    packet["facts"] = [_persona_fact(persona), *facts]
-    packet["source_refs"] = tuple(dict.fromkeys([PACKET_ENGINE_PERSONA_SOURCE, *source_refs]))
-    packet["packet_text"] = "\n".join(
-        part
-        for part in (
-            _persona_text(persona),
-            str(packet.get("packet_text") or "").strip(),
-        )
-        if part
+    include_persona = consumer_kind == "spawned" and not persona_already_delivered
+    delivery_mode = (
+        "first_spawn_package"
+        if include_persona
+        else "spawn_session_already_has_persona"
+        if consumer_kind == "spawned"
+        else "standing_daemon_profile"
     )
+    sections = ["persona_core" if include_persona else "standing_persona_ref", "legacy_packet"]
+    packet["agent_id"] = agent
+    packet["persona_delivery"] = {
+        "mode": delivery_mode,
+        "consumer_kind": consumer_kind,
+        "session_id": str(session_id or ""),
+        "voice_profile_ref": persona["voice_profile_ref"],
+        "persona_core_version": persona["persona_core_version"],
+        "core_sha256": persona["core_sha256"],
+    }
+    if include_persona:
+        packet["persona_core"] = persona
+        packet["facts"] = [_persona_fact(persona), *facts]
+    else:
+        packet.pop("persona_core", None)
+        packet["facts"] = facts
+    packet["source_refs"] = tuple(dict.fromkeys([PACKET_ENGINE_PERSONA_SOURCE, *source_refs]))
+    if include_persona:
+        packet["packet_text"] = "\n".join(
+            part for part in (_persona_text(persona), str(packet.get("packet_text") or "").strip()) if part
+        )
     receipt = _receipt(
         agent=agent,
         question_class=question_class,
@@ -325,16 +294,25 @@ def _failure_packet(
     question_class: str,
     authority: Mapping[str, Any] | None,
     persona_core: Mapping[str, Any],
+    consumer_kind: str,
+    session_id: str,
+    persona_already_delivered: bool,
     builder_ref: str,
     build_ms: int,
     failures: list[dict[str, str]],
 ) -> dict[str, Any]:
     persona = dict(persona_core)
+    include_persona = consumer_kind == "spawned" and not persona_already_delivered
+    delivery_mode = (
+        "first_spawn_package" if include_persona else
+        "spawn_session_already_has_persona" if consumer_kind == "spawned" else
+        "standing_daemon_profile"
+    )
     source_refs = (PACKET_ENGINE_PERSONA_SOURCE,)
     receipt = _receipt(
         agent=agent,
         question_class=question_class,
-        sections=("persona_core", "legacy_packet"),
+        sections=(("persona_core" if include_persona else "standing_persona_ref"), "legacy_packet"),
         sources=source_refs,
         build_ms=build_ms,
         failures=failures,
@@ -343,21 +321,28 @@ def _failure_packet(
         builder_ref=builder_ref,
         fallback_used=False,
     )
-    return {
+    result = {
         "schema_version": "packet_engine_packet_v1",
         "packet_id": f"packet_engine_failed:{_short_hash(agent, question, failures)}",
         "status": PACKET_ENGINE_FAILURE_STATUS,
         "question": question,
         "agent_id": agent,
-        "persona_core": persona,
-        "facts": [_persona_fact(persona)],
+        "persona_delivery": {
+            "mode": delivery_mode,
+            "consumer_kind": consumer_kind,
+            "session_id": str(session_id or ""),
+            "voice_profile_ref": persona["voice_profile_ref"],
+            "persona_core_version": persona["persona_core_version"],
+            "core_sha256": persona["core_sha256"],
+        },
+        "facts": [_persona_fact(persona)] if include_persona else [],
         "source_refs": source_refs,
         "packet_text": "\n".join(
-            (
-                _persona_text(persona),
+            part for part in (
+                _persona_text(persona) if include_persona else "",
                 "PACKET ENGINE BUILD FAILED:",
                 "; ".join(f"{row['type']}: {row['message']}" for row in failures),
-            )
+            ) if part
         ),
         "packet_engine_receipt": receipt,
         "machine_proof": {
@@ -368,6 +353,9 @@ def _failure_packet(
             "packet_engine_failures": tuple(failures),
         },
     }
+    if include_persona:
+        result["persona_core"] = persona
+    return result
 
 
 def _receipt(

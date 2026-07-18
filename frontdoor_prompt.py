@@ -20,6 +20,8 @@ from typing import Any, Mapping
 from agent_voice_profiles import (
     SPEAKER_REFS,
     conversational_prompt_descriptor_for_speaker,
+    revoice_prompt_guidance_for_speaker,
+    revoice_style_marker_contract_for_speaker,
 )
 
 # Layer A persona/system + task framing reserve (chars). Small, fixed, ALWAYS present.
@@ -51,6 +53,89 @@ def _agent_display_name(agent: str | None) -> str:
     if key == "clara":
         return "Cassandra using the Clara Reid external register"
     return key[:1].upper() + key[1:] if key else "Maestro"
+
+
+def canned_revoice_source(message: str) -> str | None:
+    prefix, separator, source = str(message or "").partition(":")
+    if not separator or not source.strip():
+        return None
+    normalized = prefix.strip().lower().replace("-", "")
+    if not any(marker in normalized for marker in ("rephrase", "rewrite", "revoice")):
+        return None
+    return source.strip()
+
+
+def canned_revoice_semantic_markers(source: str) -> tuple[dict[str, str], ...]:
+    value = str(source or "").lower()
+    markers: list[dict[str, str]] = []
+    if "review packet" in value:
+        markers.append({"id": "review_packet", "description": "both words 'review packet'"})
+    elif "packet" in value:
+        markers.append({"id": "packet", "description": "the packet"})
+    if re.search(r"\b(ready|prepared|all set|all sorted|complete)\b", value):
+        markers.append({"id": "ready", "description": "ready, prepared, all set, or all sorted"})
+    if (
+        re.search(r"\bnothing\b.{0,24}\b(changed|altered|modified|touched)\b", value)
+        or re.search(r"\bno changes?\b", value)
+        or re.search(r"\b(unchanged|unaltered|unmodified|untouched)\b", value)
+    ):
+        markers.append({"id": "no_change", "description": "nothing was changed"})
+    if re.search(r"\b(nothing was sent|not sent|no send)\b", value):
+        markers.append({"id": "no_send", "description": "nothing was sent"})
+    return tuple(markers)
+
+
+def validate_canned_revoice_output(
+    source: str, candidate: str, *, agent: str | None = None
+) -> dict[str, Any]:
+    value = str(candidate or "").lower()
+    source_tokens = _WORD_RE.findall(str(source or "").lower())
+    candidate_tokens = _WORD_RE.findall(value)
+    checks = {
+        "review_packet": "review" in value and "packet" in value,
+        "packet": "packet" in value,
+        "ready": bool(re.search(r"\b(ready|prepared|all set|all sorted|complete|good to go)\b", value)),
+        "no_change": bool(
+            re.search(r"\bnothing(?:'s| is| was| has)?(?: been)?\s+(?:changed|altered|modified|touched)\b", value)
+            or re.search(r"\bno changes?\b(?:\s+(?:were|was|have been|has been|made)){0,3}", value)
+            or re.search(r"\b(unchanged|unaltered|unmodified|untouched)\b", value)
+        ),
+        "no_send": bool(re.search(r"\b(nothing(?:'s| is| was| has been)? sent|not sent|no send)\b", value)),
+    }
+    markers = canned_revoice_semantic_markers(source)
+    missing = tuple(marker["id"] for marker in markers if not checks[marker["id"]])
+    violations = ("verbatim_source_echo",) if source_tokens == candidate_tokens else ()
+    missing_style: list[str] = []
+    if agent is not None:
+        contract = revoice_style_marker_contract_for_speaker(agent)
+        marker_ids = list(contract.get("marker_ids") or ())
+        marker_index = 0
+        if contract.get("requires_contraction") is True:
+            if not re.search(r"\b\w+'(?:s|re|ve|ll|d|m|t)\b", value):
+                missing_style.append(marker_ids[marker_index])
+            marker_index += 1
+        for phrases in contract.get("required_any") or ():
+            if not any(str(phrase).lower() in value for phrase in phrases):
+                missing_style.append(marker_ids[marker_index])
+            marker_index += 1
+        for phrases in contract.get("required_exactly_one") or ():
+            if sum(str(phrase).lower() in value for phrase in phrases) != 1:
+                missing_style.append(marker_ids[marker_index])
+            marker_index += 1
+        min_sentences = int(contract.get("min_sentences") or 0)
+        if min_sentences and len(re.findall(r"[^.!?]+[.!?]", str(candidate or ""))) < min_sentences:
+            missing_style.append(marker_ids[marker_index])
+            marker_index += 1
+        max_words = int(contract.get("max_words") or 0)
+        if max_words and len(candidate_tokens) > max_words:
+            missing_style.append(marker_ids[marker_index])
+    return {
+        "passed": not missing and not violations and not missing_style,
+        "required_marker_ids": [marker["id"] for marker in markers],
+        "missing_marker_ids": list(missing),
+        "violation_ids": list(violations),
+        "missing_style_marker_ids": missing_style,
+    }
 
 
 def _grounded_preamble(agent: str | None) -> str:
@@ -146,6 +231,18 @@ def _niles_audio_advice_facts() -> list[dict[str, Any]]:
 
 def _final_reply_instruction(agent: str | None, message: str | None = None) -> str:
     key = str(agent or _DEFAULT_AGENT).strip().lower()
+    if re.search(
+        r"\b(what do you think|next correct step|what should (?:we|i) do next|what would you recommend)\b",
+        str(message or ""),
+        flags=re.IGNORECASE,
+    ):
+        return (
+            "For advisory judgment, answer from the current Guardian action fact in the packet. "
+            "Describe an APPROVED raw status as 'a decision is recorded' without using the "
+            "word approved; use the exact phrase 'execution is not proven', keep SEND_HOLD "
+            "explicit, and make verifying the signed action/current authority the next step. "
+            "Do not give generic momentum advice and do not recommend sending."
+        )
     if key == "niles":
         if _is_niles_audio_advice_request(agent, message or ""):
             return (
@@ -486,6 +583,46 @@ def build_frontdoor_prompt(
     if max_chars is None:
         max_chars = _env_int("OPENCLAW_FRONTDOOR_PROMPT_MAX_CHARS", _DEFAULT_PROMPT_MAX_CHARS)
 
+    revoice_source = canned_revoice_source(message)
+    if revoice_source is not None:
+        raw_facts = packet.get("facts") if isinstance(packet, Mapping) else None
+        facts = [fact for fact in (raw_facts or ()) if isinstance(fact, Mapping)]
+        dropped_ids = [_fact_id(fact, index) for index, fact in enumerate(facts)]
+        persona = _conversational_persona(agent)
+        name = _agent_display_name(agent)
+        voice_guidance = revoice_prompt_guidance_for_speaker(str(agent or _DEFAULT_AGENT))
+        markers = canned_revoice_semantic_markers(revoice_source)
+        required_meaning = "; ".join(marker["description"] for marker in markers)
+        style_contract = revoice_style_marker_contract_for_speaker(str(agent or _DEFAULT_AGENT))
+        style_markers = ", ".join(style_contract.get("marker_ids") or ())
+        style_requirement = str(style_contract.get("prompt_requirement") or "").strip()
+        prompt = (
+            f"You are {persona}. {voice_guidance} Make the speaker identifiable from style "
+            f"alone. Rewrite only the source text below in {name}'s natural "
+            "voice. Preserve its factual meaning exactly. Add no names, examples, packet "
+            "facts, advice, status, or implied action. Do not quote the instruction and do "
+            "not explain your rewrite. Change at least one substantive word or sentence "
+            "shape; never echo the source wording verbatim. Return only the rewritten line.\n"
+            f"Required meaning markers, all mandatory: {required_meaning or 'the full source claim'}.\n\n"
+            f"Required style signature ({style_markers}), mandatory: {style_requirement}\n\n"
+            f"SOURCE TEXT:\n{revoice_source}\n\n{name}:"
+        )
+        return prompt, {
+            "context_facts_kept": 0,
+            "context_facts_dropped": len(dropped_ids),
+            "kept_fact_ids": [],
+            "dropped_fact_ids": dropped_ids,
+            "stale_fact_ids": [],
+            "prompt_context_chars": 0,
+            "prompt_chars": len(prompt),
+            "layer_a_chars": len(prompt),
+            "max_chars": max_chars,
+            "layer_b_budget": 0,
+            "over_budget": False,
+            "task_kind": "canned_revoice",
+            "business_facts_required": False,
+        }
+
     # SOCIAL CONVERSATIONAL LANE: for greetings/reactions/small talk, a heavy grounded
     # prompt (persona + packet + constraints) makes the small model RECITE system posture
     # instead of chatting. A lightweight prompt — no facts, no protocol-speak — lets it
@@ -680,4 +817,9 @@ def build_frontdoor_prompt(
     return prompt, manifest
 
 
-__all__ = ["build_frontdoor_prompt"]
+__all__ = [
+    "build_frontdoor_prompt",
+    "canned_revoice_semantic_markers",
+    "canned_revoice_source",
+    "validate_canned_revoice_output",
+]

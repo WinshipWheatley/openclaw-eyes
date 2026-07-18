@@ -26,7 +26,7 @@
         "OPENCLAW_ACTION_RUNTIME"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -80,7 +80,7 @@
         "dry_run mode; Gemini worker dispatch operator-gated"
       ],
       "gate_stage": "dry_run",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "dry_run_verified",
       "live_state": {
         "confidence": "medium",
@@ -126,7 +126,7 @@
         "contract toggles: runtime/model/agent/tool/package send authority false"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -174,7 +174,7 @@
         "SEND_HOLD.md"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -272,7 +272,7 @@
         "brain_dump_parser.py --dry-run"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -290,6 +290,115 @@
         "brain_dump_parser.py"
       ],
       "tests": []
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
+        "/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md"
+      ],
+      "canary_status": "LIVE-VERIFIED V1-V6: Maestro conversational contraction, Cassandra polished assurance, Chief clipped two-sentence shape, Niles one restrained Australian turn, Guardian state/boundary split, Hermes stands-ready/remains-unchanged; all semantic/style contracts passed with no wrong or double response",
+      "capability_id": "canonical_persona_delivery",
+      "current_state_if_verifiable": {
+        "audit_report": "core changes require an operator approval receipt; growing backstory is append-only and must remain ledger-grounded",
+        "code_default": "daemon consumers use a standing profile reference; spawned consumers receive the core only in the first package",
+        "production": "enabled_verified",
+        "summary": "live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false"
+      },
+      "default_state": "on_from_canonical_profile",
+      "disabled_by": "explicitly roll back PacketEngine persona projection while retaining final-output voice enforcement",
+      "display_name": "Canonical two-layer agent persona delivery",
+      "enabled_by": "operator persona-to-packet mandate and existing fleet voice activation",
+      "evidence_refs": [
+        "agent_voice_profiles.py:immutable_persona_core_for_speaker",
+        "packet_engine.py:build_agent_packet",
+        "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_FLEET_VOICE_BOUNDARY",
+        "OPENCLAW_PACKET_ENGINE"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
+      "live_production_state": "enabled_verified",
+      "live_state": {
+        "confidence": "high",
+        "findings": [
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_FLEET_VOICE_BOUNDARY"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_FLEET_VOICE_BOUNDARY"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_FLEET_VOICE_BOUNDARY"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_FLEET_VOICE_BOUNDARY"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_FLEET_VOICE_BOUNDARY"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_FLEET_VOICE_BOUNDARY"
+          },
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_FLEET_VOICE_BOUNDARY"
+          }
+        ],
+        "notes": "live source verifies this capability/config is active; this does not grant new activation authority",
+        "related_findings": [],
+        "status": "enabled_verified"
+      },
+      "next_required_step": "keep canonical style-marker and semantic-preservation checks active during the broader battery",
+      "operator_approval_required": true,
+      "owner": "Fable / PC Codex Desktop",
+      "reason_if_off": "only explicit rollback after a demonstrated owner-surface voice regression",
+      "risk_level": "medium",
+      "rollback_note": "fall back to the canonical frontdoor voice prompt; never restore duplicated per-module persona text",
+      "source_files": [
+        "agent_voice_profiles.py",
+        "packet_engine.py",
+        "frontdoor_prompt.py"
+      ],
+      "tests": [
+        "tests/test_agent_voice_profiles.py",
+        "tests/test_packet_engine.py"
+      ]
     },
     {
       "activation_allowed_now": false,
@@ -373,7 +482,7 @@
         "OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -434,7 +543,7 @@
         "TELEGRAM_AUTHORIZED_USER_ID"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -478,7 +587,7 @@
         "local JSON dry-run inbox paths; no live Telegram credential flag"
       ],
       "gate_stage": "dry_run",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "dry_run_verified",
       "live_state": {
         "confidence": "medium",
@@ -526,7 +635,7 @@
         "chief_llm.claude_json"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -569,7 +678,7 @@
         "unknown"
       ],
       "gate_stage": "proposed",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -613,7 +722,7 @@
         "OPENCLAW_PACKET_SOURCE"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -697,7 +806,7 @@
         "OPENCLAW_CONTROL_PLANE_EMIT"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -752,7 +861,7 @@
         "unknown_live_wiring_flag"
       ],
       "gate_stage": "synthetic",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -876,7 +985,7 @@
         "CASSANDRA_EXTERNAL_MODEL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -935,7 +1044,7 @@
         "chief_llm.external_model_packet_policy"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -984,7 +1093,7 @@
         "OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1172,7 +1281,7 @@
         "OPENCLAW_FRONTDOOR_MODEL_MAX_GB"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -1269,7 +1378,7 @@
         "approval receipt inputs only; no live provider flag"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1315,7 +1424,7 @@
         "polish_loop/git_task_guard.sh"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1361,7 +1470,7 @@
         "HITL_FLAG_PATH"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1420,7 +1529,7 @@
         "openclaw-8b-keepwarm.timer"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1476,7 +1585,7 @@
         "OPENCLAW_INTERPRETER_LM"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -1706,7 +1815,7 @@
         "legal-console synthetic_only bridge"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1757,7 +1866,7 @@
         "OPENCLAW_LLM_DIAGNOSTICS"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1812,7 +1921,7 @@
         "OPENCLAW_LM1_SHARED_SEAM"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -1884,7 +1993,7 @@
         "GOOGLE_GENERATIVE_AI_API_KEY"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2086,7 +2195,7 @@
         "OPENCLAW_MAESTRO_BRAIN_LIVE"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2140,7 +2249,7 @@
         "NO_AUTHORITY_FLAGS"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2187,7 +2296,7 @@
         "NEMOTRON_MODEL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2241,7 +2350,7 @@
         "metadata-only intake contract; no live private-root flag"
       ],
       "gate_stage": "synthetic",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2289,7 +2398,7 @@
         "OPENCLAW_OLLAMA_MODEL_DEEP"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2347,7 +2456,7 @@
         "OpenAIConsultAdapter"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2440,20 +2549,96 @@
     {
       "activation_allowed_now": false,
       "audits": [
+        "/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md"
+      ],
+      "canary_status": "LIVE-VERIFIED: advisory packet scored overall 0.8/useful 1.0/right-sized 1.0 before the model call; V1-V6 each scored 1.0 with no business facts; bounded drain processed 3 tasks (1 refreshed, 2 escalated)",
+      "capability_id": "packet_dankness_loop",
+      "current_state_if_verifiable": {
+        "audit_report": "critic scores grounded, current, useful, lane-rich, and right-sized dimensions; trimmed bloat is logged but not queued as enrichment",
+        "code_default": "observation and grounded gap queueing are on unless OPENCLAW_PACKET_DANKIFY_EMIT is explicitly false",
+        "production": "enabled_verified",
+        "summary": "live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false"
+      },
+      "default_state": "on_grounded_only",
+      "disabled_by": "set OPENCLAW_PACKET_DANKIFY_EMIT=0 and remove the bounded drain call through approved rollback",
+      "display_name": "Fleet packet dankness critic and grounded enrichment drain",
+      "enabled_by": "operator standing-order update 1752 and Fable packet-dankness directive",
+      "evidence_refs": [
+        "protected_generate.py:observe_packet_dankness",
+        "packet_dankness_critic.py:score_packet_dankness",
+        "scripts/refresh_ledger_knowledge.py:drain_packet_enrich_queue",
+        "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json"
+      ],
+      "flag_or_config": [
+        "OPENCLAW_PACKET_DANKIFY_EMIT",
+        "scripts/refresh_ledger_knowledge.py --confirm"
+      ],
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
+      "live_production_state": "enabled_verified",
+      "live_state": {
+        "confidence": "high",
+        "findings": [
+          {
+            "confidence": "medium",
+            "notes": "variable was not found in inspected whitelisted live-env sources",
+            "redacted_value_category": "unset",
+            "source_ref": "/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env",
+            "source_type": "reconciliation_summary",
+            "variable_name": "OPENCLAW_PACKET_DANKIFY_EMIT"
+          }
+        ],
+        "notes": "primary flag is absent, so the documented default-on code path is effective; live canary evidence remains the activation proof",
+        "related_findings": [
+          {
+            "confidence": "high",
+            "notes": "raw value redacted",
+            "redacted_value_category": "set_true",
+            "source_ref": "/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf",
+            "source_type": "systemd_user_dropin",
+            "variable_name": "OPENCLAW_LM1_SHARED_SEAM"
+          }
+        ],
+        "status": "enabled_verified"
+      },
+      "next_required_step": "keep the scheduled bounded drain active and grade score deltas during Fable's agreed battery",
+      "operator_approval_required": true,
+      "owner": "Fable / PC Codex Desktop",
+      "reason_if_off": "only explicit rollback after control-plane churn or answer-path regression",
+      "risk_level": "medium",
+      "rollback_note": "disable gap emission first; observation can remain read-only while the shared answer path continues normally",
+      "source_files": [
+        "packet_dankness_critic.py",
+        "packet_dankness_enricher.py",
+        "packet_dankness_drain.py",
+        "protected_generate.py",
+        "scripts/refresh_ledger_knowledge.py"
+      ],
+      "tests": [
+        "tests/test_packet_dankness_critic.py",
+        "tests/test_packet_dankness_enricher.py",
+        "tests/test_packet_dankness_drain.py",
+        "tests/test_frontdoor_model_profile.py",
+        "tests/test_refresh_ledger_knowledge.py"
+      ]
+    },
+    {
+      "activation_allowed_now": false,
+      "audits": [
         "/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md"
       ],
-      "canary_status": "not_run_live; requires Fable review of task-100 wiring before runtime use",
+      "canary_status": "not applicable while archived; prompt budgeter is the active deterministic bloat control",
       "capability_id": "packet_delta_receipts",
       "current_state_if_verifiable": {
-        "audit_report": "task-104 records the missing activation gate entry so built packet-delta surface is not forgotten",
+        "audit_report": "dank sizing disposition rejects drop-seen on stateless consumers because the model retains no prior packet",
         "code_default": "off unless OPENCLAW_PACKET_DELTA is truthy",
         "production": "unset_default_off",
         "summary": "live reconciliation state is unset_default_off; activation_allowed_now remains false"
       },
-      "default_state": "default-off/register-only",
+      "default_state": "archived_for_stateless_daemons",
       "disabled_by": "OPENCLAW_PACKET_DELTA default off/unset",
       "display_name": "Packet delta receipt rail",
-      "enabled_by": "future explicit operator approval plus Fable-verified packet-delta canary",
+      "enabled_by": "future explicit operator approval for a stateful spawned consumer plus a session-retention canary",
       "evidence_refs": [
         "Operator/from-codex/100-packet-engine-spine-RESULT.md",
         "activation_gate_register.py:packet_delta_receipts"
@@ -2462,7 +2647,7 @@
         "OPENCLAW_PACKET_DELTA"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2480,10 +2665,10 @@
         "related_findings": [],
         "status": "unset_default_off"
       },
-      "next_required_step": "Fable should verify task-100 promotion state and define a focused canary before enabling packet delta receipts",
+      "next_required_step": "none for daemon traffic; reassess only when a spawned consumer proves it retains prior package state",
       "operator_approval_required": true,
-      "owner": "Fable / Opus",
-      "reason_if_off": "packet delta receipts are not activation authority and need promotion/canary evidence before runtime use",
+      "owner": "Fable / PC Codex Desktop",
+      "reason_if_off": "dropping seen facts would starve the stateless front-door model; deterministic prompt budgeting is active instead",
       "risk_level": "medium",
       "rollback_note": "unset OPENCLAW_PACKET_DELTA and keep packet delta outputs as non-live descriptive receipts",
       "source_files": [
@@ -2500,28 +2685,29 @@
       "audits": [
         "/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md"
       ],
-      "canary_status": "not_run_live; requires Fable review of task-100 wiring before runtime use",
+      "canary_status": "LIVE-VERIFIED on request-response owner PID 1102767: advisory_judgment maestro_telegram_dank-advisory-definitive2-20260718T000808Z_d92cb01f0b8d used PacketEngine and delivered the current-state model answer with no staging",
       "capability_id": "packet_engine_spine",
       "current_state_if_verifiable": {
-        "audit_report": "task-104 records the missing activation gate entry so the packet engine surface is not forgotten",
-        "code_default": "off unless OPENCLAW_PACKET_ENGINE is truthy",
-        "production": "unset_default_off",
-        "summary": "live reconciliation state is unset_default_off; activation_allowed_now remains false"
+        "audit_report": "daemon packets carry a canonical persona reference; spawned packets carry the full core only in their first package",
+        "code_default": "on unless OPENCLAW_PACKET_ENGINE is explicitly false",
+        "production": "enabled_verified",
+        "summary": "live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false"
       },
-      "default_state": "default-off/register-only",
+      "default_state": "enabled_by_default",
       "disabled_by": "OPENCLAW_PACKET_ENGINE default off/unset",
       "display_name": "Packet engine spine",
-      "enabled_by": "future explicit operator approval plus Fable-verified packet-engine canary",
+      "enabled_by": "operator standing order to activate built packet machinery plus Fable stress/dankness directive",
       "evidence_refs": [
         "Operator/from-codex/100-packet-engine-spine-RESULT.md",
-        "activation_gate_register.py:packet_engine_spine"
+        "activation_gate_register.py:packet_engine_spine",
+        "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json"
       ],
       "flag_or_config": [
         "OPENCLAW_PACKET_ENGINE"
       ],
-      "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
-      "live_production_state": "unset_default_off",
+      "gate_stage": "operator_approved_live",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
+      "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
         "findings": [
@@ -2534,23 +2720,26 @@
             "variable_name": "OPENCLAW_PACKET_ENGINE"
           }
         ],
-        "notes": "primary flag/config was absent from inspected sources and defaults off",
+        "notes": "primary flag is absent, so the documented default-on code path is effective; live canary evidence remains the activation proof",
         "related_findings": [],
-        "status": "unset_default_off"
+        "status": "enabled_verified"
       },
-      "next_required_step": "Fable should verify task-100 promotion state and define a focused canary before enabling packet engine routing",
+      "next_required_step": "keep active and monitor packet-engine fallback receipts during the agreed stress battery",
       "operator_approval_required": true,
-      "owner": "Fable / Opus",
-      "reason_if_off": "packet engine routing can alter packet construction and needs promotion/canary evidence before runtime use",
+      "owner": "Fable / PC Codex Desktop",
+      "reason_if_off": "only explicit rollback after a demonstrated packet-construction regression",
       "risk_level": "medium",
       "rollback_note": "unset OPENCLAW_PACKET_ENGINE and fall back to the established packet-building paths",
       "source_files": [
         "activation_gate_register.py",
-        "maestro_context_packet.py"
+        "maestro_context_packet.py",
+        "packet_engine.py",
+        "maestro_cassandra_responder.py"
       ],
       "tests": [
         "tests/test_activation_gate_register.py",
-        "tests/test_packet_sqlite_flip.py"
+        "tests/test_packet_sqlite_flip.py",
+        "tests/test_packet_engine.py"
       ]
     },
     {
@@ -2579,7 +2768,7 @@
         "OPENCLAW_PACKET_SOURCE"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -2652,7 +2841,7 @@
         "OPENCLAW_SEND_HOLD"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2705,7 +2894,7 @@
         "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2767,7 +2956,7 @@
         "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2827,7 +3016,7 @@
         "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2890,7 +3079,7 @@
         "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2952,7 +3141,7 @@
         "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3017,7 +3206,7 @@
         "OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3069,7 +3258,7 @@
         "scripted gate report; no enable flag"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -3173,7 +3362,7 @@
         "autonomy_mode.py state file"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T17:42:11-04:00",
+      "last_verified_at": "2026-07-17T20:08:58-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -3205,7 +3394,7 @@
     "proposed",
     "unknown"
   ],
-  "generated_at": "2026-07-17T17:42:11-04:00",
+  "generated_at": "2026-07-17T20:08:58-04:00",
   "live_env_whitelist": [
     "OPENCLAW_INTERPRETER_LM",
     "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
@@ -3214,6 +3403,7 @@
     "OPENCLAW_LM1_SHARED_SEAM",
     "OPENCLAW_PACKET_DELTA",
     "OPENCLAW_PACKET_ENGINE",
+    "OPENCLAW_PACKET_DANKIFY_EMIT",
     "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
     "OPENCLAW_FLEET_VOICE_BOUNDARY",
     "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
@@ -3679,6 +3869,7 @@
       "OPENCLAW_LM1_SHARED_SEAM",
       "OPENCLAW_PACKET_DELTA",
       "OPENCLAW_PACKET_ENGINE",
+      "OPENCLAW_PACKET_DANKIFY_EMIT",
       "OPENCLAW_EXTERNAL_BRAIN_ROUTER",
       "OPENCLAW_FLEET_VOICE_BOUNDARY",
       "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER",
@@ -3803,7 +3994,6 @@
       "nemotron_provider",
       "openai_adapter_stub",
       "packet_delta_receipts",
-      "packet_engine_spine",
       "polish_loop_factory_mode",
       "polish_loop_file_ledger_bridge",
       "polish_loop_local_builder_bridge",
@@ -3829,7 +4019,6 @@
       "model_selection_policy_contract",
       "nemotron_provider",
       "packet_delta_receipts",
-      "packet_engine_spine",
       "polish_loop_file_ledger_bridge",
       "polish_loop_local_builder_bridge",
       "polish_loop_size_router_v1",
@@ -3843,7 +4032,7 @@
       "lm1_shared_seam",
       "packet_source_sqlite_flip"
     ],
-    "total_capabilities": 56,
+    "total_capabilities": 58,
     "unknown_production_state": [
       "agent_package_preview_contract",
       "cassandra_telegram_delivery",
@@ -3857,12 +4046,15 @@
       "runtime_module_activation_gate"
     ],
     "verified_enabled": [
+      "canonical_persona_delivery",
       "continuity_capsule",
       "external_brain_router",
       "fleet_voice_boundary",
       "frontdoor_model_profile",
       "interpreter_lm",
       "lm1_shared_seam",
+      "packet_dankness_loop",
+      "packet_engine_spine",
       "packet_source_sqlite_flip"
     ]
   },
@@ -4250,6 +4442,14 @@
         ],
         "status": "found"
       },
+      "OPENCLAW_PACKET_DANKIFY_EMIT": {
+        "files": [
+          "activation_gate_register.py",
+          "packet_dankness_critic.py",
+          "tests/test_packet_dankness_critic.py"
+        ],
+        "status": "found"
+      },
       "OPENCLAW_PACKET_DELTA": {
         "files": [
           "activation_gate_register.py",
@@ -4262,7 +4462,9 @@
         "files": [
           "activation_gate_register.py",
           "maestro_cassandra_responder.py",
-          "tests/test_activation_gate_register.py"
+          "packet_engine.py",
+          "tests/test_activation_gate_register.py",
+          "tests/test_packet_engine.py"
         ],
         "status": "found"
       },

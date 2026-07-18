@@ -546,6 +546,19 @@ def test_missing_frontdoor_profile_stays_default_off():
     assert frontdoor["activation_allowed_now"] is False
 
 
+def test_missing_default_on_packet_flags_reconcile_as_enabled():
+    payload = _live_payload([
+        _test_source({"OPENCLAW_LM1_SHARED_SEAM": "1"}),
+    ])
+    capabilities = _capabilities_by_id(payload)
+
+    for capability_id in ("packet_engine_spine", "packet_dankness_loop"):
+        capability = capabilities[capability_id]
+        assert capability["live_production_state"] == "enabled_verified"
+        assert capability["activation_allowed_now"] is False
+        assert "default-on code path" in capability["live_state"]["notes"]
+
+
 def test_polish_loop_local_builder_zero_keeps_bridge_off():
     payload = _live_payload([
         _test_source({"OPENCLAW_POLISH_LOOP_LOCAL_BUILDER": "0"}),
@@ -622,7 +635,12 @@ def test_live_enabled_does_not_grant_activation_allowed_now():
         })
     ])
 
-    assert payload["summary"]["verified_enabled"] == ["continuity_capsule", "packet_source_sqlite_flip"]
+    assert payload["summary"]["verified_enabled"] == [
+        "continuity_capsule",
+        "packet_dankness_loop",
+        "packet_engine_spine",
+        "packet_source_sqlite_flip",
+    ]
     assert payload["summary"]["activation_allowed_now"] == []
     for capability in payload["capabilities"]:
         assert capability["activation_allowed_now"] is False

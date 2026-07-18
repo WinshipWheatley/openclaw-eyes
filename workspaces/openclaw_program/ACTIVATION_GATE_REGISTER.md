@@ -1,7 +1,7 @@
 # Activation Gate Register
 
 Schema: `activation_gate_register_v0`
-Generated: `2026-07-17T17:42:11-04:00`
+Generated: `2026-07-17T20:08:58-04:00`
 
 This register is descriptive only. It does not enable features, edit production config, inspect secrets, touch systemd, run canaries, or perform live external actions.
 
@@ -26,12 +26,12 @@ This register is descriptive only. It does not enable features, edit production 
 
 ## Summary
 
-- Total capabilities registered: `56`
-- Verified enabled/live: `continuity_capsule`, `external_brain_router`, `fleet_voice_boundary`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_source_sqlite_flip`
+- Total capabilities registered: `58`
+- Verified enabled/live: `canonical_persona_delivery`, `continuity_capsule`, `external_brain_router`, `fleet_voice_boundary`, `frontdoor_model_profile`, `interpreter_lm`, `lm1_shared_seam`, `packet_dankness_loop`, `packet_engine_spine`, `packet_source_sqlite_flip`
 - Activation allowed now: none recorded
 - Ready for canary queue: `control_plane_heal_emission`, `frontdoor_model_profile`, `lm1_shared_seam`, `packet_source_sqlite_flip`
 - Blocked: `claude_agent_hard_block`, `legal_sealed_ingestion`, `mac_codex_desktop_seat_auto_resume`, `openai_adapter_stub`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
-- Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `packet_delta_receipts`, `packet_engine_spine`, `polish_loop_file_ledger_bridge`, `polish_loop_local_builder_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
+- Intentionally off: `action_runtime`, `agent_package_preview_contract`, `brain_dump_parser_cli`, `cassandra_morning_brief_test_mode`, `cassandra_telegram_delivery`, `external_model_openrouter_path`, `external_shadow_lm_config`, `gated_email_send_rail`, `git_task_guard`, `hitl_pipeline`, `interpreter_lm`, `lm_consult_spine`, `model_selection_policy_contract`, `nemotron_provider`, `packet_delta_receipts`, `polish_loop_file_ledger_bridge`, `polish_loop_local_builder_bridge`, `polish_loop_size_router_v1`, `polish_loop_size_router_v1`, `polish_loop_task_package_v1`, `walk_away_autonomy_mode`
 - Conflicting live state: none recorded
 - Unknown production state: `agent_package_preview_contract`, `cassandra_telegram_delivery`, `computer_use_worker_gateway`, `draft_only_email_adapter`, `gated_email_send_rail`, `legal_sealed_ingestion`, `lm_consult_spine`, `niles_album_evidence_intake_boundary`, `polish_loop_factory_mode`, `runtime_module_activation_gate`
 
@@ -43,6 +43,7 @@ This register is descriptive only. It does not enable features, edit production 
 | Authority gate + SEND_HOLD sentinel (`authority_gate_send_hold`) | `operator_approved_live` | `not_applicable` | enabled guardrail: default-deny authority gate and SEND_HOLD sentinel keep send surfaces denied; no new activation authority | no | keep SEND_HOLD in place; audit any future send-surface change before activation |
 | Generic recurrence-driven invoice prepare scheduler (`autonomous_invoice_prepare_scheduler`) | `operator_approved_live` | `not_applicable` | installed timer is enabled and active; generic Live Arts monthly prepare path ran in production and stopped idempotently on its second pass | no | keep the timer active and monitor prepare-only receipts; July's $100 remains an operator-review target, not a send |
 | Brain dump parser CLI (`brain_dump_parser_cli`) | `intentionally_off` | `not_applicable` | manual CLI can dry-run; non-dry-run can call local Ollama and write handoff files, so it remains intentionally off for unattended use | no | wait for deterministic size/risk routing before any queue-ready parser automation |
+| Canonical two-layer agent persona delivery (`canonical_persona_delivery`) | `operator_approved_live` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | keep canonical style-marker and semantic-preservation checks active during the broader battery |
 | Two-machine capability ledger reconciler (`capability_ledger_reconciler`) | `operator_approved_live` | `not_applicable` | existing scheduled refresh owner runs the one-way two-machine mirror; the deployed Maestro front door answers built-versus-on from the ledger alone | no | monitor scheduled batch receipts, stale inventory attention, and running-unregistered disposition; keep the mirror one-way |
 | Cassandra morning-brief test mode (`cassandra_morning_brief_test_mode`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | use only in synthetic tests unless Opus queues a separate briefing canary |
 | Cassandra / Telegram delivery (`cassandra_telegram_delivery`) | `intentionally_off` | `not_applicable` | code default dry-run/off; production toggle and authorized user were not inspected | no | keep disabled unless Opus defines an operator-watched internal-only canary |
@@ -80,8 +81,9 @@ This register is descriptive only. It does not enable features, edit production 
 | Ollama model defaults (`ollama_model_defaults`) | `operator_approved_live` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | repair strong/deep lane model-fit references before expanding model routing |
 | OpenAI adapter stub (`openai_adapter_stub`) | `blocked` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | DEPRECATED_OR_REMOVE_LATER unless Opus queues a credential-safe OpenAI design |
 | Surface-aware operator artifact, typing, and addressed-voice delivery (`operator_frontdoor_surface_delivery`) | `operator_approved_live` | `not_applicable` | artifact intent, addressed agent, active surface, and candidate/current variant produce one typed delivery disposition before provider egress | no | monitor provider receipts and proceed to F1 closure-tuple instrumentation only after independent F0 review |
-| Packet delta receipt rail (`packet_delta_receipts`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | Fable should verify task-100 promotion state and define a focused canary before enabling packet delta receipts |
-| Packet engine spine (`packet_engine_spine`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | Fable should verify task-100 promotion state and define a focused canary before enabling packet engine routing |
+| Fleet packet dankness critic and grounded enrichment drain (`packet_dankness_loop`) | `operator_approved_live` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | keep the scheduled bounded drain active and grade score deltas during Fable's agreed battery |
+| Packet delta receipt rail (`packet_delta_receipts`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | none for daemon traffic; reassess only when a spawned consumer proves it retains prior package state |
+| Packet engine spine (`packet_engine_spine`) | `operator_approved_live` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | keep active and monitor packet-engine fallback receipts during the agreed stress battery |
 | Packet-source SQLite flip (`packet_source_sqlite_flip`) | `canary` | `enabled_verified` | live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false | no | keep canary evidence current; live reconciliation does not grant activation authority |
 | Polish Loop factory mode (`polish_loop_factory_mode`) | `blocked` | `not_applicable` | factory remains NOT_READY; no live loop was run or enabled | no | repair blockers #2 and #3, re-audit all 10 switch criteria, then separately approve activation |
 | Polish Loop file-loop ledger reconciliation bridge (`polish_loop_file_ledger_bridge`) | `intentionally_off` | `unset_default_off` | live reconciliation state is unset_default_off; activation_allowed_now remains false | no | HELD OFF deliberately 2026-06-28: keep canary requirement before any future enable; close the nonce-hardening item first (task-007: status.json snapshot omits phase_c_lease_nonce) |
@@ -118,7 +120,7 @@ This register is descriptive only. It does not enable features, edit production 
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `action_runtime.py:_action_runtime_enabled`, `action_runtime.py:dispatch_action`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -148,7 +150,7 @@ Live-state evidence:
 - Tests: `tests/test_active_machinery_classification_orchestrator.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `active_machinery_classification_orchestrator.py`, `tests/test_active_machinery_classification_orchestrator.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `dry_run_verified`
@@ -177,7 +179,7 @@ Live-state evidence:
 - Tests: `tests/test_agent_package_preview_contract.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `agent_package_preview_contract.py`, `tests/test_agent_package_preview_contract.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -206,7 +208,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `authority_gate.py:decide`, `authority_gate.py:DEFAULT_SEND_HOLD_PATH`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -264,12 +266,48 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `brain_dump_parser.py:--dry-run`, `brain_dump_parser.py:ollama invocation`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
 - Confidence: `none`
 - Notes: no whitelisted live variable is mapped to this capability
+
+### Canonical two-layer agent persona delivery (`canonical_persona_delivery`)
+
+- Flag/config: `OPENCLAW_FLEET_VOICE_BOUNDARY`, `OPENCLAW_PACKET_ENGINE`
+- Default state: `on_from_canonical_profile`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
+- Gate stage: `operator_approved_live`
+- Canary status: `LIVE-VERIFIED V1-V6: Maestro conversational contraction, Cassandra polished assurance, Chief clipped two-sentence shape, Niles one restrained Australian turn, Guardian state/boundary split, Hermes stands-ready/remains-unchanged; all semantic/style contracts passed with no wrong or double response`
+- Risk level: `medium`
+- Owner: `Fable / PC Codex Desktop`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: only explicit rollback after a demonstrated owner-surface voice regression
+- Enabled by: operator persona-to-packet mandate and existing fleet voice activation
+- Disabled by: explicitly roll back PacketEngine persona projection while retaining final-output voice enforcement
+- Rollback: fall back to the canonical frontdoor voice prompt; never restore duplicated per-module persona text
+- Next required step: keep canonical style-marker and semantic-preservation checks active during the broader battery
+- Source files: `agent_voice_profiles.py`, `packet_engine.py`, `frontdoor_prompt.py`
+- Tests: `tests/test_agent_voice_profiles.py`, `tests/test_packet_engine.py`
+- Audits: `/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md`
+- Evidence refs: `agent_voice_profiles.py:immutable_persona_core_for_speaker`, `packet_engine.py:build_agent_packet`, `Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json`
+- Last verified at: `2026-07-17T20:08:58-04:00`
+
+Live-state evidence:
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: live source verifies this capability/config is active; this does not grant new activation authority
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
+- Finding: `OPENCLAW_FLEET_VOICE_BOUNDARY` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf` -> `set_true` (confidence `high`; raw value redacted)
 
 ### Two-machine capability ledger reconciler (`capability_ledger_reconciler`)
 
@@ -322,7 +360,7 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_briefing_context.py`, `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `cassandra_briefing_brain.py:_MORNING_TEST_MODE_ENV`, `chief_llm.py:_CASSANDRA_MORNING_TEST_TIMEOUT`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -352,7 +390,7 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_telegram_delivery.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `cassandra_telegram_delivery.py:TOGGLE_ENV_VAR`, `cassandra_telegram_delivery.py:TelegramDeliveryReceipt`, `tests/test_cassandra_telegram_delivery.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -381,7 +419,7 @@ Live-state evidence:
 - Tests: `tests/test_cassandra_telegram_dryrun_inbox.py`
 - Audits: none recorded
 - Evidence refs: `cassandra_telegram_dryrun_inbox.py:AUTHORITY_BOUNDARY`, `tests/test_cassandra_telegram_dryrun_inbox.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `dry_run_verified`
@@ -410,7 +448,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:claude_call`, `chief_llm.py:claude_json`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -439,7 +477,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `user task scope: required proposed capability`
 - Evidence refs: `required by activation gate register task`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -468,7 +506,7 @@ Live-state evidence:
 - Tests: `tests/test_continuity_stamp.py`, `tests/test_packet_sqlite_flip.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md`
 - Evidence refs: `maestro_listener.py:_continuity_enabled`, `tests/test_continuity_stamp.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -501,7 +539,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `polish_loop/pc4_heal_emitter.py:_control_plane_emit_enabled`, `polish_loop/pc4_heal_emitter.py:emit_heal_task`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -531,7 +569,7 @@ Live-state evidence:
 - Tests: `tests/test_gated_email_draft_adapter.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `gated_email_draft_adapter.py:AUTHORITY_BOUNDARY`, `tests/test_gated_email_draft_adapter.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -590,7 +628,7 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `docs/operations/OPENROUTER_KEY_STORAGE.md`, `docs/planning/OPENCLAW_LANE_A_OPENROUTER_SCOUT_BACKLOG.md`
 - Evidence refs: `protected_generate.py:OPENCLAW_FREEFORM_CLOUD`, `chief_llm.py:OPENROUTER_API_KEY`, `chief_llm.py:_external_model_configured`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -620,7 +658,7 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:external_model_packet_policy`, `chief_llm.py:external_model_allowed`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -649,7 +687,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `external_shadow_provider_config.py:AUTHORITY_BOUNDARY`, `external_shadow_provider_config.py:ExternalShadowProviderConfigRecord`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -715,7 +753,7 @@ Live-state evidence:
 - Tests: `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/FRONT-DOOR-LOCAL-MODEL-PROFILE-SPEC.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_FRONTDOOR_MODEL_INTEGRATION_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/04_frontdoor_canary_decision.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:_frontdoor_model_profile_flag_enabled`, `protected_generate.py:_frontdoor_ollama_options`, `protected_generate.py:_frontdoor_keep_alive`, `chief_llm.py:select_frontdoor_model`, `maestro_cassandra_responder.py:664 (live caller of protected_generate_with_receipt)`, `tests/test_frontdoor_model_profile.py`, `tests/test_frontdoor_warmpin_offload.py`, `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/05_frontdoor_recanary_activation.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_recanary_RESULT.json`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/frontdoor_ladder_canary_RESULT.json`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -750,7 +788,7 @@ Live-state evidence:
 - Tests: `tests/test_gated_email_send_adapter.py`
 - Audits: none recorded
 - Evidence refs: `gated_email_send_adapter.py:AUTHORITY_BOUNDARY`, `tests/test_gated_email_send_adapter.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -779,7 +817,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `polish_loop/git_task_guard.sh:audit reference`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -808,7 +846,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `hitl_pending_store.py:is_hitl_enabled`, `hitl_pending_action.py:_hitl_enabled`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -838,7 +876,7 @@ Live-state evidence:
 - Tests: `tests/test_openclaw_8b_keepwarm.py`, `tests/test_local_model_governance.py`
 - Audits: `/home/openclaw/Operator/to-codex/FABLE-CONCUR-KEEPWARM-GO-PROMOTE-20260716.md`, `/home/openclaw/Operator/from-codex/SOL-8B-KEEPWARM-PREPROMOTE-20260716.md`
 - Evidence refs: `/home/openclaw/.openclaw/receipts/openclaw_8b_keepwarm_latest.json`, `systemctl:user:openclaw-8b-keepwarm.timer`, `commit:ffb5543e`, `synthetic_receipt:/tmp/openclaw_8b_keepwarm_synthetic_defer_20260716T1914.json`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -867,7 +905,7 @@ Live-state evidence:
 - Tests: `tests/test_continuity_stamp.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_REENTRY_FINAL_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_OVERNIGHT_RUN_REPORT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/02_interpreter_lm_decision.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
 - Evidence refs: `interpreter_lm.py:_interpreter_enabled`, `tests/test_continuity_stamp.py:interpreter flag test coverage`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/02_interpreter_lm_decision.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_LOCAL_THROUGHPUT_MODELFIT_AUDIT_RESULT.md`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -984,7 +1022,7 @@ Live-state evidence:
 - Tests: `tests/test_alternative_methods.py`, `tests/test_support_packet.py`, `tests/test_legal_mock_discovery_demo.py`, `tests/test_legal_synthetic_stress_pack.py`
 - Audits: `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md`, `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_MAC_BRIDGE_VALIDATION_PROTOCOL.md`, `docs/planning/openclaw_legal/law_program/LEGAL_VAULT_PATH_CONTRACT.md`
 - Evidence refs: `legal/local_capability_policy.py`, `legal/path_guard.py`, `apps/legal-console-spike/src-tauri/src/run.rs:synthetic_only`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1013,7 +1051,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:_diagnostics_enabled`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1043,7 +1081,7 @@ Live-state evidence:
 - Tests: `tests/test_interpreter_lm_integration.py`, `tests/test_openclaw_request_processor.py`, `tests/test_activation_gate_register.py`
 - Audits: `/home/openclaw/Operator/from-codex/79-shared-seam-lm1-consolidation-RESULT.md`
 - Evidence refs: `openclaw_request_processor.py:_build_lm1_shared_request_seam`, `openclaw_request_processor.py:_try_interpreter_brain_divert`, `openclaw_request_processor.py:lm1_shared_seam_counter`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -1074,7 +1112,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: none recorded
 - Evidence refs: `openclaw_lm_consult_spine.py:GENERIC_ENABLE_ENV`, `openclaw_lm_consult_spine.py:AUTHORITY_FALSE`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1190,7 +1228,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:_maestro_brain_live_enabled`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1220,7 +1258,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `model_selection_policy_contract.py:NO_AUTHORITY_FLAGS`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1249,7 +1287,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:nemotron_call`, `chief_llm.py:_nemotron_api_key`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1279,7 +1317,7 @@ Live-state evidence:
 - Tests: `tests/test_niles_album_evidence_intake_boundary.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/ACTIVATION_AND_WIRING_AUDIT.md`
 - Evidence refs: `niles_album_evidence_intake_boundary.py:NO_AUTHORITY_FLAGS`, `tests/test_niles_album_evidence_intake_boundary.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1308,7 +1346,7 @@ Live-state evidence:
 - Tests: `tests/test_chief_llm_router.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `chief_llm.py:OLLAMA_MODEL`, `chief_llm.py:OLLAMA_MODEL_DEEP`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1338,7 +1376,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `openclaw_lm_consult_spine.py:OpenAIConsultAdapter`, `openclaw_lm_consult_spine.py:adapter_stub_not_live`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1375,29 +1413,60 @@ Live-state evidence:
 - Confidence: `none`
 - Notes: no whitelisted live variable is mapped to this capability
 
+### Fleet packet dankness critic and grounded enrichment drain (`packet_dankness_loop`)
+
+- Flag/config: `OPENCLAW_PACKET_DANKIFY_EMIT`, `scripts/refresh_ledger_knowledge.py --confirm`
+- Default state: `on_grounded_only`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
+- Gate stage: `operator_approved_live`
+- Canary status: `LIVE-VERIFIED: advisory packet scored overall 0.8/useful 1.0/right-sized 1.0 before the model call; V1-V6 each scored 1.0 with no business facts; bounded drain processed 3 tasks (1 refreshed, 2 escalated)`
+- Risk level: `medium`
+- Owner: `Fable / PC Codex Desktop`
+- Activation allowed now: `no`
+- Operator approval required: `yes`
+- Reason if off: only explicit rollback after control-plane churn or answer-path regression
+- Enabled by: operator standing-order update 1752 and Fable packet-dankness directive
+- Disabled by: set OPENCLAW_PACKET_DANKIFY_EMIT=0 and remove the bounded drain call through approved rollback
+- Rollback: disable gap emission first; observation can remain read-only while the shared answer path continues normally
+- Next required step: keep the scheduled bounded drain active and grade score deltas during Fable's agreed battery
+- Source files: `packet_dankness_critic.py`, `packet_dankness_enricher.py`, `packet_dankness_drain.py`, `protected_generate.py`, `scripts/refresh_ledger_knowledge.py`
+- Tests: `tests/test_packet_dankness_critic.py`, `tests/test_packet_dankness_enricher.py`, `tests/test_packet_dankness_drain.py`, `tests/test_frontdoor_model_profile.py`, `tests/test_refresh_ledger_knowledge.py`
+- Audits: `/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md`
+- Evidence refs: `protected_generate.py:observe_packet_dankness`, `packet_dankness_critic.py:score_packet_dankness`, `scripts/refresh_ledger_knowledge.py:drain_packet_enrich_queue`, `Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json`
+- Last verified at: `2026-07-17T20:08:58-04:00`
+
+Live-state evidence:
+- Status: `enabled_verified`
+- Confidence: `high`
+- Notes: primary flag is absent, so the documented default-on code path is effective; live canary evidence remains the activation proof
+- Finding: `OPENCLAW_PACKET_DANKIFY_EMIT` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
+- Related finding: `OPENCLAW_LM1_SHARED_SEAM` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf` -> `set_true` (confidence `high`; raw value redacted)
+
 ### Packet delta receipt rail (`packet_delta_receipts`)
 
 - Flag/config: `OPENCLAW_PACKET_DELTA`
-- Default state: `default-off/register-only`
+- Default state: `archived_for_stateless_daemons`
 - Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
 - Production state: `unset_default_off`
 - Live production state: `unset_default_off`
 - Gate stage: `intentionally_off`
-- Canary status: `not_run_live; requires Fable review of task-100 wiring before runtime use`
+- Canary status: `not applicable while archived; prompt budgeter is the active deterministic bloat control`
 - Risk level: `medium`
-- Owner: `Fable / Opus`
+- Owner: `Fable / PC Codex Desktop`
 - Activation allowed now: `no`
 - Operator approval required: `yes`
-- Reason if off: packet delta receipts are not activation authority and need promotion/canary evidence before runtime use
-- Enabled by: future explicit operator approval plus Fable-verified packet-delta canary
+- Reason if off: dropping seen facts would starve the stateless front-door model; deterministic prompt budgeting is active instead
+- Enabled by: future explicit operator approval for a stateful spawned consumer plus a session-retention canary
 - Disabled by: OPENCLAW_PACKET_DELTA default off/unset
 - Rollback: unset OPENCLAW_PACKET_DELTA and keep packet delta outputs as non-live descriptive receipts
-- Next required step: Fable should verify task-100 promotion state and define a focused canary before enabling packet delta receipts
+- Next required step: none for daemon traffic; reassess only when a spawned consumer proves it retains prior package state
 - Source files: `activation_gate_register.py`, `agent_conversation_handoff_step_packet_contract.py`
 - Tests: `tests/test_activation_gate_register.py`, `tests/test_agent_conversation_handoff_step_packet_contract.py`
 - Audits: `/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md`
 - Evidence refs: `Operator/from-codex/100-packet-engine-spine-RESULT.md`, `activation_gate_register.py:packet_delta_receipts`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1408,31 +1477,31 @@ Live-state evidence:
 ### Packet engine spine (`packet_engine_spine`)
 
 - Flag/config: `OPENCLAW_PACKET_ENGINE`
-- Default state: `default-off/register-only`
-- Current state if verifiable: live reconciliation state is unset_default_off; activation_allowed_now remains false
-- Production state: `unset_default_off`
-- Live production state: `unset_default_off`
-- Gate stage: `intentionally_off`
-- Canary status: `not_run_live; requires Fable review of task-100 wiring before runtime use`
+- Default state: `enabled_by_default`
+- Current state if verifiable: live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false
+- Production state: `enabled_verified`
+- Live production state: `enabled_verified`
+- Gate stage: `operator_approved_live`
+- Canary status: `LIVE-VERIFIED on request-response owner PID 1102767: advisory_judgment maestro_telegram_dank-advisory-definitive2-20260718T000808Z_d92cb01f0b8d used PacketEngine and delivered the current-state model answer with no staging`
 - Risk level: `medium`
-- Owner: `Fable / Opus`
+- Owner: `Fable / PC Codex Desktop`
 - Activation allowed now: `no`
 - Operator approval required: `yes`
-- Reason if off: packet engine routing can alter packet construction and needs promotion/canary evidence before runtime use
-- Enabled by: future explicit operator approval plus Fable-verified packet-engine canary
+- Reason if off: only explicit rollback after a demonstrated packet-construction regression
+- Enabled by: operator standing order to activate built packet machinery plus Fable stress/dankness directive
 - Disabled by: OPENCLAW_PACKET_ENGINE default off/unset
 - Rollback: unset OPENCLAW_PACKET_ENGINE and fall back to the established packet-building paths
-- Next required step: Fable should verify task-100 promotion state and define a focused canary before enabling packet engine routing
-- Source files: `activation_gate_register.py`, `maestro_context_packet.py`
-- Tests: `tests/test_activation_gate_register.py`, `tests/test_packet_sqlite_flip.py`
+- Next required step: keep active and monitor packet-engine fallback receipts during the agreed stress battery
+- Source files: `activation_gate_register.py`, `maestro_context_packet.py`, `packet_engine.py`, `maestro_cassandra_responder.py`
+- Tests: `tests/test_activation_gate_register.py`, `tests/test_packet_sqlite_flip.py`, `tests/test_packet_engine.py`
 - Audits: `/home/openclaw/Operator/from-codex/100-packet-engine-spine-RESULT.md`
-- Evidence refs: `Operator/from-codex/100-packet-engine-spine-RESULT.md`, `activation_gate_register.py:packet_engine_spine`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Evidence refs: `Operator/from-codex/100-packet-engine-spine-RESULT.md`, `activation_gate_register.py:packet_engine_spine`, `Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
-- Status: `unset_default_off`
+- Status: `enabled_verified`
 - Confidence: `high`
-- Notes: primary flag/config was absent from inspected sources and defaults off
+- Notes: primary flag is absent, so the documented default-on code path is effective; live canary evidence remains the activation proof
 - Finding: `OPENCLAW_PACKET_ENGINE` from `reconciliation_summary` `/home/openclaw/.config/systemd/user/cassandra-listener.service,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/lm-consult.conf,/home/openclaw/.config/systemd/user/cassandra-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-guardian-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/chief-listener.service,/home/openclaw/.config/systemd/user/chief-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/chief-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/hermes-gateway.service,/home/openclaw/.config/systemd/user/hermes-gateway.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service,/home/openclaw/.config/systemd/user/maestro-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/continuity.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/maestro-listener.service.d/operator-go-20260711.conf,/home/openclaw/.config/systemd/user/niles-listener.service,/home/openclaw/.config/systemd/user/niles-listener.service.d/10-cuda-off.conf,/home/openclaw/.config/systemd/user/niles-listener.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/continuity.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/external-brain-router.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/fleet-voice.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/frontdoor-model.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/gateA-light.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/interpreter.conf,/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/lm1-seam.conf,current_process_env` -> `unset` (confidence `medium`; variable was not found in inspected whitelisted live-env sources)
 
 ### Packet-source SQLite flip (`packet_source_sqlite_flip`)
@@ -1457,7 +1526,7 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `maestro_context_packet.py:OPENCLAW_PACKET_SOURCE`, `activation_gate_register.py:continuity related runtime context`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `enabled_verified`
@@ -1488,7 +1557,7 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_self_scaling.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
 - Evidence refs: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md:10-point switch criteria`, `polish_loop/orchestrator.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1517,7 +1586,7 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_file_ledger_reconciliation.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_IMPL_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
 - Evidence refs: `polish_loop/orchestrator.py:reconcile_file_loop_result_with_ledger`, `tests/test_polish_loop_file_ledger_reconciliation.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_2_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1547,7 +1616,7 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_closure_bridge.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/POLISH_LOOP_FACTORY_AUDIT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
 - Evidence refs: `polish_loop/worker_runtime.py:run_local_builder_worker`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LOOP_CLOSURE_RESULT.md`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1577,7 +1646,7 @@ Live-state evidence:
 - Tests: `tests/test_activation_gate_register.py`, `tests/test_polish_loop_size_routing.py`, `tests/test_polish_loop_size_router_wire.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
 - Evidence refs: `polish_loop/task_routing.py:classify_task_routing`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1607,7 +1676,7 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_size_router_wire.py`, `tests/test_polish_loop_size_routing.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_SIZE_ROUTER_WIRE_RESULT.md`
 - Evidence refs: `polish_loop/control_plane.py:SIZE_ROUTER_FLAG`, `polish_loop/task_routing.py:classify_task_routing`, `tests/test_polish_loop_size_router_wire.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_LIVE_WIRING_AUDIT_RESULT.md`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1637,7 +1706,7 @@ Live-state evidence:
 - Tests: `tests/test_polish_loop_task_package_materialization.py`
 - Audits: `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
 - Evidence refs: `polish_loop/worker_runtime.py:build_task_package_markdown`, `polish_loop/orchestrator.py:write_phase_c_fix_directive`, `tests/test_polish_loop_task_package_materialization.py`, `/home/openclaw/workspaces/openclaw_program/CODEX_POLISH_BLOCKER_3_AUDIT_RESULT.md`, `/home/openclaw/workspaces/openclaw_program/activation_receipts/01_polish_loop_synthetic_activation.md`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1667,7 +1736,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `protected_generate.py:OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `protected_generate.py:OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `unset_default_off`
@@ -1697,7 +1766,7 @@ Live-state evidence:
 - Tests: `tests/test_runtime_activation_gate.py`
 - Audits: none recorded
 - Evidence refs: `scripts/check_runtime_activation_gate.py:build_activation_gate_report`, `tests/test_runtime_activation_gate.py`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1755,7 +1824,7 @@ Live-state evidence:
 - Tests: none recorded
 - Audits: `/home/openclaw/workspaces/openclaw_program/OPUS_ACTIVATION_DECISIONS.md`, `/home/openclaw/workspaces/openclaw_program/CODEX_ACTIVATION_GATE_GAPS_AUDIT_RESULT.md`
 - Evidence refs: `autonomy_mode.py:_default_state`, `autonomy_mode.py:cmd_enable`
-- Last verified at: `2026-07-17T17:42:11-04:00`
+- Last verified at: `2026-07-17T20:08:58-04:00`
 
 Live-state evidence:
 - Status: `not_applicable`
@@ -1811,8 +1880,9 @@ Live-state evidence:
 - `OPENCLAW_MAESTRO_BRAIN_LIVE`: `found` in `activation_gate_register.py`, `protected_generate.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_OLLAMA_MODEL`: `found` in `activation_gate_register.py`, `chief_llm.py`, `tests/test_activation_gate_register.py`
 - `OPENCLAW_OLLAMA_MODEL_DEEP`: `found` in `activation_gate_register.py`, `chief_llm.py`
+- `OPENCLAW_PACKET_DANKIFY_EMIT`: `found` in `activation_gate_register.py`, `packet_dankness_critic.py`, `tests/test_packet_dankness_critic.py`
 - `OPENCLAW_PACKET_DELTA`: `found` in `activation_gate_register.py`, `maestro_cassandra_responder.py`, `tests/test_activation_gate_register.py`
-- `OPENCLAW_PACKET_ENGINE`: `found` in `activation_gate_register.py`, `maestro_cassandra_responder.py`, `tests/test_activation_gate_register.py`
+- `OPENCLAW_PACKET_ENGINE`: `found` in `activation_gate_register.py`, `maestro_cassandra_responder.py`, `packet_engine.py`, `tests/test_activation_gate_register.py`, `tests/test_packet_engine.py`
 - `OPENCLAW_PACKET_SOURCE`: `found` in `activation_gate_register.py`, `maestro_context_packet.py`, `tests/test_activation_gate_register.py`, `tests/test_packet_sqlite_flip.py`
 - `OPENCLAW_POLISH_LANE_WORKER_CMD`: `found` in `activation_gate_register.py`, `polish_loop/lane_launcher.py`
 - `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`: `found` in `activation_gate_register.py`, `polish_loop/orchestrator.py`, `tests/test_activation_gate_register.py`
@@ -1833,7 +1903,7 @@ Live-state evidence:
 ## Live Environment Reconciliation
 
 - Enabled for this generation: `yes`
-- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_LM1_SHARED_SEAM`, `OPENCLAW_PACKET_DELTA`, `OPENCLAW_PACKET_ENGINE`, `OPENCLAW_EXTERNAL_BRAIN_ROUTER`, `OPENCLAW_FLEET_VOICE_BOUNDARY`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `OPENAI_API_KEY`, `OPENCLAW_MAESTRO_BRAIN_LIVE`, `OPENCLAW_LLM_DIAGNOSTICS`, `HITL_ENABLED`, `OPENCLAW_ACTION_RUNTIME`, `OPENCLAW_CONTROL_PLANE_EMIT`, `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`, `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`, `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`, `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
+- Whitelisted names: `OPENCLAW_INTERPRETER_LM`, `OPENCLAW_FRONTDOOR_MODEL_PROFILE`, `OPENCLAW_CONTINUITY_CAPSULE`, `OPENCLAW_PACKET_SOURCE`, `OPENCLAW_LM1_SHARED_SEAM`, `OPENCLAW_PACKET_DELTA`, `OPENCLAW_PACKET_ENGINE`, `OPENCLAW_PACKET_DANKIFY_EMIT`, `OPENCLAW_EXTERNAL_BRAIN_ROUTER`, `OPENCLAW_FLEET_VOICE_BOUNDARY`, `OPENCLAW_POLISH_LOOP_LOCAL_BUILDER`, `OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE`, `OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1`, `OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1`, `OPENCLAW_FREEFORM_CLOUD`, `OPENCLAW_FRONTDOOR_REPLY_TIMEOUT`, `OPENCLAW_FRONTDOOR_NUM_PREDICT`, `OPENCLAW_FRONTDOOR_NUM_CTX`, `OPENCLAW_FRONTDOOR_NUM_GPU`, `OPENCLAW_FRONTDOOR_KEEP_ALIVE`, `OPENCLAW_FRONTDOOR_MODEL_ALLOWLIST`, `OPENCLAW_FRONTDOOR_MODEL_MAX_GB`, `OPENROUTER_MODEL`, `OPENCLAW_EXTERNAL_MODEL`, `OPENCLAW_CASSANDRA_EXTERNAL_MODEL`, `CASSANDRA_EXTERNAL_MODEL`, `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `OPENAI_API_KEY`, `OPENCLAW_MAESTRO_BRAIN_LIVE`, `OPENCLAW_LLM_DIAGNOSTICS`, `HITL_ENABLED`, `OPENCLAW_ACTION_RUNTIME`, `OPENCLAW_CONTROL_PLANE_EMIT`, `OPENCLAW_OLLAMA_MODEL`, `OPENCLAW_OLLAMA_MODEL_DEEP`, `OPENCLAW_PROTECTED_GENERATE_EXTERNAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_TIMEOUT`, `OPENCLAW_PROTECTED_GENERATE_LOCAL_ATTEMPTS`, `OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT`, `CASSANDRA_MORNING_BRIEF_TEST_MODE`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS`, `OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS`, `OPENCLAW_EXTERNAL_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL`, `OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL`
 - Packet source runtime context: `enabled_verified`
 - Packet source finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/maestro-listener.service.d/flip.conf` -> `set_sqlite`
 - Packet source finding: `OPENCLAW_PACKET_SOURCE` from `systemd_user_dropin` `/home/openclaw/.config/systemd/user/openclaw-request-response.service.d/flip.conf` -> `set_sqlite`

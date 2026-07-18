@@ -4,7 +4,272 @@ import json
 from types import SimpleNamespace
 
 import protected_generate as pg
+from context_source import make_ledger_provenance
 from protected_generate import protected_generate_with_receipt
+
+
+def test_advisory_fallback_uses_guardian_pending_action_without_claiming_execution():
+    answer = pg._fallback_grounded_answer(
+        "Maestro, what do you think the next correct step is?",
+        {
+            "facts": [
+                {
+                    "topic": "pending_operator_action",
+                    "label": "Current Guardian approval waiting for the operator",
+                    "value": "Action 5FF438AC is WAITING_FOR_APPROVAL and has not executed.",
+                    "source_ref": "hitl_pending_store:5FF438AC",
+                }
+            ]
+        },
+    )
+
+    assert "Guardian action 5FF438AC" in answer
+    assert "next correct step" in answer
+    assert "Nothing has been sent" in answer
+    assert "approve that one action" in answer
+    assert "approved" not in answer.lower()
+
+
+def test_advisory_send_recommendation_is_discarded_while_send_hold_active(tmp_path):
+    outcome = protected_generate_with_receipt(
+        "Maestro, what do you think the next correct step is?",
+        context_packet={
+            "facts": [
+                {
+                    "topic": "current_guardian_action",
+                    "label": "Current Guardian decision with execution unproven",
+                    "value": "Action 5FF438AC records APPROVED; execution is not proven.",
+                    "source_ref": "hitl_pending_store:5FF438AC",
+                    "provenance": "guardian_pending_action_owner",
+                    "ledger_provenance": make_ledger_provenance(
+                        source_table="packet_builder_context",
+                        source_id="current_guardian_action:5FF438AC",
+                    ),
+                    "decision_status": "APPROVED",
+                }
+            ]
+        },
+        generator_fn=lambda _prompt, **_kwargs: "Fix that draft and send it off.",
+        audit_log_path=tmp_path / "advisory-send-hold.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="maestro",
+    )
+
+    assert outcome.receipt["model_fallback_reason"] == "advisory_send_hold_conflict"
+    assert outcome.receipt["model_output_delivered"] is False
+    assert "advisory_recommended_send_while_send_hold_active" in outcome.receipt["validation_reasons"]
+    assert "does not prove execution" in outcome.text
+    assert "not send from this advisory" in outcome.text
+
+
+def test_advisory_generic_answer_is_discarded_when_current_guardian_state_exists(tmp_path):
+    fact = {
+        "topic": "current_guardian_action",
+        "label": "Current Guardian decision with execution unproven",
+        "value": "Action 5FF438AC records APPROVED; execution is not proven.",
+        "source_ref": "hitl_pending_store:5FF438AC",
+        "provenance": "guardian_pending_action_owner",
+        "ledger_provenance": make_ledger_provenance(
+            source_table="packet_builder_context",
+            source_id="current_guardian_action:5FF438AC",
+        ),
+        "decision_status": "APPROVED",
+    }
+    outcome = protected_generate_with_receipt(
+        "Maestro, what do you think the next correct step is?",
+        context_packet={"facts": [fact]},
+        generator_fn=lambda _prompt, **_kwargs: "Keep things moving and stay focused.",
+        audit_log_path=tmp_path / "advisory-generic.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="maestro",
+    )
+
+    assert outcome.receipt["model_fallback_reason"] == "advisory_current_state_omitted"
+    assert outcome.receipt["model_output_delivered"] is False
+    assert "advisory_omitted_current_guardian_action_state" in outcome.receipt["validation_reasons"]
+    assert "Guardian action 5FF438AC" in outcome.text
+    assert "does not prove execution" in outcome.text
+
+
+def test_advisory_current_decision_requires_concrete_verify_step(tmp_path):
+    fact = {
+        "topic": "current_guardian_action",
+        "label": "Current Guardian decision with execution unproven",
+        "value": "Action 5FF438AC records APPROVED; execution is not proven.",
+        "source_ref": "hitl_pending_store:5FF438AC",
+        "provenance": "guardian_pending_action_owner",
+        "ledger_provenance": make_ledger_provenance(
+            source_table="packet_builder_context",
+            source_id="current_guardian_action:5FF438AC",
+        ),
+        "decision_status": "APPROVED",
+    }
+    outcome = protected_generate_with_receipt(
+        "Maestro, what do you think the next correct step is?",
+        context_packet={"facts": [fact]},
+        generator_fn=lambda _prompt, **_kwargs: (
+            "A decision is recorded, but execution hasn't proven yet. SEND_HOLD remains."
+        ),
+        audit_log_path=tmp_path / "advisory-incomplete-step.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="maestro",
+    )
+
+    assert outcome.receipt["model_fallback_reason"] == "advisory_current_state_omitted"
+    assert "advisory_omitted_current_guardian_action_state" in outcome.receipt["validation_reasons"]
+    assert "verify the signed action and current authority" in outcome.text
+
+
+def test_advisory_current_state_gets_one_bounded_same_model_repair(tmp_path):
+    fact = {
+        "topic": "current_guardian_action",
+        "label": "Current Guardian decision with execution unproven",
+        "value": "Action 5FF438AC records APPROVED; execution is not proven.",
+        "source_ref": "hitl_pending_store:5FF438AC",
+        "provenance": "guardian_pending_action_owner",
+        "ledger_provenance": make_ledger_provenance(
+            source_table="packet_builder_context",
+            source_id="current_guardian_action:5FF438AC",
+        ),
+        "decision_status": "APPROVED",
+    }
+    outputs = iter(
+        [
+            "Keep things moving and stay focused.",
+            (
+                "A decision is recorded, but execution is not proven. SEND_HOLD remains; "
+                "the next step is to verify the signed action and current authority."
+            ),
+        ]
+    )
+    calls = []
+
+    def generator(prompt, **_kwargs):
+        calls.append(prompt)
+        return next(outputs)
+
+    outcome = protected_generate_with_receipt(
+        "Maestro, what do you think the next correct step is?",
+        context_packet={"facts": [fact]},
+        generator_fn=generator,
+        audit_log_path=tmp_path / "advisory-repair.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="maestro",
+    )
+
+    assert len(calls) == 2
+    assert "ADVISORY REPAIR PASS" in calls[1]
+    assert outcome.receipt["model_fallback_reason"] == "model_ok"
+    assert outcome.receipt["model_output_delivered"] is True
+    assert outcome.receipt["advisory_repair_attempted"] is True
+    assert outcome.receipt["advisory_repair_succeeded"] is True
+    assert outcome.text.startswith("A decision is recorded")
+
+
+def test_advisory_overloaded_approved_word_is_rephrased_under_send_hold(tmp_path):
+    fact = {
+        "topic": "current_guardian_action",
+        "label": "Current Guardian decision with execution unproven",
+        "value": "Action 5FF438AC records APPROVED; execution is not proven.",
+        "source_ref": "hitl_pending_store:5FF438AC",
+        "provenance": "guardian_pending_action_owner",
+        "ledger_provenance": make_ledger_provenance(
+            source_table="packet_builder_context",
+            source_id="current_guardian_action:5FF438AC",
+        ),
+        "decision_status": "APPROVED",
+    }
+    outcome = protected_generate_with_receipt(
+        "Maestro, what do you think the next correct step is?",
+        context_packet={"facts": [fact]},
+        generator_fn=lambda _prompt, **_kwargs: (
+            "Guardian action 5FF438AC is approved, but execution is not proven and SEND_HOLD remains."
+        ),
+        audit_log_path=tmp_path / "advisory-approved-word.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="maestro",
+    )
+
+    assert outcome.receipt["model_fallback_reason"] == "advisory_approval_wording_conflict"
+    assert "advisory_used_overloaded_approved_word" in outcome.receipt["validation_reasons"]
+    assert "approved" not in outcome.text.lower()
+    assert "has a recorded decision" in outcome.text
+
+
+def test_frontdoor_discards_canned_revoice_that_loses_semantic_marker(tmp_path):
+    outcome = protected_generate_with_receipt(
+        "Rephrase this canned truth in your own natural voice: "
+        "The review packet is ready and nothing was changed.",
+        context_packet={"facts": []},
+        generator_fn=lambda _prompt, **_kwargs: "The packet's ready.",
+        audit_log_path=tmp_path / "revoice-drift.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="chief",
+    )
+
+    assert outcome.receipt["model_fallback_reason"] == "revoice_semantic_drift"
+    assert outcome.receipt["model_output_delivered"] is False
+    assert "missing_revoice_marker:review_packet" in outcome.receipt["validation_reasons"]
+    assert "missing_revoice_marker:no_change" in outcome.receipt["validation_reasons"]
+    assert "couldn't safely revoice" in outcome.text
+
+
+def test_frontdoor_discards_verbatim_canned_revoice_echo(tmp_path):
+    outcome = protected_generate_with_receipt(
+        "Rephrase this canned truth in your own natural voice: "
+        "The review packet is ready and nothing was changed.",
+        context_packet={"facts": []},
+        generator_fn=lambda _prompt, **_kwargs: (
+            "The review packet is ready, and nothing was changed."
+        ),
+        audit_log_path=tmp_path / "revoice-verbatim.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="hermes",
+    )
+
+    assert outcome.receipt["model_fallback_reason"] == "revoice_semantic_drift"
+    assert "revoice_violation:verbatim_source_echo" in outcome.receipt["validation_reasons"]
+    assert outcome.receipt["model_output_delivered"] is False
+
+
+def test_frontdoor_repairs_canned_revoice_once_with_same_generator(tmp_path):
+    outputs = iter(
+        [
+            "The packet's ready.",
+            "The review packet's ready. Nothing was touched.",
+        ]
+    )
+    calls = []
+
+    def generator(prompt, **_kwargs):
+        calls.append(prompt)
+        return next(outputs)
+
+    outcome = protected_generate_with_receipt(
+        "Rephrase this canned truth in your own natural voice: "
+        "The review packet is ready and nothing was changed.",
+        context_packet={"facts": []},
+        generator_fn=generator,
+        audit_log_path=tmp_path / "revoice-repair.jsonl",
+        allow_live_model=False,
+        front_door_profile=True,
+        agent="chief",
+    )
+
+    assert len(calls) == 2
+    assert "REPAIR PASS" in calls[1]
+    assert outcome.text == "The review packet's ready. Nothing was touched."
+    assert outcome.receipt["model_fallback_reason"] == "model_ok"
+    assert outcome.receipt["model_output_delivered"] is True
+    assert outcome.receipt["revoice_repair_attempted"] is True
+    assert outcome.receipt["revoice_repair_succeeded"] is True
 
 
 def test_maestro_system_prompt_includes_perspective_without_new_authority(tmp_path):
