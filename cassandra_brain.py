@@ -3185,6 +3185,8 @@ def _handle_clara_client_voice_draft_request(text: str) -> tuple[str, dict[str, 
         return None
     from clara_invoice_email_draft_package import build_clara_invoice_email_draft_package
 
+    model_compose = not bool(os.environ.get("PYTEST_CURRENT_TEST"))
+
     draft = build_clara_invoice_email_draft_package(
         client_ref=spec["client_ref"],
         workflow_ref=spec["workflow_ref"],
@@ -3198,6 +3200,9 @@ def _handle_clara_client_voice_draft_request(text: str) -> tuple[str, dict[str, 
         present_receipts=("clara_email_draft_receipt",),
         invoice_data=spec["invoice_data"],
         contact=spec["contact"],
+        raw_operator_ask=text,
+        model_compose=model_compose,
+        record_compose_telemetry=model_compose,
     )
     reply = (
         "Clara draft (review only - not sent):\n"

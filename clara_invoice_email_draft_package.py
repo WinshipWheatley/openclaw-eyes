@@ -757,6 +757,11 @@ def build_clara_invoice_email_draft_package(
     contact: Mapping[str, Any] | None = None,
     client_record: Mapping[str, Any] | None = None,
     client_registry: Mapping[str, Mapping[str, Any]] | None = None,
+    raw_operator_ask: str | None = None,
+    model_compose: bool = False,
+    copy_generator: Any = None,
+    compose_attempts: int = 3,
+    record_compose_telemetry: bool = False,
 ) -> dict[str, Any]:
     receipts = {str(item) for item in present_receipts}
     clara_receipt_present = "clara_email_draft_receipt" in receipts
@@ -812,6 +817,71 @@ def build_clara_invoice_email_draft_package(
         client_ref=client_ref,
         workflow_ref=workflow_ref,
     )
+    compose_proof: dict[str, Any] | None = None
+    if model_compose or copy_generator is not None:
+        from clara_invoice_copy_composer import compose_invoice_copy
+
+        closure = loop_closing_ask_for_workflow(workflow_ref, client_ref=client_ref)
+        greeting = _contact_greeting(general_contact)
+        copy_rules = voice_copy_rules_for_speaker("clara")
+        required_body_atoms: list[str] = []
+        exactly_once_body_atoms = [
+            greeting,
+            closure["ask_text"],
+            closure["why_text"],
+        ]
+        for atom in tuple(general_invoice_data.get("model_required_body_atoms") or ()):
+            if str(atom).strip():
+                required_body_atoms.append(str(atom).strip())
+        packet_facts = tuple(general_invoice_data.get("model_packet_facts") or ())
+        packet_aid = {
+            "packet_id": "clara-invoice-copy:" + _short_hash(client_ref, workflow_ref, subject, body),
+            "facts": packet_facts,
+            "privacy": {"package_minimized": True, "unresolved_sensitive_values": False},
+            "authority": {
+                "provider_draft_allowed": False,
+                "email_send_allowed": False,
+                "transaction_mutation_allowed": False,
+            },
+        }
+        copy_contract = {
+            "client_ref": client_ref,
+            "workflow_ref": workflow_ref,
+            "greeting": greeting,
+            "canonical_signoff": str(copy_rules["signoff"]),
+            "required_subject_atoms": tuple(general_invoice_data.get("model_required_subject_atoms") or ()),
+            "required_body_atoms": tuple(required_body_atoms),
+            "exactly_once_body_atoms": tuple(exactly_once_body_atoms),
+            "required_any_body_atom_groups": tuple(
+                tuple(str(atom) for atom in group)
+                for group in general_invoice_data.get("model_required_any_body_atom_groups", ())
+            ),
+            "forbidden_claims": tuple(general_invoice_data.get("model_forbidden_claims") or ()),
+            "copy_fact_citations": tuple(general_invoice_data.get("model_copy_fact_citations") or ()),
+            "deterministic_fallback_subject_sha256": "sha256:" + hashlib.sha256(subject.encode("utf-8")).hexdigest(),
+            "deterministic_fallback_body_sha256": "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest(),
+        }
+        try:
+            compose_proof = compose_invoice_copy(
+                str(raw_operator_ask or "Compose concise client-facing invoice copy."),
+                packet_aid,
+                copy_contract,
+                generator_fn=copy_generator,
+                attempts=compose_attempts,
+            )
+        except Exception as exc:
+            rejected_proof = getattr(exc, "result", None)
+            if record_compose_telemetry and isinstance(rejected_proof, Mapping):
+                from clara_invoice_copy_composer import record_invoice_copy_taste_pass
+
+                record_invoice_copy_taste_pass(rejected_proof)
+            raise
+        if record_compose_telemetry:
+            from clara_invoice_copy_composer import record_invoice_copy_taste_pass
+
+            record_invoice_copy_taste_pass(compose_proof)
+        subject = str(compose_proof["subject"])
+        body = str(compose_proof["body"])
     clara_conformance = require_clara_copy_conformance(
         body,
         workflow_ref=workflow_ref,
@@ -872,6 +942,7 @@ def build_clara_invoice_email_draft_package(
         "send_allowed": False,
         "subject": subject,
         "body": body,
+        "model_compose_proof": compose_proof,
         "target_client_email_blueprint": target_blueprint,
         "client_facing_draft_ready_for_approval": client_facing_ready,
         "sent_email": sent_email,

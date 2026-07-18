@@ -32,6 +32,7 @@ MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT = "2026-07-17T15:34:24-04:00"
 OPERATOR_FRONTDOOR_F0_LAST_VERIFIED_AT = "2026-07-17T17:35:36-04:00"
 W2_VALIDATED_INVOICE_GATE_LAST_VERIFIED_AT = "2026-07-17T18:39:51-04:00"
 DANK_PACKET_PIPELINE_LAST_VERIFIED_AT = "2026-07-17T20:08:58-04:00"
+CLARA_COPY_TASTE_PASS_LAST_VERIFIED_AT = "2026-07-17T20:49:09-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -319,6 +320,7 @@ REQUIRED_CAPABILITY_IDS = (
     "packet_engine_spine",
     "packet_dankness_loop",
     "canonical_persona_delivery",
+    "clara_invoice_copy_taste_pass",
     "control_plane_heal_emission",
     "git_task_guard",
     "model_selection_policy_contract",
@@ -1009,6 +1011,63 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
                 "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
             ],
             last_verified_at=DANK_PACKET_PIPELINE_LAST_VERIFIED_AT,
+        ),
+        _capability(
+            capability_id="clara_invoice_copy_taste_pass",
+            display_name="Clara local-model invoice copy taste pass",
+            flag_or_config=[
+                "cassandra_brain client-copy route (production default-on)",
+                "scripts/run_clara_invoice_copy_taste_pass.py",
+            ],
+            default_state="on_for_cassandra_client_copy",
+            current_state_if_verifiable=_state(
+                "the model may propose copy only from a minimized deterministic packet and immutable copy contract",
+                code_default="Cassandra's production client-copy route invokes the governed interactive local-model tier; pytest remains deterministic",
+                production=(
+                    "LIVE-VERIFIED through the operational owner script with qwen3:8b-q4_K_M; "
+                    "the resident Cassandra listener was not restarted under the active no-service/send rail"
+                ),
+                audit_report=(
+                    "truth, voice, warmth, action integrity, concision, repetition, and CLIENT_SURFACE_CLEAN "
+                    "are independent winner floors; failed attempts append critic telemetry"
+                ),
+            ),
+            source_files=[
+                "clara_invoice_copy_composer.py",
+                "clara_invoice_email_draft_package.py",
+                "cassandra_brain.py",
+                "scripts/run_clara_invoice_copy_taste_pass.py",
+            ],
+            tests=[
+                "tests/test_clara_invoice_copy_composer.py",
+                "tests/test_agent_voice_conformance.py",
+            ],
+            audits=[
+                "/home/openclaw/Operator/to-codex/FABLE-EXECUTE-CLARA-COPY-PUNCH-UP-VIA-SYSTEM-RAIL-20260717.md",
+                "/home/openclaw/Operator/to-codex/FABLE-BOUNCE-CLARA-COPY-CLIENT-SURFACE-LEAK-20260717.md",
+            ],
+            canary_status=(
+                "LIVE-VERIFIED taste pass clara-copy-taste:9ccb0b79b93ca00b: packet dimensions 1.0; "
+                "all eight copy dimensions including CLIENT_SURFACE_CLEAN 1.0; recipient Megan; July 2026 "
+                "monthly speaker rental; $100; invoice 2026-1004; exact closure; one Clara signature; "
+                "validated PDF SHA 99c0d53b bound outside client words; provider/draft/send/transaction/ledger calls 0"
+            ),
+            risk_level="medium",
+            owner="Fable / PC Codex Desktop",
+            gate_stage="operator_approved_live",
+            enabled_by="Fable Clara punch-up directive and PASS-3 taste-pass ruling",
+            disabled_by="remove the model_compose caller argument and retain deterministic Clara composition",
+            rollback_note="fall back to build_general_client_invoice_body; never bypass the immutable facts or shared Clara boundary",
+            next_required_step="Fable re-grades the clean copy; operator approval of copy remains separate from send authority",
+            activation_allowed_now=False,
+            operator_approval_required=True,
+            reason_if_off="only explicit rollback after client-surface, truth, or latency regression",
+            evidence_refs=[
+                "Operator/from-codex/CLARA-LAMD-JULY-COPY-TASTE-PASS-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+                "generated/read_models/packet_dankness_log.json",
+                "clara_invoice_copy_composer.py:compose_invoice_copy",
+            ],
+            last_verified_at=CLARA_COPY_TASTE_PASS_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="control_plane_heal_emission",

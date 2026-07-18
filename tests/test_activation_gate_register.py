@@ -558,6 +558,12 @@ def test_missing_default_on_packet_flags_reconcile_as_enabled():
         assert capability["activation_allowed_now"] is False
         assert "default-on code path" in capability["live_state"]["notes"]
 
+    clara_copy = capabilities["clara_invoice_copy_taste_pass"]
+    assert clara_copy["live_production_state"] == "not_applicable"
+    assert clara_copy["activation_allowed_now"] is False
+    assert clara_copy["gate_stage"] == "operator_approved_live"
+    assert "LIVE-VERIFIED taste pass" in clara_copy["canary_status"]
+
 
 def test_polish_loop_local_builder_zero_keeps_bridge_off():
     payload = _live_payload([
