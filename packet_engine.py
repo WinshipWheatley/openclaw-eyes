@@ -197,6 +197,7 @@ def _persona_text(persona_core: Mapping[str, Any]) -> str:
     agent = str(persona_core.get("agent") or "maestro")
     exemplars = tuple(str(item).strip() for item in persona_core.get("voice_exemplars", ()) if str(item).strip())
     quiet_luxury = dict(persona_core.get("quiet_luxury") or {})
+    autonomy_ladder = dict(persona_core.get("autonomy_ladder") or {})
     register_flow = " -> ".join(str(item) for item in quiet_luxury.get("flow", ()) if str(item))
     return "\n".join(
         part
@@ -207,6 +208,12 @@ def _persona_text(persona_core: Mapping[str, Any]) -> str:
             f"Voice: {persona_core.get('voice')}",
             f"Voice charter: {persona_core.get('voice_charter')}",
             f"Duties: {persona_core.get('duties')}",
+            (
+                f"Autonomy rung: {autonomy_ladder.get('rung')} "
+                "(classification only; no new authority)"
+                if autonomy_ladder
+                else ""
+            ),
             (
                 f"Quiet Luxury doctrine: {quiet_luxury.get('doctrine_ref')} "
                 f"({register_flow})"
@@ -234,6 +241,7 @@ def _persona_delivery(
     session_id: str,
 ) -> dict[str, Any]:
     quiet_luxury = dict(persona_core.get("quiet_luxury") or {})
+    autonomy_ladder = dict(persona_core.get("autonomy_ladder") or {})
     delivery = {
         "mode": mode,
         "consumer_kind": consumer_kind,
@@ -241,6 +249,11 @@ def _persona_delivery(
         "voice_profile_ref": persona_core["voice_profile_ref"],
         "persona_core_version": persona_core["persona_core_version"],
         "core_sha256": persona_core["core_sha256"],
+        "autonomy_rung": str(autonomy_ladder.get("rung") or ""),
+        "autonomy_classification_only": bool(autonomy_ladder.get("classification_only")),
+        "autonomy_new_authority_conferred": bool(
+            autonomy_ladder.get("new_authority_conferred")
+        ),
     }
     if quiet_luxury:
         delivery.update(
@@ -321,6 +334,13 @@ def _decorate_packet(
             "packet_engine_persona_core_version": persona.get("persona_core_version"),
             "packet_engine_persona_estimated_tokens": persona.get("estimated_token_count"),
             "packet_engine_doctrine_ref": dict(persona.get("quiet_luxury") or {}).get("doctrine_ref"),
+            "packet_engine_autonomy_rung": dict(persona.get("autonomy_ladder") or {}).get("rung"),
+            "packet_engine_autonomy_classification_only": dict(
+                persona.get("autonomy_ladder") or {}
+            ).get("classification_only"),
+            "packet_engine_autonomy_new_authority_conferred": dict(
+                persona.get("autonomy_ladder") or {}
+            ).get("new_authority_conferred"),
             "packet_engine_sections": tuple(sections),
         }
     )

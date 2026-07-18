@@ -846,6 +846,7 @@ def immutable_persona_core_for_speaker(speaker_ref: str) -> dict[str, Any]:
         "guardrails": list(profile["guardrails"]),
         "voice_exemplars": examples,
         "culture_traits": list(FLEET_CULTURE_TRAITS),
+        "autonomy_ladder": dict(profile["autonomy_ladder"]),
         "operator_change_gate": "first_class_operator_approval_receipt_required",
         "backstory_policy": {
             "write_mode": "append_only_grounded_experience",

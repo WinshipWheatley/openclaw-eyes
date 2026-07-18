@@ -513,6 +513,31 @@ def _packet_engine_delivery_proof(
         doctrine_ref = str(persona_delivery.get("doctrine_ref") or "").strip()
     if doctrine_ref:
         proof["packet_engine_doctrine_ref"] = doctrine_ref
+    autonomy_rung = ""
+    autonomy_classification_only = False
+    autonomy_new_authority_conferred = False
+    if isinstance(packet_proof, Mapping):
+        autonomy_rung = str(packet_proof.get("packet_engine_autonomy_rung") or "").strip()
+        autonomy_classification_only = bool(
+            packet_proof.get("packet_engine_autonomy_classification_only")
+        )
+        autonomy_new_authority_conferred = bool(
+            packet_proof.get("packet_engine_autonomy_new_authority_conferred")
+        )
+    if not autonomy_rung and isinstance(persona_delivery, Mapping):
+        autonomy_rung = str(persona_delivery.get("autonomy_rung") or "").strip()
+        autonomy_classification_only = bool(
+            persona_delivery.get("autonomy_classification_only")
+        )
+        autonomy_new_authority_conferred = bool(
+            persona_delivery.get("autonomy_new_authority_conferred")
+        )
+    if autonomy_rung:
+        proof["packet_engine_autonomy_rung"] = autonomy_rung
+        proof["packet_engine_autonomy_classification_only"] = autonomy_classification_only
+        proof["packet_engine_autonomy_new_authority_conferred"] = (
+            autonomy_new_authority_conferred
+        )
     return proof
 
 

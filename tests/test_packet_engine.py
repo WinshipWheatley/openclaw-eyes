@@ -78,6 +78,9 @@ def test_daemon_packet_uses_standing_canonical_persona_without_resending_it() ->
         assert "PERSONA CORE" not in packet["packet_text"]
         assert packet["persona_delivery"]["mode"] == "standing_daemon_profile"
         assert packet["persona_delivery"]["voice_profile_ref"] == f"agent_voice_profile:{agent}"
+        assert packet["persona_delivery"]["autonomy_rung"] == "READ_ONLY_ADVISOR"
+        assert packet["persona_delivery"]["autonomy_classification_only"] is True
+        assert packet["persona_delivery"]["autonomy_new_authority_conferred"] is False
     receipt = packets["chief"]["packet_engine_receipt"]
     assert receipt["schema_version"] == "packet_engine_receipt_v1"
     assert receipt["agent"] == "chief"
@@ -140,6 +143,10 @@ def test_cassandra_packet_delivery_carries_quiet_luxury_doctrine_reference() -> 
         "Confirm",
     ]
     assert "Quiet Luxury doctrine" in packet["packet_text"]
+    assert packet["persona_delivery"]["autonomy_rung"] == "PREPARE_ONLY"
+    assert packet["machine_proof"]["packet_engine_autonomy_rung"] == "PREPARE_ONLY"
+    assert packet["machine_proof"]["packet_engine_autonomy_new_authority_conferred"] is False
+    assert "Autonomy rung: PREPARE_ONLY" in packet["packet_text"]
 
 
 def test_guardian_persona_core_has_no_humor_markers() -> None:
@@ -249,6 +256,9 @@ def test_answer_frontdoor_propagates_cassandra_quiet_luxury_doctrine_proof(
     assert packet["persona_delivery"]["doctrine_ref"] == "quiet_luxury:clara_cassandra:v1"
     assert packet["machine_proof"]["packet_engine_doctrine_ref"] == "quiet_luxury:clara_cassandra:v1"
     assert result.machine_proof["packet_engine_doctrine_ref"] == "quiet_luxury:clara_cassandra:v1"
+    assert result.machine_proof["packet_engine_autonomy_rung"] == "PREPARE_ONLY"
+    assert result.machine_proof["packet_engine_autonomy_classification_only"] is True
+    assert result.machine_proof["packet_engine_autonomy_new_authority_conferred"] is False
 
 
 def test_answer_frontdoor_packet_engine_failure_falls_back_to_legacy_packet(
