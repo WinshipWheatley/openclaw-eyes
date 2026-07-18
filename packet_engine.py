@@ -196,6 +196,8 @@ def _persona_fact(persona_core: Mapping[str, Any]) -> dict[str, str]:
 def _persona_text(persona_core: Mapping[str, Any]) -> str:
     agent = str(persona_core.get("agent") or "maestro")
     exemplars = tuple(str(item).strip() for item in persona_core.get("voice_exemplars", ()) if str(item).strip())
+    quiet_luxury = dict(persona_core.get("quiet_luxury") or {})
+    register_flow = " -> ".join(str(item) for item in quiet_luxury.get("flow", ()) if str(item))
     return "\n".join(
         part
         for part in (
@@ -205,11 +207,51 @@ def _persona_text(persona_core: Mapping[str, Any]) -> str:
             f"Voice: {persona_core.get('voice')}",
             f"Voice charter: {persona_core.get('voice_charter')}",
             f"Duties: {persona_core.get('duties')}",
+            (
+                f"Quiet Luxury doctrine: {quiet_luxury.get('doctrine_ref')} "
+                f"({register_flow})"
+                if quiet_luxury
+                else ""
+            ),
             f"Voice exemplars: {' / '.join(exemplars)}" if exemplars else "",
             f"Token budget: {persona_core.get('estimated_token_count')}/{persona_core.get('token_budget')}",
         )
         if str(part).strip()
     )
+
+
+def _persona_source_refs(persona_core: Mapping[str, Any]) -> tuple[str, ...]:
+    quiet_luxury = dict(persona_core.get("quiet_luxury") or {})
+    doctrine_path = str(quiet_luxury.get("doctrine_path") or "").strip()
+    return tuple(dict.fromkeys([PACKET_ENGINE_PERSONA_SOURCE, doctrine_path] if doctrine_path else [PACKET_ENGINE_PERSONA_SOURCE]))
+
+
+def _persona_delivery(
+    persona_core: Mapping[str, Any],
+    *,
+    mode: str,
+    consumer_kind: str,
+    session_id: str,
+) -> dict[str, Any]:
+    quiet_luxury = dict(persona_core.get("quiet_luxury") or {})
+    delivery = {
+        "mode": mode,
+        "consumer_kind": consumer_kind,
+        "session_id": str(session_id or ""),
+        "voice_profile_ref": persona_core["voice_profile_ref"],
+        "persona_core_version": persona_core["persona_core_version"],
+        "core_sha256": persona_core["core_sha256"],
+    }
+    if quiet_luxury:
+        delivery.update(
+            {
+                "doctrine_ref": quiet_luxury["doctrine_ref"],
+                "doctrine_path": quiet_luxury["doctrine_path"],
+                "register_flow": list(quiet_luxury["flow"]),
+                "severity_integrity": quiet_luxury["severity_integrity"],
+            }
+        )
+    return delivery
 
 
 def _decorate_packet(
@@ -239,21 +281,19 @@ def _decorate_packet(
     )
     sections = ["persona_core" if include_persona else "standing_persona_ref", "legacy_packet"]
     packet["agent_id"] = agent
-    packet["persona_delivery"] = {
-        "mode": delivery_mode,
-        "consumer_kind": consumer_kind,
-        "session_id": str(session_id or ""),
-        "voice_profile_ref": persona["voice_profile_ref"],
-        "persona_core_version": persona["persona_core_version"],
-        "core_sha256": persona["core_sha256"],
-    }
+    packet["persona_delivery"] = _persona_delivery(
+        persona,
+        mode=delivery_mode,
+        consumer_kind=consumer_kind,
+        session_id=session_id,
+    )
     if include_persona:
         packet["persona_core"] = persona
         packet["facts"] = [_persona_fact(persona), *facts]
     else:
         packet.pop("persona_core", None)
         packet["facts"] = facts
-    packet["source_refs"] = tuple(dict.fromkeys([PACKET_ENGINE_PERSONA_SOURCE, *source_refs]))
+    packet["source_refs"] = tuple(dict.fromkeys([*_persona_source_refs(persona), *source_refs]))
     if include_persona:
         packet["packet_text"] = "\n".join(
             part for part in (_persona_text(persona), str(packet.get("packet_text") or "").strip()) if part
@@ -280,6 +320,7 @@ def _decorate_packet(
             "packet_engine_persona_source": PACKET_ENGINE_PERSONA_SOURCE,
             "packet_engine_persona_core_version": persona.get("persona_core_version"),
             "packet_engine_persona_estimated_tokens": persona.get("estimated_token_count"),
+            "packet_engine_doctrine_ref": dict(persona.get("quiet_luxury") or {}).get("doctrine_ref"),
             "packet_engine_sections": tuple(sections),
         }
     )
@@ -308,7 +349,7 @@ def _failure_packet(
         "spawn_session_already_has_persona" if consumer_kind == "spawned" else
         "standing_daemon_profile"
     )
-    source_refs = (PACKET_ENGINE_PERSONA_SOURCE,)
+    source_refs = _persona_source_refs(persona)
     receipt = _receipt(
         agent=agent,
         question_class=question_class,
@@ -327,14 +368,12 @@ def _failure_packet(
         "status": PACKET_ENGINE_FAILURE_STATUS,
         "question": question,
         "agent_id": agent,
-        "persona_delivery": {
-            "mode": delivery_mode,
-            "consumer_kind": consumer_kind,
-            "session_id": str(session_id or ""),
-            "voice_profile_ref": persona["voice_profile_ref"],
-            "persona_core_version": persona["persona_core_version"],
-            "core_sha256": persona["core_sha256"],
-        },
+        "persona_delivery": _persona_delivery(
+            persona,
+            mode=delivery_mode,
+            consumer_kind=consumer_kind,
+            session_id=session_id,
+        ),
         "facts": [_persona_fact(persona)] if include_persona else [],
         "source_refs": source_refs,
         "packet_text": "\n".join(

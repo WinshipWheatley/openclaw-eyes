@@ -30,9 +30,9 @@ def test_general_client_invoice_body_is_human_and_guard_clean():
     assert "$125.00" in body
     assert "$250.00" in body
     assert "attached" in body.lower()
-    assert "I hope this note finds you well." in body
+    assert "I hope this note finds you well." not in body
     assert "coming to $250.00" in body
-    assert "There's nothing needed on your end right now" in body
+    assert "Could you send me a quick note once this reaches the right person?" in body
     assert body.endswith("Warmly,\nClara Reid")
     assert "Executive Assistant" not in body
     assert drafts.body_contains_backend_status_language(body) is False
@@ -50,11 +50,13 @@ def test_general_client_invoice_body_asks_intermediary_to_forward_to_treasurer()
             "role": "intermediary",
             "forward_to": "Glenn",
         },
+        client_ref="st_annes",
+        workflow_ref="st_annes_invoice_forward_tracking",
     )
 
     assert "Hi Draper," in body
-    assert "forwarded it to Glenn" in body
-    assert "copy me (winshiplive@gmail.com)" in body
+    assert "passed it along to Glenn" in body
+    assert "could you ask him to send me a quick note" in body
     assert "There's nothing needed on your end right now" not in body
     assert body.endswith("Warmly,\nClara Reid")
     assert drafts.body_contains_backend_status_language(body) is False
@@ -157,7 +159,7 @@ def test_synthetic_registry_client_routes_to_warm_general_body_without_code_chan
     assert draft["to_recipients"][0]["display_name"] == "Mira Sol"
     assert draft["to_recipients"][0]["email"] == "mira@example.com"
     assert "Hi Mira," in draft["body"]
-    assert "I hope this note finds you well." in draft["body"]
+    assert "I hope this note finds you well." not in draft["body"]
     assert "Winship's invoice for North Star Venue is attached (North_Star_July_2026.pdf)" in draft["body"]
     assert "coming to $500.00" in draft["body"]
     assert "Warmly,\nClara Reid" in draft["body"]
@@ -189,7 +191,7 @@ def test_first_contact_intro_required_is_param_driven_for_general_clients():
     )
 
     assert "I'm Clara Reid" in draft["body"]
-    assert "North Star Venue invoice package organized" in draft["body"]
+    assert "Winship's invoice for North Star Venue is attached" in draft["body"]
     assert draft["body"].index("I'm Clara Reid") < draft["body"].index("Winship's invoice")
 
 
@@ -217,7 +219,7 @@ def test_registered_clients_use_general_warm_body_not_per_client_body_recipes():
         present_receipts=("clara_email_draft_receipt",),
     )
 
-    assert "I hope this note finds you well." in capital["body"]
+    assert "I hope this note finds you well." not in capital["body"]
     assert "Winship's invoice for Capital Hilton is attached" in capital["body"]
     assert "coming to" not in capital["body"]
     assert "The matching invoice has been submitted through the Coupa supplier portal." in capital["body"]
@@ -244,14 +246,14 @@ def test_existing_capital_hilton_ready_body_uses_warm_general_copy():
     body = ready["body"]
 
     assert body.startswith("Hi Annette,\n\n")
-    assert "I hope this note finds you well." in body
+    assert "I hope this note finds you well." not in body
     assert "Winship's invoice for Capital Hilton is attached" in body
     assert "May 1, 2026" in body
     assert "May 8, 2026" in body
     assert body.index("May 1, 2026") < body.index("May 8, 2026")
     assert "The matching invoice has been submitted through the Coupa supplier portal." in body
     assert "coming to" not in body
-    assert "There's nothing needed on your end right now" in body
+    assert "Could you send me a quick note once the invoice reaches the right person?" in body
     assert body.endswith("Warmly,\nClara Reid")
     assert drafts.body_contains_backend_status_language(body) is False
 
@@ -274,12 +276,12 @@ def test_existing_live_arts_ready_body_uses_warm_general_copy():
 
     assert body.startswith("Hi Dane,\n\n")
     assert "I'm Clara Reid" in body
-    assert "Live Arts MD invoice package organized" in body
+    assert "Winship's invoice for Live Arts MD is attached" in body
     assert body.index("I'm Clara Reid") < body.index("Winship's invoice for Live Arts MD is attached")
-    assert "I hope this note finds you well." in body
+    assert "I hope this note finds you well." not in body
     assert "Winship's invoice for Live Arts MD is attached" in body
     assert "June 2026 Speaker Rental" in body
-    assert "There's nothing needed on your end right now" in body
+    assert "Could you send me a quick note once the invoice is in your accounting queue?" in body
     assert body.endswith("Warmly,\nClara Reid")
     assert drafts.body_contains_backend_status_language(body) is False
 
@@ -448,4 +450,4 @@ def test_send_ready_draft_can_claim_attachment_only_when_ready():
     assert ready["draft_status"] == drafts.FINAL_DRAFT_READY_FOR_APPROVAL
     assert ready["client_facing_draft_ready_for_approval"]["ready"] is True
     assert "Winship's invoice for Live Arts MD is attached" in ready["body"]
-    assert "I hope this note finds you well." in ready["client_facing_draft_ready_for_approval"]["body"]
+    assert "I hope this note finds you well." not in ready["client_facing_draft_ready_for_approval"]["body"]

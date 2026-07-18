@@ -20,6 +20,12 @@ from agent_perspective import (
     build_perspective_registry,
     perspective_policy_record,
 )
+from quiet_luxury_doctrine import (
+    critical_facts_in_text,
+    doctrine_binding_for_speaker,
+    evaluate_quiet_luxury_copy,
+    load_quiet_luxury_contract,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -31,6 +37,16 @@ SCHEMA_VERSION = "agent_voice_profiles_v0"
 READ_MODEL_ID = "agent_voice_profiles"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 CONTRACT_STATUS = "AGENT_VOICE_PROFILES_V0_READY"
+
+QUIET_LUXURY_CONTRACT = load_quiet_luxury_contract()
+CLARA_CONCIERGE_FLOW = tuple(QUIET_LUXURY_CONTRACT["flows"]["clara"])
+CLARA_ANTI_PATTERNS = tuple(
+    dict.fromkeys(
+        phrase
+        for group in QUIET_LUXURY_CONTRACT["anti_patterns"].values()
+        for phrase in group
+    )
+)
 
 SPEAKER_REFS = (
     "cassandra",
@@ -128,9 +144,12 @@ REVOICE_STYLE_MARKER_CONTRACTS: dict[str, dict[str, Any]] = {
         "prompt_requirement": "Use both phrases: stands ready and remains unchanged (or unchanged).",
     },
     "clara": {
-        "required_any": [("prepared", "ready for review", "remains unchanged")],
-        "marker_ids": ("clara_polished_client_frame",),
-        "prompt_requirement": "Use at least one polished phrase: prepared, ready for review, remains unchanged.",
+        "flow_steps": CLARA_CONCIERGE_FLOW,
+        "marker_ids": ("clara_concierge_flow",),
+        "prompt_requirement": (
+            "Follow Recognize, Clarify, Guide, Confirm as semantic moves. Do not label the steps "
+            "or force canned words such as prepared or ready for review."
+        ),
     },
     "openclaw": {
         "max_words": 12,
@@ -173,13 +192,7 @@ PERSONA_FIDELITY_NOTES: dict[str, dict[str, Any]] = {
     "clara": {
         "register_target": "polished, personable, quietly confident, poised, and brief",
         "warmth_definition": "the useful closing ask and its human reason carry the warmth",
-        "anti_patterns": (
-            "thanks for your attention",
-            "hope your week is going well",
-            "hope you're having a great week",
-            "happy to help with anything else",
-            "it was a pleasure getting this month's details together",
-        ),
+        "anti_patterns": CLARA_ANTI_PATTERNS,
     },
     "openclaw": {
         "register_target": "neutral, minimal, factual cockpit language",
@@ -421,6 +434,8 @@ VOICE_CONFORMANCE_CONTRACTS: dict[str, dict[str, Any]] = {
             "whenever you're happy with the invoice",
             "just let us know once you've forwarded it",
             "i wanted to follow up",
+            "i'm happy to help",
+            "let me know if you need anything else",
         ),
         "forbidden_patterns": (
             {
@@ -450,6 +465,7 @@ PERSONA_SOURCE_REFS = (
     "agent_response_voice_modes.py",
     "frontdoor_prompt.py",
     "final_output_boundary.py",
+    "docs/doctrine/CLARA_CASSANDRA_QUIET_LUXURY.md",
 )
 
 AUTHORITY_BOUNDARY_DEFAULT = {
@@ -522,7 +538,11 @@ def revoice_prompt_guidance_for_speaker(speaker_ref: str) -> str:
 def revoice_style_marker_contract_for_speaker(speaker_ref: str) -> dict[str, Any]:
     contract = REVOICE_STYLE_MARKER_CONTRACTS[canonical_speaker_ref(speaker_ref)]
     return {
-        key: [list(group) for group in value] if key in {"required_any", "required_exactly_one"} else list(value) if key == "marker_ids" else value
+        key: [list(group) for group in value]
+        if key in {"required_any", "required_exactly_one"}
+        else list(value)
+        if key in {"marker_ids", "flow_steps"}
+        else value
         for key, value in contract.items()
     }
 
@@ -587,6 +607,12 @@ def require_clara_copy_conformance(
     voice = validate_voice_conformance("clara", text)
     closure = loop_closing_ask_for_workflow(workflow_ref, client_ref=client_ref)
     value = str(text or "")
+    quiet_luxury = evaluate_quiet_luxury_copy(
+        "clara",
+        value,
+        surface="client_email",
+        critical_facts=critical_facts_in_text(value),
+    )
     ask = closure["ask_text"]
     why = closure["why_text"]
     violations = list(voice["violations"])
@@ -609,6 +635,8 @@ def require_clara_copy_conformance(
             "code": "loop_closing_ask_not_plain_question",
             "detail": closure["milestone_ref"],
         })
+    for violation in quiet_luxury["violations"]:
+        violations.append({"code": "quiet_luxury_" + str(violation), "detail": str(violation)})
     result = {
         "passed": not violations,
         "speaker_ref": "clara",
@@ -616,6 +644,7 @@ def require_clara_copy_conformance(
         "enforcement": "fail_closed",
         "violations": violations,
         "voice_conformance": voice,
+        "quiet_luxury_critic": quiet_luxury,
         "loop_closing_ask": {
             "passed": not any(
                 str(item.get("code") or "").startswith("loop_closing_")
@@ -735,6 +764,9 @@ def _apply_perspective(profile: dict[str, Any]) -> dict[str, Any]:
     enriched["voice_boundary_fallback"] = VOICE_BOUNDARY_FALLBACKS[speaker_ref]
     enriched["action_promise_fallback"] = ACTION_PROMISE_FALLBACKS[speaker_ref]
     enriched["artifact_ready_template"] = ARTIFACT_READY_TEMPLATES[speaker_ref]
+    quiet_luxury = doctrine_binding_for_speaker(speaker_ref)
+    if quiet_luxury is not None:
+        enriched["quiet_luxury"] = quiet_luxury
     enriched.update(perspective_policy_record(speaker_ref))
     return enriched
 
@@ -785,6 +817,8 @@ def immutable_persona_core_for_speaker(speaker_ref: str) -> dict[str, Any]:
         },
         "source_refs": list(PERSONA_SOURCE_REFS),
     }
+    if profile.get("quiet_luxury"):
+        core["quiet_luxury"] = dict(profile["quiet_luxury"])
     core["core_sha256"] = "sha256:" + hashlib.sha256(
         stable_json(core).encode("utf-8")
     ).hexdigest()
@@ -832,6 +866,12 @@ def validate_voice_conformance(speaker_ref: str, text: str) -> dict[str, Any]:
             if str(term).casefold() in lowered:
                 violations.append({"code": "internal_term", "detail": str(term)})
 
+    quiet_luxury = (
+        evaluate_quiet_luxury_copy(normalized_speaker, value)
+        if normalized_speaker in {"cassandra", "clara"}
+        else None
+    )
+
     return {
         "passed": not violations,
         "speaker_ref": normalized_speaker,
@@ -839,6 +879,7 @@ def validate_voice_conformance(speaker_ref: str, text: str) -> dict[str, Any]:
         "enforcement": "fail_closed",
         "style_traits": list(contract["style_traits"]),
         "persona_fidelity": dict(persona_fidelity),
+        "quiet_luxury_critic": quiet_luxury,
         "violations": violations,
     }
 
@@ -851,6 +892,7 @@ def require_voice_conformance(speaker_ref: str, text: str) -> dict[str, Any]:
 
 
 def build_profiles() -> list[dict[str, Any]]:
+    quiet_copy_rules = dict(QUIET_LUXURY_CONTRACT["copy_rules"])
     profiles = [
         {
             "speaker_ref": "cassandra",
@@ -1167,9 +1209,9 @@ def build_profiles() -> list[dict[str, Any]]:
                 "client_visibility": "external_allowed",
                 "first_contact_intro": "I'm Clara Reid, Winship's assistant.",
                 "intermediary_next_step": "Please forward this to {forward_to} after your review, or let me know if there are any issues.",
-                "general_next_step": "Please let me know if you have any questions or need anything else.",
-                "followup_body": "Could you let me know whether {invoice_ref} has reached the right person? If there are any issues or questions, I'm happy to help.",
-                "signoff": "Warmly,\nClara Reid",
+                "general_next_step": quiet_copy_rules["general_next_step"],
+                "followup_body": quiet_copy_rules["followup_body"],
+                "signoff": quiet_copy_rules["signoff"],
                 "loop_closing_ask_policies": {
                     key: dict(value) for key, value in LOOP_CLOSING_ASK_POLICIES.items()
                 },

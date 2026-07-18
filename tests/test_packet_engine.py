@@ -120,6 +120,28 @@ def test_spawned_persona_is_in_first_package_only() -> None:
     assert "PERSONA CORE" not in later["packet_text"]
 
 
+def test_cassandra_packet_delivery_carries_quiet_luxury_doctrine_reference() -> None:
+    import packet_engine
+
+    packet = packet_engine.build_agent_packet(
+        agent="cassandra",
+        question="draft the client note",
+        consumer_kind="spawned",
+        session_id="quiet-luxury-cassandra-1",
+        persona_already_delivered=False,
+        legacy_builder=lambda **_: _base_packet(),
+    )
+
+    assert packet["persona_delivery"]["doctrine_ref"] == "quiet_luxury:clara_cassandra:v1"
+    assert packet["persona_delivery"]["register_flow"] == [
+        "Recognize",
+        "Clarify",
+        "Guide",
+        "Confirm",
+    ]
+    assert "Quiet Luxury doctrine" in packet["packet_text"]
+
+
 def test_guardian_persona_core_has_no_humor_markers() -> None:
     import packet_engine
 

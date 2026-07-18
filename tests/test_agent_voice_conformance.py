@@ -95,11 +95,14 @@ def test_clara_invoice_body_uses_canonical_general_identity_and_direct_ask() -> 
     assert closure["why_text"] in body
     assert "helping Winship keep the St. Anne's invoice package" not in body
     assert "I hope this note finds you well" not in body
-    assert voice_profiles.require_clara_copy_conformance(
+    assert "I'm happy to help" not in body
+    conformance = voice_profiles.require_clara_copy_conformance(
         body,
         workflow_ref="st_annes_invoice_forward_tracking",
         client_ref="st_annes",
-    )["passed"] is True
+    )
+    assert conformance["passed"] is True
+    assert conformance["quiet_luxury_critic"]["passed"] is True
 
 
 def test_due_followup_draft_is_canonical_clara_and_carries_gate_receipt(tmp_path) -> None:
@@ -125,6 +128,8 @@ def test_due_followup_draft_is_canonical_clara_and_carries_gate_receipt(tmp_path
     )
     assert closure["ask_text"] in proposal["draft"]["body"]
     assert closure["why_text"] in proposal["draft"]["body"]
+    assert "I'm happy to help" not in proposal["draft"]["body"]
+    assert proposal["quiet_luxury_critic"]["passed"] is True
     assert proposal["approval_request"]["payload"]["voice_conformance"]["passed"] is True
     assert proposal["loop_closing_ask_conformance"]["milestone_ref"] == "glenn_acknowledged"
 

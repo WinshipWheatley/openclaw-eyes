@@ -206,6 +206,21 @@ def test_clara_persona_fidelity_rejects_solicitous_pleasantry_padding():
     assert {item["code"] for item in result["violations"]} == {"persona_fidelity_anti_pattern"}
 
 
+def test_clara_profile_carries_quiet_luxury_flow_without_forced_polished_markers():
+    profile = profiles.voice_profile_for_speaker("clara")
+    core = profiles.immutable_persona_core_for_speaker("clara")
+    marker_contract = profile["revoice_style_marker_contract"]
+    copy_blob = json.dumps(profile["copy_rules"], sort_keys=True).casefold()
+
+    assert marker_contract["flow_steps"] == ["Recognize", "Clarify", "Guide", "Confirm"]
+    assert "required_any" not in marker_contract
+    assert profile["quiet_luxury"]["doctrine_ref"] == "quiet_luxury:clara_cassandra:v1"
+    assert core["quiet_luxury"]["flow"] == ["Recognize", "Clarify", "Guide", "Confirm"]
+    assert "i'm happy to help" not in copy_blob
+    assert "let me know if you have any questions or need anything else" not in copy_blob
+    assert profile["copy_rules"]["signoff"] == "Warmly,\nClara Reid"
+
+
 def test_read_model_machine_proof_and_tts_rules():
     read_model = _read_model()
 

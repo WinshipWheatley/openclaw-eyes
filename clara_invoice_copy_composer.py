@@ -20,6 +20,7 @@ from agent_voice_profiles import (
     require_clara_copy_conformance,
 )
 from packet_dankness_critic import score_packet_dankness
+from quiet_luxury_doctrine import evaluate_quiet_luxury_copy
 
 
 COMPOSE_SCHEMA_VERSION = "clara_invoice_copy_compose_v1"
@@ -243,6 +244,7 @@ def _taste_score(
     *,
     contract: Mapping[str, Any],
     violations: list[str],
+    conformance: Mapping[str, Any] | None,
 ) -> dict[str, float]:
     body = str(candidate.get("body") or "")
     greeting = str(contract.get("greeting") or "")
@@ -273,6 +275,9 @@ def _taste_score(
         and not any(item.startswith("client_copy_leak:") for item in violations)
         and not any(item.startswith("forbidden_claim:") for item in violations)
     )
+    quiet_luxury = dict((conformance or {}).get("quiet_luxury_critic") or {})
+    if not quiet_luxury:
+        quiet_luxury = evaluate_quiet_luxury_copy("clara", body, surface="client_email")
     dimensions = {
         "voice": 1.0 if not any(item.startswith("voice:") for item in violations) else 0.0,
         "truth": 1.0 if required and all(body.count(item) >= 1 for item in required) and all(body.count(item) == 1 for item in exact) and groups_present else 0.0,
@@ -284,6 +289,9 @@ def _taste_score(
         "non_repetitive": 1.0 if all(body.count(item) == 1 for item in required) else 0.5,
         "client_surface_clean": 1.0 if client_surface_clean else 0.0,
     }
+    dimensions.update(
+        {str(name): float(score) for name, score in quiet_luxury["dimensions"].items()}
+    )
     dimensions["overall"] = round(sum(dimensions.values()) / len(dimensions), 4)
     return dimensions
 
@@ -304,6 +312,7 @@ def _prompt_for_attempt(
         "copy_rules": persona_core["copy_rules"],
         "guardrails": persona_core["guardrails"],
         "persona_fidelity": persona_fidelity,
+        "quiet_luxury": persona_core.get("quiet_luxury"),
     }
     model_packet = {
         "facts": [
@@ -393,7 +402,13 @@ def compose_invoice_copy(
         violations, conformance = _candidate_violations(candidate, contract=contract)
         if str(metadata.get("done_reason") or "").casefold() == "length":
             violations.append("model_output_truncated")
-        taste = _taste_score(candidate, contract=contract, violations=violations)
+        taste = _taste_score(
+            candidate,
+            contract=contract,
+            violations=violations,
+            conformance=conformance,
+        )
+        quiet_luxury = dict((conformance or {}).get("quiet_luxury_critic") or {})
         accepted = bool(
             not violations
             and taste["overall"] >= float(minimum_score)
@@ -404,6 +419,7 @@ def compose_invoice_copy(
             and taste["persona_fidelity"] == 1.0
             and taste["action_integrity"] == 1.0
             and taste["client_surface_clean"] == 1.0
+            and all(score == 1.0 for score in quiet_luxury.get("dimensions", {}).values())
         )
         row = {
             "attempt": index,
@@ -418,11 +434,18 @@ def compose_invoice_copy(
             "violations": violations,
             "taste_score": taste,
             "voice_conformance": conformance,
+            "quiet_luxury_critic": quiet_luxury,
             "raw_model_output_included": False,
         }
         attempt_rows.append(row)
         if accepted and (selected is None or taste["overall"] > selected["taste_score"]["overall"]):
-            selected = {**candidate, "attempt": index, "taste_score": taste, "voice_conformance": conformance}
+            selected = {
+                **candidate,
+                "attempt": index,
+                "taste_score": taste,
+                "voice_conformance": conformance,
+                "quiet_luxury_critic": quiet_luxury,
+            }
         if violations:
             prior_rejections = violations
 
@@ -471,6 +494,7 @@ def compose_invoice_copy(
         "voice_profile_ref": "agent_voice_profile:clara",
         "persona_fidelity": persona_fidelity_note_for_speaker("clara"),
         "voice_conformance": selected["voice_conformance"],
+        "quiet_luxury_critic": selected["quiet_luxury_critic"],
         "critic_score": selected["taste_score"],
         "packet_score": {
             "overall": packet_score.overall,

@@ -281,8 +281,7 @@ def _followup_draft(step: str, invoice_ref: str) -> dict[str, str]:
             "subject": f"Following up: {invoice_ref}",
             "body": (
                 "Hi Draper,\n\n"
-                "I'm checking in on the St. Anne's invoice. If there are any issues, "
-                "I'm happy to help.\n\n"
+                + f"A quick check on invoice {invoice_ref}: I want to make sure it reached Glenn.\n\n"
                 + render_loop_closing_ask(closure)
                 + "\n\n"
                 + signoff
@@ -293,8 +292,7 @@ def _followup_draft(step: str, invoice_ref: str) -> dict[str, str]:
         "subject": f"Following up with Glenn: {invoice_ref}",
         "body": (
             "Hi Draper,\n\n"
-            "I'm checking in on the St. Anne's invoice. If Glenn has any issues or questions, "
-            "I'm happy to help.\n\n"
+            + f"A quick check on invoice {invoice_ref}: I want to make sure Glenn has it.\n\n"
             + render_loop_closing_ask(closure)
             + "\n\n"
             + signoff
@@ -346,6 +344,7 @@ def _follow_up(
             "voice_profile_ref": voice_conformance["voice_profile_ref"],
             "voice_conformance": voice_conformance,
             "loop_closing_ask_conformance": clara_conformance["loop_closing_ask"],
+            "quiet_luxury_critic": clara_conformance["quiet_luxury_critic"],
             "gated": True,
             "send_performed": False,
             "authority_boundary": {

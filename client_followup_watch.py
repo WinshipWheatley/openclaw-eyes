@@ -251,7 +251,7 @@ class ClientFollowupWatchStore:
         )
         body = (
             "Hello,\n\n"
-            + f"I'm checking in on {invoice_ref}. If there are any issues or questions, I'm happy to help."
+            + f"A quick check on invoice {invoice_ref}: I want to make sure it reached the right person."
             + "\n\n"
             + render_loop_closing_ask(closure)
             + "\n\n"
@@ -283,6 +283,7 @@ class ClientFollowupWatchStore:
                 "voice_profile_ref": voice_conformance["voice_profile_ref"],
                 "voice_conformance": voice_conformance,
                 "loop_closing_ask_conformance": clara_conformance["loop_closing_ask"],
+                "quiet_luxury_critic": clara_conformance["quiet_luxury_critic"],
                 "authority_boundary": dict(AUTHORITY_BOUNDARY_PROPOSAL),
             },
             risk_warning="Follow-up draft is proposal-only. SEND_HOLD and Guardian/operator approval are required before any send.",
@@ -307,6 +308,7 @@ class ClientFollowupWatchStore:
             "voice_profile_ref": voice_conformance["voice_profile_ref"],
             "voice_conformance": voice_conformance,
             "loop_closing_ask_conformance": clara_conformance["loop_closing_ask"],
+            "quiet_luxury_critic": clara_conformance["quiet_luxury_critic"],
             "approval_request": approval_request,
             "gated": True,
             "send_performed": False,

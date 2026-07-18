@@ -32,8 +32,9 @@ def test_intro_is_contextual_not_fixed_canned_block():
     capital_body = payload["fixtures"]["capital_hilton_followup_thread"]["draft_candidate"]["body"]
 
     assert live_body != capital_body
-    assert "Live Arts MD invoice package" in live_body
-    assert "Capital Hilton invoice package" in capital_body
+    assert "confirmed Live Arts MD invoice" in live_body
+    assert "I hope this note finds you well" not in live_body
+    assert "confirmed Excel invoice" in capital_body
     assert payload["first_contact_intro_policy"]["contextual_not_canned"] is True
 
 

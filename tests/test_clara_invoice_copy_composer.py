@@ -124,5 +124,14 @@ def test_compose_rejects_machine_copy_and_selects_voice_conformant_take() -> Non
     assert result["critic_score"]["overall"] == 1.0
     assert result["critic_score"]["client_surface_clean"] == 1.0
     assert result["critic_score"]["persona_fidelity"] == 1.0
+    assert result["critic_score"]["severity_integrity"] == 1.0
+    assert result["critic_score"]["easy_to_decline"] == 1.0
+    assert result["critic_score"]["organized_not_stranger"] == 1.0
+    assert result["quiet_luxury_critic"]["flow"] == {
+        "Recognize": True,
+        "Clarify": True,
+        "Guide": True,
+        "Confirm": True,
+    }
     assert result["packet_score"]["overall"] == 1.0
     assert result["authority_boundary"]["email_send_performed"] is False
