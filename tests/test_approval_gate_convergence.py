@@ -75,6 +75,25 @@ def test_invoice_send_executor_is_registered_but_send_hold_blocks_execution():
     assert ready_after_hold["external_send_allowed"] is False
 
 
+def test_exact_gmail_send_links_approved_guardian_receipt_without_hiding_registered_executor():
+    convergence = convergence_for_surface(
+        "exact_gmail_send",
+        send_hold_active=True,
+        approval_status="APPROVED",
+        approval_receipt_ref="hitl_pending_store:5FF438AC#decision_receipt",
+    )
+
+    assert convergence["executor_registered"] is True
+    assert convergence["executor"] == "cassandra_exact_send_executor"
+    assert convergence["g3_gate_state"] == GateState.DONE.value
+    assert convergence["approval_receipt_linked"] is True
+    assert convergence["approval_receipt_ref"] == "hitl_pending_store:5FF438AC#decision_receipt"
+    assert convergence["g3_execution_eligible"] is True
+    assert convergence["send_hold_active"] is True
+    assert convergence["execution_allowed"] is False
+    assert convergence["external_send_allowed"] is False
+
+
 @pytest.mark.parametrize(
     ("text", "surface"),
     [

@@ -50,6 +50,27 @@ LEGACY_TIER_TO_G3: dict[str, dict[str, Any]] = {
 
 
 SURFACE_CONVERGENCE: dict[str, dict[str, Any]] = {
+    "exact_gmail_send": {
+        "surface": "exact_gmail_send",
+        "legacy_brain": None,
+        "legacy_gate": None,
+        "legacy_tier": "hard_tier_2",
+        "canonical_gate": G3_GATE,
+        "g3_gate_state": "PENDING_APPROVAL",
+        "single_authoritative_gate": G3_GATE,
+        "legacy_gate_runtime_role": "none",
+        "legacy_direct_send_allowed": False,
+        "double_gate_allowed": False,
+        "executor_registered": True,
+        "executor_registration_owner": "hitl_action_service.register_builtin_action_dispatchers",
+        "executor": "cassandra_exact_send_executor",
+        "registration_independent_of_send_hold": True,
+        "approval_required": True,
+        "approval_receipt_linked": False,
+        "execution_allowed": False,
+        "external_send_allowed": False,
+        "send_hold_ref": SEND_HOLD_REF,
+    },
     "invoice_send": {
         "surface": "invoice_send",
         "legacy_brain": None,
@@ -150,7 +171,13 @@ def map_legacy_tier_to_g3(tier: int | str) -> dict[str, Any]:
     return mapped
 
 
-def convergence_for_surface(surface: str, *, send_hold_active: bool = True) -> dict[str, Any]:
+def convergence_for_surface(
+    surface: str,
+    *,
+    send_hold_active: bool = True,
+    approval_status: str | None = None,
+    approval_receipt_ref: str | None = None,
+) -> dict[str, Any]:
     normalized = str(surface or "").strip()
     base = deepcopy(SURFACE_CONVERGENCE.get(normalized))
     if base is None:
@@ -172,8 +199,15 @@ def convergence_for_surface(surface: str, *, send_hold_active: bool = True) -> d
             "send_hold_ref": SEND_HOLD_REF,
         }
     base["send_hold_active"] = bool(send_hold_active)
+    normalized_approval = str(approval_status or "").strip().upper()
+    if normalized_approval == "APPROVED" and normalized == "exact_gmail_send":
+        base["g3_gate_state"] = "DONE"
+        base["approval_receipt_linked"] = True
+        base["approval_receipt_ref"] = str(approval_receipt_ref or "")
+        base["g3_execution_eligible"] = True
     if send_hold_active:
-        base["executor_registered"] = False
+        if not base.get("registration_independent_of_send_hold"):
+            base["executor_registered"] = False
         base["execution_allowed"] = False
         base["external_send_allowed"] = False
     return base

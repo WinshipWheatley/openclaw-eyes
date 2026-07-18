@@ -2668,6 +2668,12 @@ def run_exact_send_operator_action_routeback(
         gate_convergence = convergence_for_surface(
             "exact_gmail_send",
             send_hold_active=send_hold_active,
+            approval_status=str(action.get("status") or ""),
+            approval_receipt_ref=(
+                f"hitl_pending_store:{action_id}#decision_receipt"
+                if action_id and isinstance(action.get("decision_receipt"), Mapping)
+                else None
+            ),
         )
         receipt = _exact_send_refusal_receipt(
             schema_version=EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_SCHEMA,
