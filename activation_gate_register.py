@@ -34,6 +34,7 @@ W2_VALIDATED_INVOICE_GATE_LAST_VERIFIED_AT = "2026-07-17T18:39:51-04:00"
 DANK_PACKET_PIPELINE_LAST_VERIFIED_AT = "2026-07-17T20:08:58-04:00"
 CLARA_COPY_TASTE_PASS_LAST_VERIFIED_AT = "2026-07-17T21:21:20-04:00"
 GUARDIAN_BUTTON_UI_LAST_VERIFIED_AT = "2026-07-17T21:14:16-04:00"
+QUIET_LUXURY_PROMOTION_LAST_VERIFIED_AT = "2026-07-18T00:37:04-04:00"
 
 LIVE_STATE_VALUES = (
     "enabled_verified",
@@ -981,8 +982,8 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
                 "immutable persona cores derive from agent_voice_profiles and the signed Quiet Luxury doctrine; no PacketEngine-local voice registry remains",
                 code_default="daemon consumers use a standing profile reference; spawned consumers receive the core only in the first package",
                 production=(
-                    "Quiet Luxury promotion commit f98cbd10 is on the live branch; request-response "
-                    "owner restart and post-promotion delivery-suppressed canary remain required"
+                    "active on request-response owner PID 1355868; the post-promotion Cassandra "
+                    "delivery-suppressed canary carried the Quiet Luxury doctrine through PacketEngine"
                 ),
                 audit_report=(
                     "operator first-class pass is Telegram msg 1833; the canonical doc carries the "
@@ -1011,9 +1012,11 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
                 "/home/openclaw/Operator/to-codex/FABLE-RELAY-OPERATOR-DO-IT-1833-EXECUTE-BOTH-20260718.md",
             ],
             canary_status=(
-                "Quiet Luxury operator-approved promotion landed at f98cbd10; pre-promotion V1-V6 "
-                "fleet voice canary remains valid for the shared boundary; post-restart Quiet Luxury "
-                "owner canary is required before LIVE-VERIFIED promotion sign-off"
+                "LIVE-VERIFIED Quiet Luxury promotion: request maestro_telegram_quiet-luxury-live-"
+                "cassandra-revoice-20260718T043700Z_a6db287f9a45 used PacketEngine without fallback; "
+                "doctrine_ref quiet_luxury:clara_cassandra:v1 reached final owner proof; Cassandra "
+                "voice and all critic dimensions passed; local model true, external model false, "
+                "Telegram/email/ledger effects false, SEND_HOLD visible"
             ),
             risk_level="medium",
             owner="Fable / PC Codex Desktop",
@@ -1021,7 +1024,7 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
             enabled_by="operator persona-to-packet mandate, existing fleet voice activation, and Telegram msg 1833 first-class Quiet Luxury pass",
             disabled_by="explicitly roll back PacketEngine persona projection while retaining final-output voice enforcement",
             rollback_note="fall back to the canonical frontdoor voice prompt; never restore duplicated per-module persona text",
-            next_required_step="restart the request-response owner and run a delivery-suppressed Quiet Luxury packet/copy canary",
+            next_required_step="keep doctrine proof propagation and named critic checks in the shared fleet battery",
             activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="only explicit rollback after a demonstrated owner-surface voice regression",
@@ -1030,8 +1033,9 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
                 "packet_engine.py:build_agent_packet",
                 "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
                 "Operator/from-codex/QUIET-LUXURY-PROMOTION-STAGED-OPERATOR-PASS-PACKAGE-20260717-PC-Codex-Desktop.md",
+                "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_maestro_telegram_quiet-luxury-live-cassandra-revoice-20260718T043700Z_a6db287f9a45.json",
             ],
-            last_verified_at=DANK_PACKET_PIPELINE_LAST_VERIFIED_AT,
+            last_verified_at=QUIET_LUXURY_PROMOTION_LAST_VERIFIED_AT,
         ),
         _capability(
             capability_id="clara_invoice_copy_taste_pass",

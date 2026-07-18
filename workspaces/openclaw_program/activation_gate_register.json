@@ -26,7 +26,7 @@
         "OPENCLAW_ACTION_RUNTIME"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -80,7 +80,7 @@
         "dry_run mode; Gemini worker dispatch operator-gated"
       ],
       "gate_stage": "dry_run",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "dry_run_verified",
       "live_state": {
         "confidence": "medium",
@@ -126,7 +126,7 @@
         "contract toggles: runtime/model/agent/tool/package send authority false"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -174,7 +174,7 @@
         "SEND_HOLD.md"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -272,7 +272,7 @@
         "brain_dump_parser.py --dry-run"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -294,12 +294,14 @@
     {
       "activation_allowed_now": false,
       "audits": [
-        "/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md"
+        "/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md",
+        "/home/openclaw/Operator/to-codex/FABLE-STAGE-QUIET-LUXURY-PROMOTION-FOR-OPERATOR-PASS-20260717.md",
+        "/home/openclaw/Operator/to-codex/FABLE-RELAY-OPERATOR-DO-IT-1833-EXECUTE-BOTH-20260718.md"
       ],
-      "canary_status": "LIVE-VERIFIED V1-V6: Maestro conversational contraction, Cassandra polished assurance, Chief clipped two-sentence shape, Niles one restrained Australian turn, Guardian state/boundary split, Hermes stands-ready/remains-unchanged; all semantic/style contracts passed with no wrong or double response",
+      "canary_status": "LIVE-VERIFIED Quiet Luxury promotion: request maestro_telegram_quiet-luxury-live-cassandra-revoice-20260718T043700Z_a6db287f9a45 used PacketEngine without fallback; doctrine_ref quiet_luxury:clara_cassandra:v1 reached final owner proof; Cassandra voice and all critic dimensions passed; local model true, external model false, Telegram/email/ledger effects false, SEND_HOLD visible",
       "capability_id": "canonical_persona_delivery",
       "current_state_if_verifiable": {
-        "audit_report": "core changes require an operator approval receipt; growing backstory is append-only and must remain ledger-grounded",
+        "audit_report": "operator first-class pass is Telegram msg 1833; the canonical doc carries the Recognize -> Clarify -> Guide -> Confirm flow and nine named critic dimensions",
         "code_default": "daemon consumers use a standing profile reference; spawned consumers receive the core only in the first package",
         "production": "enabled_verified",
         "summary": "live reconciliation verified active/configured state from safe read-only whitelisted source; activation_allowed_now remains false"
@@ -307,18 +309,20 @@
       "default_state": "on_from_canonical_profile",
       "disabled_by": "explicitly roll back PacketEngine persona projection while retaining final-output voice enforcement",
       "display_name": "Canonical two-layer agent persona delivery",
-      "enabled_by": "operator persona-to-packet mandate and existing fleet voice activation",
+      "enabled_by": "operator persona-to-packet mandate, existing fleet voice activation, and Telegram msg 1833 first-class Quiet Luxury pass",
       "evidence_refs": [
         "agent_voice_profiles.py:immutable_persona_core_for_speaker",
         "packet_engine.py:build_agent_packet",
-        "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json"
+        "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+        "Operator/from-codex/QUIET-LUXURY-PROMOTION-STAGED-OPERATOR-PASS-PACKAGE-20260717-PC-Codex-Desktop.md",
+        "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_maestro_telegram_quiet-luxury-live-cassandra-revoice-20260718T043700Z_a6db287f9a45.json"
       ],
       "flag_or_config": [
         "OPENCLAW_FLEET_VOICE_BOUNDARY",
         "OPENCLAW_PACKET_ENGINE"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T20:08:58-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -384,7 +388,7 @@
         "related_findings": [],
         "status": "enabled_verified"
       },
-      "next_required_step": "keep canonical style-marker and semantic-preservation checks active during the broader battery",
+      "next_required_step": "keep doctrine proof propagation and named critic checks in the shared fleet battery",
       "operator_approval_required": true,
       "owner": "Fable / PC Codex Desktop",
       "reason_if_off": "only explicit rollback after a demonstrated owner-surface voice regression",
@@ -393,11 +397,18 @@
       "source_files": [
         "agent_voice_profiles.py",
         "packet_engine.py",
-        "frontdoor_prompt.py"
+        "frontdoor_prompt.py",
+        "docs/doctrine/CLARA_CASSANDRA_QUIET_LUXURY.md",
+        "quiet_luxury_doctrine.py",
+        "openclaw_lux_renderer.py",
+        "openclaw_terminology_adapter.py",
+        "clara_invoice_copy_composer.py"
       ],
       "tests": [
         "tests/test_agent_voice_profiles.py",
-        "tests/test_packet_engine.py"
+        "tests/test_packet_engine.py",
+        "tests/test_quiet_luxury_persona_promotion.py",
+        "tests/test_clara_invoice_copy_composer.py"
       ]
     },
     {
@@ -482,7 +493,7 @@
         "OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -543,7 +554,7 @@
         "TELEGRAM_AUTHORIZED_USER_ID"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -587,7 +598,7 @@
         "local JSON dry-run inbox paths; no live Telegram credential flag"
       ],
       "gate_stage": "dry_run",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "dry_run_verified",
       "live_state": {
         "confidence": "medium",
@@ -690,7 +701,7 @@
         "chief_llm.claude_json"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -733,7 +744,7 @@
         "unknown"
       ],
       "gate_stage": "proposed",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -777,7 +788,7 @@
         "OPENCLAW_PACKET_SOURCE"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -861,7 +872,7 @@
         "OPENCLAW_CONTROL_PLANE_EMIT"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -916,7 +927,7 @@
         "unknown_live_wiring_flag"
       ],
       "gate_stage": "synthetic",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1040,7 +1051,7 @@
         "CASSANDRA_EXTERNAL_MODEL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1099,7 +1110,7 @@
         "chief_llm.external_model_packet_policy"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1148,7 +1159,7 @@
         "OPENCLAW_EXTERNAL_LM2_SHADOW_CREDENTIAL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1336,7 +1347,7 @@
         "OPENCLAW_FRONTDOOR_MODEL_MAX_GB"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -1433,7 +1444,7 @@
         "approval receipt inputs only; no live provider flag"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1479,7 +1490,7 @@
         "polish_loop/git_task_guard.sh"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1581,7 +1592,7 @@
         "HITL_FLAG_PATH"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -1640,7 +1651,7 @@
         "openclaw-8b-keepwarm.timer"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1696,7 +1707,7 @@
         "OPENCLAW_INTERPRETER_LM"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -1926,7 +1937,7 @@
         "legal-console synthetic_only bridge"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -1977,7 +1988,7 @@
         "OPENCLAW_LLM_DIAGNOSTICS"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2032,7 +2043,7 @@
         "OPENCLAW_LM1_SHARED_SEAM"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -2104,7 +2115,7 @@
         "GOOGLE_GENERATIVE_AI_API_KEY"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2306,7 +2317,7 @@
         "OPENCLAW_MAESTRO_BRAIN_LIVE"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2360,7 +2371,7 @@
         "NO_AUTHORITY_FLAGS"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2407,7 +2418,7 @@
         "NEMOTRON_MODEL"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2461,7 +2472,7 @@
         "metadata-only intake contract; no live private-root flag"
       ],
       "gate_stage": "synthetic",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -2509,7 +2520,7 @@
         "OPENCLAW_OLLAMA_MODEL_DEEP"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2567,7 +2578,7 @@
         "OpenAIConsultAdapter"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -2879,7 +2890,7 @@
         "OPENCLAW_PACKET_SOURCE"
       ],
       "gate_stage": "canary",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "enabled_verified",
       "live_state": {
         "confidence": "high",
@@ -2952,7 +2963,7 @@
         "OPENCLAW_SEND_HOLD"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -3005,7 +3016,7 @@
         "OPENCLAW_POLISH_LOOP_FILE_LEDGER_BRIDGE"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3067,7 +3078,7 @@
         "OPENCLAW_POLISH_LOOP_LOCAL_BUILDER"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3127,7 +3138,7 @@
         "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3190,7 +3201,7 @@
         "OPENCLAW_POLISH_LOOP_SIZE_ROUTER_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3252,7 +3263,7 @@
         "OPENCLAW_POLISH_LOOP_TASK_PACKAGE_V1"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3317,7 +3328,7 @@
         "OPENCLAW_PROTECTED_GENERATE_OLLAMA_PROBE_TIMEOUT"
       ],
       "gate_stage": "operator_approved_live",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "unset_default_off",
       "live_state": {
         "confidence": "high",
@@ -3369,7 +3380,7 @@
         "scripted gate report; no enable flag"
       ],
       "gate_stage": "blocked",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -3473,7 +3484,7 @@
         "autonomy_mode.py state file"
       ],
       "gate_stage": "intentionally_off",
-      "last_verified_at": "2026-07-17T21:21:20-04:00",
+      "last_verified_at": "2026-07-18T00:37:04-04:00",
       "live_production_state": "not_applicable",
       "live_state": {
         "confidence": "none",
@@ -3505,7 +3516,7 @@
     "proposed",
     "unknown"
   ],
-  "generated_at": "2026-07-17T21:21:20-04:00",
+  "generated_at": "2026-07-18T00:37:04-04:00",
   "live_env_whitelist": [
     "OPENCLAW_INTERPRETER_LM",
     "OPENCLAW_FRONTDOOR_MODEL_PROFILE",
