@@ -454,3 +454,101 @@ def test_copy_revision_migrates_legacy_same_artifact_schema_without_deleting_his
         assert conn.execute("SELECT count(*) FROM invoice_send_transactions").fetchone()[0] == 2
         with pytest.raises(sqlite3.IntegrityError, match="immutable"):
             conn.execute("DELETE FROM invoice_send_transactions_pre_copy_revision_v1")
+
+
+def _live_success_receipt(envelope: dict) -> dict:
+    return {
+        "receipt_id": "exact_send_live_transport_terminal_receipt:verified",
+        "response_status": "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN",
+        "terminal_outcome": "success",
+        "transport_ok": True,
+        "broker_called": True,
+        "live_broker_called": True,
+        "gmail_api_called": True,
+        "email_send_performed": True,
+        "fixture_only_transport": False,
+        "message_id": "provider-message-123",
+        "thread_id": "provider-thread-123",
+        "recipient": envelope["to"][0],
+        "attachment_sha256": [envelope["artifact"]["sha256"]],
+        "body_sha256": envelope["copy"]["body_sha256"],
+    }
+
+
+def test_sent_verified_requires_bound_live_success_and_is_append_only(tmp_path: Path) -> None:
+    packet, contract, artifact = _inputs(tmp_path)
+    db_path = tmp_path / "objectives.sqlite"
+    prepared = waist.prepare_invoice_send(
+        raw_operator_ask="Prepare without sending.",
+        deterministic_packet_aid=packet,
+        immutable_copy_contract=contract,
+        artifact_receipt=artifact,
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    receipt = _live_success_receipt(prepared["envelope"])
+
+    first = waist.record_sent_verified_transaction(
+        db_path=db_path,
+        transaction_id=prepared["transaction"]["transaction_id"],
+        terminal_receipt=receipt,
+        recorded_at="2026-07-18T05:00:00+00:00",
+    )
+    replay = waist.record_sent_verified_transaction(
+        db_path=db_path,
+        transaction_id=prepared["transaction"]["transaction_id"],
+        terminal_receipt=receipt,
+        recorded_at="2026-07-18T05:01:00+00:00",
+    )
+
+    assert first["lifecycle_state"] == waist.SENT_VERIFIED
+    assert first["provider_receipt"]["message_id"] == "provider-message-123"
+    assert first["authority_boundary"]["send_lifecycle_ledger_posted"] is True
+    assert first["authority_boundary"]["business_ledger_posted"] is False
+    assert replay["decision_id"] == first["decision_id"]
+    assert replay["idempotent_replay"] is True
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute(
+            "SELECT lifecycle_state FROM invoice_send_transactions"
+        ).fetchone()[0] == waist.SENT_VERIFIED
+        assert conn.execute(
+            "SELECT count(*) FROM invoice_send_transaction_decisions WHERE lifecycle_state = ?",
+            (waist.SENT_VERIFIED,),
+        ).fetchone()[0] == 1
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error"),
+    [
+        ("recipient", "other@example.com", "recipient changed"),
+        ("attachment_sha256", ["0" * 64], "attachment changed"),
+        ("body_sha256", "sha256:" + "0" * 64, "body changed"),
+        ("live_broker_called", False, "live provider success"),
+        ("message_id", "", "provider message id"),
+    ],
+)
+def test_sent_verified_refuses_unbound_or_nonlive_receipt(
+    tmp_path: Path, field: str, value: object, error: str
+) -> None:
+    packet, contract, artifact = _inputs(tmp_path)
+    db_path = tmp_path / "objectives.sqlite"
+    prepared = waist.prepare_invoice_send(
+        raw_operator_ask="Prepare without sending.",
+        deterministic_packet_aid=packet,
+        immutable_copy_contract=contract,
+        artifact_receipt=artifact,
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    receipt = {**_live_success_receipt(prepared["envelope"]), field: value}
+
+    with pytest.raises(waist.InvoiceEnvelopeError, match=error):
+        waist.record_sent_verified_transaction(
+            db_path=db_path,
+            transaction_id=prepared["transaction"]["transaction_id"],
+            terminal_receipt=receipt,
+        )
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute(
+            "SELECT lifecycle_state FROM invoice_send_transactions"
+        ).fetchone()[0] == waist.PREPARED

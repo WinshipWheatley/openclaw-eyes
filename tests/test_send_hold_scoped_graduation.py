@@ -238,5 +238,6 @@ def test_cassandra_routeback_carries_production_attachment_through_scoped_hold(t
     assert result["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
     assert result["receipt"]["message_id"] == "fixture-message"
     assert result["receipt"]["attachment_sha256"] == scope["attachment_sha256"]
+    assert result["receipt"]["body_sha256"] == scoped_issue["body_sha256"]
     assert calls[0][2]["attachments"] == scope["attachment_paths"]
     assert calls[0][2]["send_hold_graduation_ref"] == str(scope["graduation_path"])

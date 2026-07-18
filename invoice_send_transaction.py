@@ -30,6 +30,7 @@ COPY_REVISION_SCHEMA_VERSION = "invoice_send_copy_revision_v1"
 CANONICAL_SENDER = "winshiplive@gmail.com"
 PREPARED = "PREPARED"
 SUPERSEDED = "SUPERSEDED"
+SENT_VERIFIED = "SENT_VERIFIED"
 LIFECYCLE_STATES = (
     PREPARED,
     SUPERSEDED,
@@ -39,7 +40,7 @@ LIFECYCLE_STATES = (
     "APPROVAL_PENDING",
     "IN_FLIGHT",
     "SENT_PENDING_VERIFY",
-    "SENT_VERIFIED",
+    SENT_VERIFIED,
     "RECONCILE_REQUIRED",
     "FAILED",
 )
@@ -921,6 +922,149 @@ def record_rebound_prepared_transaction(
         conn.close()
 
 
+def record_sent_verified_transaction(
+    *,
+    db_path: str | Path,
+    transaction_id: str,
+    terminal_receipt: Mapping[str, Any],
+    recorded_at: str | None = None,
+) -> dict[str, Any]:
+    """Graduate one PREPARED envelope after a bound live-provider success receipt."""
+
+    path = Path(db_path)
+    clean_transaction_id = _clean(transaction_id)
+    if not clean_transaction_id:
+        raise InvoiceEnvelopeError("sent verification requires a transaction id")
+    receipt = dict(terminal_receipt)
+    receipt_id = _clean(_required(receipt, "receipt_id"))
+    timestamp = _clean(recorded_at) or datetime.now(timezone.utc).isoformat()
+    decision_id = "invoice-send-decision:" + hashlib.sha256(
+        f"{clean_transaction_id}|{SENT_VERIFIED}|{receipt_id}".encode("utf-8")
+    ).hexdigest()[:24]
+
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        ensure_invoice_transaction_schema(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT * FROM invoice_send_transactions WHERE transaction_id = ?",
+            (clean_transaction_id,),
+        ).fetchone()
+        if row is None:
+            raise InvoiceEnvelopeError("sent verification requires an existing invoice transaction")
+        existing = conn.execute(
+            "SELECT decision_json FROM invoice_send_transaction_decisions WHERE decision_id = ?",
+            (decision_id,),
+        ).fetchone()
+        if row["lifecycle_state"] == SENT_VERIFIED:
+            if existing is None:
+                raise InvoiceEnvelopeError("SENT_VERIFIED transaction is missing its append-only decision")
+            decision = json.loads(existing["decision_json"])
+            if decision.get("provider_receipt", {}).get("receipt_id") != receipt_id:
+                raise InvoiceEnvelopeError("sent verification replay changed the provider receipt")
+            conn.commit()
+            return {**decision, "idempotent_replay": True}
+        if row["lifecycle_state"] != PREPARED:
+            raise InvoiceEnvelopeError("only a PREPARED transaction can become SENT_VERIFIED")
+
+        try:
+            envelope = json.loads(str(row["envelope_json"]))
+            expected_recipient = _clean(envelope["to"][0])
+            expected_attachment = _clean(envelope["artifact"]["sha256"]).lower()
+            expected_body_sha = _clean(envelope["copy"]["body_sha256"]).lower()
+        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+            raise InvoiceEnvelopeError("transaction has no valid immutable send binding") from exc
+        expected = {
+            "response_status": "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN",
+            "terminal_outcome": "success",
+            "transport_ok": True,
+            "broker_called": True,
+            "live_broker_called": True,
+            "gmail_api_called": True,
+            "email_send_performed": True,
+            "fixture_only_transport": False,
+        }
+        changed = [field for field, value in expected.items() if receipt.get(field) != value]
+        if changed:
+            raise InvoiceEnvelopeError(
+                "terminal receipt does not prove a live provider success: " + ", ".join(changed)
+            )
+        if not _clean(receipt.get("message_id")):
+            raise InvoiceEnvelopeError("terminal receipt is missing the provider message id")
+        if _clean(receipt.get("recipient")).casefold() != expected_recipient.casefold():
+            raise InvoiceEnvelopeError("terminal receipt recipient changed from the immutable envelope")
+        observed_attachments = [
+            _clean(item).lower() for item in (receipt.get("attachment_sha256") or ())
+        ]
+        if observed_attachments != [expected_attachment]:
+            raise InvoiceEnvelopeError("terminal receipt attachment changed from the immutable envelope")
+        if _clean(receipt.get("body_sha256")).lower() != expected_body_sha:
+            raise InvoiceEnvelopeError("terminal receipt body changed from the immutable envelope")
+
+        provider_receipt = {
+            "receipt_id": receipt_id,
+            "message_id": _clean(receipt["message_id"]),
+            "thread_id": _clean(receipt.get("thread_id")),
+            "recipient": expected_recipient,
+            "attachment_sha256": [expected_attachment],
+            "body_sha256": expected_body_sha,
+        }
+        decision = {
+            "schema_version": "invoice_send_transaction_decision_v1",
+            "decision_id": decision_id,
+            "transaction_id": clean_transaction_id,
+            "prior_lifecycle_state": PREPARED,
+            "lifecycle_state": SENT_VERIFIED,
+            "superseded_by_transaction_id": "",
+            "reason": "live provider success receipt matched the immutable invoice envelope",
+            "decided_at": timestamp,
+            "obligation": _obligation_identity(row),
+            "provider_receipt": provider_receipt,
+            "authority_boundary": {
+                "provider_called": True,
+                "gmail_draft_created": False,
+                "email_send_performed": True,
+                "money_moved": False,
+                "workbook_mutated": False,
+                "business_ledger_posted": False,
+                "send_lifecycle_ledger_posted": True,
+            },
+        }
+        updated = conn.execute(
+            "UPDATE invoice_send_transactions SET lifecycle_state = ?, updated_at = ? "
+            "WHERE transaction_id = ? AND lifecycle_state = ?",
+            (SENT_VERIFIED, timestamp, clean_transaction_id, PREPARED),
+        ).rowcount
+        if updated != 1:
+            raise InvoiceEnvelopeError("prepared transaction changed during sent verification")
+        conn.execute(
+            """
+            INSERT INTO invoice_send_transaction_decisions (
+              decision_id, transaction_id, prior_lifecycle_state, lifecycle_state,
+              superseded_by_transaction_id, reason, decided_at, decision_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                decision_id,
+                clean_transaction_id,
+                PREPARED,
+                SENT_VERIFIED,
+                "",
+                decision["reason"],
+                timestamp,
+                _stable_json(decision),
+            ),
+        )
+        conn.commit()
+        return {**decision, "idempotent_replay": False}
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def prepare_invoice_send_revision(
     *,
     prior_transaction_id: str,
@@ -1026,6 +1170,7 @@ __all__ = [
     "InvoiceSendEnvelope",
     "LIFECYCLE_STATES",
     "PREPARED",
+    "SENT_VERIFIED",
     "assemble_invoice_send_envelope",
     "compose_invoice_copy",
     "ensure_invoice_transaction_schema",
@@ -1033,4 +1178,5 @@ __all__ = [
     "prepare_invoice_send_revision",
     "record_prepared_transaction",
     "record_rebound_prepared_transaction",
+    "record_sent_verified_transaction",
 ]

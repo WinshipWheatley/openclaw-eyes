@@ -3963,6 +3963,7 @@ def _exact_send_terminal_receipt(
     transport_ok = terminal_outcome == "success"
     response_status = _exact_send_terminal_response_status(terminal_outcome)
     idempotency_key = str(transport_result.get("idempotency_key") or request_id)
+    body = str(state.get("body") or "")
     return {
         "schema_version": EXACT_SEND_LIVE_TRANSPORT_TERMINAL_RECEIPT_SCHEMA,
         "receipt_id": "exact_send_live_transport_terminal_receipt:" + _short_hash(
@@ -3978,6 +3979,7 @@ def _exact_send_terminal_receipt(
         "objective_id": objective_id,
         "recipient": str(state.get("recipient") or ""),
         "subject": str(state.get("subject") or ""),
+        "body_sha256": "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest(),
         "payload_hash": str(state.get("payload_hash") or ""),
         "observed_payload_hash": str(state.get("observed_payload_hash") or ""),
         "test_loopback_only": bool(state.get("test_loopback_only")),
