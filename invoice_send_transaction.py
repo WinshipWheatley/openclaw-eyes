@@ -168,14 +168,20 @@ def _validate_copy(
     if not _clean(_required(packet, "service_period")):
         raise InvoiceCopyConformanceError("external copy requires a service period")
 
-    amount = _amount_text(int(_required(packet, "amount_minor_units")), _clean(_required(packet, "currency")))
+    amount_minor_units = int(_required(packet, "amount_minor_units"))
+    currency = _clean(_required(packet, "currency"))
+    amount = _amount_text(amount_minor_units, currency)
     required_facts = {
         "invoice_number": _clean(_required(packet, "invoice_number")),
         "service_period": _clean(_required(packet, "service_period")),
-        "amount_minor_units": amount,
     }
     folded = combined.casefold()
     missing = [name for name, value in required_facts.items() if value.casefold() not in folded]
+    amount_variants = {amount.casefold()}
+    if currency.upper() == "USD" and amount_minor_units % 100 == 0:
+        amount_variants.add(f"${amount_minor_units // 100:,}")
+    if not any(value in folded for value in amount_variants):
+        missing.append("amount_minor_units")
     if missing:
         raise InvoiceCopyConformanceError("candidate copy omitted immutable facts: " + ", ".join(missing))
     for claim in contract.get("forbidden_claims") or ():

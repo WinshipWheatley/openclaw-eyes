@@ -271,7 +271,7 @@ def test_copy_revision_atomically_rebinds_same_artifact_and_leaves_one_prepared(
             "subject": "LAMD-W0-CANARY: July 2026 Monthly Speaker Rental Invoice",
             "body": (
                 "Hi Megan,\n\nAttached is Invoice LAMD-W0-CANARY for July 2026, covering "
-                "the monthly speaker rental at $100.00.\n\nCould you send me a quick note once the invoice "
+                "the monthly speaker rental at $100.\n\nCould you send me a quick note once the invoice "
                 "is in your accounting queue? That helps me know it landed and keeps our records straight."
                 "\n\nWarmly,\nClara Reid"
             ),
