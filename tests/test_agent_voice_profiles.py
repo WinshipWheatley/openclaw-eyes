@@ -21,6 +21,7 @@ REQUIRED_PROFILE_FIELDS = {
     "revoice_style_guidance",
     "revoice_style_marker_contract",
     "persona_fidelity",
+    "autonomy_ladder",
     "vocabulary",
     "examples",
     "guardrails",
@@ -230,6 +231,8 @@ def test_read_model_machine_proof_and_tts_rules():
     assert read_model["tts_rules"]["markdown_policy"] == "strip_before_tts"
     assert read_model["machine_proof"]["tts_rules_captured"] is True
     assert read_model["machine_proof"]["all_authority_boundaries_forbid_send_ledger_portal"] is True
+    assert read_model["machine_proof"]["all_operator_approved_initial_autonomy_rungs_present"] is True
+    assert read_model["machine_proof"]["autonomy_rungs_confer_no_new_authority"] is True
     assert read_model["machine_proof"]["clara_only_external_client_facing_profile"] is True
     assert read_model["machine_proof"]["cassandra_internal_only"] is True
 
@@ -248,3 +251,33 @@ def test_export_writes_local_bridge_and_wiki(tmp_path):
     assert Path(result["wiki_path"]).exists()
     assert local["status"] == profiles.CONTRACT_STATUS
     assert len(local["profiles"]) == len(profiles.SPEAKER_REFS)
+
+
+def test_operator_approved_initial_autonomy_rungs_are_profile_wide_and_non_granting() -> None:
+    by_speaker = {row["speaker_ref"]: row for row in profiles.build_profiles()}
+
+    assert {
+        speaker: row["autonomy_ladder"]["rung"] for speaker, row in by_speaker.items()
+    } == profiles.AUTONOMY_RUNG_ASSIGNMENTS
+    for row in by_speaker.values():
+        assignment = row["autonomy_ladder"]
+        assert assignment["assignment_status"] == "operator_approved_initial_rung"
+        assert assignment["classification_only"] is True
+        assert assignment["new_authority_conferred"] is False
+        assert assignment["send_authority_implied"] is False
+        assert assignment["money_authority_implied"] is False
+        assert assignment["delete_authority_implied"] is False
+        assert assignment["secret_authority_implied"] is False
+        assert row["authority_boundary"]["can_send"] is False
+        assert row["authority_boundary"]["can_mutate_ledger"] is False
+
+
+def test_live_voice_conformance_projects_the_approved_autonomy_rung() -> None:
+    result = profiles.validate_voice_conformance(
+        "cassandra",
+        "The review packet remains unchanged and is prepared for your review.",
+    )
+
+    assert result["passed"] is True
+    assert result["autonomy_ladder"]["rung"] == "PREPARE_ONLY"
+    assert result["autonomy_ladder"]["new_authority_conferred"] is False

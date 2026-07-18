@@ -459,6 +459,30 @@ FLEET_CULTURE_TRAITS = (
     "camaraderie_only_from_ledger_grounded_shared_history",
 )
 
+AUTONOMY_LADDER_RUNGS = (
+    "READ_ONLY_ADVISOR",
+    "PREPARE_ONLY",
+    "GATED_EXECUTOR",
+    "BOUNDED_DELEGATOR",
+    "MISSION_LEAD",
+)
+
+AUTONOMY_RUNG_ASSIGNMENTS = {
+    "cassandra": "PREPARE_ONLY",
+    "clara": "PREPARE_ONLY",
+    "maestro": "READ_ONLY_ADVISOR",
+    "chief": "READ_ONLY_ADVISOR",
+    "niles": "READ_ONLY_ADVISOR",
+    "guardian": "READ_ONLY_ADVISOR",
+    "hermes": "READ_ONLY_ADVISOR",
+    "openclaw": "READ_ONLY_ADVISOR",
+}
+
+AUTONOMY_ASSIGNMENT_PROVENANCE = (
+    "terminal first-class GO, operator verbatim, relayed by Fable (terminal witness), "
+    "msgs 1794+1833+terminal-GO chain"
+)
+
 PERSONA_SOURCE_REFS = (
     "agent_voice_profiles.py",
     "agent_perspective.py",
@@ -764,6 +788,19 @@ def _apply_perspective(profile: dict[str, Any]) -> dict[str, Any]:
     enriched["voice_boundary_fallback"] = VOICE_BOUNDARY_FALLBACKS[speaker_ref]
     enriched["action_promise_fallback"] = ACTION_PROMISE_FALLBACKS[speaker_ref]
     enriched["artifact_ready_template"] = ARTIFACT_READY_TEMPLATES[speaker_ref]
+    enriched["autonomy_ladder"] = {
+        "rung": AUTONOMY_RUNG_ASSIGNMENTS[speaker_ref],
+        "rung_order": list(AUTONOMY_LADDER_RUNGS),
+        "assignment_status": "operator_approved_initial_rung",
+        "operator_grant_ref": AUTONOMY_ASSIGNMENT_PROVENANCE,
+        "classification_only": True,
+        "new_authority_conferred": False,
+        "send_authority_implied": False,
+        "money_authority_implied": False,
+        "delete_authority_implied": False,
+        "secret_authority_implied": False,
+        "future_promotion_requires_separate_operator_first_class_event": True,
+    }
     quiet_luxury = doctrine_binding_for_speaker(speaker_ref)
     if quiet_luxury is not None:
         enriched["quiet_luxury"] = quiet_luxury
@@ -879,6 +916,7 @@ def validate_voice_conformance(speaker_ref: str, text: str) -> dict[str, Any]:
         "enforcement": "fail_closed",
         "style_traits": list(contract["style_traits"]),
         "persona_fidelity": dict(persona_fidelity),
+        "autonomy_ladder": dict(profile["autonomy_ladder"]),
         "quiet_luxury_critic": quiet_luxury,
         "violations": violations,
     }
@@ -1379,6 +1417,7 @@ def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
             "revoice_style_guidance",
             "revoice_style_marker_contract",
             "voice_conformance",
+            "autonomy_ladder",
             "vocabulary",
             "examples",
             "guardrails",
@@ -1419,6 +1458,20 @@ def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
                 profile["authority_boundary"]["can_send"] is False
                 and profile["authority_boundary"]["can_mutate_ledger"] is False
                 and profile["authority_boundary"]["can_submit_portal"] is False
+                for profile in profiles
+            ),
+            "all_operator_approved_initial_autonomy_rungs_present": all(
+                profile["autonomy_ladder"]["rung"]
+                == AUTONOMY_RUNG_ASSIGNMENTS[profile["speaker_ref"]]
+                for profile in profiles
+            ),
+            "autonomy_rungs_confer_no_new_authority": all(
+                profile["autonomy_ladder"]["classification_only"] is True
+                and profile["autonomy_ladder"]["new_authority_conferred"] is False
+                and profile["autonomy_ladder"]["send_authority_implied"] is False
+                and profile["autonomy_ladder"]["money_authority_implied"] is False
+                and profile["autonomy_ladder"]["delete_authority_implied"] is False
+                and profile["autonomy_ladder"]["secret_authority_implied"] is False
                 for profile in profiles
             ),
             "clara_only_external_client_facing_profile": True,
