@@ -16,6 +16,7 @@ from typing import Any, Callable, Mapping
 
 from agent_voice_profiles import (
     immutable_persona_core_for_speaker,
+    persona_fidelity_note_for_speaker,
     require_clara_copy_conformance,
 )
 from packet_dankness_critic import score_packet_dankness
@@ -25,17 +26,6 @@ COMPOSE_SCHEMA_VERSION = "clara_invoice_copy_compose_v1"
 TASTE_CONSUMER_ID = "clara_invoice_copy_taste_pass"
 DEFAULT_ATTEMPTS = 3
 MAX_BODY_WORDS = 140
-
-_WARMTH_MARKERS = (
-    "hope your week",
-    "hope you're having",
-    "glad to",
-    "a pleasure",
-    "happy to",
-    "thank you",
-    "thanks for",
-    "appreciate",
-)
 
 _MACHINE_TERMS = (
     "workflow milestone",
@@ -228,6 +218,9 @@ def _apply_structural_wrapper(
 
     subject = str(candidate.get("subject") or "").strip()
     body = str(candidate.get("body") or "").strip()
+    canonical_subject = str(contract.get("canonical_subject") or "").strip()
+    if canonical_subject:
+        subject = canonical_subject
     signoff = str(contract.get("canonical_signoff") or "").strip()
     if not body or not signoff:
         return {"subject": subject, "body": body}
@@ -265,6 +258,14 @@ def _taste_score(
         for group in required_any_groups
     )
     signoff = str(contract.get("canonical_signoff") or "").strip()
+    persona_fidelity_failed = any(
+        "voice:persona_fidelity_anti_pattern:" in item for item in violations
+    )
+    loop_closure_present = bool(
+        exact
+        and all(body.count(item) == 1 for item in exact)
+        and not persona_fidelity_failed
+    )
     client_surface_clean = bool(
         signoff
         and body.count(signoff) == 1
@@ -276,7 +277,8 @@ def _taste_score(
         "voice": 1.0 if not any(item.startswith("voice:") for item in violations) else 0.0,
         "truth": 1.0 if required and all(body.count(item) >= 1 for item in required) and all(body.count(item) == 1 for item in exact) and groups_present else 0.0,
         "human": 1.0 if greeting and body.startswith(greeting) and not any(term in body.casefold() for term in _MACHINE_TERMS) else 0.0,
-        "warmth": 1.0 if any(marker in body.casefold() for marker in _WARMTH_MARKERS) else 0.0,
+        "warmth": 1.0 if loop_closure_present else 0.0,
+        "persona_fidelity": 1.0 if not persona_fidelity_failed else 0.0,
         "concise": 1.0 if 25 <= len(body.split()) <= MAX_BODY_WORDS else 0.5 if len(body.split()) <= MAX_BODY_WORDS else 0.0,
         "action_integrity": 1.0 if not any(term in body.casefold() for term in _UNPROVEN_ACTION_TERMS) else 0.0,
         "non_repetitive": 1.0 if all(body.count(item) == 1 for item in required) else 0.5,
@@ -294,12 +296,14 @@ def _prompt_for_attempt(
     prior_rejections: tuple[str, ...],
 ) -> str:
     persona_core = immutable_persona_core_for_speaker("clara")
+    persona_fidelity = persona_fidelity_note_for_speaker("clara")
     persona = {
         "identity": persona_core["identity"],
         "prompt_descriptor": persona_core["prompt_descriptor"],
         "style_traits": persona_core["style_traits"],
         "copy_rules": persona_core["copy_rules"],
         "guardrails": persona_core["guardrails"],
+        "persona_fidelity": persona_fidelity,
     }
     model_packet = {
         "facts": [
@@ -336,9 +340,9 @@ def _prompt_for_attempt(
         "Use only the allowed facts. Do not mention systems, packets, hashes, approvals, gates, "
         "workflows, internal status, source paths, citations, attachment metadata, or hashes. "
         "Use plain text with no markdown. Do not claim the email was sent, delivered, or submitted. "
-        "Keep it warm, concise, natural, and professionally human. Include one brief, natural "
-        "relationship-aware warmth sentence, such as a simple thanks or hoping their week is going "
-        "well; never use 'I hope this note finds you well.' Preserve every required exact "
+        "Keep it concise, natural, and professionally human. Clara is quietly confident: grace comes "
+        "through poise and brevity. The closing ask and its human reason ARE the warmth. Add no "
+        "solicitous pleasantry, eagerness to please, filler thanks, or well-wish. Preserve every required exact "
         "fact at least once and every structural atom exactly once, including the closing ask and its human reason. Do not write a signoff; "
         "the system appends Clara's canonical signoff after generation.\n"
         f"Canonical Clara persona:\n{_stable_json(persona)}"
@@ -397,6 +401,7 @@ def compose_invoice_copy(
             and taste["truth"] == 1.0
             and taste["human"] == 1.0
             and taste["warmth"] == 1.0
+            and taste["persona_fidelity"] == 1.0
             and taste["action_integrity"] == 1.0
             and taste["client_surface_clean"] == 1.0
         )
@@ -464,6 +469,7 @@ def compose_invoice_copy(
         "selected_attempt": selected["attempt"],
         "selected_model": attempt_rows[selected["attempt"] - 1]["model"],
         "voice_profile_ref": "agent_voice_profile:clara",
+        "persona_fidelity": persona_fidelity_note_for_speaker("clara"),
         "voice_conformance": selected["voice_conformance"],
         "critic_score": selected["taste_score"],
         "packet_score": {
@@ -513,6 +519,7 @@ def record_invoice_copy_taste_pass(result: Mapping[str, Any], *, path: Any = Non
         "packet_id": str(result.get("taste_pass_id") or ""),
         **dict(result.get("packet_score") or {}),
         "copy_critic_score": dict(result.get("critic_score") or {}),
+        "persona_fidelity": dict(result.get("persona_fidelity") or {}),
         "selected_attempt": result.get("selected_attempt"),
         "selected_model": result.get("selected_model"),
         "attempt_count": result.get("attempt_count"),

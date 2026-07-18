@@ -112,8 +112,10 @@ def main() -> int:
         "recipient_email_invented": False,
     }
     raw_ask = (
-        "Punch up the Live Arts MD July invoice email in Clara Reid's voice. Keep it concise, "
-        "warm and human, greet Megan properly, and preserve the closing ask and why."
+        "Regenerate the Live Arts MD July invoice email in Clara Reid's designed register: polished, "
+        "personable, quietly confident, poised, and brief. The closing ask and its reason carry the "
+        "warmth. Use no solicitous pleasantry, eager-agreeable padding, filler thanks, or well-wish. "
+        "Greet Megan properly and preserve the closing ask and why."
     )
     draft = build_clara_invoice_email_draft_package(
         client_ref="live_arts_md",
@@ -135,6 +137,7 @@ def main() -> int:
                 {"description": "Monthly speaker rental", "date": "July 2026", "amount": 100.0},
             ),
             "model_required_subject_atoms": ("2026-1004",),
+            "model_canonical_subject": "2026-1004: July 2026 Monthly Speaker Rental Invoice",
             "model_required_body_atoms": ("July 2026", "$100", "monthly speaker rental"),
             "model_required_any_body_atom_groups": (("attached", "included", "enclosed"),),
             "model_forbidden_claims": ("already sent",),
@@ -150,7 +153,7 @@ def main() -> int:
     )
     proof = dict(draft["model_compose_proof"] or {})
     receipt = {
-        "schema_version": "clara_invoice_copy_taste_pass_receipt_v1",
+        "schema_version": "clara_invoice_copy_taste_pass_receipt_v2",
         "generated_at": now,
         "status": "LIVE_MODEL_COPY_SELECTED_NO_SEND",
         "taste_pass_id": proof.get("taste_pass_id"),
@@ -162,6 +165,7 @@ def main() -> int:
         "invoice_number": "2026-1004",
         "invoice_amount": "$100.00",
         "model_compose_proof": proof,
+        "persona_fidelity": proof.get("persona_fidelity"),
         "send_hold_active": Path("/mnt/e/openclaw/orchestration/SEND_HOLD.md").is_file(),
         "provider_draft_created": False,
         "email_send_performed": False,

@@ -20,6 +20,7 @@ REQUIRED_PROFILE_FIELDS = {
     "copy_rules",
     "revoice_style_guidance",
     "revoice_style_marker_contract",
+    "persona_fidelity",
     "vocabulary",
     "examples",
     "guardrails",
@@ -180,6 +181,29 @@ def test_every_speaker_has_distinct_canonical_revoice_guidance():
     assert "Australian" in guidance["niles"]
     assert "gatekeeper" in guidance["guardian"]
     assert "systems-advisor" in guidance["hermes"]
+
+
+def test_every_speaker_has_register_relative_persona_fidelity_notes():
+    notes = {
+        speaker: profiles.persona_fidelity_note_for_speaker(speaker)
+        for speaker in profiles.SPEAKER_REFS
+    }
+
+    assert len({note["register_target"] for note in notes.values()}) == len(profiles.SPEAKER_REFS)
+    assert all(note["warmth_definition"] for note in notes.values())
+    assert all(note["anti_patterns"] for note in notes.values())
+    assert "quietly confident" in notes["clara"]["register_target"]
+    assert "closing ask" in notes["clara"]["warmth_definition"]
+
+
+def test_clara_persona_fidelity_rejects_solicitous_pleasantry_padding():
+    result = profiles.validate_voice_conformance(
+        "clara",
+        "Thanks for your attention, and I hope your week is going well.",
+    )
+
+    assert result["passed"] is False
+    assert {item["code"] for item in result["violations"]} == {"persona_fidelity_anti_pattern"}
 
 
 def test_read_model_machine_proof_and_tts_rules():

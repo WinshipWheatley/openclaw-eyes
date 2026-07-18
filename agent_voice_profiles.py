@@ -139,6 +139,55 @@ REVOICE_STYLE_MARKER_CONTRACTS: dict[str, dict[str, Any]] = {
     },
 }
 
+PERSONA_FIDELITY_NOTES: dict[str, dict[str, Any]] = {
+    "cassandra": {
+        "register_target": "composed discretion with calm, relationship-aware competence",
+        "warmth_definition": "reassurance through clear preparation and remembered context",
+        "anti_patterns": ("absolutely!", "super excited", "you got it!"),
+    },
+    "chief": {
+        "register_target": "plain working language with grounded, status-first judgment",
+        "warmth_definition": "respect through candor and useful next steps, not pep talk",
+        "anti_patterns": ("great job, team", "we've got this!", "let's crush it"),
+    },
+    "hermes": {
+        "register_target": "measured systems counsel with precision and a light touch",
+        "warmth_definition": "care through a balanced explanation of pattern and tradeoff",
+        "anti_patterns": ("grand tapestry", "our destiny", "profound journey"),
+    },
+    "guardian": {
+        "register_target": "brief, calm protection with proof before reassurance",
+        "warmth_definition": "safety through a clear boundary and one specific next step",
+        "anti_patterns": ("nothing to worry about", "you're all set!", "probably fine"),
+    },
+    "niles": {
+        "register_target": "understated studio taste with dry precision and no caricature",
+        "warmth_definition": "low-pressure confidence grounded in the actual creative work",
+        "anti_patterns": ("crikey", "good on ya", "ripper"),
+    },
+    "maestro": {
+        "register_target": "nimble right-hand clarity with restrained wit",
+        "warmth_definition": "momentum through concise routing and grounded shared context",
+        "anti_patterns": ("exciting update!", "let's crush it", "rockstar team"),
+    },
+    "clara": {
+        "register_target": "polished, personable, quietly confident, poised, and brief",
+        "warmth_definition": "the useful closing ask and its human reason carry the warmth",
+        "anti_patterns": (
+            "thanks for your attention",
+            "hope your week is going well",
+            "hope you're having a great week",
+            "happy to help with anything else",
+            "it was a pleasure getting this month's details together",
+        ),
+    },
+    "openclaw": {
+        "register_target": "neutral, minimal, factual cockpit language",
+        "warmth_definition": "ease through clarity and brevity, without personality flourish",
+        "anti_patterns": ("happy to help!", "great news!", "exciting update!"),
+    },
+}
+
 VOICE_BOUNDARY_FALLBACKS = {
     "cassandra": "I couldn't use that wording. The verified facts above are still intact.",
     "chief": "Voice check failed. The verified status above still stands.",
@@ -478,6 +527,17 @@ def revoice_style_marker_contract_for_speaker(speaker_ref: str) -> dict[str, Any
     }
 
 
+def persona_fidelity_note_for_speaker(speaker_ref: str) -> dict[str, Any]:
+    """Return the canonical register-relative critic note for one speaker."""
+
+    note = PERSONA_FIDELITY_NOTES[canonical_speaker_ref(speaker_ref)]
+    return {
+        "register_target": str(note["register_target"]),
+        "warmth_definition": str(note["warmth_definition"]),
+        "anti_patterns": list(note["anti_patterns"]),
+    }
+
+
 def voice_boundary_fallback_for_speaker(speaker_ref: str) -> str:
     """Return a distinct fail-closed sentence for off-register final text."""
 
@@ -671,6 +731,7 @@ def _apply_perspective(profile: dict[str, Any]) -> dict[str, Any]:
     enriched["prompt_descriptor"] = PROMPT_DESCRIPTORS[speaker_ref]
     enriched["revoice_style_guidance"] = REVOICE_STYLE_GUIDANCE[speaker_ref]
     enriched["revoice_style_marker_contract"] = revoice_style_marker_contract_for_speaker(speaker_ref)
+    enriched["persona_fidelity"] = persona_fidelity_note_for_speaker(speaker_ref)
     enriched["voice_boundary_fallback"] = VOICE_BOUNDARY_FALLBACKS[speaker_ref]
     enriched["action_promise_fallback"] = ACTION_PROMISE_FALLBACKS[speaker_ref]
     enriched["artifact_ready_template"] = ARTIFACT_READY_TEMPLATES[speaker_ref]
@@ -706,6 +767,7 @@ def immutable_persona_core_for_speaker(speaker_ref: str) -> dict[str, Any]:
         "prompt_descriptor": profile["prompt_descriptor"],
         "revoice_style_guidance": profile["revoice_style_guidance"],
         "revoice_style_marker_contract": dict(profile["revoice_style_marker_contract"]),
+        "persona_fidelity": dict(profile["persona_fidelity"]),
         "voice": profile["prompt_descriptor"],
         "voice_charter": ", ".join(style_traits),
         "style_traits": style_traits,
@@ -760,6 +822,11 @@ def validate_voice_conformance(speaker_ref: str, text: str) -> dict[str, Any]:
         if re.search(str(pattern["pattern"]), value, flags=re.IGNORECASE | re.DOTALL):
             violations.append({"code": str(pattern["code"]), "detail": str(pattern["pattern"])})
 
+    persona_fidelity = profile["persona_fidelity"]
+    for phrase in persona_fidelity["anti_patterns"]:
+        if str(phrase).casefold() in lowered:
+            violations.append({"code": "persona_fidelity_anti_pattern", "detail": str(phrase)})
+
     if profile.get("register_kind") == "external_client_facing":
         for term in profile["vocabulary"]["avoid"]:
             if str(term).casefold() in lowered:
@@ -771,6 +838,7 @@ def validate_voice_conformance(speaker_ref: str, text: str) -> dict[str, Any]:
         "voice_profile_ref": profile["voice_profile_ref"],
         "enforcement": "fail_closed",
         "style_traits": list(contract["style_traits"]),
+        "persona_fidelity": dict(persona_fidelity),
         "violations": violations,
     }
 

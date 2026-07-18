@@ -32,7 +32,7 @@ MAC_DESKTOP_AUTO_RESUME_LAST_VERIFIED_AT = "2026-07-17T15:34:24-04:00"
 OPERATOR_FRONTDOOR_F0_LAST_VERIFIED_AT = "2026-07-17T17:35:36-04:00"
 W2_VALIDATED_INVOICE_GATE_LAST_VERIFIED_AT = "2026-07-17T18:39:51-04:00"
 DANK_PACKET_PIPELINE_LAST_VERIFIED_AT = "2026-07-17T20:08:58-04:00"
-CLARA_COPY_TASTE_PASS_LAST_VERIFIED_AT = "2026-07-17T20:49:09-04:00"
+CLARA_COPY_TASTE_PASS_LAST_VERIFIED_AT = "2026-07-17T21:21:20-04:00"
 GUARDIAN_BUTTON_UI_LAST_VERIFIED_AT = "2026-07-17T21:14:16-04:00"
 
 LIVE_STATE_VALUES = (
@@ -1047,12 +1047,15 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
             audits=[
                 "/home/openclaw/Operator/to-codex/FABLE-EXECUTE-CLARA-COPY-PUNCH-UP-VIA-SYSTEM-RAIL-20260717.md",
                 "/home/openclaw/Operator/to-codex/FABLE-BOUNCE-CLARA-COPY-CLIENT-SURFACE-LEAK-20260717.md",
+                "/home/openclaw/Operator/to-codex/FABLE-EXECUTE-CLARA-PERSONA-TRUE-RERUN-AND-MC-HOLD-20260717.md",
             ],
             canary_status=(
-                "LIVE-VERIFIED taste pass clara-copy-taste:9ccb0b79b93ca00b: packet dimensions 1.0; "
-                "all eight copy dimensions including CLIENT_SURFACE_CLEAN 1.0; recipient Megan; July 2026 "
-                "monthly speaker rental; $100; invoice 2026-1004; exact closure; one Clara signature; "
-                "validated PDF SHA 99c0d53b bound outside client words; provider/draft/send/transaction/ledger calls 0"
+                "LIVE-VERIFIED taste pass (persona-true) clara-copy-taste:cd0728c9d392e458: packet dimensions 1.0; "
+                "all nine copy dimensions including PERSONA_FIDELITY and CLIENT_SURFACE_CLEAN 1.0; all three "
+                "qwen3:8b-q4_K_M takes converged; quiet-confidence subject fixed by immutable contract; recipient Megan; "
+                "July 2026 monthly speaker rental; $100; invoice 2026-1004; exact closure; one Clara signature; "
+                "validated PDF SHA 99c0d53b bound outside client words; prior eager-agreeable take "
+                "clara-copy-taste:9ccb0b79b93ca00b superseded; provider/draft/send/transaction/ledger calls 0"
             ),
             risk_level="medium",
             owner="Fable / PC Codex Desktop",
@@ -1060,14 +1063,15 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
             enabled_by="Fable Clara punch-up directive and PASS-3 taste-pass ruling",
             disabled_by="remove the model_compose caller argument and retain deterministic Clara composition",
             rollback_note="fall back to build_general_client_invoice_body; never bypass the immutable facts or shared Clara boundary",
-            next_required_step="Fable re-grades the clean copy; operator approval of copy remains separate from send authority",
+            next_required_step="Fable re-grades the persona-true copy; operator approval of copy remains separate from send authority",
             activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="only explicit rollback after client-surface, truth, or latency regression",
             evidence_refs=[
-                "Operator/from-codex/CLARA-LAMD-JULY-COPY-TASTE-PASS-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+                "Operator/from-codex/CLARA-LAMD-JULY-PERSONA-TRUE-RERUN-FINAL-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
                 "generated/read_models/packet_dankness_log.json",
                 "clara_invoice_copy_composer.py:compose_invoice_copy",
+                "agent_voice_profiles.py:PERSONA_FIDELITY_NOTES",
             ],
             last_verified_at=CLARA_COPY_TASTE_PASS_LAST_VERIFIED_AT,
         ),

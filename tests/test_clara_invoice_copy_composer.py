@@ -57,6 +57,7 @@ def _contract() -> dict:
         "client_ref": "live_arts_md",
         "workflow_ref": "live_arts_md_invoice_workflow",
         "greeting": "Hi Megan,",
+        "canonical_subject": "2026-1004: July 2026 Monthly Speaker Rental Invoice",
         "canonical_signoff": SIGNOFF,
         "required_subject_atoms": ("2026-1004",),
         "required_body_atoms": (
@@ -93,7 +94,7 @@ def test_compose_rejects_machine_copy_and_selects_voice_conformant_take() -> Non
                 "model": "fixture-small",
             },
             {
-                "text": '{"subject":"Invoice 2026-1004","body":"Hi Megan,\\n\\nJuly 2026 $100.\\n\\n'
+                "text": '{"subject":"Invoice 2026-1004","body":"Hi Megan,\\n\\nAttached is Invoice 2026-1004 for the July 2026 monthly speaker rental, totaling $100.\\n\\n'
                 + CLOSING_ASK
                 + " "
                 + CLOSING_WHY
@@ -110,12 +111,18 @@ def test_compose_rejects_machine_copy_and_selects_voice_conformant_take() -> Non
         generator_fn=lambda _prompt: next(outputs),
     )
 
-    assert result["selected_attempt"] == 2
+    assert result["selected_attempt"] == 3
     assert result["selected_model"] == "fixture-small"
+    assert result["subject"] == "2026-1004: July 2026 Monthly Speaker Rental Invoice"
     assert result["attempts"][0]["accepted"] is False
     assert any("forbidden_claim:packet" in reason for reason in result["attempts"][0]["violations"])
+    assert any(
+        "voice:persona_fidelity_anti_pattern:" in reason
+        for reason in result["attempts"][1]["violations"]
+    )
     assert result["voice_conformance"]["passed"] is True
     assert result["critic_score"]["overall"] == 1.0
     assert result["critic_score"]["client_surface_clean"] == 1.0
+    assert result["critic_score"]["persona_fidelity"] == 1.0
     assert result["packet_score"]["overall"] == 1.0
     assert result["authority_boundary"]["email_send_performed"] is False

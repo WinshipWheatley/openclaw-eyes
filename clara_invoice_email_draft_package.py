@@ -848,6 +848,7 @@ def build_clara_invoice_email_draft_package(
             "client_ref": client_ref,
             "workflow_ref": workflow_ref,
             "greeting": greeting,
+            "canonical_subject": str(general_invoice_data.get("model_canonical_subject") or "").strip(),
             "canonical_signoff": str(copy_rules["signoff"]),
             "required_subject_atoms": tuple(general_invoice_data.get("model_required_subject_atoms") or ()),
             "required_body_atoms": tuple(required_body_atoms),
