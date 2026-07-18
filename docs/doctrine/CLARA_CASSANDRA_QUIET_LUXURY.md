@@ -1,6 +1,6 @@
 # Clara and Cassandra Quiet Luxury Doctrine
 
-Status: CANDIDATE - operator first-class pass required before merge or activation.
+Status: ACTIVE - operator first-class pass granted by Telegram msg 1833 on 2026-07-18.
 
 This is the single written design source for Cassandra's internal correspondence register and
 the Clara Reid external register. It consolidates the operator-verbatim source in
@@ -198,8 +198,8 @@ and machine contract cannot drift into separate sources.
 
 ## Promotion Gate
 
-This candidate grants no send, submit, money, ledger, workbook, artifact, schedule, service, or
-model authority. Merge and runtime activation require the operator's first-class pass and a
-separate receipted promotion action. Artifact or copy approval is not send authority.
+This doctrine grants no send, submit, money, workbook, artifact, schedule, service, or model
+authority. The operator's first-class pass promotes the persona doctrine only; activation and
+ledger ingest require their own receipts. Artifact or copy approval is not send authority.
 
-Operator first-class pass signature: ______________________________  Date: ______________
+Operator first-class pass signature: Telegram msg 1833 "Do it" (relayed by Fable)  Date: 2026-07-18

@@ -30,7 +30,8 @@ def test_signed_design_doc_is_the_single_machine_readable_canon() -> None:
     assert contract["progressive_disclosure"] == ["Velvet", "Concierge", "Steel"]
     assert set(contract["critic_dimensions"]) == CRITIC_DIMENSIONS
     assert "SYSTEM-QUIET-LUXURY-DOCTRINE-SOURCE.md" in text
-    assert "Operator first-class pass signature:" in text
+    assert "Status: ACTIVE - operator first-class pass granted" in text
+    assert 'Operator first-class pass signature: Telegram msg 1833 "Do it"' in text
     assert "Clara Ried" not in text
 
 

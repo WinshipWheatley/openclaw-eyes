@@ -978,32 +978,50 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
             flag_or_config=["OPENCLAW_FLEET_VOICE_BOUNDARY", "OPENCLAW_PACKET_ENGINE"],
             default_state="on_from_canonical_profile",
             current_state_if_verifiable=_state(
-                "immutable persona cores derive from agent_voice_profiles; no PacketEngine-local voice registry remains",
+                "immutable persona cores derive from agent_voice_profiles and the signed Quiet Luxury doctrine; no PacketEngine-local voice registry remains",
                 code_default="daemon consumers use a standing profile reference; spawned consumers receive the core only in the first package",
                 production=(
-                    "active on request-response owner PID 1102767; final V1-V6 delivery-suppressed "
-                    "model probes each published from the addressed speaker and canonical voice profile"
+                    "Quiet Luxury promotion commit f98cbd10 is on the live branch; request-response "
+                    "owner restart and post-promotion delivery-suppressed canary remain required"
                 ),
-                audit_report="core changes require an operator approval receipt; growing backstory is append-only and must remain ledger-grounded",
+                audit_report=(
+                    "operator first-class pass is Telegram msg 1833; the canonical doc carries the "
+                    "Recognize -> Clarify -> Guide -> Confirm flow and nine named critic dimensions"
+                ),
             ),
-            source_files=["agent_voice_profiles.py", "packet_engine.py", "frontdoor_prompt.py"],
-            tests=["tests/test_agent_voice_profiles.py", "tests/test_packet_engine.py"],
+            source_files=[
+                "agent_voice_profiles.py",
+                "packet_engine.py",
+                "frontdoor_prompt.py",
+                "docs/doctrine/CLARA_CASSANDRA_QUIET_LUXURY.md",
+                "quiet_luxury_doctrine.py",
+                "openclaw_lux_renderer.py",
+                "openclaw_terminology_adapter.py",
+                "clara_invoice_copy_composer.py",
+            ],
+            tests=[
+                "tests/test_agent_voice_profiles.py",
+                "tests/test_packet_engine.py",
+                "tests/test_quiet_luxury_persona_promotion.py",
+                "tests/test_clara_invoice_copy_composer.py",
+            ],
             audits=[
                 "/home/openclaw/Operator/to-codex/FABLE-CONFER-PASS-1-STRESS-BATTERY-AND-DANK-PACKETS-20260717.md",
+                "/home/openclaw/Operator/to-codex/FABLE-STAGE-QUIET-LUXURY-PROMOTION-FOR-OPERATOR-PASS-20260717.md",
+                "/home/openclaw/Operator/to-codex/FABLE-RELAY-OPERATOR-DO-IT-1833-EXECUTE-BOTH-20260718.md",
             ],
             canary_status=(
-                "LIVE-VERIFIED V1-V6: Maestro conversational contraction, Cassandra polished "
-                "assurance, Chief clipped two-sentence shape, Niles one restrained Australian "
-                "turn, Guardian state/boundary split, Hermes stands-ready/remains-unchanged; "
-                "all semantic/style contracts passed with no wrong or double response"
+                "Quiet Luxury operator-approved promotion landed at f98cbd10; pre-promotion V1-V6 "
+                "fleet voice canary remains valid for the shared boundary; post-restart Quiet Luxury "
+                "owner canary is required before LIVE-VERIFIED promotion sign-off"
             ),
             risk_level="medium",
             owner="Fable / PC Codex Desktop",
             gate_stage="operator_approved_live",
-            enabled_by="operator persona-to-packet mandate and existing fleet voice activation",
+            enabled_by="operator persona-to-packet mandate, existing fleet voice activation, and Telegram msg 1833 first-class Quiet Luxury pass",
             disabled_by="explicitly roll back PacketEngine persona projection while retaining final-output voice enforcement",
             rollback_note="fall back to the canonical frontdoor voice prompt; never restore duplicated per-module persona text",
-            next_required_step="keep canonical style-marker and semantic-preservation checks active during the broader battery",
+            next_required_step="restart the request-response owner and run a delivery-suppressed Quiet Luxury packet/copy canary",
             activation_allowed_now=False,
             operator_approval_required=True,
             reason_if_off="only explicit rollback after a demonstrated owner-surface voice regression",
@@ -1011,6 +1029,7 @@ def _register_gap_capabilities(last_verified_at: str) -> list[dict[str, Any]]:
                 "agent_voice_profiles.py:immutable_persona_core_for_speaker",
                 "packet_engine.py:build_agent_packet",
                 "Operator/from-codex/DANK-PACKET-AND-FLEET-VOICE-LIVE-RECEIPT-20260717-PC-Codex-Desktop.json",
+                "Operator/from-codex/QUIET-LUXURY-PROMOTION-STAGED-OPERATOR-PASS-PACKAGE-20260717-PC-Codex-Desktop.md",
             ],
             last_verified_at=DANK_PACKET_PIPELINE_LAST_VERIFIED_AT,
         ),

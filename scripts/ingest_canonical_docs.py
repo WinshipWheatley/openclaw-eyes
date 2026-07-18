@@ -23,6 +23,13 @@ from canonical_fact_ingest import _PRODUCTION_DB_PATH, _init_fts_tables, ingest_
 # Original 9 allow-listed sources (unchanged)
 # ---------------------------------------------------------------------------
 SOURCE_REGISTRY = {
+    "docs/doctrine/CLARA_CASSANDRA_QUIET_LUXURY.md": {
+        "doc_category": "persona_doctrine",
+        "sensitivity_class": "public_canonical",
+        "allowed_actors": ["cassandra", "clara", "chief", "guardian", "hermes"],
+        "temporal_or_doctrine": "doctrine_reference",
+        "description": "Canonical Quiet Luxury persona doctrine for Cassandra and the Clara Reid external register",
+    },
     "docs/operations/OPENCLAW_RECEIPT_SPINE_CHECKPOINT_V9.md": {
         "doc_category": "receipt_spine_checkpoint",
         "sensitivity_class": "operational_canonical",

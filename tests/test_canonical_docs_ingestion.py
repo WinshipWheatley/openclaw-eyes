@@ -6,6 +6,7 @@ from scripts.ingest_canonical_docs import SOURCE_REGISTRY
 
 DB_PATH = "test_ingestion.sqlite"
 TEST_V9 = "docs/operations/OPENCLAW_RECEIPT_SPINE_CHECKPOINT_V9.md"
+QUIET_LUXURY_DOCTRINE = "docs/doctrine/CLARA_CASSANDRA_QUIET_LUXURY.md"
 
 @pytest.fixture(autouse=True)
 def cleanup():
@@ -27,6 +28,15 @@ def test_registry_metadata_structure():
     for source, metadata in SOURCE_REGISTRY.items():
         assert required_keys.issubset(metadata.keys()), f"Metadata for {source} is missing keys"
         assert isinstance(metadata["allowed_actors"], list)
+
+
+def test_quiet_luxury_doctrine_is_allowlisted_for_bounded_persona_ingest():
+    metadata = SOURCE_REGISTRY[QUIET_LUXURY_DOCTRINE]
+
+    assert metadata["doc_category"] == "persona_doctrine"
+    assert metadata["sensitivity_class"] == "public_canonical"
+    assert metadata["allowed_actors"] == ["cassandra", "clara", "chief", "guardian", "hermes"]
+    assert metadata["temporal_or_doctrine"] == "doctrine_reference"
 
 def test_metadata_application():
     source = TEST_V9

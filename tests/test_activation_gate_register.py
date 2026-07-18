@@ -74,6 +74,16 @@ def test_packet_source_sqlite_flip_is_standalone_capability():
     assert packet_source["capability_id"] != continuity["capability_id"]
 
 
+def test_canonical_persona_delivery_records_live_quiet_luxury_promotion():
+    capability = _capabilities_by_id(_payload())["canonical_persona_delivery"]
+
+    assert "docs/doctrine/CLARA_CASSANDRA_QUIET_LUXURY.md" in capability["source_files"]
+    assert "tests/test_quiet_luxury_persona_promotion.py" in capability["tests"]
+    assert "msg 1833" in capability["enabled_by"]
+    assert "Quiet Luxury" in capability["canary_status"]
+    assert capability["gate_stage"] == "operator_approved_live"
+
+
 def test_lm1_shared_seam_and_packet_flags_have_activation_records():
     capabilities = _capabilities_by_id(_payload())
 
