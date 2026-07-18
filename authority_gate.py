@@ -45,8 +45,8 @@ from typing import Any, Callable
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 DEFAULT_SEND_HOLD_PATH: Path = Path("/mnt/e/openclaw/orchestration/SEND_HOLD.md")
-SEND_HOLD_SENTINEL_TIGHT_MODE = 0o600
-SEND_HOLD_SENTINEL_ALLOWED_MODES: frozenset[int] = frozenset({0o600, 0o640})
+SEND_HOLD_SENTINEL_TIGHT_MODE = 0o644
+SEND_HOLD_SENTINEL_ALLOWED_MODES: frozenset[int] = frozenset({0o600, 0o640, 0o644})
 SEND_HOLD_SENTINEL_ALERT_SCHEMA = "SEND_HOLD_SENTINEL_ALERT_V0"
 
 # Surfaces that are DENY when SEND_HOLD is present.

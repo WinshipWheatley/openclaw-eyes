@@ -50,7 +50,7 @@ import os
 import stat as _stat
 import sys
 import importlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
 from zoneinfo import ZoneInfo
@@ -143,6 +143,7 @@ _AUDIT_APPROVAL_CONTEXT_KEEP_KEYS = {
     "credential_lease_ref",
     "credential_lease_id",
     "exact_send_gate",
+    "send_hold_graduation_ref",
 }
 
 _GMAIL_BROKER_RUNTIME_IMPORTS = (
@@ -310,6 +311,32 @@ def _exact_send_gate_context_verified(
         and context.get("payload_hash")
         and context.get("authority_refs")
         and context.get("credential_lease_refs")
+    )
+
+
+def _verify_exact_send_hold_graduation(params: Mapping[str, Any], *, consume: bool) -> dict:
+    from send_hold_scoped_graduation import verify_send_hold_scoped_graduation
+
+    context = params.get("approval_context")
+    if not isinstance(context, Mapping):
+        raise ValueError("exact send approval context is required")
+    graduation_ref = str(params.get("send_hold_graduation_ref") or "")
+    if not graduation_ref or graduation_ref != str(context.get("send_hold_graduation_ref") or ""):
+        raise ValueError("send hold graduation reference is missing or changed")
+    attachment_paths = [str(item) for item in (params.get("attachments") or [])]
+    attachment_sha256 = [str(item) for item in (params.get("attachment_sha256") or [])]
+    body = str(params.get("body") or "")
+    return verify_send_hold_scoped_graduation(
+        graduation_path=graduation_ref,
+        send_hold_path=os.environ.get("OPENCLAW_SEND_HOLD_PATH") or str(__import__("email_send_executor").DEFAULT_SEND_HOLD_PATH),
+        request_id=str(params.get("exact_send_request_id") or context.get("request_id") or ""),
+        payload_hash=str(context.get("payload_hash") or ""),
+        recipient=str(params.get("to") or ""),
+        body_sha256="sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest(),
+        attachment_paths=attachment_paths,
+        attachment_sha256=attachment_sha256,
+        observed_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        consume=consume,
     )
 
 
@@ -1113,6 +1140,14 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         if is_send_class_capability(capability) else PROCEED
     )
     _wtm_test_send = _wtm_disposition == TEST_REDIRECT_FLAG
+    _scoped_send_graduation_preverified = False
+    if _wtm_disposition == BLOCK_SEND_HOLD and exact_send_gate_verified:
+        try:
+            _verify_exact_send_hold_graduation(params, consume=False)
+            _scoped_send_graduation_preverified = True
+            _wtm_disposition = PROCEED
+        except Exception:
+            _scoped_send_graduation_preverified = False
 
     if approval_class == "B":
         action = f"Google broker: {agent} → {capability}"
@@ -1146,7 +1181,15 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         return {"ok": False, "data": None, "error": msg}
 
     # SEND_HOLD gear-shift at the last gate before the provider send (reuses the single decision).
+    _scoped_send_graduation = None
     if is_send_class_capability(capability):
+        if _scoped_send_graduation_preverified:
+            try:
+                _scoped_send_graduation = _verify_exact_send_hold_graduation(params, consume=True)
+            except Exception:
+                msg = "SEND_HOLD is active — scoped graduation is invalid or already consumed."
+                _audit(agent, capability, params, False, msg)
+                return {"ok": False, "data": {"send_hold_active": True}, "error": msg}
         if _wtm_disposition == BLOCK_SEND_HOLD:
             msg = "SEND_HOLD is active — broker refuses the send (kill-switch enforced at the broker)."
             _audit(agent, capability, params, False, msg)
@@ -1165,7 +1208,12 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
             _gmail_self_test_send = _gmail_send_recipients_allowed(params)
             _audit(agent, capability, params, True, f"workflow_test_mode_redirect_flag:{_wtm_test_run_id}")
 
-    if capability == "google.gmail.send" and _gmail_self_test_enabled() and not _gmail_self_test_send:
+    if (
+        capability == "google.gmail.send"
+        and _gmail_self_test_enabled()
+        and not _gmail_self_test_send
+        and _scoped_send_graduation is None
+    ):
         msg = ("gmail self-test mode: agents may only send to "
                + ", ".join(sorted(_GMAIL_SELF_TEST_RECIPIENTS))
                + " until graduated (set OPENCLAW_GMAIL_SEND_SELF_TEST=0)")
@@ -1194,6 +1242,14 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     else:
         result = _exec_not_implemented(capability)
 
+    if _scoped_send_graduation is not None and isinstance(result.get("data"), dict):
+        result["data"].update(
+            {
+                "send_hold_graduation_id": _scoped_send_graduation["graduation_id"],
+                "send_hold_graduation_scope_hash": _scoped_send_graduation["scope_hash"],
+                "send_hold_graduation_consumed": True,
+            }
+        )
     _audit(agent, capability, params, result["ok"], result.get("error", ""))
     return result
 

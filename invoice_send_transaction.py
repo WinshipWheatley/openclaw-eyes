@@ -26,6 +26,7 @@ from agent_voice_profiles import (
 ENVELOPE_SCHEMA_VERSION = "invoice_send_envelope_v1"
 COPY_SCHEMA_VERSION = "invoice_copy_candidate_v1"
 TRANSACTION_SCHEMA_VERSION = "invoice_send_transaction_v1"
+COPY_REVISION_SCHEMA_VERSION = "invoice_send_copy_revision_v1"
 CANONICAL_SENDER = "winshiplive@gmail.com"
 PREPARED = "PREPARED"
 SUPERSEDED = "SUPERSEDED"
@@ -169,7 +170,6 @@ def _validate_copy(
 
     amount = _amount_text(int(_required(packet, "amount_minor_units")), _clean(_required(packet, "currency")))
     required_facts = {
-        "client_display_name": _clean(_required(packet, "client_display_name")),
         "invoice_number": _clean(_required(packet, "invoice_number")),
         "service_period": _clean(_required(packet, "service_period")),
         "amount_minor_units": amount,
@@ -293,6 +293,7 @@ def assemble_invoice_send_envelope(
     copy_result: Mapping[str, Any],
     artifact_receipt: Mapping[str, Any],
     generated_at: str | None = None,
+    copy_revision_ref: str | None = None,
 ) -> InvoiceSendEnvelope:
     packet = dict(deterministic_packet_aid)
     contract = dict(immutable_copy_contract)
@@ -319,13 +320,17 @@ def assemble_invoice_send_envelope(
     body = str(_required(copy_result, "candidate_body")).strip()
     _validate_copy(packet=packet, contract=contract, subject=subject, body=body)
 
+    clean_revision_ref = _clean(copy_revision_ref)
     semantic_material = [client_ref, invoice_number, service_period, artifact["sha256"]]
+    if clean_revision_ref:
+        semantic_material.append(clean_revision_ref)
     semantic_key = "invoice-send:" + hashlib.sha256(_stable_json(semantic_material).encode("utf-8")).hexdigest()
     transaction_id = "invoice-send-tx:" + semantic_key.rsplit(":", 1)[-1][:24]
     payload = {
         "schema_version": ENVELOPE_SCHEMA_VERSION,
         "transaction_id": transaction_id,
         "semantic_idempotency_key": semantic_key,
+        "copy_revision_ref": clean_revision_ref,
         "assembled_at": generated_at,
         "client_ref": client_ref,
         "client_display_name": _clean(_required(packet, "client_display_name")),
@@ -400,9 +405,9 @@ def ensure_invoice_transaction_schema(conn: sqlite3.Connection) -> None:
           human_closing_ask TEXT NOT NULL,
           ask_why TEXT NOT NULL,
           envelope_json TEXT NOT NULL,
+          copy_revision_ref TEXT NOT NULL DEFAULT '',
           created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          UNIQUE(client_ref, invoice_number, service_period, attachment_sha256)
+          updated_at TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_invoice_send_transactions_state
           ON invoice_send_transactions(lifecycle_state, client_ref);
@@ -427,6 +432,70 @@ def ensure_invoice_transaction_schema(conn: sqlite3.Connection) -> None:
         BEGIN
           SELECT RAISE(ABORT, 'invoice send transaction decisions are append-only');
         END;
+        """
+    )
+    columns = {
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(invoice_send_transactions)").fetchall()
+    }
+    if "copy_revision_ref" not in columns:
+        _migrate_invoice_transaction_schema_for_copy_revisions(conn)
+
+
+def _migrate_invoice_transaction_schema_for_copy_revisions(conn: sqlite3.Connection) -> None:
+    """Replace the legacy same-artifact uniqueness rule without deleting history."""
+
+    legacy_table = "invoice_send_transactions_pre_copy_revision_v1"
+    if conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (legacy_table,),
+    ).fetchone():
+        raise InvoiceEnvelopeError("legacy invoice transaction archive already exists during schema migration")
+    conn.executescript(
+        f"""
+        BEGIN IMMEDIATE;
+        ALTER TABLE invoice_send_transactions RENAME TO {legacy_table};
+        CREATE TABLE invoice_send_transactions (
+          transaction_id TEXT PRIMARY KEY,
+          semantic_idempotency_key TEXT NOT NULL UNIQUE,
+          client_ref TEXT NOT NULL,
+          invoice_number TEXT NOT NULL,
+          service_period TEXT NOT NULL,
+          attachment_sha256 TEXT NOT NULL,
+          envelope_hash TEXT NOT NULL,
+          lifecycle_state TEXT NOT NULL,
+          next_verification_milestone TEXT NOT NULL,
+          human_closing_ask TEXT NOT NULL,
+          ask_why TEXT NOT NULL,
+          envelope_json TEXT NOT NULL,
+          copy_revision_ref TEXT NOT NULL DEFAULT '',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        INSERT INTO invoice_send_transactions (
+          transaction_id, semantic_idempotency_key, client_ref, invoice_number,
+          service_period, attachment_sha256, envelope_hash, lifecycle_state,
+          next_verification_milestone, human_closing_ask, ask_why, envelope_json,
+          copy_revision_ref, created_at, updated_at
+        )
+        SELECT transaction_id, semantic_idempotency_key, client_ref, invoice_number,
+               service_period, attachment_sha256, envelope_hash, lifecycle_state,
+               next_verification_milestone, human_closing_ask, ask_why, envelope_json,
+               '', created_at, updated_at
+          FROM {legacy_table};
+        CREATE INDEX idx_invoice_send_transactions_state_v2
+          ON invoice_send_transactions(lifecycle_state, client_ref);
+        CREATE TRIGGER {legacy_table}_no_update
+        BEFORE UPDATE ON {legacy_table}
+        BEGIN
+          SELECT RAISE(ABORT, 'legacy invoice send transactions are immutable');
+        END;
+        CREATE TRIGGER {legacy_table}_no_delete
+        BEFORE DELETE ON {legacy_table}
+        BEGIN
+          SELECT RAISE(ABORT, 'legacy invoice send transactions are immutable');
+        END;
+        COMMIT;
         """
     )
 
@@ -635,6 +704,270 @@ def record_prepared_transaction(
         conn.close()
 
 
+def _copy_revision_ref(copy_result: Mapping[str, Any]) -> str:
+    subject = _clean(_required(copy_result, "candidate_subject"))
+    body = str(_required(copy_result, "candidate_body")).strip()
+    digest = hashlib.sha256(_stable_json([_sha256_text(subject), _sha256_text(body)]).encode("utf-8")).hexdigest()
+    return f"copy-revision:sha256:{digest}"
+
+
+def _matching_obligation_rows(
+    conn: sqlite3.Connection,
+    identity: Mapping[str, Any],
+) -> list[sqlite3.Row]:
+    candidates = conn.execute(
+        "SELECT * FROM invoice_send_transactions WHERE client_ref = ? AND service_period = ?",
+        (_clean(identity["client_ref"]), _clean(identity["service_period"])),
+    ).fetchall()
+    return [row for row in candidates if _obligation_identity(row) == dict(identity)]
+
+
+def record_rebound_prepared_transaction(
+    envelope: InvoiceSendEnvelope,
+    *,
+    db_path: str | Path,
+    prior_transaction_id: str,
+    reason: str,
+    decided_at: str | None = None,
+) -> dict[str, Any]:
+    """Atomically insert one copy revision and supersede its prior PREPARED row."""
+
+    path = Path(db_path)
+    prior_id = _clean(prior_transaction_id)
+    clean_reason = _clean(reason)
+    if not prior_id or not clean_reason:
+        raise InvoiceEnvelopeError("copy revision requires a prior transaction id and supersession reason")
+    if prior_id == envelope.transaction_id:
+        raise InvoiceEnvelopeError("copy revision must have a distinct semantic transaction identity")
+    timestamp = _clean(decided_at) or datetime.now(timezone.utc).isoformat()
+    payload = envelope.to_dict()
+    revision_ref = _clean(payload.get("copy_revision_ref"))
+    if not revision_ref.startswith("copy-revision:sha256:"):
+        raise InvoiceEnvelopeError("copy revision envelope is missing its hash-bound revision reference")
+    decision_id = "invoice-send-decision:" + hashlib.sha256(
+        f"{prior_id}|{SUPERSEDED}|{envelope.transaction_id}".encode("utf-8")
+    ).hexdigest()[:24]
+
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        ensure_invoice_transaction_schema(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        prior = conn.execute(
+            "SELECT * FROM invoice_send_transactions WHERE transaction_id = ?",
+            (prior_id,),
+        ).fetchone()
+        if prior is None:
+            raise InvoiceEnvelopeError("copy revision prior transaction does not exist")
+        prior_obligation = _obligation_identity(prior)
+        envelope_obligation = {
+            "client_ref": _clean(payload["client_ref"]),
+            "service_period": _clean(payload["service_period"]),
+            "currency": _clean(payload["currency"]).upper(),
+            "amount_minor_units": int(payload["amount_minor_units"]),
+        }
+        if prior_obligation != envelope_obligation:
+            raise InvoiceEnvelopeError("copy revision does not represent the same invoice obligation")
+        if str(prior["attachment_sha256"]) != str(payload["artifact"]["sha256"]):
+            raise InvoiceEnvelopeError("copy revision must retain the exact approved artifact")
+
+        successor = conn.execute(
+            "SELECT * FROM invoice_send_transactions WHERE transaction_id = ?",
+            (envelope.transaction_id,),
+        ).fetchone()
+        existing_decision = conn.execute(
+            "SELECT decision_json FROM invoice_send_transaction_decisions WHERE decision_id = ?",
+            (decision_id,),
+        ).fetchone()
+        if successor is not None:
+            if successor["envelope_hash"] != envelope.envelope_hash:
+                raise InvoiceEnvelopeError("copy revision semantic collision changed the immutable envelope")
+            if prior["lifecycle_state"] != SUPERSEDED or existing_decision is None:
+                raise InvoiceEnvelopeError("copy revision replay has incomplete supersession state")
+            decision = json.loads(existing_decision["decision_json"])
+            if decision["reason"] != clean_reason:
+                raise InvoiceEnvelopeError("copy revision replay changed the immutable reason")
+            matching = _matching_obligation_rows(conn, envelope_obligation)
+            prepared = [row for row in matching if row["lifecycle_state"] == PREPARED]
+            if len(prepared) != 1 or prepared[0]["transaction_id"] != envelope.transaction_id:
+                raise InvoiceEnvelopeError("same invoice obligation must have exactly one current PREPARED transaction")
+            conn.commit()
+            return {
+                "transaction": {
+                    "transaction_id": envelope.transaction_id,
+                    "semantic_idempotency_key": envelope.semantic_idempotency_key,
+                    "envelope_hash": envelope.envelope_hash,
+                    "lifecycle_state": PREPARED,
+                    "created": False,
+                    "idempotent_replay": True,
+                },
+                "supersession_decision": {**decision, "idempotent_replay": True},
+                "rest_proof": {
+                    "prepared_count": 1,
+                    "sole_prepared_transaction_id": envelope.transaction_id,
+                    "same_obligation_transaction_ids": [row["transaction_id"] for row in matching],
+                },
+            }
+        if prior["lifecycle_state"] != PREPARED:
+            raise InvoiceEnvelopeError("only a PREPARED transaction can be rebound")
+        matching = _matching_obligation_rows(conn, envelope_obligation)
+        prepared = [row for row in matching if row["lifecycle_state"] == PREPARED]
+        if len(prepared) != 1 or prepared[0]["transaction_id"] != prior_id:
+            raise InvoiceEnvelopeError("same invoice obligation must have exactly one current PREPARED transaction")
+
+        conn.execute(
+            """
+            INSERT INTO invoice_send_transactions (
+              transaction_id, semantic_idempotency_key, client_ref, invoice_number,
+              service_period, attachment_sha256, envelope_hash, lifecycle_state,
+              next_verification_milestone, human_closing_ask, ask_why, envelope_json,
+              copy_revision_ref, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                envelope.transaction_id,
+                envelope.semantic_idempotency_key,
+                payload["client_ref"],
+                payload["invoice_number"],
+                payload["service_period"],
+                payload["artifact"]["sha256"],
+                envelope.envelope_hash,
+                PREPARED,
+                payload["next_verification_milestone"],
+                payload["human_closing_ask"],
+                payload["ask_why"],
+                envelope.canonical_payload_json,
+                revision_ref,
+                payload["assembled_at"],
+                payload["assembled_at"],
+            ),
+        )
+        changed = conn.execute(
+            "UPDATE invoice_send_transactions SET lifecycle_state = ?, updated_at = ? WHERE transaction_id = ? AND lifecycle_state = ?",
+            (SUPERSEDED, timestamp, prior_id, PREPARED),
+        ).rowcount
+        if changed != 1:
+            raise InvoiceEnvelopeError("prepared transaction changed during copy revision")
+        authority_boundary = {
+            "provider_called": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+            "money_moved": False,
+            "workbook_mutated": False,
+            "ledger_posted": False,
+        }
+        decision = {
+            "schema_version": "invoice_send_transaction_decision_v1",
+            "decision_id": decision_id,
+            "transaction_id": prior_id,
+            "prior_lifecycle_state": PREPARED,
+            "lifecycle_state": SUPERSEDED,
+            "superseded_by_transaction_id": envelope.transaction_id,
+            "reason": clean_reason,
+            "decided_at": timestamp,
+            "obligation": prior_obligation,
+            "copy_revision_ref": revision_ref,
+            "authority_boundary": authority_boundary,
+        }
+        conn.execute(
+            """
+            INSERT INTO invoice_send_transaction_decisions (
+              decision_id, transaction_id, prior_lifecycle_state, lifecycle_state,
+              superseded_by_transaction_id, reason, decided_at, decision_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                decision_id,
+                prior_id,
+                PREPARED,
+                SUPERSEDED,
+                envelope.transaction_id,
+                clean_reason,
+                timestamp,
+                _stable_json(decision),
+            ),
+        )
+        matching_after = _matching_obligation_rows(conn, envelope_obligation)
+        prepared_after = [row for row in matching_after if row["lifecycle_state"] == PREPARED]
+        if len(prepared_after) != 1 or prepared_after[0]["transaction_id"] != envelope.transaction_id:
+            raise InvoiceEnvelopeError("copy revision failed the sole-PREPARED invariant")
+        conn.commit()
+        return {
+            "transaction": {
+                "transaction_id": envelope.transaction_id,
+                "semantic_idempotency_key": envelope.semantic_idempotency_key,
+                "envelope_hash": envelope.envelope_hash,
+                "lifecycle_state": PREPARED,
+                "created": True,
+                "idempotent_replay": False,
+            },
+            "supersession_decision": {**decision, "idempotent_replay": False},
+            "rest_proof": {
+                "prepared_count": 1,
+                "sole_prepared_transaction_id": envelope.transaction_id,
+                "same_obligation_transaction_ids": [row["transaction_id"] for row in matching_after],
+            },
+        }
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def prepare_invoice_send_revision(
+    *,
+    prior_transaction_id: str,
+    supersession_reason: str,
+    raw_operator_ask: str,
+    deterministic_packet_aid: Mapping[str, Any],
+    immutable_copy_contract: Mapping[str, Any],
+    artifact_receipt: Mapping[str, Any],
+    db_path: str | Path,
+    generated_at: str | None = None,
+    composer: _Composer | None = None,
+) -> dict[str, Any]:
+    copy = compose_invoice_copy(
+        raw_operator_ask,
+        deterministic_packet_aid,
+        immutable_copy_contract,
+        composer=composer,
+    )
+    revision_ref = _copy_revision_ref(copy)
+    envelope = assemble_invoice_send_envelope(
+        raw_operator_ask=raw_operator_ask,
+        deterministic_packet_aid=deterministic_packet_aid,
+        immutable_copy_contract=immutable_copy_contract,
+        copy_result=copy,
+        artifact_receipt=artifact_receipt,
+        generated_at=generated_at,
+        copy_revision_ref=revision_ref,
+    )
+    rebound = record_rebound_prepared_transaction(
+        envelope,
+        db_path=db_path,
+        prior_transaction_id=prior_transaction_id,
+        reason=supersession_reason,
+        decided_at=generated_at,
+    )
+    return {
+        "schema_version": COPY_REVISION_SCHEMA_VERSION,
+        **rebound,
+        "envelope": envelope.to_dict(),
+        "copy_result": copy,
+        "machine_proof": {
+            "immutable_envelope_persisted": True,
+            "atomic_supersession_persisted": True,
+            "sole_prepared_invariant_verified": True,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+            "provider_called": False,
+            "money_moved": False,
+            "workbook_mutated": False,
+        },
+    }
+
+
 def prepare_invoice_send(
     *,
     raw_operator_ask: str,
@@ -679,6 +1012,7 @@ def prepare_invoice_send(
 
 __all__ = [
     "CANONICAL_SENDER",
+    "COPY_REVISION_SCHEMA_VERSION",
     "COPY_SCHEMA_VERSION",
     "ENVELOPE_SCHEMA_VERSION",
     "InvoiceCopyConformanceError",
@@ -690,5 +1024,7 @@ __all__ = [
     "compose_invoice_copy",
     "ensure_invoice_transaction_schema",
     "prepare_invoice_send",
+    "prepare_invoice_send_revision",
     "record_prepared_transaction",
+    "record_rebound_prepared_transaction",
 ]

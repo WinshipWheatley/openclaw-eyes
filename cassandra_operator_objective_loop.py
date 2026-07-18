@@ -1100,6 +1100,9 @@ def route_draft_approval_to_send_authority(
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     payload = extract_approved_draft_payload(text)
+    context = dict(lane_context or {})
+    attachment_paths = [str(item) for item in context.get("attachments") or []]
+    attachment_sha256 = [str(item) for item in context.get("attachment_sha256") or []]
 
     with _connect(sqlite_path) as conn:
         objective = None
@@ -1155,6 +1158,8 @@ def route_draft_approval_to_send_authority(
             draft=payload,
             operator_text=text,
             approved_draft_artifact_ref=str(artifact.get("artifact_id") or ""),
+            attachments=attachment_paths,
+            attachment_sha256=attachment_sha256,
             generated_at=generated_at,
         )
         objective["send_authority_request"] = request
@@ -1484,6 +1489,44 @@ def _validated_exact_send_test_loopback_binding(
     if supplied_binding_hash and supplied_binding_hash != binding_hash:
         raise ValueError("test loopback binding hash mismatch")
     return {**canonical, "test_loopback_binding_hash": binding_hash}
+
+
+def _validated_exact_send_attachment_binding(
+    payload: Mapping[str, Any],
+    *,
+    verify_file: bool = True,
+) -> dict[str, Any]:
+    attachments = [str(item) for item in payload.get("attachments") or []]
+    attachment_sha256 = [str(item).strip().lower() for item in payload.get("attachment_sha256") or []]
+    if not attachments and not attachment_sha256:
+        return {}
+    if len(attachments) != 1 or len(attachment_sha256) != 1:
+        raise ValueError("exact send requires exactly one attachment and one SHA-256")
+    digest = attachment_sha256[0]
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("exact send attachment SHA-256 is invalid")
+    attachment = Path(attachments[0]).expanduser()
+    if not attachment.is_absolute() or attachment.suffix.lower() != ".pdf":
+        raise ValueError("exact send attachment must be an absolute PDF path")
+    if attachment.is_symlink():
+        raise ValueError("exact send attachment cannot be a symlink")
+    if verify_file:
+        if not attachment.is_file():
+            raise ValueError("exact send attachment is missing")
+        if _sha256_file(attachment) != digest:
+            raise ValueError("exact send attachment SHA-256 mismatch")
+    canonical = {
+        "request_id": str(payload.get("request_id") or ""),
+        "payload_hash": str(payload.get("payload_hash") or ""),
+        "recipient": str(payload.get("recipient") or "").strip().lower(),
+        "attachments": [str(attachment)],
+        "attachment_sha256": [digest],
+    }
+    binding_hash = "sha256:" + hashlib.sha256(stable_json(canonical).encode("utf-8")).hexdigest()
+    supplied_binding_hash = str(payload.get("attachment_binding_hash") or "")
+    if supplied_binding_hash and supplied_binding_hash != binding_hash:
+        raise ValueError("exact send attachment binding hash mismatch")
+    return {**canonical, "attachment_binding_hash": binding_hash}
 
 
 def bind_exact_send_test_loopback_attachment(
@@ -1917,13 +1960,15 @@ def build_exact_send_authority_request(
     draft: Mapping[str, Any],
     operator_text: str,
     approved_draft_artifact_ref: str = "",
+    attachments: Sequence[str] = (),
+    attachment_sha256: Sequence[str] = (),
     expires_at: str | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     expires_at = expires_at or _default_exact_send_expires_at(generated_at)
     unattended = build_unattended_requirement(objective_id=objective_id, operator_text=operator_text, generated_at=generated_at)
-    return {
+    request = {
         "schema_version": EXACT_SEND_AUTHORITY_REQUEST_SCHEMA,
         "request_id": "exact_send_authority_request:" + _short_hash(objective_id, draft.get("payload_hash"), operator_text, generated_at),
         "objective_id": objective_id,
@@ -1957,6 +2002,18 @@ def build_exact_send_authority_request(
         "execution_performed": False,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
+    if attachments or attachment_sha256:
+        request.update(
+            {
+                "attachments": list(attachments),
+                "attachment_sha256": list(attachment_sha256),
+            }
+        )
+        request.update(_validated_exact_send_attachment_binding(request))
+        request["denied_actions"] = [
+            action for action in request["denied_actions"] if action != "attachments"
+        ]
+    return request
 
 
 def verify_exact_payload_authority(authority_request: Mapping[str, Any], *, draft: Mapping[str, Any]) -> dict[str, Any]:
@@ -2029,6 +2086,9 @@ def build_exact_send_review_packet(
     }
     if authority_request.get("test_loopback_only") is True:
         packet.update(_validated_exact_send_test_loopback_binding(authority_request))
+    attachment_binding = _validated_exact_send_attachment_binding(authority_request)
+    if attachment_binding:
+        packet.update(attachment_binding)
     return packet
 
 
@@ -2065,6 +2125,7 @@ def create_exact_send_scoped_authority(
         if authority_request.get("test_loopback_only") is True
         else {}
     )
+    attachment_binding = _validated_exact_send_attachment_binding(authority_request)
     max_scope = {
         "exact_send_request_id": request_id,
         "objective_id": objective_id,
@@ -2074,26 +2135,32 @@ def create_exact_send_scoped_authority(
         "one_time_only": True,
         "attachments_allowed": False,
     }
-    if test_binding:
+    if attachment_binding:
         max_scope.update(
             {
                 "attachments_allowed": True,
+                "attachments": list(attachment_binding["attachments"]),
+                "attachment_sha256": list(attachment_binding["attachment_sha256"]),
+                "attachment_binding_hash": attachment_binding["attachment_binding_hash"],
+            }
+        )
+    if test_binding:
+        max_scope.update(
+            {
                 "test_loopback_only": True,
                 "test_recipient_lock": test_binding["test_recipient_lock"],
-                "attachments": list(test_binding["attachments"]),
-                "attachment_sha256": list(test_binding["attachment_sha256"]),
                 "test_loopback_binding_hash": test_binding["test_loopback_binding_hash"],
             }
         )
     denied_actions = tuple(
         action
         for action in EXACT_SEND_AUTHORITY_DENIED_ACTIONS
-        if not (test_binding and action == "attachments")
+        if not (attachment_binding and action == "attachments")
     )
     denied_credential_use = tuple(
         action
         for action in EXACT_SEND_CREDENTIAL_DENIED_USE
-        if not (test_binding and action == "attachments")
+        if not (attachment_binding and action == "attachments")
     )
     allowed_use = [
         "gmail_send_exact_single_message_after_guardian_approval",
@@ -2101,11 +2168,17 @@ def create_exact_send_scoped_authority(
         f"payload_hash:{payload_hash}",
         f"recipient:{recipient}",
     ]
+    if attachment_binding:
+        allowed_use.extend(
+            [
+                f"attachment_sha256:{attachment_binding['attachment_sha256'][0]}",
+                f"attachment_binding_hash:{attachment_binding['attachment_binding_hash']}",
+            ]
+        )
     if test_binding:
         allowed_use.extend(
             [
                 f"test_recipient_lock:{test_binding['test_recipient_lock']}",
-                f"attachment_sha256:{test_binding['attachment_sha256'][0]}",
                 f"test_loopback_binding_hash:{test_binding['test_loopback_binding_hash']}",
             ]
         )
@@ -2191,6 +2264,11 @@ def verify_exact_send_authority_scope(
     request_id = str(authority_request.get("request_id") or "")
     payload_hash = str(authority_request.get("payload_hash") or "")
     test_binding: dict[str, Any] = {}
+    attachment_binding: dict[str, Any] = {}
+    try:
+        attachment_binding = _validated_exact_send_attachment_binding(authority_request)
+    except ValueError:
+        errors.append("attachment_binding_invalid")
     if authority_request.get("test_loopback_only") is True:
         try:
             test_binding = _validated_exact_send_test_loopback_binding(authority_request)
@@ -2213,14 +2291,16 @@ def verify_exact_send_authority_scope(
             errors.append("authority_envelope_request_id_mismatch")
         if payload_hash and str(max_scope.get("payload_hash") or "") != payload_hash:
             errors.append("authority_envelope_payload_hash_mismatch")
-        if test_binding:
+        if attachment_binding:
             if max_scope.get("attachments_allowed") is not True:
-                errors.append("authority_envelope_test_attachment_not_allowed")
+                errors.append("authority_envelope_attachment_not_allowed")
+            for field in ("attachments", "attachment_sha256", "attachment_binding_hash"):
+                if max_scope.get(field) != attachment_binding.get(field):
+                    errors.append(f"authority_envelope_{field}_mismatch")
+        if test_binding:
             for field in (
                 "test_loopback_only",
                 "test_recipient_lock",
-                "attachments",
-                "attachment_sha256",
                 "test_loopback_binding_hash",
             ):
                 if max_scope.get(field) != test_binding.get(field):
@@ -2243,10 +2323,16 @@ def verify_exact_send_authority_scope(
             errors.append("credential_lease_request_id_scope_missing")
         if payload_hash and f"payload_hash:{payload_hash}" not in allowed_use:
             errors.append("credential_lease_payload_hash_scope_missing")
+        if attachment_binding:
+            required_attachment_uses = {
+                f"attachment_sha256:{attachment_binding['attachment_sha256'][0]}",
+                f"attachment_binding_hash:{attachment_binding['attachment_binding_hash']}",
+            }
+            if not required_attachment_uses.issubset(allowed_use):
+                errors.append("credential_lease_attachment_scope_missing")
         if test_binding:
             required_test_uses = {
                 f"test_recipient_lock:{test_binding['test_recipient_lock']}",
-                f"attachment_sha256:{test_binding['attachment_sha256'][0]}",
                 f"test_loopback_binding_hash:{test_binding['test_loopback_binding_hash']}",
             }
             if not required_test_uses.issubset(allowed_use):
@@ -2257,6 +2343,7 @@ def verify_exact_send_authority_scope(
         "validation_errors": errors,
         "request_id": request_id,
         "payload_hash": payload_hash,
+        "attachment_binding_hash": str(attachment_binding.get("attachment_binding_hash") or ""),
         "test_loopback_only": bool(test_binding),
         "test_loopback_binding_hash": str(test_binding.get("test_loopback_binding_hash") or ""),
         "authority_envelope_id": str(authority_envelope.get("envelope_id") or "") if authority_envelope else "",
@@ -2301,6 +2388,79 @@ def attach_exact_send_authority_refs(
     return updated, verdict
 
 
+def persist_exact_send_authority_bundle(
+    objective: Mapping[str, Any],
+    *,
+    authority_envelope: Mapping[str, Any],
+    credential_lease: Mapping[str, Any],
+    sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    authority_provenance: str,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    updated, verdict = attach_exact_send_authority_refs(
+        objective,
+        authority_envelope=authority_envelope,
+        credential_lease=credential_lease,
+    )
+    if not verdict["valid"]:
+        return {"persisted": False, "objective": updated, "scope_verdict": verdict}
+    updated["updated_at"] = generated_at
+    updated["authority_provenance"] = str(authority_provenance or "")
+    authority_ref = str(authority_envelope.get("envelope_id") or "")
+    lease_ref = str(credential_lease.get("lease_id") or "")
+    with _connect(sqlite_path) as conn:
+        _store_objective(conn, updated)
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO objective_authority_refs
+              (objective_id, authority_ref, authority_kind, status, ref_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                updated["objective_id"],
+                authority_ref,
+                "exact_gmail_send",
+                "scoped_pending_operator_decision",
+                stable_json(authority_envelope),
+            ),
+        )
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO objective_credential_leases
+              (objective_id, credential_lease_ref, credential_handle_id, capability_id, status, lease_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                updated["objective_id"],
+                lease_ref,
+                str(credential_lease.get("credential_handle_id") or ""),
+                str(credential_lease.get("capability_id") or ""),
+                "scoped_pending_operator_decision",
+                stable_json(credential_lease),
+            ),
+        )
+        event = _store_event(
+            conn,
+            objective_id=updated["objective_id"],
+            channel="authority_system",
+            message_ref=str(authority_provenance or ""),
+            decision="exact_send_authority_and_lease_persisted",
+            status_transition=str(updated.get("objective_status") or STATUS_WAITING_SEND_AUTHORITY),
+            receipt_ref=authority_ref,
+            generated_at=generated_at,
+        )
+        conn.commit()
+    return {
+        "persisted": True,
+        "objective": updated,
+        "scope_verdict": verdict,
+        "authority_ref": authority_ref,
+        "credential_lease_ref": lease_ref,
+        "event": event,
+    }
+
+
 def build_exact_send_guardian_approval_request(
     review_packet: Mapping[str, Any],
     *,
@@ -2321,6 +2481,28 @@ def build_exact_send_guardian_approval_request(
         "payload_hash": payload_hash,
         "capability_id": GMAIL_SEND_MAIL,
     }
+    try:
+        attachment_binding = _validated_exact_send_attachment_binding(review_packet)
+    except ValueError as exc:
+        return {
+            "schema_version": OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA,
+            "operator_action_created": False,
+            "response_status": "OPERATOR_ACTION_APPROVAL_REQUEST_REFUSED",
+            "refusal_reason": (
+                "invalid_test_loopback_attachment_binding"
+                if review_packet.get("test_loopback_only") is True
+                else "invalid_attachment_binding"
+            ),
+            "validation_error": str(exc),
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "payload_hash": payload_hash,
+            "execution_performed": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+        }
+    if attachment_binding:
+        authority_request.update(attachment_binding)
     test_binding: dict[str, Any] = {}
     if review_packet.get("test_loopback_only") is True:
         try:
@@ -2451,6 +2633,8 @@ def register_exact_send_operator_action_approval(
     *,
     authority_envelope: Mapping[str, Any],
     credential_lease: Mapping[str, Any],
+    approval_provenance: str = "",
+    send_hold_graduation_ref: str = "",
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     """Register an exact Gmail send as a real HITL/Guardian operator action.
@@ -2472,6 +2656,28 @@ def register_exact_send_operator_action_approval(
         "payload_hash": payload_hash,
         "capability_id": GMAIL_SEND_MAIL,
     }
+    try:
+        attachment_binding = _validated_exact_send_attachment_binding(review_packet)
+    except ValueError as exc:
+        return {
+            "schema_version": OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA,
+            "operator_action_created": False,
+            "response_status": "OPERATOR_ACTION_APPROVAL_REQUEST_REFUSED",
+            "refusal_reason": (
+                "invalid_test_loopback_attachment_binding"
+                if review_packet.get("test_loopback_only") is True
+                else "invalid_attachment_binding"
+            ),
+            "validation_error": str(exc),
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "payload_hash": payload_hash,
+            "execution_performed": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+        }
+    if attachment_binding:
+        authority_request.update(attachment_binding)
     test_binding: dict[str, Any] = {}
     if review_packet.get("test_loopback_only") is True:
         try:
@@ -2533,7 +2739,12 @@ def register_exact_send_operator_action_approval(
         "approved_draft_artifact_ref": str(review_packet.get("approved_draft_artifact_ref") or ""),
         "review_packet_ref": str(review_packet.get("packet_id") or ""),
         "body_stored_in_hitl_queue": False,
+        "body_sha256": "sha256:" + hashlib.sha256(str(review_packet.get("body") or "").encode("utf-8")).hexdigest(),
+        "approval_provenance": str(approval_provenance or ""),
+        "send_hold_graduation_ref": str(send_hold_graduation_ref or ""),
     }
+    if attachment_binding:
+        exact_payload.update(attachment_binding)
     if test_binding:
         exact_payload.update(test_binding)
     ttl_seconds = _ttl_seconds_until(expires_at, generated_at=generated_at)
@@ -2601,6 +2812,12 @@ def build_exact_send_approval_decision_from_operator_action(
     expires_at = str(exact_payload.get("expires_at") or payload.get("expires_at") or "")
     approved = bool(action.get("status") == "APPROVED" and request_id and payload_hash)
     reason = "approved_via_operator_action" if approved else "operator_action_not_approved_or_incomplete"
+    attachment_binding: dict[str, Any] = {}
+    try:
+        attachment_binding = _validated_exact_send_attachment_binding(exact_payload)
+    except ValueError:
+        approved = False
+        reason = "invalid_attachment_binding"
     test_binding: dict[str, Any] = {}
     if exact_payload.get("test_loopback_only") is True:
         try:
@@ -2620,12 +2837,13 @@ def build_exact_send_approval_decision_from_operator_action(
         "objective_id": objective_id,
         "payload_hash": payload_hash,
         "supplied_payload_hash": payload_hash,
+        **attachment_binding,
         **test_binding,
         "expires_at": expires_at,
         "approval_parser": "operator_action_approval_request",
         "parser_provenance": OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA,
         "operator_action_id": str(action.get("action_id") or ""),
-        "approval_source": "guardian_hitl_action_queue",
+        "approval_source": str(exact_payload.get("approval_provenance") or "guardian_hitl_action_queue"),
         "approved_by": str(action.get("approved_by") or ""),
         "approved_at": str(action.get("approved_at") or ""),
         "execution_performed": False,
@@ -2657,6 +2875,7 @@ def run_exact_send_operator_action_routeback(
     action_type = str(action.get("action_type") or "")
     payload = action.get("payload") if isinstance(action.get("payload"), Mapping) else {}
     route_back = payload.get("route_back") if isinstance(payload.get("route_back"), Mapping) else {}
+    exact_payload = payload.get("payload") if isinstance(payload.get("payload"), Mapping) else {}
     request_id = str(payload.get("request_id") or action.get("idempotency_key") or "")
     objective_id = str(payload.get("owner_objective_id") or route_back.get("objective_id") or "")
     if receipt_dir is None:
@@ -2728,19 +2947,43 @@ def run_exact_send_operator_action_routeback(
         return refused("request_id_idempotency_mismatch")
     if route_back.get("type") != "cassandra_exact_send_executor":
         return refused("route_back_not_cassandra_exact_send_executor")
-    if ensure_send_hold_sentinel(
+    send_hold_state = ensure_send_hold_sentinel(
         send_hold_path,
         alert_sink=send_hold_alert_sink,
         missing_is_tamper=send_hold_missing_is_tamper,
-    ).send_hold_active:
-        return refused("send_hold_active")
+    )
+    send_hold_graduation: dict[str, Any] | None = None
+    if send_hold_state.send_hold_active:
+        graduation_ref = str(exact_payload.get("send_hold_graduation_ref") or "")
+        if not graduation_ref:
+            return refused("send_hold_active")
+        try:
+            from send_hold_scoped_graduation import verify_send_hold_scoped_graduation
+
+            send_hold_graduation = verify_send_hold_scoped_graduation(
+                graduation_path=graduation_ref,
+                send_hold_path=send_hold_path,
+                request_id=request_id,
+                payload_hash=str(exact_payload.get("payload_hash") or ""),
+                recipient=str(exact_payload.get("recipient") or ""),
+                body_sha256=str(exact_payload.get("body_sha256") or ""),
+                attachment_paths=[str(item) for item in exact_payload.get("attachments") or []],
+                attachment_sha256=[str(item) for item in exact_payload.get("attachment_sha256") or []],
+                observed_at=generated_at,
+                consume=False,
+            )
+        except Exception:
+            return refused("send_hold_scoped_graduation_invalid")
 
     approval_decision = build_exact_send_approval_decision_from_operator_action(
         action,
         generated_at=generated_at,
     )
     if transport is None:
-        transport = GovernedGmailBrokerSendTransport(live_transport_enabled=live_transport_enabled)
+        transport = GovernedGmailBrokerSendTransport(
+            live_transport_enabled=live_transport_enabled,
+            send_hold_graduation_ref=str(exact_payload.get("send_hold_graduation_ref") or ""),
+        )
     result = run_exact_send_live_transport_gate(
         sqlite_path=sqlite_path,
         objective_id=objective_id,
@@ -2759,6 +3002,7 @@ def run_exact_send_operator_action_routeback(
         "objective_id": objective_id,
         "approval_decision": approval_decision,
         **result,
+        "send_hold_graduation": send_hold_graduation,
         "guardian_calls_gmail_or_broker_directly": False,
     }
 
@@ -2919,7 +3163,7 @@ def _load_exact_send_execution_state(
             "subject": subject or str(request.get("subject") or ""),
             "expected_payload_hash": str(request.get("payload_hash") or ""),
         }
-    if request_recipient and request_recipient != recipient:
+    if request_recipient and request_recipient.casefold() != recipient.casefold():
         return None, {
             "reason": "request_recipient_artifact_recipient_mismatch",
             "request_id": request_id,
@@ -2962,6 +3206,28 @@ def _load_exact_send_execution_state(
             "observed_payload_hash": observed_hash,
             "supplied_payload_hash": supplied_hash,
         }
+    attachment_binding: dict[str, Any] = {}
+    try:
+        attachment_binding = _validated_exact_send_attachment_binding(request)
+    except ValueError:
+        return None, {
+            "reason": "invalid_attachment_binding",
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "recipient": recipient,
+            "subject": subject,
+            "expected_payload_hash": expected_hash,
+        }
+    for field in ("attachments", "attachment_sha256", "attachment_binding_hash"):
+        if approval_decision.get(field) != attachment_binding.get(field):
+            return None, {
+                "reason": "attachment_approval_binding_mismatch",
+                "request_id": request_id,
+                "objective_id": objective_id,
+                "recipient": recipient,
+                "subject": subject,
+                "expected_payload_hash": expected_hash,
+            }
     test_binding: dict[str, Any] = {}
     if request.get("test_loopback_only") is True:
         try:
@@ -3014,6 +3280,7 @@ def _load_exact_send_execution_state(
         "expires_at": expires_at,
         "authority_refs": list(objective.get("authority_refs") or []),
         "credential_lease_refs": list(objective.get("credential_lease_refs") or []),
+        **attachment_binding,
         **test_binding,
     }
     return state, None
@@ -3318,6 +3585,7 @@ class DisabledGmailExactSendTransport:
         credential_lease_refs: Sequence[str] = (),
     ) -> dict[str, Any]:
         try:
+            attachment_binding = _validated_exact_send_attachment_binding(payload)
             test_binding = _validated_exact_send_test_loopback_binding(payload)
         except ValueError as exc:
             return {
@@ -3356,9 +3624,16 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
 
     allowlisted_exact_send_transport = True
 
-    def __init__(self, *, live_transport_enabled: bool = False, broker_call: Any = None) -> None:
+    def __init__(
+        self,
+        *,
+        live_transport_enabled: bool = False,
+        broker_call: Any = None,
+        send_hold_graduation_ref: str = "",
+    ) -> None:
         super().__init__(live_transport_enabled=live_transport_enabled)
         self._broker_call = broker_call
+        self.send_hold_graduation_ref = str(send_hold_graduation_ref or "")
 
     def send_exact_payload(
         self,
@@ -3368,6 +3643,7 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
         credential_lease_refs: Sequence[str] = (),
     ) -> dict[str, Any]:
         try:
+            attachment_binding = _validated_exact_send_attachment_binding(payload)
             test_binding = _validated_exact_send_test_loopback_binding(payload)
         except ValueError as exc:
             return {
@@ -3409,6 +3685,7 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
             "body": str(payload.get("body") or ""),
             "idempotency_key": str(payload.get("request_id") or ""),
             "exact_send_request_id": str(payload.get("request_id") or ""),
+            "send_hold_graduation_ref": self.send_hold_graduation_ref,
             "approval_context": {
                 "request_id": str(payload.get("request_id") or ""),
                 "objective_id": str(payload.get("objective_id") or ""),
@@ -3417,15 +3694,17 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
                 "authority_refs": list(authority_refs),
                 "credential_lease_refs": list(credential_lease_refs),
                 "exact_send_gate": True,
+                "send_hold_graduation_ref": self.send_hold_graduation_ref,
             },
         }
-        if test_binding:
+        if attachment_binding:
             broker_params.update(
                 {
-                    "attachments": list(test_binding["attachments"]),
-                    "attachment_sha256": list(test_binding["attachment_sha256"]),
+                    "attachments": list(attachment_binding["attachments"]),
+                    "attachment_sha256": list(attachment_binding["attachment_sha256"]),
                 }
             )
+        if test_binding:
             broker_params["approval_context"].update(
                 {
                     "test_loopback_only": True,
@@ -3962,13 +4241,19 @@ def run_exact_send_live_transport_gate(
             "payload_hash": str(state.get("payload_hash") or ""),
             "expires_at": str(state.get("expires_at") or ""),
         }
+        if state.get("attachments"):
+            broker_payload.update(
+                {
+                    "attachments": list(state.get("attachments") or []),
+                    "attachment_sha256": list(state.get("attachment_sha256") or []),
+                    "attachment_binding_hash": str(state.get("attachment_binding_hash") or ""),
+                }
+            )
         if state.get("test_loopback_only") is True:
             broker_payload.update(
                 {
                     "test_loopback_only": True,
                     "test_recipient_lock": str(state.get("test_recipient_lock") or ""),
-                    "attachments": list(state.get("attachments") or []),
-                    "attachment_sha256": list(state.get("attachment_sha256") or []),
                     "test_loopback_binding_hash": str(state.get("test_loopback_binding_hash") or ""),
                 }
             )
