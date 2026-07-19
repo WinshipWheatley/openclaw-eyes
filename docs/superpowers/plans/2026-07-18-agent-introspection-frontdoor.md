@@ -172,7 +172,7 @@ Use allowlisted getters only. Search these receipt paths in precedence order: ex
 
 ```python
 TURN_SELF_FACT_FIELDS = (
-    "agent", "source_request_id", "model_id", "lane_id", "backend_class",
+    "agent", "source_request_id", "turn_receipt_id", "model_id", "lane_id", "backend_class",
     "hardware_class", "selection_reason", "last_action_receipt_ptr",
 )
 
@@ -262,13 +262,14 @@ Add `turn_self_facts: Mapping[str, Any] | None = None` to `build_agent_packet`, 
 
 - [ ] **Step 5: Refresh actual external facts between preflight and submit**
 
-Immediately after `admission.allowed` and before `client.run_read_only_turn`, build a route view from the safe receipt plus:
+Immediately after `admission.allowed` and before `client.run_read_only_turn`, build a route view from the safe receipt plus the current preflight/subscription turn identifier:
 
 ```python
 route_view = {
     **receipt,
     "binding_model_id": admission.model,
     "effective_lane_id": decision.candidate_lane_id,
+    "turn_id_hash": str(subscription_receipt.get("request_hash") or decision.request_hash),
     "response_source": "external_brain",
     "external_turn_performed": True,
 }
@@ -345,7 +346,7 @@ def test_shared_brain_uses_original_question_and_self_facts_without_action():
 
 - [ ] **Step 2: Write packet/model failure fixtures**
 
-Assert packet build failure returns a grounded-data-unavailable answer with `model_call_performed=false`. Assert a receipt that reports a different actual model than injected facts returns an honest binding-mismatch answer and does not repeat the stale model.
+Assert packet build failure returns a grounded-data-unavailable answer with `model_call_performed=false`. Assert a receipt that reports a different actual model than injected facts returns an honest binding-mismatch answer and does not repeat the stale model. Add a deliberately mismatched visible answer/receipt fixture and assert the grounding oracle rejects it. Add a no-model/no-hardware fixture and assert the accepted answer explicitly reports unknown.
 
 - [ ] **Step 3: Run Task 3 tests and verify RED**
 
@@ -418,6 +419,8 @@ def test_chief_routing_rule_bypasses_semantic_vote(monkeypatch):
     assert result["workflow_package_staged"] is False
 ```
 
+Construct T2 with `load_session()` returning `{}` so it exercises the exact off-session failure condition proven live.
+
 T4 fixture: parameterize model and routing paraphrases for Maestro and Chief. Add the invoice-capability negative fixture and assert the existing route owns it.
 
 - [ ] **Step 2: Run T1/T2/T4 and verify RED**
@@ -477,7 +480,7 @@ Commit: `git add maestro_cassandra_responder.py chief_router.py tests/test_agent
 
 T3 Cassandra fixture supplies `last_action_receipt={"receipt_pointer": "cassandra:ar:2026-1004"}` and a packet capability fact. Assert the fake brain sees both, its answer cites the pointer/capability, and proof shows no action.
 
-For Niles, Guardian, and Hermes, monkeypatch `answer_agent_introspection` and make `decide_contract` raise if called. Assert each adapter returns the brain answer. Add valid Guardian approval-token and destructive/send fixtures proving those branches remain ahead of introspection.
+For Niles, Guardian, and Hermes, monkeypatch `answer_agent_introspection` and make `decide_contract` raise if called. Assert each adapter returns the brain answer. Add valid Guardian approval-token and destructive/send fixtures proving those branches remain ahead of introspection. Add one compound `model are you using and send $500` fixture that asserts terminal refusal, zero brain calls, zero self-facts answer, and zero staging.
 
 - [ ] **Step 2: Run adapter tests and verify RED**
 

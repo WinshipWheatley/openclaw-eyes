@@ -72,6 +72,7 @@ The normalized packet section is a closed mapping:
   "schema_version": "turn_self_facts_v1",
   "agent": "maestro",
   "source_request_id": "maestro_telegram_1901_69c3190870b8",
+  "turn_receipt_id": "sha256:8b1e704009fa4078",
   "model_id": "gpt-5.6-sol",
   "lane_id": "hard_lane",
   "backend_class": "external_brain",
@@ -81,6 +82,7 @@ The normalized packet section is a closed mapping:
   "known_fields": [
     "agent",
     "source_request_id",
+    "turn_receipt_id",
     "model_id",
     "lane_id",
     "backend_class",
@@ -94,11 +96,13 @@ The normalized packet section is a closed mapping:
 Rules:
 
 - Normalize only allowlisted fields from the current protected-generation receipt, external route receipt, bound session, and bounded last-action receipt metadata.
+- `turn_receipt_id` identifies the current model-selection/generation turn. It must not be substituted by the historical `last_action_receipt_ptr`, and acceptance binds model/lane facts to this current ID.
 - Prefer the current protected/external route receipt over a configured default.
 - External turn plus binding yields `provider_managed_external`; it does not imply a local GPU.
 - Local runtime yields a local backend class. Hardware remains `unknown` unless the same turn records a proven accelerator/offload fact.
 - Unknown values remain empty and are named in `unknown_fields`; the model is instructed to say it does not know rather than infer.
 - Raw private bodies, credentials, and unrestricted receipt payloads are never included.
+- When available, the admitted external model is cross-checked against independent response/preflight metadata. A mismatch fails closed and cannot produce a successful self-report.
 
 ## Packet and model-call integration
 
@@ -144,6 +148,7 @@ The returned machine proof includes:
 - Packet build error: return an honest grounded-data-unavailable answer; do not call a model with an ungrounded self query.
 - Protected-generation refusal/failure: return the existing honest no-answer boundary with the failure receipt.
 - Binding mismatch after generation: do not expose a possibly false model/hardware assertion.
+- Answer/facts mismatch: a model-brain answer that contradicts or omits requested known fields fails grounding validation and is not accepted as a successful self-report.
 - Receipt persistence failure: the visible answer may be returned only if its in-memory protected receipt proves grounding; durable acceptance remains failed until receipt persistence succeeds.
 
 ## Acceptance
@@ -155,7 +160,10 @@ Automated fixtures must prove:
 3. T3 Cassandra recent-action/capability query cites its bounded last-action pointer and unique capability from packet proof.
 4. T4 model/routing paraphrases classify robustly across the six agents.
 5. `what can you do with invoices?` does not classify as introspection.
-6. Refusal, money/send, destructive, valid Guardian approval-token, active-session, and receipt-read precedence remain unchanged.
-7. Every agent fixture proves a brain call, original-message inclusion, packet self facts, and no staging/send/ledger/external action.
+6. An intentionally mismatched answer/receipt fixture fails the oracle, and current-turn receipt identity is not confused with last-action history.
+7. The exact Chief probe is exercised outside any active session and bypasses semantic voting.
+8. A genuinely missing model/hardware fact produces an honest unknown, not inferred certainty.
+9. Refusal, money/send, destructive, valid Guardian approval-token, active-session, and receipt-read precedence remain unchanged. A combined introspection + gated-action message is terminally refused before any brain/self-facts answer and stages nothing.
+10. Every agent fixture proves a brain call, original-message inclusion, packet self facts, and no staging/send/ledger/external action.
 
 After local tests pass, Mac-Sol-Desktop may repeat the live T1–T4 Telegram battery. That empirical re-probe is a separate, read-only confirmation mission.
