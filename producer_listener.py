@@ -4,6 +4,10 @@ import json
 import os
 import sys
 import first_touch_decision
+from agent_introspection import (
+    answer_agent_introspection,
+    classify_agent_introspection,
+)
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 from scripts.producer_telegram_route import extract_producer_payload, truncate_producer_output
@@ -43,6 +47,10 @@ _TYPED_CONTRACT_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.Conte
     "niles_typed_contract_receipt",
     default=None,
 )
+_AGENT_INTROSPECTION_PROOF: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "niles_agent_introspection_proof",
+    default=None,
+)
 
 
 def current_output_boundary_receipt() -> dict | None:
@@ -53,6 +61,30 @@ def current_output_boundary_receipt() -> dict | None:
 def current_typed_contract_receipt() -> dict | None:
     receipt = _TYPED_CONTRACT_RECEIPT.get()
     return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def current_agent_introspection_proof() -> dict | None:
+    proof = _AGENT_INTROSPECTION_PROOF.get()
+    return dict(proof) if isinstance(proof, dict) else None
+
+
+async def _answer_niles_agent_introspection(
+    text: str,
+    *,
+    source_request_id: str = "",
+):
+    match = classify_agent_introspection(text, addressed_agent="niles")
+    if match is None:
+        return None
+    return await asyncio.to_thread(
+        answer_agent_introspection,
+        text,
+        agent="niles",
+        source_surface="niles_producer_listener",
+        source_request_id=source_request_id,
+        session={"source_message_id": source_request_id},
+        match=match,
+    )
 
 
 def _final_operator_reply(reply: str, *, source_request: str) -> str:
@@ -254,6 +286,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         operator_message=True,
         route_intent=True,
     )
+
+    _introspection_answer = await _answer_niles_agent_introspection(
+        text,
+        source_request_id=f"niles:{trace_source_message_id}",
+    )
+    if _introspection_answer is not None:
+        _AGENT_INTROSPECTION_PROOF.set(
+            dict(_introspection_answer.machine_proof)
+        )
+        await update.message.reply_text(
+            _final_operator_reply(
+                _introspection_answer.text,
+                source_request=text,
+            )
+        )
+        return
 
     # Task 151: typed contract before the memory queue and subprocess.  This is
     # the long-running listener defense; scripts/producer_intake.py mirrors it

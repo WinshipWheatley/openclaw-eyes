@@ -57,6 +57,8 @@ def test_classifies_introspection_paraphrases(text: str, kind: str) -> None:
         "route this to Cassandra",
         "what model should we use to price an invoice?",
         "tell Chief to post the receivable",
+        "Hey Chief, what's your status right now?",
+        "what's your status?",
     ],
 )
 def test_precision_bias_leaves_business_questions_alone(text: str) -> None:

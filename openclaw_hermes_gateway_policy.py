@@ -8,15 +8,29 @@ external messages, move money, start services, or write route receipts.
 
 from __future__ import annotations
 
+import asyncio
 import contextvars
 import hashlib
 import os
 import re
 from typing import Any
 
+from agent_introspection import (
+    answer_agent_introspection,
+    classify_agent_introspection,
+)
 from listener_resilience import bounded_reply_timeout, clean_stale_carryover
 from final_output_boundary import OutputBoundaryContext
 from operator_surface_guard import guard_operator_reply_with_receipt
+
+
+_AGENT_INTROSPECTION_MATCH: contextvars.ContextVar[Any | None] = contextvars.ContextVar(
+    "hermes_agent_introspection_match",
+    default=None,
+)
+_AGENT_INTROSPECTION_PROOF: contextvars.ContextVar[dict[str, Any] | None] = (
+    contextvars.ContextVar("hermes_agent_introspection_proof", default=None)
+)
 
 
 _ROUTE_TARGET_RE = re.compile(
@@ -360,6 +374,7 @@ def truthful_reply_for_text(text: str) -> str | None:
     # Direct callers can reuse one context across messages; never let a prior
     # timeout receipt color a later deterministic/fallback answer.
     _VOTE_TIMEOUT_RECEIPT.set(None)
+    _AGENT_INTROSPECTION_MATCH.set(None)
     raw = str(text or "").strip()
     if not raw:
         return None
@@ -401,6 +416,14 @@ def truthful_reply_for_text(text: str) -> str | None:
         return _payment_arrival_reply(raw)
     if send_history:
         return _send_history_reply()
+
+    _introspection_match = classify_agent_introspection(
+        raw,
+        addressed_agent="hermes",
+    )
+    if _introspection_match is not None:
+        _AGENT_INTROSPECTION_MATCH.set(_introspection_match)
+        return None
 
     # Task 151: deterministic Hermes status (and other safe direct contracts)
     # before the sidecar worker.  Real send/pay actions were already refused
@@ -898,6 +921,8 @@ def install_gateway_policy_patch(
             boundary_context = OutputBoundaryContext.from_source_request(source_request)
             context_token = _OUTPUT_BOUNDARY_CONTEXT.set(boundary_context)
             timeout_token = _VOTE_TIMEOUT_RECEIPT.set(None)
+            introspection_match_token = _AGENT_INTROSPECTION_MATCH.set(None)
+            introspection_proof_token = _AGENT_INTROSPECTION_PROOF.set(None)
             try:
                 if authorized:
                     command = event.get_command() if callable(getattr(event, "get_command", None)) else None
@@ -906,6 +931,29 @@ def install_gateway_policy_patch(
                         if reply is not None:
                             return sanitize_gateway_response(
                                 reply,
+                                boundary_context=boundary_context,
+                            )
+                        _introspection_match = _AGENT_INTROSPECTION_MATCH.get()
+                        if _introspection_match is not None:
+                            _introspection_answer = await asyncio.to_thread(
+                                answer_agent_introspection,
+                                source_request,
+                                agent="hermes",
+                                source_surface="hermes_gateway_policy",
+                                source_request_id=(
+                                    "hermes:"
+                                    + hashlib.sha256(
+                                        source_request.encode("utf-8")
+                                    ).hexdigest()[:16]
+                                ),
+                                session={},
+                                match=_introspection_match,
+                            )
+                            _AGENT_INTROSPECTION_PROOF.set(
+                                dict(_introspection_answer.machine_proof)
+                            )
+                            return sanitize_gateway_response(
+                                _introspection_answer.text,
                                 boundary_context=boundary_context,
                             )
                 result = await bounded_reply_timeout(
@@ -920,6 +968,8 @@ def install_gateway_policy_patch(
                     boundary_context=boundary_context,
                 )
             finally:
+                _AGENT_INTROSPECTION_PROOF.reset(introspection_proof_token)
+                _AGENT_INTROSPECTION_MATCH.reset(introspection_match_token)
                 _VOTE_TIMEOUT_RECEIPT.reset(timeout_token)
                 _OUTPUT_BOUNDARY_CONTEXT.reset(context_token)
 

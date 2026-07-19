@@ -37,6 +37,10 @@ import contextvars
 import os
 
 import first_touch_decision
+from agent_introspection import (
+    answer_agent_introspection,
+    classify_agent_introspection,
+)
 from telegram import Update, InlineKeyboardMarkup
 from telegram.error import BadRequest as TelegramBadRequest, Forbidden as TelegramForbidden
 from telegram.ext import (
@@ -85,11 +89,39 @@ _OUTPUT_BOUNDARY_RECEIPT: contextvars.ContextVar[dict | None] = contextvars.Cont
     "guardian_output_boundary_receipt",
     default=None,
 )
+_AGENT_INTROSPECTION_PROOF: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "guardian_agent_introspection_proof",
+    default=None,
+)
 
 
 def current_output_boundary_receipt() -> dict | None:
     receipt = _OUTPUT_BOUNDARY_RECEIPT.get()
     return dict(receipt) if isinstance(receipt, dict) else None
+
+
+def current_agent_introspection_proof() -> dict | None:
+    proof = _AGENT_INTROSPECTION_PROOF.get()
+    return dict(proof) if isinstance(proof, dict) else None
+
+
+async def _answer_guardian_agent_introspection(
+    text: str,
+    *,
+    source_request_id: str = "",
+):
+    match = classify_agent_introspection(text, addressed_agent="guardian")
+    if match is None:
+        return None
+    return await asyncio.to_thread(
+        answer_agent_introspection,
+        text,
+        agent="guardian",
+        source_surface="guardian_listener",
+        source_request_id=source_request_id,
+        session={"source_message_id": source_request_id},
+        match=match,
+    )
 
 
 def guardian_resilient_reply(text: str, *, source_request: str = "") -> str:
@@ -506,6 +538,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     if not has_pending_approval():
+        _introspection_answer = await _answer_guardian_agent_introspection(
+            text,
+            source_request_id=f"guardian:{trace_source_message_id}",
+        )
+        if _introspection_answer is not None:
+            _AGENT_INTROSPECTION_PROOF.set(
+                dict(_introspection_answer.machine_proof)
+            )
+            await update.message.reply_text(
+                guardian_resilient_reply(
+                    _introspection_answer.text,
+                    source_request=text,
+                )
+            )
+            return
         _reply = guardian_no_pending_reply(
             text,
             first_touch_receipt=first_touch.receipt if first_touch.attempted else None,
@@ -531,6 +578,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # parse_reply_code returns ("", error_msg) on any mismatch or format failure.
     decision, error = parse_reply_code(text, _pending_id, options=_options)
     if error:
+        _introspection_answer = await _answer_guardian_agent_introspection(
+            text,
+            source_request_id=f"guardian:{trace_source_message_id}",
+        )
+        if _introspection_answer is not None:
+            _AGENT_INTROSPECTION_PROOF.set(
+                dict(_introspection_answer.machine_proof)
+            )
+            await update.message.reply_text(
+                guardian_resilient_reply(
+                    _introspection_answer.text,
+                    source_request=text,
+                )
+            )
+            return
         # Task 151: only after the strict HITL/CODE parser has declined the
         # message may the safe conversational contract answer it.  This keeps
         # authority deterministic and lets gate narration/status avoid the

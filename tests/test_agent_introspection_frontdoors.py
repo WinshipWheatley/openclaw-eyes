@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+import importlib
+import sys
+import types
+from types import SimpleNamespace
 from typing import Any
 
 from agent_introspection import AgentIntrospectionAnswer, AgentIntrospectionMatch
@@ -29,6 +34,62 @@ def _chief_answer() -> AgentIntrospectionAnswer:
             "external_action_performed": False,
         },
     )
+
+
+def _fleet_answer(agent: str, *, kind: str = "model_brain") -> AgentIntrospectionAnswer:
+    return AgentIntrospectionAnswer(
+        text=f"I’m {agent.title()}; this is a grounded read-only self-report.",
+        match=AgentIntrospectionMatch(kind=kind, evidence=("test",)),
+        machine_proof={
+            "intent_class": "agent_introspection",
+            "introspection_kind": kind,
+            "model_call_performed": True,
+            "original_message_present_in_submitted_prompt": True,
+            "turn_self_facts_delivered": True,
+            "workflow_package_staged": False,
+            "send_performed": False,
+            "ledger_touched": False,
+            "external_action_performed": False,
+        },
+    )
+
+
+class _FakeFilter:
+    def __and__(self, _other):
+        return self
+
+    def __invert__(self):
+        return self
+
+
+def _install_telegram_stubs(monkeypatch) -> None:
+    telegram = types.ModuleType("telegram")
+    telegram.Update = object
+    telegram.InlineKeyboardMarkup = object
+    error = types.ModuleType("telegram.error")
+    error.BadRequest = Exception
+    error.Forbidden = Exception
+
+    class _ApplicationBuilder:
+        def token(self, _token):
+            return self
+
+        def build(self):
+            return SimpleNamespace(add_handler=lambda *_args, **_kwargs: None)
+
+    ext = types.ModuleType("telegram.ext")
+    ext.ApplicationBuilder = _ApplicationBuilder
+    ext.CallbackQueryHandler = lambda *_args, **_kwargs: None
+    ext.MessageHandler = lambda *_args, **_kwargs: None
+    ext.filters = SimpleNamespace(
+        TEXT=_FakeFilter(),
+        COMMAND=_FakeFilter(),
+        VOICE=_FakeFilter(),
+    )
+    ext.ContextTypes = SimpleNamespace(DEFAULT_TYPE=object)
+    monkeypatch.setitem(sys.modules, "telegram", telegram)
+    monkeypatch.setitem(sys.modules, "telegram.error", error)
+    monkeypatch.setitem(sys.modules, "telegram.ext", ext)
 
 
 def test_chief_off_session_routing_rule_bypasses_semantic_vote(monkeypatch) -> None:
@@ -167,3 +228,167 @@ def test_maestro_model_self_query_rejects_legacy_reuse_and_injects_actual_turn(
     assert proof["turn_self_facts"]["model_id"] == "gpt-5.6-sol"
     assert proof["answer_grounded_in_turn_self_facts"] is True
     assert proof["workflow_package_staged"] is False
+
+
+def test_cassandra_introspection_precedes_typed_contract_and_brain(monkeypatch) -> None:
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "42")
+    sys.modules.pop("cassandra_listener", None)
+    listener = importlib.import_module("cassandra_listener")
+    import first_touch_decision
+    import typed_contract_decision
+
+    text = "What did you just do, and what is uniquely yours to handle?"
+    first_touch = first_touch_decision.attempt_first_touch(
+        text,
+        agent="cassandra",
+        surface="cassandra_listener",
+    )
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        listener,
+        "answer_agent_introspection",
+        lambda *args, **kwargs: calls.append(kwargs)
+        or _fleet_answer("cassandra", kind="recent_action"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        typed_contract_decision,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("typed contract must not see Cassandra introspection")
+        ),
+    )
+    monkeypatch.setattr(
+        listener,
+        "cassandra_handle",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy Cassandra brain must not run")
+        ),
+    )
+
+    replies = asyncio.run(
+        listener._run_cassandra_handle_async(
+            text,
+            {
+                "surface": "cassandra_telegram",
+                "source_message_id": "cassandra-introspection-1",
+                "first_touch_receipt": first_touch.receipt,
+                "last_action_receipt": {
+                    "receipt_pointer": "cassandra:ar:2026-1004"
+                },
+            },
+        )
+    )
+
+    assert [str(reply) for reply in replies] == [
+        "I’m Cassandra; this is a grounded read-only self-report."
+    ]
+    assert replies[0].contract_receipt["intent_class"] == "agent_introspection"
+    assert calls[0]["last_action_receipt"]["receipt_pointer"] == "cassandra:ar:2026-1004"
+
+
+def test_niles_listener_helper_calls_shared_introspection_brain(monkeypatch) -> None:
+    monkeypatch.setenv("NILES_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "42")
+    _install_telegram_stubs(monkeypatch)
+    sys.modules.pop("producer_listener", None)
+    listener = importlib.import_module("producer_listener")
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        listener,
+        "answer_agent_introspection",
+        lambda *args, **kwargs: calls.append(kwargs) or _fleet_answer("niles"),
+        raising=False,
+    )
+
+    answer = asyncio.run(
+        listener._answer_niles_agent_introspection(
+            "What model are you using?",
+            source_request_id="niles-introspection-1",
+        )
+    )
+
+    assert answer.text.startswith("I’m Niles")
+    assert calls[0]["agent"] == "niles"
+
+
+def test_niles_subprocess_mirror_resolves_introspection_before_typed_vote(
+    monkeypatch,
+) -> None:
+    from scripts import producer_intake
+    import agent_introspection
+    import typed_contract_decision
+
+    monkeypatch.setattr(
+        agent_introspection,
+        "answer_agent_introspection",
+        lambda *args, **kwargs: _fleet_answer("niles"),
+    )
+    monkeypatch.setattr(
+        typed_contract_decision,
+        "decide_contract",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("typed vote must not see Niles introspection")
+        ),
+    )
+
+    result = producer_intake._introspection_result("What model are you using?")
+
+    assert result["reply"].startswith("I’m Niles")
+    assert result["machine_proof"]["workflow_package_staged"] is False
+
+
+def test_guardian_helper_calls_shared_introspection_brain(monkeypatch) -> None:
+    monkeypatch.setenv("GUARDIAN_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "42")
+    _install_telegram_stubs(monkeypatch)
+    sys.modules.pop("chief_guardian_listener", None)
+    listener = importlib.import_module("chief_guardian_listener")
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        listener,
+        "answer_agent_introspection",
+        lambda *args, **kwargs: calls.append(kwargs) or _fleet_answer("guardian"),
+        raising=False,
+    )
+
+    answer = asyncio.run(
+        listener._answer_guardian_agent_introspection(
+            "What model are you using?",
+            source_request_id="guardian-introspection-1",
+        )
+    )
+
+    assert answer.text.startswith("I’m Guardian")
+    assert calls[0]["agent"] == "guardian"
+
+
+def test_hermes_runner_answers_introspection_before_vendor_handler(monkeypatch) -> None:
+    import openclaw_hermes_gateway_policy as hermes
+
+    monkeypatch.setattr(
+        hermes,
+        "answer_agent_introspection",
+        lambda *args, **kwargs: _fleet_answer("hermes"),
+        raising=False,
+    )
+
+    class GatewayRunner:
+        def _is_user_authorized(self, source):
+            return True
+
+        async def _handle_message(self, event):
+            raise AssertionError("vendor handler must not see Hermes introspection")
+
+    event = SimpleNamespace(
+        text="What model are you using?",
+        internal=False,
+        source=SimpleNamespace(user_id="operator"),
+        get_command=lambda: None,
+    )
+    module = SimpleNamespace(GatewayRunner=GatewayRunner)
+    hermes.install_gateway_policy_patch(gateway_run_module=module, base_adapter_cls=None)
+
+    reply = asyncio.run(GatewayRunner()._handle_message(event))
+
+    assert reply.startswith("I’m Hermes")

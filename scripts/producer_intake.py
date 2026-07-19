@@ -195,6 +195,51 @@ def _typed_contract_result(text, *, first_touch_receipt=None):
     }
 
 
+def _introspection_result(text):
+    """Fresh-process mirror for read-only Niles self queries."""
+
+    root = str(Path(__file__).resolve().parents[1])
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    from agent_introspection import (
+        answer_agent_introspection,
+        classify_agent_introspection,
+    )
+
+    match = classify_agent_introspection(text, addressed_agent="niles")
+    if match is None:
+        return None
+    try:
+        answer = answer_agent_introspection(
+            text,
+            agent="niles",
+            source_surface="niles_producer_intake",
+            source_request_id="niles_producer_intake",
+            session={"source_message_id": "niles_producer_intake"},
+            match=match,
+        )
+    except Exception as exc:
+        return {
+            "reply": (
+                "I couldn't produce a grounded Niles self-report. "
+                "Nothing was sent, staged, or changed."
+            ),
+            "machine_proof": {
+                "intent_class": "agent_introspection",
+                "error_type": type(exc).__name__,
+                "model_call_performed": False,
+                "workflow_package_staged": False,
+                "send_performed": False,
+                "ledger_touched": False,
+                "external_action_performed": False,
+            },
+        }
+    return {
+        "reply": answer.text,
+        "machine_proof": dict(answer.machine_proof),
+    }
+
+
 def _typed_contract_reply(text, *, first_touch_receipt=None):
     result = _typed_contract_result(
         text,
@@ -285,6 +330,16 @@ def main():
     # "right") before money ever got a chance. Fails open at each tap: any non-matching
     # ask or internal error falls through to the next stage, ending at the legacy path.
     if args.human_only:
+        refusal = None if first_touch_valid else _operator_refusal_reply(args.text)
+        if refusal is not None:
+            print(refusal)
+            return
+
+        introspection = _introspection_result(args.text)
+        if introspection is not None:
+            print(str(introspection["reply"]))
+            return
+
         typed_reply = (
             _typed_contract_reply(
                 args.text,
@@ -295,13 +350,6 @@ def main():
         )
         if typed_reply is not None:
             print(typed_reply)
-            return
-        # Independent safety fallback: even if the typed-contract import/call
-        # fails, destructive studio scope still reaches the proven refusal
-        # guard before identity, money, X32, or the legacy catch-all.
-        refusal = None if first_touch_valid else _operator_refusal_reply(args.text)
-        if refusal is not None:
-            print(refusal)
             return
 
         # ── Identity persona core (task 142 hook, task 145 wiring) — after the

@@ -101,7 +101,8 @@ _ADVISORY_PATTERNS = (
 )
 _STATUS_PATTERNS = (
     re.compile(
-        r"\bwhat(?:'s|\s+is)\s+your\s+(?:own\s+)?(?:service\s+)?(?:status|health|lane)\b",
+        r"\bwhat(?:'s|\s+is)\s+your\s+(?:own\s+service\s+status|"
+        r"service\s+(?:status|health)|own\s+(?:health|lane)|health|lane)\b",
         re.IGNORECASE,
     ),
     re.compile(

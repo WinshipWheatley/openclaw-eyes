@@ -46,6 +46,10 @@ except ModuleNotFoundError:
         DEFAULT_TYPE = Any
 
 import first_touch_decision
+from agent_introspection import (
+    answer_agent_introspection,
+    classify_agent_introspection,
+)
 from scripts.producer_telegram_route import extract_producer_payload, truncate_producer_output
 from cassandra_brain import (
     handle as cassandra_handle,
@@ -620,6 +624,55 @@ async def _run_cassandra_handle_async(
         )
     except Exception:
         _refusal_evaluated = False
+    _introspection_match = (
+        classify_agent_introspection(text, addressed_agent="cassandra")
+        if _refusal_evaluated
+        else None
+    )
+    if _introspection_match is not None:
+        try:
+            _introspection_answer = await asyncio.to_thread(
+                answer_agent_introspection,
+                text,
+                agent="cassandra",
+                source_surface=str(
+                    session_meta.get("surface") or "cassandra_telegram"
+                ),
+                source_request_id=str(
+                    session_meta.get("source_message_id") or ""
+                ),
+                session=session_meta,
+                last_action_receipt=session_meta.get("last_action_receipt"),
+                match=_introspection_match,
+            )
+            return [
+                _ReceiptBoundReply(
+                    text=_introspection_answer.text,
+                    descriptor=None,
+                    contract_receipt=dict(_introspection_answer.machine_proof),
+                    source_text=text,
+                )
+            ]
+        except Exception as exc:
+            return [
+                _ReceiptBoundReply(
+                    text=(
+                        "I couldn't produce a grounded Cassandra self-report. "
+                        "Nothing was sent, staged, posted, or changed."
+                    ),
+                    descriptor=None,
+                    contract_receipt={
+                        "intent_class": "agent_introspection",
+                        "error_type": type(exc).__name__,
+                        "model_call_performed": False,
+                        "workflow_package_staged": False,
+                        "send_performed": False,
+                        "ledger_touched": False,
+                        "external_action_performed": False,
+                    },
+                    source_text=text,
+                )
+            ]
     try:
         from invoice_cockpit_ops import DEFAULT_SESSION_PATH, JsonSessionStore
         from typed_contract_decision import (
