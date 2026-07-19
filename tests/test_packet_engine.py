@@ -149,6 +149,69 @@ def test_cassandra_packet_delivery_carries_quiet_luxury_doctrine_reference() -> 
     assert "Autonomy rung: PREPARE_ONLY" in packet["packet_text"]
 
 
+def test_gig_doctrine_is_delivered_only_for_relevant_consumer_packet() -> None:
+    import packet_engine
+
+    relevant = packet_engine.build_agent_packet(
+        agent="cassandra",
+        question="price a five-piece wedding band",
+        question_class="gig_pricing",
+        legacy_builder=lambda **_: _base_packet(),
+    )
+    unrelated = packet_engine.build_agent_packet(
+        agent="cassandra",
+        question="summarize the service roster",
+        question_class="frontdoor_freeform",
+        legacy_builder=lambda **_: _base_packet(),
+    )
+
+    delivery = relevant["gig_business_doctrine_delivery"]
+    assert delivery["status"] == "READY"
+    assert [section["section_id"] for section in delivery["sections"]] == [
+        "pricing_buckets"
+    ]
+    assert "GIG BUSINESS DOCTRINE" in relevant["packet_text"]
+    assert "gig_business_doctrine" in relevant["packet_engine_receipt"]["sections"]
+    assert relevant["machine_proof"]["gig_business_doctrine_ref"] == (
+        "gig_business_doctrine:v1.2"
+    )
+    assert relevant["machine_proof"]["gig_business_doctrine_freshness_class"] == (
+        "NEVER_STALE"
+    )
+    assert relevant["machine_proof"]["gig_business_pricing_logistics_source_policy"] == (
+        "ONLY"
+    )
+    assert "gig_business_doctrine_delivery" not in unrelated
+    assert "GIG BUSINESS DOCTRINE" not in unrelated["packet_text"]
+
+
+def test_missing_gig_doctrine_blocks_pricing_without_legacy_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    import gig_business_doctrine
+    import packet_engine
+
+    monkeypatch.setattr(
+        gig_business_doctrine,
+        "DOCTRINE_PATH",
+        tmp_path / "missing-gig-doctrine.md",
+    )
+    packet = packet_engine.build_agent_packet(
+        agent="cassandra",
+        question="price a five-piece wedding band",
+        question_class="gig_pricing",
+        legacy_builder=lambda **_: _base_packet(),
+    )
+
+    assert packet["status"] == "GIG_BUSINESS_DOCTRINE_UNAVAILABLE"
+    assert packet["gig_business_doctrine_delivery"]["status"] == "STALE_MISSING"
+    assert "DO NOT PROVIDE OR ACT ON PRICING/LOGISTICS" in packet["packet_text"]
+    assert "gig_business_doctrine" in packet["packet_engine_receipt"]["sections"]
+    assert packet["packet_engine_receipt"]["failures"] == []
+    assert packet["machine_proof"]["gig_business_doctrine_current"] is False
+
+
 def test_guardian_persona_core_has_no_humor_markers() -> None:
     import packet_engine
 
