@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import stat
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -36,6 +37,7 @@ DEFAULT_SCOPE_CONFIG_PATH = Path("/var/lib/openclaw-authority/lamd-autosend-scop
 DEFAULT_SEND_HOLD_PATH = Path("/mnt/e/openclaw/orchestration/SEND_HOLD.md")
 DEFAULT_ARTIFACT_ROOT = Path("/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md")
 MAX_CONFIG_BYTES = 65_536
+MONTH_PATTERN = re.compile(r"^\d{4}-\d{2}$")
 
 
 class ScopeConfigError(ValueError):
@@ -147,6 +149,11 @@ def load_scope_config(
         raise ScopeConfigError("standing scope drift: " + ", ".join(changed))
     if type(value.get("armed")) is not bool or type(value.get("operator_stop")) is not bool:
         raise ScopeConfigError("standing scope authority flags are invalid")
+    not_before = value.get("not_before_service_month")
+    if not_before is not None and (
+        not isinstance(not_before, str) or MONTH_PATTERN.fullmatch(not_before) is None
+    ):
+        raise ScopeConfigError("standing scope not-before service month is invalid")
     for field in ("standing_authority_ref", "authority_source_ref"):
         if not str(value.get(field) or "").strip():
             raise ScopeConfigError(f"standing scope {field} is required")
@@ -155,6 +162,14 @@ def load_scope_config(
     if require_armed and value["operator_stop"] is True:
         raise ScopeConfigError("standing LAMD auto-send is operator-stopped")
     return value
+
+
+def package_before_not_before_service_month(
+    package: Mapping[str, Any],
+    config: Mapping[str, Any],
+) -> bool:
+    not_before = config.get("not_before_service_month")
+    return isinstance(not_before, str) and str(package.get("service_month") or "") < not_before
 
 
 def _assert_package_matches_scope(package: Mapping[str, Any], config: Mapping[str, Any]) -> dict[str, Any]:
@@ -250,6 +265,8 @@ def verify_standing_send_context(
         if not isinstance(package_value, Mapping):
             return _invalid("monthly_package_missing")
         package = _assert_package_matches_scope(package_value, config)
+        if package_before_not_before_service_month(package, config):
+            return _invalid("outside_not_before_service_month")
         material = build_exact_send_material(package)
     except (ScopeConfigError, ValueError, OSError):
         return _invalid("standing_scope_or_package_invalid")
@@ -311,6 +328,8 @@ class StandingSendHoldAdmission:
                 require_armed=True,
             )
             _assert_package_matches_scope(package, config)
+            if package_before_not_before_service_month(package, config):
+                raise ScopeConfigError("monthly package is before standing not-before service month")
             metadata = os.lstat(self.send_hold_path)
             mode = stat.S_IMODE(metadata.st_mode)
             if not stat.S_ISREG(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
@@ -355,6 +374,8 @@ class GovernedGmailProvider:
             require_armed=True,
         )
         bounded = _assert_package_matches_scope(package, config)
+        if package_before_not_before_service_month(bounded, config):
+            raise ScopeConfigError("monthly package is before standing not-before service month")
         if not _artifacts_within_root(bounded, self.artifact_root):
             raise ScopeConfigError("monthly artifacts are outside the approved root or workbook stream")
         expected_cycle_key = f"{CLIENT_REF}:{STREAM}:{bounded['service_month']}"
@@ -448,5 +469,6 @@ __all__ = [
     "StandingSendHoldAdmission",
     "build_exact_send_material",
     "load_scope_config",
+    "package_before_not_before_service_month",
     "verify_standing_send_context",
 ]

@@ -196,6 +196,7 @@ def run_once(
         policy=AutosendPolicy(
             armed=bool(config["armed"]),
             operator_stop=bool(config["operator_stop"]),
+            not_before_service_month=config.get("not_before_service_month"),
         ),
         store=LamdMonthlyCycleStore(cycles_path),
         freeze_guard=freeze_guard or _production_freeze_guard(),

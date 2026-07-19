@@ -87,23 +87,23 @@ def _validated_w1(root: Path) -> Path:
     return month_dir
 
 
-def _write_scope(path: Path, *, armed: bool, operator_stop: bool) -> None:
+def _write_scope(path: Path, *, armed: bool, operator_stop: bool, **changes) -> None:
+    payload = {
+        "schema_version": "lamd_autosend_scope_v1",
+        "armed": armed,
+        "operator_stop": operator_stop,
+        "client_ref": "live_arts_md",
+        "stream": "speaker_rental",
+        "amount_minor_units": 10000,
+        "currency": "USD",
+        "recipient": "Accountant@liveartsmd.org",
+        "cadence_day": 16,
+        "standing_authority_ref": "operator-terminal-grant:lamd-monthly-autosend:2026-07-18",
+        "authority_source_ref": "/home/openclaw/Operator/to-codex/OPUS-ARM-LAMD-MONTHLY-AUTOSEND-20260718.md",
+    }
+    payload.update(changes)
     path.write_text(
-        json.dumps(
-            {
-                "schema_version": "lamd_autosend_scope_v1",
-                "armed": armed,
-                "operator_stop": operator_stop,
-                "client_ref": "live_arts_md",
-                "stream": "speaker_rental",
-                "amount_minor_units": 10000,
-                "currency": "USD",
-                "recipient": "Accountant@liveartsmd.org",
-                "cadence_day": 16,
-                "standing_authority_ref": "operator-terminal-grant:lamd-monthly-autosend:2026-07-18",
-                "authority_source_ref": "/home/openclaw/Operator/to-codex/OPUS-ARM-LAMD-MONTHLY-AUTOSEND-20260718.md",
-            }
-        ),
+        json.dumps(payload),
         encoding="utf-8",
     )
     path.chmod(0o644)
@@ -184,6 +184,60 @@ def test_unarmed_scope_is_provider_zero_and_claim_zero(tmp_path: Path) -> None:
     )
 
     assert result["status"] == "REFUSED_UNARMED"
+    assert result["provider_called"] is False
+    assert calls == []
+    assert not (tmp_path / "g2c.sqlite3").exists()
+    with sqlite3.connect(tmp_path / "cycles.sqlite3") as conn:
+        assert conn.execute("SELECT COUNT(*) FROM monthly_cycles").fetchone()[0] == 0
+
+
+def test_scope_not_before_month_refuses_stale_current_package_provider_zero(tmp_path: Path) -> None:
+    july_now = datetime(2026, 7, 19, 14, 35, tzinfo=timezone.utc)
+    package = _package(tmp_path)
+    package.update(
+        {
+            "service_month": "2026-07",
+            "service_period_start": "2026-07-01",
+            "service_period_end": "2026-07-31",
+            "invoice_number": "2026-1004",
+        }
+    )
+    material = {key: package[key] for key in sorted(package) if key != "package_sha256"}
+    package["package_sha256"] = hashlib.sha256(
+        json.dumps(material, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    package_path = tmp_path / "package.json"
+    package_path.write_text(json.dumps(package), encoding="utf-8")
+    scope = tmp_path / "scope.json"
+    _write_scope(
+        scope,
+        armed=True,
+        operator_stop=False,
+        not_before_service_month="2026-08",
+    )
+    send_hold = tmp_path / "SEND_HOLD.md"
+    send_hold.write_text("SEND_HOLD remains active.\n", encoding="utf-8")
+    send_hold.chmod(0o644)
+    calls: list[dict] = []
+
+    result = run_once(
+        execute=True,
+        now=july_now,
+        package_path=package_path,
+        scope_config_path=scope,
+        cycles_path=tmp_path / "cycles.sqlite3",
+        ledger_path=tmp_path / "g2c.sqlite3",
+        graduation_dir=tmp_path / "graduations",
+        receipt_dir=tmp_path / "receipts",
+        send_hold_path=send_hold,
+        artifact_root=tmp_path,
+        expected_config_uid=os.getuid(),
+        freeze_guard=ClearGuard(),
+        broker_call=lambda *_args: calls.append({}) or {},
+    )
+
+    assert result["status"] == "REFUSED_NOT_BEFORE_SERVICE_MONTH"
+    assert result["not_before_service_month"] == "2026-08"
     assert result["provider_called"] is False
     assert calls == []
     assert not (tmp_path / "g2c.sqlite3").exists()

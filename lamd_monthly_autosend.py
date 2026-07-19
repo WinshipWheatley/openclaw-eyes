@@ -46,6 +46,7 @@ class GuardDecision:
 class AutosendPolicy:
     armed: bool
     operator_stop: bool
+    not_before_service_month: str | None = None
 
 
 class FreezeGuardLike(Protocol):
@@ -295,6 +296,16 @@ def run_monthly_cycle(
         return {"status": "NOT_ELIGIBLE", "cycle_key": cycle_key, "provider_called": False}
     if now_utc.day < ELIGIBLE_DAY:
         return {"status": "NOT_ELIGIBLE", "cycle_key": cycle_key, "provider_called": False}
+    if policy.not_before_service_month and month < policy.not_before_service_month:
+        detail = _refusal(
+            store=store,
+            cycle_key=cycle_key,
+            status="REFUSED_NOT_BEFORE_SERVICE_MONTH",
+            reason="not_before_service_month",
+            now=timestamp,
+        )
+        detail["not_before_service_month"] = policy.not_before_service_month
+        return detail
     if not policy.armed:
         return _refusal(store=store, cycle_key=cycle_key, status="REFUSED_UNARMED", reason="autosend_unarmed", now=timestamp)
     if policy.operator_stop:

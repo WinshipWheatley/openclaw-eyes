@@ -133,6 +133,69 @@ def test_scope_config_drift_or_stop_refuses(tmp_path: Path, change: dict) -> Non
         load_scope_config(config_path, expected_uid=os.getuid(), require_armed=True)
 
 
+def test_invalid_not_before_service_month_refuses_scope(tmp_path: Path) -> None:
+    config_path = _scope_config(tmp_path, not_before_service_month="2026-8")
+
+    with pytest.raises(ScopeConfigError, match="not-before service month"):
+        load_scope_config(config_path, expected_uid=os.getuid(), require_armed=True)
+
+
+def test_standing_context_refuses_package_before_not_before_month(tmp_path: Path) -> None:
+    now = datetime(2026, 7, 19, 14, 0, tzinfo=timezone.utc)
+    package = _package(
+        tmp_path,
+        service_month="2026-07",
+        service_period_start="2026-07-01",
+        service_period_end="2026-07-31",
+        invoice_number="2026-1004",
+    )
+    config_path = _scope_config(tmp_path, not_before_service_month="2026-08")
+    params, _material = _context(package, config_path)
+
+    verdict = verify_standing_send_context(
+        "cassandra",
+        "google.gmail.send",
+        params,
+        now=now,
+        scope_config_path=config_path,
+        artifact_root=tmp_path,
+        expected_config_uid=os.getuid(),
+    )
+
+    assert verdict == {"valid": False, "reason": "outside_not_before_service_month"}
+
+
+def test_provider_refuses_package_before_not_before_month_before_broker_call(tmp_path: Path) -> None:
+    now = datetime(2026, 7, 19, 14, 0, tzinfo=timezone.utc)
+    package = _package(
+        tmp_path,
+        service_month="2026-07",
+        service_period_start="2026-07-01",
+        service_period_end="2026-07-31",
+        invoice_number="2026-1004",
+    )
+    config_path = _scope_config(tmp_path, not_before_service_month="2026-08")
+    send_hold = tmp_path / "SEND_HOLD.md"
+    send_hold.write_text("SEND_HOLD remains active.\n", encoding="utf-8")
+    send_hold.chmod(0o644)
+    calls: list[dict] = []
+    provider = GovernedGmailProvider(
+        scope_config_path=config_path,
+        send_hold_path=send_hold,
+        graduation_path=tmp_path / "graduation.json",
+        broker_call=lambda *_args: calls.append({}) or {},
+        artifact_root=tmp_path,
+        expected_config_uid=os.getuid(),
+        now_fn=lambda: now,
+    )
+
+    with pytest.raises(ScopeConfigError, match="not-before service month"):
+        provider.send(package, cycle_key="live_arts_md:speaker_rental:2026-07")
+
+    assert calls == []
+    assert not (tmp_path / "graduation.json").exists()
+
+
 def test_standing_context_verifier_rechecks_exact_material_and_time(tmp_path: Path) -> None:
     package = _package(tmp_path)
     config_path = _scope_config(tmp_path)
@@ -322,6 +385,11 @@ def test_real_broker_gate_consumes_standing_graduation_before_fake_provider(
         service_period_end="2026-07-31",
         invoice_number="2026-1004",
     )
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now if tz is None else now.astimezone(tz)
+
     config_path = _scope_config(tmp_path)
     send_hold = tmp_path / "SEND_HOLD.md"
     send_hold.write_text("SEND_HOLD remains active.\n", encoding="utf-8")
@@ -342,6 +410,7 @@ def test_real_broker_gate_consumes_standing_graduation_before_fake_provider(
         ),
     )
     monkeypatch.setenv("OPENCLAW_SEND_HOLD_PATH", str(send_hold))
+    monkeypatch.setattr(broker, "datetime", FrozenDateTime)
     monkeypatch.setattr(broker, "_is_configured", lambda: True)
     monkeypatch.setattr(broker, "_load_credentials", lambda: object())
     monkeypatch.setattr(
