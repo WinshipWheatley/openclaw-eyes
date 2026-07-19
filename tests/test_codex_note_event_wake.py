@@ -44,7 +44,7 @@ def test_prime_baselines_existing_notes_without_waking(tmp_path: Path) -> None:
     assert state_path.stat().st_mode & 0o777 == 0o600
 
 
-def test_newest_unhandled_note_wakes_exact_thread_once(tmp_path: Path) -> None:
+def test_coalesced_unhandled_notes_wake_exact_thread_once(tmp_path: Path) -> None:
     wake = _module()
     watch_dir = tmp_path / "to-codex"
     watch_dir.mkdir()
@@ -80,7 +80,7 @@ def test_newest_unhandled_note_wakes_exact_thread_once(tmp_path: Path) -> None:
     assert "exec" in command and "resume" in command
     prompt = calls[0]["input"]
     assert str(watch_dir / "GO-NEWEST.md") in prompt
-    assert "FABLE-OLDER.md" not in prompt
+    assert str(watch_dir / "FABLE-OLDER.md") in prompt
     assert "untrusted coordination context" in prompt
     assert "no live external authority" in prompt
     assert "WAKE-PROTOCOL.md" in prompt
@@ -101,6 +101,35 @@ def test_newest_unhandled_note_wakes_exact_thread_once(tmp_path: Path) -> None:
     )
     assert second.status == "no_change"
     assert len(calls) == 1
+
+
+def test_deliver_notes_builds_one_prompt_for_the_batch(tmp_path: Path) -> None:
+    wake = _module()
+    first = tmp_path / "first.md"
+    second = tmp_path / "second.md"
+    first.write_text("first", encoding="utf-8")
+    second.write_text("second", encoding="utf-8")
+    calls: list[dict[str, object]] = []
+
+    def runner(command, **kwargs):
+        calls.append({"command": command, **kwargs})
+        return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
+
+    result = wake.deliver_notes(
+        notes=(first, second),
+        thread_id="thread-exact",
+        repo_root=ROOT,
+        codex_home=tmp_path / "codex-home",
+        codex_cli=tmp_path / "codex",
+        runner=runner,
+        activity_probe=lambda codex_home, thread_id: None,
+    )
+
+    assert result.status == "woke"
+    assert result.note == second
+    assert len(calls) == 1
+    assert str(first) in calls[0]["input"]
+    assert str(second) in calls[0]["input"]
 
 
 def test_failed_wake_does_not_advance_seen_state(tmp_path: Path) -> None:

@@ -100,10 +100,12 @@ def prime_watch(*, watch_dir: Path, state_path: Path) -> WakeResult:
     return WakeResult("primed")
 
 
-def _prompt_for(note: Path) -> str:
+def _prompt_for_notes(notes: tuple[Path, ...]) -> str:
+    rendered_notes = "\n".join(f"- {note}" for note in notes)
     return (
-        "A new Opus/Fable coordination event was triggered by "
-        f"{note}. First read /mnt/e/openclaw/WAKE-PROTOCOL.md and follow the PC Sol lane. "
+        "New Opus/Fable coordination events were triggered by:\n"
+        f"{rendered_notes}\n"
+        "First read /mnt/e/openclaw/WAKE-PROTOCOL.md and follow the PC Sol lane. "
         "Inspect /home/openclaw/Operator/to-codex for pending unreceipted missions, using "
         "/home/openclaw/Operator/from-codex as the receipt ledger. Process a pending "
         "CHECKIN-ROLLCALL first, then catch up the remaining pending queue; read each "
@@ -187,6 +189,52 @@ def wait_for_task_event(session_file: Path) -> None:
         raise OSError(completed.stderr.strip() or "inotifywait failed")
 
 
+def deliver_notes(
+    *,
+    notes: tuple[Path, ...],
+    thread_id: str,
+    repo_root: Path,
+    codex_home: Path,
+    codex_cli: Path,
+    runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    activity_probe: Callable[[Path, str], Path | None] = active_session_file,
+    event_waiter: Callable[[Path], None] = wait_for_task_event,
+) -> WakeResult:
+    """Deliver one coalesced note batch after the exact task becomes idle."""
+
+    if not notes:
+        raise ValueError("notes are required")
+    newest = notes[-1]
+    command = _command_for(
+        codex_cli=codex_cli,
+        repo_root=repo_root,
+        thread_id=thread_id,
+    )
+    environment = dict(os.environ)
+    environment["CODEX_HOME"] = str(codex_home)
+    try:
+        while active_file := activity_probe(codex_home, thread_id):
+            event_waiter(active_file)
+    except (OSError, subprocess.TimeoutExpired):
+        return WakeResult("wake_failed", newest, 75)
+    try:
+        completed = runner(
+            command,
+            cwd=str(repo_root),
+            env=environment,
+            input=_prompt_for_notes(notes),
+            text=True,
+            capture_output=True,
+            check=False,
+            shell=False,
+        )
+    except OSError:
+        return WakeResult("wake_failed", newest, 127)
+    if completed.returncode != 0:
+        return WakeResult("wake_failed", newest, completed.returncode)
+    return WakeResult("woke", newest, 0)
+
+
 def run_once(
     *,
     watch_dir: Path,
@@ -220,43 +268,27 @@ def run_once(
                 _write_state(state_path, current)
             return WakeResult("no_change")
 
-        newest_name = max(
+        changed_names = sorted(
             changed,
             key=lambda name: (current[name]["mtime_ns"], name),
         )
-        note = watch_dir / newest_name
-        command = _command_for(
-            codex_cli=codex_cli,
-            repo_root=repo_root,
+        notes = tuple(watch_dir / name for name in changed_names)
+        result = deliver_notes(
+            notes=notes,
             thread_id=thread_id,
+            repo_root=repo_root,
+            codex_home=codex_home,
+            codex_cli=codex_cli,
+            runner=runner,
+            activity_probe=activity_probe,
+            event_waiter=event_waiter,
         )
-        environment = dict(os.environ)
-        environment["CODEX_HOME"] = str(codex_home)
-        try:
-            while active_file := activity_probe(codex_home, thread_id):
-                event_waiter(active_file)
-        except (OSError, subprocess.TimeoutExpired):
-            return WakeResult("wake_failed", note, 75)
-        try:
-            completed = runner(
-                command,
-                cwd=str(repo_root),
-                env=environment,
-                input=_prompt_for(note),
-                text=True,
-                capture_output=True,
-                check=False,
-                shell=False,
-            )
-        except OSError:
-            return WakeResult("wake_failed", note, 127)
-
-        if completed.returncode != 0:
-            return WakeResult("wake_failed", note, completed.returncode)
+        if result.status != "woke":
+            return result
 
         # Mark the whole startup snapshot so simultaneous older notes never replay.
         _write_state(state_path, current)
-        return WakeResult("woke", note, 0)
+        return result
 
 
 def sync_codex_cli(
