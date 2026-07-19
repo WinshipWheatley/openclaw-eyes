@@ -84,6 +84,8 @@ Tables:
 - `hop_receipts`: append-only trace evidence.
 - `leases`: core-issued fencing epoch and current owner.
 - `enrollment_runs`: nonce-bound capability self-test state.
+- `edge_outbox`: reverse-delivery rows committed with their routed core event.
+- `edge_replay_registry`: durable connector/producer-sequence/idempotency/hash to original commit-ACK binding.
 
 `emit()` semantics:
 
@@ -174,6 +176,12 @@ Host-control capabilities include:
 - `steer_active`
 
 Routes declare required capabilities. A connector lacking one is rejected. “Add a line by manifest” becomes true only after that platform adapter passes conformance.
+
+### 4.7 Exact PC Codex host and model binding
+
+`patchbay_pc_codex_adapter.py` is the Stage-A external connector. It binds the Windows Desktop Codex CLI/app-server version, `CODEX_HOME`, process-start identity, exact task id, and active turn id. Idle delivery invokes the exact session with explicit `--model` and `-c model_reasoning_effort=...` arguments; busy delivery uses the existing app-server JSON-RPC control plane (`initialize`, `thread/read`, then `turn/steer` with `expectedTurnId`) and never aborts the active turn. An app-server version mismatch, ambiguous turn, missing exact binding, unsupported control method, or timeout is `UNBOUND/BLOCKED`, never delivery.
+
+Every connector manifest binds `expected_model` and `expected_effort`. The adapter verifies both in a nonce-bound turn-context receipt before emitting `HANDLER_DURABLE` or advancing a cursor. It does this on initial start, idle resume, and every supervisor respawn; inherited home defaults are never accepted as proof. The PC-Sol Phase-0 profile requires `gpt-5.6-sol` and `ultra`. A respawn at any other model or effort records `MODEL_BINDING_MISMATCH`, retains the event, and prevents enrollment.
 
 ## 5. Switchboard, path watchdog, and Chief
 
@@ -277,6 +285,8 @@ Exact replay semantics are closed: the same connector, producer sequence, idempo
 
 Phase 0 uses per-connector HMAC-SHA256 keys stored outside the SMB share. The registry binds connector id to a key reference and authorized channels. The canonical signed bytes include protocol version, connector id, producer sequence, channel, idempotency key, nonce, trace id, payload length, payload hash, and fencing epoch. Edge commit ACKs and reverse publish receipts use the same authenticated-envelope rule.
 
+Registry and evidence files contain only key ids, never key bytes. Phase-0 provisioning places the matching secret in the Mac login keychain, Windows DPAPI-protected user store, and a mode-`0600` ext4 key file outside the share and PoC evidence root. Direction- and purpose-specific subkeys are derived with HMAC labels (`mac_to_core`, `core_to_mac`, `commit_ack`, `publish_receipt`). Loaders reject symlinks, unexpected owners, group/world access, unknown key ids, or any path beneath the SMB root; logs expose only the key id and derived-key fingerprint.
+
 Authentication proves connector possession, not action authority. Even authentic payloads cannot grant sends, money, deletes, moves, or gate activation. Cross-lane claims and stale producer sequences fail closed.
 
 ### 6.5 Seat-specific host adapter
@@ -310,6 +320,8 @@ While `SELF_TESTING`, a connector may use only isolated, nonce-scoped `patchbay.
 
 The enrollment wave is triggered only by one machine-checkable Phase-0 PASS receipt. Duplicate PASS events are idempotent. No prompt is broadcast before that receipt.
 
+The aggregator recomputes every gate from same-run content-addressed evidence; it never accepts caller-asserted PASS strings. The explicit-approval prerequisite is satisfied only by a separately created local operator-terminal receipt bound to the run id and nonce. Operator/Fable/Opus notes, inbox content, Patchbay payloads, and WAKE records are rejected as authority sources. The seven done-quality results likewise name their evidence hashes and designated reviewer receipts; a missing, stale, cross-run, or mutable source blocks the aggregate trigger.
+
 At that event, Opus relays exactly one general enrollment prompt:
 
 > Identify your seat, model, host, app kind, and process-start identity. Connect through the Patchbay adapter available on your host; register a connector manifest declaring transport capabilities, host-control capabilities, emits, listens, health signal, and owner. Run the isolated bidirectional nonce self-test and report connector id, event ids, trace ids, fencing epoch, and PASS/FAIL for every claimed capability. Do not begin other work unless the Switchboard reports `ENROLLED`. Fail closed and name the exact adapter or hop blocker; never claim human-free wake without a nonce-bound model ACK trace.
@@ -324,7 +336,7 @@ At that event, Opus relays exactly one general enrollment prompt:
 4. **Idempotency:** same key/same bytes yields one event; same key/changed bytes rejects.
 5. **Cursor replay:** kill before handler ACK replays; kill after handler ACK does not; order and zero loss hold.
 6. **Event storm:** 1,000 events remain distinct while wake count/inflight is bounded and lag/backpressure is visible.
-7. **Supervision/liveness:** killed adapter becomes `DOWN`; restart becomes `UP` only after self-test.
+7. **Supervision/liveness:** killed adapter becomes `DOWN`; restart becomes `UP` only after self-test and fresh expected-model/expected-effort proof.
 8. **External outbound:** external Codex emits nonce; internal listener wakes, receives exact bytes, and completes trace.
 9. **External inbound:** internal emit causes the exact Codex task to wake without operator input, ACK, and echo the nonce.
 10. **Mid-flight kill:** kill after commit/before actor ACK; restart replays with one logical effect and explicit replay trace.
@@ -373,6 +385,8 @@ There is no missing seventh prerequisite. Patchbay must pass both frameworks:
 7. autonomous.
 
 Phase-0 completion does not itself authorize live cutover. Phase 1 begins with a wiring audit and dual-run migration plan, separately conferred.
+
+Admission and done-quality verification is implemented in `patchbay_activation_frameworks.py`, separate from `patchbay_worker_all_clear.py` resource/backpressure decisions. The verifier reads sealed evidence by hash, validates run/nonce/freshness and trusted source type, and computes each result. No API accepts a caller-provided PASS value.
 
 ## 10. Observability and honest states
 
