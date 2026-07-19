@@ -111,10 +111,16 @@ def test_install_is_plan_first_and_service_is_hardened_and_explicitly_activated(
     assert "ReadWritePaths=/var/lib/openclaw-authority /run/openclaw-authority" in unit
 
 
-def test_guardian_trip_helper_is_not_wired_to_message_listener() -> None:
+def test_guardian_trip_is_wired_only_to_listener_signal_not_message_content() -> None:
     listener = (ROOT / "chief_guardian_listener.py").read_text(encoding="utf-8")
-    assert "lamd_autosend_brake" not in listener
-    assert "guardian_trip(" not in listener
+    message_handler = listener.split("async def handle_message", 1)[1].split(
+        "\ndef build_application", 1
+    )[0]
+
+    assert "from guardian_lamd_emergency_trip import install_guardian_lamd_emergency_signal" in listener
+    assert "install_guardian_lamd_emergency_signal(asyncio.get_running_loop())" in listener
+    assert "guardian_lamd_emergency_trip" not in message_handler
+    assert "install_guardian_lamd_emergency_signal" not in message_handler
 
 
 def test_installed_acceptance_is_fake_only_plan_first_and_preserves_concurrent_trip() -> None:

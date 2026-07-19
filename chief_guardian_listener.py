@@ -58,6 +58,7 @@ from telegram_listener_integrity import (
 )
 from chief_nonapproval_responder import guardian_no_pending_reply
 from guardian_approval_ui import human_reply_code, terminal_outcome
+from guardian_lamd_emergency_trip import install_guardian_lamd_emergency_signal
 from listener_resilience import clean_stale_carryover, honest_short_fail
 from telegram_receipt_adapter import (
     contract_delivery_descriptor,
@@ -740,6 +741,7 @@ def build_application():
 
 async def run_listener(application=None, stop_event: asyncio.Event | None = None) -> None:
     application = application or build_application()
+    install_guardian_lamd_emergency_signal(asyncio.get_running_loop())
     await run_verified_polling(application, "guardian", stop_event=stop_event)
 
 
