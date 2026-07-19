@@ -145,6 +145,27 @@ def test_conversational_capability_prompt_uses_brain_with_capability_facts(tmp_p
                 "route": "local_ollama_frontdoor",
                 "model_selected": "qwen3:8b-q4_K_M",
                 "deterministic_fallback_used": False,
+                "external_brain": {
+                    "schema_version": "external_brain_route_receipt_v1",
+                    "request_hash": "sha256:request",
+                    "agent_id": "maestro",
+                    "agent_binding_status": "bound",
+                    "effective_lane_id": "mid_lane",
+                    "external_turn_performed": True,
+                    "response_source": "external_brain",
+                    "turn_id_hash": "sha256:turn",
+                    "unsafe_prompt": "must not surface",
+                    "router_usage": {
+                        "schema_version": "lm1_router_usage_receipt_v1",
+                        "event_id": "usage:test",
+                        "agent_id": "maestro",
+                        "agent_used_count": 1,
+                        "per_agent_used_count": {"maestro": 1},
+                        "total_used_count": 1,
+                        "answer_text_sha256": "sha256:answer",
+                        "answer_text_length": 24,
+                    },
+                },
             },
         }
 
@@ -162,6 +183,9 @@ def test_conversational_capability_prompt_uses_brain_with_capability_facts(tmp_p
     assert result.machine_proof["model_call_performed"] is True
     assert result.machine_proof["protected_generate_route"] == "local_ollama_frontdoor"
     assert result.machine_proof["protected_generate_model_selected"] == "qwen3:8b-q4_K_M"
+    assert result.machine_proof["external_brain_route_receipt"]["agent_id"] == "maestro"
+    assert "unsafe_prompt" not in json.dumps(result.machine_proof)
+    assert result.machine_proof["lm1_router_usage_receipt"]["agent_used_count"] == 1
     packet = captured["context_packet"]
     assert isinstance(packet, dict)
     packet_text = json.dumps(packet)

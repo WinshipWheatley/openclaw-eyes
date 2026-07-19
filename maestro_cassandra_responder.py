@@ -474,6 +474,14 @@ def _protected_generate_receipt_machine_proof(receipt: Mapping[str, Any]) -> dic
         "model_call_attempted": bool(receipt.get("model_call_attempted", False)),
         "model_output_delivered": bool(receipt.get("model_output_delivered", False)),
         "delivered_response_source": str(receipt.get("delivered_response_source") or ""),
+        "original_message_sha256": str(receipt.get("original_message_sha256") or ""),
+        "original_message_present_in_submitted_prompt": bool(
+            receipt.get("original_message_present_in_submitted_prompt")
+        ),
+        "model_prompt_sha256": str(receipt.get("model_prompt_sha256") or ""),
+        "prompt_composition_sha256": str(
+            receipt.get("prompt_composition_sha256") or ""
+        ),
     }
     if route:
         proof["route"] = route
@@ -490,6 +498,31 @@ def _protected_generate_receipt_machine_proof(receipt: Mapping[str, Any]) -> dic
     skill_receipts = receipt.get("skill_receipts")
     if isinstance(skill_receipts, Sequence) and not isinstance(skill_receipts, (str, bytes)):
         proof["skill_receipts"] = [dict(item) for item in skill_receipts if isinstance(item, Mapping)]
+    external_brain = receipt.get("external_brain")
+    if isinstance(external_brain, Mapping):
+        from lm1_router_usage import safe_route_receipt
+
+        proof["external_brain_route_receipt"] = safe_route_receipt(external_brain)
+        router_usage = external_brain.get("router_usage")
+        if isinstance(router_usage, Mapping):
+            proof["lm1_router_usage_receipt"] = {
+                key: router_usage[key]
+                for key in (
+                    "schema_version",
+                    "event_id",
+                    "recorded_at",
+                    "inserted",
+                    "agent_id",
+                    "agent_used_count",
+                    "per_agent_used_count",
+                    "total_used_count",
+                    "answer_text_sha256",
+                    "answer_text_length",
+                    "status",
+                    "error_type",
+                )
+                if key in router_usage
+            }
     return proof
 
 

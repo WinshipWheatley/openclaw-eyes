@@ -912,3 +912,35 @@ def test_advisory_judgment_routes_to_brain_with_current_packet_and_never_stages(
     assert result.machine_proof["workflow_package_staged"] is False
     assert result.machine_proof["protected_generate_called"] is True
     assert captured["context_packet"]["facts"][0] == pending_fact
+
+
+def test_answer_frontdoor_chat_reuses_lm1_brain_draft_without_second_model_call():
+    def must_not_generate(*_args, **_kwargs):
+        raise AssertionError("LM2 must not start when LM1 already generated the answer")
+
+    result = maestro.answer_frontdoor_chat(
+        "Why use bounded public context?",
+        session={
+            "lm1_reused_answer": "It keeps the answer focused. COPPERKITE",
+            "lm1_reused_model_receipt": {
+                "receipt_id": "protected_generate:lm1",
+                "model_call_performed": True,
+                "external_llm_invoked": True,
+                "local_model_invoked": False,
+                "original_message_present_in_submitted_prompt": True,
+                "external_brain": {
+                    "effective_lane_id": "hard_lane",
+                    "response_source": "external_brain",
+                    "external_turn_performed": True,
+                },
+            },
+        },
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=must_not_generate,
+    )
+
+    assert result.status == "ANSWER_READY"
+    assert result.plain_summary == "It keeps the answer focused. COPPERKITE"
+    assert result.machine_proof["lm1_reused_for_lm2"] is True
+    assert result.machine_proof["model_call_performed"] is True
+    assert result.machine_proof["protected_generate_called"] is True
