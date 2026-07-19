@@ -17,6 +17,13 @@ import re
 import sqlite3
 from typing import Any, Callable, Mapping, Sequence
 
+from agent_introspection import (
+    classify_agent_introspection,
+    inject_turn_self_facts,
+    introspection_answer_grounding_gaps,
+    normalize_turn_self_facts,
+)
+
 
 # ── Conversation-continuity flag (ADDITIVE, default OFF) ──────────────────────
 def _continuity_enabled() -> bool:
@@ -1316,6 +1323,35 @@ def _answer_frontdoor_chat_impl(
     except Exception as exc:
         reason = str(getattr(exc, "reason", "probe_state_binding_failed"))
         return _probe_state_blocked_result(reason)
+    _introspection_match = classify_agent_introspection(
+        text,
+        addressed_agent=agent,
+    )
+    if _introspection_match is not None:
+        return _answer_with_maestro_brain(
+            text,
+            session=session,
+            source_surface=source_surface,
+            forwarded_session=filtered_session(session),
+            protected_generate_fn=protected_generate_fn,
+            _capsule=_capsule,
+            agent=agent,
+            intent_class="agent_introspection",
+        )
+    if (
+        isinstance(session, Mapping)
+        and str(session.get("lm1_reused_answer") or "").strip()
+        and isinstance(session.get("lm1_reused_model_receipt"), Mapping)
+    ):
+        return _answer_with_maestro_brain(
+            text,
+            session=session,
+            source_surface=source_surface,
+            forwarded_session=filtered_session(session),
+            protected_generate_fn=protected_generate_fn,
+            _capsule=_capsule,
+            agent=agent,
+        )
     # Judgment questions are read-only BRAIN work. Resolve this named class before
     # the typed action contract can misread "next step" as a handoff instruction.
     if _is_advisory_judgment_intent(_normalize(text)):
@@ -2451,6 +2487,95 @@ def _answer_with_maestro_brain(
     agent: str = "maestro",
     intent_class: str = "maestro_brain_freeform",
 ) -> MaestroCassandraResult:
+    introspection_match = (
+        classify_agent_introspection(text, addressed_agent=agent)
+        if intent_class == "agent_introspection"
+        else None
+    )
+    introspection_facts = (
+        normalize_turn_self_facts(
+            agent=agent,
+            source_request_id=str((session or {}).get("source_message_id") or ""),
+            session=session,
+        )
+        if introspection_match is not None
+        else None
+    )
+    reused_answer = ""
+    reused_receipt: Mapping[str, Any] = {}
+    if isinstance(session, Mapping):
+        reused_answer = str(session.get("lm1_reused_answer") or "").strip()
+        candidate_receipt = session.get("lm1_reused_model_receipt")
+        if isinstance(candidate_receipt, Mapping):
+            reused_receipt = candidate_receipt
+    reused_external_receipt = reused_receipt.get(
+        "external_brain_route_receipt"
+    ) or reused_receipt.get("external_brain")
+    reused_self_facts_delivered = bool(
+        reused_receipt.get("turn_self_facts_in_prompt") is True
+        or (
+            isinstance(reused_external_receipt, Mapping)
+            and reused_external_receipt.get("turn_self_facts_in_prompt") is True
+        )
+    )
+    reuse_candidate = bool(
+        reused_answer
+        and reused_receipt.get("model_call_performed") is True
+        and reused_receipt.get("original_message_present_in_submitted_prompt") is True
+    )
+    if intent_class == "agent_introspection":
+        reuse_candidate = bool(
+            reuse_candidate
+            and introspection_match is not None
+            and reused_self_facts_delivered
+        )
+    if reuse_candidate:
+        answer_text = _strip_internal_state_leaks(reused_answer)
+        reuse_grounding_gaps: tuple[str, ...] = ()
+        reuse_final_facts = introspection_facts
+        if introspection_match is not None:
+            reuse_final_facts = normalize_turn_self_facts(
+                agent=agent,
+                source_request_id=str((session or {}).get("source_message_id") or ""),
+                session=session,
+                route_receipt=reused_receipt,
+            )
+            reuse_grounding_gaps = introspection_answer_grounding_gaps(
+                answer_text,
+                match=introspection_match,
+                facts=reuse_final_facts,
+            )
+        if not reuse_grounding_gaps:
+            reuse_introspection_proof = (
+                {
+                    "turn_self_facts": dict(reuse_final_facts or {}),
+                    "turn_self_facts_delivered": True,
+                    "answer_grounded_in_turn_self_facts": True,
+                    "answer_grounding_missing_fields": (),
+                }
+                if introspection_match is not None
+                else {}
+            )
+            return MaestroCassandraResult(
+                status="ANSWER_READY",
+                intent_class=intent_class,
+                allowed_to_call_handle=False,
+                one_line_answer=_one_line_answer(answer_text),
+                plain_summary=answer_text,
+                mac_render_hint=MAC_RENDER_HINT,
+                session_forwarded=forwarded_session,
+                machine_proof={
+                    **_adapter_machine_proof(handle_called=False),
+                    **_protected_generate_receipt_machine_proof(reused_receipt),
+                    "protected_generate_called": True,
+                    "maestro_context_packet_used": False,
+                    "lm1_reused_for_lm2": True,
+                    "workflow_package_staged": False,
+                    "send_hold_boundary_visible": True,
+                    **reuse_introspection_proof,
+                },
+            )
+
     packet_session = dict(session or {})
     packet_session["interpreter_route"] = "BRAIN"
     # ── INTERPRETER-LM fact selection bridge (flag-gated, ADDITIVE) ──────────
@@ -2500,6 +2625,7 @@ def _answer_with_maestro_brain(
                     require_real_truth=True,
                     capsule=_capsule_arg,
                     fact_selection=_fact_selection,
+                    turn_self_facts=introspection_facts,
                 )
                 packet_engine_receipt = dict(context_packet.get("packet_engine_receipt") or {})
                 failures = packet_engine_receipt.get("failures") or ()
@@ -2571,8 +2697,12 @@ def _answer_with_maestro_brain(
                 "external_llm_invoked": False,
                 "local_model_invoked": False,
                 "model_call_performed": False,
+                "workflow_package_staged": False,
             },
         )
+
+    if introspection_facts is not None and context_packet.get("turn_self_facts") is None:
+        context_packet = inject_turn_self_facts(context_packet, introspection_facts)
 
     # ── PACKET-DELTA hook (flag-gated OPENCLAW_PACKET_DELTA, default off, FAIL-OPEN) ──
     # Integration point for cross-turn fact de-dup, keyed on the capsule's
@@ -2786,6 +2916,39 @@ def _answer_with_maestro_brain(
         fallback_used=packet_engine_fallback_used,
         failure_type=packet_engine_failure_type,
     )
+    introspection_proof: dict[str, Any] = {}
+    if introspection_match is not None:
+        final_introspection_facts = normalize_turn_self_facts(
+            agent=agent,
+            source_request_id=str((session or {}).get("source_message_id") or ""),
+            session=session,
+            route_receipt=receipt,
+        )
+        answer_grounding_gaps = introspection_answer_grounding_gaps(
+            answer_text,
+            match=introspection_match,
+            facts=final_introspection_facts,
+        )
+        original_message_included = bool(
+            receipt.get("original_message_present_in_submitted_prompt") is True
+            or receipt.get("original_message_present_in_prompt") is True
+        )
+        if not original_message_included:
+            answer_grounding_gaps = tuple(
+                dict.fromkeys((*answer_grounding_gaps, "original_message"))
+            )
+        answer_grounded = not answer_grounding_gaps
+        if not answer_grounded:
+            answer_text = (
+                "My generated self-report did not match this turn's machine proof, "
+                "so I am not presenting it as fact."
+            )
+        introspection_proof = {
+            "turn_self_facts": final_introspection_facts,
+            "turn_self_facts_delivered": bool(context_packet.get("turn_self_facts")),
+            "answer_grounded_in_turn_self_facts": answer_grounded,
+            "answer_grounding_missing_fields": answer_grounding_gaps,
+        }
     return MaestroCassandraResult(
         status="ANSWER_READY",
         intent_class=intent_class,
@@ -2816,6 +2979,7 @@ def _answer_with_maestro_brain(
             "interpreter_fact_selection_applied": list(_fact_selection or []),
             "interpreter_fact_selection_used": bool(_fact_selection),
             **packet_engine_proof,
+            **introspection_proof,
         },
     )
 

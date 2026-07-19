@@ -53,6 +53,10 @@ def _log_route(msg_hash: str, intent: str, llm_fallback: bool) -> None:
         print(f"[route_log] write error: {e}", flush=True)
 
 from adaptive_model_call import adaptive_ollama_text
+from agent_introspection import (
+    answer_agent_introspection,
+    classify_agent_introspection,
+)
 from email_intent import (
     EmailIntent,
     classify_email_intent,
@@ -951,6 +955,59 @@ def _route_message_inner(text: str, *, first_touch_receipt=None) -> dict:
         )
     except Exception:
         _refusal_evaluated = False
+    if not _refusal_evaluated:
+        try:
+            from first_touch_decision import attempt_first_touch, valid_pass_through_marker
+
+            _first_touch = attempt_first_touch(
+                text,
+                agent="chief",
+                surface="chief_router",
+            )
+            first_touch_receipt = _first_touch.receipt
+            if _first_touch.handled and _first_touch.decision is not None:
+                return {
+                    "intent": "operator_refusal_guard",
+                    "reply": _first_touch.decision.reply,
+                    "send_performed": False,
+                    "ledger_touched": False,
+                    "workflow_package_staged": False,
+                }
+            _refusal_evaluated = valid_pass_through_marker(
+                first_touch_receipt,
+                text=text,
+                agent="chief",
+            )
+        except Exception:
+            _refusal_evaluated = False
+    try:
+        _contract_session = load_session()
+    except Exception:
+        _contract_session = {}
+    _introspection_match = (
+        classify_agent_introspection(text, addressed_agent="chief")
+        if _refusal_evaluated
+        else None
+    )
+    if _introspection_match is not None:
+        _introspection_answer = answer_agent_introspection(
+            text,
+            agent="chief",
+            source_surface="chief_router",
+            source_request_id=(
+                "chief:" + _hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+            ),
+            session=_contract_session,
+            match=_introspection_match,
+        )
+        return {
+            "intent": "agent_introspection",
+            "reply": _introspection_answer.text,
+            "machine_proof": dict(_introspection_answer.machine_proof),
+            "send_performed": False,
+            "ledger_touched": False,
+            "workflow_package_staged": False,
+        }
     try:
         from typed_contract_decision import (
             ContractContext,
@@ -963,7 +1020,6 @@ def _route_message_inner(text: str, *, first_touch_receipt=None) -> dict:
         )
         _preserve_contract = preserve_session_on_error
 
-        _contract_session = load_session()
         _contract_active = active_session_from_mapping(_contract_session)
         if _contract_active and str(_contract_session.get("active_workflow") or "") == "billing":
             # Task 142 owns billing-session TTL/surface expiry.  The typed

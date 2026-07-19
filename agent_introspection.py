@@ -410,7 +410,7 @@ def _normalized_answer_text(text: str) -> str:
     )
 
 
-def _answer_grounding_gaps(
+def introspection_answer_grounding_gaps(
     text: str,
     *,
     match: AgentIntrospectionMatch,
@@ -600,7 +600,7 @@ def answer_agent_introspection(
         receipt.get("original_message_present_in_submitted_prompt") is True
         or receipt.get("original_message_present_in_prompt") is True
     )
-    grounding_gaps = _answer_grounding_gaps(
+    grounding_gaps = introspection_answer_grounding_gaps(
         answer_text,
         match=resolved_match,
         facts=final_facts,
@@ -666,6 +666,7 @@ __all__ = [
     "answer_agent_introspection",
     "classify_agent_introspection",
     "inject_turn_self_facts",
+    "introspection_answer_grounding_gaps",
     "maybe_answer_agent_introspection",
     "normalize_turn_self_facts",
 ]

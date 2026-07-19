@@ -726,15 +726,17 @@ def test_e2e_real_terse_ask_with_content_term_answers_normally(frontdoor_packet_
     assert "not sure i follow" not in summary.lower()
 
 
-def test_e2e_capability_ask_keeps_status_capability_readback():
-    # "what can you do?" is a capability readback ask, NOT identity — the
-    # persona branch must not over-claim it (existing live-good behavior).
+def test_e2e_capability_ask_uses_agent_introspection_brain_route():
+    # The class-fix contract gives a precise self-capability question the
+    # read-only introspection route. Business-scoped capability questions such
+    # as "what can you do with invoices?" still belong to the existing route.
     import maestro_cassandra_responder as maestro
 
     result = maestro.answer_frontdoor_chat(
         "what can you do?", protected_generate_fn=_spy_protected_generate
     )
-    assert result.intent_class == "status_capability_readback"
+    assert result.intent_class == "agent_introspection"
+    assert result.machine_proof["workflow_package_staged"] is False
 
 
 # ═══════════════ F. cassandra guided-review wizard (rates wizard) ═════════════
