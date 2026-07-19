@@ -39,3 +39,34 @@ def test_solo_now_answer_is_honest_unknown_with_history_separate() -> None:
     assert answer["historical_context"][0]["typed_value"]["minor_units"] == 25000
     assert "not declared" in packet["answer_text"].lower()
     assert answer["machine_proof"]["historical_promoted_to_current"] is False
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_class", "expected_subject"),
+    (
+        ("how much did I make on gigs last year vs now?", "C2", "band_event"),
+        ("whats my number for a full band these days", "C1", "band_event"),
+        ("what did a client gig go for before versus now?", "C2", "band_event"),
+    ),
+)
+def test_fable_fuzzy_pricing_counterexamples_route(
+    question: str,
+    expected_class: str,
+    expected_subject: str,
+) -> None:
+    packet = build_price_truth_packet(question, as_of="2026-07-19")
+    assert packet["status"] == "TRACE_READY_NOT_SHIPPED"
+    assert packet["question_class"] == expected_class
+    assert packet["subject_ref"] == expected_subject
+
+
+@pytest.mark.parametrize(
+    "question",
+    (
+        "what's my phone number",
+        "what number did I save for the client?",
+        "show me the invoice number",
+    ),
+)
+def test_number_without_pricing_semantics_stays_not_relevant(question: str) -> None:
+    assert build_price_truth_packet(question)["status"] == "NOT_RELEVANT"

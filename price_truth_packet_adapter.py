@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from typing import Any
 
@@ -11,13 +12,47 @@ from price_truth_temporal import load_price_truth_facts, resolve_temporal_truth
 
 def classify_price_truth_question(question: str) -> tuple[str, str]:
     text = " ".join(str(question or "").casefold().split())
-    if not any(term in text for term in ("price", "pricing", "charge", "rate", "cost", "paid", "quote")):
+    direct_price_terms = (
+        "price",
+        "pricing",
+        "charge",
+        "rate",
+        "cost",
+        "paid",
+        "pay",
+        "quote",
+        "make",
+        "made",
+        "earn",
+        "earned",
+        "income",
+        "worth",
+        "go for",
+        "going for",
+        "went for",
+    )
+    money_context = bool(
+        re.search(r"\b(gig|gigs|band|show|shows|client|invoice|wedding|booking|event)\b", text)
+    )
+    comparison_context = any(
+        term in text
+        for term in ("past", "used to", "before", "versus", " vs ", "compare", "then", "last year", "now")
+    )
+    colloquial_number = money_context and bool(
+        re.search(r"\b(my|our|the) number\b", text)
+        or re.search(r"\bnumber for (?:a |the |my |our )?(?:gig|band|show|event|wedding)\b", text)
+    )
+    if not (
+        any(term in text for term in direct_price_terms)
+        or colloquial_number
+        or (money_context and comparison_context and "how much" in text)
+    ):
         return "", ""
     if any(term in text for term in ("organization", "comes online", "goes online", "new regime")):
         question_class = "C4"
     elif any(term in text for term in ("fresh", "evidence", "up to date", "source current")):
         question_class = "C3"
-    elif any(term in text for term in ("past", "used to", "before", "versus", "compare", "then")):
+    elif any(term in text for term in ("past", "used to", "before", "versus", " vs ", "compare", "then", "last year")):
         question_class = "C2"
     else:
         question_class = "C1"
