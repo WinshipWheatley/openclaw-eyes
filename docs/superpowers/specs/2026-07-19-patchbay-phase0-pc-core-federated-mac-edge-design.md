@@ -310,6 +310,10 @@ While `SELF_TESTING`, a connector may use only isolated, nonce-scoped `patchbay.
 
 The enrollment wave is triggered only by one machine-checkable Phase-0 PASS receipt. Duplicate PASS events are idempotent. No prompt is broadcast before that receipt.
 
+At that event, Opus relays exactly one general enrollment prompt:
+
+> Identify your seat, model, host, app kind, and process-start identity. Connect through the Patchbay adapter available on your host; register a connector manifest declaring transport capabilities, host-control capabilities, emits, listens, health signal, and owner. Run the isolated bidirectional nonce self-test and report connector id, event ids, trace ids, fencing epoch, and PASS/FAIL for every claimed capability. Do not begin other work unless the Switchboard reports `ENROLLED`. Fail closed and name the exact adapter or hop blocker; never claim human-free wake without a nonce-bound model ACK trace.
+
 ## 8. Phase-0 acceptance gates
 
 ### 8.1 Fifteen PC-core gates
