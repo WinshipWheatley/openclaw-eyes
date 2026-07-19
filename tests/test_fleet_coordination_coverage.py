@@ -26,7 +26,9 @@ def test_registry_has_exact_six_seats_and_honest_capabilities() -> None:
     }
     assert recipients["PC-Sol"]["delivery"]["thread_id"] == "019f7780-d5f8-76b0-9dde-ead4bf0735f4"
     assert recipients["PC-Sol"]["delivery"]["doorbell"] == "yes"
-    assert recipients["PC-Sol"]["delivery"]["midturn"] == "yes"
+    assert recipients["PC-Sol"]["delivery"]["midturn"] == "no"
+    assert recipients["PC-Sol"]["delivery"]["codex_home"] == "/mnt/c/Users/Open Claw/.codex"
+    assert recipients["PC-Sol"]["needs_operator_kick"] is True
     assert recipients["Mac-Sol-Desktop"]["delivery"]["doorbell"] == "no"
     assert recipients["Mac-Sol-Desktop"]["needs_operator_kick"] is True
     assert recipients["Gemini"]["delivery"]["midturn"] == "unsupported"
@@ -96,7 +98,8 @@ def test_coverage_uses_watcher_state_not_checkin_age(tmp_path: Path) -> None:
     rows = {row["seat"]: row for row in coverage["recipients"]}
 
     assert rows["PC-Sol"]["infrastructure"] == "ready"
-    assert rows["PC-Sol"]["needs_operator_kick"] is False
+    assert rows["PC-Sol"]["needs_operator_kick"] is True
+    assert rows["PC-Sol"]["midturn"] == "no"
     assert rows["PC-Sol"]["checkin_status"] == "working"
     assert "checkin_age" not in rows["PC-Sol"]
     assert rows["PC-Sol"]["delivery_counts"]["urgent"] == 1

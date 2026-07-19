@@ -5,7 +5,7 @@ After=default.target
 
 [Service]
 Type=oneshot
-ExecStart=@PYTHON@ @REPO_ROOT@/fleet_coordination_watcher.py --once --seat %i --inbound-dir @INBOUND_DIR@ --wake-dir @WAKE_DIR@ --state-path @STATE_PATH@ --watcher-state-path @WATCHER_STATE_PATH@ --thread-id @THREAD_ID@ --repo-root @REPO_ROOT@ --codex-home @CODEX_HOME@ --codex-cli @CODEX_CLI@ --settle-seconds 5 --max-doorbells-per-minute 3
+ExecStart=@PYTHON@ @REPO_ROOT@/fleet_coordination_watcher.py --once --seat %i --inbound-dir "@INBOUND_DIR@" --wake-dir "@WAKE_DIR@" --state-path "@STATE_PATH@" --watcher-state-path "@WATCHER_STATE_PATH@" --thread-id @THREAD_ID@ --repo-root "@REPO_ROOT@" --codex-home "@CODEX_HOME@" --codex-cli "@CODEX_CLI@" --settle-seconds 5 --max-doorbells-per-minute 3
 TimeoutStartSec=35min
 NoNewPrivileges=true
 PrivateDevices=true

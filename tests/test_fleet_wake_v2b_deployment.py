@@ -41,6 +41,7 @@ def test_runbook_has_each_seat_bootstrap_and_exact_rollback() -> None:
     assert "midturn: unsupported" in source
     assert "no model polling" in source.lower()
     assert "no model heartbeat" in source.lower()
+    assert "mid-turn activation is blocked" in source
     assert "systemctl --user disable --now 'openclaw-fleet-wake-v2b@PC-Sol.path'" in source
     assert "Installation is not performed by this build" in source
 

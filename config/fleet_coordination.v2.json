@@ -9,15 +9,17 @@
         "repo:Operator/to-codex"
       ],
       "outbound_ref": "repo:Operator/from-codex",
-      "needs_operator_kick": false,
+      "needs_operator_kick": true,
       "delivery": {
-        "mechanism": "codex_note_wake_v2b",
+        "mechanism": "codex_doorbell_ready_midturn_activation_blocked",
         "doorbell": "yes",
-        "midturn": "yes",
+        "midturn": "no",
         "thread_id": "019f7780-d5f8-76b0-9dde-ead4bf0735f4",
         "codex_cli": "/home/openclaw/.nvm/versions/node/v24.14.0/bin/codex",
-        "codex_home": "/home/openclaw/.codex",
-        "repo_root": "/home/openclaw"
+        "codex_home": "/mnt/c/Users/Open Claw/.codex",
+        "control_codex_home": "/home/openclaw/.codex",
+        "repo_root": "/home/openclaw",
+        "blocker": "The live Desktop task and managed app-server control socket use different Codex homes; the WSL proxy produced no protocol response for the exact live task, and enabling remote control is a separate gate change."
       }
     },
     {
