@@ -1,0 +1,109 @@
+{
+  "schema_version": "openclaw_fleet_coordination_registry_v2b",
+  "recipients": [
+    {
+      "seat": "PC-Sol",
+      "model": "Codex (GPT-5)",
+      "kind": "codex_session",
+      "inbound_refs": [
+        "repo:Operator/to-codex"
+      ],
+      "outbound_ref": "repo:Operator/from-codex",
+      "needs_operator_kick": false,
+      "delivery": {
+        "mechanism": "codex_note_wake_v2b",
+        "doorbell": "yes",
+        "midturn": "yes",
+        "thread_id": "019f7780-d5f8-76b0-9dde-ead4bf0735f4",
+        "codex_cli": "/home/openclaw/.nvm/versions/node/v24.14.0/bin/codex",
+        "codex_home": "/home/openclaw/.codex",
+        "repo_root": "/home/openclaw"
+      }
+    },
+    {
+      "seat": "Mac-Sol-Desktop",
+      "model": "Codex (computer-use)",
+      "kind": "codex_session",
+      "inbound_refs": [
+        "board:codex_mac_bridge/to-codex-mac-desktop"
+      ],
+      "outbound_ref": "board:codex_mac_bridge/from-codex-mac-desktop",
+      "needs_operator_kick": true,
+      "delivery": {
+        "mechanism": "unconfigured_seat_binding",
+        "doorbell": "no",
+        "midturn": "no",
+        "thread_id": "",
+        "blocker": "The latest desktop seat-binding receipt failed closed; no distinct current task ID is proven."
+      }
+    },
+    {
+      "seat": "Mac-Sol-VSCode",
+      "model": "Codex (GPT-5)",
+      "kind": "codex_session",
+      "inbound_refs": [
+        "board:codex_mac_bridge/to-codex-mac"
+      ],
+      "outbound_ref": "board:codex_mac_bridge/from-codex-mac",
+      "needs_operator_kick": true,
+      "delivery": {
+        "mechanism": "remote_bootstrap_required",
+        "doorbell": "no",
+        "midturn": "no",
+        "thread_id": "019f6ca6-0647-7010-a57c-e579d153ac15",
+        "blocker": "A historical exact task is recorded, but v2b app-server binding and current ownership require Mac-side proof."
+      }
+    },
+    {
+      "seat": "Mac-Fable",
+      "model": "Claude Code (Fable 5)",
+      "kind": "claude_session",
+      "inbound_refs": [
+        "board:codex_mac_bridge/to-fable-mac"
+      ],
+      "outbound_ref": "board:codex_mac_bridge/from-fable-mac",
+      "needs_operator_kick": false,
+      "delivery": {
+        "mechanism": "claude_native_monitor",
+        "doorbell": "yes",
+        "midturn": "yes"
+      }
+    },
+    {
+      "seat": "Gemini",
+      "model": "Gemini / Antigravity",
+      "kind": "gemini_session",
+      "inbound_refs": [
+        "repo:Operator/to-gemini"
+      ],
+      "outbound_ref": "repo:Operator/from-gemini",
+      "needs_operator_kick": true,
+      "delivery": {
+        "mechanism": "operator_kick",
+        "doorbell": "no",
+        "midturn": "unsupported",
+        "blocker": "No proven Antigravity doorbell or same-turn injection API is available."
+      }
+    },
+    {
+      "seat": "Opus",
+      "model": "Claude Code (Fable 5)",
+      "kind": "claude_session",
+      "inbound_refs": [
+        "board:fleet_coord/NEEDS-OPUS",
+        "repo:Operator/from-codex",
+        "repo:Operator/from-gemini",
+        "board:codex_mac_bridge/from-codex-mac",
+        "board:codex_mac_bridge/from-codex-mac-desktop",
+        "board:codex_mac_bridge/from-fable-mac"
+      ],
+      "outbound_ref": "board:fleet_coord",
+      "needs_operator_kick": false,
+      "delivery": {
+        "mechanism": "claude_native_monitor",
+        "doorbell": "yes",
+        "midturn": "yes"
+      }
+    }
+  ]
+}
