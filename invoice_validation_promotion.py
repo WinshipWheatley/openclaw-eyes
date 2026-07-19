@@ -316,6 +316,7 @@ def publish_validated_invoice_package(
         "schema": "openclaw_invoice_manifest_v1",
         "status": "finalized_validated",
         "client_slug": "live-arts-md",
+        "stream": "speaker_rental",
         "invoice_key": "2026-07_live_arts_md_2026-1004",
         "invoice_number": validation["invoice_number"],
         "service_period_start": "2026-07-01",

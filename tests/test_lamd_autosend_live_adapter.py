@@ -34,6 +34,7 @@ def _package(tmp_path: Path, **changes) -> dict:
         "schema_version": "lamd_monthly_autosend_package_v1",
         "client_ref": "live_arts_md",
         "stream": "speaker_rental",
+        "source_stream": "speaker_rental",
         "service_month": "2026-08",
         "service_period_start": "2026-08-01",
         "service_period_end": "2026-08-31",

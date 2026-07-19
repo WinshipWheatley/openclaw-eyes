@@ -174,8 +174,7 @@ def _artifacts_within_root(package: Mapping[str, Any], artifact_root: Path) -> b
         return False
     if not all(path == root or root in path.parents for path in (workbook, pdf)):
         return False
-    workbook_name = " ".join(workbook.stem.casefold().replace("_", " ").split())
-    return "speaker rental" in workbook_name
+    return True
 
 
 def build_exact_send_material(package: Mapping[str, Any]) -> dict[str, str]:

@@ -576,6 +576,7 @@ def publish_verified_package(
         "schema": MANIFEST_SCHEMA,
         "invoice_key": f"{service_period}_{specification['client_ref']}_{specification['invoice_number']}",
         "client_slug": str(specification["client_ref"]).replace("_", "-"),
+        "stream": str(specification.get("stream") or ""),
         "invoice_number": str(specification["invoice_number"]),
         "service_period_start": f"{service_period}-01",
         "service_period_end": f"{service_period}-{calendar.monthrange(year, month)[1]:02d}",

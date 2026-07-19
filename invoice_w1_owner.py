@@ -144,6 +144,7 @@ def run_lamd_july_finalization(
         pdf_path=pdf,
         specification={
             "client_ref": "live_arts_md",
+            "stream": "speaker_rental",
             "invoice_number": "2026-1004",
             "service_period": "2026-07",
             "source_sheet": "July 2026",

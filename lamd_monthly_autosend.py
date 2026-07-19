@@ -85,6 +85,7 @@ def validate_package(package: Mapping[str, Any]) -> dict[str, Any]:
         "schema_version": "lamd_monthly_autosend_package_v1",
         "client_ref": CLIENT_REF,
         "stream": STREAM,
+        "source_stream": STREAM,
         "amount_minor_units": AMOUNT_MINOR_UNITS,
         "currency": CURRENCY,
         "recipient": RECIPIENT,
@@ -104,9 +105,8 @@ def validate_package(package: Mapping[str, Any]) -> dict[str, Any]:
         raise PackageDriftError("service_month must be YYYY-MM") from exc
     if value.get("service_period_start") != month_start.isoformat():
         raise PackageDriftError("service period does not start in the bound month")
-    source_sheet = " ".join(str(value.get("source_sheet") or "").casefold().split())
-    if "speaker rental" not in source_sheet:
-        raise PackageDriftError("package is not sourced from a Speaker Rental sheet")
+    if not str(value.get("source_sheet") or "").strip():
+        raise PackageDriftError("source_sheet is required")
     if not str(value.get("invoice_number") or "").strip():
         raise PackageDriftError("invoice number is required")
     for path_key, sha_key, suffix in (

@@ -65,6 +65,7 @@ def _package(root: Path, month: str) -> dict:
         "schema_version": "lamd_monthly_autosend_package_v1",
         "client_ref": "live_arts_md",
         "stream": "speaker_rental",
+        "source_stream": "speaker_rental",
         "service_month": month,
         "service_period_start": month + "-01",
         "service_period_end": datetime.strptime(month + "-01", "%Y-%m-%d").date().replace(day=28).isoformat(),

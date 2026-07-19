@@ -28,6 +28,10 @@ from lamd_monthly_autosend import (
     run_monthly_cycle,
     validate_package,
 )
+from lamd_monthly_package_publisher import (
+    PackagePublicationError,
+    publish_monthly_package,
+)
 
 
 DEFAULT_CYCLES_PATH = Path("/home/openclaw/state/lamd_autosend/monthly_cycles.sqlite3")
@@ -137,6 +141,20 @@ def run_once(
             "ledger_posted": False,
             "state_changed": False,
         }
+    if not resolved_package_path.exists() and not resolved_package_path.is_symlink():
+        try:
+            publish_monthly_package(
+                resolved_package_path.parent,
+                output_path=resolved_package_path,
+            )
+        except PackagePublicationError as exc:
+            return {
+                "status": "BLOCKED_PACKAGE_UNAVAILABLE",
+                "reason": str(exc),
+                "package_path": str(resolved_package_path),
+                "provider_called": False,
+                "ledger_posted": False,
+            }
     try:
         package = _load_package(resolved_package_path)
     except ValueError as exc:

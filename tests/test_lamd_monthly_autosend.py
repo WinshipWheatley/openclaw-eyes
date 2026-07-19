@@ -81,6 +81,7 @@ def _package(tmp_path: Path, **changes) -> dict:
         "schema_version": "lamd_monthly_autosend_package_v1",
         "client_ref": "live_arts_md",
         "stream": "speaker_rental",
+        "source_stream": "speaker_rental",
         "service_month": "2026-08",
         "service_period_start": "2026-08-01",
         "service_period_end": "2026-08-31",
@@ -122,10 +123,11 @@ def _run(tmp_path: Path, *, package=None, guard=None, provider=None, ledger=None
     (
         ("client_ref", "other_client"),
         ("stream", "av_tech"),
+        ("source_stream", "av_tech"),
         ("amount_minor_units", 10001),
         ("currency", "EUR"),
         ("recipient", "other@example.com"),
-        ("source_sheet", "August 2026 AV Tech"),
+        ("source_sheet", ""),
         ("status", "draft"),
     ),
 )

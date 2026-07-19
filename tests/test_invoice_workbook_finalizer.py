@@ -225,6 +225,7 @@ def test_verified_package_is_atomic_and_locator_compatible(tmp_path: Path) -> No
         pdf_path=pdf,
         specification={
             "client_ref": "live_arts_md",
+            "stream": "speaker_rental",
             "invoice_number": "2026-1004",
             "service_period": "2026-07",
             "source_sheet": "July 2026",
@@ -240,6 +241,8 @@ def test_verified_package_is_atomic_and_locator_compatible(tmp_path: Path) -> No
     assert receipt["status"] == "PUBLISHED_VERIFIED"
     assert (package / "invoice.xlsx").is_file()
     assert (package / "invoice.pdf").stat().st_size > 0
+    manifest = json.loads((package / "invoice_manifest.json").read_text())
+    assert manifest["stream"] == "speaker_rental"
     located = invoice_artifact_locator.locate_invoice_artifacts(
         "live_arts_md",
         "2026-07",

@@ -113,6 +113,7 @@ def test_exact_validated_bytes_publish_and_registry_close_are_one_owner_operatio
     assert manifest["current_pdf_sha256"] == _sha(PDF_BYTES)
     assert manifest["validation_event_id"] == validation["event_id"]
     assert manifest["status"] == "finalized_validated"
+    assert manifest["stream"] == "speaker_rental"
     row = json.loads(registry.read_text())["candidates"][0]
     assert row["active_for_review"] is False
     assert row["finalized"] is True
