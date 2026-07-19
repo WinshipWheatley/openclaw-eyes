@@ -922,6 +922,14 @@ def classify_frontdoor_intent(text: str) -> tuple[str, bool, str]:
     normalized = _normalize(text)
     if not normalized:
         return ("empty", False, "empty_text")
+    try:
+        from price_truth_packet_adapter import classify_price_truth_question
+
+        price_question_class, _price_subject = classify_price_truth_question(text)
+    except Exception:
+        price_question_class = ""
+    if price_question_class:
+        return ("price_truth_temporal", True, "")
     artifact_surface_intent = _artifact_surface_intent_class(normalized)
     if artifact_surface_intent:
         return (artifact_surface_intent, True, "")
@@ -1709,6 +1717,51 @@ def _answer_frontdoor_chat_impl(
 
     intent_class, allowed, reason = classify_frontdoor_intent(text)
     forwarded_session = filtered_session(session)
+    if intent_class == "price_truth_temporal":
+        try:
+            from price_truth_packet_adapter import build_price_truth_packet
+
+            price_packet = build_price_truth_packet(
+                text,
+                as_of=str((session or {}).get("as_of_date") or "") or None,
+            )
+        except Exception as exc:
+            return MaestroCassandraResult(
+                status="ANSWER_READY",
+                intent_class=intent_class,
+                allowed_to_call_handle=False,
+                one_line_answer="I couldn't verify the price-time trace, so I won't guess.",
+                plain_summary="I couldn't verify the price-time trace, so I won't guess or turn historical pricing into a current quote.",
+                mac_render_hint=MAC_RENDER_HINT,
+                session_forwarded=forwarded_session,
+                machine_proof={
+                    **_adapter_machine_proof(handle_called=False),
+                    "price_truth_temporal_error": type(exc).__name__,
+                    "model_call_performed": False,
+                    "workflow_package_staged": False,
+                    "action_surfaces_opened": False,
+                },
+            )
+        answer_text = str(price_packet.get("answer_text") or "").strip()
+        return MaestroCassandraResult(
+            status="ANSWER_READY",
+            intent_class=intent_class,
+            allowed_to_call_handle=False,
+            one_line_answer=_one_line_answer(answer_text),
+            plain_summary=answer_text,
+            mac_render_hint=MAC_RENDER_HINT,
+            session_forwarded=forwarded_session,
+            machine_proof={
+                **_adapter_machine_proof(handle_called=False),
+                "price_truth_temporal_packet": price_packet,
+                "price_truth_claim_audit": dict(price_packet.get("claim_audit") or {}),
+                "price_truth_ship_gate": str(price_packet.get("ship_gate") or ""),
+                "read_model_refs": list(price_packet.get("source_refs") or []),
+                "model_call_performed": False,
+                "workflow_package_staged": False,
+                "action_surfaces_opened": False,
+            },
+        )
     if intent_class in {
         "artifact_authenticity_challenge",
         "surface_message_deletion_request",
