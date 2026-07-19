@@ -1,0 +1,13 @@
+[Unit]
+Description=OpenClaw fleet wake v2b event monitor for %i
+Documentation=@REPO_ROOT@/docs/operations/FLEET_WAKE_NOTIFY_V2B.md
+
+[Path]
+PathChanged=@INBOUND_DIR@
+PathChanged=@WAKE_DIR@
+Unit=openclaw-fleet-wake-v2b@%i.service
+TriggerLimitIntervalSec=60s
+TriggerLimitBurst=20
+
+[Install]
+WantedBy=default.target
