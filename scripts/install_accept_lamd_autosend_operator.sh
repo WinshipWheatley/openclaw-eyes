@@ -10,7 +10,7 @@ elif [[ $# -ne 0 ]]; then
 fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-proof_commit=a6e54ad206520029f7f8df5fcd42adbe2f3ab74a
+proof_commit=2b5314a57d7107ae1b67a4304e02e3b8d7dfa8ab
 scope_path=/var/lib/openclaw-authority/lamd-autosend-scope.json
 state_path=/var/lib/openclaw-authority/lamd-autosend-brake.json
 installed_root=/usr/local/libexec/openclaw-authority

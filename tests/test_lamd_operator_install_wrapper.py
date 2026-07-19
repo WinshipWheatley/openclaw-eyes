@@ -30,6 +30,7 @@ def test_operator_wrapper_has_one_explicit_apply_surface_and_five_gate_labels() 
 
     assert "usage: $0 [--apply]" in source
     assert "operator-authenticated root" in source
+    assert "proof_commit=2b5314a57d7107ae1b67a4304e02e3b8d7dfa8ab" in source
     assert "scripts/install_lamd_autosend_brake_linux.sh --apply" in source
     assert 'accept_lamd_autosend_installed.py" --apply' in source
     assert "systemctl disable --now openclaw-lamd-monthly-autosend.timer" in source
