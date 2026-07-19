@@ -115,3 +115,15 @@ def test_guardian_trip_helper_is_not_wired_to_message_listener() -> None:
     listener = (ROOT / "chief_guardian_listener.py").read_text(encoding="utf-8")
     assert "lamd_autosend_brake" not in listener
     assert "guardian_trip(" not in listener
+
+
+def test_installed_acceptance_is_fake_only_plan_first_and_preserves_concurrent_trip() -> None:
+    source = (ROOT / "scripts/accept_lamd_autosend_installed.py").read_text(encoding="utf-8")
+    assert "--apply" in source
+    assert "PLAN ONLY" in source
+    assert "FakeProvider" in source
+    assert "google_access_broker" not in source
+    assert "production_provider_calls\": 0" in source
+    assert "production_ledger_writes\": 0" in source
+    assert "tripped_generation" in source
+    assert 'state.get("reason") == trip_reason' in source

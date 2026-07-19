@@ -32,6 +32,7 @@ install -d -o root -g root -m 0755 "$install_root"
 install -d -o root -g root -m 0700 "$state_root"
 install -d -o root -g root -m 0755 "$run_root"
 install -o root -g root -m 0755 "$repo_root/lamd_autosend_brake.py" "$install_root/lamd_autosend_brake.py"
+install -o root -g root -m 0755 "$repo_root/scripts/accept_lamd_autosend_installed.py" "$install_root/accept_lamd_autosend_installed.py"
 sed \
   -e "s/@OPENCLAW_UID@/$openclaw_uid/g" \
   -e "s/@OPENCLAW_GID@/$openclaw_gid/g" \
