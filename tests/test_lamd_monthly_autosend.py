@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -233,3 +234,63 @@ def test_g2c_post_is_deterministic_and_idempotent(tmp_path: Path) -> None:
     with sqlite3.connect(db_path) as conn:
         assert conn.execute("SELECT COUNT(*) FROM invoice_records").fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM expected_receivable_records").fetchone()[0] == 1
+
+
+def test_concurrent_scheduler_collision_still_calls_provider_once(tmp_path: Path) -> None:
+    package = _package(tmp_path)
+    provider = FakeProvider()
+    ledger = FakeLedger()
+    store = LamdMonthlyCycleStore(tmp_path / "cycles.sqlite3")
+
+    def attempt(_index: int) -> dict:
+        return run_monthly_cycle(
+            now=NOW,
+            package=package,
+            policy=AutosendPolicy(armed=True, operator_stop=False),
+            store=store,
+            freeze_guard=FakeGuard(),
+            send_hold_admission=lambda _package: {"allowed": True},
+            provider=provider,
+            ledger=ledger,
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(attempt, range(8)))
+
+    assert len(provider.calls) == 1
+    assert len(ledger.calls) == 1
+    assert sum(row["status"] == "LEDGER_POSTED" for row in results) == 1
+    assert all(
+        row["status"] in {"LEDGER_POSTED", "ALREADY_CLAIMED_NO_RETRY", "ALREADY_SENT_VERIFIED"}
+        for row in results
+    )
+
+
+@pytest.mark.parametrize(
+    ("policy", "hold_allowed", "expected"),
+    (
+        (AutosendPolicy(armed=False, operator_stop=False), True, "REFUSED_UNARMED"),
+        (AutosendPolicy(armed=True, operator_stop=True), True, "REFUSED_OPERATOR_STOP"),
+        (AutosendPolicy(armed=True, operator_stop=False), False, "REFUSED_SEND_HOLD"),
+    ),
+)
+def test_authority_and_send_hold_refusals_are_provider_zero(
+    tmp_path: Path,
+    policy: AutosendPolicy,
+    hold_allowed: bool,
+    expected: str,
+) -> None:
+    provider = FakeProvider()
+    result = run_monthly_cycle(
+        now=NOW,
+        package=_package(tmp_path),
+        policy=policy,
+        store=LamdMonthlyCycleStore(tmp_path / "cycles.sqlite3"),
+        freeze_guard=FakeGuard(),
+        send_hold_admission=lambda _package: {"allowed": hold_allowed},
+        provider=provider,
+        ledger=FakeLedger(),
+    )
+    assert result["status"] == expected
+    assert result["provider_called"] is False
+    assert provider.calls == []
