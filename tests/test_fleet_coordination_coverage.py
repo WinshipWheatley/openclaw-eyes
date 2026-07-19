@@ -131,6 +131,41 @@ def test_dual_coverage_outputs_are_byte_identical(tmp_path: Path) -> None:
     assert repo_output.stat().st_mode & 0o777 == 0o644
 
 
+def test_coverage_preserves_blocked_pending_host_binding(tmp_path: Path) -> None:
+    from fleet_coordination_coverage import build_coverage, load_registry
+
+    watcher_dir = tmp_path / "WATCHER"
+    checkin_dir = tmp_path / "CHECKIN"
+    watcher_dir.mkdir()
+    checkin_dir.mkdir()
+    (watcher_dir / "WATCHER-PC-Sol.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "openclaw_fleet_watcher_state_v2b",
+                "seat": "PC-Sol",
+                "monitor_status": "ready",
+                "watched_lanes": ["/inbound", "/WAKE"],
+                "doorbell": "yes",
+                "midturn": "blocked_pending_host_binding",
+                "needs_operator_kick": True,
+                "delivery_counts": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    coverage = build_coverage(
+        load_registry(REGISTRY),
+        watcher_dir=watcher_dir,
+        checkin_dir=checkin_dir,
+    )
+    rows = {row["seat"]: row for row in coverage["recipients"]}
+
+    assert rows["PC-Sol"]["doorbell"] == "yes"
+    assert rows["PC-Sol"]["midturn"] == "blocked_pending_host_binding"
+    assert rows["PC-Sol"]["needs_operator_kick"] is True
+
+
 def test_registry_rejects_duplicates_and_symlink(tmp_path: Path) -> None:
     from fleet_coordination_coverage import RegistryError, load_registry
 

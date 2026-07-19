@@ -167,6 +167,7 @@ def _watcher_payload(
     wake_dir: Path,
     state: Mapping[str, Any],
     monitor_status: str,
+    midturn_enabled: bool,
 ) -> dict[str, Any]:
     return {
         "schema_version": WATCHER_SCHEMA_VERSION,
@@ -174,7 +175,7 @@ def _watcher_payload(
         "monitor_status": monitor_status,
         "watched_lanes": [str(path) for path in (*inbound_dirs, wake_dir)],
         "doorbell": "yes",
-        "midturn": "yes",
+        "midturn": "yes" if midturn_enabled else "blocked_pending_host_binding",
         "needs_operator_kick": False,
         "last_event_id": str(state.get("last_event_id") or ""),
         "last_delivery": str(state.get("last_delivery") or ""),
@@ -190,6 +191,7 @@ def prime_dispatcher(
     wake_dir: Path,
     state_path: Path,
     watcher_state_path: Path,
+    midturn_enabled: bool = False,
 ) -> DispatchResult:
     current = _sources(seat=seat, inbound_dirs=inbound_dirs, wake_dir=wake_dir)
     state = _initial_state(current)
@@ -202,6 +204,7 @@ def prime_dispatcher(
             wake_dir=wake_dir,
             state=state,
             monitor_status="ready",
+            midturn_enabled=midturn_enabled,
         ),
         mode=0o644,
     )
@@ -311,6 +314,7 @@ def dispatch_once(
     watcher_state_path: Path,
     doorbell: Callable[[tuple[Path, ...]], object],
     midturn: Callable[[str, str], MidturnDeliveryOutcome],
+    midturn_enabled: bool = False,
     now_epoch: float | None = None,
     max_doorbells_per_minute: int = 3,
     rate_limit_waiter: Callable[[float], None] = time.sleep,
@@ -324,6 +328,7 @@ def dispatch_once(
             wake_dir=wake_dir,
             state_path=state_path,
             watcher_state_path=watcher_state_path,
+            midturn_enabled=midturn_enabled,
         )
     state = _read_state(state_path)
     current = _sources(seat=seat, inbound_dirs=inbound_dirs, wake_dir=wake_dir)
@@ -345,6 +350,7 @@ def dispatch_once(
                 wake_dir=wake_dir,
                 state=state,
                 monitor_status="ready",
+                midturn_enabled=midturn_enabled,
             ),
             mode=0o644,
         )
@@ -361,7 +367,7 @@ def dispatch_once(
     detail = ";".join(invalid)
     effective_now = float(now_epoch if now_epoch is not None else time.time())
 
-    if events and priority == "urgent":
+    if events and priority == "urgent" and midturn_enabled:
         outcome = midturn(_urgent_message(events, event_id=event_id), event_id)
         if outcome.status == "delivered":
             delivery_status = "delivered"
@@ -418,6 +424,7 @@ def dispatch_once(
             wake_dir=wake_dir,
             state=state,
             monitor_status="ready",
+            midturn_enabled=midturn_enabled,
         ),
         mode=0o644,
     )
@@ -446,6 +453,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--codex-cli", type=Path, required=True)
     parser.add_argument("--settle-seconds", type=float, default=5.0)
     parser.add_argument("--max-doorbells-per-minute", type=int, default=3)
+    parser.add_argument("--enable-midturn", action="store_true")
     return parser
 
 
@@ -459,6 +467,7 @@ def main(argv: list[str] | None = None) -> int:
             wake_dir=args.wake_dir,
             state_path=args.state_path,
             watcher_state_path=args.watcher_state_path,
+            midturn_enabled=args.enable_midturn,
         )
     else:
         if args.settle_seconds > 0:
@@ -493,6 +502,7 @@ def main(argv: list[str] | None = None) -> int:
             watcher_state_path=args.watcher_state_path,
             doorbell=doorbell,
             midturn=midturn,
+            midturn_enabled=args.enable_midturn,
             max_doorbells_per_minute=args.max_doorbells_per_minute,
         )
     print(json.dumps(result._asdict(), sort_keys=True))

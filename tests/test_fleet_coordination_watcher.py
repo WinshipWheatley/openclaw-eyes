@@ -105,6 +105,7 @@ def test_verified_urgent_ping_is_injected_with_reason_and_sha(tmp_path: Path) ->
         doorbell=lambda paths: (_ for _ in ()).throw(AssertionError("active urgent must not resume")),
         midturn=lambda message, event_id: injected.append((message, event_id))
         or MidturnDeliveryOutcome("delivered", "thread", "turn"),
+        midturn_enabled=True,
         now_epoch=2_000.0,
     )
 
@@ -119,6 +120,54 @@ def test_verified_urgent_ping_is_injected_with_reason_and_sha(tmp_path: Path) ->
     state = json.loads(watcher.read_text(encoding="utf-8"))
     assert state["delivery_counts"]["midturn"] == 1
     assert state["delivery_counts"]["urgent"] == 1
+
+
+def test_urgent_ping_uses_doorbell_when_midturn_binding_is_disabled(tmp_path: Path) -> None:
+    from fleet_coordination_watcher import dispatch_once, prime_dispatcher
+
+    inbound, wake_dir, cursor, watcher = _paths(tmp_path)
+    prime_dispatcher(
+        seat="PC-Sol",
+        inbound_dirs=(inbound,),
+        wake_dir=wake_dir,
+        state_path=cursor,
+        watcher_state_path=watcher,
+        midturn_enabled=False,
+    )
+    reference = _note(tmp_path / "urgent.md", "urgent", mtime_ns=2_500_000)
+    write_wake_ping(
+        wake_dir=wake_dir,
+        from_seat="Opus",
+        to_seat="PC-Sol",
+        mission_id="HOST-BINDING-BLOCKED",
+        reference_path=reference,
+        priority="urgent",
+        urgent_reason="blocking_confer",
+        now=datetime(2026, 7, 19, 2, 45, tzinfo=timezone.utc),
+    )
+    doorbells: list[tuple[Path, ...]] = []
+
+    result = dispatch_once(
+        seat="PC-Sol",
+        inbound_dirs=(inbound,),
+        wake_dir=wake_dir,
+        state_path=cursor,
+        watcher_state_path=watcher,
+        doorbell=lambda paths: doorbells.append(paths) or "woke",
+        midturn=lambda message, event_id: (_ for _ in ()).throw(
+            AssertionError("disabled midturn must not steer")
+        ),
+        midturn_enabled=False,
+        now_epoch=2_500.0,
+    )
+
+    assert result.status == "delivered"
+    assert result.priority == "urgent"
+    assert doorbells == [(reference,)]
+    state = json.loads(watcher.read_text(encoding="utf-8"))
+    assert state["midturn"] == "blocked_pending_host_binding"
+    assert state["delivery_counts"]["doorbell"] == 1
+    assert state["delivery_counts"]["midturn"] == 0
 
 
 def test_urgent_idle_uses_doorbell_but_failed_steer_does_not(tmp_path: Path) -> None:
@@ -152,6 +201,7 @@ def test_urgent_idle_uses_doorbell_but_failed_steer_does_not(tmp_path: Path) -> 
         watcher_state_path=watcher,
         doorbell=lambda paths: doorbells.append(paths) or "woke",
         midturn=lambda message, event_id: MidturnDeliveryOutcome("idle", "thread"),
+        midturn_enabled=True,
         now_epoch=3_000.0,
     )
     assert idle.status == "delivered"
@@ -178,6 +228,7 @@ def test_urgent_idle_uses_doorbell_but_failed_steer_does_not(tmp_path: Path) -> 
         midturn=lambda message, event_id: MidturnDeliveryOutcome(
             "steer_failed", "thread", "turn", "not steerable"
         ),
+        midturn_enabled=True,
         now_epoch=3_100.0,
     )
     assert failed.status == "midturn_undelivered"

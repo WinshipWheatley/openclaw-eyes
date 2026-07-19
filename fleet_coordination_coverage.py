@@ -16,7 +16,7 @@ REGISTRY_SCHEMA_VERSION = "openclaw_fleet_coordination_registry_v2b"
 COVERAGE_SCHEMA_VERSION = "openclaw_fleet_coordination_coverage_v2b"
 WATCHER_SCHEMA_VERSION = "openclaw_fleet_watcher_state_v2b"
 DOORBELL_VALUES = frozenset({"yes", "no"})
-MIDTURN_VALUES = frozenset({"yes", "no", "unsupported"})
+MIDTURN_VALUES = frozenset({"yes", "no", "unsupported", "blocked_pending_host_binding"})
 _COUNT_KEYS = ("doorbell", "midturn", "normal", "urgent", "coalesced", "failures")
 
 
