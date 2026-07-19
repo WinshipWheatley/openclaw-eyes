@@ -29,6 +29,8 @@ Phase 0 does not:
 - use a model polling loop;
 - claim exactly-once transport. Delivery is at-least-once with idempotent logical effects.
 
+PC-Sol may still write its ordinary coordination receipts to its own outbound lane and a pointer-only Opus WAKE for design/implementation confers. Those control-plane records are not Patchbay runtime traffic, are excluded from Phase-0 acceptance evidence, and grant no runtime authority.
+
 The isolated roots are:
 
 - PC core state: `/home/openclaw/.openclaw/patchbay-poc/`
@@ -142,7 +144,7 @@ Crash before ACK replays. Crash after ACK does not. A stale fence, wrong hash, s
 
 Local workers use nonblocking `flock` for process singleton behavior. The core also issues a monotonically increasing fencing epoch for each connector/listener ownership term. ACKs from a stale epoch are rejected.
 
-During long drains, the owner renews its lease through the authenticated core connection. Mac wall time never decides ownership or expiry. Core monotonic time drives deadlines. A hung local worker retains its `flock`; a supervisor must terminate that exact worker before a new epoch is granted.
+During long drains, the owner renews its lease through the authenticated core connection. Mac wall time never decides ownership or expiry. Core monotonic time drives deadlines, and every persisted lease binds the PC core boot id. On boot-id mismatch the prior monotonic deadline is never compared with the new boot's clock: the row is invalidated, the fence epoch advances, and the old owner/ACK is stale. A hung local worker retains its `flock`; a supervisor must terminate that exact worker before a new epoch is granted.
 
 Before model delivery, the worker records an all-clear decision from:
 
@@ -207,6 +209,8 @@ Each dimension is `UP`, `DEGRADED`, `DOWN`, or `UNKNOWN`. Process-up cannot over
 
 Every route is an ordered hop chain. Every hop records event id, trace id, run id, hop id, from, to, owner, status, evidence path, core receive time, and source diagnostic timestamp with uncertainty.
 
+Core-local components append hop receipts directly through `PatchbayStore`. Mac, Windows, and Opus-side producers never open the ext4 store: they append a canonical signed hop receipt to their local durable spool, transport it through the authenticated edge envelope, and `patchbay_hop_ingest.py` validates connector, run, nonce, trace, event, hop ownership, payload hash, and fence before one append-only core insert. Changed duplicate receipts conflict.
+
 `patchbay_watchdog.py` compares the expected hop set for this run with actual receipts. On an event-scoped deadline it identifies the first missing or failed segment, probes only that segment once, and emits a `GapBark` labeled `CONFIRMED`, `SUSPECTED`, or `UNKNOWN`. A bark must carry this run id and nonce; stale barks cannot satisfy acceptance.
 
 ### 5.3 Chief context-first diagnostic bundle
@@ -263,6 +267,8 @@ Commit ACK canonical bytes bind connector id, producer sequence, idempotency key
 
 Reverse publication uses an ext4 `edge_outbox` committed with the routed event. A finite WSL relay is woken by ext4 WAL modification and pushes pending rows over an authenticated loopback-only TCP connection to the Windows gateway. The gateway durably stages the row on the Windows system volume, publishes the immutable SMB blob first and commit marker second, then returns an authenticated publish receipt. Reconnect drains the ext4 outbox; the loopback notification is a hint, not truth. No file is overwritten in place.
 
+The final `opus_readback` hop is produced by `scripts/patchbay_opus_readback.py` only after the isolated Opus connector reads the exact nonce/model ACK. It signs and spools a receipt through the same authenticated edge path. If no exact Opus host binding or signing key is available, the causal-chain gate is `BLOCKED`; the acceptance runner cannot synthesize this hop.
+
 ### 6.3 Mac durable adapter
 
 `mac/patchbay_edge_adapter.py` uses an APFS outbound spool and durable cursor. SMB/kqueue is a low-latency hint, not durability.
@@ -285,7 +291,7 @@ Exact replay semantics are closed: the same connector, producer sequence, idempo
 
 Phase 0 uses per-connector HMAC-SHA256 keys stored outside the SMB share. The registry binds connector id to a key reference and authorized channels. The canonical signed bytes include protocol version, connector id, producer sequence, channel, idempotency key, nonce, trace id, payload length, payload hash, and fencing epoch. Edge commit ACKs and reverse publish receipts use the same authenticated-envelope rule.
 
-Registry and evidence files contain only key ids, never key bytes. Phase-0 provisioning places the matching secret in the Mac login keychain, Windows DPAPI-protected user store, and a mode-`0600` ext4 key file outside the share and PoC evidence root. Direction- and purpose-specific subkeys are derived with HMAC labels (`mac_to_core`, `core_to_mac`, `commit_ack`, `publish_receipt`). Loaders reject symlinks, unexpected owners, group/world access, unknown key ids, or any path beneath the SMB root; logs expose only the key id and derived-key fingerprint.
+Registry and evidence files contain only key ids, never key bytes. Phase-0 provisioning places the matching secret in the Mac login keychain, Windows DPAPI-protected current-user store, and a mode-`0600` ext4 key file outside the share and PoC evidence root. Direction- and purpose-specific subkeys are derived with HMAC labels (`mac_to_core`, `core_to_mac`, `commit_ack`, `publish_receipt`, `hop_receipt`). The ext4 loader opens the parent and key once with `O_NOFOLLOW`, then validates regular-file type, owner, and mode with `fstat()` on that descriptor before reading; it never performs a check-then-reopen sequence. Mac uses `/usr/bin/security` with an argument vector and Windows uses DPAPI `CurrentUser` with a current-user-only ACL. Loaders reject symlinks/reparse points, unexpected owners, group/world access, unknown key ids, or any path beneath the SMB root; logs expose only the key id and derived-key fingerprint. Provisioning remains a separately authorized install step, and a missing platform identity is `BLOCKED`.
 
 Authentication proves connector possession, not action authority. Even authentic payloads cannot grant sends, money, deletes, moves, or gate activation. Cross-lane claims and stale producer sequences fail closed.
 
@@ -320,7 +326,7 @@ While `SELF_TESTING`, a connector may use only isolated, nonce-scoped `patchbay.
 
 The enrollment wave is triggered only by one machine-checkable Phase-0 PASS receipt. Duplicate PASS events are idempotent. No prompt is broadcast before that receipt.
 
-The aggregator recomputes every gate from same-run content-addressed evidence; it never accepts caller-asserted PASS strings. The explicit-approval prerequisite is satisfied only by a separately created local operator-terminal receipt bound to the run id and nonce. Operator/Fable/Opus notes, inbox content, Patchbay payloads, and WAKE records are rejected as authority sources. The seven done-quality results likewise name their evidence hashes and designated reviewer receipts; a missing, stale, cross-run, or mutable source blocks the aggregate trigger.
+The aggregator recomputes every gate from same-run content-addressed evidence; it never accepts caller-asserted PASS strings. The explicit-approval prerequisite is satisfied only by a separately created local operator-terminal receipt bound to the run id, nonce, exact connector/task binding, allowed fault set, and expiry. Before any share, host, task-binding file, or fault-injection surface is opened, the live runner directly compares its invoked run id and nonce, verifies expiry and signature/user-presence, and rejects cross-run or stale approvals. Operator/Fable/Opus notes, inbox content, Patchbay payloads, and WAKE records are rejected as authority sources. The seven done-quality results likewise name their evidence hashes and designated reviewer receipts; a missing, stale, cross-run, or mutable source blocks the aggregate trigger.
 
 At that event, Opus relays exactly one general enrollment prompt:
 
@@ -347,6 +353,8 @@ At that event, Opus relays exactly one general enrollment prompt:
 15. **Safety and enrollment trigger:** hostile payloads grant no authority; PASS emits only when all checks and taste review are green.
 
 Core fault injection also covers `SQLITE_BUSY`, exhausted retry, kill after event commit, kill before and after signal rename, `ENOSPC`, WAL checkpoint interruption, stale fence, wrong ACK hash, bounded probe timeout, and nonce causality.
+
+Every disruptive Mac exercise captures its exact mount, clock, power/task, and queue baseline as applicable; restores it in `finally`; and emits a restoration receipt. An exception or missing restoration proof makes that gate `FAIL/BLOCKED` and prevents subsequent live faults from starting.
 
 ### 8.2 Ten real-Mac gates
 
