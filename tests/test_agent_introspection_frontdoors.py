@@ -7,6 +7,8 @@ import types
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from agent_introspection import AgentIntrospectionAnswer, AgentIntrospectionMatch
 import chief_router
 import maestro_cassandra_responder as maestro
@@ -392,3 +394,93 @@ def test_hermes_runner_answers_introspection_before_vendor_handler(monkeypatch) 
     reply = asyncio.run(GatewayRunner()._handle_message(event))
 
     assert reply.startswith("I’m Hermes")
+
+
+@pytest.mark.parametrize(
+    "agent",
+    ("maestro", "chief", "cassandra", "niles", "guardian", "hermes"),
+)
+def test_six_agent_introspection_acceptance_contract(agent: str) -> None:
+    from agent_introspection import answer_agent_introspection
+
+    model_id = f"fixture-{agent}-model"
+    lane_id = f"fixture-{agent}-lane"
+    captured: dict[str, Any] = {}
+
+    def packet_builder(**kwargs: Any) -> dict[str, Any]:
+        captured["facts"] = dict(kwargs["turn_self_facts"])
+        return {
+            "status": "READY",
+            "packet_id": f"packet:{agent}:introspection",
+            "facts": [],
+            "source_refs": (),
+            "turn_self_facts": kwargs["turn_self_facts"],
+        }
+
+    def protected_generate(
+        text: str,
+        *,
+        context_packet: dict[str, Any],
+        **_kwargs: Any,
+    ) -> dict[str, Any]:
+        facts = context_packet["turn_self_facts"]
+        captured["question"] = text
+        return {
+            "text": (
+                f"I’m {agent.title()}. This turn uses {facts['model_id']} on "
+                f"{facts['lane_id']} through an external provider-managed backend."
+            ),
+            "receipt": {
+                "receipt_id": f"protected:{agent}:introspection",
+                "model_call_performed": True,
+                "external_llm_invoked": True,
+                "local_model_invoked": False,
+                "original_message_present_in_submitted_prompt": True,
+                "external_brain_route_receipt": {
+                    "turn_id_hash": f"turn:{agent}:introspection",
+                    "binding_model_id": model_id,
+                    "effective_lane_id": lane_id,
+                    "response_source": "external_brain",
+                    "external_turn_performed": True,
+                    "effort_reason": "fixture_selected_binding",
+                },
+            },
+        }
+
+    question = "What model are you using right now, and on what hardware?"
+    answer = answer_agent_introspection(
+        question,
+        agent=agent,
+        source_surface=f"{agent}_acceptance",
+        source_request_id=f"request:{agent}:acceptance",
+        session={
+            "source_message_id": f"request:{agent}:acceptance",
+            "lm1_reused_model_receipt": {
+                "external_brain": {
+                    "turn_id_hash": f"turn:{agent}:introspection",
+                    "binding_model_id": model_id,
+                    "effective_lane_id": lane_id,
+                    "response_source": "external_brain",
+                    "external_turn_performed": True,
+                }
+            },
+        },
+        protected_generate_fn=protected_generate,
+        packet_builder=packet_builder,
+    )
+
+    proof = dict(answer.machine_proof)
+    assert proof["intent_class"] == "agent_introspection"
+    assert proof["model_call_performed"] is True
+    assert proof["original_message_present_in_submitted_prompt"] is True
+    assert proof["turn_self_facts_delivered"] is True
+    assert proof["workflow_package_staged"] is False
+    assert proof["send_performed"] is False
+    assert proof["ledger_touched"] is False
+    assert proof["external_action_performed"] is False
+    assert proof["turn_self_facts"]["model_id"] == captured["facts"]["model_id"]
+    assert proof["turn_self_facts"]["lane_id"] == captured["facts"]["lane_id"]
+    assert captured["facts"]["model_id"] == model_id
+    assert captured["facts"]["lane_id"] == lane_id
+    assert model_id in answer.text
+    assert lane_id in answer.text
