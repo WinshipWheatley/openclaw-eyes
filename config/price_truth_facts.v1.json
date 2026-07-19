@@ -4,6 +4,37 @@
   "status": "candidate_not_accepted_truth",
   "facts": [
     {
+      "fact_ref": "price:band_event:current_target:2000000:2026-07-18",
+      "subject_ref": "band_event",
+      "metric_ref": "target_price_minor_units",
+      "value_known": true,
+      "typed_value": {"minor_units": 2000000, "currency": "USD", "kind": "band_gig_target_not_automatic_quote"},
+      "time_domain": "CURRENT_DECLARED",
+      "valid_from": "2026-07-18",
+      "valid_until": null,
+      "observed_at": "2026-07-18T00:00:00+00:00",
+      "evidence_as_of": "2026-07-18T00:00:00+00:00",
+      "freshness_policy": "DOCTRINE_HASH_CURRENT",
+      "freshness_status": "CURRENT_HASH",
+      "authority_status": "DECLARED",
+      "operator_authority_ref": "operator:terminal:gig-business-doctrine-v1.2",
+      "regime_ref": "band_pre_organization",
+      "transition_event_ref": "",
+      "transition_status": "",
+      "transition_requires_operator": false,
+      "comparison_signature": {
+        "job_type": "band_event",
+        "duration_minutes": null,
+        "personnel": null,
+        "scope": null,
+        "location": null,
+        "production": null,
+        "client_event_class": null
+      },
+      "source_refs": ["docs/doctrine/GIG_BUSINESS_DOCTRINE.md#pricing-buckets"],
+      "source_hashes": []
+    },
+    {
       "fact_ref": "price:solo_acoustic:current_custom_provisional:2026-07-18",
       "subject_ref": "solo_acoustic",
       "metric_ref": "price_minor_units",
