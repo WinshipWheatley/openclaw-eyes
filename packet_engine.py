@@ -49,6 +49,7 @@ def build_agent_packet(
     consumer_kind: str = "daemon",
     session_id: str = "",
     persona_already_delivered: bool = False,
+    turn_self_facts: Mapping[str, Any] | None = None,
     legacy_builder: LegacyPacketBuilder | None = None,
     **builder_kwargs: Any,
 ) -> dict[str, Any]:
@@ -86,6 +87,7 @@ def build_agent_packet(
             consumer_kind=normalized_consumer,
             session_id=session_id,
             persona_already_delivered=persona_already_delivered,
+            turn_self_facts=turn_self_facts,
             builder_ref=builder_ref,
             build_ms=build_ms,
             failures=failures,
@@ -100,6 +102,7 @@ def build_agent_packet(
         consumer_kind=normalized_consumer,
         session_id=session_id,
         persona_already_delivered=persona_already_delivered,
+        turn_self_facts=turn_self_facts,
         builder_ref=builder_ref,
         build_ms=build_ms,
         failures=failures,
@@ -277,6 +280,7 @@ def _decorate_packet(
     consumer_kind: str,
     session_id: str,
     persona_already_delivered: bool,
+    turn_self_facts: Mapping[str, Any] | None,
     builder_ref: str,
     build_ms: int,
     failures: list[dict[str, str]],
@@ -311,6 +315,11 @@ def _decorate_packet(
         packet["packet_text"] = "\n".join(
             part for part in (_persona_text(persona), str(packet.get("packet_text") or "").strip()) if part
         )
+    if turn_self_facts:
+        from agent_introspection import inject_turn_self_facts
+
+        packet = inject_turn_self_facts(packet, turn_self_facts)
+        sections.append("turn_self_facts")
     receipt = _receipt(
         agent=agent,
         question_class=question_class,
@@ -342,6 +351,7 @@ def _decorate_packet(
                 persona.get("autonomy_ladder") or {}
             ).get("new_authority_conferred"),
             "packet_engine_sections": tuple(sections),
+            "turn_self_facts_delivered": bool(turn_self_facts),
         }
     )
     packet["machine_proof"] = proof
@@ -358,6 +368,7 @@ def _failure_packet(
     consumer_kind: str,
     session_id: str,
     persona_already_delivered: bool,
+    turn_self_facts: Mapping[str, Any] | None,
     builder_ref: str,
     build_ms: int,
     failures: list[dict[str, str]],
@@ -370,10 +381,16 @@ def _failure_packet(
         "standing_daemon_profile"
     )
     source_refs = _persona_source_refs(persona)
+    sections = [
+        "persona_core" if include_persona else "standing_persona_ref",
+        "legacy_packet",
+    ]
+    if turn_self_facts:
+        sections.append("turn_self_facts")
     receipt = _receipt(
         agent=agent,
         question_class=question_class,
-        sections=(("persona_core" if include_persona else "standing_persona_ref"), "legacy_packet"),
+        sections=sections,
         sources=source_refs,
         build_ms=build_ms,
         failures=failures,
@@ -414,6 +431,11 @@ def _failure_packet(
     }
     if include_persona:
         result["persona_core"] = persona
+    if turn_self_facts:
+        from agent_introspection import inject_turn_self_facts
+
+        result = inject_turn_self_facts(result, turn_self_facts)
+        result["machine_proof"]["turn_self_facts_delivered"] = True
     return result
 
 

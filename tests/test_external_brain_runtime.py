@@ -88,7 +88,7 @@ def test_activated_safe_request_passes_raw_prompt_and_effort_to_client() -> None
     admission = SubscriptionAdmission(
         True,
         "subscription_headroom_ok",
-        "gpt-5.6-luna",
+        "gpt-5.6-terra",
         effort_level="low",
         account_type="chatgpt",
         used_percent=25,
@@ -174,7 +174,7 @@ def test_timeout_or_protocol_failure_falls_local_without_variant_swap() -> None:
     admission = SubscriptionAdmission(
         True,
         "subscription_headroom_ok",
-        "gpt-5.6-luna",
+        "gpt-5.6-terra",
         effort_level="low",
         account_type="chatgpt",
         used_percent=25,

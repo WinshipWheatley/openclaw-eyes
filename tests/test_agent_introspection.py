@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from typing import Any
+
 import pytest
 
 from agent_introspection import (
@@ -7,6 +10,9 @@ from agent_introspection import (
     inject_turn_self_facts,
     normalize_turn_self_facts,
 )
+from codex_app_server_client import CodexTurnResult, SubscriptionAdmission
+import external_brain_runtime
+from packet_engine import build_agent_packet
 
 
 @pytest.mark.parametrize(
@@ -167,3 +173,142 @@ def test_inject_turn_self_facts_adds_closed_packet_section() -> None:
     assert "TURN SELF FACTS" in result["packet_text"]
     assert "qwen3:8b" in result["packet_text"]
     assert "machine_proof:turn_self_facts_v1" in result["source_refs"]
+
+
+def test_packet_engine_delivers_turn_self_facts() -> None:
+    facts = normalize_turn_self_facts(
+        agent="chief",
+        source_request_id="chief-test-1",
+        route_receipt={
+            "receipt_id": "protected:chief-test-1",
+            "model_id": "qwen3:8b",
+            "lane_id": "local_safe_lane",
+            "local_model_invoked": True,
+            "selection_reason": "interactive_binding",
+        },
+    )
+
+    packet = build_agent_packet(
+        agent="chief",
+        question="How do you decide whether a task is yours?",
+        question_class="agent_introspection",
+        turn_self_facts=facts,
+        legacy_builder=lambda **_: {
+            "status": "READY",
+            "facts": [],
+            "source_refs": [],
+            "packet_text": "base",
+        },
+    )
+
+    assert packet["turn_self_facts"]["model_id"] == "qwen3:8b"
+    assert "turn_self_facts" in packet["packet_engine_receipt"]["sections"]
+    assert packet["machine_proof"]["turn_self_facts_delivered"] is True
+    assert "TURN SELF FACTS" in packet["packet_text"]
+
+
+@dataclass
+class _ExternalClient:
+    admission: SubscriptionAdmission
+    turns: list[dict[str, Any]] = field(default_factory=list)
+
+    def preflight(self, **_kwargs: Any) -> SubscriptionAdmission:
+        return self.admission
+
+    def run_read_only_turn(self, **kwargs: Any) -> CodexTurnResult:
+        self.turns.append(kwargs)
+        return CodexTurnResult(
+            text="I am running through gpt-5.6-sol on the external hard lane.",
+            thread_id_hash="sha256:thread",
+            turn_id_hash="sha256:turn",
+            packet_critique={
+                "summary": "Self facts were present.",
+                "quality_score": 100,
+                "missing": [],
+                "noise": [],
+                "mis_scoped": [],
+                "improvement_items": [],
+                "grounded_in_turn": ["turn self facts"],
+            },
+        )
+
+
+def _public_metadata() -> dict[str, Any]:
+    return {
+        "classification": "public",
+        "original_pii_tier": "PUBLIC",
+        "cloud_allowed": True,
+        "local_required": False,
+        "tokenization_applied": False,
+        "package_minimized": True,
+        "raw_values_included": False,
+        "secrets_present": False,
+    }
+
+
+def test_external_preflight_identity_is_injected_before_prompt_submission() -> None:
+    client = _ExternalClient(
+        SubscriptionAdmission(
+            True,
+            "subscription_headroom_ok",
+            "gpt-5.6-sol",
+            effort_level="high",
+            account_type="chatgpt",
+            used_percent=20,
+        )
+    )
+
+    result = external_brain_runtime.run_external_brain_request(
+        raw_operator_prompt="What model are you running right now?",
+        context_aid={"facts": ["bounded"]},
+        privacy_metadata=_public_metadata(),
+        task_type="architecture policy synthesis",
+        role="maestro",
+        client=client,
+        local_fallback=lambda: "local fallback",
+        cwd="/home/openclaw",
+        activation_enabled=True,
+        packet_quality_db_path=None,
+    )
+
+    prompt_facts = client.turns[0]["context_aid"]["turn_self_facts"]
+    assert prompt_facts["agent"] == "maestro"
+    assert prompt_facts["model_id"] == "gpt-5.6-sol"
+    assert prompt_facts["lane_id"] == "hard_lane"
+    assert prompt_facts["backend_class"] == "external_brain"
+    assert prompt_facts["hardware_class"] == "provider_managed_external"
+    assert prompt_facts["turn_receipt_id"] == result.receipt["request_hash"]
+    assert result.receipt["turn_self_facts"] == prompt_facts
+    assert result.receipt["turn_self_facts_in_prompt"] is True
+    assert result.receipt["turn_id_hash"] == "sha256:turn"
+    assert client.turns[0]["context_aid"]["facts"] == ["bounded"]
+
+
+def test_external_preflight_model_mismatch_fails_closed_before_turn() -> None:
+    client = _ExternalClient(
+        SubscriptionAdmission(
+            True,
+            "subscription_headroom_ok",
+            "unexpected-model",
+            effort_level="high",
+            account_type="chatgpt",
+            used_percent=20,
+        )
+    )
+
+    result = external_brain_runtime.run_external_brain_request(
+        raw_operator_prompt="What model are you running right now?",
+        context_aid={},
+        privacy_metadata=_public_metadata(),
+        task_type="architecture policy synthesis",
+        role="maestro",
+        client=client,
+        local_fallback=lambda: "local fallback",
+        cwd="/home/openclaw",
+        activation_enabled=True,
+        packet_quality_db_path=None,
+    )
+
+    assert result.source == "local_fallback"
+    assert result.receipt["fallback_reason"] == "external_preflight_model_mismatch"
+    assert client.turns == []

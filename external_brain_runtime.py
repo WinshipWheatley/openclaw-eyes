@@ -143,7 +143,14 @@ def run_external_brain_request(
         fallback_reason="" if admission.allowed else admission.reason,
     )
     receipt["subscription"] = subscription_receipt
+    receipt["configured_binding_model_id"] = bound_model
     receipt["binding_model_id"] = admission.model
+    if admission.allowed and str(admission.model or "") != bound_model:
+        return _local_result(
+            local_fallback,
+            receipt,
+            reason="external_preflight_model_mismatch",
+        )
     if not admission.allowed:
         if (
             admission.reason == "guardian_approval_required"
@@ -165,6 +172,23 @@ def run_external_brain_request(
     provenance = build_packet_provenance(context_aid)
     context_with_provenance = dict(context_aid)
     context_with_provenance["packet_build_provenance"] = provenance
+    from agent_introspection import normalize_turn_self_facts
+
+    turn_self_facts = normalize_turn_self_facts(
+        agent=str(role or "advisory_response"),
+        source_request_id=decision.request_hash,
+        route_receipt={
+            **receipt,
+            "turn_id_hash": decision.request_hash,
+            "binding_model_id": admission.model,
+            "effective_lane_id": decision.candidate_lane_id,
+            "response_source": "external_brain",
+            "external_turn_performed": True,
+        },
+    )
+    context_with_provenance["turn_self_facts"] = turn_self_facts
+    receipt["turn_self_facts"] = turn_self_facts
+    receipt["turn_self_facts_in_prompt"] = True
     receipt["packet_build_provenance"] = {
         key: provenance[key]
         for key in (
