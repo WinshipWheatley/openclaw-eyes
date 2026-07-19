@@ -1,0 +1,23 @@
+[Unit]
+Description=OpenClaw persistent LAMD unattended-send emergency brake broker
+After=local-fs.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 /usr/local/libexec/openclaw-authority/lamd_autosend_brake.py serve --guardian-uid @OPENCLAW_UID@ --socket-gid @OPENCLAW_GID@
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/openclaw-authority /run/openclaw-authority
+RestrictAddressFamilies=AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=multi-user.target
