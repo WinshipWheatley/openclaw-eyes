@@ -166,6 +166,16 @@ def test_maestro_model_self_query_rejects_legacy_reuse_and_injects_actual_turn(
         *,
         context_packet: dict[str, Any],
     ) -> dict[str, Any]:
+        # The external runtime replaces the provisional local LM2 facts after
+        # its verified preflight and before submitting the provider prompt.
+        context_packet = dict(context_packet)
+        context_packet["turn_self_facts"] = {
+            **dict(context_packet["turn_self_facts"]),
+            "model_id": "gpt-5.6-sol",
+            "lane_id": "hard_lane",
+            "backend_class": "external_brain",
+            "hardware_class": "provider_managed_external",
+        }
         captured["text"] = text
         captured["packet"] = context_packet
         return {
@@ -230,6 +240,89 @@ def test_maestro_model_self_query_rejects_legacy_reuse_and_injects_actual_turn(
     assert proof["turn_self_facts"]["model_id"] == "gpt-5.6-sol"
     assert proof["answer_grounded_in_turn_self_facts"] is True
     assert proof["workflow_package_staged"] is False
+
+
+def test_maestro_fresh_lm2_does_not_inherit_lm1_external_self_facts(monkeypatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_build_agent_packet(**kwargs: Any) -> dict[str, Any]:
+        return {
+            "status": "READY",
+            "packet_id": "packet:introspection-fresh-lm2",
+            "facts": [],
+            "source_refs": (),
+            "turn_self_facts": kwargs["turn_self_facts"],
+            "packet_engine_receipt": {
+                "status": "READY",
+                "failures": (),
+                "receipt_id": "packet-receipt:introspection-fresh-lm2",
+            },
+        }
+
+    def fake_protected_generate(
+        text: str,
+        *,
+        context_packet: dict[str, Any],
+    ) -> dict[str, Any]:
+        facts = dict(context_packet["turn_self_facts"])
+        captured["facts"] = facts
+        return {
+            "text": (
+                f"I’m Maestro. This turn is {facts['model_id']} on {facts['lane_id']} "
+                "through a local backend; hardware is not verified."
+            ),
+            "receipt": {
+                "receipt_id": "protected:maestro-fresh-lm2",
+                "model_call_performed": True,
+                "model_selected": "qwen3:8b-q4_K_M",
+                "external_llm_invoked": False,
+                "local_model_invoked": True,
+                "original_message_present_in_submitted_prompt": True,
+                "external_brain_route_receipt": {
+                    "candidate_lane_id": "local_safe_lane",
+                    "effective_lane_id": "local_safe_lane",
+                    "response_source": "local_fallback",
+                    "external_turn_performed": False,
+                },
+            },
+        }
+
+    monkeypatch.setattr("packet_engine.build_agent_packet", fake_build_agent_packet)
+    result = maestro.answer_frontdoor_chat(
+        "What language model are you running right now, and on what hardware?",
+        session={
+            "source_message_id": "maestro-live-seam-1",
+            "local_model_binding": {
+                "model": "qwen3:8b-q4_K_M",
+                "lane": "local_safe_lane",
+                "hardware_class": "unknown",
+            },
+            "lm1_reused_model_receipt": {
+                "model_call_performed": True,
+                "turn_self_facts_in_prompt": True,
+                "external_brain_route_receipt": {
+                    "binding_model_id": "gpt-5.6-sol",
+                    "effective_lane_id": "hard_lane",
+                    "response_source": "external_brain",
+                    "external_turn_performed": True,
+                },
+            },
+        },
+        source_surface="operator_maestro_chat",
+        agent="maestro",
+        protected_generate_fn=fake_protected_generate,
+    )
+
+    assert captured["facts"]["model_id"] == "qwen3:8b-q4_K_M"
+    assert captured["facts"]["lane_id"] == "local_safe_lane"
+    assert captured["facts"]["backend_class"] == "local_ollama"
+    assert result.machine_proof["answer_grounded_in_turn_self_facts"] is True, (
+        result.plain_summary,
+        result.machine_proof["turn_self_facts"],
+        result.machine_proof["answer_grounding_missing_fields"],
+    )
+    assert "qwen3:8b-q4_K_M" in result.plain_summary
+    assert "did not match" not in result.plain_summary
 
 
 def test_cassandra_introspection_precedes_typed_contract_and_brain(monkeypatch) -> None:

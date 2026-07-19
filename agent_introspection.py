@@ -205,11 +205,10 @@ def _route_views(
         reused.get("external_brain_route_receipt")
         or reused.get("external_brain")
     )
-    return tuple(
-        view
-        for view in (explicit, explicit_external, reused, reused_external)
-        if view
-    )
+    explicit_views = tuple(view for view in (explicit, explicit_external) if view)
+    if explicit_views:
+        return explicit_views
+    return tuple(view for view in (reused, reused_external) if view)
 
 
 def _first_from_views(views: Sequence[Mapping[str, Any]], *keys: str) -> str:

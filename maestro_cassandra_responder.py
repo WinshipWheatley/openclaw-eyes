@@ -2629,6 +2629,31 @@ def _answer_with_maestro_brain(
                 },
             )
 
+    if introspection_match is not None:
+        # A rejected LM1 reuse must not describe a fresh LM2 answer.  The LM2
+        # call below is explicitly pinned to the governed local model; if the
+        # protected generator later admits an external turn, that runtime
+        # replaces these facts with its verified external preflight identity.
+        from local_model_governance import binding_from_session
+
+        fresh_binding = binding_from_session(session)
+        fresh_session = dict(session or {})
+        fresh_session.pop("lm1_reused_answer", None)
+        fresh_session.pop("lm1_reused_model_receipt", None)
+        fresh_session["local_model_binding"] = fresh_binding
+        introspection_facts = normalize_turn_self_facts(
+            agent=agent,
+            source_request_id=str((session or {}).get("source_message_id") or ""),
+            session=fresh_session,
+            route_receipt={
+                "model_selected": str(fresh_binding.get("model") or ""),
+                "effective_lane_id": "local_safe_lane",
+                "response_source": "local_fallback",
+                "local_model_invoked": True,
+                "selection_reason": "governed_interactive_lm2",
+            },
+        )
+
     packet_session = dict(session or {})
     packet_session["interpreter_route"] = "BRAIN"
     # ── INTERPRETER-LM fact selection bridge (flag-gated, ADDITIVE) ──────────
