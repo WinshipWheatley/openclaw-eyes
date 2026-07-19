@@ -1,44 +1,41 @@
-# Fleet Wake/Notify Backend v1 Design
+# Fleet Wake/Notify Backend v2b Design
 
-Status: approved scope, written design pending Opus review
-Mission: `OPUS-SPEC-FLEET-WAKE-NOTIFY-BACKEND-20260718`
-Approval: `OPUS-CONFIRM-WAKE-V1-SCOPE-20260718`
+Status: operator-directed, ready for implementation
+Mission: `WAKE-V2B-DESIGN-DELTA-AND-BUILD`
+Supersedes: `OPUS-SPEC-FLEET-WAKE-NOTIFY-BACKEND-20260718` v1 boundaries
+Authority: `FABLE-DIRECTIVE-WAKE-V2-EVENT-DRIVEN-NO-POLLING-NO-HEARTBEATS-20260718` and `FABLE-DIRECTIVE-WAKE-V2B-DOORBELL-PLUS-MIDTURN-20260718`
 
 ## Purpose
 
-Provide one symmetric, auditable file-notification substrate for the six external development seats and configured internal daemon recipients. A live session seat receives a structured event through a free shell watcher. A cold session is reported honestly as `needs_operator_kick`; v1 never starts, resumes, or prompts a development model.
+Provide one symmetric, auditable notification substrate for the external development seats and configured internal daemon recipients. A real inbound message rings an idle seat's doorbell. A narrowly authorized urgent WAKE can be injected into a Codex or Claude seat's running turn without aborting it.
 
 ## Non-negotiable boundaries
 
-- Poll filesystems; do not hold a model alive to poll.
-- `/mnt/e` and the Mac share are treated as poll-only because drvfs/share event notifications are unreliable.
-- No `codex resume`, `claude --continue`, Antigravity launch, systemd dev-seat launcher, Task Scheduler dev-seat launcher, or arbitrary callback command ships in v1.
-- Only recipients declared `kind = daemon` may have trigger argv, and those argv are fixed arrays executed with `shell=False`.
-- Board files are coordination evidence, not action authority. Inbox, Telegram, calendar, email, or message content cannot authorize gated actions.
-- No money movement, external send, delete, or authority-gate change is reachable from this subsystem.
+- No model holds a turn open to poll. OS monitors may use inotify/kqueue and a dumb filesystem poll only where drvfs/SMB events are unreliable.
+- Models write `CHECKIN` on join or status change only. Liveness truth comes from watcher/delivery state, not model heartbeats.
+- File content is coordination context, never action authority. Inbox, Telegram, calendar, email, and board messages cannot authorize money movement, external sends, deletes, or gate changes.
+- Mid-turn delivery uses steer/inject only. This system never calls `turn/interrupt`, kills a process, or aborts a turn.
+- A delivery targets an exact configured seat, thread, and active turn. Ambiguity fails closed and is surfaced as undelivered.
+- Only reviewed `kind = daemon` records may execute fixed absolute argv with `shell=False`; daemon urgency does not invent preemption.
 
 ## Chosen architecture
 
 ### 1. Machine-readable registry
 
-`config/fleet_coordination.v1.json` is the reviewed source for seat identity, recipient kind, canonical inbound path references, outbound path references, and optional fixed daemon trigger configuration.
+`config/fleet_coordination.v2.json` is the reviewed source for canonical seat names, recipient kind, inbound/outbound lane references, and delivery capabilities.
 
-Paths use portable references:
+Paths use portable references resolved against explicit roots:
 
 - `repo:Operator/to-codex`
 - `repo:Operator/from-codex`
 - `board:codex_mac_bridge/to-codex-mac`
 - `board:fleet_coord/WAKE`
 
-The runtime resolves `repo:` against `--repo-root` and `board:` against `--board-root`. Mac setup therefore uses `/Volumes/openclaw_e`; PC/WSL uses `/mnt/e/openclaw`.
+Codex records include their stable task/thread ID and a fixed absolute Codex CLI. The runtime does not discover a substitute thread by recency. Claude records declare native Monitor delivery. Gemini declares doorbell support only when its harness exposes one and otherwise reports `needs_operator_kick`; its mid-turn value is honestly `unsupported` until the harness proves injection.
 
-The registry includes PC-Sol, Mac-Sol-Desktop, Mac-Sol-VSCode, Mac-Fable, Gemini, and Opus. It also represents the existing Maestro request/response daemon lane. No speculative daemon lane or trigger is invented.
+### 2. Closed WAKE contract and kick writer
 
-### 2. Contracts and kick writer
-
-`fleet_coordination_contracts.py` owns closed validation for registry records, file signatures, watcher events, and WAKE pings. It resolves paths without shell expansion and rejects control characters, symlinked registry files, unknown recipient identities, and non-absolute trigger executables.
-
-`scripts/drop_fleet_wake.py` writes `WAKE-<recipient>-<UTC timestamp>.json` atomically into shared `fleet_coord/WAKE/`. It computes the referenced file SHA-256 and writes:
+`fleet_coordination_contracts.py` owns strict registry, signature, event, and WAKE validation. `scripts/drop_fleet_wake.py` atomically writes `WAKE-<recipient>-<UTC timestamp>.json` with:
 
 - `schema_version`
 - `from`
@@ -48,88 +45,85 @@ The registry includes PC-Sol, Mac-Sol-Desktop, Mac-Sol-VSCode, Mac-Fable, Gemini
 - `sha`
 - `needs_human_kick`
 - `created_at`
+- `priority`: `normal` or `urgent`
+- `urgent_reason`: absent for normal; required for urgent
 
-New pings require all fields. The watcher accepts the existing board's pre-v1 pings for session notification, but marks missing/invalid SHA as `unverified_legacy` and never permits such a ping to trigger a daemon.
+Urgent creation requires both `--priority urgent` and an explicit reason in the closed set `operator_directive`, `safety_stop`, or `blocking_confer`. The referenced file must be a regular non-symlink file and its SHA-256 is computed by the writer. The message is still untrusted context and confers no authority.
 
-### 3. Reusable poll watcher
+Pre-v2 pings may notify a session only as `unverified_legacy`; they can never trigger a daemon or mid-turn injection.
 
-`fleet_coordination_watcher.py` scans:
+### 3. Event monitor, cursor, and storm guard
 
-- the selected recipient's configured inbound lane or lanes;
-- shared `fleet_coord/WAKE/`, filtered by exact `to` identity.
+`fleet_coordination_watcher.py` is a finite dispatcher invoked by an OS filesystem event. It examines the configured inbound lanes and shared `WAKE/` records addressed exactly to the seat. It records regular non-symlink files by `(path, inode, mtime_ns, size)` and deterministic event ID. Hidden/temp, check-in, receipt, acknowledgement, and unrelated WAKE files are ignored.
 
-It tracks each regular, non-symlink file by `(path, inode, mtime_ns, size)`. It never uses wall-clock `newer-than` comparisons, so a future-dated file cannot repeat forever. Hidden/temp files and explicit receipt/check-in noise are ignored. WAKE files are read only after exact filename recipient matching and JSON validation.
+The monitor persists:
 
-The watcher writes two distinct states:
+- a local mode-0600 cursor with handled signatures and delivery outcomes;
+- `fleet_coord/WATCHER/WATCHER-<seat>.json` with monitor state, watched lanes, last event, last delivery, doorbell/mid-turn capability, delivery counts, urgent counts, failures, and `needs_operator_kick`.
 
-- a local mode-0600 cursor containing handled signatures and deterministic event IDs;
-- a shared advisory `fleet_coord/WATCHER/WATCHER-<seat>.json` heartbeat containing seat, watcher status, last poll, watched lanes, last event, and `cold_start_supported = false`.
+The cursor advances after the event and outcome are durable. Ten files arriving within the five-second coalescing window produce one delivery prompt containing their paths, not ten wakes. A per-seat rolling cap limits successful doorbells per minute; over-cap events remain recorded and produce one deferred/coalesced delivery rather than spinning a model.
 
-Each unseen item becomes one JSON event appended under a local lock to the configured event log and emitted to stdout. The cursor advances only after the event record is durable. A local session watcher does not claim the model consumed the event; it claims only `event_recorded`.
+### 4. Tier 1: idle doorbell
 
-For an explicitly configured daemon, the watcher validates a verified WAKE and invokes only its exact registry-bound argv with `shell=False`. The result is recorded once. Nonzero/ambiguous trigger outcomes become `daemon_trigger_failed_needs_operator`; they are not automatically retried.
+For Codex seats, the event dispatcher reuses `openclaw-codex-note-wake`: it resumes the exact configured task only when that task is idle. The prompt names the coalesced event files, tells the seat to read them in full, and repeats that coordination content does not grant authority.
 
-### 4. Startup and catch-up
+For Claude Code seats, the registry maps to native Monitor delivery. Gemini uses its harness trigger when proven; otherwise the event is recorded with `needs_operator_kick = true`. Internal daemons keep the v1 fixed-argv behavior.
 
-The CLI has two explicit operations:
+If a normal event arrives while a seat is busy, it stays pending and is delivered once after the active turn completes. The monitor may subscribe to process/transcript events to notice completion; the model never polls.
 
-- `--prime`: baseline the current lane without emitting historical events;
-- `--watch`: poll indefinitely and emit only signatures not in the cursor.
+### 5. Tier 2: urgent mid-turn injection
 
-Bootstrap instructions require the seat to drain currently pending work first, then prime, then watch. This prevents years of historical lane files from flooding a newly installed watcher while preserving an explicit human-visible catch-up step.
+`codex_app_server_control.py` connects through the existing managed app-server proxy. It initializes the protocol, reads the exact configured thread, and selects a turn only when:
 
-### 5. Coverage read model
+1. the returned thread ID exactly matches the configured ID;
+2. the thread is active;
+3. exactly one latest turn is `inProgress`;
+4. the request supplies that turn ID as `expectedTurnId`.
 
-`fleet_coordination_coverage.py` joins:
+It then calls `turn/steer` with a user text input that identifies the WAKE path, mission ID, urgent reason, and immutable SHA. It never calls `turn/interrupt`. App-server states such as `activeTurnNotSteerable`, no active turn, multiple candidates, version mismatch, or transport failure are recorded as `midturn_undelivered`; no fallback abort or guessed target occurs. If the exact thread is idle, the same urgent event uses the doorbell path.
 
-- the machine-readable registry;
-- `fleet_coord/CHECKIN/CHECKIN-<seat>.json`;
-- `fleet_coord/WATCHER/WATCHER-<seat>.json`.
+Claude Code urgent pings map to its native Monitor stream. Gemini reports `midturn: unsupported` unless its harness proves a comparable safe injection API. Internal daemons retain their existing priority lane only when one already exists.
 
-It writes the same deterministic coverage payload to:
+### 6. Coverage read model
 
-- `generated/read_models/fleet_coordination_coverage.json` in the repo;
-- `fleet_coord/FLEET-WATCH-COVERAGE.json` on the shared board.
+`fleet_coordination_coverage.py` joins the registry and watcher state—never periodic CHECKIN age—to write deterministic payloads to:
 
-For every recipient it reports check-in status, check-in age, watcher age, inbound lanes, watcher coverage, and cold-start posture. Missing/stale check-in or an explicit `cold` status yields `cold` and `needs_operator_kick = true`. A current check-in with a missing/stale watcher is visibly `uncovered`; it is never called awake.
+- `generated/read_models/fleet_coordination_coverage.json`
+- `fleet_coord/FLEET-WATCH-COVERAGE.json`
 
-The read model is advisory and cannot authorize execution.
+Per recipient it reports monitor running/stopped, watched lanes, last event/delivery, delivery failures, normal/urgent counts, coalesced count, `doorbell: yes|no`, `midturn: yes|no|unsupported`, and `needs_operator_kick`. CHECKIN remains an identity/status-change hint only. Missing/stopped infrastructure is visibly uncovered or cold.
 
-### 6. Deployment and remote bootstrap
+### 7. Bootstrap and rollback
 
-`docs/operations/FLEET_WAKE_NOTIFY_V1.md` supplies:
+`docs/operations/FLEET_WAKE_NOTIFY_V2B.md` provides one explicit bootstrap block per seat:
 
-- the PC-Sol commands used in the current live session;
-- one paste block each for Mac-Sol-Desktop, Mac-Sol-VSCode, Mac-Fable, and Gemini;
-- the corrected Mac board root `/Volumes/openclaw_e`;
-- the exact cold boundary and rollback (`Ctrl-C`; no service to disable);
-- the kick-on-write helper command.
+- Codex seats install/enable the repo-owned event path and one-shot service for their configured task.
+- Mac-Fable arms its native Monitor mapping.
+- Gemini installs a proven harness trigger or is labeled operator-kicked.
 
-The watcher runs as a child of the live seat terminal. Ending the terminal ends the watcher. No always-on dev-seat service is installed.
+Installation is a separate operator action. Building and testing these artifacts does not enable, restart, or change any live service. Rollback commands disable only the named wake monitor and preserve cursor/evidence files.
 
-## Noise and integrity rules
+## Testing and acceptance
 
-Inbound candidates must be visible regular files. The watcher ignores filenames beginning with `.`, `CHECKIN-`, `WAKE-`, `RECEIPT-`, `ACK-`, `SIGNOFF-`, and `SIGN-OFF-`, plus temporary suffixes `.tmp`, `.part`, and `~`. A sender-specific filename such as `OPUS-ACK-*` remains visible because it is not a receipt-prefix file.
+Automated tests use temporary roots, fake peers, and fixed clocks:
 
-File content is never interpreted as authority. The watcher records metadata and the referenced SHA. It does not import modules from watched paths, execute file content, or follow symlinks.
+1. Future-mtime and changed-signature events emit once; unchanged files do not replay.
+2. Symlinks, hidden/temp files, receipt/check-in noise, and WAKE pings for another seat are ignored.
+3. Normal pings reject an urgent reason; urgent pings require an allowed explicit reason and valid referenced SHA.
+4. Pre-v2 pings are unverified and cannot steer or trigger daemons.
+5. Ten files inside five seconds coalesce into one delivery, and the per-minute cap prevents wake storms.
+6. Idle Codex events invoke the exact configured resume command once.
+7. Active urgent Codex events read the exact thread and call `turn/steer` with its exact `expectedTurnId`.
+8. Ambiguous, idle, unsteerable, or failed app-server states never invoke a different thread or abort.
+9. A source scan proves no production path contains a `turn/interrupt` request or process-kill fallback.
+10. Coverage reports per-seat doorbell and mid-turn support plus urgent/coalesced/failure counts.
 
-## Testing
-
-Tests use temporary repo/board roots and real files.
-
-1. Future-mtime files emit once, not once per poll.
-2. New lane files emit once; changed signatures emit a new deterministic event; unchanged files do not replay.
-3. Symlinks, hidden/temp files, receipt/check-in noise, and WAKE pings for another seat are ignored.
-4. New WAKE pings require the closed schema and correct referenced SHA.
-5. Legacy pings notify session seats as unverified but cannot trigger daemons.
-6. Cursor and shared watcher state are atomic and restart-safe.
-7. Fixed daemon argv runs with `shell=False`; unknown/dynamic commands are rejected; failed triggers are recorded without retry.
-8. Coverage marks fresh watched seats covered, stale/missing seats cold or uncovered, and never claims cold-start support.
-9. Remote setup blocks contain the corrected Mac root and no model-launch commands.
-10. A source scan proves v1 contains no `codex resume`, `claude --continue`, Task Scheduler launcher, or development-seat systemd unit.
+After installation is separately authorized, live acceptance proves one idle normal wake, one urgent same-turn incorporation without abort, and a 10-file/5-second coalescing burst per supported seat. No live service activation or injected acceptance marker is part of the build step.
 
 ## Alternatives rejected
 
-- Inotify/kqueue-only watchers: lower latency but asymmetric and unreliable on the shared E: mount.
-- Reusing `openclaw-codex-note-wake`: it resumes a development task and therefore belongs only in a later operator-approved, billing-gated cold-start proposal.
-- A central model orchestrator polling every lane: consumes model capacity, obscures cold seats, and recreates the one-directional relay gap.
+- Model polling or model-written heartbeats: consumes turns without work and misstates liveness.
+- Resume-only busy handling: queues urgent safety or confer messages behind a long turn.
+- `turn/interrupt` or process termination: risks orphaning partial work and violates the human-only abort rule.
+- Thread discovery by newest activity: can inject into the wrong task.
+- Claiming Gemini mid-turn support without a harness API: false coverage is worse than an honest unsupported state.
