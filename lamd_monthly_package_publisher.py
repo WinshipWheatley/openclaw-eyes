@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import stat
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -209,7 +210,9 @@ def publish_monthly_package(
             "provider_called": False,
             "ledger_posted": False,
         }
-    temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
+    temporary = output.with_name(
+        f".{output.name}.{os.getpid()}.{secrets.token_hex(8)}.tmp"
+    )
     fd = os.open(
         temporary,
         os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
@@ -220,7 +223,21 @@ def publish_monthly_package(
             handle.write(json.dumps(package, indent=2, sort_keys=True, ensure_ascii=True) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, output)
+        try:
+            os.link(temporary, output, follow_symlinks=False)
+        except FileExistsError:
+            existing = _read_json(output)
+            if existing != package:
+                raise PackagePublicationError("existing output changed")
+            return {
+                "status": "IDEMPOTENT_REPLAY",
+                "output_path": str(output),
+                "package_sha256": package["package_sha256"],
+                "provider_called": False,
+                "ledger_posted": False,
+            }
+        except OSError as exc:
+            raise PackagePublicationError("package output publication failed") from exc
         directory_fd = os.open(output.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
         try:
             os.fsync(directory_fd)

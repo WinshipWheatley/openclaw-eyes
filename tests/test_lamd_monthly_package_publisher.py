@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from pathlib import Path
 
 import pytest
@@ -111,3 +112,49 @@ def test_publisher_is_idempotent_but_refuses_changed_existing_output(tmp_path: P
     output.write_text("{}\n", encoding="utf-8")
     with pytest.raises(PackagePublicationError, match="existing output changed"):
         publish_monthly_package(month_dir, output_path=output)
+
+
+def test_concurrent_exact_publish_is_one_publish_plus_one_replay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    month_dir = _validated_package(tmp_path)
+    output = month_dir / "lamd_monthly_autosend_package.json"
+    original_exists = Path.exists
+    simultaneous_check = threading.Barrier(2)
+    check_lock = threading.Lock()
+    output_checks = 0
+
+    def synchronized_exists(path: Path) -> bool:
+        nonlocal output_checks
+        if path == output:
+            with check_lock:
+                output_checks += 1
+                synchronize = output_checks <= 2
+            if synchronize:
+                simultaneous_check.wait(timeout=5)
+                return False
+        return original_exists(path)
+
+    monkeypatch.setattr(Path, "exists", synchronized_exists)
+    results: list[dict] = []
+    errors: list[BaseException] = []
+
+    def publish() -> None:
+        try:
+            results.append(publish_monthly_package(month_dir, output_path=output))
+        except BaseException as exc:  # surfaced below with its original type/message
+            errors.append(exc)
+
+    threads = [threading.Thread(target=publish) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10)
+
+    assert errors == []
+    assert all(not thread.is_alive() for thread in threads)
+    assert sorted(result["status"] for result in results) == [
+        "IDEMPOTENT_REPLAY",
+        "PUBLISHED",
+    ]
+    validate_package(json.loads(output.read_text(encoding="utf-8")))
