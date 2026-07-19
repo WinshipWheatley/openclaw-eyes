@@ -1,9 +1,9 @@
 # Fleet Wake/Notify v2b Operations
 
-Status: built but inactive
+Status: PC-Sol doorbell active; mid-turn steering blocked
 Mission: `WAKE-V2B-DESIGN-DELTA-AND-BUILD`
 
-Installation is not performed by this build. Confer with the operator before running any enable command or live same-turn acceptance probe.
+PC-Sol's event-driven idle doorbell is installed and enabled. Mid-turn steering remains gated off; confer with the operator before any task-host change, Desktop restart, or live same-turn acceptance probe.
 
 The substrate has two tiers: a normal event rings an idle task's doorbell, and a verified urgent v2 WAKE steers the exact active Codex/Claude turn. It uses no model polling and no model heartbeat. A five-second plumbing debounce coalesces bursts, and the finite dispatcher caps doorbells at three per minute. Coordination files never grant action authority.
 
@@ -17,9 +17,11 @@ Reviewed binding:
 - rollout/Codex home: `/mnt/c/Users/Open Claw/.codex`
 - managed control home: `/home/openclaw/.codex`
 
-The idle doorbell is built, but mid-turn activation is blocked: the live Desktop task is stored in the Windows Codex home while the only managed control socket is in the WSL Codex home. A read-only `thread/read` probe through that WSL proxy produced no protocol response. Enabling app-server remote control would change a control gate, so a board relay cannot authorize it. Keep coverage at `midturn: no` and do not enable the combined unit until direct terminal authority plus an exact-task control-plane proof resolves this split.
+The idle doorbell is active. The unit intentionally omits `--enable-midturn`, so urgent events wait for the exact task to become idle and then use the same doorbell; they never attempt a split-owner steer. Coverage is `doorbell: yes`, `midturn: blocked_pending_host_binding`.
 
-After that blocker is resolved and the operator confirms activation directly, render and prime the inactive units:
+Mid-turn activation remains blocked: native Desktop sees the exact task active on its stdio-only `0.145.0-alpha.18` app-server, while a separate process using the same Windows Codex home sees that task `notLoaded` and its live turn `interrupted`. Shared rollout storage is not live-host ownership. Do not enable steering until one external endpoint returns the identical active task and identical `inProgress` turn as Desktop.
+
+The active PC-Sol install uses the synchronized Desktop CLI at `/home/openclaw/.local/lib/openclaw/codex-desktop-cli`. Re-render and prime it with:
 
 ```bash
 install -d -m 700 /home/openclaw/.openclaw/fleet-wake-v2b
@@ -33,7 +35,7 @@ sed \
   -e 's|@WATCHER_STATE_PATH@|/mnt/e/openclaw/fleet_coord/WATCHER/WATCHER-PC-Sol.json|g' \
   -e 's|@THREAD_ID@|019f7780-d5f8-76b0-9dde-ead4bf0735f4|g' \
   -e 's|@CODEX_HOME@|/mnt/c/Users/Open Claw/.codex|g' \
-  -e 's|@CODEX_CLI@|/home/openclaw/.nvm/versions/node/v24.14.0/bin/codex|g' \
+  -e 's|@CODEX_CLI@|/home/openclaw/.local/lib/openclaw/codex-desktop-cli|g' \
   /home/openclaw/systemd/user/openclaw-fleet-wake-v2b@.service.in \
   > /home/openclaw/.config/systemd/user/openclaw-fleet-wake-v2b@.service
 sed \
@@ -51,7 +53,7 @@ sed \
   --thread-id 019f7780-d5f8-76b0-9dde-ead4bf0735f4 \
   --repo-root /home/openclaw \
   --codex-home '/mnt/c/Users/Open Claw/.codex' \
-  --codex-cli /home/openclaw/.nvm/versions/node/v24.14.0/bin/codex
+  --codex-cli /home/openclaw/.local/lib/openclaw/codex-desktop-cli
 systemctl --user daemon-reload
 systemctl --user enable --now 'openclaw-fleet-wake-v2b@PC-Sol.path'
 ```

@@ -1,6 +1,6 @@
 [Unit]
 Description=OpenClaw fleet wake v2b dispatcher for %i
-Documentation=@REPO_ROOT@/docs/operations/FLEET_WAKE_NOTIFY_V2B.md
+Documentation=file:@REPO_ROOT@/docs/operations/FLEET_WAKE_NOTIFY_V2B.md
 After=default.target
 
 [Service]

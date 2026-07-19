@@ -133,16 +133,17 @@
         "urgent": 0
       },
       "doorbell": "yes",
-      "infrastructure": "missing",
+      "infrastructure": "ready",
       "kind": "codex_session",
       "last_delivery": "",
-      "last_detail": "The live Desktop task and managed app-server control socket use different Codex homes; the WSL proxy produced no protocol response for the exact live task, and enabling remote control is a separate gate change.",
+      "last_detail": "",
       "last_event_id": "",
-      "midturn": "no",
+      "midturn": "blocked_pending_host_binding",
       "needs_operator_kick": true,
       "seat": "PC-Sol",
       "watched_lanes": [
-        "repo:Operator/to-codex"
+        "/home/openclaw/Operator/to-codex",
+        "/mnt/e/openclaw/fleet_coord/WAKE"
       ]
     }
   ],

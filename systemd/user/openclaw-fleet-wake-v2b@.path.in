@@ -1,6 +1,6 @@
 [Unit]
 Description=OpenClaw fleet wake v2b event monitor for %i
-Documentation=@REPO_ROOT@/docs/operations/FLEET_WAKE_NOTIFY_V2B.md
+Documentation=file:@REPO_ROOT@/docs/operations/FLEET_WAKE_NOTIFY_V2B.md
 
 [Path]
 PathChanged=@INBOUND_DIR@

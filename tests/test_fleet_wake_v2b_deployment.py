@@ -41,9 +41,10 @@ def test_runbook_has_each_seat_bootstrap_and_exact_rollback() -> None:
     assert "midturn: unsupported" in source
     assert "no model polling" in source.lower()
     assert "no model heartbeat" in source.lower()
-    assert "mid-turn activation is blocked" in source
+    assert "Mid-turn activation remains blocked" in source
+    assert "blocked_pending_host_binding" in source
     assert "systemctl --user disable --now 'openclaw-fleet-wake-v2b@PC-Sol.path'" in source
-    assert "Installation is not performed by this build" in source
+    assert "idle doorbell is installed and enabled" in source
 
 
 def test_production_delivery_has_no_abort_or_process_kill_path() -> None:
@@ -61,8 +62,7 @@ def test_production_delivery_has_no_abort_or_process_kill_path() -> None:
     assert ".terminate(" not in sources
 
 
-def test_build_did_not_install_the_new_units() -> None:
-    installed = Path.home() / ".config" / "systemd" / "user"
+def test_service_template_defaults_midturn_off() -> None:
+    service = SERVICE.read_text(encoding="utf-8")
 
-    assert not (installed / "openclaw-fleet-wake-v2b@.service").exists()
-    assert not (installed / "openclaw-fleet-wake-v2b@PC-Sol.path").exists()
+    assert "--enable-midturn" not in service
