@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from price_truth_claim_audit import audit_temporal_truth_answer
 from price_truth_temporal import load_price_truth_facts, resolve_temporal_truth
 
 
@@ -40,6 +41,7 @@ def build_price_truth_packet(question: str, *, as_of: str | None = None) -> dict
         subject_ref=subject_ref,
         as_of=as_of or date.today().isoformat(),
     )
+    claim_audit = audit_temporal_truth_answer(answer)
     direct = answer["direct_answer"]
     if direct.get("value_known") is True:
         typed = direct.get("typed_value") or {}
@@ -56,13 +58,18 @@ def build_price_truth_packet(question: str, *, as_of: str | None = None) -> dict
         direct_text += " Historical observations are shown separately and are not current rates."
     return {
         "schema_version": "price_truth_temporal_packet_v1",
-        "status": "TRACE_READY_NOT_SHIPPED",
+        "status": (
+            "TRACE_READY_NOT_SHIPPED"
+            if claim_audit["status"] == "PASS"
+            else "TRACE_BLOCKED_CLAIM_AUDIT"
+        ),
         "intent_class": "price_truth_temporal",
         "question": question,
         "question_class": question_class,
         "subject_ref": subject_ref,
         "answer_text": direct_text,
         "temporal_truth_answer": answer,
+        "claim_audit": claim_audit,
         "source_refs": [
             str(facts_payload["source_sha256"]),
             "gig_business_doctrine:v1.2",

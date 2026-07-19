@@ -23,6 +23,7 @@ def test_natural_price_questions_route_to_trace_packet(question: str, question_c
     assert packet["subject_ref"] == subject_ref
     assert packet["ship_gate"] == "MAC_COMPUTER_USE_STRESS_TEST_REQUIRED"
     assert packet["action_surfaces_opened"] is False
+    assert packet["claim_audit"]["status"] == "PASS"
     assert packet["temporal_truth_answer"]["trace"]["selected_fact_refs"]
 
 
