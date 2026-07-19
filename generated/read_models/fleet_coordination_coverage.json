@@ -1,0 +1,150 @@
+{
+  "advisory_only": true,
+  "liveness_source": "watcher_state_not_model_heartbeat",
+  "recipients": [
+    {
+      "checkin_status": "idle",
+      "delivery_counts": {
+        "coalesced": 0,
+        "doorbell": 0,
+        "failures": 0,
+        "midturn": 0,
+        "normal": 0,
+        "urgent": 0
+      },
+      "doorbell": "no",
+      "infrastructure": "missing",
+      "kind": "gemini_session",
+      "last_delivery": "",
+      "last_detail": "No proven Antigravity doorbell or same-turn injection API is available.",
+      "last_event_id": "",
+      "midturn": "unsupported",
+      "needs_operator_kick": true,
+      "seat": "Gemini",
+      "watched_lanes": [
+        "repo:Operator/to-gemini"
+      ]
+    },
+    {
+      "checkin_status": "idle",
+      "delivery_counts": {
+        "coalesced": 0,
+        "doorbell": 0,
+        "failures": 0,
+        "midturn": 0,
+        "normal": 0,
+        "urgent": 0
+      },
+      "doorbell": "yes",
+      "infrastructure": "missing",
+      "kind": "claude_session",
+      "last_delivery": "",
+      "last_detail": "",
+      "last_event_id": "",
+      "midturn": "yes",
+      "needs_operator_kick": true,
+      "seat": "Mac-Fable",
+      "watched_lanes": [
+        "board:codex_mac_bridge/to-fable-mac"
+      ]
+    },
+    {
+      "checkin_status": "working",
+      "delivery_counts": {
+        "coalesced": 0,
+        "doorbell": 0,
+        "failures": 0,
+        "midturn": 0,
+        "normal": 0,
+        "urgent": 0
+      },
+      "doorbell": "no",
+      "infrastructure": "missing",
+      "kind": "codex_session",
+      "last_delivery": "",
+      "last_detail": "The latest desktop seat-binding receipt failed closed; no distinct current task ID is proven.",
+      "last_event_id": "",
+      "midturn": "no",
+      "needs_operator_kick": true,
+      "seat": "Mac-Sol-Desktop",
+      "watched_lanes": [
+        "board:codex_mac_bridge/to-codex-mac-desktop"
+      ]
+    },
+    {
+      "checkin_status": "cold",
+      "delivery_counts": {
+        "coalesced": 0,
+        "doorbell": 0,
+        "failures": 0,
+        "midturn": 0,
+        "normal": 0,
+        "urgent": 0
+      },
+      "doorbell": "no",
+      "infrastructure": "missing",
+      "kind": "codex_session",
+      "last_delivery": "",
+      "last_detail": "A historical exact task is recorded, but v2b app-server binding and current ownership require Mac-side proof.",
+      "last_event_id": "",
+      "midturn": "no",
+      "needs_operator_kick": true,
+      "seat": "Mac-Sol-VSCode",
+      "watched_lanes": [
+        "board:codex_mac_bridge/to-codex-mac"
+      ]
+    },
+    {
+      "checkin_status": "working",
+      "delivery_counts": {
+        "coalesced": 0,
+        "doorbell": 0,
+        "failures": 0,
+        "midturn": 0,
+        "normal": 0,
+        "urgent": 0
+      },
+      "doorbell": "yes",
+      "infrastructure": "missing",
+      "kind": "claude_session",
+      "last_delivery": "",
+      "last_detail": "",
+      "last_event_id": "",
+      "midturn": "yes",
+      "needs_operator_kick": true,
+      "seat": "Opus",
+      "watched_lanes": [
+        "board:fleet_coord/NEEDS-OPUS",
+        "repo:Operator/from-codex",
+        "repo:Operator/from-gemini",
+        "board:codex_mac_bridge/from-codex-mac",
+        "board:codex_mac_bridge/from-codex-mac-desktop",
+        "board:codex_mac_bridge/from-fable-mac"
+      ]
+    },
+    {
+      "checkin_status": "working",
+      "delivery_counts": {
+        "coalesced": 0,
+        "doorbell": 0,
+        "failures": 0,
+        "midturn": 0,
+        "normal": 0,
+        "urgent": 0
+      },
+      "doorbell": "yes",
+      "infrastructure": "missing",
+      "kind": "codex_session",
+      "last_delivery": "",
+      "last_detail": "The live Desktop task and managed app-server control socket use different Codex homes; the WSL proxy produced no protocol response for the exact live task, and enabling remote control is a separate gate change.",
+      "last_event_id": "",
+      "midturn": "no",
+      "needs_operator_kick": true,
+      "seat": "PC-Sol",
+      "watched_lanes": [
+        "repo:Operator/to-codex"
+      ]
+    }
+  ],
+  "schema_version": "openclaw_fleet_coordination_coverage_v2b"
+}
