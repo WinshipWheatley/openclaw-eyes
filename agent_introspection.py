@@ -37,6 +37,15 @@ class AgentIntrospectionMatch:
     evidence: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class AgentIntrospectionAnswer:
+    """One read-only brain answer plus its in-memory delivery proof."""
+
+    text: str
+    match: AgentIntrospectionMatch
+    machine_proof: Mapping[str, Any]
+
+
 _BUSINESS_OBJECT_RE = re.compile(
     r"\b(?:invoice|invoices|payment|payments|receivable|receivables|client|"
     r"email|ledger|album|song|mix|coupa|gmail|check|checks)\b",
@@ -375,11 +384,288 @@ def inject_turn_self_facts(
     return result
 
 
+_HONEST_UNKNOWN_MARKERS = (
+    "unknown",
+    "don't know",
+    "don’t know",
+    "do not know",
+    "not verified",
+    "not recorded",
+    "not proven",
+    "can't verify",
+    "can’t verify",
+    "cannot verify",
+    "won't guess",
+    "won’t guess",
+)
+
+
+def _normalized_answer_text(text: str) -> str:
+    return " ".join(
+        str(text or "")
+        .lower()
+        .replace("_", " ")
+        .replace("-", " ")
+        .split()
+    )
+
+
+def _answer_grounding_gaps(
+    text: str,
+    *,
+    match: AgentIntrospectionMatch,
+    facts: Mapping[str, Any],
+) -> tuple[str, ...]:
+    if match.kind != "model_brain":
+        return ()
+    answer_raw = str(text or "").lower()
+    answer = _normalized_answer_text(text)
+    model_id = str(facts.get("model_id") or "").strip()
+    lane_id = str(facts.get("lane_id") or "").strip()
+    backend_class = str(facts.get("backend_class") or "unknown").strip()
+    hardware_class = str(facts.get("hardware_class") or "unknown").strip()
+    gaps: list[str] = []
+    if model_id and model_id.lower() not in answer_raw:
+        gaps.append("model_id")
+    if lane_id and _normalized_answer_text(lane_id) not in answer:
+        gaps.append("lane_id")
+    if backend_class == "external_brain" and not any(
+        marker in answer for marker in ("external", "cloud", "provider managed")
+    ):
+        gaps.append("backend_class")
+    elif backend_class == "local_ollama" and "local" not in answer:
+        gaps.append("backend_class")
+    if hardware_class not in {"", "unknown", "provider_managed_external"}:
+        if _normalized_answer_text(hardware_class) not in answer:
+            gaps.append("hardware_class")
+    if (
+        not model_id
+        or not lane_id
+        or backend_class == "unknown"
+        or hardware_class == "unknown"
+    ) and not any(marker in answer_raw for marker in _HONEST_UNKNOWN_MARKERS):
+        gaps.append("honest_unknown")
+    return tuple(dict.fromkeys(gaps))
+
+
+def _packet_build_failure_answer(
+    match: AgentIntrospectionMatch,
+    *,
+    packet: Mapping[str, Any],
+    facts: Mapping[str, Any],
+) -> AgentIntrospectionAnswer:
+    return AgentIntrospectionAnswer(
+        text=(
+            "I don't have a grounded self-facts packet for this turn, so I won't guess."
+        ),
+        match=match,
+        machine_proof={
+            "intent_class": "agent_introspection",
+            "introspection_kind": match.kind,
+            "turn_self_facts": dict(facts),
+            "turn_self_facts_delivered": False,
+            "packet_id": str(packet.get("packet_id") or ""),
+            "packet_build_status": str(packet.get("status") or ""),
+            "model_call_performed": False,
+            "external_llm_invoked": False,
+            "local_model_invoked": False,
+            "original_message_present_in_submitted_prompt": False,
+            "answer_grounded_in_turn_self_facts": False,
+            "answer_grounding_missing_fields": ("packet",),
+            "workflow_package_staged": False,
+            "send_performed": False,
+            "ledger_touched": False,
+            "external_action_performed": False,
+        },
+    )
+
+
+def _outcome_parts(outcome: Any) -> tuple[str, dict[str, Any]]:
+    if hasattr(outcome, "text") and hasattr(outcome, "receipt"):
+        return str(outcome.text or ""), dict(outcome.receipt or {})
+    if isinstance(outcome, Mapping):
+        return (
+            str(outcome.get("text") or outcome.get("answer") or ""),
+            dict(_mapping(outcome.get("receipt"))),
+        )
+    return str(outcome or ""), {}
+
+
+def answer_agent_introspection(
+    text: str,
+    *,
+    agent: str,
+    source_surface: str,
+    source_request_id: str = "",
+    session: Mapping[str, Any] | None = None,
+    last_action_receipt: Mapping[str, Any] | None = None,
+    protected_generate_fn: Any | None = None,
+    packet_builder: Any | None = None,
+    match: AgentIntrospectionMatch | None = None,
+) -> AgentIntrospectionAnswer:
+    """Answer one classified self-query through protected generation.
+
+    The function is read-only: it builds a packet and calls a model gate, but
+    it never stages a workflow or performs a business/external action.
+    """
+
+    resolved_match = match or classify_agent_introspection(
+        text,
+        addressed_agent=agent,
+    )
+    if resolved_match is None:
+        raise ValueError("text is not a precise agent introspection question")
+
+    preliminary_facts = normalize_turn_self_facts(
+        agent=agent,
+        source_request_id=source_request_id,
+        session=session,
+        last_action_receipt=last_action_receipt,
+    )
+    if packet_builder is None:
+        from packet_engine import build_agent_packet
+
+        packet_builder = build_agent_packet
+    try:
+        packet = dict(
+            packet_builder(
+                agent=agent,
+                question=text,
+                question_class="agent_introspection",
+                authority={
+                    "source_surface": source_surface,
+                    "send_hold": True,
+                    "read_only": True,
+                },
+                turn_self_facts=preliminary_facts,
+                session=dict(session or {}),
+                source_surface=source_surface,
+            )
+        )
+    except Exception as exc:
+        packet = {
+            "status": "PACKET_ENGINE_BUILD_FAILED",
+            "packet_id": "",
+            "machine_proof": {
+                "packet_engine_failure": True,
+                "error_type": type(exc).__name__,
+            },
+        }
+    if packet.get("turn_self_facts") is None:
+        packet = inject_turn_self_facts(packet, preliminary_facts)
+    if str(packet.get("status") or "") == "PACKET_ENGINE_BUILD_FAILED" or (
+        _mapping(packet.get("machine_proof")).get("packet_engine_failure") is True
+    ):
+        return _packet_build_failure_answer(
+            resolved_match,
+            packet=packet,
+            facts=preliminary_facts,
+        )
+
+    try:
+        from local_model_governance import interactive_model_from_session
+
+        model_selected = interactive_model_from_session(session)
+    except Exception:
+        model_selected = str(preliminary_facts.get("model_id") or "")
+
+    if protected_generate_fn is None:
+        from protected_generate import protected_generate_with_receipt
+
+        outcome = protected_generate_with_receipt(
+            text,
+            context_packet=packet,
+            agent=agent,
+            model_selected=model_selected or None,
+            original_operator_message=text,
+            chain_lane="LM2_ROLE_RESPONSE",
+            task_type="agent introspection",
+        )
+    else:
+        outcome = protected_generate_fn(
+            text,
+            context_packet=packet,
+            agent=agent,
+            model_selected=model_selected,
+        )
+    answer_text, receipt = _outcome_parts(outcome)
+    final_facts = normalize_turn_self_facts(
+        agent=agent,
+        source_request_id=source_request_id,
+        session=session,
+        route_receipt=receipt,
+        last_action_receipt=last_action_receipt,
+    )
+    original_included = (
+        receipt.get("original_message_present_in_submitted_prompt") is True
+        or receipt.get("original_message_present_in_prompt") is True
+    )
+    grounding_gaps = _answer_grounding_gaps(
+        answer_text,
+        match=resolved_match,
+        facts=final_facts,
+    )
+    if not original_included:
+        grounding_gaps = tuple(dict.fromkeys((*grounding_gaps, "original_message")))
+    grounded = not grounding_gaps
+    visible_text = answer_text.strip()
+    if not grounded:
+        visible_text = (
+            "My generated self-report did not match this turn's machine proof, "
+            "so I am not presenting it as fact."
+        )
+    proof = {
+        "intent_class": "agent_introspection",
+        "introspection_kind": resolved_match.kind,
+        "turn_self_facts": final_facts,
+        "turn_self_facts_delivered": bool(packet.get("turn_self_facts")),
+        "packet_id": str(packet.get("packet_id") or ""),
+        "model_call_performed": receipt.get("model_call_performed") is True,
+        "external_llm_invoked": receipt.get("external_llm_invoked") is True,
+        "local_model_invoked": receipt.get("local_model_invoked") is True,
+        "original_message_present_in_submitted_prompt": original_included,
+        "protected_generate_receipt_id": str(receipt.get("receipt_id") or ""),
+        "answer_grounded_in_turn_self_facts": grounded,
+        "answer_grounding_missing_fields": grounding_gaps,
+        "workflow_package_staged": False,
+        "send_performed": False,
+        "ledger_touched": False,
+        "external_action_performed": False,
+    }
+    return AgentIntrospectionAnswer(
+        text=visible_text,
+        match=resolved_match,
+        machine_proof=proof,
+    )
+
+
+def maybe_answer_agent_introspection(
+    text: str,
+    *,
+    agent: str,
+    source_surface: str,
+    **kwargs: Any,
+) -> AgentIntrospectionAnswer | None:
+    match = classify_agent_introspection(text, addressed_agent=agent)
+    if match is None:
+        return None
+    return answer_agent_introspection(
+        text,
+        agent=agent,
+        source_surface=source_surface,
+        match=match,
+        **kwargs,
+    )
+
+
 __all__ = [
+    "AgentIntrospectionAnswer",
     "AgentIntrospectionMatch",
     "TURN_SELF_FACTS_SCHEMA_VERSION",
     "TURN_SELF_FACTS_SOURCE_REF",
+    "answer_agent_introspection",
     "classify_agent_introspection",
     "inject_turn_self_facts",
+    "maybe_answer_agent_introspection",
     "normalize_turn_self_facts",
 ]

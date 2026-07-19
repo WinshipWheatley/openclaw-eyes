@@ -6,6 +6,8 @@ from typing import Any
 import pytest
 
 from agent_introspection import (
+    AgentIntrospectionAnswer,
+    answer_agent_introspection,
     classify_agent_introspection,
     inject_turn_self_facts,
     normalize_turn_self_facts,
@@ -312,3 +314,171 @@ def test_external_preflight_model_mismatch_fails_closed_before_turn() -> None:
     assert result.source == "local_fallback"
     assert result.receipt["fallback_reason"] == "external_preflight_model_mismatch"
     assert client.turns == []
+
+
+def _ready_packet(**_kwargs: Any) -> dict[str, Any]:
+    return {
+        "status": "READY",
+        "packet_id": "packet:introspection-test",
+        "facts": [],
+        "source_refs": (),
+        "packet_text": "Chief persona and bounded context.",
+        "machine_proof": {},
+    }
+
+
+def test_shared_brain_uses_original_question_and_self_facts_without_action() -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_generate(
+        text: str,
+        *,
+        context_packet: dict[str, Any],
+        agent: str,
+        model_selected: str,
+    ) -> dict[str, Any]:
+        captured.update(
+            text=text,
+            packet=context_packet,
+            agent=agent,
+            model=model_selected,
+        )
+        return {
+            "text": (
+                "I’m Chief; I keep work when it matches my orchestration lane and "
+                "hand it off when another agent has the canonical owner."
+            ),
+            "receipt": {
+                "model_call_performed": True,
+                "local_model_invoked": True,
+                "external_llm_invoked": False,
+                "original_message_present_in_submitted_prompt": True,
+                "original_message_sha256": "sha256:test",
+                "receipt_id": "protected:test",
+                "model_selected": "qwen3:8b-q4_K_M",
+                "lane_id": "local_safe_lane",
+            },
+        }
+
+    answer = answer_agent_introspection(
+        "How do you decide whether a task is yours?",
+        agent="chief",
+        source_surface="chief_router",
+        source_request_id="chief-test-1",
+        session={
+            "local_model_binding": {
+                "schema_version": "local_model_binding_v2",
+                "binding_id": "binding:test",
+                "model": "qwen3:8b-q4_K_M",
+                "keep_alive": "30m",
+                "num_ctx": 2048,
+                "num_gpu": 999,
+                "num_batch": 128,
+            }
+        },
+        protected_generate_fn=fake_generate,
+        packet_builder=_ready_packet,
+    )
+
+    assert isinstance(answer, AgentIntrospectionAnswer)
+    assert answer.match.kind == "routing_rule"
+    assert captured["text"] == "How do you decide whether a task is yours?"
+    assert captured["packet"]["turn_self_facts"]["model_id"] == "qwen3:8b-q4_K_M"
+    assert answer.machine_proof["intent_class"] == "agent_introspection"
+    assert answer.machine_proof["model_call_performed"] is True
+    assert answer.machine_proof["original_message_present_in_submitted_prompt"] is True
+    assert answer.machine_proof["workflow_package_staged"] is False
+    assert answer.machine_proof["send_performed"] is False
+    assert answer.machine_proof["ledger_touched"] is False
+    assert answer.machine_proof["external_action_performed"] is False
+
+
+def test_shared_brain_packet_failure_does_not_call_model() -> None:
+    model_calls: list[str] = []
+
+    answer = answer_agent_introspection(
+        "What model are you running?",
+        agent="maestro",
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=lambda *args, **kwargs: model_calls.append("called"),
+        packet_builder=lambda **_kwargs: {
+            "status": "PACKET_ENGINE_BUILD_FAILED",
+            "packet_id": "packet:failed",
+            "facts": [],
+            "source_refs": (),
+            "packet_text": "",
+            "machine_proof": {"packet_engine_failure": True},
+        },
+    )
+
+    assert model_calls == []
+    assert answer.machine_proof["model_call_performed"] is False
+    assert answer.machine_proof["turn_self_facts_delivered"] is False
+    assert "won't guess" in answer.text
+
+
+def test_model_answer_that_disagrees_with_receipt_is_rejected() -> None:
+    def mismatched_generate(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        return {
+            "text": "I’m running qwen3:8b on the local GPU.",
+            "receipt": {
+                "receipt_id": "protected:mismatch",
+                "model_call_performed": True,
+                "external_llm_invoked": True,
+                "local_model_invoked": False,
+                "original_message_present_in_submitted_prompt": True,
+                "external_brain_route_receipt": {
+                    "turn_id_hash": "sha256:external-turn",
+                    "binding_model_id": "gpt-5.6-sol",
+                    "effective_lane_id": "hard_lane",
+                    "response_source": "external_brain",
+                    "external_turn_performed": True,
+                },
+            },
+        }
+
+    answer = answer_agent_introspection(
+        "What model are you running right now, and on what hardware?",
+        agent="maestro",
+        source_surface="operator_maestro_chat",
+        protected_generate_fn=mismatched_generate,
+        packet_builder=_ready_packet,
+    )
+
+    assert answer.machine_proof["answer_grounded_in_turn_self_facts"] is False
+    assert answer.machine_proof["answer_grounding_missing_fields"] == (
+        "model_id",
+        "lane_id",
+        "backend_class",
+    )
+    assert "qwen3:8b" not in answer.text
+    assert "did not match this turn's machine proof" in answer.text
+
+
+def test_genuinely_unknown_self_facts_preserve_honest_unknown() -> None:
+    def honest_unknown_generate(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        return {
+            "text": (
+                "I don’t have a verified model identifier, lane, or hardware fact "
+                "for this turn, so I won’t guess."
+            ),
+            "receipt": {
+                "receipt_id": "protected:unknown",
+                "model_call_performed": True,
+                "external_llm_invoked": False,
+                "local_model_invoked": False,
+                "original_message_present_in_submitted_prompt": True,
+            },
+        }
+
+    answer = answer_agent_introspection(
+        "What model are you running right now, and on what hardware?",
+        agent="guardian",
+        source_surface="guardian_listener",
+        protected_generate_fn=honest_unknown_generate,
+        packet_builder=_ready_packet,
+    )
+
+    assert answer.machine_proof["answer_grounded_in_turn_self_facts"] is True
+    assert answer.machine_proof["answer_grounding_missing_fields"] == ()
+    assert "won’t guess" in answer.text
