@@ -34,4 +34,18 @@ def test_operator_wrapper_has_one_explicit_apply_surface_and_five_gate_labels() 
     assert "scripts/install_lamd_autosend_brake_linux.sh --apply" in source
     assert 'accept_lamd_autosend_installed.py" --apply' in source
     assert "systemctl disable --now openclaw-lamd-monthly-autosend.timer" in source
+    for runtime_dependency in (
+        "google_access_broker.py",
+        "send_hold_scoped_graduation.py",
+        "ar_gig_to_cash_store.py",
+        "ar_gig_to_cash_serialization.py",
+        "ar_expected_receivable_record.py",
+        "ar_invoice_record.py",
+        "ar_gig_record.py",
+        "ar_work_session_record.py",
+        "workflow_test_mode.py",
+    ):
+        assert runtime_dependency in source
+    assert "cfc55b0b33973460e7a839fb00d240d9f9ef5917298236fdccc5ea13187dad96" in source
+    assert "freeze_guard.py bytes differ from the installed fleet-freeze proof" in source
     assert source.count('pass_gate "') == 5

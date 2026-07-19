@@ -14,6 +14,8 @@ proof_commit=2b5314a57d7107ae1b67a4304e02e3b8d7dfa8ab
 scope_path=/var/lib/openclaw-authority/lamd-autosend-scope.json
 state_path=/var/lib/openclaw-authority/lamd-autosend-brake.json
 installed_root=/usr/local/libexec/openclaw-authority
+freeze_guard_path="$installed_root/openclaw_authority/freeze_guard.py"
+freeze_guard_sha256=cfc55b0b33973460e7a839fb00d240d9f9ef5917298236fdccc5ea13187dad96
 brake_unit=openclaw-lamd-autosend-brake.service
 timer_unit=openclaw-lamd-monthly-autosend.timer
 
@@ -53,6 +55,15 @@ source_paths=(
   lamd_monthly_autosend.py
   lamd_monthly_autosend_runner.py
   lamd_monthly_package_publisher.py
+  google_access_broker.py
+  send_hold_scoped_graduation.py
+  workflow_test_mode.py
+  ar_gig_to_cash_store.py
+  ar_gig_to_cash_serialization.py
+  ar_expected_receivable_record.py
+  ar_invoice_record.py
+  ar_gig_record.py
+  ar_work_session_record.py
   config/lamd_autosend_scope.unarmed.json
   scripts/accept_lamd_autosend_installed.py
   scripts/install_lamd_autosend_brake_linux.sh
@@ -75,6 +86,17 @@ if ! cmp -s lamd_autosend_brake.py "$installed_root/lamd_autosend_brake.py"; the
 fi
 if ! cmp -s scripts/accept_lamd_autosend_installed.py "$installed_root/accept_lamd_autosend_installed.py"; then
   fail_gate "1 SOURCE_AND_INSTALL" "installed acceptance bytes differ from source"
+fi
+if [[ ! -f "$freeze_guard_path" || -L "$freeze_guard_path" ]]; then
+  fail_gate "1 SOURCE_AND_INSTALL" "installed fleet-freeze guard is missing or symlinked"
+fi
+if [[ "$(stat -c '%U:%G:%a' "$freeze_guard_path")" != "root:root:644" ]]; then
+  fail_gate "1 SOURCE_AND_INSTALL" "installed fleet-freeze guard is not root:root mode 0644"
+fi
+observed_freeze_guard_sha256="$(sha256sum "$freeze_guard_path")"
+observed_freeze_guard_sha256="${observed_freeze_guard_sha256%% *}"
+if [[ "$observed_freeze_guard_sha256" != "$freeze_guard_sha256" ]]; then
+  fail_gate "1 SOURCE_AND_INSTALL" "freeze_guard.py bytes differ from the installed fleet-freeze proof"
 fi
 pass_gate "1 SOURCE_AND_INSTALL"
 
