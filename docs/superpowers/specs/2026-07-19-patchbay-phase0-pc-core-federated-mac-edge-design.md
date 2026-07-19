@@ -407,7 +407,7 @@ No aggregate green can hide a failed dimension. `DETECTOR_ONLY`, `UNBOUND`, `UNK
 
 Phase 0 is additive and isolated. Rollback stops only Patchbay PoC services, preserves the SQLite log, spools, cursors, and receipts, and removes no live lane. A failed PoC produces a FAIL receipt and leaves enrollment blocked.
 
-The currently stopped PC-Sol wake-v2b path is a separate operational safety action. It is not rearmed until its resume model binding is proven `gpt-5.6-sol` at `ultra` and the operator accepts the repair.
+The currently disabled and stopped PC-Sol wake-v2b path is a separate operational safety action. It is not rearmed until both initial resume and a supervised respawn prove `gpt-5.6-sol` at `ultra` and the operator accepts the repair.
 
 ## 12. Prior art reuse
 
