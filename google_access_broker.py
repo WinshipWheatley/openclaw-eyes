@@ -302,6 +302,14 @@ def _exact_send_gate_context_verified(
     context = params.get("approval_context")
     if not isinstance(context, Mapping):
         return False
+    if context.get("standing_autosend_gate") is True:
+        try:
+            from lamd_autosend_live_adapter import verify_standing_send_context
+
+            verdict = verify_standing_send_context(agent, capability, params)
+        except Exception:
+            return False
+        return bool(verdict.get("valid") is True)
     request_id = str(params.get("exact_send_request_id") or context.get("request_id") or "")
     idempotency_key = str(params.get("idempotency_key") or context.get("idempotency_key") or "")
     return bool(
@@ -1120,6 +1128,12 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     # 2. Approval gate (Class B and C only)
     #    Class A reads auto-proceed — gating would make reads unusable.
     exact_send_gate_verified = _exact_send_gate_context_verified(agent, capability, params)
+    _approval_context = params.get("approval_context")
+    _standing_autosend_verified = bool(
+        exact_send_gate_verified
+        and isinstance(_approval_context, Mapping)
+        and _approval_context.get("standing_autosend_gate") is True
+    )
 
     # Gmail SELF-SEND TEST MODE: in self-test mode google.gmail.send may ONLY reach the
     # operator's own inbox. A self-only send is safe and skips the heavy Class C / exact-send
@@ -1141,6 +1155,10 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     )
     _wtm_test_send = _wtm_disposition == TEST_REDIRECT_FLAG
     _scoped_send_graduation_preverified = False
+    if _standing_autosend_verified and _wtm_disposition != BLOCK_SEND_HOLD:
+        msg = "standing auto-send requires active SEND_HOLD plus a scoped graduation."
+        _audit(agent, capability, params, False, msg)
+        return {"ok": False, "data": {"send_hold_active": False}, "error": msg}
     if _wtm_disposition == BLOCK_SEND_HOLD and exact_send_gate_verified:
         try:
             _verify_exact_send_hold_graduation(params, consume=False)

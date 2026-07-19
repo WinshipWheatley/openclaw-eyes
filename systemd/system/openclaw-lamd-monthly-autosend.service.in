@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenClaw bounded LAMD monthly auto-send
+After=network-online.target openclaw-lamd-autosend-brake.service
+Wants=network-online.target
+Requires=openclaw-lamd-autosend-brake.service
+
+[Service]
+Type=oneshot
+User=openclaw
+Group=openclaw
+WorkingDirectory=/home/openclaw
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=OPENCLAW_ATTACHMENT_ALLOWED_DIRS=/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md
+ExecStart=/home/openclaw/chief_env/bin/python -u /home/openclaw/lamd_monthly_autosend_runner.py --execute
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077

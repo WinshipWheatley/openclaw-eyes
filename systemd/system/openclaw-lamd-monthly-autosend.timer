@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily eligibility check for bounded LAMD monthly auto-send
+
+[Timer]
+OnCalendar=*-*-* 09:00:00 America/New_York
+Persistent=true
+RandomizedDelaySec=5m
+Unit=openclaw-lamd-monthly-autosend.service
+
+[Install]
+WantedBy=timers.target

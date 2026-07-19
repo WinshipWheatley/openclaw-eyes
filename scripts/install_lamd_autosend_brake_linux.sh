@@ -14,11 +14,15 @@ install_root=/usr/local/libexec/openclaw-authority
 state_root=/var/lib/openclaw-authority
 run_root=/run/openclaw-authority
 unit_path=/etc/systemd/system/openclaw-lamd-autosend-brake.service
+scope_config_path="$state_root/lamd-autosend-scope.json"
+monthly_unit_path=/etc/systemd/system/openclaw-lamd-monthly-autosend.service
+monthly_timer_path=/etc/systemd/system/openclaw-lamd-monthly-autosend.timer
+monthly_state_root=/home/openclaw/state/lamd_autosend
 openclaw_uid="$(id -u openclaw)"
 openclaw_gid="$(id -g openclaw)"
 
 if [[ $apply -ne 1 ]]; then
-  echo "PLAN ONLY: install the root brake broker, initialize clear state, and enable its system service."
+  echo "PLAN ONLY: install the root brake broker, initialize clear state, install an unarmed LAMD scope, and install the disabled monthly timer."
   echo "No files, state, services, sends, money, or ledgers were changed."
   exit 0
 fi
@@ -29,10 +33,14 @@ if [[ "$(id -u)" -ne 0 ]]; then
 fi
 
 install -d -o root -g root -m 0755 "$install_root"
-install -d -o root -g root -m 0700 "$state_root"
+install -d -o root -g root -m 0755 "$state_root"
 install -d -o root -g root -m 0755 "$run_root"
+install -d -o openclaw -g openclaw -m 0700 "$monthly_state_root"
 install -o root -g root -m 0755 "$repo_root/lamd_autosend_brake.py" "$install_root/lamd_autosend_brake.py"
 install -o root -g root -m 0755 "$repo_root/scripts/accept_lamd_autosend_installed.py" "$install_root/accept_lamd_autosend_installed.py"
+if [[ ! -e "$scope_config_path" ]]; then
+  install -o root -g root -m 0644 "$repo_root/config/lamd_autosend_scope.unarmed.json" "$scope_config_path"
+fi
 sed \
   -e "s/@OPENCLAW_UID@/$openclaw_uid/g" \
   -e "s/@OPENCLAW_GID@/$openclaw_gid/g" \
@@ -40,8 +48,11 @@ sed \
 chown root:root "$unit_path.tmp"
 chmod 0644 "$unit_path.tmp"
 mv "$unit_path.tmp" "$unit_path"
+install -o root -g root -m 0644 "$repo_root/systemd/system/openclaw-lamd-monthly-autosend.service.in" "$monthly_unit_path"
+install -o root -g root -m 0644 "$repo_root/systemd/system/openclaw-lamd-monthly-autosend.timer" "$monthly_timer_path"
 /usr/bin/python3 "$install_root/lamd_autosend_brake.py" init \
   --reason "operator-authorized LAMD autonomous-send brake installation"
 systemctl daemon-reload
 systemctl enable --now openclaw-lamd-autosend-brake.service
 systemctl --no-pager --full status openclaw-lamd-autosend-brake.service
+systemctl is-enabled openclaw-lamd-monthly-autosend.timer || true

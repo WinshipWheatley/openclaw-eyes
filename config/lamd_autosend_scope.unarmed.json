@@ -1,0 +1,13 @@
+{
+  "schema_version": "lamd_autosend_scope_v1",
+  "armed": false,
+  "operator_stop": true,
+  "client_ref": "live_arts_md",
+  "stream": "speaker_rental",
+  "amount_minor_units": 10000,
+  "currency": "USD",
+  "recipient": "Accountant@liveartsmd.org",
+  "cadence_day": 16,
+  "standing_authority_ref": "operator-terminal-grant:lamd-monthly-autosend:2026-07-18",
+  "authority_source_ref": "/home/openclaw/Operator/to-codex/OPUS-ARM-LAMD-MONTHLY-AUTOSEND-20260718.md"
+}
