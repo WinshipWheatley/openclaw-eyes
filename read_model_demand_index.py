@@ -117,6 +117,45 @@ def select_read_models(
     return tuple(selected)
 
 
+@dataclass(frozen=True)
+class DemandSelection:
+    """Result of one demand selection. ``error`` is never disguised as no-match."""
+
+    rows: tuple[ReadModelIndexRow, ...]
+    error: str | None = None
+
+
+def select_demand_read_models(
+    source_root: str | Path,
+    *,
+    question: str,
+    already_loaded: Any = (),
+    limit: int = 3,
+    max_bytes: int | None = DEFAULT_SELECTION_BYTE_BUDGET,
+) -> DemandSelection:
+    """Shared demand selection for every agent packet.
+
+    One place owns resolving the root, excluding what the caller already loads,
+    honest failure reporting, and the byte budget — so no agent can re-introduce
+    the "broken root looks like nothing matched" defect.
+    """
+
+    if not str(question or "").strip():
+        return DemandSelection(())
+    already = {str(name) for name in (already_loaded or ())}
+    try:
+        # Production passes a repo-relative nested root; an unresolved one would
+        # silently find nothing.
+        resolved = Path(source_root).resolve()
+        index = build_demand_index(resolved, repo_root=resolved.parent)
+        candidates = tuple(row for row in index if row.relative_path not in already)
+        return DemandSelection(
+            select_read_models(candidates, question, limit=limit, max_bytes=max_bytes)
+        )
+    except Exception as exc:
+        return DemandSelection((), error=type(exc).__name__)
+
+
 def index_rows_json(index: tuple[ReadModelIndexRow, ...]) -> list[dict[str, Any]]:
     """Full index rows — the on-demand detail layer."""
 

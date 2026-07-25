@@ -36,6 +36,8 @@ SCHEMA_VERSION = "hermes_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 
 # Read-models Hermes cares about, in priority order.
+import read_model_demand_index
+
 HERMES_READ_MODELS = (
     "hermes_mission_sentinel.json",      # live-arts / invoice send-readiness sentinel
     "hermes_gravity_controller.json",    # purpose-bound gravity controller decisions
@@ -578,6 +580,8 @@ def _agent_presence_facts(path: Path, payload: Mapping[str, Any]) -> list[dict[s
 
 def _hermes_read_model_facts(
     root: Path,
+    *,
+    question: str = "",
 ) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     """Load all Hermes read-models and extract dank facts."""
     facts: list[dict[str, Any]] = []
@@ -634,6 +638,28 @@ def _hermes_read_model_facts(
             )
         )
 
+    demand = read_model_demand_index.select_demand_read_models(
+        root, question=question, already_loaded=set(HERMES_READ_MODELS)
+    )
+    proof["demand_selected_read_models"] = [row.id for row in demand.rows]
+    if demand.error:
+        proof["demand_selection_error"] = demand.error
+    for row in demand.rows:
+        demand_path = root / row.relative_path
+        demand_payload = _read_json(demand_path)
+        if not demand_payload:
+            continue
+        refs.append(_display_ref(demand_path))
+        _append_fact(
+            facts,
+            topic="demand_read_model",
+            label=f"Read-model: {row.id}",
+            value=_compact(json.dumps(demand_payload, sort_keys=True)),
+            provenance="generated_read_model",
+            source_ref=_display_ref(demand_path),
+            freshness=_freshness(demand_path, demand_payload),
+        )
+
     return facts, refs, proof
 
 
@@ -660,7 +686,7 @@ def build_hermes_context_packet(
     advisory_facts = _advisory_contract_facts()
 
     # 2. Read-model facts (from generated/read_models/)
-    rm_facts, rm_refs, proof = _hermes_read_model_facts(root)
+    rm_facts, rm_refs, proof = _hermes_read_model_facts(root, question=question)
 
     # Assemble in priority order:
     # lane bounds first, then gateway posture, then advisory contract, then read-models.

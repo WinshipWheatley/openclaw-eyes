@@ -34,6 +34,8 @@ SCHEMA_VERSION = "cassandra_context_packet_v0"
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 
 # Read-models Cassandra cares about — only real files, no invented paths
+import read_model_demand_index
+
 CASSANDRA_READ_MODELS = (
     "cassandra_email_calendar_delta_detangle.json",   # capability classification + surface posture
     "cassandra_runtime_wiring_audit.json",            # service state, wiring gaps, roundtrip steps
@@ -606,6 +608,8 @@ def _intake_proof_facts(
 
 def _cassandra_read_model_facts(
     root: Path,
+    *,
+    question: str = "",
 ) -> tuple[list[dict[str, Any]], list[str], dict[str, Any]]:
     """Load all Cassandra read-models and extract dank, grounded facts."""
     facts: list[dict[str, Any]] = []
@@ -668,6 +672,28 @@ def _cassandra_read_model_facts(
             _intake_proof_facts(root / name, payloads[name], label_prefix="Listener intake synthetic proof")
         )
 
+    demand = read_model_demand_index.select_demand_read_models(
+        root, question=question, already_loaded=set(CASSANDRA_READ_MODELS)
+    )
+    proof["demand_selected_read_models"] = [row.id for row in demand.rows]
+    if demand.error:
+        proof["demand_selection_error"] = demand.error
+    for row in demand.rows:
+        demand_path = root / row.relative_path
+        demand_payload = _read_json(demand_path)
+        if not demand_payload:
+            continue
+        refs.append(_display_ref(demand_path))
+        _append_fact(
+            facts,
+            topic="demand_read_model",
+            label=f"Read-model: {row.id}",
+            value=_compact(json.dumps(demand_payload, sort_keys=True)),
+            provenance="generated_read_model",
+            source_ref=_display_ref(demand_path),
+            freshness=_freshness(demand_path, demand_payload),
+        )
+
     return facts, refs, proof
 
 
@@ -697,7 +723,7 @@ def build_cassandra_context_packet(
     root = Path(read_model_root) if read_model_root is not None else DEFAULT_READ_MODEL_ROOT
     generated_at = _utc_now()
 
-    facts, refs, proof = _cassandra_read_model_facts(root)
+    facts, refs, proof = _cassandra_read_model_facts(root, question=question)
 
     email_cal_present = proof["read_model_presence"].get(
         "cassandra_email_calendar_delta_detangle.json", False

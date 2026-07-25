@@ -1461,28 +1461,17 @@ def _demand_selected_read_model_facts(
 
     facts: list[dict[str, Any]] = []
     refs: list[str] = []
-    if not str(question or "").strip():
-        return facts, refs, {"demand_selected_read_models": []}
-
-    try:
-        # Resolve first: production passes a repo-relative nested root, and an
-        # unresolved one would silently find nothing.
-        resolved = Path(root).resolve()
-        index = read_model_demand_index.build_demand_index(
-            resolved, repo_root=resolved.parent
-        )
-        candidates = tuple(
-            row for row in index if row.relative_path not in already_loaded
-        )
-        selected = read_model_demand_index.select_read_models(candidates, question)
-    except Exception as exc:  # selection must never break the packet ...
-        # ... but it must never disguise a failure as an honest "no match".
+    demand = read_model_demand_index.select_demand_read_models(
+        root, question=question, already_loaded=already_loaded
+    )
+    selected = demand.rows
+    if demand.error:
         return (
             facts,
             refs,
             {
                 "demand_selected_read_models": [],
-                "demand_selection_error": type(exc).__name__,
+                "demand_selection_error": demand.error,
             },
         )
 

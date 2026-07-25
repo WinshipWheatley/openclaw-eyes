@@ -123,6 +123,48 @@ def test_cache_invalidates_when_a_read_model_is_added(tmp_path: Path) -> None:
     assert len(second) == 2
 
 
+def test_shared_selector_resolves_nested_relative_roots(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Every agent gets the resolve fix for free — none can repeat it."""
+
+    root = tmp_path / "generated" / "read_models"
+    root.mkdir(parents=True)
+    _write_read_model(root, "st_annes_invoice_status.json", {"status": "sent"})
+    monkeypatch.chdir(tmp_path)
+
+    selection = demand_index.select_demand_read_models(
+        Path("generated/read_models"), question="st annes invoice status"
+    )
+
+    assert [row.id for row in selection.rows] == ["st_annes_invoice_status"]
+    assert selection.error is None
+
+
+def test_shared_selector_reports_failure_instead_of_faking_no_match(
+    tmp_path: Path,
+) -> None:
+    selection = demand_index.select_demand_read_models(
+        tmp_path / "missing", question="anything at all"
+    )
+
+    assert selection.rows == ()
+    assert selection.error
+
+
+def test_shared_selector_skips_already_loaded_read_models(tmp_path: Path) -> None:
+    root = tmp_path / "read_models"
+    root.mkdir()
+    _write_read_model(root, "agent_presence.json", {"agents": []})
+    _write_read_model(root, "agent_presence_history.json", {"agents": []})
+
+    selection = demand_index.select_demand_read_models(
+        root, question="agent presence", already_loaded={"agent_presence.json"}
+    )
+
+    assert [row.id for row in selection.rows] == ["agent_presence_history"]
+
+
 def test_spine_is_the_small_always_loaded_layer(tmp_path: Path) -> None:
     root = tmp_path / "read_models"
     root.mkdir()
